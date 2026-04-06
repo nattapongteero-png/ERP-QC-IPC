@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import { ClipboardCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { ExecutionDashboard } from '@/components/production/ExecutionDashboard';
 
 interface LineClearanceStatus {
   required: boolean;
@@ -778,69 +779,7 @@ export default function WorkOrderDetailPage() {
         )}
 
         {activeTabIndex === 1 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Production Execution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">
-                  Access the detailed production execution workflow including material weighing,
-                  SOP execution, environmental monitoring, cleaning checklists, and quality control.
-                </p>
-                <DxButton
-                  text="Open Execution Dashboard"
-                  type="default"
-                  icon="runner"
-                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/execution`)}
-                />
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-                <button
-                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/material-weighing`)}
-                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
-                >
-                  <div className="text-lg font-medium text-gray-900">Material Weighing</div>
-                  <div className="text-sm text-gray-500">Record actual weights</div>
-                </button>
-                <button
-                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/sop-execution`)}
-                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
-                >
-                  <div className="text-lg font-medium text-gray-900">SOP Execution</div>
-                  <div className="text-sm text-gray-500">Execute production steps</div>
-                </button>
-                <button
-                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/environmental-monitoring`)}
-                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
-                >
-                  <div className="text-lg font-medium text-gray-900">Environmental</div>
-                  <div className="text-sm text-gray-500">Monitor temp/humidity</div>
-                </button>
-                <button
-                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/cleaning`)}
-                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
-                >
-                  <div className="text-lg font-medium text-gray-900">Cleaning</div>
-                  <div className="text-sm text-gray-500">Room/equipment checklists</div>
-                </button>
-                <button
-                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/packaging-qc`)}
-                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
-                >
-                  <div className="text-lg font-medium text-gray-900">Packaging QC</div>
-                  <div className="text-sm text-gray-500">Weight & integrity checks</div>
-                </button>
-                <button
-                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/finished-inspection`)}
-                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
-                >
-                  <div className="text-lg font-medium text-gray-900">Final Inspection</div>
-                  <div className="text-sm text-gray-500">15-point checklist</div>
-                </button>
-              </div>
-            </CardContent>
-          </Card>
+          <ExecutionDashboard workOrderId={workOrder.id} />
         )}
 
         {activeTabIndex === 2 && (
