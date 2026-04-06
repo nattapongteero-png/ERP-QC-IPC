@@ -118,6 +118,7 @@ export default function MasterDataPage() {
           <li>• <strong>{t('modules.environmentalConditions.title')}</strong> - {t('about.items.environmentalConditions')}</li>
           <li>• <strong>{t('modules.sopTemplates.title')}</strong> - {t('about.items.sopTemplates')}</li>
           <li>• <strong>{t('modules.packagingQCCriteria.title')}</strong> - {t('about.items.packagingQCCriteria')}</li>
+          <li>• <strong>{t('modules.ipcCriteria.title')}</strong> - {t('about.items.ipcCriteria')}</li>
         </ul>
       </div>
     </div>
