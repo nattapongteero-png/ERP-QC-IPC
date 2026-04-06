@@ -449,9 +449,18 @@ export default function SOPExecutionPage() {
               {steps.map((step, index) => {
                 const statusInfo = getStatusInfo(step.status);
                 const StatusIcon = statusInfo.icon;
-                const canStart = step.status === 'pending' && (index === 0 || steps[index - 1].status !== 'pending');
+                // Step progression: must verify previous step before starting next
+                const prevStep = index > 0 ? steps[index - 1] : null;
+                const prevStepDone = !prevStep ||
+                  (prevStep.requiresVerification
+                    ? prevStep.status === 'verified'
+                    : (prevStep.status === 'completed' || prevStep.status === 'verified'));
+                const canStart = step.status === 'pending' && prevStepDone;
                 const canComplete = step.status === 'in_progress';
                 const canVerify = step.status === 'completed' && step.requiresVerification;
+                // Show message when step is blocked waiting for previous verification
+                const isBlockedByVerification = step.status === 'pending' && prevStep &&
+                  prevStep.requiresVerification && prevStep.status === 'completed';
                 const expectedParams = parseJson<Record<string, number>>(step.expectedParameters);
                 const actualParams_ = parseJson<Record<string, number>>(step.actualParameters);
                 const stepEquipmentIds = parseJson<number[]>(step.equipmentIds);
@@ -658,13 +667,19 @@ export default function SOPExecutionPage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 flex-shrink-0">
+                      <div className="flex gap-2 flex-shrink-0 items-center">
+                        {isBlockedByVerification && (
+                          <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                            รอตรวจสอบ Step {prevStep!.sequence} ก่อน
+                          </span>
+                        )}
                         {canStart && (
                           <DxButton
                             text="Start"
                             icon="play"
                             type="default"
                             onClick={() => handleStartStep(step)}
+                            disabled={startStepMutation.isPending}
                           />
                         )}
                         {canComplete && (
@@ -673,6 +688,7 @@ export default function SOPExecutionPage() {
                             icon="check"
                             type="success"
                             onClick={() => handleOpenComplete(step)}
+                            disabled={completeStepMutation.isPending}
                           />
                         )}
                         {canVerify && (
