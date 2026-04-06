@@ -379,25 +379,17 @@ a:not([class]):hover {
 
   /* ===== VISUAL CLEANUP FOR PRINT ===== */
 
-  /* Remove card shadows, hover effects, and decorative backgrounds */
+  /* Remove card shadows, hover effects */
   #ebmr-content [class*="shadow"],
   #ebmr-content .rounded-lg,
   #ebmr-content .rounded-xl {
     box-shadow: none !important;
   }
 
+  /* Cards: clean border, less rounding */
   #ebmr-content .rounded-xl {
     border: 1px solid #d1d5db !important;
     border-radius: 4px !important;
-  }
-
-  /* Tighter card padding for print */
-  #ebmr-content [class*="p-6"] {
-    padding: 10pt 12pt !important;
-  }
-
-  #ebmr-content [class*="p-4"] {
-    padding: 8pt 10pt !important;
   }
 
   /* Remove colored text (save ink) - keep green/red for pass/fail */
@@ -412,9 +404,23 @@ a:not([class]):hover {
     border-color: #d1d5db !important;
   }
 
+  /* Base font size for eBMR content */
+  #ebmr-content {
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+
   /* Compact grid spacing for print */
   #ebmr-content .grid {
     gap: 6px !important;
+  }
+
+  /* FIX: Prevent grid children from overflowing into adjacent cells.
+     This fixes drug code 24 digits overlapping with G-registration number. */
+  #ebmr-content .grid > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* ===== TABLE STYLING ===== */
@@ -424,6 +430,7 @@ a:not([class]):hover {
     width: 100%;
     border-collapse: collapse;
     border: 1px solid #9ca3af;
+    table-layout: auto;
   }
 
   #ebmr-content table th {
@@ -433,12 +440,16 @@ a:not([class]):hover {
     font-size: 8.5pt;
     border: 1px solid #9ca3af;
     color: #374151;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   #ebmr-content table td {
     padding: 4px 8px !important;
     font-size: 9pt;
     border: 1px solid #d1d5db;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   /* Zebra stripes for readability */

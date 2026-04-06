@@ -887,21 +887,21 @@ export default function WorkOrderDetailPage() {
                 {(ebmr.ttmtCode || ebmr.drugCode24 || ebmr.gRegNumber) && (
                   <div className="grid grid-cols-3 gap-4 border border-t-0 p-4 rounded-b-lg -mt-1">
                     {ebmr.ttmtCode && (
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm text-gray-500">TTMT Code</p>
-                        <p className="font-semibold text-green-700">{ebmr.ttmtCode}</p>
+                        <p className="font-semibold text-green-700 break-all">{ebmr.ttmtCode}</p>
                       </div>
                     )}
                     {ebmr.drugCode24 && (
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm text-gray-500">รหัสยา 24 หลัก</p>
-                        <p className="font-semibold text-blue-700">{ebmr.drugCode24}</p>
+                        <p className="font-semibold text-blue-700 break-all">{ebmr.drugCode24}</p>
                       </div>
                     )}
                     {ebmr.gRegNumber && (
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm text-gray-500">เลขที่ทะเบียน G</p>
-                        <p className="font-semibold text-purple-700">{ebmr.gRegNumber}</p>
+                        <p className="font-semibold text-purple-700 break-all">{ebmr.gRegNumber}</p>
                       </div>
                     )}
                   </div>
