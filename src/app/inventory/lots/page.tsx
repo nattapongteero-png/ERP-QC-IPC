@@ -628,10 +628,10 @@ export default function LotsPage() {
     {
       dataField: 'warehouseName',
       caption: t('lots.grid.columns.warehouse'),
-      minWidth: 130,
+      minWidth: 200,
       cellRender: (cellInfo) => (
-        <div className="flex items-center gap-2">
-          <Warehouse className="h-4 w-4 text-gray-400" />
+        <div className="flex items-center gap-2 whitespace-nowrap">
+          <Warehouse className="h-4 w-4 text-gray-400 flex-shrink-0" />
           <span>{cellInfo.data.warehouseName || '-'}</span>
         </div>
       ),
