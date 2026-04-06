@@ -109,6 +109,7 @@ export async function GET(request: NextRequest) {
             plannedQuantity: workOrderMaterialsTable.plannedQuantity,
             actualQuantity: workOrderMaterialsTable.actualQuantity,
             unit: workOrderMaterialsTable.unit,
+            itemUnit: itemsTable.primaryUnit,
             status: workOrderMaterialsTable.status,
             onHand: itemsTable.onHand,
           })

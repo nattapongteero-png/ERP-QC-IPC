@@ -1595,13 +1595,14 @@ function RequisitionTab() {
                     const onHand = Number(mat.onHand) || 0;
                     const planned = Number(mat.plannedQuantity) || 0;
                     const isShort = onHand < planned;
+                    const unit = mat.unit || mat.itemUnit || '';
                     return (
                       <tr key={idx} className="border-t border-gray-200">
                         <td className="py-1.5 font-mono text-xs">{mat.itemCode}</td>
                         <td className="py-1.5">{mat.itemName}</td>
-                        <td className="py-1.5 text-right">{mat.plannedQuantity} {mat.unit}</td>
+                        <td className="py-1.5 text-right">{mat.plannedQuantity} {unit}</td>
                         <td className={`py-1.5 text-right font-medium ${isShort ? 'text-red-600' : 'text-green-600'}`}>
-                          {onHand.toLocaleString()} {mat.unit}
+                          {onHand.toLocaleString()} {unit}
                           {isShort && <span className="ml-1 text-xs text-red-500">(ไม่พอ)</span>}
                         </td>
                       </tr>
