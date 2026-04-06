@@ -174,11 +174,13 @@ export async function getWOEnvironmentalLogs(workOrderId: number, phase?: string
         humidity: tables.woEnvironmentalLogs.humidity,
         isNormal: tables.woEnvironmentalLogs.isNormal,
         operatorId: tables.woEnvironmentalLogs.operatorId,
+        operatorName: tables.users.name,
         notes: tables.woEnvironmentalLogs.notes,
         createdAt: tables.woEnvironmentalLogs.createdAt,
       })
       .from(tables.woEnvironmentalLogs)
       .leftJoin(tables.productionRooms, eq(tables.woEnvironmentalLogs.roomId, tables.productionRooms.id))
+      .leftJoin(tables.users, eq(tables.woEnvironmentalLogs.operatorId, tables.users.id))
       .where(eq(tables.woEnvironmentalLogs.workOrderId, workOrderId))
       .orderBy(
         desc(tables.woEnvironmentalLogs.recordedDate),
