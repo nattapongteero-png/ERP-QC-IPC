@@ -756,6 +756,45 @@ export async function listGLAccountTypes(): Promise<GLAccountType[]> {
 }
 
 /**
+ * Get GL account types with summary (account counts per type)
+ */
+export async function listGLAccountTypesWithSummary() {
+  const { glAccountTypes, glAccounts } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const types = await database
+    .select()
+    .from(glAccountTypes)
+    .orderBy(asc(glAccountTypes.displayOrder));
+
+  const accounts = await database
+    .select({
+      accountTypeId: glAccounts.accountTypeId,
+      isActive: glAccounts.isActive,
+      isPostable: glAccounts.isPostable,
+      level: glAccounts.level,
+    })
+    .from(glAccounts);
+
+  return types.map((type: (typeof types)[number]) => {
+    const typeAccounts = accounts.filter((a: any) => a.accountTypeId === type.id);
+    return {
+      id: type.id,
+      code: type.code,
+      nameTh: type.nameTh,
+      nameEn: type.nameEn,
+      category: type.category as string,
+      normalBalance: type.normalBalance as string,
+      displayOrder: type.displayOrder,
+      accountCount: typeAccounts.length,
+      activeCount: typeAccounts.filter((a: any) => a.isActive).length,
+      postableCount: typeAccounts.filter((a: any) => a.isPostable).length,
+      groupCount: typeAccounts.filter((a: any) => !a.isPostable).length,
+    };
+  });
+}
+
+/**
  * List GL accounts with optional filters
  * @param filters - Optional filters for querying accounts
  * @returns List of GL accounts
@@ -1916,6 +1955,32 @@ export async function updateAPInvoice(
 }
 
 /**
+ * Delete AP invoice (draft only)
+ * Removes invoice and its line items
+ */
+export async function deleteAPInvoice(id: number, deletedBy: number): Promise<void> {
+  const { apInvoices, apInvoiceLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const existing = await getAPInvoiceById(id);
+  if (existing.status !== 'draft') {
+    throw new Error('Can only delete draft invoices');
+  }
+
+  // Delete lines first, then invoice
+  await database.delete(apInvoiceLines).where(eq(apInvoiceLines.apInvoiceId, id));
+  await database.delete(apInvoices).where(eq(apInvoices.id, id));
+
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'ap_invoice',
+    recordId: id,
+    userId: deletedBy,
+    oldValue: { invoiceNumber: existing.invoiceNumber, totalAmount: existing.totalAmount },
+  });
+}
+
+/**
  * Approve AP invoice and create journal entry
  * Integrates with 3-way matching for PO-linked invoices
  * @param id - AP invoice ID
@@ -2208,6 +2273,83 @@ export async function listPayments(filters?: {
   );
 
   return paymentsWithInvoices;
+}
+
+/**
+ * Delete payment (pending status only)
+ * Removes payment and its allocations
+ */
+export async function deletePayment(id: number, deletedBy: number): Promise<void> {
+  const { payments, paymentAllocations } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const [existing] = await database
+    .select({ id: payments.id, paymentNumber: payments.paymentNumber, status: payments.status, amount: payments.amount })
+    .from(payments)
+    .where(eq(payments.id, id))
+    .limit(1);
+
+  if (!existing) throw new Error('Payment not found');
+  if (existing.status === 'cancelled') {
+    throw new Error('Cannot delete cancelled payments');
+  }
+
+  await database.delete(paymentAllocations).where(eq(paymentAllocations.paymentId, id));
+  await database.delete(payments).where(eq(payments.id, id));
+
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'payment',
+    recordId: id,
+    userId: deletedBy,
+    oldValue: { paymentNumber: existing.paymentNumber, amount: Number(existing.amount) },
+  });
+}
+
+/**
+ * Update payment details (non-cancelled only)
+ */
+export async function updatePayment(
+  id: number,
+  input: {
+    paymentDate?: string;
+    paymentMethod?: 'cash' | 'check' | 'transfer' | 'other';
+    bankAccountId?: number;
+    referenceNumber?: string | null;
+    description?: string | null;
+  },
+  updatedBy: number
+): Promise<void> {
+  const { payments } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const [existing] = await database
+    .select({ id: payments.id, paymentNumber: payments.paymentNumber, status: payments.status })
+    .from(payments)
+    .where(eq(payments.id, id))
+    .limit(1);
+
+  if (!existing) throw new Error('Payment not found');
+  if (existing.status === 'cancelled') {
+    throw new Error('Cannot update cancelled payments');
+  }
+
+  const updateValues: Record<string, unknown> = { updatedAt: getNow() };
+  if (input.paymentDate !== undefined) updateValues.paymentDate = toDbDate(input.paymentDate);
+  if (input.paymentMethod !== undefined) updateValues.paymentMethod = input.paymentMethod;
+  if (input.bankAccountId !== undefined) updateValues.bankAccountId = input.bankAccountId;
+  if (input.referenceNumber !== undefined) updateValues.referenceNumber = input.referenceNumber;
+  if (input.description !== undefined) updateValues.description = input.description;
+
+  await database.update(payments).set(updateValues).where(eq(payments.id, id));
+
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'payment',
+    recordId: id,
+    userId: updatedBy,
+    newValue: { paymentNumber: existing.paymentNumber, changes: input },
+  });
 }
 
 /**
@@ -2984,6 +3126,31 @@ export async function updateARInvoice(
   });
 
   return await getARInvoiceById(id);
+}
+
+/**
+ * Delete AR invoice (draft only)
+ * Removes invoice and its line items
+ */
+export async function deleteARInvoice(id: number, deletedBy: number): Promise<void> {
+  const { arInvoices, arInvoiceLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const existing = await getARInvoiceById(id);
+  if (existing.status !== 'draft') {
+    throw new Error('Can only delete draft invoices');
+  }
+
+  await database.delete(arInvoiceLines).where(eq(arInvoiceLines.arInvoiceId, id));
+  await database.delete(arInvoices).where(eq(arInvoices.id, id));
+
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'ar_invoice',
+    recordId: id,
+    userId: deletedBy,
+    oldValue: { invoiceNumber: existing.invoiceNumber, totalAmount: existing.totalAmount },
+  });
 }
 
 /**

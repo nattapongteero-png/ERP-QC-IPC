@@ -59,6 +59,7 @@ import {
   CheckCircle,
   TrendingUp,
   Play,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { LanguageSwitcher } from '@/components/shared/language-switcher';
@@ -161,6 +162,7 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Dashboard', href: '/accounting', icon: LayoutDashboard },
       { name: 'Chart of Accounts', href: '/accounting/chart-of-accounts', icon: Landmark },
+      { name: 'Account Types', href: '/accounting/account-types', icon: Layers },
       { name: 'Journal Entries', href: '/accounting/journal-entries', icon: FileText },
       { name: 'AP Invoices', href: '/accounting/ap', icon: Receipt },
       { name: 'AR Invoices', href: '/accounting/ar', icon: DollarSign },
