@@ -13,16 +13,24 @@ import {
   getProductionRoomById,
 } from '@/lib/services/master-data.service';
 
+// External API Key — same key used across master data APIs
+const EXTERNAL_API_KEY = process.env.EXTERNAL_ENV_API_KEY || 'env-monitor-2026-secret';
+
+function validateApiKey(request: NextRequest): boolean {
+  const apiKey = request.headers.get('X-API-Key');
+  return !!apiKey && apiKey === EXTERNAL_API_KEY;
+}
+
 // GET /api/master-data/production-rooms - List production rooms
+// Supports both session cookie (internal) and X-API-Key (external)
 export async function GET(request: NextRequest) {
-  return withAuth(request, async () => {
+  const handleGet = async () => {
     try {
       const { searchParams } = new URL(request.url);
       const id = searchParams.get('id');
       const roomType = searchParams.get('roomType') || undefined;
       const isActive = searchParams.get('isActive');
 
-      // Fetch single item by ID
       if (id) {
         const room = await getProductionRoomById(Number(id));
         if (!room) return successResponse(null);
@@ -39,7 +47,15 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching production rooms:', error);
       return serverErrorResponse(error);
     }
-  });
+  };
+
+  // API Key auth (external)
+  if (validateApiKey(request)) {
+    return handleGet();
+  }
+
+  // Session auth (internal — existing behavior)
+  return withAuth(request, handleGet);
 }
 
 // POST /api/master-data/production-rooms - Create production room
