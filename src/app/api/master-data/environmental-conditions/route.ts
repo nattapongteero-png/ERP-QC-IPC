@@ -79,6 +79,34 @@ export async function POST(request: NextRequest) {
   });
 }
 
+// DELETE /api/master-data/environmental-conditions?id=X - Deactivate (soft delete)
+export async function DELETE(request: NextRequest) {
+  return withAuth(request, async () => {
+    try {
+      const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
+
+      if (!id) {
+        return errorResponse('Missing condition ID');
+      }
+
+      const existing = await getEnvironmentalConditionById(Number(id));
+      if (!existing) {
+        return errorResponse('Environmental condition not found');
+      }
+
+      const condition = await updateEnvironmentalCondition(Number(id), {
+        isActive: false,
+      });
+
+      return successResponse(condition, 'Environmental condition deactivated');
+    } catch (error) {
+      console.error('Error deactivating environmental condition:', error);
+      return serverErrorResponse(error);
+    }
+  });
+}
+
 // PUT /api/master-data/environmental-conditions - Update environmental condition
 export async function PUT(request: NextRequest) {
   return withAuth(request, async () => {
