@@ -12,7 +12,7 @@
  * - Packaging materials
  */
 
-import { eq, and, desc, asc, inArray } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 import { executeDbOperation, getInsertId, getTableRef } from '../db/db-helper';
 import { isSqlite } from '../db';
 import {
@@ -1688,6 +1688,9 @@ export async function getWOIPCTests(workOrderId: number) {
             const nums = roundSamples.filter((s: any) => s.numericValue != null);
             return nums.length > 0 ? nums.reduce((sum: number, s: any) => sum + Number(s.numericValue), 0) / nums.length : null;
           })(),
+          isApproved: roundSamples.every((s: any) => s.approvedBy != null),
+          approvedBy: roundSamples[0]?.approvedBy || null,
+          approvedAt: roundSamples[0]?.approvedAt || null,
         }));
 
         return {
@@ -1856,36 +1859,66 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
 }
 
 /**
- * Approve an IPC test
+ * Approve an IPC test — per-round or entire test
+ * If testRound is provided, approves only that round's samples.
+ * If all rounds are approved, also marks the overall quality_tests record as approved.
  */
-export async function approveIPCTest(qualityTestId: number, approvedBy: number, disposition: string = 'accept') {
+export async function approveIPCTest(qualityTestId: number, approvedBy: number, disposition: string = 'accept', testRound?: number) {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const updateData: any = {
-      approvedBy,
-      approvedAt: getNow(),
-      disposition,
-    };
+    const now = getNow();
 
-    if (isSqlite()) {
-      const [updated] = await db
-        .update(tables.qualityTests)
-        .set(updateData)
-        .where(eq(tables.qualityTests.id, qualityTestId))
-        .returning();
-      return updated;
+    if (testRound) {
+      // Approve specific round: set approvedBy/approvedAt on all samples of that round
+      await db
+        .update(tables.ipcTestSamples)
+        .set({ approvedBy, approvedAt: now })
+        .where(
+          and(
+            eq(tables.ipcTestSamples.qualityTestId, qualityTestId),
+            eq(tables.ipcTestSamples.testRound, testRound)
+          )
+        );
+
+      // Check if ALL rounds are now approved
+      const unapproved = await db
+        .select({ id: tables.ipcTestSamples.id })
+        .from(tables.ipcTestSamples)
+        .where(
+          and(
+            eq(tables.ipcTestSamples.qualityTestId, qualityTestId),
+            sql`${tables.ipcTestSamples.approvedBy} IS NULL`
+          )
+        )
+        .limit(1);
+
+      // If all rounds approved, mark overall test as approved too
+      if (unapproved.length === 0) {
+        await db
+          .update(tables.qualityTests)
+          .set({ approvedBy, approvedAt: now, disposition })
+          .where(eq(tables.qualityTests.id, qualityTestId));
+      }
     } else {
+      // Legacy: approve entire test at once
       await db
         .update(tables.qualityTests)
-        .set(updateData)
+        .set({ approvedBy, approvedAt: now, disposition })
         .where(eq(tables.qualityTests.id, qualityTestId));
-      const [updated] = await db
-        .select()
-        .from(tables.qualityTests)
-        .where(eq(tables.qualityTests.id, qualityTestId));
-      return updated;
+
+      // Also mark all samples as approved
+      await db
+        .update(tables.ipcTestSamples)
+        .set({ approvedBy, approvedAt: now })
+        .where(eq(tables.ipcTestSamples.qualityTestId, qualityTestId));
     }
+
+    const [updated] = await db
+      .select()
+      .from(tables.qualityTests)
+      .where(eq(tables.qualityTests.id, qualityTestId));
+    return { ...updated, approvedRound: testRound };
   });
 }
 

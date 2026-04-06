@@ -1280,6 +1280,8 @@ export const sqliteIPCTestSamples = sqliteTable('ipc_test_samples', {
   numericValue: real('numeric_value'),
   textValue: text('text_value'),
   result: text('result'), // pass, fail
+  approvedBy: integer('approved_by'),
+  approvedAt: text('approved_at'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -4459,6 +4461,8 @@ export const mysqlIPCTestSamples = mysqlTable('ipc_test_samples', {
   numericValue: decimal('numeric_value', { precision: 15, scale: 4 }),
   textValue: mysqlText('text_value'),
   result: varchar('result', { length: 20 }), // pass, fail
+  approvedBy: int('approved_by'),
+  approvedAt: datetime('approved_at'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

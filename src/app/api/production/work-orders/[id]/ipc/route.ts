@@ -132,7 +132,8 @@ export async function POST(
         const result = await approveIPCTest(
           data.qualityTestId,
           session.userId,
-          data.disposition || 'accept'
+          data.disposition || 'accept',
+          data.testRound
         );
 
         await createAuditLog({
@@ -140,7 +141,7 @@ export async function POST(
           action: 'UPDATE',
           tableName: 'quality_tests',
           recordId: data.qualityTestId,
-          newValue: { action: 'approve_ipc', disposition: data.disposition },
+          newValue: { action: 'approve_ipc', disposition: data.disposition, testRound: data.testRound },
           ipAddress: getClientIP(request),
         });
 

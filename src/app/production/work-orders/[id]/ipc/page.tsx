@@ -73,6 +73,9 @@ interface IPCRound {
   samples: IPCSample[];
   result: string;
   avg: number | null;
+  isApproved: boolean;
+  approvedBy: number | null;
+  approvedAt: string | null;
 }
 
 interface BOMIPCConfig {
@@ -209,9 +212,9 @@ export default function IPCPage() {
     },
   });
 
-  // Approve test
+  // Approve test (per-round or entire test)
   const approveMutation = useMutation({
-    mutationFn: async (data: { qualityTestId: number; disposition?: string }) => {
+    mutationFn: async (data: { qualityTestId: number; disposition?: string; testRound?: number }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/ipc`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -485,7 +488,7 @@ export default function IPCPage() {
 
                     {/* Actions */}
                     <div className="flex gap-2">
-                      {!isApproved && !isRecorded && (
+                      {!isRecorded && (
                         <DxButton
                           text={t('execution.record')}
                           type="default"
@@ -494,22 +497,13 @@ export default function IPCPage() {
                           disabled={workOrder?.status === 'completed'}
                         />
                       )}
-                      {isRecorded && !isApproved && (
+                      {isRecorded && (
                         <DxButton
                           text={`+ Round ${(test.totalRounds || 0) + 1}`}
                           type="normal"
                           stylingMode="outlined"
                           onClick={() => openInlineRecord(test)}
-                          disabled={workOrder?.status === 'completed'}
-                        />
-                      )}
-                      {isRecorded && !isApproved && (
-                        <DxButton
-                          text={t('execution.approve')}
-                          type="success"
-                          stylingMode="outlined"
-                          onClick={() => approveMutation.mutate({ qualityTestId: test.id })}
-                          disabled={approveMutation.isPending}
+                          disabled={workOrder?.status === 'completed' || isApproved}
                         />
                       )}
                     </div>
@@ -529,20 +523,39 @@ export default function IPCPage() {
                                     Round {round.round}
                                   </span>
                                   <StatusBadge status={round.result} />
+                                  {round.isApproved && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                      <ShieldCheck className="h-3 w-3" /> Approved
+                                    </span>
+                                  )}
                                   {round.avg != null && (
                                     <span className="text-xs text-gray-500">
                                       Avg: <strong>{round.avg.toFixed(2)}</strong>{test.specUnit ? ` ${test.specUnit}` : ''}
                                     </span>
                                   )}
                                 </div>
-                                {!isApproved && (
-                                  <button
-                                    className="text-xs text-blue-600 hover:text-blue-800 underline"
-                                    onClick={() => openInlineRecord(test, round.round)}
-                                  >
-                                    แก้ไข
-                                  </button>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {!round.isApproved && (
+                                    <button
+                                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                      onClick={() => openInlineRecord(test, round.round)}
+                                    >
+                                      แก้ไข
+                                    </button>
+                                  )}
+                                  {!round.isApproved && (
+                                    <DxButton
+                                      text="Approve"
+                                      type="success"
+                                      stylingMode="outlined"
+                                      onClick={() => approveMutation.mutate({
+                                        qualityTestId: test.id,
+                                        testRound: round.round,
+                                      })}
+                                      disabled={approveMutation.isPending}
+                                    />
+                                  )}
+                                </div>
                               </div>
                               <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
                                 {round.samples.map((sample) => (
