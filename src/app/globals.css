@@ -41,12 +41,10 @@
   --chart-5: 280 67% 45%;          /* purple */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Dark mode disabled - app uses light theme only.
+   Previously, OS dark mode would set dark background variables
+   while component text remained hardcoded light-mode colors,
+   causing invisible text after language switch. */
 
 /* ===========================
    DESIGN TOKENS (Generate Utilities)
@@ -322,4 +320,165 @@ a:not([class]):hover {
 .module-kpi-tabs .dx-tab-selected {
   border-bottom: 2px solid #3b82f6;
   color: #3b82f6;
+}
+
+/* ===========================
+   PRINT STYLES - eBMR Document
+   =========================== */
+
+/* Elements visible only when printing */
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 15mm 15mm 20mm 15mm;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Hide no-print elements */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Force show eBMR content (overrides hidden class from tab state) */
+  #ebmr-content {
+    display: block !important;
+  }
+
+  /* Remove sidebar padding from main layout */
+  .lg\:pl-64 {
+    padding-left: 0 !important;
+  }
+
+  /* Remove height/overflow constraints on main content */
+  main#main-content {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  /* Page content wrapper - remove padding for print */
+  #ebmr-content {
+    padding: 0 !important;
+  }
+
+  /* Remove card shadows for clean print */
+  #ebmr-content [class*="shadow"],
+  #ebmr-content .rounded-lg,
+  #ebmr-content .rounded-xl {
+    box-shadow: none !important;
+  }
+
+  /* eBMR Table styling - professional look */
+  #ebmr-content table {
+    font-size: 9pt;
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #9ca3af;
+  }
+
+  #ebmr-content table th {
+    background-color: #e5e7eb !important;
+    font-weight: 600;
+    padding: 5px 8px !important;
+    font-size: 8.5pt;
+    border: 1px solid #9ca3af;
+    color: #374151;
+  }
+
+  #ebmr-content table td {
+    padding: 4px 8px !important;
+    font-size: 9pt;
+    border: 1px solid #d1d5db;
+  }
+
+  /* Prevent page break inside table rows */
+  #ebmr-content table tr {
+    page-break-inside: avoid;
+  }
+
+  /* Repeat table headers on each page */
+  #ebmr-content table thead {
+    display: table-header-group;
+  }
+
+  /* Zebra stripes for readability */
+  #ebmr-content table tbody tr:nth-child(even) {
+    background-color: #f8fafc !important;
+  }
+
+  /* Section page break control */
+  #ebmr-content > div {
+    page-break-inside: avoid;
+    margin-bottom: 10pt;
+  }
+
+  /* Allow page breaks in large tables */
+  #ebmr-content table {
+    page-break-inside: auto;
+  }
+
+  /* Batch record execution cards - keep together */
+  #ebmr-content .space-y-4 > .border.rounded-lg {
+    page-break-inside: avoid;
+    border: 1px solid #d1d5db !important;
+    margin-bottom: 6pt;
+  }
+
+  /* Compact grid spacing for print */
+  #ebmr-content .grid {
+    gap: 8px !important;
+  }
+
+  /* Ensure borders are visible */
+  #ebmr-content .border {
+    border-color: #d1d5db !important;
+  }
+
+  /* Print header styling */
+  .ebmr-print-header {
+    border-bottom: 2px solid #111827;
+    padding-bottom: 12pt;
+    margin-bottom: 16pt;
+  }
+
+  .ebmr-print-header h1 {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .ebmr-print-header p {
+    color: #4b5563;
+  }
+
+  /* Signature section - start on new page */
+  #ebmr-signatures {
+    page-break-before: always;
+  }
+
+  /* Print footer */
+  .ebmr-print-footer {
+    margin-top: 20pt;
+    padding-top: 8pt;
+    border-top: 1px solid #d1d5db;
+    font-size: 8pt;
+    color: #9ca3af;
+    text-align: center;
+  }
 }

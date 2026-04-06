@@ -531,7 +531,7 @@ export default function WorkOrderDetailPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between no-print">
           <div>
             <div className="flex items-center gap-3">
               <DxButton
@@ -578,7 +578,7 @@ export default function WorkOrderDetailPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 no-print">
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
@@ -632,7 +632,7 @@ export default function WorkOrderDetailPage() {
 
         {/* Line Clearance Status Card (FR-062) */}
         {lineClearanceStatus?.required && workOrder.status === 'released' && (
-          <Card className={`border-2 ${lineClearanceStatus.canStartProduction ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
+          <Card className={`border-2 no-print ${lineClearanceStatus.canStartProduction ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -665,15 +665,17 @@ export default function WorkOrderDetailPage() {
         )}
 
         {/* Tabs */}
-        <DxTabs
-          items={tabs}
-          selectedIndex={activeTabIndex}
-          onItemClick={(e) => setActiveTabIndex(e.itemIndex || 0)}
-        />
+        <div className="no-print">
+          <DxTabs
+            items={tabs}
+            selectedIndex={activeTabIndex}
+            onItemClick={(e) => setActiveTabIndex(e.itemIndex || 0)}
+          />
+        </div>
 
         {/* Tab Content */}
         {activeTabIndex === 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 no-print">
             {/* Product Info */}
             <Card>
               <CardHeader>
@@ -779,11 +781,13 @@ export default function WorkOrderDetailPage() {
         )}
 
         {activeTabIndex === 1 && (
-          <ExecutionDashboard workOrderId={workOrder.id} />
+          <div className="no-print">
+            <ExecutionDashboard workOrderId={workOrder.id} />
+          </div>
         )}
 
         {activeTabIndex === 2 && (
-          <Card>
+          <Card className="no-print">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Material Consumption</CardTitle>
@@ -810,7 +814,7 @@ export default function WorkOrderDetailPage() {
         )}
 
         {activeTabIndex === 3 && (
-          <Card>
+          <Card className="no-print">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Quality Control Tests</CardTitle>
@@ -836,9 +840,25 @@ export default function WorkOrderDetailPage() {
           </Card>
         )}
 
-        {activeTabIndex === 4 && (
-          <div className="space-y-6 print:space-y-4" id="ebmr-content">
-            {/* eBMR Header */}
+        {/* eBMR Tab Content - always rendered so print works from any tab */}
+        <div className={`space-y-6 ${activeTabIndex !== 4 ? 'hidden' : ''}`} id="ebmr-content">
+          {/* Print-only document header */}
+          <div className="print-only ebmr-print-header">
+            <div className="text-center">
+              <h1 className="text-xl font-bold text-gray-900">บริษัท เมตะเฮิร์บ จำกัด</h1>
+              <p className="text-sm text-gray-600">Metaherb Co., Ltd.</p>
+              <h2 className="text-lg font-bold text-gray-800 mt-2">Electronic Batch Manufacturing Record (eBMR)</h2>
+              <p className="text-xs text-gray-500">เอกสารบันทึกการผลิตอิเล็กทรอนิกส์</p>
+            </div>
+            <div className="grid grid-cols-4 gap-4 mt-3 text-xs border-t pt-2">
+              <div><span className="text-gray-500">WO Number:</span> <strong className="text-gray-900">{workOrder.woNumber}</strong></div>
+              <div><span className="text-gray-500">Batch No:</span> <strong className="text-gray-900">{ebmr.batchNumber || 'N/A'}</strong></div>
+              <div><span className="text-gray-500">Product:</span> <strong className="text-gray-900">{ebmr.productCode} - {ebmr.productName}</strong></div>
+              <div><span className="text-gray-500">Print Date:</span> <strong className="text-gray-900">{new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</strong></div>
+            </div>
+          </div>
+
+          {/* eBMR Header */}
             <Card>
               <CardHeader>
                 <div className="text-center">
@@ -1332,7 +1352,7 @@ export default function WorkOrderDetailPage() {
             )}
 
             {/* Signatures */}
-            <Card>
+            <Card id="ebmr-signatures">
               <CardHeader>
                 <CardTitle>Approval Signatures</CardTitle>
               </CardHeader>
@@ -1362,8 +1382,13 @@ export default function WorkOrderDetailPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
+
+            {/* Print-only footer */}
+            <div className="print-only ebmr-print-footer">
+              <p>พิมพ์จากระบบ Herbal Medicine ERP | วันที่พิมพ์: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+              <p className="mt-1">เอกสารนี้สร้างจากระบบอิเล็กทรอนิกส์ — Electronic Batch Manufacturing Record</p>
+            </div>
+        </div>
 
       {/* Item Search Dialog */}
       <ItemSearchDialog

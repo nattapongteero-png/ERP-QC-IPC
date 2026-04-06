@@ -107,7 +107,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Mobile/Tablet Overlay */}
       <div
         className={cn(
-          'fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden',
+          'fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden no-print',
           'transition-opacity duration-300 ease-out',
           'motion-reduce:transition-none',
           sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -117,14 +117,14 @@ export function MainLayout({ children }: MainLayoutProps) {
       />
 
       {/* Sidebar - Desktop */}
-      <div className="hidden lg:block lg:fixed lg:inset-y-0 lg:z-50">
+      <div className="hidden lg:block lg:fixed lg:inset-y-0 lg:z-50 no-print">
         <Sidebar user={user} onLogout={handleLogout} />
       </div>
 
       {/* Sidebar - Mobile/Tablet */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 lg:hidden',
+          'fixed inset-y-0 left-0 z-50 lg:hidden no-print',
           'transform transition-transform duration-300 ease-out',
           'motion-reduce:transition-none',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -138,7 +138,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         {/* Mobile/Tablet Header */}
         <header
           className={cn(
-            'lg:hidden sticky top-0 z-30',
+            'lg:hidden sticky top-0 z-30 no-print',
             'bg-white/80 backdrop-blur-lg',
             'border-b border-slate-200/50 shadow-sm',
             'transition-shadow duration-200',
