@@ -19,7 +19,6 @@ import DataGrid, {
   FilterRow,
   SearchPanel,
   HeaderFilter,
-  Scrolling,
   Export,
 } from 'devextreme-react/data-grid';
 import {
@@ -860,7 +859,7 @@ export default function WorkOrdersPage() {
           showColumnLines={false}
           rowAlternationEnabled={true}
           hoverStateEnabled={true}
-          height={500}
+          height="auto"
           columnAutoWidth={true}
           wordWrapEnabled={false}
           onExporting={handleExporting}
@@ -870,13 +869,13 @@ export default function WorkOrdersPage() {
             }
           }}
         >
-          <Scrolling mode="virtual" />
-          <Paging defaultPageSize={15} />
+          <Paging defaultPageSize={20} />
           <Pager
             showPageSizeSelector={true}
-            allowedPageSizes={[10, 15, 25, 50]}
+            allowedPageSizes={[10, 20, 50, 100]}
             showInfo={true}
             showNavigationButtons={true}
+            infoText="หน้า {0} จาก {1} (รวม {2} รายการ)"
           />
           <FilterRow visible={true} />
           <SearchPanel visible={true} placeholder={t('workOrders.grid.searchPlaceholder')} width={250} />
