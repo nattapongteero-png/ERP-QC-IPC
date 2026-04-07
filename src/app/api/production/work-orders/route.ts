@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
           .orderBy(bomLinesTable.sequence);
       });
 
-      // Create work order
+      // Create work order with auto-requisition (status: requested)
       const result = await executeDbOperation(async (db) => {
         return db.insert(workOrdersTable).values({
           woNumber,
@@ -198,6 +198,9 @@ export async function POST(request: NextRequest) {
           plannedEndDate: parseDbDate(plannedEndDate),
           deliveryDate: parseDbDate(deliveryDate),
           notes,
+          requisitionStatus: 'requested',
+          requisitionRequestedBy: session.userId,
+          requisitionRequestedAt: dbDate(),
           createdBy: session.userId,
           createdAt: dbDate(),
           updatedAt: dbDate(),
