@@ -1744,6 +1744,7 @@ export interface RecordIPCTestInput {
     sampleNumber: number;
     numericValue?: number;
     textValue?: string;
+    result?: string; // for checkbox mode: 'pass' or 'fail'
   }>;
 }
 
@@ -1789,13 +1790,24 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
         )
       );
 
+      const criteriaType = test.criteriaType || 'numeric';
+      const tolerancePct = Number(test.tolerancePercent) || 0;
+
       // Insert samples with round number
       for (const sample of input.samples) {
         let sampleResult: string | null = null;
-        if (sample.numericValue != null && test.specMinValue != null && test.specMaxValue != null) {
-          sampleResult = (sample.numericValue >= Number(test.specMinValue) && sample.numericValue <= Number(test.specMaxValue))
-            ? 'pass' : 'fail';
+
+        if (criteriaType === 'checkbox') {
+          // Checkbox mode: result comes directly from user input
+          sampleResult = sample.result || null;
+        } else {
+          // Numeric mode: auto-calculate from min/max
+          if (sample.numericValue != null && test.specMinValue != null && test.specMaxValue != null) {
+            sampleResult = (sample.numericValue >= Number(test.specMinValue) && sample.numericValue <= Number(test.specMaxValue))
+              ? 'pass' : 'fail';
+          }
         }
+
         await db.insert(tables.ipcTestSamples).values({
           qualityTestId: input.qualityTestId,
           sampleNumber: sample.sampleNumber,
@@ -1807,19 +1819,27 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
         });
       }
 
-      // Aggregate: if any sample fails, test fails
+      // Aggregate: tolerance-based pass/fail
       const sampleResults = input.samples.map((s) => {
+        if (criteriaType === 'checkbox') {
+          return s.result === 'pass';
+        }
         if (s.numericValue != null && test.specMinValue != null && test.specMaxValue != null) {
           return s.numericValue >= Number(test.specMinValue) && s.numericValue <= Number(test.specMaxValue);
         }
         return true; // text-only samples default to pass
       });
-      autoResult = sampleResults.every(Boolean) ? 'pass' : 'fail';
+      const failCount = sampleResults.filter((passed) => !passed).length;
+      const totalCount = sampleResults.length;
+      const failPercent = totalCount > 0 ? (failCount / totalCount) * 100 : 0;
+      autoResult = failPercent > tolerancePct ? 'fail' : 'pass';
 
-      // Calculate average numeric result from samples
-      const numericSamples = input.samples.filter((s) => s.numericValue != null);
-      if (numericSamples.length > 0) {
-        input.numericResult = numericSamples.reduce((sum, s) => sum + (s.numericValue || 0), 0) / numericSamples.length;
+      // Calculate average numeric result from samples (numeric mode only)
+      if (criteriaType === 'numeric') {
+        const numericSamples = input.samples.filter((s) => s.numericValue != null);
+        if (numericSamples.length > 0) {
+          input.numericResult = numericSamples.reduce((sum, s) => sum + (s.numericValue || 0), 0) / numericSamples.length;
+        }
       }
     } else if (input.numericResult != null) {
       // Single-value record: also track as a sample for round history
