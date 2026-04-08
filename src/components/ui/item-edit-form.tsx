@@ -291,10 +291,10 @@ interface StockStatusProps {
 }
 
 export function StockStatus({ item }: StockStatusProps) {
-  const onHand = item.onHand ?? 0;
-  const minStock = item.minStock ?? 0;
-  const maxStock = item.maxStock ?? 0;
-  const reorderPoint = item.reorderPoint ?? 0;
+  const onHand = Number(item.onHand) || 0;
+  const minStock = Number(item.minStock) || 0;
+  const maxStock = Number(item.maxStock) || 0;
+  const reorderPoint = Number(item.reorderPoint) || 0;
 
   const isLow = minStock > 0 && onHand < minStock;
   const isNearReorder = reorderPoint > 0 && onHand <= reorderPoint && !isLow;
