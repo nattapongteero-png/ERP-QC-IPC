@@ -16,7 +16,7 @@ import { sqliteWorkOrders, mysqlWorkOrders } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 // Valid phases for environmental monitoring
-const VALID_PHASES = ['production', 'packaging'];
+const VALID_PHASES = ['pre_production', 'production', 'packaging'];
 
 // External API Key for IoT/sensor integration
 const EXTERNAL_API_KEY = process.env.EXTERNAL_ENV_API_KEY || 'env-monitor-2026-secret';

@@ -31,6 +31,7 @@ import {
 interface ExecutionSummary {
   materialWeighing: { total: number; completed: number; verified: number };
   preProductionCleaning: { total: number; completed: number; verified: number };
+  preProductionEnvironmental: { total: number; recorded: number; normal: number };
   sopExecution: { total: number; completed: number; verified: number };
   productionEnvironmental: { total: number; recorded: number; normal: number };
   productionOutput: { recorded: boolean; actualQuantity: number | null; yieldPercent: number | null };
@@ -83,6 +84,7 @@ const phaseLabels = {
 const defaultSummaryValue: ExecutionSummary = {
   materialWeighing: { total: 0, completed: 0, verified: 0 },
   preProductionCleaning: { total: 0, completed: 0, verified: 0 },
+  preProductionEnvironmental: { total: 0, recorded: 0, normal: 0 },
   sopExecution: { total: 0, completed: 0, verified: 0 },
   productionEnvironmental: { total: 0, recorded: 0, normal: 0 },
   productionOutput: { recorded: false, actualQuantity: null, yieldPercent: null },
@@ -163,6 +165,20 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
         status: s.preProductionCleaning.verified === s.preProductionCleaning.total && s.preProductionCleaning.total > 0 ? 'verified'
           : s.preProductionCleaning.completed === s.preProductionCleaning.total && s.preProductionCleaning.total > 0 ? 'completed'
           : s.preProductionCleaning.completed > 0 ? 'in_progress' : 'pending',
+      }),
+    },
+    {
+      id: 'pre-production-environmental',
+      title: 'Environmental Monitoring (Pre-Production)',
+      icon: <Thermometer className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/environmental-monitoring?phase=pre_production`,
+      phase: 'pre_production',
+      description: 'Record temperature and humidity before production',
+      getStatus: (s) => ({
+        completed: s.preProductionEnvironmental?.recorded ?? 0,
+        total: s.preProductionEnvironmental?.total ?? 0,
+        status: (s.preProductionEnvironmental?.recorded ?? 0) >= (s.preProductionEnvironmental?.total ?? 0) && (s.preProductionEnvironmental?.total ?? 0) > 0 ? 'completed'
+          : (s.preProductionEnvironmental?.recorded ?? 0) > 0 ? 'in_progress' : 'pending',
       }),
     },
     {

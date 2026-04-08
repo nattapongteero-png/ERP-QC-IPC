@@ -12,7 +12,7 @@ import {
 } from '@/lib/services/bom-configuration.service';
 
 // Valid phases for environmental conditions
-const VALID_PHASES = ['production', 'packaging'];
+const VALID_PHASES = ['pre_production', 'production', 'packaging'];
 
 // GET /api/production/bom/[id]/environmental-conditions - Get environmental conditions for BOM
 export async function GET(

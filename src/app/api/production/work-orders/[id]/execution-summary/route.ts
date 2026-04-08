@@ -40,6 +40,7 @@ export async function GET(
         postProductionCleaning,
         prePackagingCleaning,
         sopExecutions,
+        preProductionEnvLogs,
         productionEnvLogs,
         packagingEnvLogs,
         packagingWeightLogs,
@@ -53,6 +54,7 @@ export async function GET(
         getWOCleaningLogs(workOrderId, 'post_production'),
         getWOCleaningLogs(workOrderId, 'pre_packaging'),
         getWOSOPExecution(workOrderId),
+        getWOEnvironmentalLogs(workOrderId, 'pre_production'),
         getWOEnvironmentalLogs(workOrderId, 'production'),
         getWOEnvironmentalLogs(workOrderId, 'packaging'),
         getWOPackagingWeightLogs(workOrderId),
@@ -87,6 +89,13 @@ export async function GET(
         total: sopExecutions.length,
         completed: sopExecutions.filter((s: any) => s.isCompleted).length,
         verified: sopExecutions.filter((s: any) => s.verifiedAt).length,
+      };
+
+      // Calculate pre-production environmental status
+      const preProductionEnvironmental = {
+        total: preProductionEnvLogs.length > 0 ? preProductionEnvLogs.length : 0,
+        recorded: preProductionEnvLogs.length,
+        normal: preProductionEnvLogs.filter((l: any) => l.isNormal).length,
       };
 
       // Calculate production environmental status
@@ -217,6 +226,7 @@ export async function GET(
         materialRequisition,
         materialWeighing,
         preProductionCleaning: preProductionCleaningStatus,
+        preProductionEnvironmental,
         productionCleaning: productionCleaningStatus,
         sopExecution,
         productionEnvironmental,

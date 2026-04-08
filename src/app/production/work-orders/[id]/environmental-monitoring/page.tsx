@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -60,9 +61,12 @@ interface WorkOrderBasic {
   status: string;
 }
 
+const PHASE_MAP = ['pre_production', 'production', 'packaging'] as const;
+
 const tabItems: DxTabItem[] = [
-  { id: 0, text: 'Production', icon: 'product' },
-  { id: 1, text: 'Packaging', icon: 'box' },
+  { id: 0, text: 'Pre-Production', icon: 'clock' },
+  { id: 1, text: 'Production', icon: 'product' },
+  { id: 2, text: 'Packaging', icon: 'box' },
 ];
 
 export default function EnvironmentalMonitoringPage() {
@@ -77,7 +81,8 @@ export default function EnvironmentalMonitoringPage() {
   const pageTitle = t('execution.environmentalMonitoring');
   const workOrderId = Number(params.id);
 
-  const initialPhase = searchParams.get('phase') === 'packaging' ? 1 : 0;
+  const phaseParam = searchParams.get('phase');
+  const initialPhase = phaseParam === 'packaging' ? 2 : phaseParam === 'production' ? 1 : 0;
   const [activeTab, setActiveTab] = useState(initialPhase);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -86,7 +91,7 @@ export default function EnvironmentalMonitoringPage() {
     notes: '',
   });
 
-  const currentPhase = activeTab === 0 ? 'production' : 'packaging';
+  const currentPhase = PHASE_MAP[activeTab] || 'pre_production';
 
   // Fetch Work Order basic info
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderBasic>({
@@ -130,7 +135,7 @@ export default function EnvironmentalMonitoringPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phase: currentPhase,
-          recordedDate: now.toISOString().split('T')[0],
+          recordedDate: toLocalDateStr(now),
           recordedTime: now.toTimeString().slice(0, 5),
           ...data,
         }),

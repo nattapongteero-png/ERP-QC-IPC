@@ -6,12 +6,12 @@
  * and packaging QC criteria for a specific BOM.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDataGrid, DxColumn, DxPaging } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -33,17 +33,17 @@ import {
   FileText,
   Scale,
   FlaskConical,
-  ArrowLeft,
-  Copy,
   Plus,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 
 // IPC Configuration Section Component
 function IPCConfigSection({ bomId }: { bomId: number }) {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [showAdd, setShowAdd] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingIpcId, setEditingIpcId] = useState<number | null>(null);
   const [selCriteria, setSelCriteria] = useState<number | null>(null);
   const [sampleSize, setSampleSize] = useState(5);
   const [isCritical, setIsCritical] = useState(false);
@@ -66,7 +66,13 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     },
   });
 
-  const available = allCriteria.filter((c: any) => !configs.some((cfg: any) => cfg.criteriaId === c.id));
+  const available = editingIpcId
+    ? allCriteria // When editing, show all criteria including current
+    : allCriteria.filter((c: any) => !configs.some((cfg: any) => cfg.criteriaId === c.id));
+
+  const resetForm = () => {
+    setShowForm(false); setEditingIpcId(null); setSelCriteria(null); setSampleSize(5); setIsCritical(false);
+  };
 
   const addMut = useMutation({
     mutationFn: async () => {
@@ -79,8 +85,25 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-ipc', bomId] });
-      setShowAdd(false); setSelCriteria(null); setSampleSize(5); setIsCritical(false);
+      resetForm();
       toast.success('Added', 'IPC criteria added.');
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const editMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/production/bom/${bomId}/ipc`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bomIpcId: editingIpcId, sampleSize, isCritical }),
+      });
+      const r = await res.json();
+      if (!r.success) throw new Error(r.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-ipc', bomId] });
+      resetForm();
+      toast.success('Updated', 'IPC criteria updated.');
     },
     onError: (e: Error) => toast.error('Error', e.message),
   });
@@ -98,6 +121,14 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     onError: (e: Error) => toast.error('Error', e.message),
   });
 
+  const openEdit = (cfg: any) => {
+    setEditingIpcId(cfg.id);
+    setSelCriteria(cfg.criteriaId);
+    setSampleSize(cfg.sampleSize);
+    setIsCritical(cfg.isCritical);
+    setShowForm(true);
+  };
+
   return (
     <Card>
       <div className="p-4">
@@ -106,8 +137,8 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
             <FlaskConical className="h-5 w-5 text-emerald-600" />
             <h3 className="text-lg font-medium">In-Process Control (IPC) Criteria</h3>
           </div>
-          {!showAdd && (
-            <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200">
+          {!showForm && (
+            <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200">
               <Plus className="h-4 w-4" /> Add IPC Criteria
             </button>
           )}
@@ -115,7 +146,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
 
         {isLoading && <div className="text-center py-6 text-gray-400">Loading...</div>}
 
-        {!isLoading && configs.length === 0 && !showAdd && (
+        {!isLoading && configs.length === 0 && !showForm && (
           <div className="text-center py-6 text-gray-500 text-sm">No IPC criteria configured.</div>
         )}
 
@@ -135,6 +166,9 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                   Samples: {cfg.sampleSize}
                 </div>
               </div>
+              <button onClick={() => openEdit(cfg)} className="p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100">
+                <Pencil className="h-4 w-4" />
+              </button>
               <button onClick={() => { if (confirm('Remove?')) delMut.mutate(cfg.id); }} className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100">
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -142,21 +176,28 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
           ))}
         </div>
 
-        {showAdd && (
+        {showForm && (
           <div className="mt-3 border border-emerald-200 bg-emerald-50/50 rounded-lg p-4 space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">IPC Criteria *</label>
-              <DxSelectBox
-                dataSource={available.map((c: any) => ({ id: c.id, display: `${c.code} - ${c.nameTh || c.name}` }))}
-                displayExpr="display" valueExpr="id" value={selCriteria}
-                onValueChanged={(e) => {
-                  setSelCriteria(e.value);
-                  const s = allCriteria.find((c: any) => c.id === e.value);
-                  if (s) { setSampleSize(s.sampleSize); setIsCritical(s.isCritical); }
-                }}
-                placeholder="Select criteria" searchEnabled
-              />
-            </div>
+            {!editingIpcId && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">IPC Criteria *</label>
+                <DxSelectBox
+                  dataSource={available.map((c: any) => ({ id: c.id, display: `${c.code} - ${c.nameTh || c.name}` }))}
+                  displayExpr="display" valueExpr="id" value={selCriteria}
+                  onValueChanged={(e) => {
+                    setSelCriteria(e.value);
+                    const s = allCriteria.find((c: any) => c.id === e.value);
+                    if (s) { setSampleSize(s.sampleSize); setIsCritical(s.isCritical); }
+                  }}
+                  placeholder="Select criteria" searchEnabled
+                />
+              </div>
+            )}
+            {editingIpcId && (
+              <div className="text-sm font-medium text-gray-700">
+                Editing: {configs.find((c: any) => c.id === editingIpcId)?.criteriaNameTh || configs.find((c: any) => c.id === editingIpcId)?.criteriaName}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sample Size</label>
@@ -168,8 +209,13 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <DxButton text="Cancel" stylingMode="text" onClick={() => setShowAdd(false)} />
-              <DxButton text="Add to BOM" type="success" onClick={() => addMut.mutate()} disabled={!selCriteria || addMut.isPending} />
+              <DxButton text="Cancel" stylingMode="text" onClick={resetForm} />
+              <DxButton
+                text={editingIpcId ? 'Save' : 'Add to BOM'}
+                type="success"
+                onClick={() => editingIpcId ? editMut.mutate() : addMut.mutate()}
+                disabled={(!editingIpcId && !selCriteria) || addMut.isPending || editMut.isPending}
+              />
             </div>
           </div>
         )}
@@ -316,6 +362,7 @@ export default function BOMConfigurationPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [dialogType, setDialogType] = useState<'room' | 'equipment' | 'condition' | 'sop' | 'qc'>('room');
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
 
   // Fetch BOM basic info
@@ -471,7 +518,7 @@ export default function BOMConfigurationPage() {
   // Delete mutations
   const deleteRoomMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/production/bom/${bomId}/rooms?roomId=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/rooms?bomRoomId=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data;
@@ -487,7 +534,7 @@ export default function BOMConfigurationPage() {
 
   const deleteEquipmentMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/production/bom/${bomId}/equipment?equipmentId=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/equipment?bomEquipmentId=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data;
@@ -503,7 +550,7 @@ export default function BOMConfigurationPage() {
 
   const deleteConditionMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/production/bom/${bomId}/environmental-conditions?conditionId=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/environmental-conditions?bomConditionId=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data;
@@ -519,7 +566,7 @@ export default function BOMConfigurationPage() {
 
   const deleteSOPMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/production/bom/${bomId}/sop-steps?stepId=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/sop-steps?bomStepId=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data;
@@ -547,6 +594,111 @@ export default function BOMConfigurationPage() {
     onError: (error: Error) => {
       toast.error('Error', error.message);
     },
+  });
+
+  // Edit mutations
+  const editRoomMutation = useMutation({
+    mutationFn: async (data: typeof roomForm & { bomRoomId: number }) => {
+      const res = await fetch(`/api/production/bom/${bomId}/rooms`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-rooms', bomId] });
+      toast.success('Room Updated', 'Room requirement has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const editEquipmentMutation = useMutation({
+    mutationFn: async (data: typeof equipmentForm & { bomEquipmentId: number }) => {
+      const res = await fetch(`/api/production/bom/${bomId}/equipment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-equipment', bomId] });
+      toast.success('Equipment Updated', 'Equipment requirement has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const editConditionMutation = useMutation({
+    mutationFn: async (data: { oldId: number; conditionId: number; phase: string }) => {
+      // Environmental conditions has no PUT - delete old + add new
+      await fetch(`/api/production/bom/${bomId}/environmental-conditions?bomConditionId=${data.oldId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/environmental-conditions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conditionId: data.conditionId, phase: data.phase }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-environmental-conditions', bomId] });
+      toast.success('Condition Updated', 'Environmental condition has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const editSOPMutation = useMutation({
+    mutationFn: async (data: typeof sopForm & { bomStepId: number; sequence: number }) => {
+      const res = await fetch(`/api/production/bom/${bomId}/sop-steps`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
+      toast.success('SOP Step Updated', 'SOP step has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const editQCMutation = useMutation({
+    mutationFn: async (data: { criteriaId: number }) => {
+      // Packaging QC has no PUT - delete all for this BOM + add new
+      await fetch(`/api/production/bom/${bomId}/packaging-qc`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/packaging-qc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-packaging-qc', bomId] });
+      toast.success('QC Criteria Updated', 'Packaging QC criteria has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
   });
 
   // Add mutations
@@ -692,45 +844,114 @@ export default function BOMConfigurationPage() {
 
   const openAddDialog = (type: typeof dialogType) => {
     setDialogType(type);
+    setEditingId(null);
     setShowAddDialog(true);
   };
 
-  const handleAdd = () => {
+  const openEditDialog = (type: typeof dialogType, item: Record<string, unknown>) => {
+    setDialogType(type);
+    setEditingId(item.id as number);
+    switch (type) {
+      case 'room':
+        setRoomForm({
+          roomId: (item.roomId as number) || 0,
+          phase: (item.phase as string) || 'production',
+          sequence: (item.sequence as number) || 1,
+          isRequired: item.isRequired !== false,
+        });
+        break;
+      case 'equipment':
+        setEquipmentForm({
+          equipmentId: (item.equipmentId as number) || 0,
+          phase: (item.phase as string) || 'production',
+          sequence: (item.sequence as number) || 1,
+          isRequired: item.isRequired !== false,
+        });
+        break;
+      case 'condition':
+        setConditionForm({
+          conditionId: (item.conditionId as number) || 0,
+          phase: (item.phase as string) || 'production',
+        });
+        break;
+      case 'sop':
+        setSOPForm({
+          templateId: (item.templateId as number) || 0,
+          stepName: (item.stepName as string) || '',
+          stepNameTh: (item.stepNameTh as string) || '',
+          instructions: (item.instructions as string) || '',
+          instructionsTh: (item.instructionsTh as string) || '',
+          parameters: (item.parameters as string) || '',
+          requiresVerification: item.requiresVerification !== false,
+        });
+        break;
+      case 'qc':
+        setQCForm({
+          criteriaId: (item.criteriaId as number) || 0,
+        });
+        break;
+    }
+    setShowAddDialog(true);
+  };
+
+  const handleSave = () => {
     switch (dialogType) {
       case 'room':
         if (!roomForm.roomId) {
           toast.error('Validation Error', 'Please select a room.');
           return;
         }
-        addRoomMutation.mutate(roomForm);
+        if (editingId) {
+          editRoomMutation.mutate({ ...roomForm, bomRoomId: editingId });
+        } else {
+          addRoomMutation.mutate(roomForm);
+        }
         break;
       case 'equipment':
         if (!equipmentForm.equipmentId) {
           toast.error('Validation Error', 'Please select equipment.');
           return;
         }
-        addEquipmentMutation.mutate(equipmentForm);
+        if (editingId) {
+          editEquipmentMutation.mutate({ ...equipmentForm, bomEquipmentId: editingId });
+        } else {
+          addEquipmentMutation.mutate(equipmentForm);
+        }
         break;
       case 'condition':
         if (!conditionForm.conditionId) {
           toast.error('Validation Error', 'Please select a condition profile.');
           return;
         }
-        addConditionMutation.mutate(conditionForm);
+        if (editingId) {
+          editConditionMutation.mutate({ oldId: editingId, ...conditionForm });
+        } else {
+          addConditionMutation.mutate(conditionForm);
+        }
         break;
-      case 'sop':
+      case 'sop': {
         if (!sopForm.stepName) {
           toast.error('Validation Error', 'Please enter a step name.');
           return;
         }
-        addSOPMutation.mutate(sopForm);
+        if (editingId) {
+          const existingStep = bomSOPSteps?.find(s => s.id === editingId);
+          editSOPMutation.mutate({ ...sopForm, bomStepId: editingId, sequence: existingStep?.sequence || 1 });
+        } else {
+          addSOPMutation.mutate(sopForm);
+        }
         break;
+      }
       case 'qc':
         if (!qcForm.criteriaId) {
           toast.error('Validation Error', 'Please select QC criteria.');
           return;
         }
-        addQCMutation.mutate(qcForm);
+        if (editingId) {
+          editQCMutation.mutate(qcForm);
+        } else {
+          addQCMutation.mutate(qcForm);
+        }
         break;
     }
   };
@@ -854,8 +1075,11 @@ export default function BOMConfigurationPage() {
                       {cell.value ? 'Yes' : 'Optional'}
                     </span>
                   )} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteRoomMutation.mutate(cell.data.id)} />
+                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                    <div className="flex gap-0.5">
+                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('room', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteRoomMutation.mutate(cell.data.id)} />
+                    </div>
                   )} />
                 </DxDataGrid>
               </div>
@@ -896,8 +1120,11 @@ export default function BOMConfigurationPage() {
                       {cell.value ? 'Yes' : 'Optional'}
                     </span>
                   )} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteEquipmentMutation.mutate(cell.data.id)} />
+                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                    <div className="flex gap-0.5">
+                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('equipment', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteEquipmentMutation.mutate(cell.data.id)} />
+                    </div>
                   )} />
                 </DxDataGrid>
               </div>
@@ -939,8 +1166,11 @@ export default function BOMConfigurationPage() {
                     <span className="text-teal-700">≤{cell.data.condition?.humidityMax}% RH</span>
                   )} />
                   <DxColumn dataField="phase" caption="Phase" width={150} cellRender={(cell) => renderPhaseBadge(cell.value)} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteConditionMutation.mutate(cell.data.id)} />
+                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                    <div className="flex gap-0.5">
+                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('condition', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteConditionMutation.mutate(cell.data.id)} />
+                    </div>
                   )} />
                 </DxDataGrid>
               </div>
@@ -988,8 +1218,11 @@ export default function BOMConfigurationPage() {
                       return cell.value;
                     }
                   }} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteSOPMutation.mutate(cell.data.id)} />
+                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                    <div className="flex gap-0.5">
+                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('sop', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteSOPMutation.mutate(cell.data.id)} />
+                    </div>
                   )} />
                 </DxDataGrid>
               </div>
@@ -1028,8 +1261,11 @@ export default function BOMConfigurationPage() {
                   <DxColumn caption="Sample Criteria" width={150} cellRender={(cell) => (
                     <span className="text-gray-600">≤{cell.data.criteria?.maxFailures}/{cell.data.criteria?.sampleSize} fail</span>
                   )} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteQCMutation.mutate(cell.data.id)} />
+                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                    <div className="flex gap-0.5">
+                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('qc', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteQCMutation.mutate(cell.data.id)} />
+                    </div>
                   )} />
                 </DxDataGrid>
               </div>
@@ -1048,11 +1284,17 @@ export default function BOMConfigurationPage() {
         visible={showAddDialog}
         onHiding={() => setShowAddDialog(false)}
         title={
-          dialogType === 'room' ? 'Add Room Requirement' :
-          dialogType === 'equipment' ? 'Add Equipment Requirement' :
-          dialogType === 'condition' ? 'Add Environmental Condition' :
-          dialogType === 'sop' ? 'Add SOP Step' :
-          'Add Packaging QC Criteria'
+          editingId
+            ? (dialogType === 'room' ? 'Edit Room Requirement' :
+               dialogType === 'equipment' ? 'Edit Equipment Requirement' :
+               dialogType === 'condition' ? 'Edit Environmental Condition' :
+               dialogType === 'sop' ? 'Edit SOP Step' :
+               'Edit Packaging QC Criteria')
+            : (dialogType === 'room' ? 'Add Room Requirement' :
+               dialogType === 'equipment' ? 'Add Equipment Requirement' :
+               dialogType === 'condition' ? 'Add Environmental Condition' :
+               dialogType === 'sop' ? 'Add SOP Step' :
+               'Add Packaging QC Criteria')
         }
         width={dialogType === 'sop' ? 650 : 500}
         height="auto"
@@ -1166,7 +1408,7 @@ export default function BOMConfigurationPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
                 <DxSelectBox
-                  dataSource={phases.filter(p => ['production', 'packaging'].includes(p.value))}
+                  dataSource={phases.filter(p => ['pre_production', 'production', 'packaging'].includes(p.value))}
                   displayExpr="label"
                   valueExpr="value"
                   value={conditionForm.phase}
@@ -1302,11 +1544,11 @@ export default function BOMConfigurationPage() {
           )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowAddDialog(false)} />
+            <DxButton text="Cancel" stylingMode="outlined" onClick={() => { setShowAddDialog(false); setEditingId(null); }} />
             <DxButton
-              text="Add"
+              text={editingId ? 'Save' : 'Add'}
               type="success"
-              onClick={handleAdd}
+              onClick={handleSave}
               disabled={
                 (dialogType === 'room' && addRoomMutation.isPending) ||
                 (dialogType === 'equipment' && addEquipmentMutation.isPending) ||
