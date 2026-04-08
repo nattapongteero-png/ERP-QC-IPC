@@ -5,7 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toQueryDate, getTodayStr, getNow } from '../db/date-utils';
+import { toQueryDate, getTodayStr, getNow, toDbDate } from '../db/date-utils';
 import { eq, and, gte, lte, desc, asc, sql, or } from 'drizzle-orm';
 import {
   sqliteInventoryLots,
@@ -239,6 +239,10 @@ export async function getAvailableLots(itemId: number): Promise<{
     eq(lots.itemId, itemId),
     eq(lots.status, 'released'),
     sql`${lots.quantity} - ${lots.reservedQuantity} > 0`,
+    // Exclude expired lots (NULL expiryDate = no expiry = always valid)
+    isSqlite()
+      ? sql`(${lots.expiryDate} IS NULL OR ${lots.expiryDate} >= date('now'))`
+      : sql`(${lots.expiryDate} IS NULL OR ${lots.expiryDate} >= CURDATE())`,
   ];
 
   const availableLots = await database
@@ -467,6 +471,9 @@ export async function receiveMaterial(
 
   // Create new lot in quarantine status
   let newLotId: number;
+  const dbExpiryDate = expiryDate ? toDbDate(expiryDate) : null;
+  const dbReceivedDate = toDbDate(getTodayStr());
+
   if (isSqlite()) {
     const [newLot] = await database
       .insert(lots)
@@ -478,8 +485,8 @@ export async function receiveMaterial(
         reservedQuantity: 0,
         unit,
         status: 'quarantine', // Always start in quarantine
-        expiryDate,
-        receivedDate: new Date().toISOString().split('T')[0],
+        expiryDate: dbExpiryDate,
+        receivedDate: dbReceivedDate,
         vendorId,
         poNumber,
       })
@@ -496,8 +503,8 @@ export async function receiveMaterial(
         reservedQuantity: 0,
         unit,
         status: 'quarantine', // Always start in quarantine
-        expiryDate,
-        receivedDate: new Date().toISOString().split('T')[0],
+        expiryDate: dbExpiryDate,
+        receivedDate: dbReceivedDate,
         vendorId,
         poNumber,
       });
@@ -1169,9 +1176,9 @@ export async function receiveMaterialExtended(
     reservedQuantity: 0,
     unit: data.unit,
     status: 'quarantine', // Always start in quarantine
-    expiryDate: data.expiryDate || null,
-    manufacturingDate: data.manufacturingDate || null,
-    receivedDate: new Date().toISOString().split('T')[0],
+    expiryDate: data.expiryDate ? toDbDate(data.expiryDate) : null,
+    manufacturingDate: data.manufacturingDate ? toDbDate(data.manufacturingDate) : null,
+    receivedDate: toDbDate(getTodayStr()),
     vendorId: data.vendorId || null,
     poNumber: data.poNumber || null,
     // FR-055: Manufacturer/Importer fields
@@ -1181,7 +1188,7 @@ export async function receiveMaterialExtended(
     importerId: data.importerId || null,
     countryOfOrigin: data.countryOfOrigin || null,
     // FR-056: Retest tracking
-    retestDate: data.retestDate || null,
+    retestDate: data.retestDate ? toDbDate(data.retestDate) : null,
     retestIntervalMonths: data.retestIntervalMonths || null,
     retestStatus,
   };

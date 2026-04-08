@@ -847,6 +847,9 @@ export async function getWOMaterials(workOrderId: number) {
         itemNameEn: tables.items.nameEn,
         itemName: tables.items.nameEn,
         itemCode: tables.items.code,
+        primaryUnit: tables.items.primaryUnit,
+        secondaryUnit: tables.items.secondaryUnit,
+        conversionRate: tables.items.conversionRate,
         // Lot details (from LEFT JOIN)
         lotNumber: tables.inventoryLots.lotNumber,
       })

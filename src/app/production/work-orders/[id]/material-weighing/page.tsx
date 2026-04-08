@@ -16,7 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
+
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -54,6 +54,9 @@ interface MaterialLine {
   lotNumber?: string;
   status?: string;
   itemAvailableQty?: number;
+  primaryUnit?: string;
+  secondaryUnit?: string;
+  conversionRate?: number;
   // Water-specific fields
   isWater?: boolean;
   waterDate?: string;
@@ -94,7 +97,7 @@ export default function MaterialWeighingPage() {
   const [showWeighDialog, setShowWeighDialog] = useState(false);
   const [formData, setFormData] = useState({
     weighedQty: 0,
-    lotId: undefined as number | undefined,
+    selectedLotIds: [] as number[],
     notes: '',
     // Water fields
     waterDate: '',
@@ -153,7 +156,8 @@ export default function MaterialWeighingPage() {
 
   // Record weight mutation
   const recordWeightMutation = useMutation({
-    mutationFn: async ({ materialId, data }: { materialId: number; data: typeof formData }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mutationFn: async ({ materialId, data }: { materialId: number; data: Record<string, any> }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/material-weighing`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -170,7 +174,7 @@ export default function MaterialWeighingPage() {
       setSelectedMaterial(null);
       setFormData({
         weighedQty: 0,
-        lotId: undefined,
+        selectedLotIds: [],
         notes: '',
         waterDate: '',
         waterConductivity: 0,
@@ -203,11 +207,34 @@ export default function MaterialWeighingPage() {
     },
   });
 
+  // Auto-select lots via FEFO to cover weighedQty
+  const autoSelectLots = (lots: AvailableLot[], weighedQty: number, material: MaterialLine | null): number[] => {
+    if (!lots || lots.length === 0 || weighedQty <= 0) return [];
+
+    // Convert weighedQty from material unit to lot unit (primaryUnit) if needed
+    let targetQty = weighedQty;
+    if (material && material.unit && material.secondaryUnit && material.conversionRate &&
+        material.unit === material.secondaryUnit && Number(material.conversionRate) > 0) {
+      targetQty = weighedQty / Number(material.conversionRate);
+    }
+
+    const selected: number[] = [];
+    let remaining = targetQty;
+
+    // Lots already sorted by FEFO from backend
+    for (const lot of lots) {
+      if (remaining <= 0) break;
+      selected.push(lot.id);
+      remaining -= lot.availableQty;
+    }
+    return selected;
+  };
+
   const handleOpenWeighDialog = (material: MaterialLine) => {
     setSelectedMaterial(material);
     setFormData({
       weighedQty: material.plannedQty,
-      lotId: material.lotId || undefined,
+      selectedLotIds: material.lotId ? [material.lotId] : [],
       notes: '',
       waterDate: material.waterDate || toLocalDateStr(new Date()),
       waterConductivity: material.waterConductivity || 0,
@@ -218,9 +245,23 @@ export default function MaterialWeighingPage() {
 
   const handleSubmitWeight = () => {
     if (!selectedMaterial) return;
+
+    // Auto-select lots if none selected
+    let lotIds = formData.selectedLotIds;
+    if (lotIds.length === 0 && availableLots && availableLots.length > 0) {
+      lotIds = autoSelectLots(availableLots, formData.weighedQty, selectedMaterial);
+    }
+
     recordWeightMutation.mutate({
       materialId: selectedMaterial.id,
-      data: formData,
+      data: {
+        weighedQty: formData.weighedQty,
+        lotId: lotIds[0] || undefined,  // Primary lot for backend
+        notes: formData.notes,
+        waterDate: formData.waterDate,
+        waterConductivity: formData.waterConductivity,
+        waterTemperature: formData.waterTemperature,
+      },
     });
   };
 
@@ -239,16 +280,6 @@ export default function MaterialWeighingPage() {
       return `${material.itemNameTh} / ${material.itemNameEn}`;
     }
     return material.itemNameTh || material.itemNameEn || material.itemName;
-  };
-
-  const formatLotDisplay = (item: AvailableLot) => {
-    if (!item) return '';
-    const expiry = item.expiryDate
-      ? `${tw('form.lot.expiry')}: ${item.expiryDate}`
-      : `${tw('form.lot.expiry')}: ${tw('form.lot.noExpiry')}`;
-    const vendor = item.vendorLotNumber || item.manufacturerName;
-    const vendorPart = vendor ? ` [${vendor}]` : '';
-    return `${item.lotNumber} (${item.availableQty?.toFixed(2)} ${item.unit}) - ${expiry}${vendorPart}`;
   };
 
   const calculateProgress = () => {
@@ -516,35 +547,100 @@ export default function MaterialWeighingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{tw('form.actualWeight')} *</label>
-              <DxNumberBox
-                value={formData.weighedQty}
-                onValueChanged={(e) => setFormData({ ...formData, weighedQty: e.value })}
-                format="#0.000"
-                min={0}
-                showSpinButtons
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {tw('form.lot.label')}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{tw('form.actualWeight')} *</label>
+            <DxNumberBox
+              value={formData.weighedQty}
+              onValueChanged={(e) => setFormData({ ...formData, weighedQty: e.value })}
+              format="#0.000"
+              min={0}
+              showSpinButtons
+            />
+          </div>
+
+          {/* Lot selection - checkbox list (FEFO sorted, non-expired only) */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                {tw('form.lot.label')} <span className="text-xs text-gray-400 font-normal">(FEFO — ใกล้หมดอายุก่อน)</span>
               </label>
-              <DxSelectBox
-                value={formData.lotId}
-                onValueChange={(value) => setFormData({ ...formData, lotId: value || undefined })}
-                dataSource={availableLots || []}
-                valueExpr="id"
-                displayExpr={(item: Record<string, unknown>) => formatLotDisplay(item as unknown as AvailableLot)}
-                placeholder={lotsLoading ? 'Loading lots...' : tw('form.lot.placeholder')}
-                disabled={lotsLoading}
-                searchEnabled
-                searchExpr="lotNumber"
-                showClearButton
-                noDataText={tw('form.lot.noData')}
-              />
+              {availableLots && availableLots.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const auto = autoSelectLots(availableLots, formData.weighedQty, selectedMaterial);
+                    setFormData({ ...formData, selectedLotIds: auto });
+                  }}
+                  className="text-xs text-emerald-600 hover:text-emerald-800 font-medium"
+                >
+                  เลือกอัตโนมัติ (FEFO)
+                </button>
+              )}
             </div>
+            {lotsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                <DxLoadIndicator height={16} width={16} /> Loading lots...
+              </div>
+            ) : !availableLots || availableLots.length === 0 ? (
+              <p className="text-sm text-gray-400 py-2">{tw('form.lot.noData')}</p>
+            ) : (
+              <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
+                {availableLots.map((lot) => {
+                  const isChecked = formData.selectedLotIds.includes(lot.id);
+                  const expiry = lot.expiryDate
+                    ? new Date(lot.expiryDate).toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' })
+                    : 'ไม่ระบุ';
+                  return (
+                    <label
+                      key={lot.id}
+                      className={`flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors ${isChecked ? 'bg-emerald-50' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          const ids = isChecked
+                            ? formData.selectedLotIds.filter(id => id !== lot.id)
+                            : [...formData.selectedLotIds, lot.id];
+                          setFormData({ ...formData, selectedLotIds: ids });
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-medium">{lot.lotNumber}</span>
+                          <span className="text-xs text-gray-500">
+                            {lot.availableQty?.toFixed(2)} {lot.unit}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          หมดอายุ: {expiry}
+                          {lot.vendorLotNumber && ` | Vendor: ${lot.vendorLotNumber}`}
+                          {lot.manufacturerName && ` | ${lot.manufacturerName}`}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            {/* Selection summary */}
+            {formData.selectedLotIds.length > 0 && availableLots && (
+              <div className="mt-2 text-xs text-gray-600 bg-gray-50 rounded px-3 py-1.5">
+                เลือก {formData.selectedLotIds.length} lot
+                {' — '}
+                รวม {availableLots
+                  .filter(l => formData.selectedLotIds.includes(l.id))
+                  .reduce((sum, l) => sum + l.availableQty, 0)
+                  .toFixed(2)}{' '}
+                {availableLots[0]?.unit}
+              </div>
+            )}
+            {formData.selectedLotIds.length === 0 && formData.weighedQty > 0 && (
+              <p className="mt-1 text-xs text-amber-600">
+                ไม่ได้เลือก lot — ระบบจะเลือกอัตโนมัติ (FEFO) เมื่อกดบันทึก
+              </p>
+            )}
           </div>
 
           {/* Variance indicator */}
