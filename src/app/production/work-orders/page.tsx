@@ -923,6 +923,22 @@ export default function WorkOrdersPage() {
             cellRender={renderStatusCell}
           />
           <Column
+            dataField="createdAt"
+            caption="วันที่สร้าง"
+            width={130}
+            dataType="date"
+            sortOrder="desc"
+            cellRender={(cell: { value: string | Date }) => {
+              if (!cell.value) return <span className="text-gray-400">-</span>;
+              const d = new Date(cell.value);
+              return (
+                <span className="text-sm text-gray-600">
+                  {d.toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' })}
+                </span>
+              );
+            }}
+          />
+          <Column
             caption=""
             width={120}
             cellRender={renderActionsCell}
