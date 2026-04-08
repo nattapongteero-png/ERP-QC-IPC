@@ -1558,6 +1558,9 @@ export async function getBOMIPCConfig(bomId: number) {
         minValue: ipcCriteria.minValue,
         maxValue: ipcCriteria.maxValue,
         unit: ipcCriteria.unit,
+        criteriaType: ipcCriteria.criteriaType,
+        tolerancePercent: ipcCriteria.tolerancePercent,
+        dosageForm: ipcCriteria.dosageForm,
         criteriaIsCritical: ipcCriteria.isCritical,
       })
       .from(tables.bomInProcessQC)
@@ -1638,6 +1641,8 @@ export async function getWOIPCTests(workOrderId: number) {
         specMaxValue: tables.qualityTests.specMaxValue,
         specSpecification: tables.qualityTests.specSpecification,
         specUnit: tables.qualityTests.specUnit,
+        criteriaType: tables.qualityTests.criteriaType,
+        tolerancePercent: tables.qualityTests.tolerancePercent,
         disposition: tables.qualityTests.disposition,
         // Spec details
         testName: tables.qualitySpecs.testName,
@@ -1692,7 +1697,14 @@ export async function getWOIPCTests(workOrderId: number) {
         const rounds = Object.entries(roundsMap).map(([round, roundSamples]) => ({
           round: Number(round),
           samples: roundSamples,
-          result: roundSamples.some((s: any) => s.result === 'fail') ? 'fail' : 'pass',
+          result: (() => {
+            const failCount = roundSamples.filter((s: any) => s.result === 'fail').length;
+            const total = roundSamples.length;
+            const tolerancePct = Number(test.tolerancePercent) || 0;
+            if (total === 0) return 'pending';
+            const failPct = (failCount / total) * 100;
+            return failPct > tolerancePct ? 'fail' : 'pass';
+          })(),
           avg: (() => {
             const nums = roundSamples.filter((s: any) => s.numericValue != null);
             return nums.length > 0 ? nums.reduce((sum: number, s: any) => sum + Number(s.numericValue), 0) / nums.length : null;
@@ -2020,6 +2032,8 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
         specMaxValue: config.maxValue,
         specSpecification: config.specification || config.testName,
         specUnit: config.unit,
+        criteriaType: config.criteriaType || 'numeric',
+        tolerancePercent: Number(config.tolerancePercent) || 0,
         notes: config.testNameTh || config.testName,
         createdAt: getNow(),
         updatedAt: getNow(),
