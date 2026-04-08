@@ -1209,7 +1209,8 @@ export const sqliteBOMEnvironmentalConditions = sqliteTable('bom_environmental_c
   id: integer('id').primaryKey({ autoIncrement: true }),
   bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
   conditionId: integer('condition_id').notNull().references(() => sqliteEnvironmentalConditions.id),
-  phase: text('phase').notNull(), // production, packaging
+  bomRoomId: integer('bom_room_id').references(() => sqliteBOMRooms.id),
+  phase: text('phase').notNull(), // pre_production, production, packaging
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -4396,7 +4397,8 @@ export const mysqlBOMEnvironmentalConditions = mysqlTable('bom_environmental_con
   id: int('id').primaryKey().autoincrement(),
   bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
   conditionId: int('condition_id').notNull().references(() => mysqlEnvironmentalConditions.id),
-  phase: varchar('phase', { length: 50 }).notNull(), // production, packaging
+  bomRoomId: int('bom_room_id').references(() => mysqlBOMRooms.id),
+  phase: varchar('phase', { length: 50 }).notNull(), // pre_production, production, packaging
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

@@ -342,10 +342,9 @@ const phases = [
 const tabItems: DxTabItem[] = [
   { id: 0, text: 'Rooms', icon: 'home' },
   { id: 1, text: 'Equipment', icon: 'toolbox' },
-  { id: 2, text: 'Environmental', icon: 'globe' },
-  { id: 3, text: 'SOP Steps', icon: 'textdocument' },
-  { id: 4, text: 'Packaging QC', icon: 'box' },
-  { id: 5, text: 'IPC', icon: 'checklist' },
+  { id: 2, text: 'SOP Steps', icon: 'textdocument' },
+  { id: 3, text: 'Packaging QC', icon: 'box' },
+  { id: 4, text: 'IPC', icon: 'checklist' },
 ];
 
 export default function BOMConfigurationPage() {
@@ -483,6 +482,7 @@ export default function BOMConfigurationPage() {
     phase: 'production' as string,
     sequence: 1,
     isRequired: true,
+    selectedConditionIds: [] as number[],
   });
 
   // Add Equipment form state
@@ -707,7 +707,13 @@ export default function BOMConfigurationPage() {
       const res = await fetch(`/api/production/bom/${bomId}/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          roomId: data.roomId,
+          phase: data.phase,
+          sequence: data.sequence,
+          isRequired: data.isRequired,
+          environmentalConditionIds: data.selectedConditionIds,
+        }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
@@ -717,7 +723,7 @@ export default function BOMConfigurationPage() {
       queryClient.invalidateQueries({ queryKey: ['bom-rooms', bomId] });
       toast.success('Room Added', 'Room requirement has been added.');
       setShowAddDialog(false);
-      setRoomForm({ roomId: 0, phase: 'production', sequence: 1, isRequired: true });
+      setRoomForm({ roomId: 0, phase: 'production', sequence: 1, isRequired: true, selectedConditionIds: [] });
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -858,6 +864,7 @@ export default function BOMConfigurationPage() {
           phase: (item.phase as string) || 'production',
           sequence: (item.sequence as number) || 1,
           isRequired: item.isRequired !== false,
+          selectedConditionIds: ((item.environmentalConditions as any[]) || []).map((ec: any) => ec.conditionId),
         });
         break;
       case 'equipment':
@@ -1075,6 +1082,19 @@ export default function BOMConfigurationPage() {
                       {cell.value ? 'Yes' : 'Optional'}
                     </span>
                   )} />
+                  <DxColumn caption="Env. Conditions" cellRender={(cell) => {
+                    const envConds = cell.data.environmentalConditions || [];
+                    if (envConds.length === 0) return <span className="text-xs text-gray-400">-</span>;
+                    return (
+                      <div className="flex flex-wrap gap-1">
+                        {envConds.map((ec: { id: number; conditionName: string }) => (
+                          <span key={ec.id} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-teal-100 text-teal-800 border border-teal-200">
+                            {ec.conditionName || 'Condition'}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  }} />
                   <DxColumn caption="Actions" width={100} cellRender={(cell) => (
                     <div className="flex gap-0.5">
                       <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('room', cell.data)} />
@@ -1131,53 +1151,8 @@ export default function BOMConfigurationPage() {
             )}
 
             {/* Environmental Conditions Tab */}
-            {activeTab === 2 && (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Thermometer className="h-5 w-5 text-teal-600" />
-                    <h3 className="text-lg font-medium">Environmental Conditions</h3>
-                  </div>
-                  <DxButton
-                    text="Add Condition"
-                    icon="plus"
-                    type="success"
-                    onClick={() => openAddDialog('condition')}
-                  />
-                </div>
-                <DxDataGrid
-                  dataSource={bomConditions || []}
-                  keyExpr="id"
-                  showBorders={false}
-                  rowAlternationEnabled
-                  loading={conditionsLoading}
-                  height={400}
-                  noDataText="No environmental conditions configured. Click 'Add Condition' to add requirements."
-                >
-                  <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="condition.code" caption="Profile Code" width={120} />
-                  <DxColumn dataField="condition.name" caption="Profile Name" />
-                  <DxColumn caption="Temperature Range" width={150} cellRender={(cell) => (
-                    <span className="text-blue-700">
-                      {cell.data.condition?.temperatureMin}-{cell.data.condition?.temperatureMax}°C
-                    </span>
-                  )} />
-                  <DxColumn caption="Max Humidity" width={120} cellRender={(cell) => (
-                    <span className="text-teal-700">≤{cell.data.condition?.humidityMax}% RH</span>
-                  )} />
-                  <DxColumn dataField="phase" caption="Phase" width={150} cellRender={(cell) => renderPhaseBadge(cell.value)} />
-                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
-                    <div className="flex gap-0.5">
-                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('condition', cell.data)} />
-                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteConditionMutation.mutate(cell.data.id)} />
-                    </div>
-                  )} />
-                </DxDataGrid>
-              </div>
-            )}
-
             {/* SOP Steps Tab */}
-            {activeTab === 3 && (
+            {activeTab === 2 && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -1229,7 +1204,7 @@ export default function BOMConfigurationPage() {
             )}
 
             {/* Packaging QC Tab */}
-            {activeTab === 4 && (
+            {activeTab === 3 && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -1275,7 +1250,7 @@ export default function BOMConfigurationPage() {
       </Card>
 
       {/* Tab 5: IPC Criteria */}
-      {activeTab === 5 && (
+      {activeTab === 4 && (
         <IPCConfigSection bomId={bomId} />
       )}
 
@@ -1296,7 +1271,7 @@ export default function BOMConfigurationPage() {
                dialogType === 'sop' ? 'Add SOP Step' :
                'Add Packaging QC Criteria')
         }
-        width={dialogType === 'sop' ? 650 : 500}
+        width={dialogType === 'sop' ? 650 : dialogType === 'room' ? 600 : 500}
         height="auto"
         showCloseButton
         dragEnabled={false}
@@ -1342,6 +1317,53 @@ export default function BOMConfigurationPage() {
                   onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setRoomForm({ ...roomForm, isRequired: e.value ?? true })}
                 />
                 <span className="text-sm text-gray-700">Required for production</span>
+              </div>
+
+              {/* Environmental Conditions Checklist */}
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Environmental Conditions ที่ต้องบันทึก
+                </label>
+                {(!conditions || conditions.length === 0) ? (
+                  <p className="text-sm text-gray-400 py-2">ไม่มี Environmental Conditions ใน Master Data</p>
+                ) : (
+                  <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
+                    {(conditions || []).filter((c: EnvironmentalCondition) => c.isActive).map((cond: EnvironmentalCondition) => {
+                      const isChecked = roomForm.selectedConditionIds.includes(cond.id);
+                      return (
+                        <label
+                          key={cond.id}
+                          className={`flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors ${isChecked ? 'bg-teal-50' : ''}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              const ids = isChecked
+                                ? roomForm.selectedConditionIds.filter(id => id !== cond.id)
+                                : [...roomForm.selectedConditionIds, cond.id];
+                              setRoomForm({ ...roomForm, selectedConditionIds: ids });
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{cond.name}</span>
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {cond.temperatureMin}-{cond.temperatureMax}°C | ≤{cond.humidityMax}% RH | ทุก {cond.monitoringIntervalMinutes} นาที
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {roomForm.selectedConditionIds.length > 0 && (
+                  <p className="mt-1 text-xs text-teal-600">
+                    เลือก {roomForm.selectedConditionIds.length} เงื่อนไข
+                  </p>
+                )}
               </div>
             </>
           )}
