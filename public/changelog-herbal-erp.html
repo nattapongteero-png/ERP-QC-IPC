@@ -133,6 +133,7 @@
 
 <script>
 var DATA=[
+  {module:'Production',menu:'Work Orders',sub:'Status Workflow',type:'feat',desc:'เพิ่มเงื่อนไข Workflow Gates: Released ต้องอนุมัติใบเบิก, In Progress ต้อง Cleaning+ชั่งเสร็จ, Completed ต้อง Final Inspection ผ่าน — แสดง Error แจ้งขั้นตอนที่ยังไม่ครบ',date:'8 เม.ย. 69',prompt:'ปรับ workflow ล็อคการเปลี่ยนสถานะ WO ให้ต้องทำขั้นตอนก่อนหน้าครบก่อน'},
   {module:'Master Data',menu:'Items',sub:'Unit Conversion',type:'fix',desc:'แก้ bug แปลงหน่วยสต็อกผิด (kg/g) — ระบบบังคับ factor มาตรฐานสำหรับคู่หน่วย kg:g=1000, l:ml=1000 อัตโนมัติ',date:'8 เม.ย. 69',prompt:'แก้ conversionRate ผิดสำหรับคู่หน่วยมาตรฐาน kg/g ให้ใช้ 1000 เท่านั้น'},
   {module:'Production',menu:'Work Orders',sub:'Environmental Monitoring',type:'feat',desc:'เพิ่มสภาวะแวดล้อม (อุณหภูมิ/ความชื้น) ใน Pre-Production — ตั้งค่าใน BOM Configuration + บันทึกใน Execution',date:'8 เม.ย. 69',prompt:'เพิ่มการบันทึกสภาวะแวดล้อมใน pre-production พร้อมตั้งค่า Master Data และ BOM'},
   {module:'Master Data',menu:'Items',sub:'Stock Status',type:'feat',desc:'แสดง Secondary Unit ในกล่อง Current Stock Status + format ตัวเลขด้วย comma',date:'8 เม.ย. 69',prompt:'แสดง secondary unit ในกล่อง stock status และใส่ comma ให้ตัวเลข'},
