@@ -173,7 +173,14 @@ export const getDefaultFormData = (): ItemFormData => ({
   defaultConfidential: false,
 });
 
-export const itemToFormData = (item: Item): ItemFormData => ({
+export const itemToFormData = (item: Item): ItemFormData => {
+  // API may return conversionRate (DB field) or conversionFactor (mapped field)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = item as any;
+  const conversionValue = raw.conversionFactor ?? raw.conversionRate ?? null;
+  const conversionFactor = conversionValue != null ? Number(conversionValue) : null;
+
+  return {
   code: item.code,
   nameTh: item.nameTh,
   nameEn: item.nameEn || '',
@@ -181,12 +188,12 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   category: item.category || '',
   primaryUnit: item.primaryUnit,
   secondaryUnit: item.secondaryUnit || '',
-  conversionFactor: item.conversionFactor,
-  minStock: item.minStock,
-  maxStock: item.maxStock,
-  reorderPoint: item.reorderPoint,
+  conversionFactor: isNaN(conversionFactor as number) ? null : conversionFactor,
+  minStock: item.minStock != null ? Number(item.minStock) : null,
+  maxStock: item.maxStock != null ? Number(item.maxStock) : null,
+  reorderPoint: item.reorderPoint != null ? Number(item.reorderPoint) : null,
   shelfLifeDays: item.shelfLifeDays,
-  storageConditions: item.storageConditions || '',
+  storageConditions: item.storageConditions || (raw.storageCondition as string) || '',
   isActive: item.isActive,
   tppCode: item.tppCode || '',
   tppName: item.tppName || '',
@@ -198,7 +205,8 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   gRegNumber: item.gRegNumber || '',
   confidentialityLevel: item.confidentialityLevel || 'public',
   defaultConfidential: item.defaultConfidential || false,
-});
+};
+};
 
 export const getTypeConfig = (type: string) => {
   return itemTypes.find(t => t.value === type) || itemTypes[4];
@@ -293,6 +301,13 @@ export function StockStatus({ item }: StockStatusProps) {
   const isOverstock = maxStock > 0 && onHand > maxStock;
   const isHealthy = !isLow && !isNearReorder && !isOverstock;
 
+  // Format number with commas, preserving decimal places
+  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+
+  // Secondary unit conversion
+  const hasSecondary = !!(item.secondaryUnit && item.conversionFactor && Number(item.conversionFactor) > 0);
+  const secondaryOnHand = hasSecondary ? onHand * Number(item.conversionFactor) : 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -305,14 +320,29 @@ export function StockStatus({ item }: StockStatusProps) {
         </Badge>
       </div>
 
-      <div className="flex items-baseline gap-2">
-        <span className={cn(
-          'text-4xl font-bold tracking-tight',
-          isLow ? 'text-red-600' : isNearReorder ? 'text-amber-600' : 'text-gray-900'
-        )}>
-          {onHand.toLocaleString()}
-        </span>
-        <span className="text-lg text-gray-500">{item.primaryUnit}</span>
+      {/* Primary unit */}
+      <div>
+        <div className="flex items-baseline gap-2">
+          <span className={cn(
+            'text-4xl font-bold tracking-tight',
+            isLow ? 'text-red-600' : isNearReorder ? 'text-amber-600' : 'text-gray-900'
+          )}>
+            {fmt(onHand)}
+          </span>
+          <span className="text-lg text-gray-500">{item.primaryUnit}</span>
+        </div>
+        {/* Secondary unit (only if secondaryUnit + conversionFactor are defined) */}
+        {hasSecondary && (
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className={cn(
+              'text-xl font-semibold',
+              isLow ? 'text-red-500' : isNearReorder ? 'text-amber-500' : 'text-gray-600'
+            )}>
+              {fmt(secondaryOnHand)}
+            </span>
+            <span className="text-sm text-gray-400">{item.secondaryUnit}</span>
+          </div>
+        )}
       </div>
 
       {maxStock > 0 && (
@@ -330,9 +360,9 @@ export function StockStatus({ item }: StockStatusProps) {
             />
           </div>
           <div className="flex justify-between text-xs text-gray-500">
-            <span>Min: {minStock.toLocaleString()}</span>
-            <span>Reorder: {reorderPoint.toLocaleString()}</span>
-            <span>Max: {maxStock.toLocaleString()}</span>
+            <span>Min: {fmt(minStock)}</span>
+            <span>Reorder: {fmt(reorderPoint)}</span>
+            <span>Max: {fmt(maxStock)}</span>
           </div>
         </div>
       )}
