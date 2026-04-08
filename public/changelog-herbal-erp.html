@@ -133,6 +133,7 @@
 
 <script>
 var DATA=[
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Configuration',type:'refac',desc:'ย้าย Environmental Conditions เข้ามาอยู่ใน Add Room dialog — ลบ tab Environmental ออก, เพิ่ม checklist เลือก condition ตอน Add Room, แสดง tag ในตาราง Rooms',date:'9 เม.ย. 69',prompt:'ย้าย env conditions มาอยู่ใน dialog Add Room ใน BOM Config แทน tab แยก'},
   {module:'Production',menu:'Work Orders',sub:'Execution Dashboard',type:'feat',desc:'ล็อคขั้นตอน Execution ที่ยังทำไม่ได้ — แสดงไอคอนล็อค + เหตุผลที่ต้องทำก่อน ป้องกันการข้ามขั้นตอน',date:'8 เม.ย. 69',prompt:'ล็อค execution sections ใน dashboard ให้ไม่สามารถกดเข้าได้ถ้าขั้นตอนก่อนหน้ายังไม่เสร็จ'},
   {module:'Production',menu:'Work Orders',sub:'Status Workflow',type:'feat',desc:'เพิ่มเงื่อนไข Workflow Gates: Released ต้องอนุมัติใบเบิก, In Progress ต้อง Cleaning+ชั่งเสร็จ, Completed ต้อง Final Inspection ผ่าน — แสดง Error แจ้งขั้นตอนที่ยังไม่ครบ',date:'8 เม.ย. 69',prompt:'ปรับ workflow ล็อคการเปลี่ยนสถานะ WO ให้ต้องทำขั้นตอนก่อนหน้าครบก่อน'},
   {module:'Master Data',menu:'Items',sub:'Unit Conversion',type:'fix',desc:'แก้ bug แปลงหน่วยสต็อกผิด (kg/g) — ระบบบังคับ factor มาตรฐานสำหรับคู่หน่วย kg:g=1000, l:ml=1000 อัตโนมัติ',date:'8 เม.ย. 69',prompt:'แก้ conversionRate ผิดสำหรับคู่หน่วยมาตรฐาน kg/g ให้ใช้ 1000 เท่านั้น'},
