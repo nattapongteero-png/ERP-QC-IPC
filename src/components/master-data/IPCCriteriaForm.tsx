@@ -14,6 +14,34 @@ import { useToast } from '@/hooks/use-toast';
 import { FlaskConical } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+// Standard IPC criteria catalog by dosage form
+interface StandardCriteria {
+  nameEn: string;
+  nameTh: string;
+  unit: string;
+  dosageForms: string[];
+}
+
+const STANDARD_IPC_CRITERIA: StandardCriteria[] = [
+  // Capsule
+  { nameEn: 'Weight Variation', nameTh: 'การทดสอบความแปรผันของน้ำหนัก', unit: 'mg', dosageForms: ['capsule', 'tablet'] },
+  { nameEn: 'Disintegration Time', nameTh: 'การทดสอบการแตกตัว', unit: 'min', dosageForms: ['capsule', 'tablet'] },
+  { nameEn: 'Moisture Content', nameTh: 'การทดสอบความชื้น', unit: '%', dosageForms: ['capsule', 'powder'] },
+  { nameEn: 'Appearance / Color / Odor', nameTh: 'การตรวจสอบลักษณะภายนอก สี และกลิ่น', unit: '', dosageForms: ['capsule', 'tablet', 'liquid', 'cream', 'ointment'] },
+  // Tablet
+  { nameEn: 'Hardness Test', nameTh: 'การทดสอบความแข็งของเม็ดยา', unit: 'N', dosageForms: ['tablet'] },
+  { nameEn: 'Friability Test', nameTh: 'การทดสอบความกร่อนของเม็ดยา', unit: '%', dosageForms: ['tablet'] },
+  { nameEn: 'Thickness & Diameter', nameTh: 'การวัดความหนาและเส้นผ่านศูนย์กลาง', unit: 'mm', dosageForms: ['tablet'] },
+  // Liquid
+  { nameEn: 'pH Value', nameTh: 'การวัดค่าความเป็นกรด-ด่าง', unit: '', dosageForms: ['liquid', 'cream', 'ointment'] },
+  { nameEn: 'Specific Gravity / Density', nameTh: 'การวัดความถ่วงจำเพาะ', unit: 'g/mL', dosageForms: ['liquid'] },
+  { nameEn: 'Viscosity', nameTh: 'การวัดความหนืด', unit: 'cP', dosageForms: ['liquid', 'cream', 'ointment'] },
+  // Semi-solid
+  { nameEn: 'Homogeneity', nameTh: 'การตรวจสอบความเป็นเนื้อเดียวกัน', unit: '', dosageForms: ['cream', 'ointment'] },
+];
+
+const CUSTOM_OPTION_VALUE = '__custom__';
+
 interface IPCCriteria {
   id: number;
   code: string;
@@ -69,6 +97,40 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   const queryClient = useQueryClient();
   const toast = useToast();
   const [formData, setFormData] = React.useState<Partial<IPCCriteria>>(initialData);
+  const [isCustomName, setIsCustomName] = React.useState(() => {
+    // In edit mode, check if name matches a standard criteria
+    if (mode === 'edit' && initialData.name) {
+      return !STANDARD_IPC_CRITERIA.some(c => c.nameEn === initialData.name);
+    }
+    return false;
+  });
+
+  // Filter standard criteria by selected dosage form (show all if none selected)
+  const filteredCriteria = React.useMemo(() => {
+    const items = formData.dosageForm
+      ? STANDARD_IPC_CRITERIA.filter(c => c.dosageForms.includes(formData.dosageForm!))
+      : STANDARD_IPC_CRITERIA;
+    return items;
+  }, [formData.dosageForm]);
+
+  // Handle standard criteria selection
+  const handleSelectStandard = (nameEn: string) => {
+    if (nameEn === CUSTOM_OPTION_VALUE) {
+      setIsCustomName(true);
+      setFormData({ ...formData, name: '', nameTh: '' });
+      return;
+    }
+    setIsCustomName(false);
+    const std = STANDARD_IPC_CRITERIA.find(c => c.nameEn === nameEn);
+    if (std) {
+      setFormData({
+        ...formData,
+        name: std.nameEn,
+        nameTh: std.nameTh,
+        unit: std.unit || formData.unit || '',
+      });
+    }
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<IPCCriteria>) => {
@@ -192,14 +254,42 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
           </div>
 
+          {/* Standard criteria selector or custom input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (TH)</label>
-            <DxTextBox value={formData.nameTh || ''} onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })} placeholder="เช่น การตรวจน้ำหนักแคปซูล" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">หัวข้อการทดสอบ (Test Name) *</label>
+            <DxSelectBox
+              value={isCustomName ? CUSTOM_OPTION_VALUE : (formData.name || '')}
+              onValueChanged={(e) => handleSelectStandard(e.value)}
+              dataSource={[
+                ...filteredCriteria.map(c => ({ value: c.nameEn, display: `${c.nameEn} — ${c.nameTh}` })),
+                { value: CUSTOM_OPTION_VALUE, display: '➕ เพิ่มหัวข้อใหม่ (Add Custom Criteria)' },
+              ]}
+              valueExpr="value"
+              displayExpr="display"
+              placeholder="เลือกหัวข้อมาตรฐาน หรือเพิ่มใหม่"
+              searchEnabled
+              showClearButton
+            />
+            {formData.name && !isCustomName && (
+              <p className="text-xs text-emerald-600 mt-1">
+                TH: {formData.nameTh} | Unit: {formData.unit || '-'}
+              </p>
+            )}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN) *</label>
-            <DxTextBox value={formData.name || ''} onValueChanged={(e) => setFormData({ ...formData, name: e.value })} placeholder="e.g., Capsule Weight Variation" />
-          </div>
+
+          {/* Custom name inputs - only shown when "Add Custom" is selected */}
+          {isCustomName && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50 rounded-lg p-4 border border-amber-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN) *</label>
+                <DxTextBox value={formData.name || ''} onValueChanged={(e) => setFormData({ ...formData, name: e.value })} placeholder="e.g., Custom Test Name" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (TH)</label>
+                <DxTextBox value={formData.nameTh || ''} onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })} placeholder="เช่น หัวข้อทดสอบกำหนดเอง" />
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Specification</label>
