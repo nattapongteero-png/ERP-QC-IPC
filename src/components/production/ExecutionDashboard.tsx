@@ -151,21 +151,6 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       }),
     },
     {
-      id: 'material-weighing',
-      title: 'Material Weighing',
-      icon: <Scale className="h-5 w-5" />,
-      href: `/production/work-orders/${workOrderId}/material-weighing`,
-      phase: 'pre_production',
-      description: 'Weigh and verify all raw materials according to BOM',
-      getStatus: (s) => ({
-        completed: s.materialWeighing.completed,
-        total: s.materialWeighing.total,
-        status: s.materialWeighing.verified === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'verified'
-          : s.materialWeighing.completed === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'completed'
-          : s.materialWeighing.completed > 0 ? 'in_progress' : 'pending',
-      }),
-    },
-    {
       id: 'pre-production-cleaning',
       title: 'Pre-Production Cleaning',
       icon: <Sparkles className="h-5 w-5" />,
@@ -178,6 +163,21 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
         status: s.preProductionCleaning.verified === s.preProductionCleaning.total && s.preProductionCleaning.total > 0 ? 'verified'
           : s.preProductionCleaning.completed === s.preProductionCleaning.total && s.preProductionCleaning.total > 0 ? 'completed'
           : s.preProductionCleaning.completed > 0 ? 'in_progress' : 'pending',
+      }),
+    },
+    {
+      id: 'material-weighing',
+      title: 'Material Weighing',
+      icon: <Scale className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/material-weighing`,
+      phase: 'pre_production',
+      description: 'Weigh and verify all raw materials according to BOM',
+      getStatus: (s) => ({
+        completed: s.materialWeighing.completed,
+        total: s.materialWeighing.total,
+        status: s.materialWeighing.verified === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'verified'
+          : s.materialWeighing.completed === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'completed'
+          : s.materialWeighing.completed > 0 ? 'in_progress' : 'pending',
       }),
     },
     {
@@ -225,19 +225,6 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       }),
     },
     {
-      id: 'production-output',
-      title: 'Production Output / Yield',
-      icon: <Package className="h-5 w-5" />,
-      href: `/production/work-orders/${workOrderId}/production-output`,
-      phase: 'post_production',
-      description: 'Record actual production quantity and calculate yield',
-      getStatus: (s) => ({
-        completed: s.productionOutput.recorded ? 1 : 0,
-        total: 1,
-        status: s.productionOutput.recorded ? 'completed' : 'pending',
-      }),
-    },
-    {
       id: 'post-production-cleaning',
       title: 'Post-Production Cleaning',
       icon: <Sparkles className="h-5 w-5" />,
@@ -250,6 +237,19 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
         status: s.postProductionCleaning.verified === s.postProductionCleaning.total && s.postProductionCleaning.total > 0 ? 'verified'
           : s.postProductionCleaning.completed === s.postProductionCleaning.total && s.postProductionCleaning.total > 0 ? 'completed'
           : s.postProductionCleaning.completed > 0 ? 'in_progress' : 'pending',
+      }),
+    },
+    {
+      id: 'production-output',
+      title: 'Production Output / Yield',
+      icon: <Package className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/production-output`,
+      phase: 'post_production',
+      description: 'Record actual production quantity and calculate yield',
+      getStatus: (s) => ({
+        completed: s.productionOutput.recorded ? 1 : 0,
+        total: 1,
+        status: s.productionOutput.recorded ? 'completed' : 'pending',
       }),
     },
     {
