@@ -133,6 +133,9 @@
 
 <script>
 var DATA=[
+  {module:'Inventory',menu:'Requisitions',sub:'Approval',type:'fix',desc:'แก้ bug เทียบหน่วยวัตถุดิบผิดในการอนุมัติใบเบิก — ระบบเทียบ g กับ kg โดยไม่แปลงหน่วย ทำให้แจ้งวัตถุดิบไม่พอทั้งที่มีพอ',date:'8 เม.ย. 69',prompt:'แก้ bug หน่วยวัตถุดิบใน Requisition approval เทียบหน่วยผิด (g vs kg)'},
+  {module:'Inventory',menu:'Requisitions',sub:'Material List',type:'fix',desc:'แก้การแสดงผล "คงเหลือในคลัง" ให้แปลงหน่วยตาม conversionRate ก่อนแสดง',date:'8 เม.ย. 69',prompt:'แก้หน้า requisition แสดงคงเหลือในคลังไม่ตรงหน่วย'},
+  {module:'Production',menu:'Work Orders',sub:'Execution',type:'fix',desc:'ปรับเรียงลำดับหน้าจอ Execution ตาม GMP workflow 6 ขั้นตอน',date:'8 เม.ย. 69',prompt:'ปรับลำดับ sections ใน Execution Dashboard ตาม Pre-Production/Production/Post-Production/Packaging/Inspection'},
   {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เพิ่มช่องรูปแบบยา (Dosage Form) สำหรับจัดกลุ่มเกณฑ์ตามประเภทยา',date:'8 เม.ย. 69',prompt:'เพิ่มช่องกำหนดรูปแบบยาใน IPC Criteria'},
   {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เพิ่มประเภทเกณฑ์ 2 แบบ: ตัวเลข (Numeric) และ ติ๊กเลือก (Checkbox)',date:'8 เม.ย. 69',prompt:'เพิ่มช่องกำหนดเกณฑ์ numeric/checkbox ใน IPC Criteria'},
   {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เพิ่ม Tolerance ±% สำหรับกำหนดเปอร์เซ็นต์ที่ยอมรับได้',date:'8 เม.ย. 69',prompt:'เพิ่มเกณฑ์ tolerance percent ใน IPC Criteria'},
