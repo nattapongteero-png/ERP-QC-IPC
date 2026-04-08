@@ -454,6 +454,8 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
   specMaxValue: real('spec_max_value'),
   specSpecification: text('spec_specification'),
   specUnit: text('spec_unit'),
+  criteriaType: text('criteria_type').default('numeric'), // numeric, checkbox — copied from ipc_criteria at init
+  tolerancePercent: real('tolerance_percent').default(0),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: integer('disposition_by').references(() => sqliteUsers.id),
@@ -1254,6 +1256,9 @@ export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
   checkIntervalMinutes: integer('check_interval_minutes').notNull().default(30),
   isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  dosageForm: text('dosage_form'),
+  criteriaType: text('criteria_type').notNull().default('numeric'), // numeric, checkbox
+  tolerancePercent: real('tolerance_percent').notNull().default(0),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1845,6 +1850,8 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   specMaxValue: decimal('spec_max_value', { precision: 15, scale: 4 }),
   specSpecification: varchar('spec_specification', { length: 500 }),
   specUnit: varchar('spec_unit', { length: 50 }),
+  criteriaType: varchar('criteria_type', { length: 20 }).default('numeric'),
+  tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).default('0'),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: varchar('disposition', { length: 50 }), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: int('disposition_by').references(() => mysqlUsers.id),
@@ -4436,6 +4443,9 @@ export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
   checkIntervalMinutes: int('check_interval_minutes').notNull().default(30),
   isCritical: mysqlBoolean('is_critical').notNull().default(false),
   isActive: mysqlBoolean('is_active').notNull().default(true),
+  dosageForm: varchar('dosage_form', { length: 100 }),
+  criteriaType: varchar('criteria_type', { length: 20 }).notNull().default('numeric'),
+  tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).notNull().default('0'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
