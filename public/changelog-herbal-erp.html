@@ -133,6 +133,8 @@
 
 <script>
 var DATA=[
+  {module:'Production',menu:'Work Orders',sub:'Material Weighing',type:'feat',desc:'เปลี่ยนตัวเลือก Lot จาก dropdown เป็น checkbox list เรียงตาม FEFO (ใกล้หมดอายุก่อน) กรองเฉพาะ lot ที่ยังไม่หมดอายุ',date:'8 เม.ย. 69',prompt:'หน้า weight แสดง lot ทั้งหมดแบบ checkbox เรียง FEFO กรอง lot หมดอายุออก'},
+  {module:'Production',menu:'Work Orders',sub:'Material Weighing',type:'feat',desc:'เพิ่มปุ่ม "เลือกอัตโนมัติ (FEFO)" และ auto-select เมื่อกดบันทึกโดยไม่เลือก lot — รวม lot หลายใบถ้าไม่พอ',date:'8 เม.ย. 69',prompt:'ถ้าไม่เลือก lot ให้ระบบเลือก lot อัตโนมัติ FEFO รวมหลาย lot ถ้าไม่พอ'},
   {module:'Inventory',menu:'Requisitions',sub:'Approval',type:'fix',desc:'แก้ bug เทียบหน่วยวัตถุดิบผิดในการอนุมัติใบเบิก — ระบบเทียบ g กับ kg โดยไม่แปลงหน่วย ทำให้แจ้งวัตถุดิบไม่พอทั้งที่มีพอ',date:'8 เม.ย. 69',prompt:'แก้ bug หน่วยวัตถุดิบใน Requisition approval เทียบหน่วยผิด (g vs kg)'},
   {module:'Inventory',menu:'Requisitions',sub:'Material List',type:'fix',desc:'แก้การแสดงผล "คงเหลือในคลัง" ให้แปลงหน่วยตาม conversionRate ก่อนแสดง',date:'8 เม.ย. 69',prompt:'แก้หน้า requisition แสดงคงเหลือในคลังไม่ตรงหน่วย'},
   {module:'Production',menu:'Work Orders',sub:'Execution',type:'fix',desc:'ปรับเรียงลำดับหน้าจอ Execution ตาม GMP workflow 6 ขั้นตอน',date:'8 เม.ย. 69',prompt:'ปรับลำดับ sections ใน Execution Dashboard ตาม Pre-Production/Production/Post-Production/Packaging/Inspection'},
