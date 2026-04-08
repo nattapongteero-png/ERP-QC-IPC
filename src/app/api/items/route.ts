@@ -123,6 +123,16 @@ export async function POST(request: NextRequest) {
         return errorResponse('Item code already exists');
       }
 
+      // Auto-correct conversion rate for standard unit pairs
+      const STANDARD_CONVERSIONS: Record<string, number> = {
+        'kg:g': 1000, 'g:mg': 1000, 'kg:mg': 1000000,
+        'l:ml': 1000, 'ml:µl': 1000, 'l:µl': 1000000,
+        't:kg': 1000,
+      };
+      const pairKey = `${(primaryUnit || '').toLowerCase()}:${(secondaryUnit || '').toLowerCase()}`;
+      const standardRate = STANDARD_CONVERSIONS[pairKey];
+      const finalConversionRate = standardRate ?? conversionFactor ?? conversionRateRaw;
+
       // Create item
       const result = await executeDbOperation(async (db) => {
         return db.insert(itemsTable).values({
@@ -133,7 +143,7 @@ export async function POST(request: NextRequest) {
           category,
           primaryUnit,
           secondaryUnit,
-          conversionRate: conversionFactor ?? conversionRateRaw,
+          conversionRate: finalConversionRate,
           shelfLifeDays,
           storageCondition,
           minStock: minStock || 0,

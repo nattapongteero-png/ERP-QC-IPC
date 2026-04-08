@@ -301,12 +301,15 @@ export function StockStatus({ item }: StockStatusProps) {
   const isOverstock = maxStock > 0 && onHand > maxStock;
   const isHealthy = !isLow && !isNearReorder && !isOverstock;
 
-  // Format number with commas, preserving decimal places
-  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+  // Format number with commas and consistent decimals
+  // Use fewer decimals for large-unit conversions (g, ml) to avoid noise
+  const fmt = (n: number, maxDecimals = 4) =>
+    n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: maxDecimals });
 
-  // Secondary unit conversion
-  const hasSecondary = !!(item.secondaryUnit && item.conversionFactor && Number(item.conversionFactor) > 0);
-  const secondaryOnHand = hasSecondary ? onHand * Number(item.conversionFactor) : 0;
+  // Secondary unit conversion — round to avoid floating-point noise
+  const convFactor = Number(item.conversionFactor) || 0;
+  const hasSecondary = !!(item.secondaryUnit && convFactor > 0);
+  const secondaryOnHand = hasSecondary ? Math.round(onHand * convFactor * 10000) / 10000 : 0;
 
   return (
     <div className="space-y-4">
@@ -338,7 +341,7 @@ export function StockStatus({ item }: StockStatusProps) {
               'text-xl font-semibold',
               isLow ? 'text-red-500' : isNearReorder ? 'text-amber-500' : 'text-gray-600'
             )}>
-              {fmt(secondaryOnHand)}
+              {fmt(secondaryOnHand, convFactor >= 100 ? 2 : 4)}
             </span>
             <span className="text-sm text-gray-400">{item.secondaryUnit}</span>
           </div>
