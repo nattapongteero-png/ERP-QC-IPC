@@ -7,6 +7,7 @@ import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxSwitch } from '@/components/ui/dx-switch';
 import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +28,9 @@ interface IPCCriteria {
   checkIntervalMinutes: number;
   isCritical: boolean;
   isActive: boolean;
+  dosageForm: string | null;
+  criteriaType: string;
+  tolerancePercent: number;
 }
 
 interface Props {
@@ -54,6 +58,7 @@ export function IPCCriteriaForm({ mode, id }: Props) {
     code: '', name: '', nameTh: '', testMethod: '', specification: '',
     minValue: null, maxValue: null, unit: '', sampleSize: 5,
     checkIntervalMinutes: 30, isCritical: false, isActive: true,
+    dosageForm: null, criteriaType: 'numeric', tolerancePercent: 0,
   };
 
   return <IPCCriteriaFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} />;
@@ -128,9 +133,62 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
               <DxTextBox value={formData.code || ''} onValueChanged={(e) => setFormData({ ...formData, code: e.value })} placeholder="e.g., IPC-WV-001" />
             </div>
+            {formData.criteriaType !== 'checkbox' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
               <DxTextBox value={formData.unit || ''} onValueChanged={(e) => setFormData({ ...formData, unit: e.value })} placeholder="e.g., mg, mm, min" />
+            </div>
+            )}
+          </div>
+
+          {/* Dosage Form and Criteria Type */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รูปแบบยา (Dosage Form)</label>
+              <DxSelectBox
+                value={formData.dosageForm || ''}
+                onValueChanged={(e) => setFormData({ ...formData, dosageForm: e.value || null })}
+                items={[
+                  { value: 'capsule', label: 'Capsule' },
+                  { value: 'tablet', label: 'Tablet' },
+                  { value: 'powder', label: 'Powder' },
+                  { value: 'liquid', label: 'Liquid' },
+                  { value: 'cream', label: 'Cream' },
+                  { value: 'ointment', label: 'Ointment' },
+                  { value: 'suppository', label: 'Suppository' },
+                  { value: 'other', label: 'Other' },
+                ]}
+                placeholder="Select dosage form"
+                showClearButton
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ประเภทเกณฑ์ (Criteria Type) *</label>
+              <DxSelectBox
+                value={formData.criteriaType || 'numeric'}
+                onValueChanged={(e) => setFormData({ ...formData, criteriaType: e.value })}
+                items={[
+                  { value: 'numeric', text: 'ตัวเลข (Numeric) — ใส่ค่าวัด + เทียบ Min/Max' },
+                  { value: 'checkbox', text: 'ติ๊กเลือก (Checkbox) — ผ่าน/ไม่ผ่าน' },
+                ]}
+                valueExpr="value"
+                displayExpr="text"
+              />
+            </div>
+          </div>
+
+          {/* Tolerance Percent */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tolerance ±%</label>
+              <DxNumberBox
+                value={formData.tolerancePercent ?? 0}
+                onValueChanged={(e) => setFormData({ ...formData, tolerancePercent: e.value })}
+                min={0}
+                max={100}
+                format="#0.##'%'"
+              />
+              <p className="text-xs text-gray-500 mt-1">0% = ทุก sample ต้องผ่าน, 10% = ยอมให้ไม่ผ่านได้ 10%</p>
             </div>
           </div>
 
@@ -152,6 +210,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <DxTextBox value={formData.testMethod || ''} onValueChanged={(e) => setFormData({ ...formData, testMethod: e.value })} placeholder="e.g., USP Weight Variation" />
           </div>
 
+          {formData.criteriaType !== 'checkbox' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Min Value</label>
@@ -162,6 +221,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               <DxNumberBox value={formData.maxValue ?? undefined} onValueChanged={(e) => setFormData({ ...formData, maxValue: e.value })} placeholder="e.g., 210" />
             </div>
           </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
