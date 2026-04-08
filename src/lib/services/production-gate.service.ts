@@ -55,6 +55,36 @@ export interface GateCheckResult {
 }
 
 /**
+ * Check if WO can be released (planned → released)
+ * Requirements:
+ * - Material requisition approved
+ */
+export async function canRelease(workOrderId: number): Promise<GateCheckResult> {
+  const blockers: string[] = [];
+  const completedChecks: string[] = [];
+
+  return executeDbOperation(async (db: any) => {
+    const workOrders = isSqlite()
+      ? (await import('../db/schema')).sqliteWorkOrders
+      : (await import('../db/schema')).mysqlWorkOrders;
+
+    const [wo] = await db.select({ requisitionStatus: workOrders.requisitionStatus })
+      .from(workOrders)
+      .where(eq(workOrders.id, workOrderId));
+
+    if (!wo) {
+      blockers.push('Work order not found');
+    } else if (wo.requisitionStatus !== 'approved') {
+      blockers.push('ใบเบิกวัตถุดิบยังไม่ได้รับการอนุมัติจากคลังสินค้า (Material requisition not approved)');
+    } else {
+      completedChecks.push('ใบเบิกวัตถุดิบอนุมัติแล้ว');
+    }
+
+    return { canProceed: blockers.length === 0, blockers, completedChecks };
+  });
+}
+
+/**
  * Check if production can start (released → in_progress)
  * Requirements:
  * - Pre-production cleaning complete + verified
@@ -125,8 +155,8 @@ export async function canStartProduction(workOrderId: number): Promise<GateCheck
  * Check if production can complete (in_progress → completed)
  * Requirements:
  * - All SOP steps completed + verified
- * - Environmental logs recorded during production
  * - Post-production cleaning complete + verified
+ * - Finished product inspection passed
  */
 export async function canCompleteProduction(workOrderId: number): Promise<GateCheckResult> {
   const tables = getTables();
@@ -141,7 +171,7 @@ export async function canCompleteProduction(workOrderId: number): Promise<GateCh
       .where(eq(tables.woSOPExecution.workOrderId, workOrderId));
 
     if (sopSteps.length === 0) {
-      blockers.push('No SOP steps initialized for work order');
+      blockers.push('ยังไม่มีขั้นตอน SOP (No SOP steps initialized)');
     } else {
       const allCompleted = sopSteps.every((step: any) => step.isCompleted);
       const allVerified = sopSteps.every(
@@ -150,14 +180,14 @@ export async function canCompleteProduction(workOrderId: number): Promise<GateCh
 
       if (!allCompleted) {
         const incomplete = sopSteps.filter((s: any) => !s.isCompleted).length;
-        blockers.push(`${incomplete} SOP step(s) not completed`);
+        blockers.push(`SOP ยังไม่เสร็จ ${incomplete} ขั้นตอน (${incomplete} SOP steps incomplete)`);
       } else if (!allVerified) {
         const unverified = sopSteps.filter(
           (s: any) => s.requiresVerification && s.verifierId === null
         ).length;
-        blockers.push(`${unverified} SOP step(s) not verified`);
+        blockers.push(`SOP ยังไม่ verify ${unverified} ขั้นตอน (${unverified} SOP steps not verified)`);
       } else {
-        completedChecks.push('All SOP steps completed and verified');
+        completedChecks.push('SOP ทุกขั้นตอนเสร็จสมบูรณ์');
       }
     }
 
@@ -173,17 +203,34 @@ export async function canCompleteProduction(workOrderId: number): Promise<GateCh
       );
 
     if (cleaningLogs.length === 0) {
-      blockers.push('No post-production cleaning logs recorded');
+      blockers.push('ยังไม่ได้บันทึก Post-Production Cleaning');
     } else {
       const allClean = cleaningLogs.every((log: any) => log.isClean);
       const allVerified = cleaningLogs.every((log: any) => log.verifierId !== null);
 
       if (!allClean) {
-        blockers.push('Not all post-production cleaning items marked as clean');
+        blockers.push('Post-Production Cleaning ยังไม่ผ่านทั้งหมด');
       } else if (!allVerified) {
-        blockers.push('Not all post-production cleaning items verified');
+        blockers.push('Post-Production Cleaning ยังไม่ได้ verify ทั้งหมด');
       } else {
-        completedChecks.push('Post-production cleaning complete and verified');
+        completedChecks.push('Post-Production Cleaning เสร็จสมบูรณ์');
+      }
+    }
+
+    // Check finished product inspection
+    const inspections = await db
+      .select()
+      .from(tables.woFinishedInspection)
+      .where(eq(tables.woFinishedInspection.workOrderId, workOrderId));
+
+    if (inspections.length === 0) {
+      blockers.push('ยังไม่ได้ตรวจ Final Inspection (Finished product inspection not recorded)');
+    } else {
+      const inspection = inspections[0];
+      if (inspection.status !== 'passed') {
+        blockers.push(`Final Inspection ยังไม่ผ่าน (status: ${inspection.status})`);
+      } else {
+        completedChecks.push('Final Inspection ผ่านแล้ว');
       }
     }
 

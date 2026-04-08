@@ -348,17 +348,6 @@ export default function WorkOrderDetailPage() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    // FR-062: Check line clearance before starting production
-    if (newStatus === 'in_progress') {
-      if (lineClearanceStatus?.required && !lineClearanceStatus?.canStartProduction) {
-        toast.error(
-          `Cannot start production: ${lineClearanceStatus.message}. ` +
-          `Please complete line clearance first.`
-        );
-        return;
-      }
-    }
-
     try {
       const response = await fetch(`/api/production/work-orders/${params.id}/status`, {
         method: 'PUT',
@@ -371,6 +360,7 @@ export default function WorkOrderDetailPage() {
         fetchWorkOrderDetail();
         fetchLineClearanceStatus();
       } else {
+        // Show blocker details from gate validation
         toast.error(result.error || 'Failed to update status');
       }
     } catch (error) {
@@ -564,7 +554,6 @@ export default function WorkOrderDetailPage() {
                 text={`Advance to ${getStatusLabel(nextStatus)}`}
                 type="default"
                 onClick={() => handleStatusChange(nextStatus)}
-                disabled={nextStatus === 'in_progress' && lineClearanceStatus?.required && !lineClearanceStatus?.canStartProduction}
               />
             )}
             <DxButton
