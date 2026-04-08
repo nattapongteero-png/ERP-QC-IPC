@@ -299,60 +299,12 @@ export default function LotsPage() {
     try {
       const params = new URLSearchParams();
       params.set('limit', '1000');
-      if (statusFilter) params.set('status', statusFilter);
 
       const res = await fetch(`/api/inventory/lots?${params}`);
       const data = await res.json();
 
       if (data.success) {
-        let fetchedLots: Lot[] = data.data?.items || data.data || [];
-
-        // Client-side search filter
-        if (search) {
-          const searchLower = search.toLowerCase();
-          fetchedLots = fetchedLots.filter((lot: Lot) =>
-            lot.lotNumber?.toLowerCase().includes(searchLower) ||
-            lot.itemCode?.toLowerCase().includes(searchLower) ||
-            lot.itemName?.toLowerCase().includes(searchLower)
-          );
-        }
-
-        // Warehouse filter
-        if (warehouseFilter) {
-          fetchedLots = fetchedLots.filter((lot: Lot) => lot.warehouseId === warehouseFilter);
-        }
-
-        // Date range filters
-        if (expiryFrom) {
-          fetchedLots = fetchedLots.filter((lot: Lot) => lot.expiryDate && new Date(lot.expiryDate) >= new Date(expiryFrom));
-        }
-        if (expiryTo) {
-          fetchedLots = fetchedLots.filter((lot: Lot) => lot.expiryDate && new Date(lot.expiryDate) <= new Date(expiryTo));
-        }
-        if (receivedFrom) {
-          fetchedLots = fetchedLots.filter((lot: Lot) => lot.receivedDate && new Date(lot.receivedDate) >= new Date(receivedFrom));
-        }
-        if (receivedTo) {
-          fetchedLots = fetchedLots.filter((lot: Lot) => lot.receivedDate && new Date(lot.receivedDate) <= new Date(receivedTo));
-        }
-
-        // Quick filters
-        if (quickFilter === 'near_expiry') {
-          fetchedLots = fetchedLots.filter((lot: Lot) => {
-            const days = getDaysUntilExpiry(lot.expiryDate);
-            return days !== null && days > 0 && days <= 30;
-          });
-        } else if (quickFilter === 'expired') {
-          fetchedLots = fetchedLots.filter((lot: Lot) => {
-            const days = getDaysUntilExpiry(lot.expiryDate);
-            return days !== null && days < 0;
-          });
-        } else if (quickFilter === 'raw_material') {
-          fetchedLots = fetchedLots.filter((lot: Lot) => lot.itemType === 'raw_material');
-        } else if (quickFilter === 'finished_goods') {
-          fetchedLots = fetchedLots.filter((lot: Lot) => lot.itemType === 'finished_good' || lot.itemType === 'finished_goods');
-        }
-
+        const fetchedLots: Lot[] = data.data?.items || data.data || [];
         setLots(fetchedLots);
       } else {
         setLots([]);
@@ -363,7 +315,65 @@ export default function LotsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, search, warehouseFilter, expiryFrom, expiryTo, receivedFrom, receivedTo, quickFilter]);
+  }, []);
+
+  // Client-side filtering — lots always holds ALL data, filteredLots is for display
+  const filteredLots = useMemo(() => {
+    let result = lots;
+
+    // Status filter
+    if (statusFilter) {
+      result = result.filter((lot) => lot.status === statusFilter);
+    }
+
+    // Search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter((lot) =>
+        lot.lotNumber?.toLowerCase().includes(searchLower) ||
+        lot.itemCode?.toLowerCase().includes(searchLower) ||
+        lot.itemName?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Warehouse filter
+    if (warehouseFilter) {
+      result = result.filter((lot) => lot.warehouseId === warehouseFilter);
+    }
+
+    // Date range filters
+    if (expiryFrom) {
+      result = result.filter((lot) => lot.expiryDate && new Date(lot.expiryDate) >= new Date(expiryFrom));
+    }
+    if (expiryTo) {
+      result = result.filter((lot) => lot.expiryDate && new Date(lot.expiryDate) <= new Date(expiryTo));
+    }
+    if (receivedFrom) {
+      result = result.filter((lot) => lot.receivedDate && new Date(lot.receivedDate) >= new Date(receivedFrom));
+    }
+    if (receivedTo) {
+      result = result.filter((lot) => lot.receivedDate && new Date(lot.receivedDate) <= new Date(receivedTo));
+    }
+
+    // Quick filters
+    if (quickFilter === 'near_expiry') {
+      result = result.filter((lot) => {
+        const days = getDaysUntilExpiry(lot.expiryDate);
+        return days !== null && days > 0 && days <= 30;
+      });
+    } else if (quickFilter === 'expired') {
+      result = result.filter((lot) => {
+        const days = getDaysUntilExpiry(lot.expiryDate);
+        return days !== null && days < 0;
+      });
+    } else if (quickFilter === 'raw_material') {
+      result = result.filter((lot) => lot.itemType === 'raw_material');
+    } else if (quickFilter === 'finished_goods') {
+      result = result.filter((lot) => lot.itemType === 'finished_good' || lot.itemType === 'finished_goods');
+    }
+
+    return result;
+  }, [lots, statusFilter, search, warehouseFilter, expiryFrom, expiryTo, receivedFrom, receivedTo, quickFilter]);
 
   const fetchMasterData = async () => {
     try {
@@ -865,7 +875,7 @@ export default function LotsPage() {
                   <span>{formatCurrency(stats.totalValue)}</span>
                 </div>
                 <div className="text-gray-400">|</div>
-                <span className="text-gray-500">{t('common.lotsShown', { count: lots.length })}</span>
+                <span className="text-gray-500">{t('common.lotsShown', { count: filteredLots.length })}</span>
               </div>
             </div>
           </div>
@@ -934,9 +944,9 @@ export default function LotsPage() {
 
           {/* DataGrid */}
           <div className="p-4">
-            {lots.length > 0 || isLoading ? (
+            {filteredLots.length > 0 || isLoading ? (
               <DxDataGrid
-                dataSource={lots}
+                dataSource={filteredLots}
                 keyExpr="id"
                 columns={columns}
                 loading={isLoading}
@@ -1492,6 +1502,10 @@ function RequisitionTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-requisitions'] });
+      toast.success('อนุมัติปล่อยวัตถุดิบเรียบร้อย');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'ไม่สามารถอนุมัติได้');
     },
   });
 
@@ -1592,17 +1606,23 @@ function RequisitionTab() {
                 <tbody>
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {req.materials.map((mat: any, idx: number) => {
-                    const onHand = Number(mat.onHand) || 0;
+                    let available = Number(mat.releasedAvailable ?? mat.onHand) || 0;
+                    // Convert available stock (primaryUnit) to material unit if different
+                    // e.g., inventory in kg, material needs g → multiply by conversionRate
+                    if (mat.unit && mat.secondaryUnit && mat.conversionRate &&
+                        mat.unit === mat.secondaryUnit && Number(mat.conversionRate) > 0) {
+                      available = available * Number(mat.conversionRate);
+                    }
                     const planned = Number(mat.plannedQuantity) || 0;
-                    const isShort = onHand < planned;
+                    const isShort = available < planned;
                     const unit = mat.unit || mat.itemUnit || '';
                     return (
                       <tr key={idx} className="border-t border-gray-200">
                         <td className="py-1.5 font-mono text-xs">{mat.itemCode}</td>
                         <td className="py-1.5">{mat.itemName}</td>
-                        <td className="py-1.5 text-right">{mat.plannedQuantity} {unit}</td>
+                        <td className="py-1.5 text-right">{Number(mat.plannedQuantity).toLocaleString()} {unit}</td>
                         <td className={`py-1.5 text-right font-medium ${isShort ? 'text-red-600' : 'text-green-600'}`}>
-                          {onHand.toLocaleString()} {unit}
+                          {available.toLocaleString()} {unit}
                           {isShort && <span className="ml-1 text-xs text-red-500">(ไม่พอ)</span>}
                         </td>
                       </tr>

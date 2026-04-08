@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { successResponse, errorResponse, serverErrorResponse, withAuth } from '@/lib/api-utils';
 import { getNow } from '@/lib/db/date-utils';
@@ -79,6 +79,79 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       if (wo.requisitionStatus !== 'requested') {
         return errorResponse(
           `Cannot approve requisition with status '${wo.requisitionStatus}'. Status must be 'requested'.`
+        );
+      }
+
+      // Validate: check material availability before approval
+      const workOrderMaterialsTable = getTableRef('workOrderMaterials');
+      const itemsTable = getTableRef('items');
+      const lotsTable = getTableRef('inventoryLots');
+
+      const materials = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            itemId: workOrderMaterialsTable.itemId,
+            plannedQuantity: workOrderMaterialsTable.plannedQuantity,
+            unit: workOrderMaterialsTable.unit,
+            itemCode: itemsTable.code,
+            itemName: itemsTable.nameTh,
+            primaryUnit: itemsTable.primaryUnit,
+            secondaryUnit: itemsTable.secondaryUnit,
+            conversionRate: itemsTable.conversionRate,
+          })
+          .from(workOrderMaterialsTable)
+          .leftJoin(itemsTable, eq(workOrderMaterialsTable.itemId, itemsTable.id))
+          .where(eq(workOrderMaterialsTable.workOrderId, workOrderId));
+      });
+
+      // Check available released lot quantities for each material
+      const insufficientMaterials: { itemCode: string; itemName: string; required: number; available: number; unit: string }[] = [];
+
+      for (const mat of materials) {
+        const requiredQty = Number(mat.plannedQuantity) || 0;
+        if (requiredQty <= 0) continue;
+
+        // Sum available quantity from released lots (in item's primary unit)
+        const availableResult = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              totalAvailable: sql<string>`COALESCE(SUM(${lotsTable.quantity} - ${lotsTable.reservedQuantity}), 0)`,
+            })
+            .from(lotsTable)
+            .where(and(
+              eq(lotsTable.itemId, mat.itemId),
+              eq(lotsTable.status, 'released'),
+              sql`${lotsTable.quantity} - ${lotsTable.reservedQuantity} > 0`
+            ));
+        });
+
+        let availableQty = Number(availableResult[0]?.totalAvailable) || 0;
+
+        // Convert available stock to material's unit if they differ
+        // e.g., inventory in kg, material needs g → multiply by conversionRate
+        if (mat.unit && mat.secondaryUnit && mat.conversionRate &&
+            mat.unit === mat.secondaryUnit && Number(mat.conversionRate) > 0) {
+          availableQty = availableQty * Number(mat.conversionRate);
+        }
+
+        if (availableQty < requiredQty) {
+          insufficientMaterials.push({
+            itemCode: mat.itemCode || `ID:${mat.itemId}`,
+            itemName: mat.itemName || '',
+            required: requiredQty,
+            available: availableQty,
+            unit: mat.unit as string,
+          });
+        }
+      }
+
+      if (insufficientMaterials.length > 0) {
+        const details = insufficientMaterials
+          .map(m => `${m.itemCode} (${m.itemName}): ต้องการ ${m.required.toLocaleString()} ${m.unit} แต่มี ${m.available.toLocaleString()} ${m.unit}`)
+          .join('\n');
+
+        return errorResponse(
+          `วัตถุดิบไม่เพียงพอ ไม่สามารถอนุมัติได้\n${details}`
         );
       }
 

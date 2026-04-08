@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { eq, or, inArray, desc } from 'drizzle-orm';
+import { eq, or, inArray, desc, and, sql } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { successResponse, serverErrorResponse, withAuth } from '@/lib/api-utils';
 
@@ -110,6 +110,8 @@ export async function GET(request: NextRequest) {
             actualQuantity: workOrderMaterialsTable.actualQuantity,
             unit: workOrderMaterialsTable.unit,
             itemUnit: itemsTable.primaryUnit,
+            secondaryUnit: itemsTable.secondaryUnit,
+            conversionRate: itemsTable.conversionRate,
             status: workOrderMaterialsTable.status,
             onHand: itemsTable.onHand,
           })
@@ -118,14 +120,44 @@ export async function GET(request: NextRequest) {
           .where(inArray(workOrderMaterialsTable.workOrderId, woIds));
       });
 
-      // Group materials by workOrderId
-      const materialsMap = new Map<number, typeof allMaterials>();
+      // Calculate actual available quantity from released lots for each unique item
+      const lotsTable = getTableRef('inventoryLots');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const uniqueItemIds = [...new Set(allMaterials.map((m: any) => m.itemId as number))];
+      const availableMap = new Map<number, number>();
+
+      if (uniqueItemIds.length > 0) {
+        const availableResults = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              itemId: lotsTable.itemId,
+              totalAvailable: sql<string>`COALESCE(SUM(${lotsTable.quantity} - ${lotsTable.reservedQuantity}), 0)`,
+            })
+            .from(lotsTable)
+            .where(and(
+              inArray(lotsTable.itemId, uniqueItemIds),
+              eq(lotsTable.status, 'released'),
+              sql`${lotsTable.quantity} - ${lotsTable.reservedQuantity} > 0`
+            ))
+            .groupBy(lotsTable.itemId);
+        });
+
+        for (const row of availableResults) {
+          availableMap.set(row.itemId as number, Number(row.totalAvailable) || 0);
+        }
+      }
+
+      // Group materials by workOrderId, adding releasedAvailable
+      const materialsMap = new Map<number, (typeof allMaterials[0] & { releasedAvailable: number })[]>();
       for (const mat of allMaterials) {
         const woId = mat.workOrderId as number;
         if (!materialsMap.has(woId)) {
           materialsMap.set(woId, []);
         }
-        materialsMap.get(woId)!.push(mat);
+        materialsMap.get(woId)!.push({
+          ...mat,
+          releasedAvailable: availableMap.get(mat.itemId as number) ?? 0,
+        });
       }
 
       // Build final response
