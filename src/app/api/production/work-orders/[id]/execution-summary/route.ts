@@ -151,11 +151,12 @@ export async function GET(
           : 'pending',
       };
 
-      // Fetch production output status from work order
+      // Fetch production output status and WO status from work order
       const woData = await executeDbOperation(async (db) => {
         const workOrders = getTableRef('workOrders');
         const rows = await db
           .select({
+            status: workOrders.status,
             actualQuantity: workOrders.actualQuantity,
             yieldPercentage: workOrders.yieldPercentage,
           })
@@ -223,6 +224,7 @@ export async function GET(
       };
 
       const summary = {
+        workOrderStatus: woData?.status || 'planned',
         materialRequisition,
         materialWeighing,
         preProductionCleaning: preProductionCleaningStatus,

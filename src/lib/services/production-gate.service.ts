@@ -6,7 +6,7 @@
  */
 
 import { eq, and } from 'drizzle-orm';
-import { executeDbOperation } from '../db/db-helper';
+import { executeDbOperation, getTableRef } from '../db/db-helper';
 import { isSqlite } from '../db';
 import {
   sqliteWOCleaningLogs,
@@ -64,9 +64,7 @@ export async function canRelease(workOrderId: number): Promise<GateCheckResult> 
   const completedChecks: string[] = [];
 
   return executeDbOperation(async (db: any) => {
-    const workOrders = isSqlite()
-      ? (await import('../db/schema')).sqliteWorkOrders
-      : (await import('../db/schema')).mysqlWorkOrders;
+    const workOrders = getTableRef('workOrders');
 
     const [wo] = await db.select({ requisitionStatus: workOrders.requisitionStatus })
       .from(workOrders)

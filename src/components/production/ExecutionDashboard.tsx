@@ -26,9 +26,11 @@ import {
   Sparkles,
   ClipboardList,
   FlaskConical,
+  Lock,
 } from 'lucide-react';
 
 interface ExecutionSummary {
+  workOrderStatus?: string;
   materialWeighing: { total: number; completed: number; verified: number };
   preProductionCleaning: { total: number; completed: number; verified: number };
   preProductionEnvironmental: { total: number; recorded: number; normal: number };
@@ -82,6 +84,7 @@ const phaseLabels = {
 };
 
 const defaultSummaryValue: ExecutionSummary = {
+  workOrderStatus: 'planned',
   materialWeighing: { total: 0, completed: 0, verified: 0 },
   preProductionCleaning: { total: 0, completed: 0, verified: 0 },
   preProductionEnvironmental: { total: 0, recorded: 0, normal: 0 },
@@ -390,6 +393,53 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
 
   const currentSummary = summary || defaultSummaryValue;
 
+  // Determine which sections are locked based on workflow prerequisites
+  const isSectionLocked = (sectionId: string): { locked: boolean; reason: string } => {
+    const s = currentSummary;
+    const woStatus = s.workOrderStatus || 'planned';
+
+    // Pre-production: cleaning & environmental are always accessible
+    // Material weighing: requires requisition approved
+    if (sectionId === 'material-weighing') {
+      if (s.materialRequisition.status !== 'approved') {
+        return { locked: true, reason: 'ต้องอนุมัติใบเบิกวัตถุดิบก่อน' };
+      }
+    }
+
+    // Production phase: requires WO status >= in_progress
+    if (['sop-execution', 'ipc', 'production-environmental'].includes(sectionId)) {
+      if (woStatus === 'planned' || woStatus === 'released') {
+        return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
+      }
+    }
+
+    // Post-production: requires SOP execution started
+    if (['post-production-cleaning', 'production-output'].includes(sectionId)) {
+      if (woStatus === 'planned' || woStatus === 'released') {
+        return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
+      }
+    }
+
+    // Packaging phase: requires WO status >= in_progress and production output recorded
+    if (['pre-packaging-cleaning', 'packaging-weight', 'packaging-integrity', 'packaging-environmental'].includes(sectionId)) {
+      if (woStatus === 'planned' || woStatus === 'released') {
+        return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
+      }
+      if (!s.productionOutput.recorded) {
+        return { locked: true, reason: 'ต้องบันทึก Production Output ก่อน' };
+      }
+    }
+
+    // Inspection: requires packaging steps done
+    if (sectionId === 'finished-inspection') {
+      if (woStatus === 'planned' || woStatus === 'released') {
+        return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
+      }
+    }
+
+    return { locked: false, reason: '' };
+  };
+
   const sectionsByPhase = executionSections.reduce((acc, section) => {
     if (!acc[section.phase]) acc[section.phase] = [];
     acc[section.phase].push(section);
@@ -480,30 +530,47 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                   );
                 }
 
-                return (
-                  <Link key={section.id} href={section.href}>
-                    <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${phaseColors[section.phase].split(' ')[0]}`}>
-                              {section.icon}
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900">{section.title}</h3>
-                              <p className="text-sm text-gray-500">{section.description}</p>
-                            </div>
+                const lockInfo = isSectionLocked(section.id);
+                const cardContent = (
+                  <Card className={`h-full transition-shadow ${lockInfo.locked ? 'opacity-50' : 'hover:shadow-md cursor-pointer'}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${phaseColors[section.phase].split(' ')[0]}`}>
+                            {section.icon}
                           </div>
-                          <ArrowRight className="h-5 w-5 text-gray-400" />
+                          <div>
+                            <h3 className="font-medium text-gray-900">{section.title}</h3>
+                            <p className="text-sm text-gray-500">{section.description}</p>
+                          </div>
                         </div>
+                        {lockInfo.locked
+                          ? <Lock className="h-5 w-5 text-gray-400" />
+                          : <ArrowRight className="h-5 w-5 text-gray-400" />}
+                      </div>
+                      {lockInfo.locked ? (
+                        <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
+                          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                          {lockInfo.reason}
+                        </div>
+                      ) : (
                         <div className="space-y-2">
                           {renderProgressBar(sectionStatus.completed, sectionStatus.total)}
                           <div className="flex justify-end">
                             {renderStatusBadge(sectionStatus.status)}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+
+                if (lockInfo.locked) {
+                  return <div key={section.id}>{cardContent}</div>;
+                }
+                return (
+                  <Link key={section.id} href={section.href}>
+                    {cardContent}
                   </Link>
                 );
               })}
