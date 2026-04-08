@@ -227,6 +227,33 @@ export async function createWOEnvironmentalLog(data: CreateWOEnvironmentalLogInp
   });
 }
 
+export async function updateWOEnvironmentalLog(
+  logId: number,
+  data: { roomId?: number; temperature?: number; humidity?: number; isNormal?: boolean; notes?: string }
+) {
+  const tables = getTables();
+  return executeDbOperation(async (db: any) => {
+    const updateData: Record<string, unknown> = {};
+    if (data.roomId !== undefined) updateData.roomId = data.roomId || null;
+    if (data.temperature !== undefined) updateData.temperature = data.temperature;
+    if (data.humidity !== undefined) updateData.humidity = data.humidity;
+    if (data.isNormal !== undefined) updateData.isNormal = data.isNormal;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+
+    await db.update(tables.woEnvironmentalLogs).set(updateData).where(eq(tables.woEnvironmentalLogs.id, logId));
+    const [log] = await db.select().from(tables.woEnvironmentalLogs).where(eq(tables.woEnvironmentalLogs.id, logId));
+    return log;
+  });
+}
+
+export async function deleteWOEnvironmentalLog(logId: number) {
+  const tables = getTables();
+  return executeDbOperation(async (db: any) => {
+    await db.delete(tables.woEnvironmentalLogs).where(eq(tables.woEnvironmentalLogs.id, logId));
+    return { success: true };
+  });
+}
+
 export async function validateEnvironmentalReading(
   bomId: number,
   phase: string,

@@ -8,6 +8,8 @@ import {
 import {
   getWOEnvironmentalLogs,
   createWOEnvironmentalLog,
+  updateWOEnvironmentalLog,
+  deleteWOEnvironmentalLog,
   validateEnvironmentalReading,
 } from '@/lib/services/wo-execution.service';
 import { executeDbOperation } from '@/lib/db/db-helper';
@@ -145,5 +147,77 @@ export async function POST(
   // Internal: JWT session auth (existing behavior)
   return withAuth(request, async (session) => {
     return handlePost(session.userId);
+  });
+}
+
+// PUT /api/production/work-orders/[id]/environmental-logs - Update environmental log
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(request, async () => {
+    try {
+      const { id } = await params;
+      const workOrderId = Number(id);
+      if (isNaN(workOrderId)) return errorResponse('Invalid work order ID');
+
+      const data = await request.json();
+      if (!data.logId) return errorResponse('Missing logId');
+
+      // Re-validate if temperature/humidity changed
+      let isNormal = data.isNormal;
+      if (data.temperature !== undefined || data.humidity !== undefined) {
+        const workOrder = await executeDbOperation(async (db: any) => {
+          const table = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+          const orders = await db.select().from(table).where(eq(table.id, workOrderId));
+          return orders[0];
+        });
+
+        if (workOrder?.bomId && data.phase) {
+          const validation = await validateEnvironmentalReading(
+            workOrder.bomId, data.phase,
+            data.temperature, data.humidity
+          );
+          isNormal = validation.isNormal;
+        }
+      }
+
+      const log = await updateWOEnvironmentalLog(data.logId, {
+        roomId: data.roomId,
+        temperature: data.temperature,
+        humidity: data.humidity,
+        isNormal,
+        notes: data.notes,
+      });
+
+      return successResponse(log, 'Environmental log updated');
+    } catch (error) {
+      console.error('Error updating environmental log:', error);
+      return serverErrorResponse(error);
+    }
+  });
+}
+
+// DELETE /api/production/work-orders/[id]/environmental-logs - Delete environmental log
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(request, async () => {
+    try {
+      const { id } = await params;
+      const workOrderId = Number(id);
+      if (isNaN(workOrderId)) return errorResponse('Invalid work order ID');
+
+      const { searchParams } = new URL(request.url);
+      const logId = searchParams.get('logId');
+      if (!logId) return errorResponse('Missing logId parameter');
+
+      await deleteWOEnvironmentalLog(Number(logId));
+      return successResponse(null, 'Environmental log deleted');
+    } catch (error) {
+      console.error('Error deleting environmental log:', error);
+      return serverErrorResponse(error);
+    }
   });
 }

@@ -97,6 +97,7 @@ export default function EnvironmentalMonitoringPage() {
   const initialPhase = phaseParam === 'packaging' ? 2 : phaseParam === 'production' ? 1 : 0;
   const [activeTab, setActiveTab] = useState(initialPhase);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     roomId: undefined as number | undefined,
     temperature: 25,
@@ -181,8 +182,62 @@ export default function EnvironmentalMonitoringPage() {
     },
   });
 
-  const handleAdd = () => {
-    addLogMutation.mutate(formData);
+  // Edit log mutation
+  const editLogMutation = useMutation({
+    mutationFn: async (data: typeof formData & { logId: number }) => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/environmental-logs`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, phase: currentPhase }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId, currentPhase] });
+      toast.success('อัปเดตสำเร็จ', 'แก้ไขข้อมูลสภาวะแวดล้อมเรียบร้อย');
+      setShowAddDialog(false);
+      setEditingLogId(null);
+      setFormData({ roomId: undefined, temperature: 25, humidity: 50, notes: '' });
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  // Delete log mutation
+  const deleteLogMutation = useMutation({
+    mutationFn: async (logId: number) => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/environmental-logs?logId=${logId}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId, currentPhase] });
+      toast.success('ลบสำเร็จ', 'ลบข้อมูลสภาวะแวดล้อมเรียบร้อย');
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const handleOpenEdit = (log: EnvironmentalLog) => {
+    setEditingLogId(log.id);
+    setFormData({
+      roomId: log.roomId || undefined,
+      temperature: log.temperature,
+      humidity: log.humidity,
+      notes: log.notes || '',
+    });
+    setShowAddDialog(true);
+  };
+
+  const handleSave = () => {
+    if (editingLogId) {
+      editLogMutation.mutate({ ...formData, logId: editingLogId });
+    } else {
+      addLogMutation.mutate(formData);
+    }
   };
 
   const isWithinLimits = (temp: number, humidity: number) => {
@@ -323,8 +378,18 @@ export default function EnvironmentalMonitoringPage() {
                 </span>
               )} />
               <DxColumn dataField="isNormal" caption="Status" width={120} cellRender={(cell) => renderStatusBadge(cell.value)} />
-              <DxColumn dataField="operatorName" caption="Recorded By" width={150} />
+              <DxColumn dataField="operatorName" caption="Recorded By" width={130} />
               <DxColumn dataField="notes" caption="Notes" />
+              <DxColumn caption="" width={90} cellRender={(cell) => (
+                <div className="flex gap-0.5">
+                  <DxButton icon="edit" stylingMode="text" hint="แก้ไข" onClick={() => handleOpenEdit(cell.data)} />
+                  <DxButton icon="trash" stylingMode="text" hint="ลบ" onClick={() => {
+                    if (confirm('ต้องการลบข้อมูลนี้หรือไม่?')) {
+                      deleteLogMutation.mutate(cell.data.id);
+                    }
+                  }} />
+                </div>
+              )} />
             </DxDataGrid>
           </div>
         </CardContent>
@@ -333,8 +398,8 @@ export default function EnvironmentalMonitoringPage() {
       {/* Add Reading Dialog */}
       <DxPopup
         visible={showAddDialog}
-        onHiding={() => setShowAddDialog(false)}
-        title="Record Environmental Reading"
+        onHiding={() => { setShowAddDialog(false); setEditingLogId(null); }}
+        title={editingLogId ? 'แก้ไขข้อมูลสภาวะแวดล้อม' : 'Record Environmental Reading'}
         width={500}
         height="auto"
         showCloseButton
@@ -440,12 +505,12 @@ export default function EnvironmentalMonitoringPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowAddDialog(false)} />
+            <DxButton text="Cancel" stylingMode="outlined" onClick={() => { setShowAddDialog(false); setEditingLogId(null); }} />
             <DxButton
-              text="Save Reading"
+              text={editingLogId ? 'บันทึกการแก้ไข' : 'Save Reading'}
               type="success"
-              onClick={handleAdd}
-              disabled={addLogMutation.isPending}
+              onClick={handleSave}
+              disabled={addLogMutation.isPending || editLogMutation.isPending}
             />
           </div>
         </div>
