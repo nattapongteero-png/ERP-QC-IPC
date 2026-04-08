@@ -49,6 +49,8 @@ interface IPCTest {
   specSpecification: string | null;
   specUnit: string | null;
   disposition: string | null;
+  criteriaType: string | null;
+  tolerancePercent: number | null;
   testName: string | null;
   testMethod: string | null;
   testedByName: string | null;
@@ -122,6 +124,7 @@ export default function IPCPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const t = useTranslations('production');
+  const tc = useTranslations('common');
 
   const workOrderId = Number(params.id);
 
@@ -131,6 +134,7 @@ export default function IPCPage() {
   const [sampleValues, setSampleValues] = useState<(number | undefined)[]>([]);
   const [recordNotes, setRecordNotes] = useState('');
   const [recordRound, setRecordRound] = useState<number>(1);
+  const [checkboxResults, setCheckboxResults] = useState<('pass' | 'fail' | null)[]>([]);
   const [expandedTests, setExpandedTests] = useState<Set<number>>(new Set());
 
   // Fetch work order basic info
@@ -191,7 +195,7 @@ export default function IPCPage() {
       numericResult?: number;
       notes?: string;
       testRound?: number;
-      samples?: Array<{ sampleNumber: number; numericValue?: number }>;
+      samples?: Array<{ sampleNumber: number; numericValue?: number; result?: string }>;
     }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/ipc`, {
         method: 'POST',
@@ -245,27 +249,36 @@ export default function IPCPage() {
     setSelectedTest(test);
     setRecordNotes('');
 
-    // Determine which round to record
     const nextRound = round || (test.totalRounds || 0) + 1;
     setRecordRound(nextRound);
 
     const sampleSize = test.sampleSize || 1;
+    const criteriaType = test.criteriaType || 'numeric';
 
-    // Load existing values for this round (if editing existing round)
     const roundSamples = test.rounds?.find((r) => r.round === nextRound)?.samples || [];
 
-    if (sampleSize > 1) {
+    if (criteriaType === 'checkbox') {
+      const results = Array.from({ length: sampleSize }, (_, i) => {
+        const sample = roundSamples.find((s) => s.sampleNumber === i + 1);
+        return (sample?.result as 'pass' | 'fail' | null) ?? null;
+      });
+      setCheckboxResults(results);
+      setSampleValues([]);
+      setNumericResult(undefined);
+    } else if (sampleSize > 1) {
       const values = Array.from({ length: sampleSize }, (_, i) => {
         const sample = roundSamples.find((s) => s.sampleNumber === i + 1);
         return sample?.numericValue != null ? Number(sample.numericValue) : undefined;
       });
       setSampleValues(values);
+      setCheckboxResults([]);
       setNumericResult(undefined);
     } else {
       const existingVal = roundSamples.length > 0 && roundSamples[0].numericValue != null
         ? Number(roundSamples[0].numericValue) : undefined;
       setNumericResult(existingVal);
       setSampleValues([]);
+      setCheckboxResults([]);
     }
   }
 
@@ -273,9 +286,20 @@ export default function IPCPage() {
     if (!selectedTest) return;
 
     const sampleSize = selectedTest.sampleSize || 1;
+    const criteriaType = selectedTest.criteriaType || 'numeric';
 
-    if (sampleSize > 1) {
-      // Multi-sample: submit samples array
+    if (criteriaType === 'checkbox') {
+      const samples = checkboxResults.map((r, i) => ({
+        sampleNumber: i + 1,
+        result: r || 'pass',
+      }));
+      recordMutation.mutate({
+        qualityTestId: selectedTest.id,
+        notes: recordNotes || undefined,
+        testRound: recordRound,
+        samples,
+      });
+    } else if (sampleSize > 1) {
       const samples = sampleValues.map((v, i) => ({
         sampleNumber: i + 1,
         numericValue: v,
@@ -287,7 +311,6 @@ export default function IPCPage() {
         samples,
       });
     } else {
-      // Single value
       recordMutation.mutate({
         qualityTestId: selectedTest.id,
         numericResult,
@@ -570,7 +593,13 @@ export default function IPCPage() {
                                     }`}
                                   >
                                     <div className="font-medium">#{sample.sampleNumber}</div>
-                                    <div>{sample.numericValue != null ? Number(sample.numericValue).toFixed(2) : sample.textValue || '-'}</div>
+                                    <div>
+                                      {sample.numericValue != null
+                                        ? Number(sample.numericValue).toFixed(2)
+                                        : sample.result === 'pass' ? 'Pass'
+                                        : sample.result === 'fail' ? 'Fail'
+                                        : sample.textValue || '-'}
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -632,7 +661,7 @@ export default function IPCPage() {
                       )}
 
                       {/* Single value input */}
-                      {(test.sampleSize || 1) <= 1 && (
+                      {test.criteriaType !== 'checkbox' && (test.sampleSize || 1) <= 1 && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('execution.measuredValue')} {test.specUnit ? `(${test.specUnit})` : ''}
@@ -646,7 +675,7 @@ export default function IPCPage() {
                       )}
 
                       {/* Multi-sample inputs */}
-                      {(test.sampleSize || 1) > 1 && (
+                      {test.criteriaType !== 'checkbox' && (test.sampleSize || 1) > 1 && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('execution.sampleValues')} ({test.sampleSize} {t('execution.samples')})
@@ -670,6 +699,94 @@ export default function IPCPage() {
                         </div>
                       )}
 
+                      {/* Checkbox mode inputs */}
+                      {(test.criteriaType === 'checkbox') && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            ผลการตรวจ ({test.sampleSize} ตัวอย่าง)
+                          </label>
+                          <div className="grid grid-cols-5 gap-2">
+                            {checkboxResults.map((val, idx) => (
+                              <div key={idx} className="text-center">
+                                <label className="block text-xs text-gray-500 mb-0.5">#{idx + 1}</label>
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    className={`flex-1 px-1 py-1.5 rounded text-xs font-medium transition-colors ${
+                                      val === 'pass'
+                                        ? 'bg-green-500 text-white'
+                                        : 'bg-gray-100 text-gray-500 hover:bg-green-100'
+                                    }`}
+                                    onClick={() => {
+                                      const next = [...checkboxResults];
+                                      next[idx] = 'pass';
+                                      setCheckboxResults(next);
+                                    }}
+                                  >
+                                    Pass
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`flex-1 px-1 py-1.5 rounded text-xs font-medium transition-colors ${
+                                      val === 'fail'
+                                        ? 'bg-red-500 text-white'
+                                        : 'bg-gray-100 text-gray-500 hover:bg-red-100'
+                                    }`}
+                                    onClick={() => {
+                                      const next = [...checkboxResults];
+                                      next[idx] = 'fail';
+                                      setCheckboxResults(next);
+                                    }}
+                                  >
+                                    Fail
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Summary bar — real-time pass/fail preview */}
+                      {(() => {
+                        const criteriaType = test.criteriaType || 'numeric';
+                        const tolerancePct = Number(test.tolerancePercent) || 0;
+                        let passCount = 0;
+                        let totalCount = 0;
+
+                        if (criteriaType === 'checkbox') {
+                          const filled = checkboxResults.filter((r) => r != null);
+                          totalCount = filled.length;
+                          passCount = filled.filter((r) => r === 'pass').length;
+                        } else if ((test.sampleSize || 1) > 1) {
+                          const filled = sampleValues.filter((v) => v != null);
+                          totalCount = filled.length;
+                          passCount = filled.filter((v) =>
+                            v != null && test.specMinValue != null && test.specMaxValue != null &&
+                            v >= Number(test.specMinValue) && v <= Number(test.specMaxValue)
+                          ).length;
+                        }
+
+                        if (totalCount === 0) return null;
+
+                        const failCount = totalCount - passCount;
+                        const failPct = (failCount / totalCount) * 100;
+                        const overallPass = failPct <= tolerancePct;
+
+                        return (
+                          <div className={`flex items-center justify-between p-2 rounded text-sm font-medium ${
+                            overallPass ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                          }`}>
+                            <span>
+                              ผ่าน {passCount}/{totalCount} ตัวอย่าง ({(100 - failPct).toFixed(0)}%)
+                            </span>
+                            <span className="text-xs">
+                              Tolerance: ±{tolerancePct}% — {overallPass ? 'PASS' : 'FAIL'}
+                            </span>
+                          </div>
+                        );
+                      })()}
+
                       {/* Notes */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('execution.notes')}</label>
@@ -683,10 +800,11 @@ export default function IPCPage() {
 
                       {/* Actions */}
                       <div className="flex justify-end gap-2">
-                        <DxButton text={t('actions.cancel')} stylingMode="text" onClick={resetForm} />
+                        <DxButton text={tc('actions.cancel')} stylingMode="text" onClick={resetForm} />
                         <DxButton
-                          text={recordMutation.isPending ? t('actions.saving') : t('actions.save')}
-                          type="success"
+                          text={recordMutation.isPending ? tc('actions.saving') : tc('actions.save')}
+                          type="default"
+                          stylingMode="text"
                           onClick={handleSaveRecord}
                           disabled={recordMutation.isPending}
                         />
