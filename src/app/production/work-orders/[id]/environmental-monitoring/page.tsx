@@ -18,6 +18,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxDataGrid, DxColumn, DxPaging } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxTabs } from '@/components/ui/dx-tabs';
 import type { DxTabItem } from '@/components/ui/dx-tabs';
@@ -32,6 +33,9 @@ import {
 interface EnvironmentalLog {
   id: number;
   workOrderId: number;
+  roomId?: number;
+  roomName?: string;
+  roomCode?: string;
   phase: string;
   recordedDate: string;
   recordedTime: string;
@@ -59,6 +63,14 @@ interface WorkOrderBasic {
   batchNumber: string;
   productName: string;
   status: string;
+  bomId?: number;
+}
+
+interface BOMRoom {
+  id: number;
+  roomId: number;
+  room?: { id: number; code: string; name: string };
+  phase: string;
 }
 
 const PHASE_MAP = ['pre_production', 'production', 'packaging'] as const;
@@ -86,6 +98,7 @@ export default function EnvironmentalMonitoringPage() {
   const [activeTab, setActiveTab] = useState(initialPhase);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [formData, setFormData] = useState({
+    roomId: undefined as number | undefined,
     temperature: 25,
     humidity: 50,
     notes: '',
@@ -126,6 +139,19 @@ export default function EnvironmentalMonitoringPage() {
     },
   });
 
+  // Fetch BOM rooms for current phase (for room selector in dialog)
+  const { data: bomRooms } = useQuery<BOMRoom[]>({
+    queryKey: ['bom-rooms-phase', workOrder?.bomId, currentPhase],
+    queryFn: async () => {
+      if (!workOrder?.bomId) return [];
+      const res = await fetch(`/api/production/bom/${workOrder.bomId}/rooms?phase=${currentPhase}`);
+      const data = await res.json();
+      if (!data.success) return [];
+      return data.data || [];
+    },
+    enabled: !!workOrder?.bomId,
+  });
+
   // Add log mutation
   const addLogMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -148,7 +174,7 @@ export default function EnvironmentalMonitoringPage() {
       queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId, currentPhase] });
       toast.success('Log Added', 'Environmental reading has been recorded.');
       setShowAddDialog(false);
-      setFormData({ temperature: 25, humidity: 50, notes: '' });
+      setFormData({ roomId: undefined, temperature: 25, humidity: 50, notes: '' });
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -268,6 +294,14 @@ export default function EnvironmentalMonitoringPage() {
             >
               <DxPaging defaultPageSize={15} />
 
+              <DxColumn dataField="roomName" caption="Room" width={140} cellRender={(cell) => {
+                const name = cell.data.roomName || cell.data.roomCode;
+                return name ? (
+                  <span className="text-sm">{name}</span>
+                ) : (
+                  <span className="text-xs text-gray-400">-</span>
+                );
+              }} />
               <DxColumn dataField="recordedDate" caption="Date" width={120} />
               <DxColumn dataField="recordedTime" caption="Time" width={100} />
               <DxColumn dataField="temperature" caption="Temperature (°C)" width={140} cellRender={(cell) => (
@@ -301,17 +335,39 @@ export default function EnvironmentalMonitoringPage() {
         visible={showAddDialog}
         onHiding={() => setShowAddDialog(false)}
         title="Record Environmental Reading"
-        width={450}
+        width={500}
         height="auto"
         showCloseButton
         dragEnabled={false}
       >
         <div className="p-4 space-y-4">
           <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-            <strong>Phase:</strong> {currentPhase === 'production' ? 'Production' : 'Packaging'}
+            <strong>Phase:</strong> {currentPhase === 'pre_production' ? 'Pre-Production' : currentPhase === 'production' ? 'Production' : 'Packaging'}
             <br />
             <strong>Time:</strong> {new Date().toLocaleString()}
           </div>
+
+          {/* Room Selector */}
+          {bomRooms && bomRooms.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ห้อง (Room) *
+              </label>
+              <DxSelectBox
+                value={formData.roomId}
+                onValueChange={(value) => setFormData({ ...formData, roomId: value || undefined })}
+                dataSource={bomRooms.map((r: BOMRoom) => ({
+                  id: r.room?.id || r.roomId,
+                  display: `${r.room?.code || ''} - ${r.room?.name || ''}`,
+                }))}
+                valueExpr="id"
+                displayExpr="display"
+                placeholder="เลือกห้องที่บันทึก"
+                searchEnabled
+                showClearButton
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
