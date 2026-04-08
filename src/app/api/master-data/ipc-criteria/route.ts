@@ -71,6 +71,9 @@ export async function POST(request: NextRequest) {
           checkIntervalMinutes: data.checkIntervalMinutes || 30,
           isCritical: data.isCritical ?? false,
           isActive: data.isActive ?? true,
+          dosageForm: data.dosageForm || null,
+          criteriaType: data.criteriaType || 'numeric',
+          tolerancePercent: data.tolerancePercent ?? 0,
           createdAt: getNow(),
         } as any);
       });
@@ -120,7 +123,7 @@ export async function PUT(request: NextRequest) {
       const table = getTable();
       const updateData: Record<string, unknown> = {};
 
-      const fields = ['code', 'name', 'nameTh', 'testMethod', 'specification', 'minValue', 'maxValue', 'unit', 'sampleSize', 'checkIntervalMinutes', 'isCritical', 'isActive'];
+      const fields = ['code', 'name', 'nameTh', 'testMethod', 'specification', 'minValue', 'maxValue', 'unit', 'sampleSize', 'checkIntervalMinutes', 'isCritical', 'isActive', 'dosageForm', 'criteriaType', 'tolerancePercent'];
       for (const field of fields) {
         if (data[field] !== undefined) updateData[field] = data[field];
       }
