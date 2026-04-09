@@ -11,6 +11,8 @@ import {
   updateSOPTemplate,
   getSOPTemplateById,
 } from '@/lib/services/master-data.service';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { desc } from 'drizzle-orm';
 
 // GET /api/master-data/sop-templates - List SOP step templates
 export async function GET(request: NextRequest) {
@@ -47,9 +49,19 @@ export async function POST(request: NextRequest) {
     try {
       const data = await request.json();
 
-      // Validate required fields
-      if (!data.code || !data.nameTh || !data.category) {
-        return errorResponse('Missing required fields: code, nameTh, category');
+      // Auto-generate code if not provided
+      if (!data.code) {
+        const table = getTableRef('sOPStepTemplates');
+        const latest = await executeDbOperation(async (db) => {
+          const rows = await db.select({ code: table.code }).from(table).orderBy(desc(table.id)).limit(1);
+          return rows[0]?.code as string | undefined;
+        });
+        const lastNum = latest ? parseInt(latest.replace(/\D/g, '') || '0') : 0;
+        data.code = `SOP-${String(lastNum + 1).padStart(4, '0')}`;
+      }
+
+      if (!data.nameTh || !data.category) {
+        return errorResponse('Missing required fields: nameTh, category');
       }
 
       // Validate category

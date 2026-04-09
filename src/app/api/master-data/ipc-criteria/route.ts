@@ -7,7 +7,7 @@ import {
 } from '@/lib/api-utils';
 import { executeDbOperation, getTableRef, getInsertId } from '@/lib/db/db-helper';
 import { getNow } from '@/lib/db/date-utils';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, desc } from 'drizzle-orm';
 
 function getTable() {
   return getTableRef('iPCCriteria');
@@ -51,8 +51,19 @@ export async function POST(request: NextRequest) {
     try {
       const data = await request.json();
 
-      if (!data.code || !data.name) {
-        return errorResponse('Code and Name are required');
+      // Auto-generate code if not provided
+      if (!data.code) {
+        const table = getTable();
+        const latest = await executeDbOperation(async (db) => {
+          const rows = await db.select({ code: table.code }).from(table).orderBy(desc(table.id)).limit(1);
+          return rows[0]?.code as string | undefined;
+        });
+        const lastNum = latest ? parseInt(latest.replace(/\D/g, '') || '0') : 0;
+        data.code = `IPC-${String(lastNum + 1).padStart(4, '0')}`;
+      }
+
+      if (!data.name) {
+        return errorResponse('Name is required');
       }
 
       const table = getTable();

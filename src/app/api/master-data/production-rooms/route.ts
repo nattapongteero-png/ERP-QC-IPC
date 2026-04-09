@@ -12,6 +12,8 @@ import {
   deactivateProductionRoom,
   getProductionRoomById,
 } from '@/lib/services/master-data.service';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { desc } from 'drizzle-orm';
 
 // External API Key — same key used across master data APIs
 const EXTERNAL_API_KEY = process.env.EXTERNAL_ENV_API_KEY || 'env-monitor-2026-secret';
@@ -64,9 +66,20 @@ export async function POST(request: NextRequest) {
     try {
       const data = await request.json();
 
+      // Auto-generate code if not provided
+      if (!data.code) {
+        const table = getTableRef('productionRooms');
+        const latest = await executeDbOperation(async (db) => {
+          const rows = await db.select({ code: table.code }).from(table).orderBy(desc(table.id)).limit(1);
+          return rows[0]?.code as string | undefined;
+        });
+        const lastNum = latest ? parseInt(latest.replace(/\D/g, '') || '0') : 0;
+        data.code = `ROOM-${String(lastNum + 1).padStart(4, '0')}`;
+      }
+
       // Validate required fields
-      if (!data.code || !data.name || !data.nameTh || !data.roomType) {
-        return errorResponse('Missing required fields: code, name, nameTh, roomType');
+      if (!data.name || !data.nameTh || !data.roomType) {
+        return errorResponse('Missing required fields: name, nameTh, roomType');
       }
 
       const room = await createProductionRoom({

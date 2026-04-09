@@ -11,6 +11,8 @@ import {
   updatePackagingQCCriteria,
   getPackagingQCCriteriaById,
 } from '@/lib/services/master-data.service';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { desc } from 'drizzle-orm';
 
 // GET /api/master-data/packaging-qc-criteria - List packaging QC criteria
 export async function GET(request: NextRequest) {
@@ -44,9 +46,19 @@ export async function POST(request: NextRequest) {
     try {
       const data = await request.json();
 
-      // Validate required fields
-      if (!data.code || !data.name || data.weightMin === undefined || data.weightMax === undefined) {
-        return errorResponse('Missing required fields: code, name, weightMin, weightMax');
+      // Auto-generate code if not provided
+      if (!data.code) {
+        const table = getTableRef('packagingQCCriteria');
+        const latest = await executeDbOperation(async (db) => {
+          const rows = await db.select({ code: table.code }).from(table).orderBy(desc(table.id)).limit(1);
+          return rows[0]?.code as string | undefined;
+        });
+        const lastNum = latest ? parseInt(latest.replace(/\D/g, '') || '0') : 0;
+        data.code = `PKG-${String(lastNum + 1).padStart(4, '0')}`;
+      }
+
+      if (!data.name || data.weightMin === undefined || data.weightMax === undefined) {
+        return errorResponse('Missing required fields: name, weightMin, weightMax');
       }
 
       // Validate weight range
