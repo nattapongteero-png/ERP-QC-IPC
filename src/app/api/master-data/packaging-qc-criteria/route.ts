@@ -106,6 +106,15 @@ export async function DELETE(request: NextRequest) {
       if (!id) return errorResponse('Missing ID');
       const existing = await getPackagingQCCriteriaById(Number(id));
       if (!existing) return errorResponse('Criteria not found');
+
+      const bomPkgQc = getTableRef('bOMPackagingQC');
+      const refs = await executeDbOperation(async (db) => {
+        return db.select({ id: bomPkgQc.id }).from(bomPkgQc).where(eq(bomPkgQc.criteriaId, Number(id))).limit(1);
+      });
+      if (refs.length > 0) {
+        return errorResponse('ไม่สามารถลบได้ เนื่องจากเกณฑ์นี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
+      }
+
       const table = getTableRef('packagingQCCriteria');
       await executeDbOperation(async (db) => {
         await db.delete(table).where(eq(table.id, Number(id)));

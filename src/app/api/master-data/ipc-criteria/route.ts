@@ -112,6 +112,15 @@ export async function DELETE(request: NextRequest) {
       const { searchParams } = new URL(request.url);
       const id = searchParams.get('id');
       if (!id) return errorResponse('Missing ID');
+
+      const bomIpc = getTableRef('bOMInProcessQC');
+      const refs = await executeDbOperation(async (db) => {
+        return db.select({ id: bomIpc.id }).from(bomIpc).where(eq(bomIpc.criteriaId, Number(id))).limit(1);
+      });
+      if (refs.length > 0) {
+        return errorResponse('ไม่สามารถลบได้ เนื่องจากเกณฑ์ IPC นี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
+      }
+
       const table = getTable();
       await executeDbOperation(async (db) => {
         await db.delete(table).where(eq(table.id, Number(id)));

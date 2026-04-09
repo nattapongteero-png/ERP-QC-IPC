@@ -107,6 +107,14 @@ export async function DELETE(request: NextRequest) {
         return errorResponse('Environmental condition not found');
       }
 
+      const bomEnv = getTableRef('bOMEnvironmentalConditions');
+      const refs = await executeDbOperation(async (db) => {
+        return db.select({ id: bomEnv.id }).from(bomEnv).where(eq(bomEnv.conditionId, Number(id))).limit(1);
+      });
+      if (refs.length > 0) {
+        return errorResponse('ไม่สามารถลบได้ เนื่องจากเงื่อนไขนี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
+      }
+
       const table = getTableRef('environmentalConditions');
       await executeDbOperation(async (db) => {
         await db.delete(table).where(eq(table.id, Number(id)));

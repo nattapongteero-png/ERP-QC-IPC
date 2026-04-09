@@ -151,6 +151,15 @@ export async function DELETE(request: NextRequest) {
         return errorResponse('Production room not found');
       }
 
+      // Check BOM references
+      const bomRooms = getTableRef('bOMRooms');
+      const refs = await executeDbOperation(async (db) => {
+        return db.select({ id: bomRooms.id }).from(bomRooms).where(eq(bomRooms.roomId, Number(id))).limit(1);
+      });
+      if (refs.length > 0) {
+        return errorResponse('ไม่สามารถลบได้ เนื่องจากห้องนี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
+      }
+
       const table = getTableRef('productionRooms');
       await executeDbOperation(async (db) => {
         await db.delete(table).where(eq(table.id, Number(id)));
