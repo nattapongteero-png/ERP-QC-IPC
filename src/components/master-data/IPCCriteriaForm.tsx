@@ -113,6 +113,36 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     return items;
   }, [formData.dosageForm]);
 
+  /**
+   * Parse specification string and auto-calculate Min/Max
+   * Supports: "300 ± 5%", "300 +/- 5%", "300±5%", "300 ± 10"
+   */
+  const parseSpecification = (spec: string): { center: number; deviation: number; isPercent: boolean } | null => {
+    if (!spec) return null;
+    // Match: [center] ± [deviation]% or [center] +/- [deviation]%
+    const match = spec.match(/^\s*([\d.]+)\s*(?:±|\+\/?-)\s*([\d.]+)\s*(%?)\s*/);
+    if (!match) return null;
+    const center = parseFloat(match[1]);
+    const deviation = parseFloat(match[2]);
+    const isPercent = match[3] === '%';
+    if (isNaN(center) || isNaN(deviation)) return null;
+    return { center, deviation, isPercent };
+  };
+
+  const handleSpecChange = (spec: string) => {
+    const parsed = parseSpecification(spec);
+    if (parsed) {
+      const delta = parsed.isPercent ? (parsed.center * parsed.deviation / 100) : parsed.deviation;
+      const minVal = Math.round((parsed.center - delta) * 10000) / 10000;
+      const maxVal = Math.round((parsed.center + delta) * 10000) / 10000;
+      setFormData({ ...formData, specification: spec, minValue: minVal, maxValue: maxVal });
+    } else {
+      setFormData({ ...formData, specification: spec });
+    }
+  };
+
+  const specParsed = parseSpecification(formData.specification || '');
+
   // Handle standard criteria selection
   const handleSelectStandard = (nameEn: string) => {
     if (nameEn === CUSTOM_OPTION_VALUE) {
@@ -291,27 +321,60 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
           )}
 
+          {formData.criteriaType !== 'checkbox' && (
+          <>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Specification</label>
-            <DxTextBox value={formData.specification || ''} onValueChanged={(e) => setFormData({ ...formData, specification: e.value })} placeholder="e.g., 200 ± 10 mg" />
+            <DxTextBox
+              value={formData.specification || ''}
+              onValueChanged={(e) => handleSpecChange(e.value)}
+              placeholder="เช่น 300 ± 5% หรือ 200 ± 10"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              รูปแบบ: [ค่ากลาง] ± [ค่าเบี่ยงเบน]% — ระบบคำนวณ Min/Max ให้อัตโนมัติ
+            </p>
+            {specParsed && (
+              <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm">
+                <span className="text-emerald-800 font-medium">
+                  ค่ากลาง: {specParsed.center} | เบี่ยงเบน: {specParsed.deviation}{specParsed.isPercent ? '%' : ''} →{' '}
+                  Min = <strong>{formData.minValue}</strong>, Max = <strong>{formData.maxValue}</strong>
+                  {formData.unit ? ` ${formData.unit}` : ''}
+                </span>
+              </div>
+            )}
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Min Value {specParsed && <span className="text-xs text-emerald-600">(คำนวณอัตโนมัติ)</span>}
+              </label>
+              <DxNumberBox
+                value={formData.minValue ?? undefined}
+                onValueChanged={(e) => setFormData({ ...formData, minValue: e.value })}
+                placeholder="e.g., 190"
+                readOnly={!!specParsed}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Max Value {specParsed && <span className="text-xs text-emerald-600">(คำนวณอัตโนมัติ)</span>}
+              </label>
+              <DxNumberBox
+                value={formData.maxValue ?? undefined}
+                onValueChanged={(e) => setFormData({ ...formData, maxValue: e.value })}
+                placeholder="e.g., 210"
+                readOnly={!!specParsed}
+              />
+            </div>
+          </div>
+          </>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Test Method</label>
             <DxTextBox value={formData.testMethod || ''} onValueChanged={(e) => setFormData({ ...formData, testMethod: e.value })} placeholder="e.g., USP Weight Variation" />
           </div>
-
-          {formData.criteriaType !== 'checkbox' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Min Value</label>
-              <DxNumberBox value={formData.minValue ?? undefined} onValueChanged={(e) => setFormData({ ...formData, minValue: e.value })} placeholder="e.g., 190" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max Value</label>
-              <DxNumberBox value={formData.maxValue ?? undefined} onValueChanged={(e) => setFormData({ ...formData, maxValue: e.value })} placeholder="e.g., 210" />
-            </div>
-          </div>
-          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
