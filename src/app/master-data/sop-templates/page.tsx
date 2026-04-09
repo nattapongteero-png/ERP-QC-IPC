@@ -74,7 +74,7 @@ export default function SOPTemplatesPage() {
   const { data: templates, isLoading } = useQuery<SOPTemplate[]>({
     queryKey: ['sop-templates'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/sop-templates?isActive=true');
+      const res = await fetch('/api/master-data/sop-templates');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;
@@ -186,7 +186,7 @@ export default function SOPTemplatesPage() {
                 <Edit className="h-4 w-4" />
               </button>
               <button
-                onClick={() => deleteMutation.mutate((cell.data as SOPTemplate).id)}
+                onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as SOPTemplate).nameTh || (cell.data as SOPTemplate).name} หรือไม่?`)) deleteMutation.mutate((cell.data as SOPTemplate).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Deactivate"
               >

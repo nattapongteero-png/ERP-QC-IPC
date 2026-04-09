@@ -34,7 +34,7 @@ export default function EnvironmentalConditionsPage() {
   const { data: conditions, isLoading } = useQuery<EnvironmentalCondition[]>({
     queryKey: ['environmental-conditions'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/environmental-conditions?isActive=true');
+      const res = await fetch('/api/master-data/environmental-conditions');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;
@@ -162,7 +162,7 @@ export default function EnvironmentalConditionsPage() {
                 <Edit className="h-4 w-4" />
               </button>
               <button
-                onClick={() => deleteMutation.mutate((cell.data as EnvironmentalCondition).id)}
+                onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as EnvironmentalCondition).name} หรือไม่?`)) deleteMutation.mutate((cell.data as EnvironmentalCondition).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Deactivate"
               >

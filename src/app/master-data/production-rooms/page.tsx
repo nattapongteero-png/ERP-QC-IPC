@@ -352,7 +352,7 @@ export default function ProductionRoomsPage() {
                 <Edit className="h-4 w-4" />
               </button>
               <button
-                onClick={() => deleteMutation.mutate((cell.data as ProductionRoom).id)}
+                onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as ProductionRoom).name} หรือไม่?`)) deleteMutation.mutate((cell.data as ProductionRoom).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Deactivate"
               >

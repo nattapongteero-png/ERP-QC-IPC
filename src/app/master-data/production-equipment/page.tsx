@@ -48,7 +48,7 @@ export default function ProductionEquipmentPage() {
   const { data: equipment, isLoading } = useQuery<ProductionEquipment[]>({
     queryKey: ['production-equipment'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/production-equipment?isActive=true');
+      const res = await fetch('/api/master-data/production-equipment');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;
@@ -164,7 +164,7 @@ export default function ProductionEquipmentPage() {
                 <Edit className="h-4 w-4" />
               </button>
               <button
-                onClick={() => deleteMutation.mutate((cell.data as ProductionEquipment).id)}
+                onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as ProductionEquipment).name} หรือไม่?`)) deleteMutation.mutate((cell.data as ProductionEquipment).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Deactivate"
               >
