@@ -13,7 +13,7 @@ import {
   getProductionEquipmentById,
 } from '@/lib/services/master-data.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 // GET /api/master-data/production-equipment - List production equipment
 export async function GET(request: NextRequest) {
@@ -148,8 +148,11 @@ export async function DELETE(request: NextRequest) {
         return errorResponse('Production equipment not found');
       }
 
-      await deactivateProductionEquipment(Number(id));
-      return successResponse(null, 'Production equipment deactivated successfully');
+      const table = getTableRef('productionEquipment');
+      await executeDbOperation(async (db) => {
+        await db.delete(table).where(eq(table.id, Number(id)));
+      });
+      return successResponse(null, 'Production equipment deleted successfully');
     } catch (error) {
       console.error('Error deactivating production equipment:', error);
       return serverErrorResponse(error);

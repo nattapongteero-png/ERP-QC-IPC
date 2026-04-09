@@ -12,7 +12,7 @@ import {
   getEnvironmentalConditionById,
 } from '@/lib/services/master-data.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 // GET /api/master-data/environmental-conditions - List environmental conditions
 export async function GET(request: NextRequest) {
@@ -107,11 +107,12 @@ export async function DELETE(request: NextRequest) {
         return errorResponse('Environmental condition not found');
       }
 
-      const condition = await updateEnvironmentalCondition(Number(id), {
-        isActive: false,
+      const table = getTableRef('environmentalConditions');
+      await executeDbOperation(async (db) => {
+        await db.delete(table).where(eq(table.id, Number(id)));
       });
 
-      return successResponse(condition, 'Environmental condition deactivated');
+      return successResponse(null, 'Environmental condition deleted');
     } catch (error) {
       console.error('Error deactivating environmental condition:', error);
       return serverErrorResponse(error);

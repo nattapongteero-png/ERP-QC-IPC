@@ -13,7 +13,7 @@ import {
   getProductionRoomById,
 } from '@/lib/services/master-data.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 // External API Key — same key used across master data APIs
 const EXTERNAL_API_KEY = process.env.EXTERNAL_ENV_API_KEY || 'env-monitor-2026-secret';
@@ -151,8 +151,11 @@ export async function DELETE(request: NextRequest) {
         return errorResponse('Production room not found');
       }
 
-      await deactivateProductionRoom(Number(id));
-      return successResponse(null, 'Production room deactivated successfully');
+      const table = getTableRef('productionRooms');
+      await executeDbOperation(async (db) => {
+        await db.delete(table).where(eq(table.id, Number(id)));
+      });
+      return successResponse(null, 'Production room deleted successfully');
     } catch (error) {
       console.error('Error deactivating production room:', error);
       return serverErrorResponse(error);

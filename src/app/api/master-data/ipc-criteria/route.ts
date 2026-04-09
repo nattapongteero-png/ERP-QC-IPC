@@ -114,9 +114,9 @@ export async function DELETE(request: NextRequest) {
       if (!id) return errorResponse('Missing ID');
       const table = getTable();
       await executeDbOperation(async (db) => {
-        await db.update(table).set({ isActive: false }).where(eq(table.id, Number(id)));
+        await db.delete(table).where(eq(table.id, Number(id)));
       });
-      return successResponse(null, 'IPC criteria deactivated');
+      return successResponse(null, 'IPC criteria deleted');
     } catch (error) {
       return serverErrorResponse(error);
     }

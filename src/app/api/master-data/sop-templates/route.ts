@@ -12,7 +12,7 @@ import {
   getSOPTemplateById,
 } from '@/lib/services/master-data.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 // GET /api/master-data/sop-templates - List SOP step templates
 export async function GET(request: NextRequest) {
@@ -115,8 +115,11 @@ export async function DELETE(request: NextRequest) {
       if (!id) return errorResponse('Missing ID');
       const existing = await getSOPTemplateById(Number(id));
       if (!existing) return errorResponse('SOP template not found');
-      await updateSOPTemplate(Number(id), { isActive: false });
-      return successResponse(null, 'SOP template deactivated');
+      const table = getTableRef('sOPStepTemplates');
+      await executeDbOperation(async (db) => {
+        await db.delete(table).where(eq(table.id, Number(id)));
+      });
+      return successResponse(null, 'SOP template deleted');
     } catch (error) {
       return serverErrorResponse(error);
     }
