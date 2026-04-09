@@ -91,7 +91,7 @@ const IMPORT_CONFIGS: Record<string, ImportConfig> = {
     sheetName: 'Production Rooms',
     apiUrl: '/api/master-data/production-rooms',
     columns: [
-      { header: 'รหัส (Code)', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
+      { header: 'รหัส (Code)*', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
       { header: 'ชื่อ EN (Name)*', field: 'name', required: true },
       { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
       { header: 'ประเภท (Room Type)*', field: 'roomType', required: true, lookupValues: ROOM_TYPES },
@@ -108,7 +108,7 @@ const IMPORT_CONFIGS: Record<string, ImportConfig> = {
     sheetName: 'Production Equipment',
     apiUrl: '/api/master-data/production-equipment',
     columns: [
-      { header: 'รหัส (Code)', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
+      { header: 'รหัส (Code)*', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
       { header: 'ชื่อ EN (Name)*', field: 'name', required: true },
       { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
       { header: 'ประเภท (Equipment Type)*', field: 'equipmentType', required: true, lookupValues: EQUIPMENT_TYPES },
@@ -126,7 +126,7 @@ const IMPORT_CONFIGS: Record<string, ImportConfig> = {
     sheetName: 'Env Conditions',
     apiUrl: '/api/master-data/environmental-conditions',
     columns: [
-      { header: 'รหัส (Code)', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
+      { header: 'รหัส (Code)*', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
       { header: 'ชื่อ (Name)*', field: 'name', required: true },
       { header: 'อุณหภูมิต่ำสุด °C', field: 'temperatureMin', required: false, note: 'ค่าเริ่มต้น: 20' },
       { header: 'อุณหภูมิสูงสุด °C', field: 'temperatureMax', required: false, note: 'ค่าเริ่มต้น: 30' },
@@ -144,7 +144,7 @@ const IMPORT_CONFIGS: Record<string, ImportConfig> = {
     sheetName: 'SOP Templates',
     apiUrl: '/api/master-data/sop-templates',
     columns: [
-      { header: 'รหัส (Code)', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
+      { header: 'รหัส (Code)*', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
       { header: 'ชื่อ EN (Name)', field: 'name', required: false },
       { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
       { header: 'หมวด (Category)*', field: 'category', required: true, lookupValues: SOP_CATEGORIES },
@@ -161,7 +161,7 @@ const IMPORT_CONFIGS: Record<string, ImportConfig> = {
     sheetName: 'Packaging QC',
     apiUrl: '/api/master-data/packaging-qc-criteria',
     columns: [
-      { header: 'รหัส (Code)', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
+      { header: 'รหัส (Code)*', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
       { header: 'ชื่อ (Name)*', field: 'name', required: true },
       { header: 'น้ำหนักต่ำสุด*', field: 'weightMin', required: true },
       { header: 'น้ำหนักสูงสุด*', field: 'weightMax', required: true },
@@ -178,7 +178,7 @@ const IMPORT_CONFIGS: Record<string, ImportConfig> = {
     sheetName: 'IPC Criteria',
     apiUrl: '/api/master-data/ipc-criteria',
     columns: [
-      { header: 'รหัส (Code)', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
+      { header: 'รหัส (Code)*', field: 'code', required: false, note: 'สร้างอัตโนมัติถ้าไม่กรอก' },
       { header: 'ชื่อ EN (Name)*', field: 'name', required: true },
       { header: 'ชื่อ TH', field: 'nameTh', required: false },
       { header: 'วิธีทดสอบ', field: 'testMethod', required: false },
