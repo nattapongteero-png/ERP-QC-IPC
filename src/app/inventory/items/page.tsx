@@ -7,7 +7,7 @@
  * Redesigned with DevExtreme UI components.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -49,7 +49,13 @@ import {
   XCircle,
   Warehouse,
   Clock,
+  Download,
+  Upload,
+  X,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { ItemEditDialog, Item, ItemFormData } from '@/components/ui/item-edit-dialog';
 import { DxConfirmDialog } from '@/components/ui/dx-popup';
 import { cn } from '@/lib/utils/cn';
@@ -156,6 +162,152 @@ export default function ItemsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; item: Item | null }>({ open: false, item: null });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importLog, setImportLog] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/session').then(r => r.json()).then(d => {
+      if (d.success && d.data?.user?.role?.toLowerCase() === 'admin') setIsAdmin(true);
+    }).catch(() => {});
+  }, []);
+
+  // ─── Item Import Config ─────────────────────────────────────
+  const ITEM_TYPES_CONFIG = [
+    { key: 'raw_material', label: 'วัตถุดิบ (Raw Material)', sheetName: 'Raw Material' },
+    { key: 'packaging', label: 'บรรจุภัณฑ์ (Packaging)', sheetName: 'Packaging' },
+    { key: 'finished_goods', label: 'สินค้าสำเร็จรูป (Finished Goods)', sheetName: 'Finished Goods' },
+    { key: 'wip', label: 'งานระหว่างผลิต (WIP)', sheetName: 'WIP' },
+    { key: 'consumable', label: 'วัสดุสิ้นเปลือง (Consumable)', sheetName: 'Consumable' },
+  ];
+  const ALL_TYPE_KEYS = ITEM_TYPES_CONFIG.map(t => t.key);
+
+  const ITEM_COLUMNS = [
+    { header: 'รหัส (Code)*', field: 'code', required: false },
+    { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
+    { header: 'ชื่อ EN (Name EN)', field: 'nameEn', required: false },
+    { header: 'หมวดหมู่ (Category)', field: 'category', required: false },
+    { header: 'หน่วยหลัก (Primary Unit)*', field: 'primaryUnit', required: true },
+    { header: 'หน่วยรอง (Secondary Unit)', field: 'secondaryUnit', required: false },
+    { header: 'อัตราแปลง (Conversion Rate)', field: 'conversionRate', required: false },
+    { header: 'อายุการเก็บ (วัน)', field: 'shelfLifeDays', required: false },
+    { header: 'เงื่อนไขจัดเก็บ', field: 'storageCondition', required: false },
+    { header: 'สต็อกขั้นต่ำ', field: 'minStock', required: false },
+    { header: 'สต็อกสูงสุด', field: 'maxStock', required: false },
+    { header: 'จุดสั่งซื้อ', field: 'reorderPoint', required: false },
+  ];
+
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    // Instruction
+    const instr = [
+      ['Template นำเข้ารายการสินค้า — Herbal Medicine ERP'],
+      [''], ['แต่ละ Sheet = ประเภทสินค้า 1 ประเภท, กรอกข้อมูลใน Sheet ที่ต้องการ'],
+      ['ฟิลด์ที่มี * = บังคับ, Code ถ้าไม่กรอกระบบสร้างให้อัตโนมัติ'],
+      [''], ['Sheet', 'ประเภท', 'ฟิลด์บังคับ'],
+      ...ITEM_TYPES_CONFIG.map(tc => [tc.sheetName, tc.key, 'ชื่อ TH, หน่วยหลัก']),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instr), 'คำแนะนำ');
+
+    // Data sheets per type
+    for (const tc of ITEM_TYPES_CONFIG) {
+      const example: Record<string, string | number> = {};
+      ITEM_COLUMNS.forEach(c => { example[c.header] = ''; });
+      example['รหัส (Code)*'] = tc.key === 'raw_material' ? 'RM-0001' : tc.key === 'packaging' ? 'RP-0001' : tc.key === 'finished_goods' ? 'FG-0001' : tc.key === 'wip' ? 'WIP-0001' : 'CS-0001';
+      example['ชื่อ TH (Name TH)*'] = 'ตัวอย่าง';
+      example['หน่วยหลัก (Primary Unit)*'] = tc.key === 'raw_material' ? 'kg' : tc.key === 'packaging' ? 'pcs' : 'bottle';
+      const ws = XLSX.utils.json_to_sheet([example]);
+      ws['!cols'] = ITEM_COLUMNS.map(() => ({ wch: 22 }));
+      XLSX.utils.book_append_sheet(wb, ws, tc.sheetName);
+    }
+
+    // Lookup sheet
+    const lookupRows: string[][] = [
+      ['ตัวเลือก (Lookup Values)'], [''],
+      ['Category (หมวดหมู่)', ''], ['ค่า', 'คำอธิบาย'],
+      ['herb', 'สมุนไพร'], ['extract', 'สารสกัด'], ['excipient', 'สารเติมแต่ง'],
+      ['packaging', 'บรรจุภัณฑ์'], ['capsule', 'แคปซูล'], ['bottle', 'ขวด'],
+      ['label', 'ฉลาก'], ['box', 'กล่อง'], ['finished', 'ผลิตภัณฑ์สำเร็จรูป'],
+      ['semi_finished', 'กึ่งสำเร็จรูป'], ['consumable', 'วัสดุสิ้นเปลือง'],
+      ['chemical', 'เคมีภัณฑ์'], ['other', 'อื่นๆ'],
+      [''],
+      ['Primary/Secondary Unit (หน่วย)', ''], ['ค่า', 'คำอธิบาย'],
+      ['kg', 'กิโลกรัม'], ['g', 'กรัม'], ['mg', 'มิลลิกรัม'],
+      ['l', 'ลิตร'], ['ml', 'มิลลิลิตร'], ['pcs', 'ชิ้น'],
+      ['pack', 'แพ็ค'], ['box', 'กล่อง'], ['bottle', 'ขวด'],
+      ['bag', 'ถุง'], ['roll', 'ม้วน'], ['sheet', 'แผ่น'],
+      ['set', 'ชุด'], ['carton', 'ลัง'], ['drum', 'ถัง'],
+      ['can', 'กระป๋อง'], ['tube', 'หลอด'], ['cap', 'ฝา'],
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lookupRows), 'ตัวเลือก (Lookup)');
+    XLSX.writeFile(wb, 'Item_Import_Templates.xlsx');
+  };
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || selectedTypes.length === 0) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const log: string[] = [];
+        setImporting(true);
+
+        for (const typeKey of selectedTypes) {
+          const tc = ITEM_TYPES_CONFIG.find(t => t.key === typeKey);
+          if (!tc) continue;
+          const sheetName = workbook.SheetNames.find(n => n === tc.sheetName || n.toLowerCase() === tc.sheetName.toLowerCase());
+          if (!sheetName) { log.push(`⚠️ ไม่พบ Sheet "${tc.sheetName}"`); continue; }
+          const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(workbook.Sheets[sheetName]);
+          if (jsonData.length === 0) { log.push(`⚠️ ${tc.label}: ไม่มีข้อมูล`); continue; }
+
+          let success = 0, created = 0, updated = 0;
+          const errors: string[] = [];
+
+          for (let i = 0; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            const nameTh = String(row['ชื่อ TH (Name TH)*'] ?? row['nameTh'] ?? '').trim();
+            const primaryUnit = String(row['หน่วยหลัก (Primary Unit)*'] ?? row['primaryUnit'] ?? '').trim();
+            if (!nameTh || !primaryUnit) { errors.push(`แถว ${i+2}: ไม่มี ชื่อ TH หรือ หน่วยหลัก`); continue; }
+
+            const payload: Record<string, unknown> = { type: tc.key, nameTh, primaryUnit, isActive: true };
+            for (const col of ITEM_COLUMNS) {
+              if (col.field === 'nameTh' || col.field === 'primaryUnit') continue;
+              const val = String(row[col.header] ?? row[col.field] ?? '').trim();
+              if (val) {
+                const num = Number(val);
+                payload[col.field] = !isNaN(num) && col.field.match(/Stock|Point|Rate|Days/) ? num : val;
+              }
+            }
+
+            try {
+              const res = await fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+              const result = await res.json();
+              if (result.success) {
+                success++;
+                if (String(result.message).includes('updated')) updated++; else created++;
+              } else {
+                errors.push(`${payload.code || `แถว ${i+2}`}: ${result.error}`);
+              }
+            } catch (err) { errors.push(`แถว ${i+2}: ${err instanceof Error ? err.message : 'Error'}`); }
+          }
+
+          log.push(`✅ ${tc.label}: ${success}/${jsonData.length} สำเร็จ${created ? ` (สร้าง ${created})` : ''}${updated ? ` (อัปเดต ${updated})` : ''}`);
+          if (errors.length > 0) log.push(...errors.slice(0, 3).map(e => `   ❌ ${e}`));
+        }
+
+        setImportLog(log);
+        setImporting(false);
+        refetch();
+      } catch { setImporting(false); }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+  };
 
   // Fetch data
   const { data: items = [], isLoading, refetch } = useQuery({
@@ -458,6 +610,16 @@ export default function ItemsPage() {
                 <Warehouse className="h-4 w-4" />
                 {t('items.viewLots')}
               </button>
+              {isAdmin && (
+                <>
+                  <button onClick={handleDownloadTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Download className="h-4 w-4" /> Template
+                  </button>
+                  <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                    <Upload className="h-4 w-4" /> นำเข้า Excel
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => router.push('/inventory/items/new')}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -736,6 +898,56 @@ export default function ItemsPage() {
           border-top: 1px solid #e2e8f0;
         }
       `}</style>
+
+      {/* Hidden file input */}
+      <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportFile} className="hidden" />
+
+      {/* Import Dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
+              <h2 className="text-lg font-semibold text-gray-900">นำเข้ารายการสินค้า</h2>
+              <button onClick={() => setShowImportDialog(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X className="h-5 w-5 text-gray-500" /></button>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">1. เลือกประเภทสินค้าที่ต้องการนำเข้า</label>
+                  <button onClick={() => setSelectedTypes(prev => prev.length === ALL_TYPE_KEYS.length ? [] : [...ALL_TYPE_KEYS])} className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                    {selectedTypes.length === ALL_TYPE_KEYS.length ? <><CheckSquare className="h-3.5 w-3.5" /> ยกเลิกทั้งหมด</> : <><Square className="h-3.5 w-3.5" /> เลือกทั้งหมด</>}
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {ITEM_TYPES_CONFIG.map(tc => (
+                    <label key={tc.key} className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${selectedTypes.includes(tc.key) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                      <input type="checkbox" checked={selectedTypes.includes(tc.key)} onChange={() => setSelectedTypes(prev => prev.includes(tc.key) ? prev.filter(k => k !== tc.key) : [...prev, tc.key])} className="h-4 w-4 rounded text-blue-600" />
+                      <span className="text-sm font-medium text-gray-900 flex-1">{tc.label}</span>
+                      <span className="text-xs text-gray-400">Sheet: {tc.sheetName}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {selectedTypes.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">2. เลือกไฟล์ Excel ({selectedTypes.length} ประเภท)</label>
+                  <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50">
+                    <Upload className="h-5 w-5" />{importing ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
+                  </button>
+                </div>
+              )}
+              {importLog.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 border">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">ผลการนำเข้า:</label>
+                  <div className="text-xs font-mono space-y-0.5 max-h-40 overflow-y-auto">
+                    {importLog.map((line, i) => <div key={i} className={line.includes('❌') ? 'text-red-600' : 'text-gray-700'}>{line}</div>)}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }

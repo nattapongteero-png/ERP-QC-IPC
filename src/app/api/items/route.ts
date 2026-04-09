@@ -119,8 +119,22 @@ export async function POST(request: NextRequest) {
           .limit(1);
       });
 
+      // Upsert — update if code exists
       if (existing.length > 0) {
-        return errorResponse('Item code already exists');
+        const existingId = existing[0].id;
+        await executeDbOperation(async (db) => {
+          return db.update(itemsTable).set({
+            nameTh, nameEn, type, category, primaryUnit, secondaryUnit,
+            shelfLifeDays, storageCondition, minStock: minStock || 0, maxStock, reorderPoint,
+            isLotControlled: isLotControlled !== false, isFEFO: isFEFO !== false,
+            tppCode: tppCode || null, tppName: tppName || null,
+            ttmtCode: ttmtCode || null, ttmtName: ttmtName || null,
+            confidentialityLevel: confidentialityLevel || 'public',
+            defaultConfidential: defaultConfidential || false, strength: strength || null,
+            isActive: true,
+          }).where(eq(itemsTable.id, existingId));
+        });
+        return successResponse({ id: existingId }, 'Item updated (code existed)');
       }
 
       // Auto-correct conversion rate for standard unit pairs
