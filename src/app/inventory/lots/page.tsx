@@ -17,8 +17,10 @@ import {
   CheckCircle, XCircle, Clock, AlertTriangle,
   Package, ArrowRight, BoxSelect, ChevronRight, Inbox,
   Boxes, TrendingUp, CalendarClock, Warehouse,
-  DollarSign, RefreshCw, Plus, RefreshCcw
+  DollarSign, RefreshCw, Plus, RefreshCcw,
+  Download, Upload, X,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { ItemSearchDialog, type Item as SearchItem } from '@/components/ui/item-search-dialog';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -212,6 +214,143 @@ export default function LotsPage() {
   const [receivedFrom, setReceivedFrom] = useState('');
   const [receivedTo, setReceivedTo] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importingLots, setImportingLots] = useState(false);
+  const [importLog, setImportLog] = useState<string[]>([]);
+  const lotFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/session').then(r => r.json()).then(d => {
+      if (d.success && d.data?.user?.role?.toLowerCase() === 'admin') setIsAdmin(true);
+    }).catch(() => {});
+  }, []);
+
+  const LOT_COLUMNS = [
+    { header: 'เลข Lot (Lot Number)*', field: 'lotNumber', required: true },
+    { header: 'รหัสสินค้า (Item Code)*', field: 'itemCode', required: true },
+    { header: 'คลังสินค้า (Warehouse)*', field: 'warehouseName', required: true },
+    { header: 'จำนวน (Quantity)*', field: 'quantity', required: true },
+    { header: 'หน่วย (Unit)*', field: 'unit', required: true },
+    { header: 'ราคาต่อหน่วย (Cost)', field: 'cost', required: false },
+    { header: 'วันหมดอายุ (Expiry Date)', field: 'expiryDate', required: false, note: 'YYYY-MM-DD' },
+    { header: 'วันผลิต (Mfg Date)', field: 'manufacturingDate', required: false, note: 'YYYY-MM-DD' },
+    { header: 'วันรับเข้า (Received Date)', field: 'receivedDate', required: false, note: 'YYYY-MM-DD, ค่าเริ่มต้น=วันนี้' },
+    { header: 'เลข Lot ผู้ขาย', field: 'vendorLotNumber', required: false },
+    { header: 'เลข PO', field: 'poNumber', required: false },
+    { header: 'เลข COA', field: 'coaNumber', required: false },
+    { header: 'เลข Batch', field: 'batchNumber', required: false },
+  ];
+
+  const handleDownloadLotTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    const instr = [
+      ['Template นำเข้า Inventory Lots — Herbal Medicine ERP'],
+      [''], ['ฟิลด์ที่มี * = บังคับ'],
+      ['รหัสสินค้า = Code จากหน้า Items, คลังสินค้า = ชื่อคลัง'],
+      ['วันที่ใช้รูปแบบ YYYY-MM-DD (เช่น 2026-12-31)'],
+      ['Lot ใหม่จะอยู่สถานะ Quarantine อัตโนมัติ'],
+      [''],
+      ['คอลัมน์', 'บังคับ', 'หมายเหตุ'],
+      ...LOT_COLUMNS.map(c => [c.header, c.required ? 'ใช่' : 'ไม่', c.note || '']),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instr), 'คำแนะนำ');
+
+    const examples = [
+      { 'เลข Lot (Lot Number)*': 'LOT-2026-001', 'รหัสสินค้า (Item Code)*': 'RM-0001', 'คลังสินค้า (Warehouse)*': 'Main Warehouse', 'จำนวน (Quantity)*': 500, 'หน่วย (Unit)*': 'kg', 'ราคาต่อหน่วย (Cost)': 120, 'วันหมดอายุ (Expiry Date)': '2028-06-30', 'วันผลิต (Mfg Date)': '2026-04-01', 'วันรับเข้า (Received Date)': '2026-04-10', 'เลข Lot ผู้ขาย': 'V-LOT-A001', 'เลข PO': 'PO-2026-0050', 'เลข COA': 'COA-2026-001', 'เลข Batch': 'BATCH-001' },
+      { 'เลข Lot (Lot Number)*': 'LOT-2026-002', 'รหัสสินค้า (Item Code)*': 'RP-0001', 'คลังสินค้า (Warehouse)*': 'Main Warehouse', 'จำนวน (Quantity)*': 10000, 'หน่วย (Unit)*': 'pcs', 'ราคาต่อหน่วย (Cost)': 2.5, 'วันหมดอายุ (Expiry Date)': '', 'วันผลิต (Mfg Date)': '2026-03-15', 'วันรับเข้า (Received Date)': '2026-04-10', 'เลข Lot ผู้ขาย': 'V-LOT-B002', 'เลข PO': 'PO-2026-0051', 'เลข COA': '', 'เลข Batch': '' },
+    ];
+    const ws = XLSX.utils.json_to_sheet(examples);
+    ws['!cols'] = LOT_COLUMNS.map(() => ({ wch: 22 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Lots');
+    XLSX.writeFile(wb, 'Lot_Import_Template.xlsx');
+  };
+
+  const handleImportLots = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames.find(n => n !== 'คำแนะนำ') || workbook.SheetNames[0];
+        const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(workbook.Sheets[sheetName]);
+        if (jsonData.length === 0) { toast.error('ไม่พบข้อมูลในไฟล์'); return; }
+
+        // Lookup items and warehouses
+        const itemsRes = await fetch('/api/items?limit=9999');
+        const itemsData = await (itemsRes.json());
+        const allItems = (itemsData.data?.items || []) as { id: number; code: string }[];
+
+        const whRes = await fetch('/api/warehouses');
+        const whData = await (whRes.json());
+        const allWarehouses = (whData.data || []) as { id: number; name: string }[];
+
+        setImportingLots(true);
+        const log: string[] = [];
+        let success = 0;
+        const errors: string[] = [];
+
+        for (let i = 0; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          const lotNumber = String(row['เลข Lot (Lot Number)*'] ?? row['lotNumber'] ?? '').trim();
+          const itemCode = String(row['รหัสสินค้า (Item Code)*'] ?? row['itemCode'] ?? '').trim();
+          const whName = String(row['คลังสินค้า (Warehouse)*'] ?? row['warehouseName'] ?? '').trim();
+          const qty = Number(row['จำนวน (Quantity)*'] ?? row['quantity'] ?? 0);
+          const unit = String(row['หน่วย (Unit)*'] ?? row['unit'] ?? '').trim();
+
+          if (!lotNumber || !itemCode || !whName || !qty || !unit) {
+            errors.push(`แถว ${i+2}: ข้อมูลบังคับไม่ครบ`); continue;
+          }
+
+          const item = allItems.find(it => it.code === itemCode);
+          if (!item) { errors.push(`แถว ${i+2}: ไม่พบสินค้า ${itemCode}`); continue; }
+
+          const wh = allWarehouses.find(w => w.name.toLowerCase() === whName.toLowerCase());
+          if (!wh) { errors.push(`แถว ${i+2}: ไม่พบคลัง "${whName}"`); continue; }
+
+          const formatDate = (v: string | number | undefined) => {
+            if (!v) return undefined;
+            const s = String(v).trim();
+            if (!s) return undefined;
+            if (typeof v === 'number') {
+              const d = new Date((v - 25569) * 86400000);
+              return d.toISOString().split('T')[0];
+            }
+            return s;
+          };
+
+          const payload: Record<string, unknown> = {
+            lotNumber, itemId: item.id, warehouseId: wh.id, quantity: qty, unit,
+            cost: Number(row['ราคาต่อหน่วย (Cost)'] ?? row['cost'] ?? 0) || undefined,
+            expiryDate: formatDate(row['วันหมดอายุ (Expiry Date)'] ?? row['expiryDate']),
+            manufacturingDate: formatDate(row['วันผลิต (Mfg Date)'] ?? row['manufacturingDate']),
+            receivedDate: formatDate(row['วันรับเข้า (Received Date)'] ?? row['receivedDate']),
+            vendorLotNumber: String(row['เลข Lot ผู้ขาย'] ?? row['vendorLotNumber'] ?? '').trim() || undefined,
+            poNumber: String(row['เลข PO'] ?? row['poNumber'] ?? '').trim() || undefined,
+            coaNumber: String(row['เลข COA'] ?? row['coaNumber'] ?? '').trim() || undefined,
+            batchNumber: String(row['เลข Batch'] ?? row['batchNumber'] ?? '').trim() || undefined,
+          };
+
+          try {
+            const res = await fetch('/api/inventory/lots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const result = await res.json();
+            if (result.success) success++;
+            else errors.push(`${lotNumber}: ${result.error}`);
+          } catch (err) { errors.push(`${lotNumber}: ${err instanceof Error ? err.message : 'Error'}`); }
+        }
+
+        log.push(`✅ นำเข้า ${success}/${jsonData.length} Lot สำเร็จ (สถานะ: Quarantine)`);
+        if (errors.length > 0) log.push(...errors.slice(0, 5).map(e => `❌ ${e}`));
+        setImportLog(log);
+        setImportingLots(false);
+        if (success > 0) fetchLots();
+      } catch { toast.error('อ่านไฟล์ไม่ได้'); setImportingLots(false); }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+  };
   const [showQCModal, setShowQCModal] = useState(false);
   const [showTraceModal, setShowTraceModal] = useState(false);
   const [qcLot, setQcLot] = useState<Lot | null>(null);
@@ -801,6 +940,16 @@ export default function LotsPage() {
                 <Package className="h-4 w-4" />
                 {t('lots.viewItems')}
               </button>
+              {isAdmin && (
+                <>
+                  <button onClick={handleDownloadLotTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Download className="h-4 w-4" /> Template
+                  </button>
+                  <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                    <Upload className="h-4 w-4" /> นำเข้า Excel
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => { resetForm(); setShowModal(true); }}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
@@ -1470,6 +1619,45 @@ export default function LotsPage() {
         showPrice="cost"
         showStock={true}
       />
+
+      {/* Hidden file input for lot import */}
+      <input ref={lotFileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportLots} className="hidden" />
+
+      {/* Lot Import Dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">นำเข้า Inventory Lots</h2>
+              <button onClick={() => setShowImportDialog(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X className="h-5 w-5 text-gray-500" /></button>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                <strong>หมายเหตุ:</strong> Lot ที่นำเข้าจะอยู่สถานะ <strong>Quarantine</strong> อัตโนมัติ และสร้าง Transaction (Receive) ให้ทุกรายการ
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">เลือกไฟล์ Excel</label>
+                <button
+                  onClick={() => lotFileInputRef.current?.click()}
+                  disabled={importingLots}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                >
+                  <Upload className="h-5 w-5" />{importingLots ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
+                </button>
+                <p className="mt-2 text-xs text-gray-500">ฟิลด์บังคับ: เลข Lot, รหัสสินค้า, คลังสินค้า, จำนวน, หน่วย</p>
+              </div>
+              {importLog.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 border">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">ผลการนำเข้า:</label>
+                  <div className="text-xs font-mono space-y-0.5 max-h-40 overflow-y-auto">
+                    {importLog.map((line, i) => <div key={i} className={line.includes('❌') ? 'text-red-600' : 'text-gray-700'}>{line}</div>)}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }
