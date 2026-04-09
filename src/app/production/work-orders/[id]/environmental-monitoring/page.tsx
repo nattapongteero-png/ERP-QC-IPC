@@ -122,7 +122,7 @@ export default function EnvironmentalMonitoringPage() {
   const { data: logs, isLoading: logsLoading } = useQuery<EnvironmentalLog[]>({
     queryKey: ['wo-environmental-logs', workOrderId, currentPhase],
     queryFn: async () => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/environmental-logs?phase=${currentPhase}`);
+      const res = await fetch(`/api/environmental-logs?workOrderId=${workOrderId}&phase=${currentPhase}`);
       const data = await res.json();
       if (!data.success) return [];
       return data.data;
@@ -157,10 +157,11 @@ export default function EnvironmentalMonitoringPage() {
   const addLogMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const now = new Date();
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/environmental-logs`, {
+      const res = await fetch(`/api/environmental-logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          workOrderId,
           phase: currentPhase,
           recordedDate: toLocalDateStr(now),
           recordedTime: now.toTimeString().slice(0, 5),
@@ -185,10 +186,10 @@ export default function EnvironmentalMonitoringPage() {
   // Edit log mutation
   const editLogMutation = useMutation({
     mutationFn: async (data: typeof formData & { logId: number }) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/environmental-logs`, {
+      const res = await fetch(`/api/environmental-logs`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, phase: currentPhase }),
+        body: JSON.stringify({ ...data, workOrderId, phase: currentPhase }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
@@ -207,7 +208,7 @@ export default function EnvironmentalMonitoringPage() {
   // Delete log mutation
   const deleteLogMutation = useMutation({
     mutationFn: async (logId: number) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/environmental-logs?logId=${logId}`, {
+      const res = await fetch(`/api/environmental-logs?logId=${logId}`, {
         method: 'DELETE',
       });
       const result = await res.json();
