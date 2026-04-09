@@ -141,8 +141,8 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
   });
 
   const handleSave = () => {
-    if (!formData.code || !formData.name || !formData.nameTh || !formData.equipmentType) {
-      toast.error('Validation Error', 'Please fill in all required fields.');
+    if (!formData.name || !formData.nameTh || !formData.equipmentType) {
+      toast.error('Validation Error', 'กรุณากรอก ชื่อ EN, ชื่อ TH, และประเภทอุปกรณ์');
       return;
     }
     saveMutation.mutate(formData);
@@ -197,11 +197,11 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Code <span className="text-gray-400 font-normal">(สร้างอัตโนมัติ ถ้าไม่กรอก)</span></label>
               <DxTextBox
                 value={formData.code || ''}
                 onValueChanged={(e) => setFormData({ ...formData, code: e.value })}
-                placeholder="e.g., EQ-001"
+                placeholder="EQ-XXXX (auto)"
               />
             </div>
             <div>
