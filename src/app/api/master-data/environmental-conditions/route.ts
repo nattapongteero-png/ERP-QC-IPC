@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       }
 
       const conditions = await getEnvironmentalConditions({
-        isActive: isActive ? isActive === 'true' : undefined,
+        isActive: isActive !== null ? isActive === 'true' : true,
       });
 
       return successResponse(conditions);
