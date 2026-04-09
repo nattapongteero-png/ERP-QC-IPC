@@ -397,12 +397,12 @@ export default function BOMDashboardPage() {
       {/* BOM List Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-w-0 overflow-hidden flex-1">
         {/* Header — tabs + status filter + search ALL on one row */}
-        <div className="border-b border-gray-100 px-3 py-1.5 flex items-center gap-2 overflow-x-auto">
+        <div className="border-b border-gray-100 px-3 py-1.5 flex items-center gap-2">
           <div className="flex items-center gap-1.5 shrink-0">
             <Settings className="h-4 w-4 text-emerald-600" />
             <h3 className="font-semibold text-gray-900 text-sm whitespace-nowrap">{t('bom.registry.title')}</h3>
           </div>
-          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setStatusFilter(v === 'all' ? '' : v); }} className="shrink-0">
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setStatusFilter(v === 'all' ? '' : v); }} className="w-auto shrink-0">
             <TabsList className="text-xs">
               <TabsTrigger value="all" className="text-xs px-2 py-1">
                 All ({bomData?.length || 0})
