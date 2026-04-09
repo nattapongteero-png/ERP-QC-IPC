@@ -8,7 +8,7 @@
  * Redesigned with responsive layout that properly constrains width.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -60,6 +60,21 @@ export default function BOMDashboardPage() {
   const t = useTranslations('production');
   const [statusFilter, setStatusFilter] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [gridHeight, setGridHeight] = useState(580);
+
+  // Dynamic grid height — fills remaining viewport
+  useEffect(() => {
+    const updateHeight = () => {
+      if (gridRef.current) {
+        const top = gridRef.current.getBoundingClientRect().top;
+        setGridHeight(Math.max(300, Math.floor(window.innerHeight - top - 12)));
+      }
+    };
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
 
   // Status filters with translations
   const statusFilters = useMemo(() => [
@@ -109,11 +124,11 @@ export default function BOMDashboardPage() {
     const config = statusConfig[status as keyof typeof statusConfig];
     if (!config) return <span className="text-gray-500">{status}</span>;
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium ${config.color}`}>
-        {status === 'active' && <CheckCircle className="h-3.5 w-3.5" />}
-        {status === 'draft' && <FileEdit className="h-3.5 w-3.5" />}
-        {status === 'approved' && <CheckCircle className="h-3.5 w-3.5" />}
-        {status === 'obsolete' && <Archive className="h-3.5 w-3.5" />}
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold tracking-wide ${config.color}`}>
+        {status === 'active' && <CheckCircle className="h-3 w-3" />}
+        {status === 'draft' && <FileEdit className="h-3 w-3" />}
+        {status === 'approved' && <CheckCircle className="h-3 w-3" />}
+        {status === 'obsolete' && <Archive className="h-3 w-3" />}
         {t(`bom.status.${config.translationKey}`)}
       </span>
     );
@@ -144,7 +159,7 @@ export default function BOMDashboardPage() {
   }) || [];
 
   return (
-    <div className="flex flex-col gap-3 p-3 md:p-4 w-full max-w-full box-border">
+    <div className="flex flex-col gap-2 p-2 md:p-3 w-full max-w-full box-border">
       {/* Header */}
       <ResponsivePageHeader
         title={t('bom.pageTitle')}
@@ -351,7 +366,7 @@ export default function BOMDashboardPage() {
 
       {/* Alerts Section */}
       {dashboard && dashboard.draftBOMs > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
@@ -412,15 +427,47 @@ export default function BOMDashboardPage() {
           </Tabs>
         </div>
 
-        {/* DataGrid */}
-        <div className="p-2">
+        {/* DataGrid — compact density */}
+        <div ref={gridRef} className="bom-compact-grid px-2 pb-1">
+          <style>{`
+            .bom-compact-grid .dx-datagrid-rowsview .dx-data-row > td {
+              padding-top: 2px !important;
+              padding-bottom: 2px !important;
+            }
+            .bom-compact-grid .dx-datagrid-headers .dx-header-row > td {
+              padding-top: 5px !important;
+              padding-bottom: 5px !important;
+              font-size: 0.7rem;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+              color: #6b7280;
+            }
+            .bom-compact-grid .dx-datagrid-headers .dx-datagrid-text-content {
+              white-space: normal !important;
+              word-wrap: break-word;
+            }
+            .bom-compact-grid .dx-data-row:hover > td {
+              background-color: #ecfdf5 !important;
+              transition: background-color 0.15s ease;
+            }
+            .bom-compact-grid .dx-data-row.dx-row-alt > td {
+              background-color: #f8fafc;
+            }
+            .bom-compact-grid .dx-datagrid-rowsview .dx-row > td {
+              border-bottom: 1px solid #f1f5f9;
+            }
+            .bom-compact-grid .dx-datagrid {
+              border: none;
+            }
+          `}</style>
           <DxDataGrid
             dataSource={filteredBOMs}
             keyExpr="id"
             showBorders={false}
             rowAlternationEnabled
             loading={bomLoading}
-            height={620}
+            height={gridHeight}
             width="100%"
             columnAutoWidth
             showColumnLines={false}
