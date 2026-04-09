@@ -4,6 +4,7 @@
  * Master Data Index Page
  * Dashboard for accessing all master data management pages.
  * Admin-only: Excel template download & import for all master data types.
+ * Supports multi-module import with checkbox selection + Select All.
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -11,22 +12,13 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import {
-  Database,
-  Building2,
-  Wrench,
-  Thermometer,
-  FileText,
-  Scale,
-  FlaskConical,
-  ChevronRight,
-  Download,
-  Upload,
-  X,
+  Database, Building2, Wrench, Thermometer, FileText, Scale, FlaskConical,
+  ChevronRight, Download, Upload, X, CheckSquare, Square,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 
-// ─── Master data module definitions ───────────────────────────────────
+// ─── Master data module cards ─────────────────────────────────────────
 const masterDataModules = [
   { key: 'productionRooms', href: '/master-data/production-rooms', icon: Building2, iconBgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
   { key: 'productionEquipment', href: '/master-data/production-equipment', icon: Wrench, iconBgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
@@ -36,121 +28,217 @@ const masterDataModules = [
   { key: 'ipcCriteria', href: '/master-data/ipc-criteria', icon: FlaskConical, iconBgColor: 'bg-emerald-100', iconColor: 'text-emerald-600' },
 ];
 
+// ─── Lookup values for template reference ─────────────────────────────
+const ROOM_TYPES = [
+  { value: 'weighing', label: 'Weighing Room (ห้องชั่งยา)' },
+  { value: 'mixing', label: 'Mixing Room (ห้องผสม)' },
+  { value: 'packaging', label: 'Packaging Room (ห้องบรรจุ)' },
+  { value: 'storage', label: 'Storage Area (พื้นที่จัดเก็บ)' },
+  { value: 'preparation', label: 'Preparation Room (ห้องเตรียม)' },
+  { value: 'production', label: 'Production Room (ห้องผลิต)' },
+];
+
+const EQUIPMENT_TYPES = [
+  { value: 'scale', label: 'Scale (เครื่องชั่ง)' },
+  { value: 'mixer', label: 'Mixer (เครื่องผสม)' },
+  { value: 'hotplate', label: 'Hotplate (เตาร้อน)' },
+  { value: 'container', label: 'Container (ภาชนะ)' },
+  { value: 'tool', label: 'Tool (เครื่องมือ)' },
+  { value: 'filler', label: 'Filler (เครื่องบรรจุ)' },
+];
+
+const SOP_CATEGORIES = [
+  { value: 'line_clearance', label: 'Line Clearance' },
+  { value: 'dispensing', label: 'Dispensing' },
+  { value: 'preparation', label: 'Preparation' },
+  { value: 'milling', label: 'Milling' },
+  { value: 'sieving', label: 'Sieving' },
+  { value: 'drying', label: 'Drying' },
+  { value: 'blending', label: 'Blending' },
+  { value: 'mixing', label: 'Mixing' },
+  { value: 'heating', label: 'Heating' },
+  { value: 'cooling', label: 'Cooling' },
+  { value: 'filling', label: 'Filling' },
+  { value: 'packaging', label: 'Packaging' },
+  { value: 'ipc', label: 'IPC' },
+  { value: 'weighing', label: 'Weighing' },
+  { value: 'cleaning', label: 'Cleaning' },
+  { value: 'inspection', label: 'Inspection' },
+  { value: 'other', label: 'Other' },
+];
+
 // ─── Import config per module ─────────────────────────────────────────
+interface ImportColumn {
+  header: string;
+  field: string;
+  required: boolean;
+  note?: string;
+  lookupValues?: { value: string; label: string }[];
+}
+
 interface ImportConfig {
   label: string;
+  sheetName: string;
   apiUrl: string;
-  templateFileName: string;
-  columns: { header: string; field: string; required: boolean; note?: string }[];
+  columns: ImportColumn[];
   validValues?: Record<string, string[]>;
   exampleRows: Record<string, string | number>[];
 }
 
 const IMPORT_CONFIGS: Record<string, ImportConfig> = {
   productionRooms: {
-    label: 'Production Rooms (ห้องผลิต)',
+    label: 'Production Rooms',
+    sheetName: 'Production Rooms',
     apiUrl: '/api/master-data/production-rooms',
-    templateFileName: 'Template_Production_Rooms.xlsx',
     columns: [
       { header: 'รหัส (Code)*', field: 'code', required: true },
       { header: 'ชื่อ EN (Name)*', field: 'name', required: true },
       { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
-      { header: 'ประเภท (Room Type)*', field: 'roomType', required: true, note: 'weighing, mixing, packaging, storage, preparation, production' },
+      { header: 'ประเภท (Room Type)*', field: 'roomType', required: true, lookupValues: ROOM_TYPES },
       { header: 'รายละเอียด (Description)', field: 'description', required: false },
     ],
-    validValues: { roomType: ['weighing', 'mixing', 'packaging', 'storage', 'preparation', 'production'] },
+    validValues: { roomType: ROOM_TYPES.map(r => r.value) },
     exampleRows: [
       { 'รหัส (Code)*': 'ROOM-001', 'ชื่อ EN (Name)*': 'Weighing Room 1', 'ชื่อ TH (Name TH)*': 'ห้องชั่งยา 1', 'ประเภท (Room Type)*': 'weighing', 'รายละเอียด (Description)': 'ห้องชั่งวัตถุดิบ ชั้น 2' },
+      { 'รหัส (Code)*': 'ROOM-002', 'ชื่อ EN (Name)*': 'Mixing Room A', 'ชื่อ TH (Name TH)*': 'ห้องผสม A', 'ประเภท (Room Type)*': 'mixing', 'รายละเอียด (Description)': '' },
     ],
   },
   productionEquipment: {
-    label: 'Production Equipment (อุปกรณ์)',
+    label: 'Production Equipment',
+    sheetName: 'Production Equipment',
     apiUrl: '/api/master-data/production-equipment',
-    templateFileName: 'Template_Production_Equipment.xlsx',
     columns: [
       { header: 'รหัส (Code)*', field: 'code', required: true },
       { header: 'ชื่อ EN (Name)*', field: 'name', required: true },
       { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
-      { header: 'ประเภท (Equipment Type)*', field: 'equipmentType', required: true, note: 'scale, mixer, hotplate, container, tool, filler' },
+      { header: 'ประเภท (Equipment Type)*', field: 'equipmentType', required: true, lookupValues: EQUIPMENT_TYPES },
       { header: 'ขนาด/ความจุ (Capacity)', field: 'capacity', required: false },
       { header: 'รายละเอียด (Description)', field: 'description', required: false },
     ],
-    validValues: { equipmentType: ['scale', 'mixer', 'hotplate', 'container', 'tool', 'filler'] },
+    validValues: { equipmentType: EQUIPMENT_TYPES.map(e => e.value) },
     exampleRows: [
       { 'รหัส (Code)*': 'EQ-001', 'ชื่อ EN (Name)*': 'Digital Scale 200kg', 'ชื่อ TH (Name TH)*': 'เครื่องชั่งดิจิตอล 200kg', 'ประเภท (Equipment Type)*': 'scale', 'ขนาด/ความจุ (Capacity)': '200 kg', 'รายละเอียด (Description)': '' },
+      { 'รหัส (Code)*': 'EQ-002', 'ชื่อ EN (Name)*': 'Ribbon Mixer 500L', 'ชื่อ TH (Name TH)*': 'เครื่องผสมริบบอน 500L', 'ประเภท (Equipment Type)*': 'mixer', 'ขนาด/ความจุ (Capacity)': '500 liters', 'รายละเอียด (Description)': '' },
     ],
   },
   environmentalConditions: {
-    label: 'Environmental Conditions (สภาวะแวดล้อม)',
+    label: 'Environmental Conditions',
+    sheetName: 'Env Conditions',
     apiUrl: '/api/master-data/environmental-conditions',
-    templateFileName: 'Template_Environmental_Conditions.xlsx',
     columns: [
       { header: 'รหัส (Code)*', field: 'code', required: true },
       { header: 'ชื่อ (Name)*', field: 'name', required: true },
-      { header: 'อุณหภูมิต่ำสุด °C (Temp Min)', field: 'temperatureMin', required: false, note: 'ค่าเริ่มต้น: 20' },
-      { header: 'อุณหภูมิสูงสุด °C (Temp Max)', field: 'temperatureMax', required: false, note: 'ค่าเริ่มต้น: 30' },
-      { header: 'ความชื้นสูงสุด % (Humidity Max)', field: 'humidityMax', required: false, note: 'ค่าเริ่มต้น: 60' },
-      { header: 'ตรวจทุก (นาที) (Interval Min)', field: 'monitoringIntervalMinutes', required: false, note: 'ค่าเริ่มต้น: 60' },
+      { header: 'อุณหภูมิต่ำสุด °C', field: 'temperatureMin', required: false, note: 'ค่าเริ่มต้น: 20' },
+      { header: 'อุณหภูมิสูงสุด °C', field: 'temperatureMax', required: false, note: 'ค่าเริ่มต้น: 30' },
+      { header: 'ความชื้นสูงสุด %', field: 'humidityMax', required: false, note: 'ค่าเริ่มต้น: 60' },
+      { header: 'ตรวจทุก (นาที)', field: 'monitoringIntervalMinutes', required: false, note: 'ค่าเริ่มต้น: 60' },
       { header: 'หมายเหตุ (Notes)', field: 'notes', required: false },
     ],
     exampleRows: [
-      { 'รหัส (Code)*': 'ENV-001', 'ชื่อ (Name)*': 'Standard Room', 'อุณหภูมิต่ำสุด °C (Temp Min)': 20, 'อุณหภูมิสูงสุด °C (Temp Max)': 30, 'ความชื้นสูงสุด % (Humidity Max)': 60, 'ตรวจทุก (นาที) (Interval Min)': 60, 'หมายเหตุ (Notes)': '' },
+      { 'รหัส (Code)*': 'ENV-001', 'ชื่อ (Name)*': 'Standard Room', 'อุณหภูมิต่ำสุด °C': 20, 'อุณหภูมิสูงสุด °C': 30, 'ความชื้นสูงสุด %': 60, 'ตรวจทุก (นาที)': 60, 'หมายเหตุ (Notes)': '' },
+      { 'รหัส (Code)*': 'ENV-002', 'ชื่อ (Name)*': 'Controlled Room', 'อุณหภูมิต่ำสุด °C': 22, 'อุณหภูมิสูงสุด °C': 28, 'ความชื้นสูงสุด %': 55, 'ตรวจทุก (นาที)': 30, 'หมายเหตุ (Notes)': 'ห้องควบคุมพิเศษ' },
     ],
   },
   sopTemplates: {
-    label: 'SOP Templates (แม่แบบ SOP)',
+    label: 'SOP Templates',
+    sheetName: 'SOP Templates',
     apiUrl: '/api/master-data/sop-templates',
-    templateFileName: 'Template_SOP_Templates.xlsx',
     columns: [
       { header: 'รหัส (Code)*', field: 'code', required: true },
       { header: 'ชื่อ EN (Name)', field: 'name', required: false },
       { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
-      { header: 'หมวด (Category)*', field: 'category', required: true, note: 'line_clearance, dispensing, preparation, milling, sieving, drying, blending, mixing, heating, cooling, filling, packaging, ipc, weighing, cleaning, inspection, other' },
-      { header: 'คำแนะนำ EN (Instructions)', field: 'instructions', required: false },
-      { header: 'คำแนะนำ TH (Instructions TH)', field: 'instructionsTh', required: false },
+      { header: 'หมวด (Category)*', field: 'category', required: true, lookupValues: SOP_CATEGORIES },
+      { header: 'คำแนะนำ EN', field: 'instructions', required: false },
+      { header: 'คำแนะนำ TH', field: 'instructionsTh', required: false },
     ],
-    validValues: { category: ['line_clearance', 'dispensing', 'preparation', 'milling', 'sieving', 'drying', 'blending', 'mixing', 'heating', 'cooling', 'filling', 'packaging', 'ipc', 'weighing', 'cleaning', 'inspection', 'other'] },
+    validValues: { category: SOP_CATEGORIES.map(c => c.value) },
     exampleRows: [
-      { 'รหัส (Code)*': 'SOP-001', 'ชื่อ EN (Name)': 'Line Clearance', 'ชื่อ TH (Name TH)*': 'ตรวจสอบสายการผลิต', 'หมวด (Category)*': 'line_clearance', 'คำแนะนำ EN (Instructions)': 'Check production line cleanliness', 'คำแนะนำ TH (Instructions TH)': 'ตรวจสอบความสะอาดสายการผลิต' },
+      { 'รหัส (Code)*': 'SOP-001', 'ชื่อ EN (Name)': 'Line Clearance', 'ชื่อ TH (Name TH)*': 'ตรวจสอบสายการผลิต', 'หมวด (Category)*': 'line_clearance', 'คำแนะนำ EN': 'Check production line', 'คำแนะนำ TH': 'ตรวจสอบความสะอาดสายการผลิต' },
     ],
   },
   packagingQCCriteria: {
-    label: 'Packaging QC Criteria (เกณฑ์ QC บรรจุ)',
+    label: 'Packaging QC Criteria',
+    sheetName: 'Packaging QC',
     apiUrl: '/api/master-data/packaging-qc-criteria',
-    templateFileName: 'Template_Packaging_QC_Criteria.xlsx',
     columns: [
       { header: 'รหัส (Code)*', field: 'code', required: true },
       { header: 'ชื่อ (Name)*', field: 'name', required: true },
-      { header: 'น้ำหนักต่ำสุด (Weight Min)*', field: 'weightMin', required: true },
-      { header: 'น้ำหนักสูงสุด (Weight Max)*', field: 'weightMax', required: true },
-      { header: 'จำนวนตัวอย่าง (Sample Size)', field: 'sampleSize', required: false, note: 'ค่าเริ่มต้น: 20' },
-      { header: 'ไม่ผ่านสูงสุด (Max Failures)', field: 'maxFailures', required: false, note: 'ค่าเริ่มต้น: 2' },
+      { header: 'น้ำหนักต่ำสุด*', field: 'weightMin', required: true },
+      { header: 'น้ำหนักสูงสุด*', field: 'weightMax', required: true },
+      { header: 'จำนวนตัวอย่าง', field: 'sampleSize', required: false, note: 'ค่าเริ่มต้น: 20' },
+      { header: 'ไม่ผ่านสูงสุด', field: 'maxFailures', required: false, note: 'ค่าเริ่มต้น: 2' },
       { header: 'ตรวจทุก (นาที)', field: 'checkIntervalMinutes', required: false, note: 'ค่าเริ่มต้น: 30' },
     ],
     exampleRows: [
-      { 'รหัส (Code)*': 'PKG-001', 'ชื่อ (Name)*': 'Capsule 500mg', 'น้ำหนักต่ำสุด (Weight Min)*': 480, 'น้ำหนักสูงสุด (Weight Max)*': 520, 'จำนวนตัวอย่าง (Sample Size)': 20, 'ไม่ผ่านสูงสุด (Max Failures)': 2, 'ตรวจทุก (นาที)': 30 },
+      { 'รหัส (Code)*': 'PKG-001', 'ชื่อ (Name)*': 'Capsule 500mg', 'น้ำหนักต่ำสุด*': 480, 'น้ำหนักสูงสุด*': 520, 'จำนวนตัวอย่าง': 20, 'ไม่ผ่านสูงสุด': 2, 'ตรวจทุก (นาที)': 30 },
     ],
   },
   ipcCriteria: {
-    label: 'IPC Criteria (เกณฑ์ IPC)',
+    label: 'IPC Criteria',
+    sheetName: 'IPC Criteria',
     apiUrl: '/api/master-data/ipc-criteria',
-    templateFileName: 'Template_IPC_Criteria.xlsx',
     columns: [
       { header: 'รหัส (Code)*', field: 'code', required: true },
       { header: 'ชื่อ EN (Name)*', field: 'name', required: true },
-      { header: 'ชื่อ TH (Name TH)', field: 'nameTh', required: false },
-      { header: 'วิธีทดสอบ (Test Method)', field: 'testMethod', required: false },
+      { header: 'ชื่อ TH', field: 'nameTh', required: false },
+      { header: 'วิธีทดสอบ', field: 'testMethod', required: false },
       { header: 'Specification', field: 'specification', required: false, note: 'เช่น 300 ± 5%' },
       { header: 'ค่าต่ำสุด (Min)', field: 'minValue', required: false },
       { header: 'ค่าสูงสุด (Max)', field: 'maxValue', required: false },
       { header: 'หน่วย (Unit)', field: 'unit', required: false },
-      { header: 'จำนวนตัวอย่าง (Sample Size)', field: 'sampleSize', required: false, note: 'ค่าเริ่มต้น: 5' },
+      { header: 'จำนวนตัวอย่าง', field: 'sampleSize', required: false, note: 'ค่าเริ่มต้น: 5' },
     ],
     exampleRows: [
-      { 'รหัส (Code)*': 'IPC-001', 'ชื่อ EN (Name)*': 'Average Weight', 'ชื่อ TH (Name TH)': 'น้ำหนักเฉลี่ย', 'วิธีทดสอบ (Test Method)': 'USP <905>', 'Specification': '300 ± 5%', 'ค่าต่ำสุด (Min)': 285, 'ค่าสูงสุด (Max)': 315, 'หน่วย (Unit)': 'mg', 'จำนวนตัวอย่าง (Sample Size)': 10 },
+      { 'รหัส (Code)*': 'IPC-001', 'ชื่อ EN (Name)*': 'Average Weight', 'ชื่อ TH': 'น้ำหนักเฉลี่ย', 'วิธีทดสอบ': 'USP <905>', 'Specification': '300 ± 5%', 'ค่าต่ำสุด (Min)': 285, 'ค่าสูงสุด (Max)': 315, 'หน่วย (Unit)': 'mg', 'จำนวนตัวอย่าง': 10 },
     ],
   },
 };
+
+const ALL_MODULE_KEYS = Object.keys(IMPORT_CONFIGS);
+
+// ─── Parse helpers ────────────────────────────────────────────────────
+function parseSheetRows(jsonData: Record<string, string | number>[], config: ImportConfig) {
+  const validRows: Record<string, unknown>[] = [];
+  const errors: string[] = [];
+
+  jsonData.forEach((row, index) => {
+    const rowNum = index + 2;
+    const parsed: Record<string, unknown> = {};
+    let hasError = false;
+
+    for (const col of config.columns) {
+      const val = row[col.header] ?? row[col.field] ?? '';
+      const strVal = String(val).trim();
+
+      if (col.required && !strVal) {
+        errors.push(`${config.label} แถว ${rowNum}: ไม่มี ${col.header}`);
+        hasError = true;
+        break;
+      }
+
+      if (strVal) {
+        if (config.validValues?.[col.field]) {
+          const lower = strVal.toLowerCase();
+          if (!config.validValues[col.field].includes(lower)) {
+            errors.push(`${config.label} แถว ${rowNum}: ${col.field} "${strVal}" ไม่ถูกต้อง`);
+            hasError = true;
+            break;
+          }
+          parsed[col.field] = lower;
+        } else {
+          const num = Number(strVal);
+          parsed[col.field] = !isNaN(num) && col.field.match(/Min|Max|Size|Failures|Interval|Value|Percent/) ? num : strVal;
+        }
+      }
+    }
+
+    if (!hasError && Object.keys(parsed).length > 0) {
+      validRows.push(parsed);
+    }
+  });
+
+  return { validRows, errors };
+}
 
 export default function MasterDataPage() {
   const t = useTranslations('masterData');
@@ -158,10 +246,10 @@ export default function MasterDataPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [selectedModule, setSelectedModule] = useState<string>('');
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
+  const [importLog, setImportLog] = useState<string[]>([]);
 
-  // Check admin role
   useEffect(() => {
     fetch('/api/auth/session')
       .then(res => res.json())
@@ -173,173 +261,167 @@ export default function MasterDataPage() {
       .catch(() => {});
   }, []);
 
-  // Download template for selected module
-  const handleDownloadTemplate = (moduleKey: string) => {
-    const config = IMPORT_CONFIGS[moduleKey];
-    if (!config) return;
+  // Toggle module selection
+  const toggleModule = (key: string) => {
+    setSelectedModules(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
 
-    // Data sheet with examples
-    const ws = XLSX.utils.json_to_sheet(config.exampleRows);
-    ws['!cols'] = config.columns.map(() => ({ wch: 25 }));
+  const toggleAll = () => {
+    setSelectedModules(prev => prev.length === ALL_MODULE_KEYS.length ? [] : [...ALL_MODULE_KEYS]);
+  };
+
+  // Download template — includes lookup reference sheets
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
 
     // Instruction sheet
     const instrRows: (string | number)[][] = [
-      [`คำแนะนำ Template: ${config.label}`],
+      ['Master Data Import Templates — Herbal Medicine ERP'],
       [''],
-      ['ฟิลด์ที่มี * คือฟิลด์บังคับ (Required)'],
+      ['วิธีใช้:'],
+      ['1. กรอกข้อมูลใน Sheet ของ Master Data แต่ละประเภท'],
+      ['2. ช่องที่มี * คือฟิลด์บังคับ'],
+      ['3. ช่อง lookup ดูค่าที่เลือกได้จาก Sheet "ตัวเลือก (Lookup)"'],
+      ['4. นำเข้าได้หลายหัวข้อพร้อมกัน'],
       [''],
-      ['คอลัมน์', 'ฟิลด์', 'บังคับ', 'หมายเหตุ'],
-      ...config.columns.map(c => [c.header, c.field, c.required ? 'ใช่' : 'ไม่', c.note || '']),
+      ['หัวข้อ', 'ฟิลด์บังคับ'],
+      ...Object.values(IMPORT_CONFIGS).map(c => [
+        c.label,
+        c.columns.filter(col => col.required).map(col => col.header).join(', '),
+      ]),
     ];
-
-    // Add valid values section
-    if (config.validValues) {
-      instrRows.push(['']);
-      for (const [field, values] of Object.entries(config.validValues)) {
-        instrRows.push([`ค่าที่รองรับสำหรับ ${field}:`]);
-        values.forEach(v => instrRows.push(['', v]));
-      }
-    }
-
     const wsInstr = XLSX.utils.aoa_to_sheet(instrRows);
-    wsInstr['!cols'] = [{ wch: 35 }, { wch: 25 }, { wch: 10 }, { wch: 50 }];
-
-    const wb = XLSX.utils.book_new();
+    wsInstr['!cols'] = [{ wch: 35 }, { wch: 60 }];
     XLSX.utils.book_append_sheet(wb, wsInstr, 'คำแนะนำ');
-    XLSX.utils.book_append_sheet(wb, ws, 'Data');
-    XLSX.writeFile(wb, config.templateFileName);
-    toast.success('ดาวน์โหลดสำเร็จ', `Template ${config.label}`);
-  };
 
-  // Download ALL templates in one file
-  const handleDownloadAllTemplates = () => {
-    const wb = XLSX.utils.book_new();
-
-    // Index sheet
-    const indexRows = [
-      ['Master Data Import Templates - Herbal Medicine ERP'],
-      [''],
-      ['แต่ละ Sheet คือ Template ของ Master Data แต่ละประเภท'],
-      ['กรอกข้อมูลใน Sheet ที่ต้องการ แล้วนำเข้าทีละ Sheet'],
-      [''],
-      ['Sheet', 'คำอธิบาย'],
-      ...Object.values(IMPORT_CONFIGS).map(c => [c.label, c.columns.filter(col => col.required).map(col => col.field).join(', ')]),
-    ];
-    const wsIndex = XLSX.utils.aoa_to_sheet(indexRows);
-    wsIndex['!cols'] = [{ wch: 40 }, { wch: 60 }];
-    XLSX.utils.book_append_sheet(wb, wsIndex, 'คำแนะนำ');
-
-    for (const [, config] of Object.entries(IMPORT_CONFIGS)) {
+    // Data sheets per module
+    for (const config of Object.values(IMPORT_CONFIGS)) {
       const ws = XLSX.utils.json_to_sheet(config.exampleRows);
       ws['!cols'] = config.columns.map(() => ({ wch: 25 }));
-      XLSX.utils.book_append_sheet(wb, ws, config.label.split(' (')[0].substring(0, 31));
+      XLSX.utils.book_append_sheet(wb, ws, config.sheetName);
     }
 
-    XLSX.writeFile(wb, 'Master_Data_Templates_All.xlsx');
-    toast.success('ดาวน์โหลดสำเร็จ', 'Template ทุกประเภทในไฟล์เดียว');
+    // Lookup reference sheet
+    const lookupRows: (string | number)[][] = [
+      ['ตัวเลือก (Lookup Values)'],
+      ['ใช้อ้างอิงค่าที่กรอกได้ในช่อง lookup'],
+      [''],
+    ];
+
+    // Room Types
+    lookupRows.push(['Room Type (ประเภทห้อง)', '']);
+    lookupRows.push(['ค่า', 'คำอธิบาย']);
+    ROOM_TYPES.forEach(r => lookupRows.push([r.value, r.label]));
+    lookupRows.push(['']);
+
+    // Equipment Types
+    lookupRows.push(['Equipment Type (ประเภทอุปกรณ์)', '']);
+    lookupRows.push(['ค่า', 'คำอธิบาย']);
+    EQUIPMENT_TYPES.forEach(e => lookupRows.push([e.value, e.label]));
+    lookupRows.push(['']);
+
+    // SOP Categories
+    lookupRows.push(['SOP Category (หมวด SOP)', '']);
+    lookupRows.push(['ค่า', 'คำอธิบาย']);
+    SOP_CATEGORIES.forEach(c => lookupRows.push([c.value, c.label]));
+
+    const wsLookup = XLSX.utils.aoa_to_sheet(lookupRows);
+    wsLookup['!cols'] = [{ wch: 25 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(wb, wsLookup, 'ตัวเลือก (Lookup)');
+
+    XLSX.writeFile(wb, 'Master_Data_Templates.xlsx');
+    toast.success('ดาวน์โหลดสำเร็จ', 'Template พร้อมตัวเลือก Lookup');
   };
 
-  // Handle file import
-  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Import from uploaded file — multi-module
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !selectedModule) return;
-
-    const config = IMPORT_CONFIGS[selectedModule];
-    if (!config) return;
+    if (!file || selectedModules.length === 0) return;
 
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames.find(n => n !== 'คำแนะนำ') || workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(sheet);
 
-        if (jsonData.length === 0) {
-          toast.error('ไฟล์ว่าง', 'ไม่พบข้อมูลในไฟล์');
+        // Collect data for each selected module
+        const modulesToImport: { key: string; config: ImportConfig; rows: Record<string, unknown>[] }[] = [];
+        const allErrors: string[] = [];
+        let totalRows = 0;
+
+        for (const key of selectedModules) {
+          const config = IMPORT_CONFIGS[key];
+          // Find matching sheet by sheetName or first data sheet
+          const sheetName = workbook.SheetNames.find(n =>
+            n === config.sheetName || n.toLowerCase().includes(config.sheetName.toLowerCase().split(' ')[0])
+          );
+
+          if (!sheetName) {
+            allErrors.push(`ไม่พบ Sheet "${config.sheetName}" สำหรับ ${config.label}`);
+            continue;
+          }
+
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(sheet);
+
+          if (jsonData.length === 0) {
+            allErrors.push(`${config.label}: ไม่มีข้อมูลใน Sheet "${sheetName}"`);
+            continue;
+          }
+
+          const { validRows, errors } = parseSheetRows(jsonData, config);
+          allErrors.push(...errors);
+
+          if (validRows.length > 0) {
+            modulesToImport.push({ key, config, rows: validRows });
+            totalRows += validRows.length;
+          }
+        }
+
+        if (modulesToImport.length === 0) {
+          toast.error('ไม่พบข้อมูลที่นำเข้าได้', allErrors.slice(0, 5).join('\n') || 'ไม่มีข้อมูลในไฟล์');
           return;
         }
 
-        // Parse and validate
-        const validRows: Record<string, unknown>[] = [];
-        const errors: string[] = [];
+        const summary = modulesToImport.map(m => `${m.config.label}: ${m.rows.length} รายการ`).join('\n');
+        if (!confirm(`พร้อมนำเข้า ${totalRows} รายการ:\n${summary}${allErrors.length > 0 ? `\n\n⚠️ ข้าม ${allErrors.length} รายการที่ผิดพลาด` : ''}`)) return;
 
-        jsonData.forEach((row, index) => {
-          const rowNum = index + 2;
-          const parsed: Record<string, unknown> = {};
-
-          for (const col of config.columns) {
-            // Match by header or field name
-            const val = row[col.header] ?? row[col.field] ?? '';
-            const strVal = String(val).trim();
-
-            if (col.required && !strVal) {
-              errors.push(`แถว ${rowNum}: ไม่มี ${col.header}`);
-              return;
-            }
-
-            if (strVal) {
-              // Validate against valid values
-              if (config.validValues?.[col.field]) {
-                const lower = strVal.toLowerCase();
-                if (!config.validValues[col.field].includes(lower)) {
-                  errors.push(`แถว ${rowNum}: ${col.field} "${strVal}" ไม่ถูกต้อง`);
-                  return;
-                }
-                parsed[col.field] = lower;
-              } else {
-                // Auto-convert numbers
-                const num = Number(strVal);
-                parsed[col.field] = !isNaN(num) && col.field.match(/Min|Max|Size|Failures|Interval|Value|Percent/) ? num : strVal;
-              }
-            }
-          }
-
-          if (Object.keys(parsed).length > 0) {
-            validRows.push(parsed);
-          }
-        });
-
-        if (errors.length > 0 && validRows.length === 0) {
-          toast.error('ข้อมูลไม่ถูกต้อง', errors.slice(0, 5).join('\n'));
-          return;
-        }
-
-        if (!confirm(`พบข้อมูล ${validRows.length} รายการ${errors.length > 0 ? ` (ข้าม ${errors.length} รายการที่ผิดพลาด)` : ''}\nนำเข้าข้อมูล ${config.label}?`)) return;
-
+        // Import
         setImporting(true);
-        let success = 0;
-        const importErrors: string[] = [];
+        const log: string[] = [];
 
-        for (const row of validRows) {
-          try {
-            const res = await fetch(config.apiUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...row, isActive: true }),
-            });
-            const result = await res.json();
-            if (!result.success) {
-              importErrors.push(`${row.code}: ${result.error}`);
-            } else {
-              success++;
+        for (const { config, rows } of modulesToImport) {
+          let success = 0;
+          const errors: string[] = [];
+
+          for (const row of rows) {
+            try {
+              const res = await fetch(config.apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...row, isActive: true }),
+              });
+              const result = await res.json();
+              if (!result.success) {
+                errors.push(`${row.code}: ${result.error}`);
+              } else {
+                success++;
+              }
+            } catch (err) {
+              errors.push(`${row.code}: ${err instanceof Error ? err.message : 'Error'}`);
             }
-          } catch (err) {
-            importErrors.push(`${row.code}: ${err instanceof Error ? err.message : 'Error'}`);
+          }
+
+          log.push(`✅ ${config.label}: นำเข้า ${success}/${rows.length} สำเร็จ`);
+          if (errors.length > 0) {
+            log.push(...errors.slice(0, 3).map(e => `   ❌ ${e}`));
+            if (errors.length > 3) log.push(`   ...และอีก ${errors.length - 3} รายการ`);
           }
         }
 
+        setImportLog(log);
         setImporting(false);
-        setShowImportDialog(false);
-
-        if (success > 0) {
-          toast.success('นำเข้าสำเร็จ', `นำเข้า ${success} รายการ`);
-        }
-        if (importErrors.length > 0) {
-          toast.error('บางรายการมีปัญหา', importErrors.slice(0, 3).join('\n') +
-            (importErrors.length > 3 ? `\n...อีก ${importErrors.length - 3} รายการ` : ''));
-        }
+        toast.success('นำเข้าเสร็จสิ้น', `นำเข้า ${modulesToImport.length} หัวข้อ`);
       } catch {
         toast.error('อ่านไฟล์ไม่ได้', 'ตรวจสอบรูปแบบไฟล์ Excel');
         setImporting(false);
@@ -351,10 +433,8 @@ export default function MasterDataPage() {
 
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
-      {/* Hidden file input */}
       <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportFile} className="hidden" />
 
-      {/* Header */}
       <ResponsivePageHeader
         title={t('page.title')}
         subtitle={t('page.description')}
@@ -368,14 +448,14 @@ export default function MasterDataPage() {
         actions={isAdmin ? (
           <div className="flex items-center gap-2">
             <button
-              onClick={handleDownloadAllTemplates}
+              onClick={handleDownloadTemplate}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Download className="h-4 w-4" />
               ดาวน์โหลด Template
             </button>
             <button
-              onClick={() => setShowImportDialog(true)}
+              onClick={() => { setShowImportDialog(true); setImportLog([]); }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
             >
               <Upload className="h-4 w-4" />
@@ -388,11 +468,7 @@ export default function MasterDataPage() {
       {/* Module Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {masterDataModules.map((module) => (
-          <Link
-            key={module.href}
-            href={module.href}
-            className="group bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-gray-200 transition-all"
-          >
+          <Link key={module.href} href={module.href} className="group bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-gray-200 transition-all">
             <div className="flex items-start gap-4">
               <div className={`flex-shrink-0 w-12 h-12 rounded-lg ${module.iconBgColor} flex items-center justify-center`}>
                 <module.icon className={`h-6 w-6 ${module.iconColor}`} />
@@ -426,49 +502,60 @@ export default function MasterDataPage() {
       {/* Import Dialog */}
       {showImportDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">นำเข้าข้อมูล Master Data</h2>
               <button onClick={() => setShowImportDialog(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="h-5 w-5 text-gray-500" />
               </button>
             </div>
-            <div className="p-5 space-y-4">
-              {/* Step 1: Select module */}
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              {/* Step 1: Select modules */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">1. เลือกประเภท Master Data</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {Object.entries(IMPORT_CONFIGS).map(([key, config]) => (
-                    <label
-                      key={key}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                        selectedModule === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="module"
-                        value={key}
-                        checked={selectedModule === key}
-                        onChange={() => setSelectedModule(key)}
-                        className="h-4 w-4 text-blue-600"
-                      />
-                      <span className="text-sm font-medium text-gray-900">{config.label}</span>
-                      <button
-                        onClick={(e) => { e.preventDefault(); handleDownloadTemplate(key); }}
-                        className="ml-auto text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">1. เลือกหัวข้อที่ต้องการนำเข้า</label>
+                  <button
+                    onClick={toggleAll}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    {selectedModules.length === ALL_MODULE_KEYS.length ? (
+                      <><CheckSquare className="h-3.5 w-3.5" /> ยกเลิกทั้งหมด</>
+                    ) : (
+                      <><Square className="h-3.5 w-3.5" /> เลือกทั้งหมด</>
+                    )}
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {ALL_MODULE_KEYS.map(key => {
+                    const config = IMPORT_CONFIGS[key];
+                    const isSelected = selectedModules.includes(key);
+                    return (
+                      <label
+                        key={key}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                          isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
+                        }`}
                       >
-                        <Download className="h-3 w-3" /> Template
-                      </button>
-                    </label>
-                  ))}
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleModule(key)}
+                          className="h-4 w-4 rounded text-blue-600"
+                        />
+                        <span className="text-sm font-medium text-gray-900 flex-1">{config.label}</span>
+                        <span className="text-xs text-gray-400">Sheet: {config.sheetName}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Step 2: Upload file */}
-              {selectedModule && (
+              {/* Step 2: Upload */}
+              {selectedModules.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">2. เลือกไฟล์ Excel</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    2. เลือกไฟล์ Excel ({selectedModules.length} หัวข้อ)
+                  </label>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={importing}
@@ -478,8 +565,20 @@ export default function MasterDataPage() {
                     {importing ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
                   </button>
                   <p className="mt-2 text-xs text-gray-500">
-                    ฟิลด์บังคับ: {IMPORT_CONFIGS[selectedModule].columns.filter(c => c.required).map(c => c.field).join(', ')}
+                    ระบบจะอ่าน Sheet ที่ตรงกับหัวข้อที่เลือก: {selectedModules.map(k => IMPORT_CONFIGS[k].sheetName).join(', ')}
                   </p>
+                </div>
+              )}
+
+              {/* Import log */}
+              {importLog.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 border">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">ผลการนำเข้า:</label>
+                  <div className="text-xs font-mono space-y-0.5 max-h-40 overflow-y-auto">
+                    {importLog.map((line, i) => (
+                      <div key={i} className={line.startsWith('   ❌') ? 'text-red-600' : 'text-gray-700'}>{line}</div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
