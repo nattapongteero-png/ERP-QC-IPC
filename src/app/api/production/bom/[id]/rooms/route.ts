@@ -168,6 +168,25 @@ export async function PUT(
         isRequired: data.isRequired,
       });
 
+      // Update environmental conditions: remove old, insert new
+      const conditionIds: number[] = data.selectedConditionId
+        ? [data.selectedConditionId]
+        : (data.environmentalConditionIds || []);
+      const bomEnvTable = getTableRef('bOMEnvironmentalConditions');
+      await executeDbOperation(async (db) => {
+        await db.delete(bomEnvTable).where(eq(bomEnvTable.bomRoomId, data.bomRoomId));
+      });
+      if (conditionIds.length > 0) {
+        for (const conditionId of conditionIds) {
+          await addBOMEnvironmentalCondition({
+            bomId,
+            conditionId,
+            bomRoomId: data.bomRoomId,
+            phase: data.phase,
+          });
+        }
+      }
+
       return successResponse(room, 'Room requirement updated');
     } catch (error) {
       console.error('Error updating BOM room:', error);
