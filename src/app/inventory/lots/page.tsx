@@ -242,7 +242,7 @@ export default function LotsPage() {
     { header: 'เลข Batch', field: 'batchNumber', required: false },
   ];
 
-  const handleDownloadLotTemplate = () => {
+  const handleDownloadLotTemplate = async () => {
     const wb = XLSX.utils.book_new();
     const instr = [
       ['Template นำเข้า Inventory Lots — Herbal Medicine ERP'],
@@ -263,6 +263,30 @@ export default function LotsPage() {
     const ws = XLSX.utils.json_to_sheet(examples);
     ws['!cols'] = LOT_COLUMNS.map(() => ({ wch: 22 }));
     XLSX.utils.book_append_sheet(wb, ws, 'Lots');
+
+    // Lookup sheet — warehouses from API
+    const lookupRows: string[][] = [
+      ['ตัวเลือก (Lookup Values)'],
+      [''],
+      ['คลังสินค้า (Warehouse) — ใช้ชื่อคลังตรงๆ ในช่อง "คลังสินค้า"'],
+      ['ชื่อคลัง'],
+    ];
+    try {
+      const whRes = await fetch('/api/warehouses');
+      const whData = await whRes.json();
+      ((whData.data || []) as { name: string }[]).forEach(w => lookupRows.push([w.name]));
+    } catch { /* ignore */ }
+
+    lookupRows.push([''], ['หน่วย (Unit)'], ['ค่า', 'คำอธิบาย']);
+    [['kg','กิโลกรัม'],['g','กรัม'],['mg','มิลลิกรัม'],['l','ลิตร'],['ml','มิลลิลิตร'],
+     ['pcs','ชิ้น'],['pack','แพ็ค'],['box','กล่อง'],['bottle','ขวด'],['bag','ถุง'],
+     ['roll','ม้วน'],['sheet','แผ่น'],['set','ชุด'],['carton','ลัง'],['drum','ถัง'],
+     ['can','กระป๋อง'],['tube','หลอด'],['cap','ฝา']].forEach(u => lookupRows.push(u));
+
+    const wsLookup = XLSX.utils.aoa_to_sheet(lookupRows);
+    wsLookup['!cols'] = [{ wch: 40 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsLookup, 'ตัวเลือก (Lookup)');
+
     XLSX.writeFile(wb, 'Lot_Import_Template.xlsx');
   };
 
