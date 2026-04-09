@@ -144,7 +144,7 @@ export default function BOMDashboardPage() {
   }) || [];
 
   return (
-    <div className="flex flex-col gap-3 p-3 md:p-4 w-full max-w-full overflow-hidden box-border h-[calc(100vh-64px)]">
+    <div className="flex flex-col gap-3 p-3 md:p-4 w-full max-w-full box-border">
       {/* Header */}
       <ResponsivePageHeader
         title={t('bom.pageTitle')}
@@ -373,8 +373,8 @@ export default function BOMDashboardPage() {
         </div>
       )}
 
-      {/* BOM List Section - fills remaining viewport */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-w-0 overflow-hidden flex-1 flex flex-col">
+      {/* BOM List Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-w-0 overflow-hidden">
         {/* Header */}
         <div className="border-b border-gray-100 px-3 pt-2 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -413,14 +413,14 @@ export default function BOMDashboardPage() {
         </div>
 
         {/* DataGrid */}
-        <div className="p-2 flex-1 min-h-0">
+        <div className="p-2">
           <DxDataGrid
             dataSource={filteredBOMs}
             keyExpr="id"
             showBorders={false}
             rowAlternationEnabled
             loading={bomLoading}
-            height="100%"
+            height={620}
             width="100%"
             columnAutoWidth
             showColumnLines={false}
