@@ -144,7 +144,7 @@ export default function BOMDashboardPage() {
   }) || [];
 
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
+    <div className="flex flex-col gap-3 p-3 md:p-4 w-full max-w-full overflow-hidden box-border h-[calc(100vh-64px)]">
       {/* Header */}
       <ResponsivePageHeader
         title={t('bom.pageTitle')}
@@ -166,8 +166,8 @@ export default function BOMDashboardPage() {
         }
       />
 
-      {/* Stats Row - 4 columns on desktop, 2 on mobile */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <StatCard
           label={t('bom.stats.totalBOMs')}
           value={dashboard?.totalBOMs ?? 0}
@@ -203,8 +203,8 @@ export default function BOMDashboardPage() {
         />
       </div>
 
-      {/* Secondary Stats - 3 columns */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Secondary Stats - 3 columns (hidden by default to save space) */}
+      <div className="hidden xl:grid grid-cols-3 gap-2">
         <StatCard
           label={t('bom.stats.materials')}
           value={dashboard?.totalMaterials ?? 0}
@@ -231,8 +231,8 @@ export default function BOMDashboardPage() {
         />
       </div>
 
-      {/* Charts & Cards Section - Responsive Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      {/* Charts & Cards Section - hidden by default to save space */}
+      <div className="hidden xl:grid grid-cols-1 xl:grid-cols-3 gap-3">
         {/* Status Distribution - Takes 1 column */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0">
           <div className="flex items-center gap-2.5 mb-4">
@@ -373,10 +373,10 @@ export default function BOMDashboardPage() {
         </div>
       )}
 
-      {/* BOM List Section - Full Width */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+      {/* BOM List Section - fills remaining viewport */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-w-0 overflow-hidden flex-1 flex flex-col">
         {/* Header */}
-        <div className="border-b border-gray-100 px-4 pt-3">
+        <div className="border-b border-gray-100 px-3 pt-2 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-emerald-50 rounded-lg">
@@ -394,7 +394,7 @@ export default function BOMDashboardPage() {
               placeholder="Filter"
             />
           </div>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-3">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
             <TabsList className="text-sm">
               <TabsTrigger value="all" className="text-sm px-3 py-1.5">
                 All ({bomData?.length || 0})
@@ -413,14 +413,14 @@ export default function BOMDashboardPage() {
         </div>
 
         {/* DataGrid */}
-        <div className="p-3">
+        <div className="p-2 flex-1 min-h-0">
           <DxDataGrid
             dataSource={filteredBOMs}
             keyExpr="id"
             showBorders={false}
             rowAlternationEnabled
             loading={bomLoading}
-            height={650}
+            height="100%"
             width="100%"
             columnAutoWidth
             showColumnLines={false}
@@ -465,7 +465,7 @@ export default function BOMDashboardPage() {
               alignment="right"
               cellRender={(cell) => (
                 <span className="tabular-nums text-sm">
-                  {cell.data.standardBatchSize?.toLocaleString() || '-'} {cell.data.batchUnit || ''}
+                  {cell.data.standardBatchSize != null ? Number(cell.data.standardBatchSize).toLocaleString() : '-'} {cell.data.batchUnit || ''}
                 </span>
               )}
             />
