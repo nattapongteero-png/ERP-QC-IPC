@@ -392,27 +392,47 @@ export default function MasterDataPage() {
 
         for (const { config, rows } of modulesToImport) {
           let success = 0;
+          let created = 0;
+          let updated = 0;
           const errors: string[] = [];
 
           for (const row of rows) {
             try {
+              // Try POST (create)
               const res = await fetch(config.apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...row, isActive: true }),
               });
               const result = await res.json();
-              if (!result.success) {
+              if (!result.success && String(result.error).includes('already exists') && row.code) {
+                // Code exists — find ID and PUT (update)
+                const getRes = await fetch(`${config.apiUrl}?isActive=true`);
+                const getData = await getRes.json();
+                const existing = (getData.data || []).find((item: Record<string, unknown>) => item.code === row.code);
+                if (existing?.id) {
+                  const putRes = await fetch(config.apiUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...row, id: existing.id, isActive: true }),
+                  });
+                  const putResult = await putRes.json();
+                  if (putResult.success) { success++; updated++; }
+                  else errors.push(`${row.code}: ${putResult.error}`);
+                } else {
+                  errors.push(`${row.code}: ${result.error}`);
+                }
+              } else if (!result.success) {
                 errors.push(`${row.code}: ${result.error}`);
               } else {
-                success++;
+                success++; created++;
               }
             } catch (err) {
               errors.push(`${row.code}: ${err instanceof Error ? err.message : 'Error'}`);
             }
           }
 
-          log.push(`✅ ${config.label}: นำเข้า ${success}/${rows.length} สำเร็จ`);
+          log.push(`✅ ${config.label}: นำเข้า ${success}/${rows.length} สำเร็จ${created > 0 ? ` (สร้างใหม่ ${created})` : ''}${updated > 0 ? ` (อัปเดต ${updated})` : ''}`);
           if (errors.length > 0) {
             log.push(...errors.slice(0, 3).map(e => `   ❌ ${e}`));
             if (errors.length > 3) log.push(`   ...และอีก ${errors.length - 3} รายการ`);
