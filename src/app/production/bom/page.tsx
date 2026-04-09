@@ -8,7 +8,7 @@
  * Redesigned with responsive layout that properly constrains width.
  */
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,7 +16,6 @@ import { useTranslations } from 'next-intl';
 import { StatCard } from '@/components/shared/stat-card';
 import { DxDataGrid, DxColumn, DxPaging } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PieChart, {
   Series,
@@ -60,33 +59,8 @@ export default function BOMDashboardPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const t = useTranslations('production');
-  const [statusFilter, setStatusFilter] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [searchText, setSearchText] = useState('');
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [gridHeight, setGridHeight] = useState(580);
-
-  // Dynamic grid height — fills remaining viewport
-  useEffect(() => {
-    const updateHeight = () => {
-      if (gridRef.current) {
-        const top = gridRef.current.getBoundingClientRect().top;
-        setGridHeight(Math.max(300, Math.floor(window.innerHeight - top - 12)));
-      }
-    };
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
-    return () => window.removeEventListener('resize', updateHeight);
-  }, []);
-
-  // Status filters with translations
-  const statusFilters = useMemo(() => [
-    { value: '', label: t('bom.filters.allStatuses') },
-    { value: 'approved', label: t('bom.status.approved') },
-    { value: 'draft', label: t('bom.status.draft') },
-    { value: 'active', label: t('bom.status.active') },
-    { value: 'obsolete', label: t('bom.status.obsolete') },
-  ], [t]);
 
   // Fetch dashboard data
   const { data: dashboard, isLoading: dashboardLoading } = useQuery<BOMDashboard>({
@@ -99,13 +73,12 @@ export default function BOMDashboardPage() {
     },
   });
 
-  // Fetch BOM list
+  // Fetch BOM list — always fetch all, filter client-side
   const { data: bomData, isLoading: bomLoading } = useQuery({
-    queryKey: ['bom-list', statusFilter],
+    queryKey: ['bom-list'],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set('limit', '1000');
-      if (statusFilter) params.set('status', statusFilter);
       const res = await fetch(`/api/bom?${params}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
@@ -385,7 +358,7 @@ export default function BOMDashboardPage() {
               </span>
             </div>
             <button
-              onClick={() => { setStatusFilter('draft'); setActiveTab('draft'); }}
+              onClick={() => setActiveTab('draft')}
               className="text-sm font-medium text-amber-800 hover:text-amber-900 flex items-center gap-1 shrink-0"
             >
               {t('bom.alerts.viewDraftBOMs')} <ChevronRight className="h-4 w-4" />
@@ -395,14 +368,14 @@ export default function BOMDashboardPage() {
       )}
 
       {/* BOM List Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-w-0 overflow-hidden flex-1">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-w-0 overflow-hidden">
         {/* Header — tabs + status filter + search ALL on one row */}
         <div className="border-b border-gray-100 px-3 py-1.5 flex items-center gap-2">
           <div className="flex items-center gap-1.5 shrink-0">
             <Settings className="h-4 w-4 text-emerald-600" />
             <h3 className="font-semibold text-gray-900 text-sm whitespace-nowrap">{t('bom.registry.title')}</h3>
           </div>
-          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setStatusFilter(v === 'all' ? '' : v); }} className="w-auto shrink-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto shrink-0">
             <TabsList className="text-xs">
               <TabsTrigger value="all" className="text-xs px-2 py-1">
                 All ({bomData?.length || 0})
@@ -418,31 +391,20 @@ export default function BOMDashboardPage() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-            <DxSelectBox
-              dataSource={statusFilters}
-              displayExpr="label"
-              valueExpr="value"
-              value={statusFilter}
-              onValueChanged={(e) => { setStatusFilter(e.value); setActiveTab(e.value || 'all'); }}
-              width={130}
-              placeholder="Filter"
+          <div className="relative shrink-0">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="pl-7 pr-2 py-1 text-xs border border-gray-200 rounded-md w-[150px] focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
             />
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="pl-7 pr-2 py-1 text-sm border border-gray-200 rounded-md w-[160px] focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-              />
-            </div>
           </div>
         </div>
 
         {/* DataGrid — compact density */}
-        <div ref={gridRef} className="bom-compact-grid px-2 pb-1">
+        <div className="bom-compact-grid px-2 pb-1">
           <style>{`
             .bom-compact-grid .dx-datagrid-rowsview .dx-row > td {
               padding: 1px 7px !important;
@@ -481,7 +443,7 @@ export default function BOMDashboardPage() {
             showBorders={false}
             rowAlternationEnabled
             loading={bomLoading}
-            height={gridHeight}
+            height="auto"
             width="100%"
             columnAutoWidth
             showColumnLines={false}
