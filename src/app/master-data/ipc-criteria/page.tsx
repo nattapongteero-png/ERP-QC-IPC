@@ -1,11 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
-import { FlaskConical, Edit } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { FlaskConical, Edit, Trash2 } from 'lucide-react';
 
 interface IPCCriteria {
   id: number;
@@ -23,15 +24,31 @@ interface IPCCriteria {
 
 export default function IPCCriteriaPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: criteria, isLoading } = useQuery<IPCCriteria[]>({
     queryKey: ['ipc-criteria'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/ipc-criteria?isActive=true');
+      const res = await fetch('/api/master-data/ipc-criteria');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;
     },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/master-data/ipc-criteria?id=${id}`, { method: 'DELETE' });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ipc-criteria'] });
+      toast.success('ลบสำเร็จ', 'IPC Criteria ถูกลบเรียบร้อย');
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
   });
 
   return (
@@ -86,10 +103,21 @@ export default function IPCCriteriaPage() {
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />
-          <DxColumn caption="Actions" width={90} cellRender={(cell) => (
+          <DxColumn caption="Actions" width={110} cellRender={(cell) => (
             <div className="flex gap-1">
               <button onClick={() => router.push(`/master-data/ipc-criteria/${(cell.data as IPCCriteria).id}`)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Edit">
                 <Edit className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`ต้องการลบ ${(cell.data as IPCCriteria).name} หรือไม่?`)) {
+                    deleteMutation.mutate((cell.data as IPCCriteria).id);
+                  }
+                }}
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Delete"
+              >
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
           )} />
