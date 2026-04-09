@@ -353,7 +353,7 @@ export default function MasterDataPage() {
           const config = IMPORT_CONFIGS[key];
           // Find matching sheet by sheetName or first data sheet
           const sheetName = workbook.SheetNames.find(n =>
-            n === config.sheetName || n.toLowerCase().includes(config.sheetName.toLowerCase().split(' ')[0])
+            n === config.sheetName || n.toLowerCase() === config.sheetName.toLowerCase()
           );
 
           if (!sheetName) {
