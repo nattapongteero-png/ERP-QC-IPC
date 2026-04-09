@@ -213,14 +213,31 @@ export default function ItemsPage() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instr), 'คำแนะนำ');
 
     // Data sheets per type
+    const EXAMPLE_DATA: Record<string, Record<string, string | number>[]> = {
+      raw_material: [
+        { 'รหัส (Code)*': 'RM-0001', 'ชื่อ TH (Name TH)*': 'การบูร', 'ชื่อ EN (Name EN)': 'Camphor', 'หมวดหมู่ (Category)': 'herb', 'หน่วยหลัก (Primary Unit)*': 'kg', 'หน่วยรอง (Secondary Unit)': 'g', 'อัตราแปลง (Conversion Rate)': 1000, 'อายุการเก็บ (วัน)': 730, 'เงื่อนไขจัดเก็บ': 'เก็บที่อุณหภูมิห้อง แห้ง', 'สต็อกขั้นต่ำ': 50, 'สต็อกสูงสุด': 500, 'จุดสั่งซื้อ': 100 },
+        { 'รหัส (Code)*': 'RM-0002', 'ชื่อ TH (Name TH)*': 'พิมเสน', 'ชื่อ EN (Name EN)': 'Borneol', 'หมวดหมู่ (Category)': 'herb', 'หน่วยหลัก (Primary Unit)*': 'kg', 'หน่วยรอง (Secondary Unit)': 'g', 'อัตราแปลง (Conversion Rate)': 1000, 'อายุการเก็บ (วัน)': 365, 'เงื่อนไขจัดเก็บ': 'เก็บในภาชนะปิดสนิท', 'สต็อกขั้นต่ำ': 30, 'สต็อกสูงสุด': 300, 'จุดสั่งซื้อ': 60 },
+      ],
+      packaging: [
+        { 'รหัส (Code)*': 'RP-0001', 'ชื่อ TH (Name TH)*': 'ขวดแก้วขนาด 10 มล', 'ชื่อ EN (Name EN)': 'Glass Bottle 10mL', 'หมวดหมู่ (Category)': 'bottle', 'หน่วยหลัก (Primary Unit)*': 'pcs', 'หน่วยรอง (Secondary Unit)': 'box', 'อัตราแปลง (Conversion Rate)': 100, 'อายุการเก็บ (วัน)': '', 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง', 'สต็อกขั้นต่ำ': 1000, 'สต็อกสูงสุด': 10000, 'จุดสั่งซื้อ': 2000 },
+        { 'รหัส (Code)*': 'RP-0002', 'ชื่อ TH (Name TH)*': 'ฉลากยาสมุนไพร', 'ชื่อ EN (Name EN)': 'Herbal Product Label', 'หมวดหมู่ (Category)': 'label', 'หน่วยหลัก (Primary Unit)*': 'pcs', 'หน่วยรอง (Secondary Unit)': 'roll', 'อัตราแปลง (Conversion Rate)': 500, 'อายุการเก็บ (วัน)': '', 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง หลีกเลี่ยงแสงแดด', 'สต็อกขั้นต่ำ': 500, 'สต็อกสูงสุด': 5000, 'จุดสั่งซื้อ': 1000 },
+      ],
+      finished_goods: [
+        { 'รหัส (Code)*': 'FG-0001', 'ชื่อ TH (Name TH)*': 'ยาหม่องสมุนไพร 10g', 'ชื่อ EN (Name EN)': 'Herbal Balm 10g', 'หมวดหมู่ (Category)': 'finished', 'หน่วยหลัก (Primary Unit)*': 'bottle', 'หน่วยรอง (Secondary Unit)': 'box', 'อัตราแปลง (Conversion Rate)': 12, 'อายุการเก็บ (วัน)': 1095, 'เงื่อนไขจัดเก็บ': 'เก็บที่อุณหภูมิไม่เกิน 30°C', 'สต็อกขั้นต่ำ': 100, 'สต็อกสูงสุด': 5000, 'จุดสั่งซื้อ': 500 },
+        { 'รหัส (Code)*': 'FG-0002', 'ชื่อ TH (Name TH)*': 'แคปซูลฟ้าทะลายโจร 400mg', 'ชื่อ EN (Name EN)': 'Andrographis Capsule 400mg', 'หมวดหมู่ (Category)': 'finished', 'หน่วยหลัก (Primary Unit)*': 'bottle', 'หน่วยรอง (Secondary Unit)': 'box', 'อัตราแปลง (Conversion Rate)': 6, 'อายุการเก็บ (วัน)': 730, 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง พ้นแสงแดด', 'สต็อกขั้นต่ำ': 200, 'สต็อกสูงสุด': 10000, 'จุดสั่งซื้อ': 1000 },
+      ],
+      wip: [
+        { 'รหัส (Code)*': 'WIP-0001', 'ชื่อ TH (Name TH)*': 'ผงสมุนไพรผสม สูตร A', 'ชื่อ EN (Name EN)': 'Herbal Powder Mix Formula A', 'หมวดหมู่ (Category)': 'semi_finished', 'หน่วยหลัก (Primary Unit)*': 'kg', 'หน่วยรอง (Secondary Unit)': 'g', 'อัตราแปลง (Conversion Rate)': 1000, 'อายุการเก็บ (วัน)': 180, 'เงื่อนไขจัดเก็บ': 'เก็บในถุงปิดสนิท อุณหภูมิห้อง', 'สต็อกขั้นต่ำ': 10, 'สต็อกสูงสุด': 100, 'จุดสั่งซื้อ': 20 },
+      ],
+      consumable: [
+        { 'รหัส (Code)*': 'CS-0001', 'ชื่อ TH (Name TH)*': 'ถุงมือยาง ไซส์ M', 'ชื่อ EN (Name EN)': 'Latex Gloves Size M', 'หมวดหมู่ (Category)': 'consumable', 'หน่วยหลัก (Primary Unit)*': 'box', 'หน่วยรอง (Secondary Unit)': 'pcs', 'อัตราแปลง (Conversion Rate)': 100, 'อายุการเก็บ (วัน)': 1825, 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง', 'สต็อกขั้นต่ำ': 20, 'สต็อกสูงสุด': 200, 'จุดสั่งซื้อ': 50 },
+      ],
+    };
+
     for (const tc of ITEM_TYPES_CONFIG) {
-      const example: Record<string, string | number> = {};
-      ITEM_COLUMNS.forEach(c => { example[c.header] = ''; });
-      example['รหัส (Code)*'] = tc.key === 'raw_material' ? 'RM-0001' : tc.key === 'packaging' ? 'RP-0001' : tc.key === 'finished_goods' ? 'FG-0001' : tc.key === 'wip' ? 'WIP-0001' : 'CS-0001';
-      example['ชื่อ TH (Name TH)*'] = 'ตัวอย่าง';
-      example['หน่วยหลัก (Primary Unit)*'] = tc.key === 'raw_material' ? 'kg' : tc.key === 'packaging' ? 'pcs' : 'bottle';
-      const ws = XLSX.utils.json_to_sheet([example]);
-      ws['!cols'] = ITEM_COLUMNS.map(() => ({ wch: 22 }));
+      const rows = EXAMPLE_DATA[tc.key] || [];
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = ITEM_COLUMNS.map(() => ({ wch: 25 }));
       XLSX.utils.book_append_sheet(wb, ws, tc.sheetName);
     }
 
