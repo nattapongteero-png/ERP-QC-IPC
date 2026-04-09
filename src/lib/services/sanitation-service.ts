@@ -539,6 +539,11 @@ export async function verifySanitationLog(
   const existing = await getSanitationLogById(id);
   if (!existing) return null;
 
+  // Dual control: operator != verifier
+  if (existing.performedBy && Number(existing.performedBy) === userId) {
+    throw new Error('ไม่สามารถตรวจสอบรายการของตนเองได้ ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคนกัน');
+  }
+
   await database
     .update(sqliteSanitationLogs)
     .set({

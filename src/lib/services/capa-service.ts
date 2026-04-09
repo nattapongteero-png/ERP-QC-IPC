@@ -1113,6 +1113,11 @@ export async function verifyAction(
     throw new Error('Can only verify completed actions');
   }
 
+  // Dual control: assignee != verifier
+  if (existing[0].assigneeId && Number(existing[0].assigneeId) === userId) {
+    throw new Error('ไม่สามารถตรวจสอบรายการของตนเองได้ ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคนกัน');
+  }
+
   const now = getNow();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

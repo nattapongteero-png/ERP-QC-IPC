@@ -384,6 +384,15 @@ export async function createWOCleaningLog(data: CreateWOCleaningLogInput) {
 export async function verifyWOCleaningLog(logId: number, verifierId: number) {
   const tables = getTables();
 
+  // Dual control: check operator != verifier
+  const [existingLog] = await executeDbOperation(async (db: any) => {
+    return db.select({ operatorId: tables.woCleaningLogs.operatorId })
+      .from(tables.woCleaningLogs).where(eq(tables.woCleaningLogs.id, logId));
+  });
+  if (existingLog && Number(existingLog.operatorId) === verifierId) {
+    throw new Error('ไม่สามารถตรวจสอบรายการของตนเองได้ ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคนกัน');
+  }
+
   return executeDbOperation(async (db: any) => {
     const updateData = {
       verifierId,
@@ -812,6 +821,15 @@ export async function confirmWOSOPSubSteps(
 export async function verifyWOSOPStep(executionId: number, verifierId: number) {
   const tables = getTables();
 
+  // Dual control: check operator != verifier
+  const [existingStep] = await executeDbOperation(async (db: any) => {
+    return db.select({ operatorId: tables.woSOPExecution.operatorId })
+      .from(tables.woSOPExecution).where(eq(tables.woSOPExecution.id, executionId));
+  });
+  if (existingStep && Number(existingStep.operatorId) === verifierId) {
+    throw new Error('ไม่สามารถตรวจสอบรายการของตนเองได้ ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคนกัน');
+  }
+
   return executeDbOperation(async (db: any) => {
     const updateData = {
       verifierId,
@@ -966,6 +984,7 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
       itemId: tables.workOrderMaterials.itemId,
       workOrderId: tables.workOrderMaterials.workOrderId,
       status: tables.workOrderMaterials.status,
+      weighedBy: tables.workOrderMaterials.weighedBy,
       weighedAt: tables.workOrderMaterials.weighedAt,
       weighedQty: tables.workOrderMaterials.weighedQty,
       unit: tables.workOrderMaterials.unit,
@@ -978,6 +997,11 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
   }
   if (!existing.weighedAt) {
     throw new Error('Material has not been weighed yet');
+  }
+
+  // Dual control: verifier must be different from operator
+  if (existing.weighedBy && Number(existing.weighedBy) === verifierId) {
+    throw new Error('ไม่สามารถตรวจสอบรายการของตนเองได้ ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคนกัน');
   }
 
   // If material was weighed but not issued, issue from inventory now
@@ -1936,6 +1960,15 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
  */
 export async function approveIPCTest(qualityTestId: number, approvedBy: number, disposition: string = 'accept', testRound?: number) {
   const tables = getTables();
+
+  // Dual control: check tester != approver
+  const [existingTest] = await executeDbOperation(async (db: any) => {
+    return db.select({ testedBy: tables.qualityTests.testedBy })
+      .from(tables.qualityTests).where(eq(tables.qualityTests.id, qualityTestId));
+  });
+  if (existingTest && existingTest.testedBy && Number(existingTest.testedBy) === approvedBy) {
+    throw new Error('ไม่สามารถตรวจสอบรายการของตนเองได้ ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคนกัน');
+  }
 
   return executeDbOperation(async (db: any) => {
     const now = getNow();
