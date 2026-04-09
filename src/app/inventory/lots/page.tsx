@@ -242,7 +242,7 @@ export default function LotsPage() {
     { header: 'เลข Batch', field: 'batchNumber', required: false },
   ];
 
-  const handleDownloadLotTemplate = async () => {
+  const handleDownloadLotTemplate = () => {
     const wb = XLSX.utils.book_new();
     const instr = [
       ['Template นำเข้า Inventory Lots — Herbal Medicine ERP'],
@@ -260,13 +260,8 @@ export default function LotsPage() {
       { 'เลข Lot (Lot Number)*': 'LOT-2026-001', 'รหัสสินค้า (Item Code)*': 'RM-0001', 'คลังสินค้า (Warehouse)*': 'Main Warehouse', 'จำนวน (Quantity)*': 500, 'หน่วย (Unit)*': 'kg', 'ราคาต่อหน่วย (Cost)': 120, 'วันหมดอายุ (Expiry Date)': '2028-06-30', 'วันผลิต (Mfg Date)': '2026-04-01', 'วันรับเข้า (Received Date)': '2026-04-10', 'เลข Lot ผู้ขาย': 'V-LOT-A001', 'เลข PO': 'PO-2026-0050', 'เลข COA': 'COA-2026-001', 'เลข Batch': 'BATCH-001' },
       { 'เลข Lot (Lot Number)*': 'LOT-2026-002', 'รหัสสินค้า (Item Code)*': 'RP-0001', 'คลังสินค้า (Warehouse)*': 'Main Warehouse', 'จำนวน (Quantity)*': 10000, 'หน่วย (Unit)*': 'pcs', 'ราคาต่อหน่วย (Cost)': 2.5, 'วันหมดอายุ (Expiry Date)': '', 'วันผลิต (Mfg Date)': '2026-03-15', 'วันรับเข้า (Received Date)': '2026-04-10', 'เลข Lot ผู้ขาย': 'V-LOT-B002', 'เลข PO': 'PO-2026-0051', 'เลข COA': '', 'เลข Batch': '' },
     ];
-    // Fetch warehouses for lookup + validation
-    let warehouseNames: string[] = [];
-    try {
-      const whRes = await fetch('/api/warehouses');
-      const whData = await whRes.json();
-      warehouseNames = ((whData.data || []) as { name: string }[]).map(w => w.name);
-    } catch { /* ignore */ }
+    // Use warehouses already loaded on the page
+    const warehouseNames = warehouses.map(w => w.name).filter(Boolean);
 
     const ws = XLSX.utils.json_to_sheet(examples);
     ws['!cols'] = LOT_COLUMNS.map(() => ({ wch: 22 }));
