@@ -1663,7 +1663,6 @@ export default function LotsPage() {
       {/* Lot Import Dialog */}
       {showImportDialog && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
-          <input ref={lotFileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportLots} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} />
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b">
               <h2 className="text-lg font-semibold text-gray-900">นำเข้า Inventory Lots</h2>
@@ -1674,14 +1673,13 @@ export default function LotsPage() {
                 <strong>หมายเหตุ:</strong> Lot ที่นำเข้าจะอยู่สถานะ <strong>Quarantine</strong> อัตโนมัติ และสร้าง Transaction (Receive) ให้ทุกรายการ
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">เลือกไฟล์ Excel</label>
-                <button
-                  onClick={() => lotFileInputRef.current?.click()}
-                  disabled={importingLots}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                <span className="block text-sm font-medium text-gray-700 mb-2">เลือกไฟล์ Excel</span>
+                <label
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer ${importingLots ? 'opacity-50 pointer-events-none' : ''}`}
                 >
+                  <input type="file" accept=".xlsx,.xls" onChange={handleImportLots} className="hidden" />
                   <Upload className="h-5 w-5" />{importingLots ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
-                </button>
+                </label>
                 <p className="mt-2 text-xs text-gray-500">ฟิลด์บังคับ: เลข Lot, รหัสสินค้า, คลังสินค้า, จำนวน, หน่วย</p>
               </div>
               {importLog.length > 0 && (
