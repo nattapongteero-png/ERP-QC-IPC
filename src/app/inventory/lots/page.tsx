@@ -1644,12 +1644,10 @@ export default function LotsPage() {
         showStock={true}
       />
 
-      {/* Hidden file input for lot import */}
-      <input ref={lotFileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportLots} className="hidden" />
-
       {/* Lot Import Dialog */}
       {showImportDialog && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+          <input ref={lotFileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportLots} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} />
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b">
               <h2 className="text-lg font-semibold text-gray-900">นำเข้า Inventory Lots</h2>
