@@ -260,22 +260,43 @@ export default function LotsPage() {
       { 'เลข Lot (Lot Number)*': 'LOT-2026-001', 'รหัสสินค้า (Item Code)*': 'RM-0001', 'คลังสินค้า (Warehouse)*': 'Main Warehouse', 'จำนวน (Quantity)*': 500, 'หน่วย (Unit)*': 'kg', 'ราคาต่อหน่วย (Cost)': 120, 'วันหมดอายุ (Expiry Date)': '2028-06-30', 'วันผลิต (Mfg Date)': '2026-04-01', 'วันรับเข้า (Received Date)': '2026-04-10', 'เลข Lot ผู้ขาย': 'V-LOT-A001', 'เลข PO': 'PO-2026-0050', 'เลข COA': 'COA-2026-001', 'เลข Batch': 'BATCH-001' },
       { 'เลข Lot (Lot Number)*': 'LOT-2026-002', 'รหัสสินค้า (Item Code)*': 'RP-0001', 'คลังสินค้า (Warehouse)*': 'Main Warehouse', 'จำนวน (Quantity)*': 10000, 'หน่วย (Unit)*': 'pcs', 'ราคาต่อหน่วย (Cost)': 2.5, 'วันหมดอายุ (Expiry Date)': '', 'วันผลิต (Mfg Date)': '2026-03-15', 'วันรับเข้า (Received Date)': '2026-04-10', 'เลข Lot ผู้ขาย': 'V-LOT-B002', 'เลข PO': 'PO-2026-0051', 'เลข COA': '', 'เลข Batch': '' },
     ];
+    // Fetch warehouses for lookup + validation
+    let warehouseNames: string[] = [];
+    try {
+      const whRes = await fetch('/api/warehouses');
+      const whData = await whRes.json();
+      warehouseNames = ((whData.data || []) as { name: string }[]).map(w => w.name);
+    } catch { /* ignore */ }
+
     const ws = XLSX.utils.json_to_sheet(examples);
     ws['!cols'] = LOT_COLUMNS.map(() => ({ wch: 22 }));
+
+    // Add data validation dropdown for "คลังสินค้า" column (column C, index 2)
+    if (warehouseNames.length > 0) {
+      const whList = warehouseNames.join(',');
+      // Apply to rows 2-100 (row 1 = header)
+      for (let r = 1; r <= 100; r++) {
+        const cellRef = XLSX.utils.encode_cell({ r, c: 2 }); // Column C
+        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+        if (!ws['!dataValidation']) ws['!dataValidation'] = [];
+        (ws['!dataValidation'] as unknown[]).push({
+          sqref: cellRef,
+          type: 'list',
+          formula1: `"${whList}"`,
+        });
+      }
+    }
+
     XLSX.utils.book_append_sheet(wb, ws, 'Lots');
 
-    // Lookup sheet — warehouses from API
+    // Lookup sheet — warehouses + units reference
     const lookupRows: string[][] = [
       ['ตัวเลือก (Lookup Values)'],
       [''],
       ['คลังสินค้า (Warehouse) — ใช้ชื่อคลังตรงๆ ในช่อง "คลังสินค้า"'],
       ['ชื่อคลัง'],
+      ...warehouseNames.map(n => [n]),
     ];
-    try {
-      const whRes = await fetch('/api/warehouses');
-      const whData = await whRes.json();
-      ((whData.data || []) as { name: string }[]).forEach(w => lookupRows.push([w.name]));
-    } catch { /* ignore */ }
 
     lookupRows.push([''], ['หน่วย (Unit)'], ['ค่า', 'คำอธิบาย']);
     [['kg','กิโลกรัม'],['g','กรัม'],['mg','มิลลิกรัม'],['l','ลิตร'],['ml','มิลลิลิตร'],
