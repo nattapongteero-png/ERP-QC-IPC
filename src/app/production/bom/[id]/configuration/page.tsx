@@ -482,7 +482,7 @@ export default function BOMConfigurationPage() {
     phase: 'production' as string,
     sequence: 1,
     isRequired: true,
-    selectedConditionIds: [] as number[],
+    selectedConditionId: null as number | null,
   });
 
   // Add Equipment form state
@@ -712,7 +712,7 @@ export default function BOMConfigurationPage() {
           phase: data.phase,
           sequence: data.sequence,
           isRequired: data.isRequired,
-          environmentalConditionIds: data.selectedConditionIds,
+          environmentalConditionIds: data.selectedConditionId ? [data.selectedConditionId] : [],
         }),
       });
       const result = await res.json();
@@ -723,7 +723,7 @@ export default function BOMConfigurationPage() {
       queryClient.invalidateQueries({ queryKey: ['bom-rooms', bomId] });
       toast.success('Room Added', 'Room requirement has been added.');
       setShowAddDialog(false);
-      setRoomForm({ roomId: 0, phase: 'production', sequence: 1, isRequired: true, selectedConditionIds: [] });
+      setRoomForm({ roomId: 0, phase: 'production', sequence: 1, isRequired: true, selectedConditionId: null });
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -864,7 +864,7 @@ export default function BOMConfigurationPage() {
           phase: (item.phase as string) || 'production',
           sequence: (item.sequence as number) || 1,
           isRequired: item.isRequired !== false,
-          selectedConditionIds: ((item.environmentalConditions as any[]) || []).map((ec: any) => ec.conditionId),
+          selectedConditionId: ((item.environmentalConditions as any[]) || [])[0]?.conditionId ?? null,
         });
         break;
       case 'equipment':
@@ -1319,51 +1319,19 @@ export default function BOMConfigurationPage() {
                 <span className="text-sm text-gray-700">Required for production</span>
               </div>
 
-              {/* Environmental Conditions Checklist */}
+              {/* Environmental Condition — single select */}
               <div className="border-t pt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Environmental Conditions ที่ต้องบันทึก
-                </label>
-                {(!conditions || conditions.length === 0) ? (
-                  <p className="text-sm text-gray-400 py-2">ไม่มี Environmental Conditions ใน Master Data</p>
-                ) : (
-                  <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
-                    {(conditions || []).filter((c: EnvironmentalCondition) => c.isActive).map((cond: EnvironmentalCondition) => {
-                      const isChecked = roomForm.selectedConditionIds.includes(cond.id);
-                      return (
-                        <label
-                          key={cond.id}
-                          className={`flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors ${isChecked ? 'bg-teal-50' : ''}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              const ids = isChecked
-                                ? roomForm.selectedConditionIds.filter(id => id !== cond.id)
-                                : [...roomForm.selectedConditionIds, cond.id];
-                              setRoomForm({ ...roomForm, selectedConditionIds: ids });
-                            }}
-                            className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{cond.name}</span>
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              {cond.temperatureMin}-{cond.temperatureMax}°C | ≤{cond.humidityMax}% RH | ทุก {cond.monitoringIntervalMinutes} นาที
-                            </div>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-                {roomForm.selectedConditionIds.length > 0 && (
-                  <p className="mt-1 text-xs text-teal-600">
-                    เลือก {roomForm.selectedConditionIds.length} เงื่อนไข
-                  </p>
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Environmental Condition</label>
+                <DxSelectBox
+                  dataSource={(conditions || []).filter((c: EnvironmentalCondition) => c.isActive) as unknown as Record<string, unknown>[]}
+                  displayExpr="name"
+                  valueExpr="id"
+                  value={roomForm.selectedConditionId}
+                  onValueChanged={(e) => setRoomForm({ ...roomForm, selectedConditionId: e.value })}
+                  placeholder="เลือก Environmental Condition..."
+                  searchEnabled
+                  showClearButton
+                />
               </div>
             </>
           )}
