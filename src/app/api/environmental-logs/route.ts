@@ -166,13 +166,15 @@ export async function POST(request: NextRequest) {
           );
 
           const now = new Date();
+          const bangkokDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); // YYYY-MM-DD
+          const bangkokTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false }); // HH:mm
           await createWOEnvironmentalLog({
             workOrderId: wo.id as number,
             bomConditionId: validation.bomConditionId,
             roomId,
             phase: bomRoom.phase as string,
-            recordedDate: now.toISOString().split('T')[0],
-            recordedTime: now.toTimeString().split(' ')[0].substring(0, 5),
+            recordedDate: bangkokDate,
+            recordedTime: bangkokTime,
             temperature, humidity,
             isNormal: validation.isNormal,
             operatorId: operatorUserId,
@@ -217,8 +219,8 @@ export async function POST(request: NextRequest) {
         bomConditionId: validation.bomConditionId,
         roomId: data.roomId,
         phase: data.phase,
-        recordedDate: data.recordedDate || new Date().toISOString().split('T')[0],
-        recordedTime: data.recordedTime || new Date().toTimeString().split(' ')[0].substring(0, 5),
+        recordedDate: data.recordedDate || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }),
+        recordedTime: data.recordedTime || new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false }),
         temperature, humidity,
         isNormal: validation.isNormal,
         operatorId: data.operatorId || operatorUserId,
