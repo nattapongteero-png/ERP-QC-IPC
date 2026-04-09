@@ -309,86 +309,101 @@ export default function LotsPage() {
   const handleImportLots = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames.find(n => n !== 'คำแนะนำ') || workbook.SheetNames[0];
-        const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(workbook.Sheets[sheetName]);
-        if (jsonData.length === 0) { toast.error('ไม่พบข้อมูลในไฟล์'); return; }
 
-        // Lookup items and warehouses
-        const itemsRes = await fetch('/api/items?limit=9999');
-        const itemsData = await (itemsRes.json());
-        const allItems = (itemsData.data?.items || []) as { id: number; code: string }[];
+    setImportingLots(true);
+    setImportLog(['กำลังอ่านไฟล์...']);
 
-        const whRes = await fetch('/api/warehouses');
-        const whData = await (whRes.json());
-        const allWarehouses = (whData.data || []) as { id: number; name: string }[];
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const data = new Uint8Array(arrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames.find(n => n !== 'คำแนะนำ' && n !== 'ตัวเลือก (Lookup)') || workbook.SheetNames[0];
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(workbook.Sheets[sheetName]);
 
-        setImportingLots(true);
-        const log: string[] = [];
-        let success = 0;
-        const errors: string[] = [];
+      if (jsonData.length === 0) {
+        setImportLog(['❌ ไม่พบข้อมูลในไฟล์']);
+        setImportingLots(false);
+        return;
+      }
 
-        for (let i = 0; i < jsonData.length; i++) {
-          const row = jsonData[i];
-          const lotNumber = String(row['เลข Lot (Lot Number)*'] ?? row['lotNumber'] ?? '').trim();
-          const itemCode = String(row['รหัสสินค้า (Item Code)*'] ?? row['itemCode'] ?? '').trim();
-          const whName = String(row['คลังสินค้า (Warehouse)*'] ?? row['warehouseName'] ?? '').trim();
-          const qty = Number(row['จำนวน (Quantity)*'] ?? row['quantity'] ?? 0);
-          const unit = String(row['หน่วย (Unit)*'] ?? row['unit'] ?? '').trim();
+      setImportLog([`พบ ${jsonData.length} แถว กำลังตรวจสอบ...`]);
 
-          if (!lotNumber || !itemCode || !whName || !qty || !unit) {
-            errors.push(`แถว ${i+2}: ข้อมูลบังคับไม่ครบ`); continue;
-          }
+      // Lookup items
+      const itemsRes = await fetch('/api/items?limit=9999');
+      const itemsData = await itemsRes.json();
+      const allItems = (itemsData.data?.items || []) as { id: number; code: string }[];
 
-          const item = allItems.find(it => it.code === itemCode);
-          if (!item) { errors.push(`แถว ${i+2}: ไม่พบสินค้า ${itemCode}`); continue; }
+      // Use warehouses from page state
+      const allWarehouses = warehouses;
 
-          const wh = allWarehouses.find(w => w.name.toLowerCase() === whName.toLowerCase());
-          if (!wh) { errors.push(`แถว ${i+2}: ไม่พบคลัง "${whName}"`); continue; }
+      const log: string[] = [];
+      let success = 0;
+      const errors: string[] = [];
 
-          const formatDate = (v: string | number | undefined) => {
-            if (!v) return undefined;
-            const s = String(v).trim();
-            if (!s) return undefined;
-            if (typeof v === 'number') {
-              const d = new Date((v - 25569) * 86400000);
-              return d.toISOString().split('T')[0];
-            }
-            return s;
-          };
+      const formatDate = (v: string | number | undefined) => {
+        if (!v) return undefined;
+        const s = String(v).trim();
+        if (!s) return undefined;
+        if (typeof v === 'number') {
+          const d = new Date((v - 25569) * 86400000);
+          return d.toISOString().split('T')[0];
+        }
+        return s;
+      };
 
-          const payload: Record<string, unknown> = {
-            lotNumber, itemId: item.id, warehouseId: wh.id, quantity: qty, unit,
-            cost: Number(row['ราคาต่อหน่วย (Cost)'] ?? row['cost'] ?? 0) || undefined,
-            expiryDate: formatDate(row['วันหมดอายุ (Expiry Date)'] ?? row['expiryDate']),
-            manufacturingDate: formatDate(row['วันผลิต (Mfg Date)'] ?? row['manufacturingDate']),
-            receivedDate: formatDate(row['วันรับเข้า (Received Date)'] ?? row['receivedDate']),
-            vendorLotNumber: String(row['เลข Lot ผู้ขาย'] ?? row['vendorLotNumber'] ?? '').trim() || undefined,
-            poNumber: String(row['เลข PO'] ?? row['poNumber'] ?? '').trim() || undefined,
-            coaNumber: String(row['เลข COA'] ?? row['coaNumber'] ?? '').trim() || undefined,
-            batchNumber: String(row['เลข Batch'] ?? row['batchNumber'] ?? '').trim() || undefined,
-          };
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        const lotNumber = String(row['เลข Lot (Lot Number)*'] ?? row['lotNumber'] ?? '').trim();
+        const itemCode = String(row['รหัสสินค้า (Item Code)*'] ?? row['itemCode'] ?? '').trim();
+        const whName = String(row['คลังสินค้า (Warehouse)*'] ?? row['warehouseName'] ?? '').trim();
+        const qty = Number(row['จำนวน (Quantity)*'] ?? row['quantity'] ?? 0);
+        const unit = String(row['หน่วย (Unit)*'] ?? row['unit'] ?? '').trim();
 
-          try {
-            const res = await fetch('/api/inventory/lots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const result = await res.json();
-            if (result.success) success++;
-            else errors.push(`${lotNumber}: ${result.error}`);
-          } catch (err) { errors.push(`${lotNumber}: ${err instanceof Error ? err.message : 'Error'}`); }
+        if (!lotNumber || !itemCode || !whName || !qty || !unit) {
+          errors.push(`แถว ${i + 2}: ข้อมูลบังคับไม่ครบ`); continue;
         }
 
-        log.push(`✅ นำเข้า ${success}/${jsonData.length} Lot สำเร็จ (สถานะ: Quarantine)`);
-        if (errors.length > 0) log.push(...errors.slice(0, 5).map(e => `❌ ${e}`));
-        setImportLog(log);
-        setImportingLots(false);
-        if (success > 0) fetchLots();
-      } catch { toast.error('อ่านไฟล์ไม่ได้'); setImportingLots(false); }
-    };
-    reader.readAsArrayBuffer(file);
+        const item = allItems.find(it => it.code === itemCode);
+        if (!item) { errors.push(`แถว ${i + 2}: ไม่พบสินค้า ${itemCode}`); continue; }
+
+        const wh = allWarehouses.find(w => w.name.toLowerCase() === whName.toLowerCase());
+        if (!wh) { errors.push(`แถว ${i + 2}: ไม่พบคลัง "${whName}"`); continue; }
+
+        const payload: Record<string, unknown> = {
+          lotNumber, itemId: item.id, warehouseId: wh.id, quantity: qty, unit,
+          cost: Number(row['ราคาต่อหน่วย (Cost)'] ?? row['cost'] ?? 0) || undefined,
+          expiryDate: formatDate(row['วันหมดอายุ (Expiry Date)'] ?? row['expiryDate']),
+          manufacturingDate: formatDate(row['วันผลิต (Mfg Date)'] ?? row['manufacturingDate']),
+          receivedDate: formatDate(row['วันรับเข้า (Received Date)'] ?? row['receivedDate']),
+          vendorLotNumber: String(row['เลข Lot ผู้ขาย'] ?? row['vendorLotNumber'] ?? '').trim() || undefined,
+          poNumber: String(row['เลข PO'] ?? row['poNumber'] ?? '').trim() || undefined,
+          coaNumber: String(row['เลข COA'] ?? row['coaNumber'] ?? '').trim() || undefined,
+          batchNumber: String(row['เลข Batch'] ?? row['batchNumber'] ?? '').trim() || undefined,
+        };
+
+        try {
+          const res = await fetch('/api/inventory/lots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const result = await res.json();
+          if (result.success) success++;
+          else errors.push(`${lotNumber}: ${result.error}`);
+        } catch (err) { errors.push(`${lotNumber}: ${err instanceof Error ? err.message : 'Error'}`); }
+
+        // Update progress
+        setImportLog([`กำลังนำเข้า ${i + 1}/${jsonData.length}...`]);
+      }
+
+      log.push(`✅ นำเข้า ${success}/${jsonData.length} Lot สำเร็จ (สถานะ: Quarantine)`);
+      if (errors.length > 0) log.push(...errors.slice(0, 5).map(e => `❌ ${e}`));
+      if (errors.length > 5) log.push(`...และอีก ${errors.length - 5} รายการ`);
+      setImportLog(log);
+      setImportingLots(false);
+      if (success > 0) fetchLots();
+    } catch (err) {
+      setImportLog([`❌ เกิดข้อผิดพลาด: ${err instanceof Error ? err.message : 'อ่านไฟล์ไม่ได้'}`]);
+      setImportingLots(false);
+    }
+
+    // Reset input
     event.target.value = '';
   };
   const [showQCModal, setShowQCModal] = useState(false);
@@ -1677,7 +1692,7 @@ export default function LotsPage() {
                 <label
                   className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer ${importingLots ? 'opacity-50 pointer-events-none' : ''}`}
                 >
-                  <input type="file" accept=".xlsx,.xls" onChange={handleImportLots} className="hidden" />
+                  <input type="file" accept=".xlsx,.xls" onChange={handleImportLots} className="sr-only" />
                   <Upload className="h-5 w-5" />{importingLots ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
                 </label>
                 <p className="mt-2 text-xs text-gray-500">ฟิลด์บังคับ: เลข Lot, รหัสสินค้า, คลังสินค้า, จำนวน, หน่วย</p>
