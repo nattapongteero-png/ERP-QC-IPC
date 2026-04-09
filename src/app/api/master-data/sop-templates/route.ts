@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
       const templates = await getSOPTemplates({
         category,
-        isActive: isActive ? isActive === 'true' : undefined,
+        isActive: isActive !== null ? isActive === 'true' : true,
       });
 
       return successResponse(templates);

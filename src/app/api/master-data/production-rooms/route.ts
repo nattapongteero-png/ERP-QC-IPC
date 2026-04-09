@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
       const rooms = await getProductionRooms({
         roomType,
-        isActive: isActive ? isActive === 'true' : undefined,
+        isActive: isActive !== null ? isActive === 'true' : true,
       });
 
       return successResponse(rooms);

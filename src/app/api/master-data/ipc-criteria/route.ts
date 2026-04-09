@@ -32,9 +32,8 @@ export async function GET(request: NextRequest) {
 
       const result = await executeDbOperation(async (db) => {
         let query = db.select().from(table);
-        if (isActive !== null && isActive !== undefined && isActive !== '') {
-          query = query.where(eq(table.isActive, isActive === 'true'));
-        }
+        const filterActive = (isActive !== null && isActive !== undefined && isActive !== '') ? isActive === 'true' : true;
+        query = query.where(eq(table.isActive, filterActive));
         return query.orderBy(asc(table.code));
       });
 

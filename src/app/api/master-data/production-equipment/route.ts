@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       const rawEquipment = await getProductionEquipment({
         equipmentType,
         roomId: roomId ? Number(roomId) : undefined,
-        isActive: isActive ? isActive === 'true' : undefined,
+        isActive: isActive !== null ? isActive === 'true' : true,
       });
 
       // Flatten the nested structure for frontend

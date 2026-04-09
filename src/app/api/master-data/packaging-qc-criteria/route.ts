@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       }
 
       const criteria = await getPackagingQCCriteria({
-        isActive: isActive ? isActive === 'true' : undefined,
+        isActive: isActive !== null ? isActive === 'true' : true,
       });
 
       return successResponse(criteria);
