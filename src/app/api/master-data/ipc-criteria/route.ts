@@ -67,27 +67,34 @@ export async function POST(request: NextRequest) {
       }
 
       const table = getTable();
-      const result = await executeDbOperation(async (db) => {
-        return db.insert(table).values({
-          code: data.code,
-          name: data.name,
-          nameTh: data.nameTh || null,
-          testMethod: data.testMethod || null,
-          specification: data.specification || null,
-          minValue: data.minValue ?? null,
-          maxValue: data.maxValue ?? null,
-          unit: data.unit || null,
-          sampleSize: data.sampleSize || 5,
-          checkIntervalMinutes: data.checkIntervalMinutes || 30,
-          isCritical: data.isCritical ?? false,
-          isActive: data.isActive ?? true,
-          dosageForm: data.dosageForm || null,
-          criteriaType: data.criteriaType || 'numeric',
-          tolerancePercent: data.tolerancePercent ?? 0,
-          createdAt: getNow(),
-        } as any);
+      const ipcValues = {
+        name: data.name, nameTh: data.nameTh || null, testMethod: data.testMethod || null,
+        specification: data.specification || null, minValue: data.minValue ?? null, maxValue: data.maxValue ?? null,
+        unit: data.unit || null, sampleSize: data.sampleSize || 5, checkIntervalMinutes: data.checkIntervalMinutes || 30,
+        isCritical: data.isCritical ?? false, isActive: data.isActive ?? true,
+        dosageForm: data.dosageForm || null, criteriaType: data.criteriaType || 'numeric',
+        tolerancePercent: data.tolerancePercent ?? 0,
+      };
+
+      // Upsert
+      const existing = await executeDbOperation(async (db) => {
+        const rows = await db.select({ id: table.id }).from(table).where(eq(table.code, data.code));
+        return rows[0];
       });
 
+      if (existing) {
+        await executeDbOperation(async (db) => {
+          return db.update(table).set(ipcValues).where(eq(table.id, existing.id as number));
+        });
+        const [updated] = await executeDbOperation(async (db) => {
+          return db.select().from(table).where(eq(table.id, existing.id as number));
+        });
+        return successResponse(updated, 'IPC criteria updated (code existed)');
+      }
+
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(table).values({ code: data.code, ...ipcValues, createdAt: getNow() } as any);
+      });
       const insertId = getInsertId(result);
       const [created] = await executeDbOperation(async (db) => {
         return db.select().from(table).where(eq(table.id, insertId));
@@ -96,10 +103,6 @@ export async function POST(request: NextRequest) {
       return successResponse(created, 'IPC criteria created successfully');
     } catch (error) {
       console.error('Error creating IPC criteria:', error);
-      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
-      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
-        return errorResponse('Criteria code already exists');
-      }
       return serverErrorResponse(error);
     }
   });

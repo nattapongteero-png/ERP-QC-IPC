@@ -75,24 +75,29 @@ export async function POST(request: NextRequest) {
         return errorResponse('Missing required fields: name, nameTh, equipmentType');
       }
 
+      // Upsert — update if code exists
+      const table = getTableRef('productionEquipment');
+      const existing = await executeDbOperation(async (db) => {
+        const rows = await db.select({ id: table.id }).from(table).where(eq(table.code, data.code));
+        return rows[0];
+      });
+
+      if (existing) {
+        const updated = await updateProductionEquipment(existing.id as number, {
+          name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
+          capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
+        });
+        return successResponse(updated, 'Production equipment updated (code existed)');
+      }
+
       const equipment = await createProductionEquipment({
-        code: data.code,
-        name: data.name,
-        nameTh: data.nameTh,
-        equipmentType: data.equipmentType,
-        capacity: data.capacity,
-        roomId: data.roomId,
-        description: data.description,
-        isActive: data.isActive ?? true,
+        code: data.code, name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
+        capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
       });
 
       return successResponse(equipment, 'Production equipment created successfully');
     } catch (error) {
       console.error('Error creating production equipment:', error);
-      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
-      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
-        return errorResponse('Equipment code already exists');
-      }
       return serverErrorResponse(error);
     }
   });

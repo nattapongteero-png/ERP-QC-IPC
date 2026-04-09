@@ -82,6 +82,24 @@ export async function POST(request: NextRequest) {
         return errorResponse('Missing required fields: name, nameTh, roomType');
       }
 
+      // Check if code already exists — upsert (update if exists)
+      const table = getTableRef('productionRooms');
+      const existing = await executeDbOperation(async (db) => {
+        const rows = await db.select({ id: table.id }).from(table).where(eq(table.code, data.code));
+        return rows[0];
+      });
+
+      if (existing) {
+        const updated = await updateProductionRoom(existing.id as number, {
+          name: data.name,
+          nameTh: data.nameTh,
+          roomType: data.roomType,
+          description: data.description,
+          isActive: data.isActive ?? true,
+        });
+        return successResponse(updated, 'Production room updated (code existed)');
+      }
+
       const room = await createProductionRoom({
         code: data.code,
         name: data.name,
@@ -94,10 +112,6 @@ export async function POST(request: NextRequest) {
       return successResponse(room, 'Production room created successfully');
     } catch (error) {
       console.error('Error creating production room:', error);
-      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
-      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
-        return errorResponse('Room code already exists');
-      }
       return serverErrorResponse(error);
     }
   });

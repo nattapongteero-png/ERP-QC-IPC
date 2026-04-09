@@ -68,24 +68,28 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const condition = await createEnvironmentalCondition({
-        code: data.code,
-        name: data.name,
-        temperatureMin: data.temperatureMin ?? 20,
-        temperatureMax: data.temperatureMax ?? 30,
-        humidityMax: data.humidityMax ?? 60,
-        monitoringIntervalMinutes: data.monitoringIntervalMinutes ?? 60,
-        notes: data.notes,
-        isActive: data.isActive ?? true,
+      const condData = {
+        name: data.name, temperatureMin: data.temperatureMin ?? 20, temperatureMax: data.temperatureMax ?? 30,
+        humidityMax: data.humidityMax ?? 60, monitoringIntervalMinutes: data.monitoringIntervalMinutes ?? 60,
+        notes: data.notes, isActive: data.isActive ?? true,
+      };
+
+      // Upsert — update if code exists
+      const table = getTableRef('environmentalConditions');
+      const existing = await executeDbOperation(async (db) => {
+        const rows = await db.select({ id: table.id }).from(table).where(eq(table.code, data.code));
+        return rows[0];
       });
 
+      if (existing) {
+        const updated = await updateEnvironmentalCondition(existing.id as number, condData);
+        return successResponse(updated, 'Environmental condition updated (code existed)');
+      }
+
+      const condition = await createEnvironmentalCondition({ code: data.code, ...condData });
       return successResponse(condition, 'Environmental condition created successfully');
     } catch (error) {
       console.error('Error creating environmental condition:', error);
-      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
-      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
-        return errorResponse('Condition code already exists');
-      }
       return serverErrorResponse(error);
     }
   });

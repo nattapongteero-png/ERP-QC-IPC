@@ -73,25 +73,29 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const criteria = await createPackagingQCCriteria({
-        code: data.code,
-        name: data.name,
-        weightMin: data.weightMin,
-        weightMax: data.weightMax,
-        sampleSize: data.sampleSize ?? 20,
-        maxFailures: data.maxFailures ?? 2,
-        checkIntervalMinutes: data.checkIntervalMinutes ?? 30,
-        unitsPerPack: data.unitsPerPack ?? 12,
+      const qcData = {
+        name: data.name, weightMin: data.weightMin, weightMax: data.weightMax,
+        sampleSize: data.sampleSize ?? 20, maxFailures: data.maxFailures ?? 2,
+        checkIntervalMinutes: data.checkIntervalMinutes ?? 30, unitsPerPack: data.unitsPerPack ?? 12,
         isActive: data.isActive ?? true,
+      };
+
+      // Upsert
+      const table = getTableRef('packagingQCCriteria');
+      const existing = await executeDbOperation(async (db) => {
+        const rows = await db.select({ id: table.id }).from(table).where(eq(table.code, data.code));
+        return rows[0];
       });
 
+      if (existing) {
+        const updated = await updatePackagingQCCriteria(existing.id as number, qcData);
+        return successResponse(updated, 'Packaging QC criteria updated (code existed)');
+      }
+
+      const criteria = await createPackagingQCCriteria({ code: data.code, ...qcData });
       return successResponse(criteria, 'Packaging QC criteria created successfully');
     } catch (error) {
       console.error('Error creating packaging QC criteria:', error);
-      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
-      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
-        return errorResponse('Criteria code already exists');
-      }
       return serverErrorResponse(error);
     }
   });

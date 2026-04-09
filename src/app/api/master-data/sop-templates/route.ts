@@ -81,26 +81,29 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const template = await createSOPTemplate({
-        code: data.code,
-        name: data.name,
-        nameTh: data.nameTh,
-        category: data.category,
-        instructions: data.instructions,
-        instructionsTh: data.instructionsTh,
-        defaultParameters: typeof data.defaultParameters === 'object'
-          ? JSON.stringify(data.defaultParameters)
-          : data.defaultParameters,
+      const sopData = {
+        name: data.name, nameTh: data.nameTh, category: data.category,
+        instructions: data.instructions, instructionsTh: data.instructionsTh,
+        defaultParameters: typeof data.defaultParameters === 'object' ? JSON.stringify(data.defaultParameters) : data.defaultParameters,
         isActive: data.isActive ?? true,
+      };
+
+      // Upsert
+      const table = getTableRef('sOPStepTemplates');
+      const existing = await executeDbOperation(async (db) => {
+        const rows = await db.select({ id: table.id }).from(table).where(eq(table.code, data.code));
+        return rows[0];
       });
 
+      if (existing) {
+        const updated = await updateSOPTemplate(existing.id as number, sopData);
+        return successResponse(updated, 'SOP template updated (code existed)');
+      }
+
+      const template = await createSOPTemplate({ code: data.code, ...sopData });
       return successResponse(template, 'SOP template created successfully');
     } catch (error) {
       console.error('Error creating SOP template:', error);
-      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
-      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
-        return errorResponse('Template code already exists');
-      }
       return serverErrorResponse(error);
     }
   });
