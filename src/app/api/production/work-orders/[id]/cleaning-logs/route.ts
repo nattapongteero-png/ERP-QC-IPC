@@ -13,8 +13,9 @@ import {
   getWOCleaningStatus,
 } from '@/lib/services/wo-execution.service';
 
-// Valid phases for cleaning
-const VALID_PHASES = ['pre_production', 'post_production', 'pre_packaging'];
+// Valid phases for cleaning — mirrors BOM rooms/equipment phases so cleaning
+// can be logged anywhere the BOM assigns a room or piece of equipment.
+const VALID_PHASES = ['pre_production', 'production', 'post_production', 'pre_packaging', 'packaging'];
 
 // Valid item types
 const VALID_ITEM_TYPES = ['room', 'equipment'];
@@ -143,13 +144,25 @@ export async function PATCH(
         return errorResponse('Missing logId');
       }
 
+      // Support pass/fail verify result
+      const verifyResult = data.verifyResult || 'pass';
+      if (!['pass', 'fail'].includes(verifyResult)) {
+        return errorResponse('verifyResult must be "pass" or "fail"');
+      }
+
       // Use session user as verifier if not specified
       const verifierId = data.verifierId || session.userId;
 
-      const log = await verifyWOCleaningLog(data.logId, verifierId);
-      return successResponse(log, 'Cleaning log verified');
+      const log = await verifyWOCleaningLog(data.logId, verifierId, verifyResult);
+      const msg = verifyResult === 'pass' ? 'Cleaning verified — Pass' : 'Cleaning verified — Fail (requires re-cleaning)';
+      return successResponse(log, msg);
     } catch (error) {
       console.error('Error verifying WO cleaning log:', error);
+      // Surface known business-logic errors (e.g. dual-control violation)
+      // directly to the caller instead of hiding them as "Internal server error".
+      if (error instanceof Error && error.message) {
+        return errorResponse(error.message);
+      }
       return serverErrorResponse(error);
     }
   });

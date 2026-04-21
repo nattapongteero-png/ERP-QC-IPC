@@ -17,8 +17,6 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSwitch } from '@/components/ui/dx-switch';
-import { DxTabs } from '@/components/ui/dx-tabs';
-import type { DxTabItem } from '@/components/ui/dx-tabs';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import { SwitchTypes } from 'devextreme-react/switch';
@@ -75,13 +73,26 @@ interface WorkOrderBasic {
   status: string;
 }
 
-const tabItems: DxTabItem[] = [
-  { id: 0, text: 'Pre-Production', icon: 'clock' },
-  { id: 1, text: 'Post-Production', icon: 'check' },
-  { id: 2, text: 'Pre-Packaging', icon: 'box' },
-];
+// All phases that can host cleaning (must mirror cleaning-logs VALID_PHASES).
+// We render only the phases that the BOM actually uses — see visiblePhases
+// below — so the tab bar never shows empty sections.
+type CleaningPhase = 'pre_production' | 'production' | 'post_production' | 'pre_packaging' | 'packaging';
 
-const phaseMap = ['pre_production', 'post_production', 'pre_packaging'] as const;
+const PHASE_META: Record<CleaningPhase, { label: string; icon: string; short: string }> = {
+  pre_production: { label: 'Pre-Production', short: 'Pre-Prod', icon: 'clock' },
+  production: { label: 'Production', short: 'Prod', icon: 'product' },
+  post_production: { label: 'Post-Production', short: 'Post-Prod', icon: 'check' },
+  pre_packaging: { label: 'Pre-Packaging', short: 'Pre-Pkg', icon: 'box' },
+  packaging: { label: 'Packaging', short: 'Pkg', icon: 'box' },
+};
+
+const PHASE_ORDER: CleaningPhase[] = [
+  'pre_production',
+  'production',
+  'post_production',
+  'pre_packaging',
+  'packaging',
+];
 
 export default function CleaningPage() {
   const params = useParams();
@@ -96,18 +107,17 @@ export default function CleaningPage() {
   // GMP dual-control: a log's operator can't verify their own work
   const { data: currentUser } = useCurrentUser();
 
-  const phaseParam = searchParams.get('phase');
-  const initialTab = phaseParam === 'post_production' ? 1 : phaseParam === 'pre_packaging' ? 2 : 0;
+  const phaseParam = searchParams.get('phase') as CleaningPhase | null;
 
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [currentPhase, setCurrentPhase] = useState<CleaningPhase>(
+    phaseParam && PHASE_ORDER.includes(phaseParam) ? phaseParam : 'pre_production',
+  );
   const [showCleanDialog, setShowCleanDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CleaningRequirement | null>(null);
   const [formData, setFormData] = useState({
     isClean: true,
     notes: '',
   });
-
-  const currentPhase = phaseMap[activeTab];
 
   // Fetch Work Order basic info
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderBasic>({
@@ -120,7 +130,7 @@ export default function CleaningPage() {
     },
   });
 
-  // Fetch cleaning requirements with logs
+  // Fetch cleaning requirements with logs for the CURRENT phase
   const { data: requirements, isLoading: reqLoading } = useQuery<CleaningRequirement[]>({
     queryKey: ['wo-cleaning-requirements', workOrderId, currentPhase],
     queryFn: async () => {
@@ -130,6 +140,39 @@ export default function CleaningPage() {
       return data.data;
     },
   });
+
+  // Fetch per-phase counts so we can (a) hide tabs that have no rooms/equipment
+  // and (b) render a per-phase progress indicator in the tab bar.
+  const { data: phaseStats } = useQuery<Record<CleaningPhase, { total: number; completed: number; verified: number }>>({
+    queryKey: ['wo-cleaning-phase-stats', workOrderId],
+    queryFn: async () => {
+      const results = await Promise.all(
+        PHASE_ORDER.map(async (phase) => {
+          const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs?phase=${phase}`);
+          const data = await res.json();
+          const reqs: CleaningRequirement[] = data.success ? data.data : [];
+          return [phase, {
+            total: reqs.length,
+            completed: reqs.filter((r) => r.cleaningLog?.isClean).length,
+            verified: reqs.filter((r) => r.cleaningLog?.verifiedAt).length,
+          }] as const;
+        }),
+      );
+      return Object.fromEntries(results) as Record<CleaningPhase, { total: number; completed: number; verified: number }>;
+    },
+  });
+
+  const visiblePhases = PHASE_ORDER.filter((p) => (phaseStats?.[p]?.total ?? 0) > 0);
+  // Fall back to pre-production while phaseStats is loading so the tab bar
+  // isn't briefly empty.
+  const tabPhases: CleaningPhase[] = visiblePhases.length > 0 ? visiblePhases : ['pre_production'];
+
+  // If the current phase isn't in the visible list (e.g. BOM was just edited
+  // to remove it), snap the UI to the first visible one instead of rendering
+  // an empty card.
+  if (!tabPhases.includes(currentPhase) && tabPhases.length > 0) {
+    setCurrentPhase(tabPhases[0]);
+  }
 
   // Create cleaning log mutation
   const createLogMutation = useMutation({
@@ -286,46 +329,79 @@ export default function CleaningPage() {
         }
       />
 
-      {/* Progress Card */}
-      <Card className="border-amber-200 bg-amber-50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="text-amber-800">
-                <span className="text-2xl font-bold">{progress.completed}</span>
-                <span className="text-sm">/{progress.total} Cleaned</span>
+      {/* Phase Selector — buttons styled as cards, one per BOM-used phase.
+          Each shows label + progress so the operator picks the phase they
+          need without drilling in first. Responsive grid collapses on
+          mobile. */}
+      <div className={`grid gap-2 grid-cols-2 sm:grid-cols-${Math.min(tabPhases.length, 5)}`}>
+        {tabPhases.map((phase) => {
+          const stat = phaseStats?.[phase] ?? { total: 0, completed: 0, verified: 0 };
+          const isActive = currentPhase === phase;
+          const pct = stat.total > 0 ? (stat.verified / stat.total) * 100 : 0;
+          const allDone = stat.total > 0 && stat.verified === stat.total;
+          return (
+            <button
+              key={phase}
+              type="button"
+              onClick={() => setCurrentPhase(phase)}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                isActive
+                  ? 'border-amber-500 bg-amber-50 shadow-sm'
+                  : 'border-gray-200 bg-white hover:border-amber-300'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className={`text-sm font-semibold ${isActive ? 'text-amber-800' : 'text-gray-700'}`}>
+                  {PHASE_META[phase].label}
+                </span>
+                {allDone && <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
               </div>
-              <div className="text-blue-800">
-                <span className="text-2xl font-bold">{progress.verified}</span>
-                <span className="text-sm">/{progress.total} Verified</span>
+              <div className="text-xs text-gray-600 mb-1.5">
+                {stat.verified}/{stat.total} Verified
               </div>
-            </div>
-            <div className="flex-1 max-w-xs mx-4">
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-amber-500 transition-all duration-300"
-                  style={{ width: `${progress.total > 0 ? (progress.verified / progress.total) * 100 : 0}%` }}
+                  className={`h-full transition-all duration-300 ${
+                    allDone ? 'bg-green-500' : stat.completed > 0 ? 'bg-amber-500' : 'bg-gray-300'
+                  }`}
+                  style={{ width: `${pct}%` }}
                 />
               </div>
-            </div>
-            {progress.verified === progress.total && progress.total > 0 && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium">
-                <CheckCircle2 className="h-4 w-4" />
-                All Verified
-              </span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Phase Tabs */}
-      <Card>
+      {/* Current Phase Card — shows the rooms/equipment for the selected phase
+          and its own progress header. Single card = matches the request to
+          "show only the current phase". */}
+      <Card className="border-amber-200">
         <CardContent className="p-0">
-          <DxTabs
-            items={tabItems}
-            selectedIndex={activeTab}
-            onSelectedIndexChange={(idx) => setActiveTab(idx)}
-          />
+          <div className="p-4 border-b border-amber-100 bg-amber-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="text-sm text-amber-700 uppercase tracking-wide font-medium">Phase</div>
+              <div className="text-xl font-bold text-amber-900 flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                {PHASE_META[currentPhase].label}
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-sm">
+              <div className="text-amber-800">
+                <span className="text-xl font-bold">{progress.completed}</span>
+                <span className="text-xs">/{progress.total} Cleaned</span>
+              </div>
+              <div className="text-blue-800">
+                <span className="text-xl font-bold">{progress.verified}</span>
+                <span className="text-xs">/{progress.total} Verified</span>
+              </div>
+              {progress.verified === progress.total && progress.total > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium text-xs">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Complete
+                </span>
+              )}
+            </div>
+          </div>
 
           <div className="p-4">
             {reqLoading ? (
@@ -349,19 +425,19 @@ export default function CleaningPage() {
                   return (
                     <div
                       key={`${item.type}-${item.id}`}
-                      className="flex items-center justify-between p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-lg ${item.type === 'room' ? 'bg-blue-100' : 'bg-purple-100'}`}>
+                      <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                        <div className={`p-2 rounded-lg flex-shrink-0 ${item.type === 'room' ? 'bg-blue-100' : 'bg-purple-100'}`}>
                           {item.type === 'room' ? (
                             <Building2 className="h-5 w-5 text-blue-600" />
                           ) : (
                             <Wrench className="h-5 w-5 text-purple-600" />
                           )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm text-gray-500">{item.code}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                            <span className="font-mono text-xs sm:text-sm text-gray-500">{item.code}</span>
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusInfo.color}`}>
                               {statusInfo.label}
                             </span>
@@ -398,7 +474,7 @@ export default function CleaningPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-shrink-0 sm:ml-auto">
                         {(() => {
                           const log = item.cleaningLog;
                           const isFailed = log?.verifyResult === 'fail';
