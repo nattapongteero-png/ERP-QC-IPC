@@ -1425,14 +1425,32 @@ export default function BOMConfigurationPage() {
           {dialogType === 'sop' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">From Template (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  From Template <span className="text-gray-400">(Optional)</span>
+                </label>
                 <DxSelectBox
-                  dataSource={(sopTemplates || []).filter(t => t.isActive) as unknown as Record<string, unknown>[]}
-                  displayExpr="name"
+                  dataSource={
+                    // Build displayLabel that shows code + both names so the user
+                    // can spot the template regardless of which language they
+                    // typed into the master. Fallback to whichever name exists.
+                    (sopTemplates || [])
+                      .filter((t) => t.isActive)
+                      .map((t) => {
+                        const th = (t.nameTh || '').trim();
+                        const en = (t.name || '').trim();
+                        const both = th && en && th !== en ? `${th} / ${en}` : (th || en || '—');
+                        return {
+                          ...t,
+                          displayLabel: `${t.code} — ${both}`,
+                        };
+                      }) as unknown as Record<string, unknown>[]
+                  }
+                  displayExpr="displayLabel"
                   valueExpr="id"
+                  searchExpr={['displayLabel', 'nameTh', 'name', 'code']}
                   value={sopForm.templateId || null}
                   onValueChanged={(e) => {
-                    const template = sopTemplates?.find(t => t.id === e.value);
+                    const template = sopTemplates?.find((t) => t.id === e.value);
                     if (template) {
                       setSOPForm({
                         ...sopForm,
@@ -1444,10 +1462,13 @@ export default function BOMConfigurationPage() {
                       setSOPForm({ ...sopForm, templateId: 0 });
                     }
                   }}
-                  placeholder="Select template or leave empty for custom"
+                  placeholder="เลือก Template หรือเว้นว่างเพื่อกรอกเอง"
                   searchEnabled
                   showClearButton
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  รายการแสดงเป็น &quot;Code — ชื่อไทย / ชื่อ EN&quot; (ค้นหาได้ทั้ง 3 ฟิลด์)
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
