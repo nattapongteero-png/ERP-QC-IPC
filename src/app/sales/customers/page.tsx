@@ -1,28 +1,34 @@
 'use client';
 
 /**
- * Customers Page - Redesigned Dashboard
- *
- * Professional dashboard for managing customer information.
- * Features 3 view modes, KPI stats, pie charts, and analytics.
+ * Customers Page — Responsive Dashboard
  *
  * Feature: Sales Module
+ *
+ * Responsive: ResponsivePageHeader, StatCard KPI row, customer-type scroll-snap tabs,
+ * desktop charts (hidden on mobile), mobile card list (replaces DataGrid on < 768px),
+ * empty state, no-results state, loading skeletons. Modal-friendly layout with
+ * DataGrid minWidth to preserve info density on wide screens.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
+import * as XLSX from 'xlsx';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils/cn';
 import {
+  Download,
+  Upload,
+  X,
   Users,
   Building2,
   Hospital,
@@ -38,15 +44,16 @@ import {
   CreditCard,
   TrendingUp,
   BarChart3,
-  LayoutGrid,
-  List,
-  RefreshCw,
   Phone,
   Mail,
   Calendar,
   Inbox,
   Star,
   Award,
+  RefreshCw,
+  SearchX,
+  Eye,
+  MapPin,
 } from 'lucide-react';
 import PieChart, { Series, Legend, Tooltip, Label } from 'devextreme-react/pie-chart';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
@@ -71,8 +78,8 @@ interface Customer {
   createdAt: string;
 }
 
-type ViewMode = 'grid' | 'cards' | 'analytics';
 type StatusFilter = 'all' | 'active' | 'inactive';
+type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
 
 // ============================================================================
 // Configuration Constants
@@ -225,19 +232,160 @@ async function fetchCustomers(): Promise<Customer[]> {
 export default function CustomersPage() {
   const router = useRouter();
   const t = useTranslations('sales');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const locale = useLocale();
+  const { isMobile } = useMobile();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  // Create memoized type options from translations
-  const customerTypeOptions = useMemo(() => [
-    { value: '', label: t('customers.type.all') },
-    ...CUSTOMER_TYPE_KEYS.map(key => ({
-      value: key,
-      label: t(`customers.type.${key}`),
-    })),
-  ], [t]);
+  // Excel import state — mirrors the items page so the two imports feel the same
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importLog, setImportLog] = useState<string[]>([]);
+
+  // Single-sheet template — customers don't split into sub-types the way items
+  // do; customer_type is just a column.
+  const CUSTOMER_COLUMNS = [
+    { header: 'รหัส (Code)*', field: 'code' },
+    { header: 'ชื่อลูกค้า (Name)*', field: 'name' },
+    { header: 'ประเภท (Type)', field: 'customerType' },
+    { header: 'ผู้ติดต่อ (Contact Person)', field: 'contactPerson' },
+    { header: 'โทรศัพท์ (Phone)', field: 'phone' },
+    { header: 'อีเมล (Email)', field: 'email' },
+    { header: 'ที่อยู่ (Address)', field: 'address' },
+    { header: 'เลขผู้เสียภาษี (Tax ID)', field: 'taxId' },
+    { header: 'วงเงินเครดิต (Credit Limit)', field: 'creditLimit' },
+    { header: 'เครดิต (วัน) (Credit Term Days)', field: 'creditTermDays' },
+    { header: 'เงื่อนไขการชำระ (Payment Terms)', field: 'paymentTerms' },
+    { header: 'หมายเหตุ (Notes)', field: 'notes' },
+  ];
+
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    // Instructions
+    const instr = [
+      ['Template นำเข้าลูกค้า — Herbal Medicine ERP'],
+      [''],
+      ['กรอกข้อมูลใน Sheet "Customers" (บังคับฟิลด์ที่มี *)'],
+      ['Code ต้องไม่ซ้ำกับที่มีอยู่ในระบบ'],
+      ['ประเภท (customerType) ใช้ค่าจาก Sheet "ตัวเลือก (Lookup)"'],
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instr), 'คำแนะนำ');
+
+    // Example data
+    const example = [
+      { 'รหัส (Code)*': 'CUST-0001', 'ชื่อลูกค้า (Name)*': 'โรงพยาบาลสมเด็จพระปกเกล้า', 'ประเภท (Type)': 'hospital', 'ผู้ติดต่อ (Contact Person)': 'คุณสมชาย', 'โทรศัพท์ (Phone)': '02-123-4567', 'อีเมล (Email)': 'contact@hospital.example', 'ที่อยู่ (Address)': 'กรุงเทพฯ', 'เลขผู้เสียภาษี (Tax ID)': '0123456789012', 'วงเงินเครดิต (Credit Limit)': 500000, 'เครดิต (วัน) (Credit Term Days)': 30, 'เงื่อนไขการชำระ (Payment Terms)': 'Net 30', 'หมายเหตุ (Notes)': '' },
+      { 'รหัส (Code)*': 'CUST-0002', 'ชื่อลูกค้า (Name)*': 'ร้านขายยาสมุนไพรเจริญ', 'ประเภท (Type)': 'pharmacy', 'ผู้ติดต่อ (Contact Person)': 'คุณสมหญิง', 'โทรศัพท์ (Phone)': '081-234-5678', 'อีเมล (Email)': '', 'ที่อยู่ (Address)': 'เชียงใหม่', 'เลขผู้เสียภาษี (Tax ID)': '', 'วงเงินเครดิต (Credit Limit)': 100000, 'เครดิต (วัน) (Credit Term Days)': 15, 'เงื่อนไขการชำระ (Payment Terms)': 'Net 15', 'หมายเหตุ (Notes)': '' },
+    ];
+    const ws = XLSX.utils.json_to_sheet(example);
+    ws['!cols'] = CUSTOMER_COLUMNS.map(() => ({ wch: 25 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Customers');
+
+    // Lookup sheet
+    const lookupRows: string[][] = [
+      ['ตัวเลือก (Lookup Values)'], [''],
+      ['Customer Type (ประเภทลูกค้า)'], ['ค่า', 'คำอธิบาย'],
+      ['hospital', 'โรงพยาบาล'],
+      ['clinic', 'คลินิก'],
+      ['pharmacy', 'ร้านขายยา'],
+      ['distributor', 'ตัวแทนจำหน่าย'],
+      ['traditional_medicine', 'ร้านยาแผนโบราณ'],
+      ['spa_wellness', 'สปา/Wellness'],
+      ['government', 'หน่วยงานราชการ'],
+      ['export', 'ส่งออก'],
+      ['other', 'อื่นๆ'],
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lookupRows), 'ตัวเลือก (Lookup)');
+    XLSX.writeFile(wb, 'Customer_Import_Template.xlsx');
+  };
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const log: string[] = [];
+        setImporting(true);
+
+        const sheetName = workbook.SheetNames.find(n => n === 'Customers' || n.toLowerCase() === 'customers');
+        if (!sheetName) {
+          log.push('⚠️ ไม่พบ Sheet "Customers"');
+          setImportLog(log);
+          setImporting(false);
+          return;
+        }
+
+        const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(workbook.Sheets[sheetName]);
+        if (jsonData.length === 0) {
+          log.push('⚠️ ไม่มีข้อมูลใน Sheet "Customers"');
+          setImportLog(log);
+          setImporting(false);
+          return;
+        }
+
+        let created = 0;
+        const errors: string[] = [];
+
+        for (let i = 0; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          const code = String(row['รหัส (Code)*'] ?? row['code'] ?? '').trim();
+          const name = String(row['ชื่อลูกค้า (Name)*'] ?? row['name'] ?? '').trim();
+          if (!code || !name) {
+            errors.push(`แถว ${i + 2}: ต้องมี Code และ Name`);
+            continue;
+          }
+
+          const payload: Record<string, unknown> = { code, name };
+          for (const col of CUSTOMER_COLUMNS) {
+            if (col.field === 'code' || col.field === 'name') continue;
+            const val = String(row[col.header] ?? row[col.field] ?? '').trim();
+            if (!val) continue;
+            // Numeric fields
+            if (col.field === 'creditLimit' || col.field === 'creditTermDays') {
+              const num = Number(val);
+              if (!isNaN(num)) payload[col.field] = num;
+            } else {
+              payload[col.field] = val;
+            }
+          }
+
+          try {
+            const res = await fetch('/api/customers', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            const result = await res.json();
+            if (result.success) {
+              created++;
+            } else {
+              errors.push(`${code}: ${result.error}`);
+            }
+          } catch (err) {
+            errors.push(`แถว ${i + 2}: ${err instanceof Error ? err.message : 'Error'}`);
+          }
+        }
+
+        log.push(`✅ สร้างลูกค้า ${created}/${jsonData.length} รายการ`);
+        if (errors.length > 0) {
+          log.push(...errors.slice(0, 5).map(e => `   ❌ ${e}`));
+          if (errors.length > 5) log.push(`   …และอีก ${errors.length - 5} ข้อผิดพลาด`);
+        }
+        setImportLog(log);
+        setImporting(false);
+        refetch();
+      } catch (err) {
+        setImportLog([`❌ ไฟล์ผิดรูปแบบ: ${err instanceof Error ? err.message : 'Error'}`]);
+        setImporting(false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+  };
 
   // Data fetching with React Query
   const { data: customers = [], isLoading, refetch } = useQuery<Customer[]>({
@@ -285,13 +433,9 @@ export default function CustomersPage() {
       creditByType[c.customerType] = (creditByType[c.customerType] || 0) + (Number(c.creditLimit) || 0);
     });
 
-    // Get top customer type
     const topType = Object.entries(byType).sort((a, b) => b[1] - a[1])[0];
-
-    // Customers with high credit
     const highCredit = customers.filter(c => (Number(c.creditLimit) || 0) >= 1000000).length;
 
-    // Recent customers (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const recentCustomers = customers.filter(c => new Date(c.createdAt) >= thirtyDaysAgo).length;
@@ -317,7 +461,16 @@ export default function CustomersPage() {
     inactive: stats.inactive,
   }), [customers.length, stats.active, stats.inactive]);
 
-  // Chart data for type distribution
+  // Type counts for type-filter tabs
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = { '': customers.length };
+    for (const key of CUSTOMER_TYPE_KEYS) {
+      counts[key] = customers.filter(c => c.customerType === key).length;
+    }
+    return counts;
+  }, [customers]);
+
+  // Chart data
   const typeChartData = useMemo(() => {
     return Object.entries(stats.byType)
       .map(([type, count]) => {
@@ -332,7 +485,6 @@ export default function CustomersPage() {
       .sort((a, b) => b.count - a.count);
   }, [stats.byType, t]);
 
-  // Chart data for credit by type
   const creditChartData = useMemo(() => {
     return Object.entries(stats.creditByType)
       .map(([type, credit]) => {
@@ -362,7 +514,7 @@ export default function CustomersPage() {
       .slice(0, 5);
   }, [customers]);
 
-  // Navigation handler
+  // Navigation handlers
   const handleRowClick = useCallback((e: DataGridTypes.RowClickEvent) => {
     if (e.data?.id) {
       router.push(`/sales/customers/${e.data.id}`);
@@ -373,12 +525,22 @@ export default function CustomersPage() {
     router.push(`/sales/customers/${id}`);
   }, [router]);
 
+  const handleAddCustomer = useCallback(() => {
+    router.push('/sales/customers/new');
+  }, [router]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearch('');
+    setTypeFilter('');
+    setStatusFilter('all');
+  }, []);
+
   // DataGrid columns
   const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'code',
       caption: t('customers.grid.columns.code'),
-      width: 110,
+      width: 120,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
         const config = getTypeConfig(data.data.customerType);
@@ -412,7 +574,7 @@ export default function CustomersPage() {
     {
       dataField: 'phone',
       caption: t('customers.grid.columns.phone'),
-      width: 130,
+      width: 140,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
         return (
@@ -432,7 +594,7 @@ export default function CustomersPage() {
     {
       dataField: 'email',
       caption: t('customers.grid.columns.email'),
-      width: 180,
+      width: 200,
       hideOnMobile: true,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
@@ -453,9 +615,10 @@ export default function CustomersPage() {
     {
       dataField: 'creditLimit',
       caption: t('customers.grid.columns.creditLimit'),
-      width: 140,
+      width: 150,
       dataType: 'number',
       hideOnMobile: true,
+      hideOnTablet: true,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
         return (
@@ -468,7 +631,7 @@ export default function CustomersPage() {
     {
       dataField: 'customerType',
       caption: t('customers.grid.columns.type'),
-      width: 150,
+      width: 160,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
         const config = getTypeConfig(data.data.customerType);
@@ -482,7 +645,7 @@ export default function CustomersPage() {
     {
       dataField: 'isActive',
       caption: t('customers.grid.columns.status'),
-      width: 100,
+      width: 110,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
         return (
@@ -495,625 +658,296 @@ export default function CustomersPage() {
   ], [t]);
 
   // ============================================================================
-  // Render Functions
-  // ============================================================================
-
-  const renderCustomerCard = (customer: Customer) => {
-    const config = getTypeConfig(customer.customerType);
-    const Icon = config.icon;
-
-    return (
-      <Card
-        key={customer.id}
-        elevation="raised"
-        className="cursor-pointer transition-all hover:shadow-lg overflow-hidden"
-        onClick={() => handleCustomerClick(customer.id)}
-      >
-        <CardContent className="p-0">
-          <div className="flex items-stretch">
-            <div className="w-1" style={{ backgroundColor: config.color }} />
-            <div className="flex-1 p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center', config.bgClass)}>
-                    <Icon className={cn('h-5 w-5', config.textClass)} />
-                  </div>
-                  <div>
-                    <p className="font-mono text-sm text-blue-600">{customer.code}</p>
-                    <p className="font-semibold text-gray-900">{customer.name}</p>
-                  </div>
-                </div>
-                <Badge variant={customer.isActive ? 'success' : 'danger'} dot>
-                  {customer.isActive ? t('customers.status.active') : t('customers.status.inactive')}
-                </Badge>
-              </div>
-
-              <div className="space-y-1.5 text-sm text-gray-600">
-                {customer.contactPerson && (
-                  <div className="flex items-center gap-2">
-                    <Users className="h-3.5 w-3.5 text-gray-400" />
-                    <span>{customer.contactPerson}</span>
-                  </div>
-                )}
-                {customer.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-3.5 w-3.5 text-gray-400" />
-                    <span>{customer.phone}</span>
-                  </div>
-                )}
-                {customer.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5 text-gray-400" />
-                    <span className="truncate">{customer.email}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
-                  {t(`customers.type.${config.translationKey}`)}
-                </span>
-                {customer.creditLimit ? (
-                  <span className="text-sm font-semibold text-green-600">
-                    {formatCurrencyShort(customer.creditLimit)}
-                  </span>
-                ) : (
-                  <span className="text-sm text-gray-400">-</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderCharts = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Type Distribution */}
-      <Card elevation="raised">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            {t('customers.charts.typeDistribution')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {typeChartData.length > 0 ? (
-            <PieChart
-              id="type-pie"
-              dataSource={typeChartData}
-              type="doughnut"
-              palette={typeChartData.map(d => d.color)}
-              innerRadius={0.6}
-              size={{ height: 220 }}
-            >
-              <Series argumentField="type" valueField="count">
-                <Label visible={false} />
-              </Series>
-              <Legend
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
-              />
-              <Tooltip enabled={true} customizeTooltip={(arg) => ({
-                text: `${arg.argumentText}: ${t('customers.cards.count', { count: arg.valueText || 0 })}`
-              })} />
-            </PieChart>
-          ) : (
-            <div className="h-[220px] flex items-center justify-center text-gray-400">
-              {t('customers.charts.noData')}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Credit Distribution */}
-      <Card elevation="raised">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            {t('customers.charts.creditByType')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {creditChartData.length > 0 ? (
-            <PieChart
-              id="credit-pie"
-              dataSource={creditChartData}
-              type="doughnut"
-              palette={creditChartData.map(d => d.color)}
-              innerRadius={0.6}
-              size={{ height: 220 }}
-            >
-              <Series argumentField="type" valueField="credit">
-                <Label visible={false} />
-              </Series>
-              <Legend
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
-              />
-              <Tooltip enabled={true} customizeTooltip={(arg) => ({
-                text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`
-              })} />
-            </PieChart>
-          ) : (
-            <div className="h-[220px] flex items-center justify-center text-gray-400">
-              {t('customers.charts.noData')}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderGridView = () => (
-    <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
-      <CardContent className="flex-1 min-h-0 flex flex-col p-0">
-        {filteredCustomers.length > 0 || isLoading ? (
-          <DxDataGrid
-            dataSource={filteredCustomers}
-            keyExpr="id"
-            columns={columns}
-            loading={isLoading}
-            sorting
-            filterRow
-            headerFilter
-            export
-            exportFileName="customers"
-            columnChooser
-            virtualScrolling={filteredCustomers.length > 100}
-            fillHeight
-            onRowClick={handleRowClick}
-            noDataText={t('customers.grid.noData')}
-            rowAlternationEnabled
-          />
-        ) : (
-          <EmptyState
-            icon={<Inbox className="h-8 w-8" />}
-            title={t('customers.empty.title')}
-            description={t('customers.empty.description')}
-            action={{
-              label: t('customers.actions.addCustomer'),
-              onClick: () => router.push('/sales/customers/new'),
-            }}
-          />
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  const renderCardsView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1">
-      {/* Main Content */}
-      <div className="lg:col-span-3 space-y-4">
-        {renderCharts()}
-
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-500" />
-              {t('customers.cards.filteredCustomers')} ({filteredCustomers.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {filteredCustomers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {filteredCustomers.slice(0, 10).map(renderCustomerCard)}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-400">
-                {t('customers.cards.noMatchingCustomers')}
-              </div>
-            )}
-            {filteredCustomers.length > 10 && (
-              <div className="mt-4 text-center">
-                <DxButton
-                  text={t('customers.actions.viewMore', { count: filteredCustomers.length - 10 })}
-                  type="normal"
-                  onClick={() => setViewMode('grid')}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sidebar */}
-      <div className="space-y-4">
-        {/* Quick Stats */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
-              {t('customers.cards.summary')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 space-y-3">
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">{t('customers.cards.totalCreditLimit')}</span>
-              <span className="font-semibold text-green-600">{formatCurrencyShort(stats.totalCreditLimit)}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">{t('customers.cards.avgCreditLimit')}</span>
-              <span className="font-semibold text-blue-600">{formatCurrencyShort(stats.avgCreditLimit)}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">{t('customers.cards.highCredit')}</span>
-              <span className="font-semibold">{t('customers.cards.count', { count: stats.highCredit })}</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-gray-500">{t('customers.cards.recentCustomers')}</span>
-              <span className="font-semibold text-emerald-600">{t('customers.cards.count', { count: stats.recentCustomers })}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Customers */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Star className="h-4 w-4 text-amber-500" />
-              {t('customers.cards.topCreditLimit')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              {topCustomers.map((customer, idx) => {
-                const config = getTypeConfig(customer.customerType);
-                return (
-                  <div
-                    key={customer.id}
-                    className="p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border-l-2"
-                    style={{ borderLeftColor: config.color }}
-                    onClick={() => handleCustomerClick(customer.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-xs">
-                          {idx + 1}
-                        </div>
-                        <p className="font-mono text-xs text-blue-600">{customer.code}</p>
-                      </div>
-                      <p className="text-xs font-semibold text-green-600">{formatCurrencyShort(customer.creditLimit)}</p>
-                    </div>
-                    <p className="text-sm truncate mt-1">{customer.name}</p>
-                  </div>
-                );
-              })}
-              {topCustomers.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">{t('customers.charts.noData')}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Customers */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-500" />
-              {t('customers.cards.recent')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              {recentCustomersList.map((customer) => {
-                const config = getTypeConfig(customer.customerType);
-                return (
-                  <div
-                    key={customer.id}
-                    className="p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border-l-2"
-                    style={{ borderLeftColor: config.color }}
-                    onClick={() => handleCustomerClick(customer.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="font-mono text-xs text-blue-600">{customer.code}</p>
-                      <Badge variant={customer.isActive ? 'success' : 'danger'} className="text-xs">
-                        {customer.isActive ? t('customers.status.active') : t('customers.status.inactive')}
-                      </Badge>
-                    </div>
-                    <p className="text-sm truncate">{customer.name}</p>
-                    <p className="text-xs text-gray-400">{formatDate(customer.createdAt)}</p>
-                  </div>
-                );
-              })}
-              {recentCustomersList.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">{t('customers.charts.noData')}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-
-  const renderAnalyticsView = () => (
-    <div className="space-y-4 flex-1">
-      {/* Full-width Charts */}
-      {renderCharts()}
-
-      {/* Analytics Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Type Breakdown */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-indigo-500" />
-              {t('customers.analytics.typeBreakdown')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-3">
-              {Object.entries(CUSTOMER_TYPE_CONFIG).map(([key, config]) => {
-                const count = stats.byType[key] || 0;
-                const percentage = stats.total > 0 ? (count / stats.total) * 100 : 0;
-                const Icon = config.icon;
-                return (
-                  <div key={key} className="flex items-center gap-3">
-                    <div className={cn('p-2 rounded-lg', config.bgClass)}>
-                      <Icon className={cn('h-4 w-4', config.textClass)} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">{t(`customers.type.${config.translationKey}`)}</span>
-                        <span className="text-sm text-gray-500">{count} ({percentage.toFixed(0)}%)</span>
-                      </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${percentage}%`, backgroundColor: config.color }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Credit Summary */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-green-500" />
-              {t('customers.analytics.creditSummary')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <p className="text-sm text-gray-600">{t('customers.analytics.totalCreditLimit')}</p>
-                <p className="text-3xl font-bold text-green-600">{formatCurrency(stats.totalCreditLimit)}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-gray-500">{t('customers.analytics.avgCreditLimit')}</p>
-                  <p className="text-lg font-bold text-blue-600">{formatCurrencyShort(stats.avgCreditLimit)}</p>
-                </div>
-                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <p className="text-xs text-gray-500">{t('customers.analytics.highCredit')}</p>
-                  <p className="text-lg font-bold text-amber-600">{t('customers.cards.count', { count: stats.highCredit })}</p>
-                </div>
-              </div>
-              <div className="pt-3 border-t">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">{t('customers.analytics.activeRate')}</span>
-                  <span className="text-sm font-semibold">
-                    {stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%
-                  </span>
-                </div>
-                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-green-500 transition-all"
-                    style={{ width: `${stats.total > 0 ? (stats.active / stats.total) * 100 : 0}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Top Customers Analysis */}
-      <Card elevation="raised">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-amber-500" />
-            {t('customers.analytics.topCustomers')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {topCustomers.map((customer, idx) => {
-              const config = getTypeConfig(customer.customerType);
-              const Icon = config.icon;
-              return (
-                <Card
-                  key={customer.id}
-                  className="border overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleCustomerClick(customer.id)}
-                >
-                  <CardContent className="p-0">
-                    <div className="flex items-stretch">
-                      <div className="w-1" style={{ backgroundColor: config.color }} />
-                      <div className="flex-1 p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold">
-                            {idx + 1}
-                          </div>
-                          <div className={cn('p-1.5 rounded-lg', config.bgClass)}>
-                            <Icon className={cn('h-4 w-4', config.textClass)} />
-                          </div>
-                        </div>
-                        <p className="font-mono text-xs text-blue-600 mb-1">{customer.code}</p>
-                        <p className="font-medium text-sm truncate">{customer.name}</p>
-                        <div className="mt-2 pt-2 border-t">
-                          <span className="text-xs text-gray-500">{t('customers.analytics.creditLimit')}</span>
-                          <p className="font-semibold text-green-600">{formatCurrency(customer.creditLimit)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-            {topCustomers.length === 0 && (
-              <div className="col-span-5 text-center py-8 text-gray-400">
-                {t('customers.analytics.noCustomers')}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  // ============================================================================
   // Main Render
   // ============================================================================
 
   return (
     <MainLayout>
-      <div className="flex flex-col h-full gap-4">
-        {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-24 -translate-x-24" />
-
-          <div className="relative z-10 p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <Users className="h-7 w-7 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white">{t('customers.pageTitle')}</h1>
-                  <p className="text-white/80 text-sm">{t('customers.description')}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* View Mode Toggle */}
-                <div className="hidden md:flex items-center bg-white/20 backdrop-blur-sm rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={cn(
-                      'p-2 rounded-lg transition-colors',
-                      viewMode === 'grid' ? 'bg-white/30 text-white' : 'text-white/70 hover:text-white'
-                    )}
-                    title="Grid View"
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('cards')}
-                    className={cn(
-                      'p-2 rounded-lg transition-colors',
-                      viewMode === 'cards' ? 'bg-white/30 text-white' : 'text-white/70 hover:text-white'
-                    )}
-                    title="Cards View"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('analytics')}
-                    className={cn(
-                      'p-2 rounded-lg transition-colors',
-                      viewMode === 'analytics' ? 'bg-white/30 text-white' : 'text-white/70 hover:text-white'
-                    )}
-                    title="Analytics View"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => refetch()}
-                  className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg flex items-center justify-center text-white transition-colors"
-                >
-                  <RefreshCw className="h-5 w-5" />
-                </button>
-                <DxButton
-                  text={t('customers.actions.addCustomer')}
-                  icon="plus"
-                  type="success"
-                  onClick={() => router.push('/sales/customers/new')}
-                />
-              </div>
+      <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
+        {/* Responsive Page Header */}
+        <ResponsivePageHeader
+          title={t('customers.pageTitle')}
+          subtitle={t('customers.description')}
+          icon={Users}
+          iconBgColor="bg-pink-100"
+          iconColor="text-pink-600"
+          actions={
+            <div className="flex items-center gap-2 flex-wrap">
+              <DxButton
+                icon="refresh"
+                text={t('customers.actions.refresh')}
+                stylingMode="outlined"
+                onClick={() => refetch()}
+                className="hidden sm:inline-flex"
+              />
+              <button
+                onClick={handleDownloadTemplate}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Download className="h-4 w-4" /> Template
+              </button>
+              <button
+                onClick={() => { setShowImportDialog(true); setImportLog([]); }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <Upload className="h-4 w-4" /> Import Excel
+              </button>
+              <DxButton
+                text={t('customers.actions.addCustomer')}
+                icon="plus"
+                type="success"
+                onClick={handleAddCustomer}
+              />
             </div>
+          }
+        />
 
-            {/* Quick Stats in Header */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">{t('customers.stats.total')}</p>
-                <p className="text-2xl font-bold text-white">{stats.total}</p>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">{t('customers.stats.active')}</p>
-                <p className="text-2xl font-bold text-white">{stats.active}</p>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">{t('customers.stats.totalCreditLimit')}</p>
-                <p className="text-2xl font-bold text-white">{formatCurrencyShort(stats.totalCreditLimit)}</p>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">{t('customers.stats.mainType')}</p>
-                <p className="text-lg font-bold text-white truncate">
-                  {stats.topType ? t(`customers.type.${getTypeConfig(stats.topType.type).translationKey}`) : '-'}
-                </p>
-              </div>
-            </div>
-          </div>
+        {/* KPI Stat Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <StatCard
+            label={t('customers.stats.total')}
+            value={stats.total}
+            icon={Users}
+            iconColor="text-pink-500"
+            accentColor="border-pink-500"
+          />
+          <StatCard
+            label={t('customers.stats.active')}
+            value={stats.active}
+            icon={UserCheck}
+            iconColor="text-emerald-500"
+            accentColor="border-emerald-500"
+          />
+          <StatCard
+            label={t('customers.cards.highCredit')}
+            value={stats.highCredit}
+            icon={Star}
+            iconColor="text-amber-500"
+            accentColor="border-amber-500"
+          />
+          <StatCard
+            label={t('customers.stats.totalCreditLimit')}
+            value={formatCurrencyShort(stats.totalCreditLimit)}
+            icon={CreditCard}
+            iconColor="text-green-500"
+            accentColor="border-green-500"
+          />
         </div>
 
-        {/* Main Content Card with Tabs and Search */}
-        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
-          <CardHeader className="border-b pb-0 space-y-3">
-            {/* Status Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-0 scrollbar-thin">
-              {(['all', 'active', 'inactive'] as StatusFilter[]).map((status) => {
-                const config = status === 'all'
-                  ? { translationKey: 'all', icon: Users, bgClass: 'bg-gray-100', textClass: 'text-gray-700', hoverBg: 'hover:bg-gray-200' }
-                  : status === 'active'
-                  ? { translationKey: 'active', icon: UserCheck, bgClass: 'bg-green-100', textClass: 'text-green-700', hoverBg: 'hover:bg-green-200' }
-                  : { translationKey: 'inactive', icon: UserX, bgClass: 'bg-red-100', textClass: 'text-red-700', hoverBg: 'hover:bg-red-200' };
-                const count = statusCounts[status];
-                const isActive = statusFilter === status;
+        {/* Charts Row — hidden on mobile */}
+        <div className="hidden lg:grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Type Distribution */}
+          <Card elevation="raised" className="lg:col-span-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                {t('customers.charts.typeDistribution')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {typeChartData.length > 0 ? (
+                <PieChart
+                  key={`type-${locale}`}
+                  id="type-pie"
+                  dataSource={typeChartData}
+                  type="doughnut"
+                  palette={typeChartData.map(d => d.color)}
+                  innerRadius={0.6}
+                  size={{ height: 220 }}
+                >
+                  <Series argumentField="type" valueField="count">
+                    <Label visible={false} />
+                  </Series>
+                  <Legend orientation="horizontal" horizontalAlignment="center" verticalAlignment="bottom" />
+                  <Tooltip enabled={true} customizeTooltip={(arg) => ({
+                    text: `${arg.argumentText}: ${t('customers.cards.count', { count: arg.valueText || 0 })}`
+                  })} />
+                </PieChart>
+              ) : (
+                <div className="h-[220px] flex items-center justify-center text-gray-400">
+                  {t('customers.charts.noData')}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Credit Distribution */}
+          <Card elevation="raised" className="lg:col-span-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                {t('customers.charts.creditByType')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {creditChartData.length > 0 ? (
+                <PieChart
+                  key={`credit-${locale}`}
+                  id="credit-pie"
+                  dataSource={creditChartData}
+                  type="doughnut"
+                  palette={creditChartData.map(d => d.color)}
+                  innerRadius={0.6}
+                  size={{ height: 220 }}
+                >
+                  <Series argumentField="type" valueField="credit">
+                    <Label visible={false} />
+                  </Series>
+                  <Legend orientation="horizontal" horizontalAlignment="center" verticalAlignment="bottom" />
+                  <Tooltip enabled={true} customizeTooltip={(arg) => ({
+                    text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`
+                  })} />
+                </PieChart>
+              ) : (
+                <div className="h-[220px] flex items-center justify-center text-gray-400">
+                  {t('customers.charts.noData')}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Summary Sidebar — Top & Recent */}
+          <Card elevation="raised" className="lg:col-span-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                {t('customers.cards.summary')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2.5">
+              <div className="flex justify-between items-center py-1.5 border-b">
+                <span className="text-xs text-gray-500">{t('customers.cards.avgCreditLimit')}</span>
+                <span className="text-sm font-semibold text-blue-600">{formatCurrencyShort(stats.avgCreditLimit)}</span>
+              </div>
+              <div className="flex justify-between items-center py-1.5 border-b">
+                <span className="text-xs text-gray-500">{t('customers.cards.recentCustomers')}</span>
+                <span className="text-sm font-semibold text-emerald-600">
+                  {t('customers.cards.count', { count: stats.recentCustomers })}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1.5 border-b">
+                <span className="text-xs text-gray-500">{t('customers.stats.mainType')}</span>
+                <span className="text-sm font-semibold text-gray-900 truncate max-w-[60%]">
+                  {stats.topType ? t(`customers.type.${getTypeConfig(stats.topType.type).translationKey}`) : '-'}
+                </span>
+              </div>
+              <div className="pt-1.5">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-xs text-gray-500">{t('customers.analytics.activeRate')}</span>
+                  <span className="text-xs font-semibold">
+                    {stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all"
+                    style={{ width: `${stats.total > 0 ? (stats.active / stats.total) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* DataGrid Card */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          {/* Filter Header: Customer Type Tabs (scroll-snap on mobile) */}
+          <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+            <div className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x">
+              {/* All types button */}
+              <button
+                key="all-types"
+                onClick={() => setTypeFilter('')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]',
+                  typeFilter === ''
+                    ? 'bg-gray-900 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-100'
+                )}
+              >
+                <Users className="h-4 w-4" />
+                <span>{t('customers.type.all')}</span>
+                <span className={cn(
+                  'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                  typeFilter === ''
+                    ? 'bg-white/25 text-inherit'
+                    : 'bg-gray-200 text-gray-700'
+                )}>
+                  {typeCounts['']}
+                </span>
+              </button>
+              {CUSTOMER_TYPE_KEYS.map((key) => {
+                const config = CUSTOMER_TYPE_CONFIG[key];
+                const count = typeCounts[key] || 0;
+                const isActive = typeFilter === key;
                 const Icon = config.icon;
 
                 return (
                   <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
+                    key={key}
+                    onClick={() => setTypeFilter(key)}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border-b-2',
+                      'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]',
                       isActive
-                        ? `${config.bgClass} ${config.textClass} border-current`
-                        : `text-gray-500 border-transparent ${config.hoverBg}`
+                        ? cn(config.bgClass, config.textClass, 'shadow-sm')
+                        : 'text-gray-600 hover:bg-gray-100'
                     )}
                   >
                     <Icon className="h-4 w-4" />
-                    <span>{t(`customers.status.${config.translationKey}`)}</span>
-                    <span
-                      className={cn(
-                        'ml-1 px-1.5 py-0.5 rounded text-xs font-semibold',
-                        isActive ? 'bg-white/50' : 'bg-gray-200/70'
-                      )}
-                    >
+                    <span>{t(`customers.type.${config.translationKey}`)}</span>
+                    <span className={cn(
+                      'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                      isActive
+                        ? 'bg-white/60 text-gray-900'
+                        : 'bg-gray-200 text-gray-700'
+                    )}>
                       {count}
                     </span>
                   </button>
                 );
               })}
             </div>
+          </div>
 
-            {/* Search and Filters */}
-            <div className="flex flex-col md:flex-row items-center gap-3 pb-3">
-              <div className="flex-1 w-full md:max-w-md">
+          {/* Status Tabs + Search + Result Count */}
+          <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col gap-3">
+            {/* Status tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin snap-x">
+              {(['all', 'active', 'inactive'] as StatusFilter[]).map((status) => {
+                const isActive = statusFilter === status;
+                const Icon = status === 'all' ? Users : status === 'active' ? UserCheck : UserX;
+                const activeClasses =
+                  status === 'active' ? 'bg-green-100 text-green-700 border-green-500'
+                  : status === 'inactive' ? 'bg-red-100 text-red-700 border-red-500'
+                  : 'bg-gray-100 text-gray-800 border-gray-700';
+
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap border-b-2 snap-start',
+                      isActive
+                        ? activeClasses
+                        : 'text-gray-500 border-transparent hover:bg-gray-50'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{t(`customers.status.${status}`)}</span>
+                    <span className={cn(
+                      'ml-1 px-1.5 py-0.5 rounded text-xs font-semibold',
+                      isActive ? 'bg-white/60' : 'bg-gray-200/70'
+                    )}>
+                      {statusCounts[status]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search + count row */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="w-full sm:max-w-md">
                 <DxTextBox
                   placeholder={t('customers.searchPlaceholder')}
                   value={search}
@@ -1122,29 +956,417 @@ export default function CustomersPage() {
                   mode="search"
                 />
               </div>
-              <div className="w-full md:w-40">
-                <DxSelectBox
-                  items={customerTypeOptions}
-                  value={typeFilter}
-                  onValueChange={setTypeFilter}
-                  placeholder={t('customers.typePlaceholder')}
-                  showClearButton
-                />
-              </div>
-              <div className="text-sm text-gray-500">
-                {t('customers.grid.showing', { count: filteredCustomers.length })}
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+                <Users className="h-4 w-4 text-gray-400" />
+                <span>{t('customers.grid.showing', { count: filteredCustomers.length })}</span>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="sm:hidden ml-1 p-1 rounded-md text-gray-500 hover:text-pink-600 hover:bg-pink-50 transition-colors"
+                  aria-label={t('customers.actions.refresh')}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
               </div>
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent className="flex-1 min-h-0 flex flex-col pt-4">
-            {/* Content based on view mode */}
-            {viewMode === 'grid' && renderGridView()}
-            {viewMode === 'cards' && renderCardsView()}
-            {viewMode === 'analytics' && renderAnalyticsView()}
-          </CardContent>
-        </Card>
+          {/* Content: Loading / Empty / Mobile Cards / Desktop Grid */}
+          {isLoading ? (
+            isMobile ? (
+              <CustomerCardSkeletonList count={4} />
+            ) : (
+              <DataGridLoadingSkeleton />
+            )
+          ) : customers.length === 0 ? (
+            <CustomerEmptyState onCreate={handleAddCustomer} t={t} />
+          ) : filteredCustomers.length === 0 ? (
+            <NoResultsState onClear={handleClearFilters} t={t} />
+          ) : isMobile ? (
+            <CustomerCardList
+              customers={filteredCustomers}
+              onView={(c) => handleCustomerClick(c.id)}
+              t={t}
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: 960 }}>
+                <DxDataGrid
+                  key={locale}
+                  dataSource={filteredCustomers}
+                  keyExpr="id"
+                  columns={columns}
+                  loading={isLoading}
+                  sorting
+                  filterRow
+                  headerFilter
+                  export
+                  exportFileName="customers"
+                  columnChooser
+                  responsiveColumns
+                  virtualScrolling={filteredCustomers.length > 100}
+                  height={600}
+                  mobileHeight={520}
+                  tabletHeight={560}
+                  noDataText={t('customers.grid.noData')}
+                  onRowClick={handleRowClick}
+                  rowAlternationEnabled
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Top Customers & Recent — hidden on mobile */}
+        {!isMobile && topCustomers.length > 0 && (
+          <div className="hidden lg:grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Top 5 by Credit */}
+            <Card elevation="raised">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Award className="h-4 w-4 text-amber-500" />
+                  {t('customers.cards.topCreditLimit')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                  {topCustomers.map((customer, idx) => {
+                    const config = getTypeConfig(customer.customerType);
+                    const Icon = config.icon;
+                    return (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        onClick={() => handleCustomerClick(customer.id)}
+                        className="text-left rounded-lg border overflow-hidden hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-stretch">
+                          <div className="w-1" style={{ backgroundColor: config.color }} />
+                          <div className="flex-1 p-3 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-xs">
+                                {idx + 1}
+                              </div>
+                              <div className={cn('p-1 rounded', config.bgClass)}>
+                                <Icon className={cn('h-3 w-3', config.textClass)} />
+                              </div>
+                            </div>
+                            <p className="font-mono text-xs text-blue-600 truncate">{customer.code}</p>
+                            <p className="font-medium text-sm truncate">{customer.name}</p>
+                            <p className="text-xs font-semibold text-green-600 mt-1">
+                              {formatCurrencyShort(customer.creditLimit)}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent */}
+            <Card elevation="raised">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-gray-500" />
+                  {t('customers.cards.recent')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1.5">
+                  {recentCustomersList.map((customer) => {
+                    const config = getTypeConfig(customer.customerType);
+                    return (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        onClick={() => handleCustomerClick(customer.id)}
+                        className="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors border-l-2"
+                        style={{ borderLeftColor: config.color }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-mono text-xs text-blue-600">{customer.code}</p>
+                              <Badge variant={customer.isActive ? 'success' : 'danger'} className="text-xs">
+                                {customer.isActive ? t('customers.status.active') : t('customers.status.inactive')}
+                              </Badge>
+                            </div>
+                            <p className="text-sm truncate">{customer.name}</p>
+                          </div>
+                          <p className="text-xs text-gray-400 whitespace-nowrap">{formatDate(customer.createdAt)}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
+
+      {/* Hidden file input — triggered from the Import dialog below */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={handleImportFile}
+        className="hidden"
+      />
+
+      {/* Import Dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
+              <h2 className="text-lg font-semibold text-gray-900">นำเข้าลูกค้า</h2>
+              <button
+                onClick={() => setShowImportDialog(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900">
+                <div className="font-medium mb-1">ขั้นตอน:</div>
+                <ol className="list-decimal list-inside text-xs space-y-0.5">
+                  <li>กด &quot;Template&quot; ที่ header เพื่อดาวน์โหลดไฟล์ตัวอย่าง</li>
+                  <li>กรอกข้อมูลใน Sheet &quot;Customers&quot;</li>
+                  <li>กลับมากด &quot;เลือกไฟล์&quot; ด้านล่าง</li>
+                </ol>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">เลือกไฟล์ Excel</label>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importing}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                >
+                  <Upload className="h-5 w-5" />
+                  {importing ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
+                </button>
+              </div>
+              {importLog.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 border">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">ผลการนำเข้า:</label>
+                  <div className="text-xs font-mono space-y-0.5 max-h-40 overflow-y-auto">
+                    {importLog.map((line, i) => (
+                      <div
+                        key={i}
+                        className={line.includes('❌') ? 'text-red-600' : 'text-gray-700'}
+                      >
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
+  );
+}
+
+// ============================================================================
+// Helper Components
+// ============================================================================
+
+/**
+ * Mobile Card List — replaces DataGrid on mobile viewports.
+ * Each card prioritizes: Code + Name → Contact → Type → Status.
+ * Footer row has 44px+ tap targets.
+ */
+function CustomerCardList({
+  customers,
+  onView,
+  t,
+}: {
+  customers: Customer[];
+  onView: (c: Customer) => void;
+  t: TranslateFn;
+}) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30">
+      {customers.map((c) => {
+        const config = getTypeConfig(c.customerType);
+        const Icon = config.icon;
+        return (
+          <div
+            key={c.id}
+            className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md active:bg-gray-50 transition-all"
+          >
+            {/* Card header: tap to view */}
+            <button
+              type="button"
+              onClick={() => onView(c)}
+              className="w-full text-left p-4 flex items-start gap-3"
+            >
+              <div className={cn('h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0', config.bgClass)}>
+                <Icon className={cn('h-5 w-5', config.textClass)} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 text-base truncate">{c.name}</p>
+                    <p className="font-mono text-xs text-blue-600">{c.code}</p>
+                  </div>
+                  <Badge variant={c.isActive ? 'success' : 'danger'} dot>
+                    {c.isActive ? t('customers.status.active') : t('customers.status.inactive')}
+                  </Badge>
+                </div>
+
+                {/* Contact lines */}
+                {(c.contactPerson || c.phone || c.email) && (
+                  <div className="space-y-0.5 mt-1.5">
+                    {c.contactPerson && (
+                      <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                        <span className="truncate">{c.contactPerson}</span>
+                      </p>
+                    )}
+                    {c.phone && (
+                      <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                        <span className="truncate">{c.phone}</span>
+                      </p>
+                    )}
+                    {c.email && (
+                      <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                        <span className="truncate">{c.email}</span>
+                      </p>
+                    )}
+                    {c.address && (
+                      <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                        <span className="truncate">{c.address}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
+                    {t(`customers.type.${config.translationKey}`)}
+                  </span>
+                  {c.creditLimit ? (
+                    <span className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">
+                      <CreditCard className="h-3 w-3" />
+                      {formatCurrencyShort(c.creditLimit)}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </button>
+
+            {/* Card footer: tap-friendly action */}
+            <div className="flex items-center border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => onView(c)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-pink-50 hover:text-pink-700 active:bg-pink-100 transition-colors min-h-[44px]"
+              >
+                <Eye className="h-4 w-4" />
+                <span>{t('customers.cards.viewCustomer')}</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Loading skeleton for mobile card list */
+function CustomerCardSkeletonList({ count = 3 }: { count?: number }) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="h-11 w-11 rounded-xl bg-gray-200 flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/2 bg-gray-200 rounded" />
+              <div className="h-3 w-1/3 bg-gray-200 rounded" />
+              <div className="h-3 w-2/3 bg-gray-200 rounded" />
+              <div className="flex gap-2 pt-1">
+                <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                <div className="h-5 w-20 bg-gray-200 rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading skeleton for desktop DataGrid area */
+function DataGridLoadingSkeleton() {
+  return (
+    <div className="p-4 space-y-2" aria-busy="true" aria-live="polite">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-lg animate-pulse">
+          <div className="h-8 w-8 rounded-lg bg-gray-200" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-1/4 bg-gray-200 rounded" />
+            <div className="h-2 w-1/6 bg-gray-200 rounded" />
+          </div>
+          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-16 bg-gray-200 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Empty State — shown when user has zero customers */
+function CustomerEmptyState({ onCreate, t }: { onCreate: () => void; t: TranslateFn }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <div className="h-20 w-20 rounded-2xl bg-pink-100 flex items-center justify-center mb-5">
+        <Inbox className="h-10 w-10 text-pink-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        {t('customers.empty.title')}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-6">
+        {t('customers.empty.description')}
+      </p>
+      <DxButton
+        text={t('customers.actions.addCustomer')}
+        icon="plus"
+        type="success"
+        onClick={onCreate}
+      />
+    </div>
+  );
+}
+
+/** No Results State — shown when filters/search yield no matches but data exists */
+function NoResultsState({ onClear, t }: { onClear: () => void; t: TranslateFn }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+      <div className="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+        <SearchX className="h-8 w-8 text-gray-400" />
+      </div>
+      <h3 className="text-base font-semibold text-gray-900 mb-1">
+        {t('customers.cards.noMatchingCustomers')}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-4">
+        {t('customers.empty.description')}
+      </p>
+      <DxButton
+        text={t('customers.actions.clearFilters')}
+        icon="clear"
+        stylingMode="outlined"
+        onClick={onClear}
+      />
+    </div>
   );
 }
