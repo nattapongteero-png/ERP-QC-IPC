@@ -39,6 +39,7 @@ export async function GET(
         productionCleaning,
         postProductionCleaning,
         prePackagingCleaning,
+        packagingCleaning,
         sopExecutions,
         preProductionEnvLogs,
         productionEnvLogs,
@@ -53,6 +54,7 @@ export async function GET(
         getWOCleaningLogs(workOrderId, 'production'),
         getWOCleaningLogs(workOrderId, 'post_production'),
         getWOCleaningLogs(workOrderId, 'pre_packaging'),
+        getWOCleaningLogs(workOrderId, 'packaging'),
         getWOSOPExecution(workOrderId),
         getWOEnvironmentalLogs(workOrderId, 'pre_production'),
         getWOEnvironmentalLogs(workOrderId, 'production'),
@@ -119,6 +121,13 @@ export async function GET(
         verified: prePackagingCleaning.filter((l: any) => l.verifiedAt).length,
       };
 
+      // Calculate packaging cleaning status
+      const packagingCleaningStatus = {
+        total: packagingCleaning.length,
+        completed: packagingCleaning.filter((l: any) => l.isClean).length,
+        verified: packagingCleaning.filter((l: any) => l.verifiedAt).length,
+      };
+
       // Calculate packaging weight status
       const packagingWeight = {
         total: packagingWeightLogs.length,
@@ -159,6 +168,10 @@ export async function GET(
             status: workOrders.status,
             actualQuantity: workOrders.actualQuantity,
             yieldPercentage: workOrders.yieldPercentage,
+            bulkOutputQty: workOrders.bulkOutputQty,
+            bulkOutputRecordedAt: workOrders.bulkOutputRecordedAt,
+            finishedOutputQty: workOrders.finishedOutputQty,
+            finishedOutputRecordedAt: workOrders.finishedOutputRecordedAt,
           })
           .from(workOrders)
           .where(eq(workOrders.id, workOrderId))
@@ -166,8 +179,21 @@ export async function GET(
         return rows[0] || null;
       });
 
+      const bulkOutput = {
+        recorded: woData?.bulkOutputQty !== null && woData?.bulkOutputQty !== undefined,
+        quantity: woData?.bulkOutputQty ? Number(woData.bulkOutputQty) : null,
+        recordedAt: woData?.bulkOutputRecordedAt || null,
+      };
+
+      const finishedOutput = {
+        recorded: woData?.finishedOutputQty !== null && woData?.finishedOutputQty !== undefined,
+        quantity: woData?.finishedOutputQty ? Number(woData.finishedOutputQty) : null,
+        recordedAt: woData?.finishedOutputRecordedAt || null,
+      };
+
+      // Backwards-compat alias — legacy consumers read productionOutput.recorded
       const productionOutput = {
-        recorded: woData?.actualQuantity !== null && woData?.actualQuantity !== undefined,
+        recorded: finishedOutput.recorded || (woData?.actualQuantity !== null && woData?.actualQuantity !== undefined),
         actualQuantity: woData?.actualQuantity ? Number(woData.actualQuantity) : null,
         yieldPercent: woData?.yieldPercentage ? Number(woData.yieldPercentage) : null,
       };
@@ -233,8 +259,11 @@ export async function GET(
         sopExecution,
         productionEnvironmental,
         productionOutput,
+        bulkOutput,
+        finishedOutput,
         postProductionCleaning: postProductionCleaningStatus,
         prePackagingCleaning: prePackagingCleaningStatus,
+        packagingCleaning: packagingCleaningStatus,
         packagingWeight,
         packagingIntegrity,
         packagingEnvironmental,

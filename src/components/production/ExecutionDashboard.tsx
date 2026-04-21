@@ -27,6 +27,7 @@ import {
   ClipboardList,
   FlaskConical,
   Lock,
+  Boxes,
 } from 'lucide-react';
 
 interface ExecutionSummary {
@@ -34,11 +35,15 @@ interface ExecutionSummary {
   materialWeighing: { total: number; completed: number; verified: number };
   preProductionCleaning: { total: number; completed: number; verified: number };
   preProductionEnvironmental: { total: number; recorded: number; normal: number };
+  productionCleaning?: { total: number; completed: number; verified: number };
   sopExecution: { total: number; completed: number; verified: number };
   productionEnvironmental: { total: number; recorded: number; normal: number };
   productionOutput: { recorded: boolean; actualQuantity: number | null; yieldPercent: number | null };
+  bulkOutput?: { recorded: boolean; quantity: number | null; recordedAt: string | null };
+  finishedOutput?: { recorded: boolean; quantity: number | null; recordedAt: string | null };
   postProductionCleaning: { total: number; completed: number; verified: number };
   prePackagingCleaning: { total: number; completed: number; verified: number };
+  packagingCleaning?: { total: number; completed: number; verified: number };
   packagingWeight: { total: number; passed: number };
   packagingIntegrity: { total: number; passed: number };
   packagingEnvironmental: { total: number; recorded: number; normal: number };
@@ -88,11 +93,15 @@ const defaultSummaryValue: ExecutionSummary = {
   materialWeighing: { total: 0, completed: 0, verified: 0 },
   preProductionCleaning: { total: 0, completed: 0, verified: 0 },
   preProductionEnvironmental: { total: 0, recorded: 0, normal: 0 },
+  productionCleaning: { total: 0, completed: 0, verified: 0 },
   sopExecution: { total: 0, completed: 0, verified: 0 },
   productionEnvironmental: { total: 0, recorded: 0, normal: 0 },
   productionOutput: { recorded: false, actualQuantity: null, yieldPercent: null },
+  bulkOutput: { recorded: false, quantity: null, recordedAt: null },
+  finishedOutput: { recorded: false, quantity: null, recordedAt: null },
   postProductionCleaning: { total: 0, completed: 0, verified: 0 },
   prePackagingCleaning: { total: 0, completed: 0, verified: 0 },
+  packagingCleaning: { total: 0, completed: 0, verified: 0 },
   packagingWeight: { total: 0, passed: 0 },
   packagingIntegrity: { total: 0, passed: 0 },
   packagingEnvironmental: { total: 0, recorded: 0, normal: 0 },
@@ -215,6 +224,24 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       }),
     },
     {
+      id: 'production-cleaning',
+      title: 'Production Cleaning',
+      icon: <Sparkles className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/cleaning?phase=production`,
+      phase: 'production',
+      description: 'Verify room and equipment cleanliness during production',
+      getStatus: (s) => {
+        const c = s.productionCleaning ?? { total: 0, completed: 0, verified: 0 };
+        return {
+          completed: c.completed,
+          total: c.total,
+          status: c.verified === c.total && c.total > 0 ? 'verified'
+            : c.completed === c.total && c.total > 0 ? 'completed'
+            : c.completed > 0 ? 'in_progress' : 'pending',
+        };
+      },
+    },
+    {
       id: 'ipc',
       title: t('execution.ipc'),
       icon: <FlaskConical className="h-5 w-5" />,
@@ -259,16 +286,16 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       }),
     },
     {
-      id: 'production-output',
-      title: 'Production Output / Yield',
+      id: 'bulk-product-yield',
+      title: 'Bulk Product Yield',
       icon: <Package className="h-5 w-5" />,
-      href: `/production/work-orders/${workOrderId}/production-output`,
+      href: `/production/work-orders/${workOrderId}/production-output?stage=bulk`,
       phase: 'post_production',
-      description: 'Record actual production quantity and calculate yield',
+      description: 'บันทึกจำนวนผลิตภัณฑ์บัลก์หลังกระบวนการผลิต ก่อนเข้าสู่การบรรจุภัณฑ์',
       getStatus: (s) => ({
-        completed: s.productionOutput.recorded ? 1 : 0,
+        completed: s.bulkOutput?.recorded ? 1 : 0,
         total: 1,
-        status: s.productionOutput.recorded ? 'completed' : 'pending',
+        status: s.bulkOutput?.recorded ? 'completed' : 'pending',
       }),
     },
     {
@@ -285,6 +312,24 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
           : s.prePackagingCleaning.completed === s.prePackagingCleaning.total && s.prePackagingCleaning.total > 0 ? 'completed'
           : s.prePackagingCleaning.completed > 0 ? 'in_progress' : 'pending',
       }),
+    },
+    {
+      id: 'packaging-cleaning',
+      title: 'Packaging Cleaning',
+      icon: <Sparkles className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/cleaning?phase=packaging`,
+      phase: 'packaging',
+      description: 'Verify packaging area cleanliness during packaging',
+      getStatus: (s) => {
+        const c = s.packagingCleaning ?? { total: 0, completed: 0, verified: 0 };
+        return {
+          completed: c.completed,
+          total: c.total,
+          status: c.verified === c.total && c.total > 0 ? 'verified'
+            : c.completed === c.total && c.total > 0 ? 'completed'
+            : c.completed > 0 ? 'in_progress' : 'pending',
+        };
+      },
     },
     {
       id: 'packaging-weight',
@@ -340,6 +385,19 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
         total: 1,
         status: s.finishedInspection.status === 'passed' ? 'completed'
           : s.finishedInspection.status === 'in_progress' ? 'in_progress' : 'pending',
+      }),
+    },
+    {
+      id: 'production-output',
+      title: 'Production Output / Yield',
+      icon: <Boxes className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/production-output?stage=finished`,
+      phase: 'inspection',
+      description: 'บันทึกจำนวนผลิตภัณฑ์สำเร็จรูปหลัง Inspection เพื่อเข้าคลัง FG',
+      getStatus: (s) => ({
+        completed: s.finishedOutput?.recorded ? 1 : 0,
+        total: 1,
+        status: s.finishedOutput?.recorded ? 'completed' : 'pending',
       }),
     },
   ];
@@ -414,19 +472,16 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     }
 
     // Post-production: requires SOP execution started
-    if (['post-production-cleaning', 'production-output'].includes(sectionId)) {
+    if (sectionId === 'post-production-cleaning') {
       if (woStatus === 'planned' || woStatus === 'released') {
         return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
       }
     }
 
-    // Packaging phase: requires WO status >= in_progress and production output recorded
+    // Packaging phase: requires WO status >= in_progress
     if (['pre-packaging-cleaning', 'packaging-weight', 'packaging-integrity', 'packaging-environmental'].includes(sectionId)) {
       if (woStatus === 'planned' || woStatus === 'released') {
         return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
-      }
-      if (!s.productionOutput.recorded) {
-        return { locked: true, reason: 'ต้องบันทึก Production Output ก่อน' };
       }
     }
 
@@ -434,6 +489,23 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     if (sectionId === 'finished-inspection') {
       if (woStatus === 'planned' || woStatus === 'released') {
         return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
+      }
+    }
+
+    // Bulk Product Yield — FINAL step: requires all prior phases complete
+    // Gate on Finished Inspection passed (which itself chains all prior dependencies)
+    if (sectionId === 'production-output') {
+      if (woStatus === 'planned' || woStatus === 'released') {
+        return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
+      }
+      if (s.finishedInspection.status !== 'passed') {
+        return { locked: true, reason: 'ต้องผ่าน Finished Product Inspection ก่อน' };
+      }
+      // Also require packaging to be complete (all three packaging checks passed)
+      const pkgWeightDone = s.packagingWeight.total > 0 && s.packagingWeight.passed === s.packagingWeight.total;
+      const pkgIntegrityDone = s.packagingIntegrity.total > 0 && s.packagingIntegrity.passed === s.packagingIntegrity.total;
+      if (!pkgWeightDone || !pkgIntegrityDone) {
+        return { locked: true, reason: 'ต้องผ่านขั้นตอน Packaging QC (Weight + Integrity) ก่อน' };
       }
     }
 
