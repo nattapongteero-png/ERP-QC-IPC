@@ -10,7 +10,8 @@ import { useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -49,8 +50,12 @@ interface CleaningLog {
   verifierId?: number;
   verifierName?: string;
   verifiedAt?: string;
+  verifyResult?: string; // 'pass' | 'fail'
   notes?: string;
 }
+
+// Production roles that can Mark Clean (compared case-insensitively)
+const PRODUCTION_ROLES = ['prod_manager', 'prod_operator', 'admin'];
 
 interface CleaningRequirement {
   type: 'room' | 'equipment';
@@ -87,6 +92,9 @@ export default function CleaningPage() {
   const t = useTranslations('production');
   const locale = useLocale();
   const workOrderId = Number(params.id);
+
+  // GMP dual-control: a log's operator can't verify their own work
+  const { data: currentUser } = useCurrentUser();
 
   const phaseParam = searchParams.get('phase');
   const initialTab = phaseParam === 'post_production' ? 1 : phaseParam === 'pre_packaging' ? 2 : 0;
@@ -156,26 +164,32 @@ export default function CleaningPage() {
     },
   });
 
-  // Verify cleaning log mutation
+  // Verify cleaning log mutation (supports pass/fail)
   const verifyLogMutation = useMutation({
-    mutationFn: async (logId: number) => {
+    mutationFn: async ({ logId, verifyResult }: { logId: number; verifyResult: 'pass' | 'fail' }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logId }),
+        body: JSON.stringify({ logId, verifyResult }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['wo-cleaning-requirements', workOrderId, currentPhase] });
-      toast.success('Cleaning Verified', 'Cleaning has been verified.');
+      if (variables.verifyResult === 'pass') {
+        toast.success('Verified — Pass', 'ผ่านการตรวจสอบความสะอาด');
+      } else {
+        toast.warning('Verified — Fail', 'ไม่ผ่าน — Production ต้องทำความสะอาดใหม่');
+      }
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
     },
   });
+
+  const isProductionRole = PRODUCTION_ROLES.includes((currentUser?.role || '').toLowerCase());
 
   const handleOpenCleanDialog = (item: CleaningRequirement) => {
     setSelectedItem(item);
@@ -198,11 +212,17 @@ export default function CleaningPage() {
     if (!item.cleaningLog) {
       return { status: 'pending', label: 'Not Started', color: 'bg-gray-100 text-gray-600' };
     }
+    if (item.cleaningLog.verifyResult === 'fail') {
+      return { status: 'verify_failed', label: 'Verify Failed — ต้องทำความสะอาดใหม่', color: 'bg-red-100 text-red-700' };
+    }
+    if (item.cleaningLog.verifiedAt && item.cleaningLog.verifyResult === 'pass') {
+      return { status: 'verified', label: 'Verified ✓', color: 'bg-blue-100 text-blue-700' };
+    }
     if (item.cleaningLog.verifiedAt) {
-      return { status: 'verified', label: 'Verified', color: 'bg-blue-100 text-blue-700' };
+      return { status: 'verified', label: 'Verified ✓', color: 'bg-blue-100 text-blue-700' };
     }
     if (item.cleaningLog.isClean) {
-      return { status: 'completed', label: 'Cleaned', color: 'bg-green-100 text-green-700' };
+      return { status: 'completed', label: 'Cleaned — รอตรวจสอบ', color: 'bg-green-100 text-green-700' };
     }
     return { status: 'failed', label: 'Not Clean', color: 'bg-red-100 text-red-700' };
   };
@@ -379,20 +399,67 @@ export default function CleaningPage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {!item.cleaningLog ? (
-                          <DxButton
-                            text="Mark Clean"
-                            type="success"
-                            onClick={() => handleOpenCleanDialog(item)}
-                          />
-                        ) : !item.cleaningLog.verifiedAt && item.cleaningLog.isClean ? (
-                          <DxButton
-                            text="Verify"
-                            type="default"
-                            onClick={() => verifyLogMutation.mutate(item.cleaningLog!.id)}
-                            disabled={verifyLogMutation.isPending}
-                          />
-                        ) : null}
+                        {(() => {
+                          const log = item.cleaningLog;
+                          const isFailed = log?.verifyResult === 'fail';
+
+                          // State 1: No log yet — only Production can Mark Clean
+                          if (!log) {
+                            if (!isProductionRole) return null;
+                            return (
+                              <DxButton
+                                text="Mark Clean"
+                                type="success"
+                                onClick={() => handleOpenCleanDialog(item)}
+                              />
+                            );
+                          }
+
+                          // State 2: Verify failed — Production can re-mark clean
+                          if (isFailed) {
+                            if (!isProductionRole) {
+                              return <span className="text-xs text-red-600 font-medium">รอ Production ทำความสะอาดใหม่</span>;
+                            }
+                            return (
+                              <DxButton
+                                text="Mark Clean ใหม่"
+                                type="success"
+                                onClick={() => handleOpenCleanDialog(item)}
+                              />
+                            );
+                          }
+
+                          // State 3: Cleaned but not verified — non-Production can verify (pass/fail)
+                          if (!log.verifiedAt && log.isClean) {
+                            if (currentUser?.id === log.operatorId) {
+                              return <AwaitingOtherVerifierBadge />;
+                            }
+                            if (isProductionRole) {
+                              return <span className="text-xs text-amber-600">รอผู้ตรวจสอบ Verify</span>;
+                            }
+                            return (
+                              <div className="flex gap-1.5">
+                                <DxButton
+                                  text="✓ Pass"
+                                  type="success"
+                                  stylingMode="outlined"
+                                  onClick={() => verifyLogMutation.mutate({ logId: log.id, verifyResult: 'pass' })}
+                                  disabled={verifyLogMutation.isPending}
+                                />
+                                <DxButton
+                                  text="✗ Fail"
+                                  type="danger"
+                                  stylingMode="outlined"
+                                  onClick={() => verifyLogMutation.mutate({ logId: log.id, verifyResult: 'fail' })}
+                                  disabled={verifyLogMutation.isPending}
+                                />
+                              </div>
+                            );
+                          }
+
+                          // State 4: Verified pass — done
+                          return null;
+                        })()}
                       </div>
                     </div>
                   );
