@@ -117,42 +117,28 @@ export function ItemSearchDialog({
   // Track last clicked row for manual double-click detection (more reliable with virtual scrolling)
   const lastClickRef = useRef<{ id: number | null; time: number }>({ id: null, time: 0 });
 
-  // Type tabs configuration - dynamically built from results
+  // Type tabs configuration - fixed enum (not dynamic from results)
+  // Fetch-per-tab approach: each tab triggers its own API call with ?type=
+  // so tabs always appear even when the "All" query truncates at the limit.
   const typeTabs = useMemo(() => {
-    const types = new Map<string, number>();
-    allResults.forEach(item => {
-      const type = item.type || 'unknown';
-      types.set(type, (types.get(type) || 0) + 1);
-    });
+    // When filterType is pinned, no tab switching — single type only
+    if (filterType) {
+      const config = itemTypeConfig[filterType] || { label: filterType };
+      return [{ text: config.label, value: filterType }];
+    }
 
-    const tabs = [{ text: `All (${allResults.length})`, value: '' }];
-
-    // Add type tabs in specific order
     const orderedTypes = ['raw_material', 'packaging', 'wip', 'finished_goods', 'extract', 'consumable'];
+    const tabs: { text: string; value: string }[] = [{ text: 'All', value: '' }];
     orderedTypes.forEach(type => {
-      const count = types.get(type);
-      if (count) {
-        const config = itemTypeConfig[type] || { label: type };
-        tabs.push({ text: `${config.label} (${count})`, value: type });
-      }
+      if (type === excludeType) return;
+      const config = itemTypeConfig[type] || { label: type };
+      tabs.push({ text: config.label, value: type });
     });
-
-    // Add any remaining types
-    types.forEach((count, type) => {
-      if (!orderedTypes.includes(type) && type !== 'unknown') {
-        tabs.push({ text: `${type} (${count})`, value: type });
-      }
-    });
-
     return tabs;
-  }, [allResults]);
+  }, [filterType, excludeType]);
 
-  // Filtered results based on selected tab
-  const filteredResults = useMemo(() => {
-    const selectedType = typeTabs[selectedTypeTab]?.value || '';
-    if (!selectedType) return allResults;
-    return allResults.filter(item => item.type === selectedType);
-  }, [allResults, selectedTypeTab, typeTabs]);
+  // Server already filtered by type + search; no client filter needed
+  const filteredResults = allResults;
 
   // Statistics
   const stats = useMemo(() => {
@@ -189,15 +175,18 @@ export function ItemSearchDialog({
     await searchItems('');
   };
 
-  const searchItems = useCallback(async (query: string) => {
+  const searchItems = useCallback(async (query: string, type?: string) => {
     setIsSearching(true);
     try {
-      const params = new URLSearchParams({ limit: '100' });
+      // All-tab pulls a larger page since it mixes every type;
+      // type-tabs stay at 200 since they are already narrowed server-side.
+      const effectiveType = filterType || type || '';
+      const params = new URLSearchParams({ limit: effectiveType ? '200' : '500' });
       if (query && query.trim()) {
         params.set('search', query.trim());
       }
-      if (filterType) {
-        params.set('type', filterType);
+      if (effectiveType) {
+        params.set('type', effectiveType);
       }
 
       const res = await fetch(`/api/items?${params}`);
@@ -209,11 +198,12 @@ export function ItemSearchDialog({
         if (currentExcludeIds.length > 0) {
           items = items.filter((item: Item) => !currentExcludeIds.includes(item.id));
         }
-        if (excludeType) {
+        // Only apply client-side excludeType on the "All" tab; type-tabs already
+        // filter server-side so the exclude tab is simply hidden from the tab list.
+        if (excludeType && !effectiveType) {
           items = items.filter((item: Item) => item.type !== excludeType);
         }
         setAllResults(items);
-        setSelectedTypeTab(0);
       }
     } catch (error) {
       console.error('Failed to search items:', error);
@@ -223,21 +213,16 @@ export function ItemSearchDialog({
     }
   }, [filterType, excludeType]);
 
-  // Initial load when dialog opens
-  useEffect(() => {
-    if (open) {
-      searchItems('');
-    }
-  }, [open, searchItems]);
-
-  // Debounced search when typing
+  // Load items when dialog opens, tab switches, or search changes.
+  // Single useEffect avoids duplicate fetches and re-fetches per tab.
   useEffect(() => {
     if (!open) return;
+    const type = typeTabs[selectedTypeTab]?.value;
     const timer = setTimeout(() => {
-      searchItems(search);
-    }, 300);
+      searchItems(search, type);
+    }, search ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [search, open, searchItems]);
+  }, [open, search, selectedTypeTab, typeTabs, searchItems]);
 
   // Reset when dialog closes
   useEffect(() => {
