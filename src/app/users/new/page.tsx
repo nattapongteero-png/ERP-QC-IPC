@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -19,11 +19,15 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Sparkles,
+  Check,
+  X,
 } from 'lucide-react';
 
 interface OrgUnit {
   id: number;
   name: string;
+  nameTh?: string;
   type: string;
   isActive: boolean;
 }
@@ -32,6 +36,7 @@ interface AppRole {
   id: number;
   code: string;
   name: string;
+  nameTh?: string;
   description?: string;
   isActive: boolean;
 }
@@ -45,13 +50,25 @@ interface FormData {
   department: string;
 }
 
-interface FormData {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  role: string;
-  department: string;
+// Password strength buckets. Score is number of rules passed (0-5).
+function scorePassword(pw: string): { score: number; rules: { key: string; label: string; ok: boolean }[] } {
+  const rules = [
+    { key: 'len', label: '≥ 6 ตัวอักษร', ok: pw.length >= 6 },
+    { key: 'len8', label: '≥ 8 ตัวอักษร (แนะนำ)', ok: pw.length >= 8 },
+    { key: 'lower', label: 'มีตัวพิมพ์เล็ก', ok: /[a-z]/.test(pw) },
+    { key: 'upper', label: 'มีตัวพิมพ์ใหญ่', ok: /[A-Z]/.test(pw) },
+    { key: 'num', label: 'มีตัวเลข', ok: /[0-9]/.test(pw) },
+  ];
+  return { score: rules.filter((r) => r.ok).length, rules };
+}
+
+function generateStrongPassword(): string {
+  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < 12; i++) {
+    out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
 }
 
 export default function NewUserPage() {
@@ -60,6 +77,7 @@ export default function NewUserPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -74,33 +92,10 @@ export default function NewUserPage() {
   const [departments, setDepartments] = useState<OrgUnit[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
 
-  const validateForm = (): string | null => {
-    if (!formData.name.trim()) {
-      return 'กรุณากรอกชื่อ-นามสกุล';
-    }
-    if (!formData.email.trim()) {
-      return 'กรุณากรอกอีเมล';
-    }
-    if (!formData.email.includes('@')) {
-      return 'รูปแบบอีเมลไม่ถูกต้อง';
-    }
-    if (!formData.password) {
-      return 'กรุณากรอกรหัสผ่าน';
-    }
-    if (formData.password.length < 6) {
-      return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-    }
-    if (formData.password !== formData.confirmPassword) {
-      return 'รหัสผ่านไม่ตรงกัน';
-    }
-    return null;
-  };
-
   useEffect(() => {
     const fetchLookupData = async () => {
       try {
         setIsLoadingOptions(true);
-
         const [rolesRes, orgUnitsRes] = await Promise.all([
           fetch('/api/hr/roles'),
           fetch('/api/hr/org-units'),
@@ -111,7 +106,7 @@ export default function NewUserPage() {
 
         if (rolesData.success && rolesData.data) {
           setRoles(rolesData.data);
-          setFormData(prev => ({ ...prev, role: rolesData.data[0]?.code || '' }));
+          setFormData((prev) => ({ ...prev, role: rolesData.data[0]?.code || '' }));
         }
 
         if (orgUnitsData.success && orgUnitsData.data) {
@@ -123,9 +118,59 @@ export default function NewUserPage() {
         setIsLoadingOptions(false);
       }
     };
-
     fetchLookupData();
   }, []);
+
+  // Role picker source — shows bilingual label so Thai-only and English-only
+  // roles both display cleanly.
+  const roleItems = useMemo(
+    () =>
+      roles
+        .filter((r) => r.isActive)
+        .map((r) => {
+          const th = (r.nameTh || '').trim();
+          const en = (r.name || '').trim();
+          const both = th && en && th !== en ? `${th} / ${en}` : th || en || r.code;
+          return { value: r.code, label: `${r.code} — ${both}`, description: r.description || '' };
+        }),
+    [roles],
+  );
+
+  const departmentItems = useMemo(
+    () =>
+      departments.map((d) => {
+        const th = (d.nameTh || '').trim();
+        const en = (d.name || '').trim();
+        const both = th && en && th !== en ? `${th} / ${en}` : th || en;
+        return { value: d.id.toString(), label: both };
+      }),
+    [departments],
+  );
+
+  const selectedRole = roles.find((r) => r.code === formData.role);
+
+  // Inline validation state — updated on change, used for UI hints + submit guard
+  const emailValid = !formData.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
+  const passwordStrength = scorePassword(formData.password);
+  const passwordsMatch = formData.confirmPassword === '' ? null : formData.password === formData.confirmPassword;
+
+  const canSubmit =
+    formData.name.trim() &&
+    formData.email.trim() &&
+    emailValid &&
+    formData.password.length >= 6 &&
+    formData.password === formData.confirmPassword &&
+    !isSubmitting;
+
+  const validateForm = (): string | null => {
+    if (!formData.name.trim()) return 'กรุณากรอกชื่อ-นามสกุล';
+    if (!formData.email.trim()) return 'กรุณากรอกอีเมล';
+    if (!emailValid) return 'รูปแบบอีเมลไม่ถูกต้อง';
+    if (!formData.password) return 'กรุณากรอกรหัสผ่าน';
+    if (formData.password.length < 6) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+    if (formData.password !== formData.confirmPassword) return 'รหัสผ่านไม่ตรงกัน';
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,9 +182,7 @@ export default function NewUserPage() {
       setError(validationError);
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
@@ -152,14 +195,10 @@ export default function NewUserPage() {
           department: formData.department || null,
         }),
       });
-
       const data = await res.json();
-
       if (data.success) {
-        setSuccessMessage('สร้างผู้ใช้สำเร็จ');
-        setTimeout(() => {
-          router.push('/users');
-        }, 1500);
+        setSuccessMessage('สร้างผู้ใช้สำเร็จ กำลังพาไปหน้ารายการ...');
+        setTimeout(() => router.push('/users'), 1500);
       } else {
         setError(data.error || 'ไม่สามารถสร้างผู้ใช้ได้');
       }
@@ -171,163 +210,281 @@ export default function NewUserPage() {
     }
   };
 
+  const handleGeneratePassword = () => {
+    const pw = generateStrongPassword();
+    setFormData((prev) => ({ ...prev, password: pw, confirmPassword: pw }));
+    setShowPassword(true);
+  };
+
+  const strengthLabel = (() => {
+    if (formData.password.length === 0) return '';
+    if (passwordStrength.score <= 2) return 'อ่อน';
+    if (passwordStrength.score === 3) return 'ปานกลาง';
+    if (passwordStrength.score === 4) return 'ดี';
+    return 'แข็งแรง';
+  })();
+  const strengthColor = (() => {
+    if (passwordStrength.score <= 2) return 'bg-red-500';
+    if (passwordStrength.score === 3) return 'bg-amber-500';
+    if (passwordStrength.score === 4) return 'bg-blue-500';
+    return 'bg-green-500';
+  })();
+
   return (
     <MainLayout>
-      <div className="flex flex-col gap-6 max-w-4xl mx-auto">
-        <PageHeader
-          title="สร้างผู้ใช้ใหม่"
-          description="เพิ่มผู้ใช้งานใหม่เข้าสู่ระบบ"
-        />
+      <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-3xl mx-auto">
+        <PageHeader title="สร้างผู้ใช้ใหม่" description="เพิ่มผู้ใช้งานเข้าสู่ระบบ (จะสามารถเข้าสู่ระบบด้วยอีเมล + รหัสผ่านที่ตั้งใหม่)" />
 
         {error && (
-          <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            <AlertTriangle className="h-5 w-5" />
+          <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {successMessage && (
-          <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
-            <CheckCircle2 className="h-5 w-5" />
+          <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+            <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <span>{successMessage}</span>
           </div>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-gray-400" />
-              ข้อมูลผู้ใช้
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    ชื่อ-นามสกุล *
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {/* Section 1: Identity */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <User className="h-5 w-5 text-blue-500" />
+                ข้อมูลส่วนตัว
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-gray-400" />
+                    ชื่อ-นามสกุล <span className="text-red-500">*</span>
                   </label>
                   <DxTextBox
                     value={formData.name}
                     onValueChange={(value) => setFormData({ ...formData, name: value })}
-                    placeholder="กรอกชื่อ-นามสกุล"
+                    placeholder="เช่น สมชาย ใจดี"
                     mode="text"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    อีเมล *
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5 text-gray-400" />
+                    อีเมล <span className="text-red-500">*</span>
                   </label>
                   <DxTextBox
                     value={formData.email}
                     onValueChange={(value) => setFormData({ ...formData, email: value })}
-                    placeholder="กรอกอีเมล"
+                    placeholder="user@example.com"
                     mode="email"
                   />
+                  {formData.email && !emailValid && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                      <X className="h-3 w-3" /> รูปแบบอีเมลไม่ถูกต้อง
+                    </p>
+                  )}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                    <Shield className="h-4 w-4" />
-                    บทบาท *
+          {/* Section 2: Access / role */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Shield className="h-5 w-5 text-purple-500" />
+                สิทธิ์การเข้าถึง
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+                    <Shield className="h-3.5 w-3.5 text-gray-400" />
+                    บทบาท <span className="text-red-500">*</span>
                   </label>
                   <DxSelectBox
-                    items={roles.map(r => ({ value: r.code, label: r.name || r.code }))}
+                    items={roleItems}
                     value={formData.role}
                     onValueChange={(value) => setFormData({ ...formData, role: value as string })}
                     valueExpr="value"
                     displayExpr="label"
+                    searchExpr={['label', 'description']}
+                    searchEnabled
+                    placeholder="เลือกบทบาท"
                     disabled={isLoadingOptions}
                   />
+                  {selectedRole?.description && (
+                    <p className="text-xs text-gray-500 mt-1 bg-gray-50 border border-gray-200 rounded px-2 py-1">
+                      ℹ️ {selectedRole.description}
+                    </p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    แผนก
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                    แผนก <span className="text-gray-400 text-xs">(ไม่บังคับ)</span>
                   </label>
                   <DxSelectBox
-                    items={departments.map(d => ({ value: d.id.toString(), label: d.name }))}
+                    items={departmentItems}
                     value={formData.department}
                     onValueChange={(value) => setFormData({ ...formData, department: value as string })}
                     valueExpr="value"
                     displayExpr="label"
+                    searchExpr="label"
                     searchEnabled
+                    placeholder="เลือกแผนก"
                     disabled={isLoadingOptions}
+                    showClearButton
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                    <Key className="h-4 w-4" />
-                    รหัสผ่าน *
+          {/* Section 3: Security / password */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-base">
+                  <Key className="h-5 w-5 text-amber-500" />
+                  ความปลอดภัย
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGeneratePassword}
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> สุ่มรหัสผ่านแข็งแรง
+                </button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+                    <Key className="h-3.5 w-3.5 text-gray-400" />
+                    รหัสผ่าน <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <DxTextBox
                       value={formData.password}
                       onValueChange={(value) => setFormData({ ...formData, password: value })}
-                      placeholder="กรอกรหัสผ่าน"
+                      placeholder="อย่างน้อย 6 ตัวอักษร"
                       mode={showPassword ? 'text' : 'password'}
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                    <Key className="h-4 w-4" />
-                    ยืนยันรหัสผ่าน *
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+                    <Key className="h-3.5 w-3.5 text-gray-400" />
+                    ยืนยันรหัสผ่าน <span className="text-red-500">*</span>
                   </label>
-                  <DxTextBox
-                    value={formData.confirmPassword}
-                    onValueChange={(value) => setFormData({ ...formData, confirmPassword: value })}
-                    placeholder="กรอกรหัสผ่านอีกครั้ง"
-                    mode="password"
-                  />
+                  <div className="relative">
+                    <DxTextBox
+                      value={formData.confirmPassword}
+                      onValueChange={(value) => setFormData({ ...formData, confirmPassword: value })}
+                      placeholder="พิมพ์รหัสผ่านอีกครั้ง"
+                      mode={showConfirm ? 'text' : 'password'}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      tabIndex={-1}
+                    >
+                      {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {passwordsMatch === true && (
+                    <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                      <Check className="h-3 w-3" /> รหัสผ่านตรงกัน
+                    </p>
+                  )}
+                  {passwordsMatch === false && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                      <X className="h-3 w-3" /> รหัสผ่านไม่ตรงกัน
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t">
-                <DxButton
-                  text="ยกเลิก"
-                  type="default"
-                  stylingMode="outlined"
-                  onClick={() => router.push('/users')}
-                />
-                <DxButton
-                  text="บันทึก"
-                  type="success"
-                  icon="save"
-                  useSubmitBehavior
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {isSubmitting && (
-                <div className="flex items-center justify-center py-4">
-                  <DxLoadIndicator />
-                  <span className="ml-2 text-gray-600">กำลังบันทึก...</span>
+              {/* Password strength + requirements checklist */}
+              {formData.password && (
+                <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-gray-600">ความแข็งแรงรหัสผ่าน</span>
+                    <span className={`text-xs font-semibold ${
+                      passwordStrength.score <= 2 ? 'text-red-600' :
+                      passwordStrength.score === 3 ? 'text-amber-600' :
+                      passwordStrength.score === 4 ? 'text-blue-600' : 'text-green-600'
+                    }`}>{strengthLabel}</span>
+                  </div>
+                  <div className="flex gap-1 mb-3">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1.5 flex-1 rounded-full ${i <= passwordStrength.score ? strengthColor : 'bg-gray-200'}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    {passwordStrength.rules.map((r) => (
+                      <div
+                        key={r.key}
+                        className={`flex items-center gap-1.5 ${r.ok ? 'text-green-700' : 'text-gray-500'}`}
+                      >
+                        {r.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        {r.label}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-            </form>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Actions — stack on mobile, inline on tablet+ */}
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+            <DxButton
+              text="ยกเลิก"
+              stylingMode="outlined"
+              onClick={() => router.push('/users')}
+              width="100%"
+              elementAttr={{ class: 'sm:!w-auto' }}
+            />
+            <DxButton
+              text={isSubmitting ? 'กำลังบันทึก…' : 'สร้างผู้ใช้'}
+              type="success"
+              icon="save"
+              useSubmitBehavior
+              disabled={!canSubmit}
+              width="100%"
+              elementAttr={{ class: 'sm:!w-auto' }}
+            />
+          </div>
+        </form>
 
         {isLoadingOptions && (
-          <div className="flex items-center justify-center py-4">
+          <div className="flex items-center justify-center py-2 text-sm text-gray-500">
             <DxLoadIndicator />
-            <span className="ml-2 text-gray-600">กำลังโหลดข้อมูล...</span>
+            <span className="ml-2">กำลังโหลดตัวเลือก...</span>
           </div>
         )}
       </div>
