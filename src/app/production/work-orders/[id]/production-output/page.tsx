@@ -524,93 +524,233 @@ export default function ProductionOutputPage() {
             </h3>
 
             <div className="space-y-4">
-              {/* BOM Target Info */}
-              {(workOrder.bomYieldTarget || workOrder.bomLossAllowance) && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                  <span className="font-medium">BOM Target:</span>
-                  {workOrder.bomYieldTarget ? ` Yield ${Number(workOrder.bomYieldTarget).toFixed(2)}%` : ''}
-                  {workOrder.bomLossAllowance ? ` · Loss Allowance ${Number(workOrder.bomLossAllowance).toFixed(2)}%` : ''}
-                  {' '}(จำนวนแผน {Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit})
+              {/* BOM Target — show plan + thresholds in every unit the operator
+                  will see on the line so no mental conversion is needed. */}
+              {(workOrder.bomYieldTarget || workOrder.bomLossAllowance || isBulkStage) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2">
+                    <span className="font-semibold">🎯 BOM Target</span>
+                    {workOrder.bomYieldTarget != null && (
+                      <span>Yield ≥ <strong>{Number(workOrder.bomYieldTarget).toFixed(2)}%</strong></span>
+                    )}
+                    {workOrder.bomLossAllowance != null && (
+                      <span>Loss ≤ <strong>{Number(workOrder.bomLossAllowance).toFixed(2)}%</strong></span>
+                    )}
+                  </div>
+                  <div className="border-t border-blue-200 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <div className="text-blue-700 uppercase tracking-wide text-[11px]">จำนวนแผน</div>
+                      <div className="font-semibold text-base">{Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit}</div>
+                      {isBulkStage && canConvertToCapsule && (
+                        <div className="text-blue-700">
+                          = {boxToCap(Number(workOrder.plannedQuantity)).toLocaleString()} {secondaryUnit}
+                          {canConvertToWeight && (
+                            <> · {boxToGram(Number(workOrder.plannedQuantity)).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {workOrder.bomYieldTarget != null && (
+                      <div>
+                        <div className="text-blue-700 uppercase tracking-wide text-[11px]">ต่ำสุดที่ผ่าน (Yield)</div>
+                        <div className="font-semibold text-base">
+                          {(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {workOrder.unit}
+                        </div>
+                        {isBulkStage && canConvertToCapsule && (
+                          <div className="text-blue-700">
+                            = {boxToCap(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} {secondaryUnit}
+                            {canConvertToWeight && (
+                              <> · {boxToGram(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {workOrder.bomLossAllowance != null && (
+                      <div>
+                        <div className="text-blue-700 uppercase tracking-wide text-[11px]">สูญเสียสูงสุด</div>
+                        <div className="font-semibold text-base">
+                          {(Number(workOrder.plannedQuantity) * Number(workOrder.bomLossAllowance) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {workOrder.unit}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* Actual Quantity — bulk stage uses hybrid input (weight/capsule/box),
                   finished stage keeps the simple box-count input it always had. */}
               {isBulkStage ? (
-                <div>
-                  {/* Missing-config notice — show exactly what to configure before
-                      this page can convert between units. */}
+                <div className="space-y-4">
+                  {/* Config status banners — tell the operator what to fix before
+                      certain input modes become available. */}
                   {!canConvertToCapsule && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 mb-3">
-                      ⚠️ Item ของ BOM นี้ยังไม่ได้ตั้ง secondary unit / conversion rate — กรอกได้เฉพาะหน่วยหลัก ({workOrder.unit}) ก่อน
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                      <div className="font-medium mb-1">⚠️ ตั้งค่าเพิ่มเติม</div>
+                      Item ของ BOM นี้ยังไม่ได้ตั้ง Secondary Unit + Conversion Rate — ใช้โหมดนับ/ชั่งไม่ได้ กรอกเฉพาะหน่วย {workOrder.unit} เท่านั้น
                     </div>
                   )}
                   {canConvertToCapsule && !canConvertToWeight && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 mb-3">
-                      ⚠️ BOM ยังไม่ได้ตั้ง Fill Weight (mg/{secondaryUnit}) — โหมด &quot;ชั่งน้ำหนัก&quot; ยังใช้ไม่ได้ ตั้งค่าในหน้า BOM Configuration ก่อน
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                      <div className="font-medium mb-1">⚠️ ตั้งค่าเพิ่มเติม</div>
+                      BOM ยังไม่ได้ตั้ง <strong>น้ำหนักต่อหน่วยย่อย (mg/{secondaryUnit})</strong> — โหมด &quot;ชั่งน้ำหนัก&quot; ถูกปิดไว้ แก้ได้ที่หน้า BOM Edit
                     </div>
                   )}
 
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    จำนวนผลิตจริง (Bulk Output)
-                  </label>
-
-                  {/* Mode toggle */}
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    <DxButton
-                      text={canConvertToWeight ? `⚖ ชั่งน้ำหนัก (g)` : '⚖ ชั่งน้ำหนัก (ปิด)'}
-                      type={inputMode === 'weight' ? 'success' : 'normal'}
-                      stylingMode={inputMode === 'weight' ? 'contained' : 'outlined'}
-                      onClick={() => { setInputMode('weight'); setInputValue(boxToGram(formData.actualQuantity)); }}
-                      disabled={!canConvertToWeight}
-                    />
-                    <DxButton
-                      text={canConvertToCapsule ? `🔢 นับ ${secondaryUnit}` : '🔢 นับหน่วยย่อย (ปิด)'}
-                      type={inputMode === 'count_cap' ? 'success' : 'normal'}
-                      stylingMode={inputMode === 'count_cap' ? 'contained' : 'outlined'}
-                      onClick={() => { setInputMode('count_cap'); setInputValue(boxToCap(formData.actualQuantity)); }}
-                      disabled={!canConvertToCapsule}
-                    />
-                    <DxButton
-                      text={`📦 นับ ${workOrder.unit}`}
-                      type={inputMode === 'count_box' ? 'success' : 'normal'}
-                      stylingMode={inputMode === 'count_box' ? 'contained' : 'outlined'}
-                      onClick={() => { setInputMode('count_box'); setInputValue(formData.actualQuantity); }}
-                    />
+                  {/* STEP 1 — Pick the measurement method. Large touch-friendly buttons
+                      with clear icons + full labels so line workers can pick quickly. */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold">1</span>
+                      <h4 className="font-semibold text-gray-800">เลือกวิธีวัดผลผลิต</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setInputMode('weight'); setInputValue(boxToGram(formData.actualQuantity)); }}
+                        disabled={!canConvertToWeight}
+                        className={`p-3 border-2 rounded-lg text-left transition-all ${
+                          inputMode === 'weight'
+                            ? 'border-emerald-500 bg-emerald-50 shadow'
+                            : 'border-gray-200 bg-white hover:border-emerald-300'
+                        } ${!canConvertToWeight ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <div className="text-2xl">⚖</div>
+                        <div className="font-semibold text-sm">ชั่งน้ำหนัก</div>
+                        <div className="text-xs text-gray-600">กรอกน้ำหนัก Bulk (g)</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setInputMode('count_cap'); setInputValue(boxToCap(formData.actualQuantity)); }}
+                        disabled={!canConvertToCapsule}
+                        className={`p-3 border-2 rounded-lg text-left transition-all ${
+                          inputMode === 'count_cap'
+                            ? 'border-emerald-500 bg-emerald-50 shadow'
+                            : 'border-gray-200 bg-white hover:border-emerald-300'
+                        } ${!canConvertToCapsule ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <div className="text-2xl">🔢</div>
+                        <div className="font-semibold text-sm">นับ {secondaryUnit || 'หน่วยย่อย'}</div>
+                        <div className="text-xs text-gray-600">กรอกจำนวน {secondaryUnit || 'หน่วยย่อย'}</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setInputMode('count_box'); setInputValue(formData.actualQuantity); }}
+                        className={`p-3 border-2 rounded-lg text-left transition-all cursor-pointer ${
+                          inputMode === 'count_box'
+                            ? 'border-emerald-500 bg-emerald-50 shadow'
+                            : 'border-gray-200 bg-white hover:border-emerald-300'
+                        }`}
+                      >
+                        <div className="text-2xl">📦</div>
+                        <div className="font-semibold text-sm">นับ {workOrder.unit}</div>
+                        <div className="text-xs text-gray-600">กรอกจำนวน {workOrder.unit}</div>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* The one input — label + unit switch with mode */}
-                  <label className="block text-xs text-gray-500 mb-1">
-                    {inputMode === 'weight' && `น้ำหนัก Bulk ที่ชั่งได้ (g) — ระบบจะคำนวณกลับเป็น ${secondaryUnit} และ ${workOrder.unit}`}
-                    {inputMode === 'count_cap' && `จำนวน ${secondaryUnit} ที่ได้จริง — ระบบจะคำนวณกลับเป็น ${workOrder.unit} และน้ำหนัก`}
-                    {inputMode === 'count_box' && `จำนวน ${workOrder.unit} ที่ได้จริง`}
-                  </label>
-                  <DxNumberBox
-                    value={inputValue}
-                    onValueChanged={(e: { value?: number }) => setInputValue(e.value || 0)}
-                    format="#,##0.####"
-                    min={0}
-                    showSpinButtons
-                    width="100%"
-                  />
+                  {/* STEP 2 — The input matching the chosen mode. Prominent sizing +
+                      contextual placeholder + dynamic label. */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold">2</span>
+                      <h4 className="font-semibold text-gray-800">
+                        {inputMode === 'weight' && 'กรอกน้ำหนัก Bulk ที่ชั่งได้'}
+                        {inputMode === 'count_cap' && `กรอกจำนวน ${secondaryUnit} ที่นับได้`}
+                        {inputMode === 'count_box' && `กรอกจำนวน ${workOrder.unit} ที่ได้`}
+                      </h4>
+                    </div>
+                    <div className="relative">
+                      <DxNumberBox
+                        value={inputValue}
+                        onValueChanged={(e: { value?: number }) => setInputValue(e.value || 0)}
+                        format="#,##0.####"
+                        min={0}
+                        showSpinButtons
+                        width="100%"
+                        placeholder={
+                          inputMode === 'weight' ? 'เช่น 58,800' :
+                          inputMode === 'count_cap' ? 'เช่น 98,000' :
+                          'เช่น 980'
+                        }
+                      />
+                      <div className="absolute right-14 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500 pointer-events-none">
+                        {inputMode === 'weight' ? 'g' : inputMode === 'count_cap' ? secondaryUnit : workOrder.unit}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {inputMode === 'weight' && `ระบบจะคำนวณ จำนวน ${secondaryUnit} และ ${workOrder.unit} ให้อัตโนมัติ`}
+                      {inputMode === 'count_cap' && `ระบบจะคำนวณ น้ำหนัก (g) และ ${workOrder.unit} ให้อัตโนมัติ`}
+                      {inputMode === 'count_box' && canConvertToCapsule && `ระบบจะคำนวณ จำนวน ${secondaryUnit}${canConvertToWeight ? ' และน้ำหนัก (g)' : ''} ให้อัตโนมัติ`}
+                    </p>
+                  </div>
 
-                  {/* Live derived values — show all 3 representations at once */}
+                  {/* STEP 3 — Live calculation breakdown (3 derived values) + yield gauge.
+                      Shows only when there's an actual value to convert. */}
                   {inputValue > 0 && formData.actualQuantity > 0 && (
-                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-900 space-y-0.5">
-                      <div className="font-medium">ระบบคำนวณได้:</div>
-                      <div>📦 {formData.actualQuantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {workOrder.unit}</div>
-                      {canConvertToCapsule && (
-                        <div>🔢 {boxToCap(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })} {secondaryUnit}</div>
-                      )}
-                      {canConvertToWeight && (
-                        <div>⚖ {boxToGram(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</div>
-                      )}
-                      <div className={`font-medium ${
-                        liveYieldPercent >= 90 ? 'text-green-700' :
-                        liveYieldPercent >= 80 ? 'text-amber-700' :
-                        'text-red-700'
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold">3</span>
+                        <h4 className="font-semibold text-gray-800">ระบบคำนวณได้</h4>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                        <div className={`p-3 rounded-lg border ${inputMode === 'count_box' ? 'bg-emerald-50 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
+                          <div className="text-xs text-gray-600 flex items-center gap-1">📦 หน่วยหลัก</div>
+                          <div className="text-xl font-bold text-gray-900">
+                            {formData.actualQuantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                          </div>
+                          <div className="text-xs text-gray-500">{workOrder.unit}</div>
+                        </div>
+                        {canConvertToCapsule && (
+                          <div className={`p-3 rounded-lg border ${inputMode === 'count_cap' ? 'bg-emerald-50 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="text-xs text-gray-600 flex items-center gap-1">🔢 หน่วยย่อย</div>
+                            <div className="text-xl font-bold text-gray-900">
+                              {boxToCap(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-xs text-gray-500">{secondaryUnit}</div>
+                          </div>
+                        )}
+                        {canConvertToWeight && (
+                          <div className={`p-3 rounded-lg border ${inputMode === 'weight' ? 'bg-emerald-50 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="text-xs text-gray-600 flex items-center gap-1">⚖ น้ำหนัก</div>
+                            <div className="text-xl font-bold text-gray-900">
+                              {boxToGram(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-xs text-gray-500">g</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Yield gauge */}
+                      <div className={`p-3 rounded-lg border ${
+                        liveYieldPercent >= 90 ? 'bg-green-50 border-green-200' :
+                        liveYieldPercent >= 80 ? 'bg-amber-50 border-amber-200' :
+                        'bg-red-50 border-red-200'
                       }`}>
-                        Yield = {liveYieldPercent.toFixed(2)}% (เทียบแผน {Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit})
+                        <div className="flex items-baseline justify-between mb-1">
+                          <span className="text-sm font-semibold text-gray-800">Yield</span>
+                          <span className={`text-2xl font-bold ${
+                            liveYieldPercent >= 90 ? 'text-green-700' :
+                            liveYieldPercent >= 80 ? 'text-amber-700' :
+                            'text-red-700'
+                          }`}>{liveYieldPercent.toFixed(2)}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-white/70 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-300 ${
+                              liveYieldPercent >= 90 ? 'bg-green-500' :
+                              liveYieldPercent >= 80 ? 'bg-amber-500' :
+                              'bg-red-500'
+                            }`}
+                            style={{ width: `${Math.min(liveYieldPercent, 100)}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          เทียบแผน {Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit}
+                          {workOrder.bomYieldTarget != null && (
+                            <> · เป้า ≥ {Number(workOrder.bomYieldTarget).toFixed(2)}%</>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -704,24 +844,26 @@ export default function ProductionOutputPage() {
                 />
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <DxButton
-                  text={tw('form.submit')}
-                  type="success"
-                  stylingMode="contained"
-                  icon="check"
-                  onClick={handleSubmit}
-                  disabled={recordMutation.isPending || !formData.actualQuantity || (!isBulkStage && !formData.warehouseId)}
-                />
+              {/* Action Buttons — stack on mobile, inline on tablet+ */}
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4 border-t border-gray-100">
                 {isEditing && (
                   <DxButton
                     text={tw('form.cancel')}
                     type="normal"
                     stylingMode="outlined"
                     onClick={() => setIsEditing(false)}
+                    width="100%"
                   />
                 )}
+                <DxButton
+                  text={recordMutation.isPending ? 'กำลังบันทึก…' : tw('form.submit')}
+                  type="success"
+                  stylingMode="contained"
+                  icon="check"
+                  onClick={handleSubmit}
+                  disabled={recordMutation.isPending || !formData.actualQuantity || (!isBulkStage && !formData.warehouseId)}
+                  width="100%"
+                />
               </div>
             </div>
           </CardContent>
