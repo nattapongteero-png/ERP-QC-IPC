@@ -9,7 +9,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -65,29 +65,17 @@ import { cn } from '@/lib/utils/cn';
 // ============================================
 
 /**
- * Format number to compact human-readable format
- * e.g., 1500 -> "1.5K", 1500000 -> "1.5M", 1500000000 -> "1.5B"
+ * Format number with comma separators and 2 decimal places
+ * e.g., 11200 -> "11,200.00", 11163.0341 -> "11,163.03"
+ * Uses manual formatting to avoid SSR/client hydration mismatch from toLocaleString
  */
-function formatCompactNumber(value: number): string {
-  if (value === 0) return '0';
-
-  const absValue = Math.abs(value);
-  const sign = value < 0 ? '-' : '';
-
-  if (absValue >= 1_000_000_000) {
-    const formatted = (absValue / 1_000_000_000).toFixed(1);
-    return sign + (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'B';
-  }
-  if (absValue >= 1_000_000) {
-    const formatted = (absValue / 1_000_000).toFixed(1);
-    return sign + (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'M';
-  }
-  if (absValue >= 1_000) {
-    const formatted = (absValue / 1_000).toFixed(1);
-    return sign + (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'K';
-  }
-
-  return sign + absValue.toLocaleString(undefined, { maximumFractionDigits: 2 });
+function formatCompactNumber(value: number | string): string {
+  const num = Number(value);
+  if (isNaN(num)) return '0.00';
+  const fixed = Math.abs(num).toFixed(2);
+  const [intPart, decPart] = fixed.split('.');
+  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (num < 0 ? '-' : '') + withCommas + '.' + decPart;
 }
 
 // ============================================
@@ -158,6 +146,7 @@ async function fetchItems(): Promise<Item[]> {
 export default function ItemsPage() {
   const router = useRouter();
   const t = useTranslations('inventory');
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'all' | ItemType>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -332,10 +321,10 @@ export default function ItemsPage() {
     queryFn: fetchItems,
   });
 
-  // Handle refresh
+  // Handle refresh - invalidate cache to force fresh fetch
   const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    queryClient.invalidateQueries({ queryKey: ['items-list'] });
+  }, [queryClient]);
 
   // Calculate type counts
   const typeCounts = useMemo(() => {
@@ -425,6 +414,35 @@ export default function ItemsPage() {
     setDialogOpen(true);
   };
 
+  // "Download Excel" button — export ALL visible items (flat xlsx) without
+  // going through the DataGrid toolbar. Keeps the current type/search filter
+  // so the operator gets what they see.
+  const handleDownloadData = () => {
+    const rows = filteredItems.map((it) => ({
+      'รหัส (Code)': it.code,
+      'ชื่อ TH': it.nameTh,
+      'ชื่อ EN': it.nameEn || '',
+      'ประเภท': it.type,
+      'หมวดหมู่': it.category || '',
+      'หน่วยหลัก': it.primaryUnit,
+      'หน่วยรอง': it.secondaryUnit || '',
+      'อัตราแปลง': it.conversionFactor ?? '',
+      'อายุการเก็บ (วัน)': it.shelfLifeDays ?? '',
+      'เงื่อนไขจัดเก็บ': it.storageConditions || '',
+      'สต็อกต่ำสุด': it.minStock ?? '',
+      'สต็อกสูงสุด': it.maxStock ?? '',
+      'จุดสั่งซื้อ': it.reorderPoint ?? '',
+      'คงเหลือ (on_hand)': it.onHand ?? '',
+      'สถานะ': it.isActive ? 'Active' : 'Inactive',
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = Array(15).fill({ wch: 18 });
+    XLSX.utils.book_append_sheet(wb, ws, 'Items');
+    const ts = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `items-${ts}.xlsx`);
+  };
+
   // Excel export handler
   const onExporting = useCallback((e: ExportingEvent) => {
     const workbook = new Workbook();
@@ -495,7 +513,6 @@ export default function ItemsPage() {
 
   const renderStockCell = useCallback((data: { data: Item }) => {
     const onHand = data.data.onHand ?? 0;
-    const onHandCost = data.data.onHandCost ?? 0;
     const minStock = data.data.minStock ?? 0;
     const isLow = minStock > 0 && onHand < minStock;
 
@@ -507,11 +524,6 @@ export default function ItemsPage() {
             <span className="ml-1 text-xs px-1 py-0.5 bg-red-100 text-red-700 rounded">{t('items.grid.lowStock')}</span>
           )}
         </div>
-        {onHandCost > 0 && (
-          <div className="text-xs text-gray-500" title={`฿${onHandCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}>
-            ฿{formatCompactNumber(onHandCost)}
-          </div>
-        )}
       </div>
     );
   }, [t]);
@@ -615,7 +627,13 @@ export default function ItemsPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleRefresh}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={isLoading}
+                className={cn(
+                  "inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors",
+                  isLoading
+                    ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
+                    : "text-gray-600 bg-white border-gray-300 hover:bg-gray-50"
+                )}
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
                 {t('common.refresh')}
@@ -627,13 +645,16 @@ export default function ItemsPage() {
                 <Warehouse className="h-4 w-4" />
                 {t('items.viewLots')}
               </button>
+              <button onClick={handleDownloadData} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors">
+                <Download className="h-4 w-4" /> Download Excel
+              </button>
               {isAdmin && (
                 <>
                   <button onClick={handleDownloadTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Download className="h-4 w-4" /> Template
+                    <Download className="h-4 w-4" /> {t('common.downloadTemplate')}
                   </button>
                   <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Upload className="h-4 w-4" /> นำเข้า Excel
+                    <Upload className="h-4 w-4" /> {t('common.importExcel')}
                   </button>
                 </>
               )}
@@ -787,9 +808,43 @@ export default function ItemsPage() {
             />
             <Column
               dataField="onHand"
-              caption={t('items.grid.columns.onHand')}
-              width={150}
+              caption={t('items.grid.columns.onHandQty')}
+              width={140}
               cellRender={renderStockCell}
+            />
+            <Column
+              dataField="onHandCost"
+              caption={t('items.grid.columns.totalValue')}
+              width={130}
+              dataType="number"
+              cellRender={(data: { data: Item }) => {
+                const val = Number(data.data.onHandCost) || 0;
+                if (val === 0) return <span className="text-gray-400">-</span>;
+                return (
+                  <span className="font-medium text-gray-900" title={`฿${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}>
+                    ฿{formatCompactNumber(val)}
+                  </span>
+                );
+              }}
+            />
+            <Column
+              caption={t('items.grid.columns.avgCost')}
+              width={120}
+              dataType="number"
+              calculateCellValue={(rowData: Record<string, unknown>) => {
+                const qty = Number(rowData.onHand) || 0;
+                const cost = Number(rowData.onHandCost) || 0;
+                if (qty <= 0 || cost <= 0) return null;
+                return Math.round((cost / qty) * 100) / 100;
+              }}
+              cellRender={(data: { value: number | null; data: Item }) => {
+                if (!data.value) return <span className="text-gray-400">-</span>;
+                return (
+                  <span className="text-gray-700 text-sm">
+                    ฿{data.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/{data.data.primaryUnit}
+                  </span>
+                );
+              }}
             />
             <Column
               dataField="quarantineQty"

@@ -18,7 +18,7 @@ import {
   Package, ArrowRight, BoxSelect, ChevronRight, Inbox,
   Boxes, TrendingUp, CalendarClock, Warehouse,
   DollarSign, RefreshCw, Plus, RefreshCcw,
-  Download, Upload, X,
+  Download, Upload, X, ClipboardList,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { ItemSearchDialog, type Item as SearchItem } from '@/components/ui/item-search-dialog';
@@ -197,10 +197,38 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+// Lightweight shape for requisition summary used by tab header
+interface RequisitionSummary {
+  workOrderId: number;
+  requisitionStatus: 'requested' | 'approved' | string;
+  materials?: unknown[];
+}
+
 export default function LotsPage() {
   const router = useRouter();
   const t = useTranslations('inventory');
   const [activeTab, setActiveTab] = useState('lots');
+
+  // Requisition summary for tab header — shows pending/approved counts and total material lines
+  const { data: requisitionSummary = [] } = useQuery<RequisitionSummary[]>({
+    queryKey: ['inventory-requisitions-summary'],
+    queryFn: async () => {
+      const res = await fetch('/api/inventory/requisitions?status=all');
+      const data = await res.json();
+      return data.success ? (data.data || []) : [];
+    },
+    refetchInterval: 30000, // refresh every 30s
+  });
+
+  const reqStats = useMemo(() => {
+    const pending = requisitionSummary.filter((r) => r.requisitionStatus === 'requested').length;
+    const approved = requisitionSummary.filter((r) => r.requisitionStatus === 'approved').length;
+    const totalMaterials = requisitionSummary.reduce(
+      (sum, r) => sum + (Array.isArray(r.materials) ? r.materials.length : 0),
+      0
+    );
+    return { pending, approved, total: requisitionSummary.length, totalMaterials };
+  }, [requisitionSummary]);
   const [lots, setLots] = useState<Lot[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -241,6 +269,33 @@ export default function LotsPage() {
     { header: 'เลข COA', field: 'coaNumber', required: false },
     { header: 'เลข Batch', field: 'batchNumber', required: false },
   ];
+
+  // Export the lots the operator currently sees (post-filter) to xlsx.
+  const handleDownloadLots = () => {
+    const rows = filteredLots.map((l) => ({
+      'เลข Lot': l.lotNumber,
+      'รหัสสินค้า': l.itemCode || '',
+      'ชื่อสินค้า': l.itemName || '',
+      'ประเภท': l.itemType || '',
+      'คลังสินค้า': l.warehouseName || '',
+      'จำนวน': l.quantity,
+      'คงค้าง (Reserved)': l.reservedQuantity,
+      'หน่วย': l.unit,
+      'สถานะ': l.status,
+      'วันผลิต': l.manufacturingDate || '',
+      'วันหมดอายุ': l.expiryDate || '',
+      'วันรับเข้า': l.receivedDate || '',
+      'เลข Lot ผู้ขาย': l.vendorLotNumber || '',
+      'ผู้ขาย': l.vendorName || '',
+      'ราคาต่อหน่วย': l.cost ?? '',
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = Array(15).fill({ wch: 18 });
+    XLSX.utils.book_append_sheet(wb, ws, 'Lots');
+    const ts = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `lots-${ts}.xlsx`);
+  };
 
   const handleDownloadLotTemplate = () => {
     const wb = XLSX.utils.book_new();
@@ -446,29 +501,29 @@ export default function LotsPage() {
     const errors: Record<string, string> = {};
 
     if (!formData.lotNumber.trim()) {
-      errors.lotNumber = 'Lot number is required';
+      errors.lotNumber = t('lots.validation.lotNumberRequired');
     }
 
     if (!formData.itemId || formData.itemId === 0) {
-      errors.itemId = 'Please select an item';
+      errors.itemId = t('lots.validation.selectItem');
     }
 
     if (!formData.warehouseId || formData.warehouseId === 0) {
-      errors.warehouseId = 'Please select a warehouse';
+      errors.warehouseId = t('lots.validation.selectWarehouse');
     }
 
     if (!formData.quantity || formData.quantity <= 0) {
-      errors.quantity = 'Quantity must be greater than 0';
+      errors.quantity = t('lots.validation.quantityMin');
     }
 
     if (!formData.expiryDate) {
-      errors.expiryDate = 'Expiry date is required';
+      errors.expiryDate = t('lots.validation.expiryDateRequired');
     } else {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const expiryDate = new Date(formData.expiryDate);
       if (expiryDate <= today) {
-        errors.expiryDate = 'Expiry date must be in the future';
+        errors.expiryDate = t('lots.validation.expiryDateFuture');
       }
     }
 
@@ -476,12 +531,12 @@ export default function LotsPage() {
       const mfgDate = new Date(formData.manufacturingDate);
       const expDate = new Date(formData.expiryDate);
       if (mfgDate >= expDate) {
-        errors.manufacturingDate = 'Manufacturing date must be before expiry date';
+        errors.manufacturingDate = t('lots.validation.mfgBeforeExpiry');
       }
     }
 
     if (!formData.cost || formData.cost <= 0) {
-      errors.cost = 'Cost per unit is required and must be greater than 0';
+      errors.cost = t('lots.validation.costRequired');
     }
 
     setFormErrors(errors);
@@ -570,22 +625,39 @@ export default function LotsPage() {
   }, [lots, statusFilter, search, warehouseFilter, expiryFrom, expiryTo, receivedFrom, receivedTo, quickFilter]);
 
   const fetchMasterData = async () => {
-    try {
-      const [warehousesRes, vendorsRes] = await Promise.all([
-        fetch('/api/warehouses?limit=100'),
-        fetch('/api/vendors?limit=100'),
-      ]);
+    // Fetch each master-data source independently. A 403 on one (e.g. the
+    // vendor list for a role without purchasing:read) must NOT break the
+    // entire Lots page — we just leave that dropdown empty. Previously
+    // Promise.all made a single 403 surface as a page-wide "no permission"
+    // error toast, masking the fact that the user had lot permissions.
+    const fetchJson = async <T,>(
+      url: string,
+      label: string,
+    ): Promise<T[]> => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          if (res.status !== 403) {
+            console.warn(`[Lots] ${label} fetch returned ${res.status}`);
+          }
+          return [];
+        }
+        const data = await res.json();
+        return data.success ? (data.data?.items || data.data || []) : [];
+      } catch (err) {
+        console.warn(`[Lots] ${label} fetch failed:`, err);
+        return [];
+      }
+    };
 
-      const [warehousesData, vendorsData] = await Promise.all([
-        warehousesRes.json(),
-        vendorsRes.json(),
-      ]);
-
-      if (warehousesData.success) setWarehouses(warehousesData.data?.items || []);
-      if (vendorsData.success) setVendors(vendorsData.data?.items || []);
-    } catch (error) {
-      console.error('Failed to fetch master data:', error);
-    }
+    const [warehousesData, vendorsData] = await Promise.all([
+      fetchJson<unknown>('/api/warehouses?limit=100', 'warehouses'),
+      fetchJson<unknown>('/api/vendors?limit=100', 'vendors'),
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setWarehouses(warehousesData as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setVendors(vendorsData as any);
   };
 
   useEffect(() => {
@@ -780,9 +852,55 @@ export default function LotsPage() {
       caption: t('lots.grid.columns.vendorLotNumber'),
       minWidth: 140,
       hideOnMobile: true,
+      hideOnTablet: true,
       cellRender: (cellInfo) => (
         <span className="text-gray-700">{cellInfo.data.vendorLotNumber || '-'}</span>
       ),
+    },
+    {
+      dataField: 'receivedDate',
+      caption: t('lots.grid.columns.receivedDate'),
+      minWidth: 145,
+      dataType: 'date',
+      hideOnMobile: true,
+      hideOnTablet: true,
+      cellRender: (cellInfo) => {
+        const rd = cellInfo.data.receivedDate;
+        if (!rd) return <span className="text-gray-400">-</span>;
+        const d = new Date(rd);
+        if (isNaN(d.getTime())) return <span className="text-gray-400">-</span>;
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return <span className="text-gray-700 text-xs">{dd}/{mm}/{yyyy} {hh}:{mi}</span>;
+      },
+    },
+    {
+      dataField: 'agingDays',
+      caption: t('lots.grid.columns.aging'),
+      minWidth: 90,
+      dataType: 'number',
+      hideOnMobile: true,
+      hideOnTablet: true,
+      cellRender: (cellInfo) => {
+        const rd = cellInfo.data.receivedDate;
+        if (!rd) return <span className="text-gray-400">-</span>;
+        const received = new Date(rd);
+        if (isNaN(received.getTime())) return <span className="text-gray-400">-</span>;
+        const diffMs = Date.now() - received.getTime();
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const color = days > 180 ? 'text-red-600 bg-red-50' : days > 90 ? 'text-amber-600 bg-amber-50' : 'text-gray-700 bg-gray-50';
+        return <span className={`text-xs font-medium px-2 py-0.5 rounded ${color}`}>{days} {t('lots.days')}</span>;
+      },
+      calculateCellValue: (rowData: Record<string, unknown>) => {
+        const rd = rowData.receivedDate as string | null;
+        if (!rd) return null;
+        const received = new Date(rd);
+        if (isNaN(received.getTime())) return null;
+        return Math.floor((Date.now() - received.getTime()) / (1000 * 60 * 60 * 24));
+      },
     },
     {
       dataField: 'itemCode',
@@ -833,6 +951,7 @@ export default function LotsPage() {
       dataField: 'warehouseName',
       caption: t('lots.grid.columns.warehouse'),
       minWidth: 200,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2 whitespace-nowrap">
           <Warehouse className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -873,6 +992,7 @@ export default function LotsPage() {
       caption: t('lots.grid.columns.manufacturer'),
       minWidth: 160,
       hideOnMobile: true,
+      hideOnTablet: true,
       cellRender: (cellInfo) => (
         <div>
           <p className="text-gray-700 text-sm">{cellInfo.data.manufacturerName || '-'}</p>
@@ -887,6 +1007,7 @@ export default function LotsPage() {
       caption: t('lots.grid.columns.retest'),
       minWidth: 130,
       hideOnMobile: true,
+      hideOnTablet: true,
       cellRender: (cellInfo) => {
         if (!cellInfo.data.retestDate) return <span className="text-gray-400">-</span>;
         const retestDate = new Date(cellInfo.data.retestDate);
@@ -973,7 +1094,7 @@ export default function LotsPage() {
           title={t('lots.pageTitle')}
           description={t('lots.description')}
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => {
                   fetchLots().then(() => {
@@ -983,43 +1104,182 @@ export default function LotsPage() {
                   });
                 }}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 min-h-[40px]"
+                aria-label={t('common.refresh')}
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                {isLoading ? 'กำลังโหลด...' : t('common.refresh')}
+                <span className="hidden sm:inline">
+                  {isLoading ? 'กำลังโหลด...' : t('common.refresh')}
+                </span>
               </button>
               <button
                 onClick={() => router.push('/inventory/items')}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="hidden md:inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[40px]"
               >
                 <Package className="h-4 w-4" />
                 {t('lots.viewItems')}
               </button>
+              <button
+                onClick={handleDownloadLots}
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors min-h-[40px]"
+              >
+                <Download className="h-4 w-4" /> Download Excel
+              </button>
               {isAdmin && (
                 <>
-                  <button onClick={handleDownloadLotTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Download className="h-4 w-4" /> Template
+                  <button
+                    onClick={handleDownloadLotTemplate}
+                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[40px]"
+                  >
+                    <Download className="h-4 w-4" /> {t('common.downloadTemplate')}
                   </button>
-                  <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Upload className="h-4 w-4" /> นำเข้า Excel
+                  <button
+                    onClick={() => { setShowImportDialog(true); setImportLog([]); }}
+                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors min-h-[40px]"
+                  >
+                    <Upload className="h-4 w-4" /> {t('common.importExcel')}
                   </button>
                 </>
               )}
               <button
                 onClick={() => { resetForm(); setShowModal(true); }}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors font-medium min-h-[40px] shadow-sm"
               >
                 <Plus className="h-4 w-4" />
-                {t('lots.addLot')}
+                <span>{t('lots.addLot')}</span>
               </button>
             </div>
           }
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="lots">รายการ Lot</TabsTrigger>
-            <TabsTrigger value="requisitions">ใบเบิกวัตถุดิบ</TabsTrigger>
+          <TabsList className="mb-4 h-auto p-0 bg-transparent gap-3 w-full grid grid-cols-1 md:grid-cols-2">
+            {/* ── Tab 1: รายการ Lot ── */}
+            <TabsTrigger
+              value="lots"
+              className={cn(
+                'h-auto p-0 rounded-xl border shadow-sm overflow-hidden bg-white',
+                'data-[state=active]:border-emerald-500 data-[state=active]:ring-2 data-[state=active]:ring-emerald-500/20',
+                'data-[state=inactive]:border-gray-200 data-[state=inactive]:opacity-75 hover:opacity-100',
+                'data-[state=active]:shadow-md transition-all'
+              )}
+            >
+              <div className="w-full p-4 text-left">
+                <div className="flex items-start gap-3">
+                  <div className={cn(
+                    'flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center',
+                    activeTab === 'lots' ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-500'
+                  )}>
+                    <Boxes className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h3 className="font-semibold text-gray-900 text-base">รายการ Lot</h3>
+                      <span className="text-xs text-gray-400 flex-shrink-0">Inventory Lots</span>
+                    </div>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-2xl font-bold text-gray-900 tabular-nums">
+                        {lots.length.toLocaleString()}
+                      </span>
+                      <span className="text-sm text-gray-500">lots</span>
+                      <span className="text-gray-300">·</span>
+                      <span className="text-sm font-medium text-emerald-600 tabular-nums">
+                        {formatCurrency(stats.totalValue)}
+                      </span>
+                    </div>
+                    {/* Metric chips */}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {stats.quarantineCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <Clock className="h-3 w-3" /> {stats.quarantineCount} กักกัน
+                        </span>
+                      )}
+                      {stats.releasedCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="h-3 w-3" /> {stats.releasedCount} ปล่อย
+                        </span>
+                      )}
+                      {stats.nearExpiryCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+                          <AlertTriangle className="h-3 w-3" /> {stats.nearExpiryCount} ใกล้หมดอายุ
+                        </span>
+                      )}
+                      {stats.expiredCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                          <XCircle className="h-3 w-3" /> {stats.expiredCount} หมดอายุ
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsTrigger>
+
+            {/* ── Tab 2: ใบเบิกวัตถุดิบ ── */}
+            <TabsTrigger
+              value="requisitions"
+              className={cn(
+                'h-auto p-0 rounded-xl border shadow-sm overflow-hidden bg-white',
+                'data-[state=active]:border-indigo-500 data-[state=active]:ring-2 data-[state=active]:ring-indigo-500/20',
+                'data-[state=inactive]:border-gray-200 data-[state=inactive]:opacity-75 hover:opacity-100',
+                'data-[state=active]:shadow-md transition-all'
+              )}
+            >
+              <div className="w-full p-4 text-left relative">
+                {/* Notification dot for pending requisitions */}
+                {reqStats.pending > 0 && (
+                  <span className="absolute top-3 right-3 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                  </span>
+                )}
+                <div className="flex items-start gap-3">
+                  <div className={cn(
+                    'flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center',
+                    activeTab === 'requisitions' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'
+                  )}>
+                    <ClipboardList className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h3 className="font-semibold text-gray-900 text-base">ใบเบิกวัตถุดิบ</h3>
+                      <span className="text-xs text-gray-400 flex-shrink-0">Material Requisitions</span>
+                    </div>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-2xl font-bold text-gray-900 tabular-nums">
+                        {reqStats.total}
+                      </span>
+                      <span className="text-sm text-gray-500">ใบ</span>
+                      {reqStats.totalMaterials > 0 && (
+                        <>
+                          <span className="text-gray-300">·</span>
+                          <span className="text-sm font-medium text-indigo-600 tabular-nums">
+                            {reqStats.totalMaterials} รายการ
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {/* Metric chips */}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {reqStats.pending > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <Clock className="h-3 w-3" /> {reqStats.pending} รออนุมัติ
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="h-3 w-3" /> ไม่มีที่รออนุมัติ
+                        </span>
+                      )}
+                      {reqStats.approved > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="h-3 w-3" /> {reqStats.approved} อนุมัติแล้ว
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="lots">
         {/* DataGrid Card */}
@@ -1084,67 +1344,132 @@ export default function LotsPage() {
             </div>
           </div>
 
-          {/* Search & Filters — Single Line */}
-          <div className="px-4 py-2 border-b border-gray-100">
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Search */}
-              <div className="w-48">
-                <DxTextBox
-                  placeholder={t('lots.searchPlaceholder')}
-                  value={search}
-                  onValueChange={setSearch}
-                  showClearButton
-                  mode="search"
-                  onEnterKey={() => fetchLots()}
-                />
+          {/* ═══ Filter Bar — Informative Design ═══ */}
+          {(() => {
+            const activeFilterCount =
+              (search ? 1 : 0) +
+              (warehouseFilter ? 1 : 0) +
+              (expiryFrom ? 1 : 0) +
+              (expiryTo ? 1 : 0) +
+              (quickFilter ? 1 : 0);
+            const hasActiveFilters = activeFilterCount > 0;
+            const clearAll = () => {
+              setSearch('');
+              setWarehouseFilter('');
+              setExpiryFrom('');
+              setExpiryTo('');
+              setReceivedFrom('');
+              setReceivedTo('');
+              setQuickFilter('');
+            };
+            return (
+              <div className="bg-gradient-to-b from-white to-gray-50/50 border-b border-gray-100">
+                {/* ── Row 1: Main filters with labels ── */}
+                <div className="px-4 pt-3 pb-2">
+                  <div className="flex flex-wrap items-end gap-x-4 gap-y-2 filter-compact">
+                    {/* Search */}
+                    <div className="flex flex-col gap-1 w-full sm:min-w-[200px] sm:flex-1 sm:max-w-[260px]">
+                      <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        <Package className="h-3 w-3" />
+                        ค้นหา Lot / รหัสสินค้า
+                      </label>
+                      <DxTextBox
+                        placeholder={t('lots.searchPlaceholder')}
+                        value={search}
+                        onValueChange={setSearch}
+                        showClearButton
+                        mode="search"
+                        onEnterKey={() => fetchLots()}
+                        height={36}
+                      />
+                    </div>
+
+                    {/* Warehouse */}
+                    <div className="flex flex-col gap-1 w-full sm:w-[200px]">
+                      <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        <Warehouse className="h-3 w-3" />
+                        คลังสินค้า
+                      </label>
+                      <DxSelectBox
+                        items={[{ value: '', label: 'ทั้งหมด' }, ...warehouses.map(w => ({ value: w.id, label: w.name }))]}
+                        value={warehouseFilter}
+                        onValueChange={(v) => setWarehouseFilter(v || '')}
+                        height={36}
+                      />
+                    </div>
+
+                    {/* Expiry date range */}
+                    <div className="flex flex-col gap-1 w-full sm:w-auto">
+                      <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        <CalendarClock className="h-3 w-3" />
+                        วันหมดอายุระหว่าง
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex-1 sm:w-[140px]">
+                          <DxDateBox value={expiryFrom} onValueChange={(v) => setExpiryFrom(v || '')} placeholder="ตั้งแต่" height={36} />
+                        </div>
+                        <span className="text-gray-400 text-sm flex-shrink-0">→</span>
+                        <div className="flex-1 sm:w-[140px]">
+                          <DxDateBox value={expiryTo} onValueChange={(v) => setExpiryTo(v || '')} placeholder="ถึง" height={36} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Spacer pushes summary right */}
+                    <div className="flex-1" />
+
+                    {/* Active filter summary + Clear */}
+                    {hasActiveFilters && (
+                      <div className="flex items-center gap-2 pb-1">
+                        <span className="text-xs text-gray-500">
+                          <span className="font-semibold text-gray-700">{activeFilterCount}</span> ตัวกรองใช้งาน
+                        </span>
+                        <button
+                          onClick={clearAll}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition-colors"
+                        >
+                          <RefreshCcw className="h-3 w-3" />
+                          ล้างทั้งหมด
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Row 2: Quick filters ── */}
+                <div className="px-4 pb-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">
+                      ตัวกรองด่วน
+                    </span>
+                    {([
+                      { key: 'near_expiry' as QuickFilter, label: 'ใกล้หมดอายุ ≤30 วัน', color: 'text-amber-700 bg-amber-50 border-amber-300 ring-amber-400/30', icon: <CalendarClock className="h-3.5 w-3.5" /> },
+                      { key: 'expired' as QuickFilter, label: 'หมดอายุแล้ว', color: 'text-red-700 bg-red-50 border-red-300 ring-red-400/30', icon: <XCircle className="h-3.5 w-3.5" /> },
+                      { key: 'raw_material' as QuickFilter, label: 'วัตถุดิบ', color: 'text-blue-700 bg-blue-50 border-blue-300 ring-blue-400/30', icon: <Package className="h-3.5 w-3.5" /> },
+                      { key: 'finished_goods' as QuickFilter, label: 'สินค้าสำเร็จรูป', color: 'text-purple-700 bg-purple-50 border-purple-300 ring-purple-400/30', icon: <Boxes className="h-3.5 w-3.5" /> },
+                    ]).map((tag) => {
+                      const isActive = quickFilter === tag.key;
+                      return (
+                        <button
+                          key={tag.key}
+                          onClick={() => setQuickFilter(isActive ? '' : tag.key)}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border transition-all',
+                            isActive
+                              ? `${tag.color} ring-2 shadow-sm`
+                              : 'text-gray-600 bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          )}
+                        >
+                          {tag.icon}
+                          {tag.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-              {/* Warehouse */}
-              <div className="w-44">
-                <DxSelectBox
-                  items={[{ value: '', label: 'คลัง: ทั้งหมด' }, ...warehouses.map(w => ({ value: w.id, label: w.name }))]}
-                  value={warehouseFilter}
-                  onValueChange={(v) => setWarehouseFilter(v || '')}
-                />
-              </div>
-              {/* Expiry date range */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-400 whitespace-nowrap">หมดอายุ</span>
-                <div className="w-32"><DxDateBox value={expiryFrom} onValueChange={(v) => setExpiryFrom(v || '')} placeholder="ตั้งแต่" /></div>
-                <span className="text-gray-400">-</span>
-                <div className="w-32"><DxDateBox value={expiryTo} onValueChange={(v) => setExpiryTo(v || '')} placeholder="ถึง" /></div>
-              </div>
-              <div className="hidden lg:block h-5 w-px bg-gray-300" />
-              {/* Quick Filter Tags */}
-              {([
-                { key: 'near_expiry' as QuickFilter, label: '≤30 วัน', color: 'text-amber-700 bg-amber-50 border-amber-200', icon: <CalendarClock className="h-3.5 w-3.5" /> },
-                { key: 'expired' as QuickFilter, label: 'หมดอายุ', color: 'text-red-700 bg-red-50 border-red-200', icon: <XCircle className="h-3.5 w-3.5" /> },
-                { key: 'raw_material' as QuickFilter, label: 'วัตถุดิบ', color: 'text-blue-700 bg-blue-50 border-blue-200', icon: <Package className="h-3.5 w-3.5" /> },
-                { key: 'finished_goods' as QuickFilter, label: 'สำเร็จรูป', color: 'text-purple-700 bg-purple-50 border-purple-200', icon: <Boxes className="h-3.5 w-3.5" /> },
-              ]).map((tag) => (
-                <button
-                  key={tag.key}
-                  onClick={() => setQuickFilter(quickFilter === tag.key ? '' : tag.key)}
-                  className={cn(
-                    'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border transition-colors',
-                    quickFilter === tag.key ? tag.color : 'text-gray-500 bg-white border-gray-200 hover:bg-gray-50'
-                  )}
-                >
-                  {tag.icon}
-                  {tag.label}
-                </button>
-              ))}
-              {/* Clear all filters */}
-              {(warehouseFilter || expiryFrom || expiryTo || quickFilter || search) && (
-                <button
-                  onClick={() => { setSearch(''); setWarehouseFilter(''); setExpiryFrom(''); setExpiryTo(''); setReceivedFrom(''); setReceivedTo(''); setQuickFilter(''); }}
-                  className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                >
-                  <RefreshCcw className="h-3 w-3" />
-                  ล้าง
-                </button>
-              )}
-            </div>
-          </div>
+            );
+          })()}
 
           {/* DataGrid */}
           <div className="p-4">
@@ -1165,6 +1490,9 @@ export default function LotsPage() {
                 paging
                 pageSize={20}
                 height={600}
+                mobileHeight={480}
+                tabletHeight={540}
+                responsiveColumns
                 onRowClick={handleRowClick}
                 noDataText={t('lots.noLots')}
               />
@@ -1202,12 +1530,15 @@ export default function LotsPage() {
         }}
         title={t('lots.form.title')}
         width={800}
+        maxWidth="95vw"
         height="auto"
         maxHeight="90vh"
+        fullScreenOnMobile
+        fullScreenOnTablet
       >
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4">
           <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-            <div className="h-10 w-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+            <div className="h-10 w-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <Package className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
@@ -1216,7 +1547,7 @@ export default function LotsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('lots.form.lotNumber')} <span className="text-red-500">*</span>
@@ -1248,7 +1579,7 @@ export default function LotsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('lots.form.item')} <span className="text-red-500">*</span>
@@ -1301,14 +1632,15 @@ export default function LotsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('lots.form.quantity')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                inputMode="decimal"
+                className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 value={formData.quantity || ''}
                 onChange={(e) => {
                   setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }));
@@ -1333,7 +1665,8 @@ export default function LotsPage() {
               </label>
               <input
                 type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                inputMode="decimal"
+                className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 value={formData.cost || ''}
                 onChange={(e) => {
                   setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }));
@@ -1349,7 +1682,7 @@ export default function LotsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('lots.form.manufacturingDate')}
@@ -1413,7 +1746,7 @@ export default function LotsPage() {
               {t('lots.form.gmpSection')}
             </h3>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('lots.form.manufacturerName')}
@@ -1436,7 +1769,7 @@ export default function LotsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('lots.form.countryOfOrigin')}
@@ -1463,7 +1796,8 @@ export default function LotsPage() {
                 </label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  inputMode="numeric"
+                  className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   value={formData.retestIntervalMonths || ''}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
@@ -1490,9 +1824,25 @@ export default function LotsPage() {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text={t('lots.form.cancel')} type="default" stylingMode="outlined" onClick={() => setShowModal(false)} />
-            <DxButton text={t('lots.form.submit')} icon="check" type="success" onClick={handleCreateLot} />
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t sticky bottom-0 bg-white -mx-4 sm:-mx-6 px-4 sm:px-6 pb-1">
+            <DxButton
+              text={t('lots.form.cancel')}
+              type="default"
+              stylingMode="outlined"
+              onClick={() => setShowModal(false)}
+              width="100%"
+              height={40}
+              className="sm:!w-auto"
+            />
+            <DxButton
+              text={t('lots.form.submit')}
+              icon="check"
+              type="success"
+              onClick={handleCreateLot}
+              width="100%"
+              height={40}
+              className="sm:!w-auto"
+            />
           </div>
         </div>
       </DxPopup>
@@ -1509,23 +1859,25 @@ export default function LotsPage() {
           }}
           title={t('lots.qc.title')}
           width={500}
+          maxWidth="95vw"
           height="auto"
+          fullScreenOnMobile
         >
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <div className="flex items-center gap-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200 mb-6">
-              <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Clock className="h-6 w-6 text-yellow-600" />
               </div>
-              <div>
-                <p className="font-bold text-yellow-800">{qcLot.lotNumber}</p>
+              <div className="min-w-0">
+                <p className="font-bold text-yellow-800 truncate">{qcLot.lotNumber}</p>
                 <p className="text-sm text-yellow-600">{t('lots.qc.awaitingDecision')}</p>
               </div>
             </div>
 
             <div className="space-y-3 mb-6 p-4 bg-gray-50 rounded-lg">
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                 <span className="text-gray-600">{t('lots.qc.item')}:</span>
-                <span className="font-medium">{qcLot.itemCode} - {qcLot.itemName}</span>
+                <span className="font-medium sm:text-right">{qcLot.itemCode} - {qcLot.itemName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">{t('lots.qc.quantity')}:</span>
@@ -1548,10 +1900,10 @@ export default function LotsPage() {
               </p>
             </div>
 
-            <div className="flex justify-end gap-3">
-              <DxButton text={t('lots.qc.cancel')} type="default" stylingMode="outlined" onClick={() => setShowQCModal(false)} />
-              <DxButton text={t('lots.qc.reject')} icon="close" type="danger" onClick={() => handleQCAction('reject')} />
-              <DxButton text={t('lots.qc.release')} icon="check" type="success" onClick={() => handleQCAction('release')} />
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+              <DxButton text={t('lots.qc.cancel')} type="default" stylingMode="outlined" onClick={() => setShowQCModal(false)} width="100%" height={40} className="sm:!w-auto" />
+              <DxButton text={t('lots.qc.reject')} icon="close" type="danger" onClick={() => handleQCAction('reject')} width="100%" height={40} className="sm:!w-auto" />
+              <DxButton text={t('lots.qc.release')} icon="check" type="success" onClick={() => handleQCAction('release')} width="100%" height={40} className="sm:!w-auto" />
             </div>
           </div>
         </DxPopup>
@@ -1564,23 +1916,25 @@ export default function LotsPage() {
         onHidden={() => { setTimeout(() => { setTraceLot(null); setTraceData(null); }, 0); }}
         title={t('lots.trace.title')}
         width={700}
+        maxWidth="95vw"
         height="auto"
         maxHeight="90vh"
+        fullScreenOnMobile
       >
         {traceLot && traceData && (
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {/* Current Lot Info */}
             <div className="mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
               <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                <div className="h-10 w-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Boxes className="h-5 w-5 text-emerald-600" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-emerald-800">{traceLot.lotNumber}</h3>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-emerald-800 truncate">{traceLot.lotNumber}</h3>
                   <p className="text-sm text-emerald-600">{t('lots.trace.currentLot')}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600">{t('lots.trace.item')}:</span>
@@ -1728,6 +2082,25 @@ function RequisitionTab() {
     },
   });
 
+  // Fetch all requisitions for counts (regardless of current filter)
+  const { data: allRequisitions = [] } = useQuery({
+    queryKey: ['inventory-requisitions-all-counts'],
+    queryFn: async () => {
+      const res = await fetch(`/api/inventory/requisitions?status=all`);
+      const data = await res.json();
+      return data.success ? (data.data || []) : [];
+    },
+    refetchInterval: 30000,
+  });
+
+  const filterCounts = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const requested = allRequisitions.filter((r: any) => r.requisitionStatus === 'requested').length;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const approved = allRequisitions.filter((r: any) => r.requisitionStatus === 'approved').length;
+    return { requested, approved, all: allRequisitions.length };
+  }, [allRequisitions]);
+
   const approveMutation = useMutation({
     mutationFn: async (workOrderId: number) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/requisition`, {
@@ -1750,24 +2123,31 @@ function RequisitionTab() {
 
   return (
     <div className="space-y-4">
-      {/* Filter buttons */}
-      <div className="flex gap-2">
+      {/* Filter pills with counts */}
+      <div className="flex flex-wrap items-center gap-2">
         {[
-          { value: 'requested', label: 'รออนุมัติ' },
-          { value: 'approved', label: 'อนุมัติแล้ว' },
-          { value: 'all', label: 'ทั้งหมด' },
+          { value: 'requested', label: 'รออนุมัติ', count: filterCounts.requested, icon: <Clock className="h-3.5 w-3.5" />, activeColor: 'bg-amber-100 text-amber-800 border-amber-300' },
+          { value: 'approved', label: 'อนุมัติแล้ว', count: filterCounts.approved, icon: <CheckCircle className="h-3.5 w-3.5" />, activeColor: 'bg-green-100 text-green-800 border-green-300' },
+          { value: 'all', label: 'ทั้งหมด', count: filterCounts.all, icon: <Inbox className="h-3.5 w-3.5" />, activeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
         ].map((f) => (
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
             className={cn(
-              'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors',
               filter === f.value
-                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? f.activeColor
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
             )}
           >
+            {f.icon}
             {f.label}
+            <span className={cn(
+              'text-xs px-1.5 py-0.5 rounded-full font-semibold',
+              filter === f.value ? 'bg-white/60' : 'bg-gray-100'
+            )}>
+              {f.count}
+            </span>
           </button>
         ))}
       </div>
@@ -1845,23 +2225,51 @@ function RequisitionTab() {
                 <tbody>
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {req.materials.map((mat: any, idx: number) => {
-                    let available = Number(mat.releasedAvailable ?? mat.onHand) || 0;
-                    // Convert available stock (primaryUnit) to material unit if different
-                    // e.g., inventory in kg, material needs g → multiply by conversionRate
-                    if (mat.unit && mat.secondaryUnit && mat.conversionRate &&
-                        mat.unit === mat.secondaryUnit && Number(mat.conversionRate) > 0) {
-                      available = available * Number(mat.conversionRate);
+                    // Snapshot vs live stock rules:
+                    // - Pending/requested: show current `releasedAvailable`
+                    //   (user is deciding now — they need real data)
+                    // - Approved WITH snapshot: show stockAtApproval (frozen)
+                    // - Approved WITHOUT snapshot (legacy rows): show "—"
+                    //   and a warning tag. We do NOT fall back to live stock
+                    //   because it would silently rewrite history every time
+                    //   another transaction updates the item's balance.
+                    const isApproved = req.requisitionStatus === 'approved';
+                    const hasSnapshot = mat.stockAtApproval != null;
+
+                    let available: number | null;
+                    if (isApproved) {
+                      available = hasSnapshot ? Number(mat.stockAtApproval) : null;
+                    } else {
+                      available = Number(mat.releasedAvailable ?? mat.onHand) || 0;
+                      // Convert available stock (primaryUnit) to material unit if different
+                      if (mat.unit && mat.secondaryUnit && mat.conversionRate &&
+                          mat.unit === mat.secondaryUnit && Number(mat.conversionRate) > 0) {
+                        available = available * Number(mat.conversionRate);
+                      }
                     }
                     const planned = Number(mat.plannedQuantity) || 0;
-                    const isShort = available < planned;
+                    const isShort = available !== null && available < planned;
                     const unit = mat.unit || mat.itemUnit || '';
                     return (
                       <tr key={idx} className="border-t border-gray-200">
                         <td className="py-1.5 font-mono text-xs">{mat.itemCode}</td>
                         <td className="py-1.5">{mat.itemName}</td>
                         <td className="py-1.5 text-right">{Number(mat.plannedQuantity).toLocaleString()} {unit}</td>
-                        <td className={`py-1.5 text-right font-medium ${isShort ? 'text-red-600' : 'text-green-600'}`}>
-                          {available.toLocaleString()} {unit}
+                        <td className={`py-1.5 text-right font-medium ${
+                          available === null ? 'text-gray-400' : (isShort ? 'text-red-600' : 'text-green-600')
+                        }`}>
+                          {available === null ? '—' : available.toLocaleString()}{available !== null && ` ${unit}`}
+                          {isApproved && hasSnapshot && (
+                            <span className="ml-1 text-xs text-gray-400">(ณ วันอนุมัติ)</span>
+                          )}
+                          {isApproved && !hasSnapshot && (
+                            <span
+                              className="ml-1 text-xs text-amber-600"
+                              title="รายการนี้อนุมัติก่อนจะมีระบบ snapshot ไม่สามารถระบุ stock ณ วันอนุมัติย้อนหลังได้"
+                            >
+                              (ไม่มี snapshot)
+                            </span>
+                          )}
                           {isShort && <span className="ml-1 text-xs text-red-500">(ไม่พอ)</span>}
                         </td>
                       </tr>
