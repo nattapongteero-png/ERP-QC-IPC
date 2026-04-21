@@ -282,6 +282,9 @@ export const sqliteBOM = sqliteTable('bom', {
   yieldTarget: real('yield_target'), // percentage
   lossAllowance: real('loss_allowance'), // percentage
   theoreticalYield: real('theoretical_yield'), // absolute quantity in product unit
+  // Fill weight per sub-unit (capsule/tablet) in mg. Used by bulk yield
+  // workflow: actual bulk weight ÷ fillWeightMg = capsule count.
+  fillWeightMg: real('fill_weight_mg'),
   effectiveDate: text('effective_date'),
   expiryDate: text('expiry_date'),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
@@ -1707,6 +1710,9 @@ export const mysqlBOM = mysqlTable('bom', {
   yieldTarget: decimal('yield_target', { precision: 5, scale: 2 }),
   lossAllowance: decimal('loss_allowance', { precision: 5, scale: 2 }),
   theoreticalYield: decimal('theoretical_yield', { precision: 15, scale: 4 }), // absolute quantity in product unit
+  // Fill weight per sub-unit (capsule/tablet) in mg. Used by bulk yield
+  // workflow: actual bulk weight ÷ fillWeightMg = capsule count.
+  fillWeightMg: decimal('fill_weight_mg', { precision: 10, scale: 4 }),
   effectiveDate: datetime('effective_date'),
   expiryDate: datetime('expiry_date'),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),

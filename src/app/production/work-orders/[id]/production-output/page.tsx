@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -41,7 +41,18 @@ interface WorkOrderInfo {
   status: string;
   bomYieldTarget?: number | null;
   bomLossAllowance?: number | null;
+  bomFillWeightMg?: number | null;
+  productSecondaryUnit?: string | null;
+  productConversionRate?: number | null;
+  bulkOutputQty?: number | null;
+  bulkOutputRecordedAt?: string | null;
+  bulkOutputRecordedBy?: number | null;
+  finishedOutputQty?: number | null;
+  finishedOutputRecordedAt?: string | null;
+  finishedOutputRecordedBy?: number | null;
 }
+
+type BulkInputMode = 'weight' | 'count_cap' | 'count_box';
 
 interface Warehouse {
   id: number;
@@ -70,12 +81,15 @@ interface OutputResponse {
 export default function ProductionOutputPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const queryClient = useQueryClient();
   const t = useTranslations('production');
   const tw = (key: string) => t(`execution.productionOutputPage.${key}`);
 
   const workOrderId = Number(params.id);
+  const stage = (searchParams.get('stage') === 'bulk' ? 'bulk' : 'finished') as 'bulk' | 'finished';
+  const isBulkStage = stage === 'bulk';
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -84,6 +98,11 @@ export default function ProductionOutputPage() {
     warehouseId: null as number | null,
     notes: '',
   });
+  // Bulk stage can accept input as weight (g), capsule count, or box count.
+  // formData.actualQuantity stays in primary unit (box) for storage; inputValue
+  // + inputMode are UI-only and recompute actualQuantity on change.
+  const [inputMode, setInputMode] = useState<BulkInputMode>('weight');
+  const [inputValue, setInputValue] = useState<number>(0);
 
   // Fetch Work Order info
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderInfo>({
@@ -128,9 +147,10 @@ export default function ProductionOutputPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workOrderId,
+          stage,
           actualQuantity: formData.actualQuantity,
           rejectQuantity: formData.rejectQuantity,
-          warehouseId: formData.warehouseId,
+          warehouseId: isBulkStage ? null : formData.warehouseId,
         }),
       });
       const data = await res.json();
@@ -154,29 +174,77 @@ export default function ProductionOutputPage() {
     },
   });
 
-  // Auto-calculate reject quantity when actual quantity changes
+  // Auto-calculate reject quantity when actual quantity changes (finished stage only)
   useEffect(() => {
-    if (!workOrder) return;
+    if (!workOrder || isBulkStage) return;
     const planned = Number(workOrder.plannedQuantity) || 0;
     if (planned > 0 && formData.actualQuantity > 0) {
       const reject = Math.max(0, Math.round((planned - formData.actualQuantity) * 10000) / 10000);
       setFormData(prev => ({ ...prev, rejectQuantity: reject }));
     }
-  }, [formData.actualQuantity, workOrder]);
+  }, [formData.actualQuantity, workOrder, isBulkStage]);
 
-  const hasRecorded = workOrder?.actualQuantity !== null && workOrder?.actualQuantity !== undefined;
+  // ─── Unit conversion helpers (bulk stage) ──────────────────────
+  // Box (primary) → Capsule (secondary) via item.conversionRate
+  // Capsule → mg via BOM.fillWeightMg (nullable — not every product has it)
+  const conversionRate = Number(workOrder?.productConversionRate) || 0;
+  const fillWeightMg = Number(workOrder?.bomFillWeightMg) || 0;
+  const secondaryUnit = workOrder?.productSecondaryUnit || '';
+  const canConvertToCapsule = conversionRate > 0 && !!secondaryUnit;
+  const canConvertToWeight = canConvertToCapsule && fillWeightMg > 0;
+
+  // Given a box count, derive capsule count and gram weight.
+  const boxToCap = (box: number) => (canConvertToCapsule ? box * conversionRate : 0);
+  const boxToGram = (box: number) => (canConvertToWeight ? (box * conversionRate * fillWeightMg) / 1000 : 0);
+
+  // Given a user-entered value in the selected mode, compute the box count.
+  const toBoxCount = (value: number, mode: BulkInputMode): number => {
+    if (!value) return 0;
+    if (mode === 'count_box') return value;
+    if (mode === 'count_cap') return canConvertToCapsule ? value / conversionRate : 0;
+    // weight mode: value is grams → mg → capsules → boxes
+    if (!canConvertToWeight) return 0;
+    const totalMg = value * 1000;
+    const caps = totalMg / fillWeightMg;
+    return caps / conversionRate;
+  };
+
+  // When input mode or value changes in bulk stage, sync formData.actualQuantity.
+  useEffect(() => {
+    if (!isBulkStage) return;
+    const box = toBoxCount(inputValue, inputMode);
+    // Round to 4 decimals for sanity; avoids 1e-15 noise.
+    const rounded = Math.round(box * 10000) / 10000;
+    setFormData(prev => (prev.actualQuantity === rounded ? prev : { ...prev, actualQuantity: rounded }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputValue, inputMode, isBulkStage, conversionRate, fillWeightMg]);
+
+  const hasRecorded = isBulkStage
+    ? workOrder?.bulkOutputQty !== null && workOrder?.bulkOutputQty !== undefined
+    : workOrder?.finishedOutputQty !== null && workOrder?.finishedOutputQty !== undefined
+      || (workOrder?.actualQuantity !== null && workOrder?.actualQuantity !== undefined);
   const isInProgress = workOrder?.status === 'in_progress';
   const showForm = isInProgress && (!hasRecorded || isEditing);
 
   // Pre-fill form when editing existing
   const handleEdit = () => {
     if (workOrder) {
+      const preActual = isBulkStage
+        ? Number(workOrder.bulkOutputQty) || 0
+        : Number(workOrder.finishedOutputQty ?? workOrder.actualQuantity) || 0;
       setFormData({
-        actualQuantity: Number(workOrder.actualQuantity) || 0,
-        rejectQuantity: Number(workOrder.rejectQuantity) || 0,
+        actualQuantity: preActual,
+        rejectQuantity: isBulkStage ? 0 : Number(workOrder.rejectQuantity) || 0,
         warehouseId: formData.warehouseId,
         notes: '',
       });
+      // Seed bulk-stage hybrid input to the currently-selected mode, so the
+      // user can tweak the value they previously entered without retyping.
+      if (isBulkStage) {
+        if (inputMode === 'count_box') setInputValue(preActual);
+        else if (inputMode === 'count_cap') setInputValue(boxToCap(preActual));
+        else if (inputMode === 'weight') setInputValue(boxToGram(preActual));
+      }
     }
     setIsEditing(true);
   };
@@ -186,7 +254,7 @@ export default function ProductionOutputPage() {
       toast.error(tw('toast.error'), 'Actual quantity must be greater than 0');
       return;
     }
-    if (!formData.warehouseId) {
+    if (!isBulkStage && !formData.warehouseId) {
       toast.error(tw('toast.error'), 'Please select a destination warehouse');
       return;
     }
@@ -256,8 +324,8 @@ export default function ProductionOutputPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title={tw('title')}
-        subtitle={`Batch: ${workOrder.batchNumber} | ${workOrder.productName}`}
+        title={`${tw('title')}${isBulkStage ? ' — Bulk Product Yield' : ' — Finished Output'}`}
+        subtitle={`Batch: ${workOrder.batchNumber} | ${workOrder.productName} | ${isBulkStage ? 'บันทึกบัลก์หลังผลิต (ก่อนแพ็ค)' : 'บันทึก FG หลัง Inspection (เข้าคลัง)'}`}
         icon={Package}
         iconBgColor="bg-green-100"
         iconColor="text-green-600"
@@ -293,6 +361,16 @@ export default function ProductionOutputPage() {
             <div>
               <p className="text-sm text-gray-500">{tw('info.plannedQty')}</p>
               <p className="font-medium text-lg">{Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit}</p>
+              {/* Bulk stage: show the same planned value in the sub-units the
+                  operator will actually work with on the line (capsules, grams). */}
+              {isBulkStage && canConvertToCapsule && (
+                <p className="text-xs text-gray-500 mt-0.5">
+                  = {boxToCap(Number(workOrder.plannedQuantity)).toLocaleString()} {secondaryUnit}
+                  {canConvertToWeight && (
+                    <> · {boxToGram(Number(workOrder.plannedQuantity)).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</>
+                  )}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-sm text-gray-500">{tw('info.unit')}</p>
@@ -333,31 +411,48 @@ export default function ProductionOutputPage() {
                   />
                 )}
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className={`grid grid-cols-2 ${isBulkStage ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
                 <div>
-                  <p className="text-sm text-gray-600">{tw('form.actualQuantity')}</p>
+                  <p className="text-sm text-gray-600">{isBulkStage ? 'Bulk Output Qty' : tw('form.actualQuantity')}</p>
                   <p className="text-2xl font-bold text-green-700">
-                    {Number(workOrder.actualQuantity).toLocaleString()} {workOrder.unit}
+                    {Number(isBulkStage
+                      ? workOrder.bulkOutputQty ?? 0
+                      : workOrder.finishedOutputQty ?? workOrder.actualQuantity ?? 0
+                    ).toLocaleString()} {workOrder.unit}
                   </p>
+                  {isBulkStage && canConvertToCapsule && (workOrder.bulkOutputQty ?? 0) > 0 && (
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      = {boxToCap(Number(workOrder.bulkOutputQty)).toLocaleString()} {secondaryUnit}
+                      {canConvertToWeight && (
+                        <> · {boxToGram(Number(workOrder.bulkOutputQty)).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</>
+                      )}
+                    </p>
+                  )}
                 </div>
+                {!isBulkStage && (
+                  <div>
+                    <p className="text-sm text-gray-600">{tw('form.rejectQuantity')}</p>
+                    <p className="text-xl font-semibold text-red-600">
+                      {Number(workOrder.rejectQuantity || 0).toLocaleString()} {workOrder.unit}
+                    </p>
+                  </div>
+                )}
                 <div>
-                  <p className="text-sm text-gray-600">{tw('form.rejectQuantity')}</p>
-                  <p className="text-xl font-semibold text-red-600">
-                    {Number(workOrder.rejectQuantity || 0).toLocaleString()} {workOrder.unit}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">{tw('yield.yieldPercent')}</p>
-                  <p className="text-2xl font-bold text-blue-700">
-                    {workOrder.yieldPercentage ? `${Number(workOrder.yieldPercentage).toFixed(2)}%` : '-'}
+                  <p className="text-sm text-gray-600">{isBulkStage ? 'Recorded At' : tw('yield.yieldPercent')}</p>
+                  <p className="text-xl font-bold text-blue-700">
+                    {isBulkStage
+                      ? (workOrder.bulkOutputRecordedAt
+                          ? new Date(workOrder.bulkOutputRecordedAt).toLocaleString('th-TH')
+                          : '-')
+                      : (workOrder.yieldPercentage ? `${Number(workOrder.yieldPercentage).toFixed(2)}%` : '-')}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Yield Calculation Detail */}
-          {yieldData && (
+          {/* Yield Calculation Detail — finished stage only */}
+          {!isBulkStage && yieldData && (
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-4">
@@ -439,75 +534,161 @@ export default function ProductionOutputPage() {
                 </div>
               )}
 
-              {/* Actual Quantity */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {tw('form.actualQuantity')} ({workOrder.unit})
-                </label>
-                <DxNumberBox
-                  value={formData.actualQuantity}
-                  onValueChanged={(e: { value?: number }) =>
-                    setFormData(prev => ({ ...prev, actualQuantity: e.value || 0 }))
-                  }
-                  format="#,##0.####"
-                  min={0}
-                  showSpinButtons
-                  width="100%"
-                />
-                {/* Live yield preview */}
-                {formData.actualQuantity > 0 && (
-                  <p className={`text-sm mt-1 ${
-                    liveYieldPercent >= 90 ? 'text-green-600' :
-                    liveYieldPercent >= 80 ? 'text-amber-600' :
-                    'text-red-600'
-                  }`}>
-                    Yield: {liveYieldPercent.toFixed(2)}% ({formData.actualQuantity.toLocaleString()} / {Number(workOrder.plannedQuantity).toLocaleString()})
-                  </p>
-                )}
-                {workOrder.bomYieldTarget && (
+              {/* Actual Quantity — bulk stage uses hybrid input (weight/capsule/box),
+                  finished stage keeps the simple box-count input it always had. */}
+              {isBulkStage ? (
+                <div>
+                  {/* Missing-config notice — show exactly what to configure before
+                      this page can convert between units. */}
+                  {!canConvertToCapsule && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 mb-3">
+                      ⚠️ Item ของ BOM นี้ยังไม่ได้ตั้ง secondary unit / conversion rate — กรอกได้เฉพาะหน่วยหลัก ({workOrder.unit}) ก่อน
+                    </div>
+                  )}
+                  {canConvertToCapsule && !canConvertToWeight && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 mb-3">
+                      ⚠️ BOM ยังไม่ได้ตั้ง Fill Weight (mg/{secondaryUnit}) — โหมด &quot;ชั่งน้ำหนัก&quot; ยังใช้ไม่ได้ ตั้งค่าในหน้า BOM Configuration ก่อน
+                    </div>
+                  )}
+
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    จำนวนผลิตจริง (Bulk Output)
+                  </label>
+
+                  {/* Mode toggle */}
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <DxButton
+                      text={canConvertToWeight ? `⚖ ชั่งน้ำหนัก (g)` : '⚖ ชั่งน้ำหนัก (ปิด)'}
+                      type={inputMode === 'weight' ? 'success' : 'normal'}
+                      stylingMode={inputMode === 'weight' ? 'contained' : 'outlined'}
+                      onClick={() => { setInputMode('weight'); setInputValue(boxToGram(formData.actualQuantity)); }}
+                      disabled={!canConvertToWeight}
+                    />
+                    <DxButton
+                      text={canConvertToCapsule ? `🔢 นับ ${secondaryUnit}` : '🔢 นับหน่วยย่อย (ปิด)'}
+                      type={inputMode === 'count_cap' ? 'success' : 'normal'}
+                      stylingMode={inputMode === 'count_cap' ? 'contained' : 'outlined'}
+                      onClick={() => { setInputMode('count_cap'); setInputValue(boxToCap(formData.actualQuantity)); }}
+                      disabled={!canConvertToCapsule}
+                    />
+                    <DxButton
+                      text={`📦 นับ ${workOrder.unit}`}
+                      type={inputMode === 'count_box' ? 'success' : 'normal'}
+                      stylingMode={inputMode === 'count_box' ? 'contained' : 'outlined'}
+                      onClick={() => { setInputMode('count_box'); setInputValue(formData.actualQuantity); }}
+                    />
+                  </div>
+
+                  {/* The one input — label + unit switch with mode */}
+                  <label className="block text-xs text-gray-500 mb-1">
+                    {inputMode === 'weight' && `น้ำหนัก Bulk ที่ชั่งได้ (g) — ระบบจะคำนวณกลับเป็น ${secondaryUnit} และ ${workOrder.unit}`}
+                    {inputMode === 'count_cap' && `จำนวน ${secondaryUnit} ที่ได้จริง — ระบบจะคำนวณกลับเป็น ${workOrder.unit} และน้ำหนัก`}
+                    {inputMode === 'count_box' && `จำนวน ${workOrder.unit} ที่ได้จริง`}
+                  </label>
+                  <DxNumberBox
+                    value={inputValue}
+                    onValueChanged={(e: { value?: number }) => setInputValue(e.value || 0)}
+                    format="#,##0.####"
+                    min={0}
+                    showSpinButtons
+                    width="100%"
+                  />
+
+                  {/* Live derived values — show all 3 representations at once */}
+                  {inputValue > 0 && formData.actualQuantity > 0 && (
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-900 space-y-0.5">
+                      <div className="font-medium">ระบบคำนวณได้:</div>
+                      <div>📦 {formData.actualQuantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {workOrder.unit}</div>
+                      {canConvertToCapsule && (
+                        <div>🔢 {boxToCap(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })} {secondaryUnit}</div>
+                      )}
+                      {canConvertToWeight && (
+                        <div>⚖ {boxToGram(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</div>
+                      )}
+                      <div className={`font-medium ${
+                        liveYieldPercent >= 90 ? 'text-green-700' :
+                        liveYieldPercent >= 80 ? 'text-amber-700' :
+                        'text-red-700'
+                      }`}>
+                        Yield = {liveYieldPercent.toFixed(2)}% (เทียบแผน {Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit})
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {tw('form.actualQuantity')} ({workOrder.unit})
+                  </label>
+                  <DxNumberBox
+                    value={formData.actualQuantity}
+                    onValueChanged={(e: { value?: number }) =>
+                      setFormData(prev => ({ ...prev, actualQuantity: e.value || 0 }))
+                    }
+                    format="#,##0.####"
+                    min={0}
+                    showSpinButtons
+                    width="100%"
+                  />
+                  {/* Live yield preview */}
+                  {formData.actualQuantity > 0 && (
+                    <p className={`text-sm mt-1 ${
+                      liveYieldPercent >= 90 ? 'text-green-600' :
+                      liveYieldPercent >= 80 ? 'text-amber-600' :
+                      'text-red-600'
+                    }`}>
+                      Yield: {liveYieldPercent.toFixed(2)}% ({formData.actualQuantity.toLocaleString()} / {Number(workOrder.plannedQuantity).toLocaleString()})
+                    </p>
+                  )}
+                  {workOrder.bomYieldTarget && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      คำนวณจาก BOM Yield Target {Number(workOrder.bomYieldTarget).toFixed(2)}% = {(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString()} {workOrder.unit}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Finished Goods Loss (auto-calculated) — only for finished stage */}
+              {!isBulkStage && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {tw('form.rejectQuantity')} ({workOrder.unit})
+                    <span className="text-xs text-gray-400 ml-2">คำนวณอัตโนมัติ = แผน - ได้จริง</span>
+                  </label>
+                  <DxNumberBox
+                    value={formData.rejectQuantity}
+                    format="#,##0.####"
+                    min={0}
+                    readOnly
+                    width="100%"
+                  />
                   <p className="text-xs text-gray-500 mt-0.5">
-                    คำนวณจาก BOM Yield Target {Number(workOrder.bomYieldTarget).toFixed(2)}% = {(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString()} {workOrder.unit}
+                    {Number(workOrder.plannedQuantity).toLocaleString()} - {formData.actualQuantity.toLocaleString()} = {formData.rejectQuantity.toLocaleString()} {workOrder.unit}
                   </p>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Reject Quantity (auto-calculated) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {tw('form.rejectQuantity')} ({workOrder.unit})
-                  <span className="text-xs text-gray-400 ml-2">คำนวณอัตโนมัติ = แผน - ได้จริง</span>
-                </label>
-                <DxNumberBox
-                  value={formData.rejectQuantity}
-                  format="#,##0.####"
-                  min={0}
-                  readOnly
-                  width="100%"
-                />
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {Number(workOrder.plannedQuantity).toLocaleString()} - {formData.actualQuantity.toLocaleString()} = {formData.rejectQuantity.toLocaleString()} {workOrder.unit}
-                </p>
-              </div>
-
-              {/* Warehouse Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {tw('form.warehouse')} *
-                </label>
-                <DxSelectBox
-                  dataSource={warehouses || []}
-                  displayExpr="name"
-                  valueExpr="id"
-                  value={formData.warehouseId}
-                  onValueChanged={(e: { value?: number }) =>
-                    setFormData(prev => ({ ...prev, warehouseId: e.value ?? null }))
-                  }
-                  placeholder={tw('form.warehousePlaceholder')}
-                  searchEnabled
-                  showClearButton
-                  width="100%"
-                />
-              </div>
+              {/* Warehouse Selection — only for finished stage */}
+              {!isBulkStage && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {tw('form.warehouse')} *
+                  </label>
+                  <DxSelectBox
+                    dataSource={warehouses || []}
+                    displayExpr="name"
+                    valueExpr="id"
+                    value={formData.warehouseId}
+                    onValueChanged={(e: { value?: number }) =>
+                      setFormData(prev => ({ ...prev, warehouseId: e.value ?? null }))
+                    }
+                    placeholder={tw('form.warehousePlaceholder')}
+                    searchEnabled
+                    showClearButton
+                    width="100%"
+                  />
+                </div>
+              )}
 
               {/* Notes */}
               <div>
@@ -531,7 +712,7 @@ export default function ProductionOutputPage() {
                   stylingMode="contained"
                   icon="check"
                   onClick={handleSubmit}
-                  disabled={recordMutation.isPending || !formData.actualQuantity || !formData.warehouseId}
+                  disabled={recordMutation.isPending || !formData.actualQuantity || (!isBulkStage && !formData.warehouseId)}
                 />
                 {isEditing && (
                   <DxButton

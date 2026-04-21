@@ -71,6 +71,7 @@ interface BOMDetail {
   yieldTarget: number;
   lossAllowance: number;
   theoreticalYield: number;
+  fillWeightMg: number | null;
   effectiveDate: string;
   expiryDate: string;
   createdAt: string;
@@ -119,6 +120,7 @@ export default function BOMDetailPage() {
     yieldTarget: 0,
     lossAllowance: 0,
     theoreticalYield: 0,
+    fillWeightMg: 0,
     effectiveDate: '',
     expiryDate: '',
   });
@@ -218,11 +220,12 @@ export default function BOMDetailPage() {
         setEditForm({
           name: result.data.name || '',
           version: result.data.version || '',
-          batchSize: result.data.batchSize || 0,
+          batchSize: Number(result.data.batchSize) || 0,
           batchUnit: result.data.batchUnit || '',
-          yieldTarget: result.data.yieldTarget || 0,
-          lossAllowance: result.data.lossAllowance || 0,
-          theoreticalYield: result.data.theoreticalYield || 0,
+          yieldTarget: Number(result.data.yieldTarget) || 0,
+          lossAllowance: Number(result.data.lossAllowance) || 0,
+          theoreticalYield: Number(result.data.theoreticalYield) || 0,
+          fillWeightMg: Number(result.data.fillWeightMg) || 0,
           effectiveDate: result.data.effectiveDate?.split('T')[0] || '',
           expiryDate: result.data.expiryDate?.split('T')[0] || '',
         });
@@ -249,6 +252,7 @@ export default function BOMDetailPage() {
           yieldTarget: editForm.yieldTarget || null,
           lossAllowance: editForm.lossAllowance || null,
           theoreticalYield: editForm.theoreticalYield || null,
+          fillWeightMg: editForm.fillWeightMg || null,
           effectiveDate: editForm.effectiveDate || null,
           expiryDate: editForm.expiryDate || null,
         }),
@@ -398,7 +402,7 @@ export default function BOMDetailPage() {
   const openEditLineDialog = (line: BOMLine) => {
     setEditingLine(line);
     setEditLineForm({
-      quantity: line.quantity || 0,
+      quantity: Number(line.quantity) || 0,
       isOptional: line.isOptional || false,
       notes: line.notes || '',
     });
@@ -566,7 +570,7 @@ export default function BOMDetailPage() {
         if (line.isHidden) {
           return <span className="text-gray-400">-</span>;
         }
-        return <span>{line.quantity?.toLocaleString()} {line.unit}</span>;
+        return <span>{Number(line.quantity).toLocaleString()} {line.unit}</span>;
       },
     },
     {
@@ -805,7 +809,7 @@ export default function BOMDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Batch Size</p>
-                <p className="text-2xl font-bold text-blue-600">{bom.batchSize?.toLocaleString() || 0}</p>
+                <p className="text-2xl font-bold text-blue-600">{Number(bom.batchSize).toLocaleString() || 0}</p>
                 <p className="text-xs text-gray-500">{bom.batchUnit}</p>
               </div>
             </CardContent>
@@ -814,7 +818,7 @@ export default function BOMDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Theoretical Yield</p>
-                <p className="text-2xl font-bold text-purple-600">{bom.theoreticalYield?.toLocaleString() || '-'}</p>
+                <p className="text-2xl font-bold text-purple-600">{Number(bom.theoreticalYield).toLocaleString() || '-'}</p>
                 <p className="text-xs text-gray-500">{bom.productUnit}</p>
               </div>
             </CardContent>
@@ -1095,6 +1099,24 @@ export default function BOMDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                น้ำหนักต่อหน่วยย่อย (mg/capsule)
+              </label>
+              <DxNumberBox
+                value={editForm.fillWeightMg}
+                onValueChange={(value) => setEditForm({ ...editForm, fillWeightMg: value || 0 })}
+                format="#,##0.####"
+              />
+              <p className="text-xs text-gray-500 mt-0.5">
+                ใช้คำนวณ Bulk Yield จากน้ำหนักที่ชั่งได้ — เช่น 600 mg/capsule (API 500 + Excipient 100)
+              </p>
+            </div>
+            <div>
+              {/* Placeholder for grid balance — keep empty to preserve 2-column layout */}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Effective Date</label>
               <DxDateBox
                 value={editForm.effectiveDate}
@@ -1348,7 +1370,7 @@ export default function BOMDetailPage() {
         onSelect={handleSelectItem}
         title="Select Material"
         showPrice="cost"
-        filterType="raw_material"
+        excludeType="finished_goods"
         allowCreate
       />
 

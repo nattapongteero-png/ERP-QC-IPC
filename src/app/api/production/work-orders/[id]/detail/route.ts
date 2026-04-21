@@ -36,6 +36,8 @@ export async function GET(
             productName: items.nameTh,
             productNameEn: items.nameEn,
             productUnit: items.primaryUnit,
+            productSecondaryUnit: items.secondaryUnit,
+            productConversionRate: items.conversionRate,
             ttmtCode: items.ttmtCode,
             drugCode24: items.drugCode24,
             gRegNumber: items.gRegNumber,
@@ -53,6 +55,14 @@ export async function GET(
             deliveryDate: workOrders.deliveryDate,
             yieldPercentage: workOrders.yieldPercentage,
             notes: workOrders.notes,
+            completedBy: workOrders.completedBy,
+            completedAt: workOrders.completedAt,
+            bulkOutputQty: workOrders.bulkOutputQty,
+            bulkOutputRecordedAt: workOrders.bulkOutputRecordedAt,
+            bulkOutputRecordedBy: workOrders.bulkOutputRecordedBy,
+            finishedOutputQty: workOrders.finishedOutputQty,
+            finishedOutputRecordedAt: workOrders.finishedOutputRecordedAt,
+            finishedOutputRecordedBy: workOrders.finishedOutputRecordedBy,
             createdAt: workOrders.createdAt,
             updatedAt: workOrders.updatedAt,
           })
@@ -67,25 +77,44 @@ export async function GET(
 
       const workOrder = woResult[0] as Record<string, unknown>;
 
-      // Get BOM yield/loss settings if BOM is linked
+      // Get BOM info (code, name, version) + yield/loss settings if BOM is linked
       if (workOrder.bomId) {
         const bom = getTableRef('bOM');
         const bomResult = await executeDbOperation(async (db) => {
           return db
             .select({
+              code: bom.code,
+              name: bom.name,
+              version: bom.version,
               yieldTarget: bom.yieldTarget,
               lossAllowance: bom.lossAllowance,
+              fillWeightMg: bom.fillWeightMg,
             })
             .from(bom)
             .where(eq(bom.id, workOrder.bomId));
         });
         if (bomResult.length > 0) {
+          workOrder.bomCode = bomResult[0].code;
+          workOrder.bomName = bomResult[0].name;
+          workOrder.bomVersion = bomResult[0].version;
           workOrder.bomYieldTarget = bomResult[0].yieldTarget;
           workOrder.bomLossAllowance = bomResult[0].lossAllowance;
+          workOrder.bomFillWeightMg = bomResult[0].fillWeightMg;
         }
       }
 
-      // Get work order materials
+      // Get work order materials.
+      //
+      // Unit handling (see bug: Materials tab showed BOM unit instead of weighed unit):
+      // - `unit`          = weighing/BOM unit (e.g. "g") — source of truth for display
+      // - `itemUnit`      = item master primary unit (e.g. "kg") — fallback only
+      // - `plannedQuantity` is stored in weighing unit
+      // - `actualQuantity` is stored in PRIMARY unit (for cost calculations)
+      // - `weighedQty`    is stored in weighing unit (what the operator typed)
+      //
+      // For the Materials tab we want Planned and Actual to share a unit so the
+      // variance is meaningful. We therefore expose `weighedQty` and compute
+      // `actualQty`/`variance` from weighedQty (weighing unit) in the response.
       const materialsResult = await executeDbOperation(async (db) => {
         return db
           .select({
@@ -97,6 +126,7 @@ export async function GET(
             itemUnit: items.primaryUnit,
             plannedQuantity: workOrderMaterials.plannedQuantity,
             actualQuantity: workOrderMaterials.actualQuantity,
+            weighedQty: workOrderMaterials.weighedQty,
             unit: workOrderMaterials.unit,
             status: workOrderMaterials.status,
             lotId: workOrderMaterials.lotId,
@@ -179,19 +209,45 @@ export async function GET(
         ? Math.round(((workOrder.actualQuantity as number) / (workOrder.plannedQuantity as number)) * 100 * 100) / 100
         : workOrder.yieldPercentage || null;
 
-      // Calculate material consumption
-      // Map field names for UI compatibility (UI expects plannedQty/actualQty)
-      const materialConsumption = materialsWithLots.map((material: Record<string, unknown>) => ({
-        ...material,
-        plannedQty: material.plannedQuantity,
-        actualQty: material.actualQuantity,
-        consumptionPercent: material.plannedQuantity && material.actualQuantity
-          ? Math.round(((material.actualQuantity as number) / (material.plannedQuantity as number)) * 100 * 100) / 100
-          : null,
-        variance: material.plannedQuantity && material.actualQuantity
-          ? (material.actualQuantity as number) - (material.plannedQuantity as number)
-          : null,
-      }));
+      // Calculate material consumption.
+      //
+      // Display priority for "Actual Qty":
+      //   1. weighedQty — the value the operator typed in the Weighing form,
+      //      stored in the weighing unit (same unit as plannedQuantity)
+      //   2. actualQuantity — stored in PRIMARY unit after verify (cost-accounting
+      //      field). Only used as a last resort when weighedQty is missing
+      //      (e.g. legacy records, materials issued without going through
+      //      the weighing flow).
+      //
+      // Variance and consumption % are always computed between values of the
+      // SAME unit so the number on screen is always meaningful.
+      const materialConsumption = materialsWithLots.map((material: Record<string, unknown>) => {
+        const planned = material.plannedQuantity as number | null;
+        const weighed = material.weighedQty as number | null;
+        const actualFallback = material.actualQuantity as number | null;
+
+        // Prefer weighedQty (weighing unit). Only fall back to actualQuantity
+        // if no weighing record exists.
+        const displayActual = weighed !== null && weighed !== undefined
+          ? weighed
+          : actualFallback;
+
+        const variance = planned !== null && planned !== undefined && displayActual !== null && displayActual !== undefined
+          ? Number(displayActual) - Number(planned)
+          : null;
+
+        const consumptionPercent = planned && displayActual
+          ? Math.round((Number(displayActual) / Number(planned)) * 100 * 100) / 100
+          : null;
+
+        return {
+          ...material,
+          plannedQty: planned,
+          actualQty: displayActual,
+          consumptionPercent,
+          variance,
+        };
+      });
 
       // Calculate production time
       let productionTimeHours = null;
@@ -300,6 +356,127 @@ export async function GET(
         getWOIPCTests(woId).catch(() => []),
       ]);
 
+      // ─── eBMR Approval Signatures ────────────────────────────────────
+      // 3 signatures pulled from different workflow events:
+      //   1. Produced By  ← work_orders.completed_by + completed_at
+      //   2. Verified By (QC) ← wo_finished_inspection (status='passed')
+      //                         OR quality_tests.approvedBy (testType='finished')
+      //   3. Approved By (QA) ← quality_tests.dispositionApprovedBy (final release)
+      const signatures: {
+        producedBy: { userId: number; name: string; signedAt: string; source: string } | null;
+        verifiedByQc: { userId: number; name: string; signedAt: string; source: string } | null;
+        approvedByQa: { userId: number; name: string; signedAt: string; source: string } | null;
+      } = { producedBy: null, verifiedByQc: null, approvedByQa: null };
+
+      try {
+        const users = getTableRef('users');
+        const woFinishedInspection = getTableRef('wOFinishedInspection');
+
+        // Collect user IDs to resolve in one query
+        const userIds = new Set<number>();
+        if (workOrder.completedBy) userIds.add(workOrder.completedBy as number);
+
+        // 2. Finished Inspection — QC
+        const finishedInsp = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              inspectorId: woFinishedInspection.inspectorId,
+              inspectedAt: woFinishedInspection.inspectedAt,
+              reInspectorId: woFinishedInspection.reInspectorId,
+              reInspectedAt: woFinishedInspection.reInspectedAt,
+              status: woFinishedInspection.status,
+            })
+            .from(woFinishedInspection)
+            .where(eq(woFinishedInspection.workOrderId, woId));
+        }).catch(() => []);
+
+        const passedInsp = finishedInsp.find(
+          (x: { status?: string }) => x.status === 'passed'
+        );
+        let qcSource = '';
+        let qcUserId: number | null = null;
+        let qcSignedAt: string | null = null;
+
+        if (passedInsp) {
+          qcUserId = passedInsp.reInspectorId ?? passedInsp.inspectorId ?? null;
+          qcSignedAt = passedInsp.reInspectedAt ?? passedInsp.inspectedAt ?? null;
+          qcSource = 'wo_finished_inspection';
+        } else {
+          // Fallback: latest finished-product quality_tests.approvedBy
+          const finishedTests = relatedQcTests.filter(
+            (t: Record<string, unknown>) =>
+              t.testType === 'finished' && t.approvedBy && t.approvedAt
+          );
+          if (finishedTests.length > 0) {
+            const latest = finishedTests.sort(
+              (a: Record<string, unknown>, b: Record<string, unknown>) =>
+                String(b.approvedAt).localeCompare(String(a.approvedAt))
+            )[0];
+            qcUserId = latest.approvedBy as number;
+            qcSignedAt = latest.approvedAt as string;
+            qcSource = 'quality_tests.approvedBy';
+          }
+        }
+        if (qcUserId) userIds.add(qcUserId);
+
+        // 3. QA Approval — latest disposition_approved_by across WO's quality tests
+        let qaUserId: number | null = null;
+        let qaSignedAt: string | null = null;
+        const disposed = relatedQcTests.filter(
+          (t: Record<string, unknown>) =>
+            t.dispositionApprovedBy && t.dispositionApprovedAt
+        );
+        if (disposed.length > 0) {
+          const latest = disposed.sort(
+            (a: Record<string, unknown>, b: Record<string, unknown>) =>
+              String(b.dispositionApprovedAt).localeCompare(String(a.dispositionApprovedAt))
+          )[0];
+          qaUserId = latest.dispositionApprovedBy as number;
+          qaSignedAt = latest.dispositionApprovedAt as string;
+        }
+        if (qaUserId) userIds.add(qaUserId);
+
+        // Resolve user names
+        const userMap = new Map<number, string>();
+        if (userIds.size > 0) {
+          const userRows = await executeDbOperation(async (db) => {
+            return db
+              .select({ id: users.id, name: users.name })
+              .from(users);
+          });
+          for (const u of userRows) {
+            if (userIds.has(u.id as number)) userMap.set(u.id as number, u.name as string);
+          }
+        }
+
+        if (workOrder.completedBy && workOrder.completedAt) {
+          signatures.producedBy = {
+            userId: workOrder.completedBy as number,
+            name: userMap.get(workOrder.completedBy as number) || '',
+            signedAt: String(workOrder.completedAt),
+            source: 'work_orders.completed_by',
+          };
+        }
+        if (qcUserId && qcSignedAt) {
+          signatures.verifiedByQc = {
+            userId: qcUserId,
+            name: userMap.get(qcUserId) || '',
+            signedAt: String(qcSignedAt),
+            source: qcSource,
+          };
+        }
+        if (qaUserId && qaSignedAt) {
+          signatures.approvedByQa = {
+            userId: qaUserId,
+            name: userMap.get(qaUserId) || '',
+            signedAt: String(qaSignedAt),
+            source: 'quality_tests.dispositionApprovedBy',
+          };
+        }
+      } catch (err) {
+        console.error('Error building eBMR signatures:', err);
+      }
+
       // eBMR (Electronic Batch Manufacturing Record) summary
       const ebmr = {
         batchNumber: workOrder.batchNumber,
@@ -329,6 +506,8 @@ export async function GET(
         environmentalLogs: envLogsAll,
         materialWeighing: materialWeighingData,
         ipcTests: Array.isArray(ipcTestsData) ? ipcTestsData : [],
+        // eBMR Approval Signatures (Produced By / Verified By QC / Approved By QA)
+        signatures,
       };
 
       return NextResponse.json({
