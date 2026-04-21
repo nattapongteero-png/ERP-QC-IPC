@@ -10,12 +10,12 @@
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:'Sarabun','Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b;line-height:1.6;font-size:15px;}
 
-    .header{background:linear-gradient(135deg,#065f46 0%,#047857 30%,#059669 60%,#0d9488 100%);color:white;padding:44px 0 32px;text-align:center;position:relative;overflow:hidden;}
+    .header{background:linear-gradient(135deg,#065f46 0%,#047857 30%,#059669 60%,#0d9488 100%);color:white;padding:16px 0;text-align:center;position:relative;overflow:hidden;}
     .header::before{content:'';position:absolute;top:-50%;right:-20%;width:500px;height:500px;background:rgba(255,255,255,0.04);border-radius:50%;}
     .header .logo{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:16px;font-size:28px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.2);}
-    .header h1{font-size:28px;font-weight:700;}
+    .header h1{font-size:22px;font-weight:700;margin:0;}
     .header .subtitle{font-size:16px;opacity:0.85;margin-top:4px;}
-    .header .date-badge{display:inline-block;margin-top:14px;padding:6px 20px;background:rgba(255,255,255,0.15);border-radius:22px;font-size:14px;font-weight:500;border:1px solid rgba(255,255,255,0.2);}
+    .header .date-badge{display:inline-block;margin:0;padding:6px 20px;background:rgba(255,255,255,0.15);border-radius:22px;font-size:14px;font-weight:500;border:1px solid rgba(255,255,255,0.2);}
 
     .top-bar{position:sticky;top:0;z-index:100;background:white;border-bottom:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
 
@@ -36,7 +36,7 @@
     .nav-pill .cnt{font-size:11px;background:rgba(0,0,0,0.08);padding:1px 6px;border-radius:6px;font-weight:700;}
     .nav-pill.active .cnt{background:rgba(255,255,255,0.25);}
 
-    .container{max-width:1400px;margin:0 auto;padding:0 16px;}
+    .container{max-width:100%;margin:0 auto;padding:0 16px;}
     .content{padding:20px 0 60px;}
 
     /* Legend */
@@ -45,13 +45,12 @@
     .legend-item{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#475569;}
 
     /* Table */
-    .tbl-wrap{background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;}
-    .tbl-title{padding:16px 24px;border-bottom:1px solid #e2e8f0;background:#f8fafc;font-size:18px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:12px;}
-    .tbl-title .count{margin-left:auto;background:#e2e8f0;color:#475569;font-size:13px;font-weight:700;padding:4px 14px;border-radius:18px;}
+    .tbl-wrap{background:white;border-radius:12px;border:1px solid #e2e8f0;}
+    .tbl-title{display:none;}
 
     table.cl{width:100%;border-collapse:collapse;font-size:14px;}
-    table.cl th{background:#f1f5f9;padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:2px solid #d1d5db;white-space:nowrap;font-size:14px;}
-    table.cl .filter-row th{background:#f8fafc;padding:4px 6px;border-bottom:2px solid #e2e8f0;}
+    table.cl th{background:#f1f5f9;padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:2px solid #d1d5db;white-space:nowrap;font-size:14px;position:sticky;top:0;z-index:10;}
+    table.cl .filter-row th{position:sticky;top:38px;z-index:10;background:#f8fafc;padding:4px 6px;border-bottom:2px solid #e2e8f0;}
     table.cl .filter-row select,table.cl .filter-row input{width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;color:#374151;background:white;outline:none;}
     table.cl .filter-row select:focus,table.cl .filter-row input:focus{border-color:#059669;box-shadow:0 0 0 2px rgba(5,150,105,0.15);}
     table.cl .filter-row select{cursor:pointer;}
@@ -71,9 +70,11 @@
     td.mod-col{font-weight:600;color:#0f172a;}
     td.menu-col{color:#1e293b;}
     td.sub-col{color:#475569;font-size:13px;}
-    td.desc-col{color:#1e293b;font-size:14px;}
+    td.desc-col{color:#1e293b;font-size:14px;min-width:300px;}
     td.date-col{white-space:nowrap;color:#64748b;font-size:13px;}
-    td.prompt-col{color:#475569;font-size:13px;max-width:340px;}
+    td.prompt-col{color:#475569;font-size:13px;min-width:280px;}
+    td.time-col{white-space:nowrap;color:#64748b;font-size:13px;text-align:center;}
+    td.duration-col{white-space:nowrap;color:#0f172a;font-size:13px;font-weight:600;text-align:center;}
 
     .back-to-top{position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:12px;background:#059669;color:white;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(5,150,105,0.3);z-index:50;font-size:20px;}
     .back-to-top.visible{display:flex;}
@@ -86,21 +87,21 @@
 </head>
 <body>
 
-<div class="header">
-  <div style="position:relative;z-index:1">
-    <div class="logo">&#127807;</div>
-    <h1>Herbal Medicine ERP</h1>
-    <p class="subtitle">Change Log Report &mdash; รายงานสรุปการแก้ไข/พัฒนาระบบ</p>
-    <div class="date-badge">25 มีนาคม พ.ศ. 2569 &mdash; ปัจจุบัน</div>
+<div class="header" style="padding:16px 0;text-align:center;">
+  <div style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:24px;">&#127807;</span>
+    <h1 style="font-size:22px;font-weight:700;margin:0;">Herbal Medicine ERP</h1>
+    <span style="font-size:16px;opacity:0.85;">Change Log Report &mdash; รายงานสรุปการแก้ไข/พัฒนาระบบ</span>
+    <span class="date-badge" style="margin:0;">25 มีนาคม พ.ศ. 2569 &mdash; ปัจจุบัน</span>
   </div>
 </div>
 
 <div class="top-bar">
   <div class="stats-row">
-    <div class="stat-chip hl"><span class="num" id="statCommits">—</span><span class="lbl">Items</span></div>
-    <div class="stat-chip"><span class="num" id="statFeatures">—</span><span class="lbl">Features</span></div>
-    <div class="stat-chip"><span class="num" id="statFixes">—</span><span class="lbl">Fixes</span></div>
-    <div class="stat-chip"><span class="num" id="statModules">—</span><span class="lbl">Modules</span></div>
+    <div class="stat-chip hl"><span class="num" id="statCommits">&mdash;</span><span class="lbl">Items</span></div>
+    <div class="stat-chip"><span class="num" id="statFeatures">&mdash;</span><span class="lbl">Features</span></div>
+    <div class="stat-chip"><span class="num" id="statFixes">&mdash;</span><span class="lbl">Fixes</span></div>
+    <div class="stat-chip"><span class="num" id="statModules">&mdash;</span><span class="lbl">Modules</span></div>
     <button class="btn-export" onclick="exportExcel()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       Export Excel
@@ -113,6 +114,9 @@
   <div class="container">
     <!-- Legend -->
     <div class="legend-box">
+      <span id="tblTitleInline" style="font-weight:700;color:#0f172a;font-size:16px;">ทั้งหมด</span>
+      <span id="tblCountInline" style="background:#e2e8f0;color:#475569;font-size:13px;font-weight:700;padding:4px 14px;border-radius:18px;">0 รายการ</span>
+      <span style="color:#d1d5db;font-size:16px;">|</span>
       <span class="legend-title">หมายเหตุประเภท:</span>
       <span class="legend-item"><span class="badge b-feat">FEATURE</span> พัฒนาฟังก์ชันใหม่</span>
       <span class="legend-item"><span class="badge b-fix">BUG FIX</span> แก้ไขข้อผิดพลาด/ปัญหา</span>
@@ -133,140 +137,270 @@
 
 <script>
 var DATA=[
+  // ==================== 21 เมษายน 2569 ====================
+  {module:'Inventory',menu:'Items / New',sub:'Fix Client-Side Crash on Shelf Life Field',type:'fix',desc:'แก้ Application error (Minified React #185 — Maximum update depth exceeded) บนหน้า /inventory/items/new เมื่อผู้ใช้กรอกช่อง "อายุการเก็บรักษา" — root cause: ช่องปี + ช่องเดือน ทั้งสองผูกกับ state `shelfLifeDays` เดียวกัน เมื่อพิมพ์ช่องปี state เปลี่ยน → prop ช่องเดือนเปลี่ยน → DevExtreme NumberBox ยิง onValueChanged → setState อีกรอบ → infinite re-render loop — แก้โดยเพิ่ม guard check `if (next !== formData.shelfLifeDays)` ใน handler ทั้งสองช่อง ไม่ให้ setState เมื่อค่าคำนวณได้เท่าเดิม ตัด loop ทันที',date:'21 เม.ย. 69',startTime:'09:45',endTime:'10:00',prompt:'https://herbal-erp-arjaro.bmscloud.in.th/inventory/items/new อายุการเก็บรักษา — ระบบ Error Application error: a client-side exception has occurred'},
+  {module:'Inventory',menu:'Items',sub:'Sequential Gap-Filling Item Code Generator',type:'fix',desc:'แก้ปุ่ม Generate รหัสสินค้าใน /inventory/items — เดิมใช้ Math.random() สร้างเลข 0000-9999 (เสี่ยงชนกัน ไม่เรียงลำดับ) เปลี่ยนเป็น (1) สร้าง API endpoint ใหม่ GET /api/items/next-code?type=... (2) logic: ดึงทุก code ที่ prefix ตรงกับ type (RM/PK/WIP/FG/EX/CN/ITM), extract ตัวเลข, scan ต่อเนื่องจาก 1 → หาช่องว่างแรก (gap-filling ทำให้ใช้เลขที่ถูกลบกลับมาได้) → return format PREFIX-NNNN (4 digits) (3) ปุ่ม Generate ใน ItemEditForm เรียก API ใหม่ + fallback เป็น random ถ้า API ไม่พร้อมใช้งาน — รองรับ prefix: RM, PK, WIP, FG, EX, CN, ITM',date:'21 เม.ย. 69',startTime:'09:30',endTime:'10:00',prompt:'ปุ่ม Generate สร้างข้อมูลพื้นฐานรายการสินค้าทุกประเภท เมื่อกดให้ run เลขต่อเนื่อง ถ้ามีรหัสแล้วให้ข้ามเลขถัดไป เรียงจากน้อยไปมาก'},
+  {module:'HR',menu:'Roles',sub:'Add Reactivate Button for Inactive Roles',type:'feat',desc:'เพิ่มปุ่ม "เปิดใช้งาน" สำหรับ Role ที่ถูก Deactivate ไปแล้ว — (1) หน้า /hr/roles (List): action icon สีเขียว (CheckCircle) แทน trash icon สำหรับ inactive role (2) หน้า /hr/roles/[id] (Detail): ปุ่ม "เปิดใช้งาน" (เขียว) แสดงแทน "ปิดใช้งาน" เมื่อ role.isActive === false — เรียก PUT /api/hr/roles/[id] body {isActive:true} (API + service รองรับอยู่แล้ว) + Toast "เปิดใช้งานบทบาทสำเร็จ" + invalidate query cache',date:'21 เม.ย. 69',startTime:'09:00',endTime:'09:30',prompt:'รายการที่กดปิดการใช้งานไปแล้วไม่มีปุ่มให้เปิดการใช้งานใหม่'},
+
+  // ==================== 20 เมษายน 2569 ====================
+  {module:'Production',menu:'Output / Yield',sub:'Separate Bulk vs Finished Records',type:'feat',desc:'แยก record การบันทึก output เป็น 2 ระเบียนอิสระ — (1) Bulk Product Yield (step สุดท้ายของ Post-Production) บันทึกลง `bulk_output_qty/_recorded_at/_by` ไม่สร้าง FG lot (2) Finished Production Output/Yield (step สุดท้ายของ Inspection) บันทึกลง `finished_output_qty/_recorded_at/_by` + สร้าง FG lot เข้าคลัง — Schema migration เพิ่ม 6 columns ใน `work_orders` (SQLite + MySQL auto-synced 6 columns), Service เพิ่ม `recordBulkOutput()` ใหม่, API `/api/production/yield` รับ `stage=bulk|finished` branch logic, หน้า production-output รับ query param `?stage=` เลือก form ต่าง (bulk ซ่อน warehouse/reject/yield), ExecutionDashboard getStatus แยกใช้ `bulkOutput.recorded` vs `finishedOutput.recorded` ให้แต่ละเมนูสถานะแยกกัน',date:'20 เม.ย. 69',startTime:'15:30',endTime:'17:00',prompt:'แยกกัน (แยก record การบันทึก Bulk Yield และ Finished Output)'},
+  {module:'Production',menu:'Execution Dashboard',sub:'Split Bulk Yield and Finished Output Menus',type:'feat',desc:'ปรับลำดับเมนูใน Execution Dashboard — (1) ย้าย "Bulk Product Yield" กลับไปที่ step สุดท้ายของ Post-Production Phase (หลัง Post-Production Cleaning) สำหรับบันทึกจำนวนผลิตภัณฑ์บัลก์หลังผลิต ก่อนเข้า packaging (2) เพิ่มเมนูใหม่ "Production Output / Yield" ที่ step สุดท้ายของ Inspection Phase (หลัง Finished Product Inspection) สำหรับบันทึกจำนวน FG ที่ผ่าน QA เข้าคลัง — ทั้ง 2 เมนู href ใช้ query param `?stage=bulk|finished` แยกความหมาย ใช้ icon Package vs Boxes แยกด้าน visual',date:'20 เม.ย. 69',startTime:'15:00',endTime:'15:30',prompt:'ขอย้ายเมนู Bulk Product Yield กลับไปที่ step สุดท้ายของ Post Production + ขอเพิ่มเมนู Production Output/Yield ที่ step สุดท้ายของ Inspection'},
+  {module:'Production',menu:'Work Orders / IPC',sub:'Bulk Pass/Fail All Buttons',type:'feat',desc:'เพิ่มปุ่ม bulk action ในหน้าบันทึก IPC สำหรับ Criteria Type = checkbox — (1) ปุ่ม "ผ่านทั้งหมด" (สีเขียว) ทำ mark pass ทุก sample ทันที (2) ปุ่ม "ไม่ผ่านทั้งหมด" (สีแดง) mark fail ทุก sample (3) ปุ่ม "ล้างค่า" reset กลับ null — หลัง bulk action ยกเลิก sequential-fill lock ให้แก้ไข sample เฉพาะจุดที่ต้องการได้ทันที (operator ไม่ต้องกดทีละ sample เมื่อผลตรวจเหมือนกันทั้งหมด)',date:'20 เม.ย. 69',startTime:'14:00',endTime:'14:30',prompt:'เพิ่มปุ่ม pass all กรณีการกำหนด Master Data บันทึก IPC Criteria Type ติ๊กเลือก (Checkbox) ผ่าน/ไม่ผ่าน'},
+  {module:'Documentation',menu:'User Roles Summary',sub:'Permission Codes Descriptions',type:'feat',desc:'เพิ่มคำอธิบายแต่ละ Module + 67 Permission codes ใน user-roles-summary-herbal-erp.html — redesign permission matrix card แสดง: (1) Icon + ชื่อ module (2) "ใช้ทำอะไร" อธิบายหน้าที่ module (3) รายการ permission codes พร้อม description ภาษาไทย (4) highlight quality:release เป็น GMP Critical + inventory:adjust critical — ดึงจาก hr_app_permissions table 67 records',date:'20 เม.ย. 69',startTime:'13:30',endTime:'14:00',prompt:'อธิบายแต่ละ Module ที่กำหนดไว้ใช้ทำอะไร และเพิ่มเข้าไป user-manual'},
+  {module:'Documentation',menu:'User Roles Summary',sub:'Role/Permission Matrix Page',type:'feat',desc:'สร้างหน้าสรุปสิทธิ์ผู้ใช้งาน /user-roles-summary-herbal-erp.html — 34 HR Roles แบ่ง 10 กลุ่ม (Executive/QC/Production/Warehouse/Purchasing/Sales/Accounting/HR/R&D/Viewer), 67 Permission codes ใน 16 modules, ระบุ maps-to legacy role + เมนูที่เข้าถึงได้ + ข้อควรรู้ 5 ข้อ — เพิ่มปุ่ม "🔐 สรุปสิทธิ์ผู้ใช้" ใน top-bar ของ user-manual-herbal-erp.html',date:'20 เม.ย. 69',startTime:'13:00',endTime:'13:30',prompt:'สรุป Role ที่อยู่ในระบบ HR และแต่ละ Role ถูกกำหนดทำอะไรได้บ้างในระบบ'},
+  {module:'Documentation',menu:'GMP Compliance Report',sub:'Expand to 11 Issues (GMP Gap Analysis)',type:'feat',desc:'ขยายหน้า /gmp-compliance-gap-herbal-erp.html จาก 3 → 11 ประเด็น — เพิ่ม (8) eBMR Gowning Inspection, (9) Document Mapping (paper+digital), (10) Tablet Press Log, (11) GMP Module Coverage 70% ขาด 6 หมวด (IQ/OQ/PQ, Full Calibration, Management Review, Self-Inspection, Supplier Qualification, Water/HVAC, APR), + (5) FG Packaging Images, (6) FG Release Workflow, (7) External Lab Import, (4) IPC Criteria Type + Bulk Pass/Fail — รวมประมาณการ 175 ชม. (~22 วัน)',date:'20 เม.ย. 69',startTime:'11:00',endTime:'13:00',prompt:'ตรวจสอบประเด็น GMP Compliance เพิ่มเติม 7-8 ประเด็น (FG packaging/release, external lab, gowning, doc mapping, tablet press, GMP coverage)'},
+  {module:'Documentation',menu:'GMP Compliance Report',sub:'Gap Analysis Summary Page',type:'feat',desc:'สร้างหน้าสรุปการตรวจสอบ GMP Compliance 3 ประเด็น — (1) การคืนวัตถุดิบ (Material Return) หลังชั่งไม่หมด (2) การตรวจจับ Variance ชั่งไม่ตรงแผน (3) SOP Step ↔ IPC Integration — แต่ละประเด็นแสดงตารางเปรียบเทียบ: ประเด็น/ความต้องการ, สิ่งที่ระบบมีแล้ว, สิ่งที่ยังไม่มี, สิ่งที่ต้องพัฒนา, ประมาณการเวลา — Deploy ที่ /gmp-compliance-gap-herbal-erp.html รวม 42 ชม. (5-6 วันทำงาน)',date:'20 เม.ย. 69',startTime:'10:00',endTime:'11:00',prompt:'ทำสรุป เป็น link ให้มี ข้อม ประเด็น/ความต้องการ | สิ่งที่ระบบมีแล้ว | สิ่งที่ระบบยังไม่มี | สิ่งที่ต้องพัฒนา | ประมาณการระยะเวลาพัฒนากี่ชั่วโมง'},
+
+  // ==================== 17 เมษายน 2569 ====================
+  {module:'GMP',menu:'Multiple Pages',sub:'i18n Language Switching Fix',type:'fix',desc:'แก้ปัญหาการสลับภาษาไทย/อังกฤษในโมดูล GMP ทั้งชุด 8 หน้า — /gmp/documents (Documents by Type card), /gmp/capa (priority/source badges), /gmp/complaints (category/severity labels), /gmp/recalls (class/status + tabs), /gmp/stability (study types/status), /gmp/internal-audit (audit status/finding category/chapter progress), /gmp/sanitation (logs/pest-control). เปลี่ยน config object จาก hardcoded `label` เป็น `translationKey` + เพิ่ม `key={locale}` ใน DevExtreme charts/datagrids เพื่อบังคับ remount ตอนเปลี่ยนภาษา + เพิ่ม translation keys ใน th/en gmp.json ครบทุกหน้า',date:'17 เม.ย. 69',startTime:'08:00',endTime:'09:30',prompt:'การเปลี่ยนภาษา จากไทย > English และ English > ไทย ให้ตรวจสอบและแก้ไขปัญหา — ทุกแถบ ทุกปุ่มกด ทุกชื่อหัว column ทุก card ปรับ card text และ header column ให้เปลี่ยนตาม การเปลี่ยนภาษา (GMP pages + Inventory Warehouses + Batch Records)'},
+  {module:'Inventory',menu:'Warehouses',sub:'Garbled Type Data Fix + i18n',type:'fix',desc:'แก้ type ข้อมูลใน DB ที่มีช่องว่าง/ค่าผิด — `UPDATE warehouses SET type=\'raw_material\' WHERE type=\'raw material\'`, `type=\'general\'` → `type=\'raw_material\'` ตาม enum ที่ UI ใช้ + ปรับ i18n ของหน้า /inventory/warehouses ให้หัวคอลัมน์/tabs/type tag เปลี่ยนตามภาษาได้ครบ (เพิ่ม key={locale} บน DataGrid + translation keys ใน inventory.json)',date:'17 เม.ย. 69',startTime:'09:30',endTime:'10:00',prompt:'/inventory/warehouses มี type เป็น "general" และ "raw material" (มีช่องว่าง) ที่ทำให้ UI แสดงผลเพี้ยน'},
+  {module:'Sales',menu:'Orders / VMI / Customers',sub:'i18n Full Coverage',type:'fix',desc:'ปรับ 3 หน้าโมดูล Sales ให้รองรับการสลับภาษาครบ — /sales/orders (columns, status chip, toolbar), /sales/vmi-orders (VMI-specific fields + portal labels), /sales/customers (customer types, tier badges) ใช้ pattern translationKey + key={locale} + เพิ่ม namespace keys ใน sales.json (th/en) ~70 keys',date:'17 เม.ย. 69',startTime:'10:00',endTime:'10:30',prompt:'ปรับการเปลี่ยนภาษา — sales (orders, vmi-orders, customers)'},
+  {module:'Accounting',menu:'All Sub-menus (9 pages)',sub:'i18n Full Coverage',type:'fix',desc:'ปรับโมดูลบัญชีทั้งหมดให้ตอบสนองการเปลี่ยนภาษา — /accounting (landing), /accounting/ap + /ap/invoices + /ap/aging + /ap/payments, /accounting/ar + /ar/invoices + /ar/aging + /ar/receipts, /accounting/credit-debit-notes + credit-notes + debit-notes, /accounting/standard-costs, /accounting/variance-reports, /accounting/fixed-assets, /accounting/period-close. Refactor config object ใช้ translationKey pattern + ส่ง `t` prop ลง sub-components (EmptyState, NoResultsState, PeriodCardList, StatusBadge) + เพิ่ม ~200 keys ใน accounting.json',date:'17 เม.ย. 69',startTime:'10:30',endTime:'12:00',prompt:'ปรับการเปลี่ยนภาษา — accounting (all 9 sub-pages)'},
+  {module:'Cost',menu:'Landing + Work Centers + Landed Costs + Reports',sub:'i18n Full Coverage',type:'fix',desc:'ปรับ 4 หน้า Cost Management ให้เปลี่ยนภาษาได้ครบ — KPI labels, chart axis, column headers, filter chips ใน /cost, /cost/work-centers, /cost/landed-costs, /cost/reports/cost-summary เพิ่ม ~14 translation keys × 2 ภาษา',date:'17 เม.ย. 69',startTime:'12:00',endTime:'12:15',prompt:'ปรับการเปลี่ยนภาษา — cost (main + 3 sub)'},
+  {module:'VMI',menu:'Dashboard + Sync',sub:'i18n Full Coverage',type:'fix',desc:'ปรับ /vmi (6 KPI cards) และ /vmi/sync (sync history grid + modal) ให้เปลี่ยนภาษาได้ — refactor SYNC_TYPE_CONFIG ให้มี translationKey, sync status/portal labels, เพิ่ม vmi.json keys ~90 รายการรวม sync.* และ syncTypes.*',date:'17 เม.ย. 69',startTime:'12:15',endTime:'12:30',prompt:'ปรับการเปลี่ยนภาษา — VMI (main + sync)'},
+  {module:'HR',menu:'All Sub-menus (10 pages)',sub:'i18n Full Coverage',type:'fix',desc:'ปรับโมดูล HR ทั้งหมดให้รองรับการเปลี่ยนภาษา — /hr (landing), /hr/employees, /hr/positions, /hr/roles, /hr/org + /hr/org-chart, /hr/authorizations, /hr/audit, /hr/health-records, /hr/notifications, /hr/training. Refactor STATUS_CONFIG/TYPE_CONFIG จาก label → translationKey, เพิ่ม hr.json keys ~120 รายการ',date:'17 เม.ย. 69',startTime:'12:30',endTime:'13:15',prompt:'ปรับการเปลี่ยนภาษา — HR (all sub-menus)'},
+  {module:'Cross-module',menu:'Template / Issues / Settings',sub:'i18n Full Coverage',type:'fix',desc:'ปิดงาน i18n ในโมดูลที่เหลือ — Template 3 หน้า (สร้าง template.json namespace ใหม่ + เพิ่มใน next-intl config), Issues 4 หน้า (list/detail/new + 25+ column labels), Settings/workflow-test 1 หน้า (7 new keys) เติมเข้า th/en JSON',date:'17 เม.ย. 69',startTime:'13:15',endTime:'13:30',prompt:'ปรับการเปลี่ยนภาษา — Template, Issues, Settings'},
+  {module:'Documentation',menu:'Training Slides',sub:'Master Data Training (Reveal.js + PPTX)',type:'feat',desc:'สร้างสไลด์อบรมผู้ใช้งาน "การเพิ่มและจัดการข้อมูลพื้นฐาน" 23 สไลด์ ครอบคลุม 4 หัวข้อ (Raw Materials/Packaging/Finished Goods/BOM) ใช้ Reveal.js v4.6.1 + ปุ่ม Download HTML + Download PPTX (pptxgenjs v3.12.0) generate client-side — เก็บเป็น backup ใน docs/training/ (หน้าเว็บ /training/master-data-training.html ลบออกตามคำขอผู้ใช้ภายหลัง)',date:'17 เม.ย. 69',startTime:'13:30',endTime:'14:30',prompt:'ทำ slide อบรมผู้ใช้งาน — การเพิ่มและจัดการข้อมูลพื้นฐาน [Raw Materials, Packaging, Finished Goods, BOM] — ทำเป็น link .html + ปุ่ม download HTML และ PowerPoint'},
+  {module:'Documentation',menu:'Training URL Removal',sub:'Public Training Page Delete',type:'refac',desc:'ลบ URL สไลด์อบรม `/training/master-data-training.html` ออกจากทั้ง metaherb และ arjaro ตามคำขอ — `rm -rf public/training/` + rebuild docker images + restart containers — backup ยังเก็บไว้ที่ `docs/training/` สำหรับการอบรมในอนาคต',date:'17 เม.ย. 69',startTime:'14:30',endTime:'14:45',prompt:'ลบ url ของ 2 link นี้ https://herbal-erp-metaherb.bmscloud.in.th/training/master-data-training.html#/ https://herbal-erp-arjaro.bmscloud.in.th/training/master-data-training.html#/'},
+  {module:'Documentation',menu:'Training Slides',sub:'Full ERP Training 28 Slides + PPTX',type:'feat',desc:'สร้างสไลด์อบรมผู้ใช้งานครบ 5 โมดูล 28 สไลด์ ด้วย Reveal.js — (1) Master Data: วัตถุดิบ/บรรจุภัณฑ์/สินค้าสำเร็จรูป/BOM (2) จัดซื้อ: PO/รับเข้า/Lot & QC (3) ผลิต: Work Order/ตัดจ่ายวัตถุดิบ/Production Log (4) รับ FG: FG Receipt/Final QC (5) ขาย: Invoice/Stock Balance/Report — มี Flow Diagram ทุกโมดูล, ภาพ Screenshot จากระบบจริง 9 ภาพ, ปุ่ม Download HTML + Download PPTX (pptxgenjs), deploy ที่ /training/master-data-training.html',date:'17 เม.ย. 69',startTime:'14:45',endTime:'15:30',prompt:'จัดทำ slide อบรม 5 modules ครอบคลุม Master Data จัดซื้อ ผลิต รับ FG ขาย — มี flow กระบวนการ + screenshot จากระบบ + download PowerPoint'},
+  {module:'Documentation',menu:'User Manual',sub:'Flow Diagrams + Screenshots + PPTX Export',type:'feat',desc:'เพิ่มเนื้อหาใน /user-manual-herbal-erp.html — (1) Flow Diagram ทุกบท: Master Data 4 ขั้น, Purchasing 6 ขั้น, Production 6 ขั้น, FG Receipt 5 ขั้น, Sales 4 ขั้น (2) ภาพ Screenshot จากระบบจริง 9 จุด: Items list, BOM list, PO list+new, Lots, QC Tests, WO list+detail, Sales Orders (3) ปุ่ม Download PowerPoint (pptxgenjs) สร้าง PPTX ครบทุกบท ทุก flow ทุก step — CSS classes ใหม่ .screenshot-frame + .flow-diagram',date:'17 เม.ย. 69',startTime:'15:30',endTime:'16:15',prompt:'ใส่เนื้อหาจากสไลด์อบรมเข้าใน user-manual-herbal-erp.html — flow กระบวนการ + screenshot จากระบบ + ปุ่ม download PowerPoint'},
+  {module:'Documentation',menu:'Training Landing',sub:'Slide Links + Per-Module PPTX Download',type:'feat',desc:'ปรับหน้า /training-herbal-erp.html — เพิ่มปุ่ม 2 แบบในทุก session card: (1) "\u0e40\u0e1b\u0e34\u0e14\u0e2a\u0e44\u0e25\u0e14\u0e4c\u0e2d\u0e1a\u0e23\u0e21" link ไปยัง Reveal.js slides ตรง module ที่เลือก (#/3, #/8, #/13, #/18, #/22) (2) "Download PowerPoint" สร้าง PPTX แยกแต่ละ module ด้วย pptxgenjs — แต่ละ PPTX มี: cover slide, flow diagram, topic slides พร้อม steps+fields table, screenshot slides (embed base64), thank you slide',date:'17 เม.ย. 69',startTime:'16:15',endTime:'16:45',prompt:'\u0e17\u0e33 link slide \u0e01\u0e32\u0e23\u0e2d\u0e1a\u0e23\u0e21 + \u0e1b\u0e38\u0e48\u0e21 download PowerPoint \u0e02\u0e2d\u0e07\u0e41\u0e15\u0e48\u0e25\u0e30\u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d\u0e01\u0e32\u0e23\u0e2d\u0e1a\u0e23\u0e21 5 modules'},
+  {module:'Documentation',menu:'Training + Manual',sub:'QC + User Management Modules',type:'feat',desc:'เพิ่ม 2 โมดูลใหม่ครบทั้ง 3 ไฟล์ — (1) training slides: Module 6 การควบคุมคุณภาพ (QC Test/Specification/Deviation) 5 สไลด์ + Module 7 การกำหนดสิทธิ์ (Role/User) 3 สไลด์ รวม 36 สไลด์ (2) user manual: บทที่ 6-7 พร้อม flow diagram, steps, field tables, screenshots จากระบบจริง 6 ภาพใหม่ (quality-tests/specs/deviations, hr-roles, users) (3) training landing: เพิ่ม session card 6-7 พร้อมปุ่มเปิดสไลด์+download PPTX',date:'17 เม.ย. 69',startTime:'16:45',endTime:'17:30',prompt:'เพิ่มหัวข้อ การควบคุมคุณภาพ (QC Test/Spec/Deviation) + การกำหนดสิทธิ์ผู้ใช้งาน (Role/User) ทั้ง training slides และ user manual'},
+  {module:'Documentation',menu:'Training Slides + Manual',sub:'PPTX Download Fix + Slide Overflow',type:'fix',desc:'แก้ 2 ปัญหาในสไลด์อบรม — (1) PPTX Download ไม่ทำงาน: CDN URL ผิด `pptxgenjs@3.12.0/dist/pptxgenjs.bundle.js` ไม่มีบน jsdelivr → แก้เป็น `pptxgenjs@4.0.1/dist/pptxgen.bundle.js` (2) Slide content ล้นหน้าจอ: ลดขนาด CSS ทั้ง font-size (34px→22px), padding, margin ให้แต่ละ slide อยู่ในขอบเขต viewport ครบ',date:'17 เม.ย. 69',startTime:'17:30',endTime:'17:45',prompt:'PPTX download ไม่ยอมโหลดไฟล์ + slide มองไม่เห็นเต็มทั้งหมด ล้นหน้าจอ'},
+  {module:'Documentation',menu:'User Manual',sub:'Professional PDF/Word Export (A4)',type:'feat',desc:'เขียน export PDF + Word ใหม่ทั้งหมด — PDF: cover page สีเขียว gradient + TOC + headers/footers ทุกหน้า (ชื่อบท+เลขหน้า) + embed screenshots base64 + page break ระหว่างบท, Word: cover page + TOC พร้อมเลขหน้า + heading styles (H1/H2/H3) + embedded screenshots + table formatting — ทั้งสองใช้ html2pdf.js + html2canvas สำหรับ layout A4 (210×297mm)',date:'17 เม.ย. 69',startTime:'17:45',endTime:'18:30',prompt:'ทำ export PDF/Word แบบมืออาชีพ — A4, ปกหน้า, สารบัญ, header/footer, embed screenshot, Thai font'},
+  {module:'Inventory',menu:'Lots',sub:'Received Date + Aging Columns',type:'feat',desc:'เพิ่ม 2 คอลัมน์ใหม่ในตาราง Inventory Lots — (1) Received Date: แสดงวันที่รับเข้าคลัง format DD/MM/YYYY HH:mm (2) Aging (อายุในคลัง): คำนวณจำนวนวันตั้งแต่รับเข้า + color coding สีแดง >180 วัน, สีส้ม >90 วัน, สีเขียว ≤90 วัน — ใช้ calculateCellValue สำหรับ sorting + เพิ่ม translation keys ทั้ง th/en',date:'17 เม.ย. 69',startTime:'18:30',endTime:'19:00',prompt:'เพิ่มคอลัมน์ วันที่รับเข้าคลัง (Received Date) และ อายุในคลัง (Aging) ในหน้า Inventory Lots'},
+  {module:'Production',menu:'Work Orders / IPC',sub:'Sequential Sample Prevention',type:'feat',desc:'ป้องกันการข้ามลำดับ sample ใน IPC Recording — (1) UI: disable DxNumberBox/checkbox ของ sample ที่ยังไม่ถึงลำดับ (prevFilled check) (2) Save button disabled เมื่อ sample ไม่ครบ + แสดง warning message (3) Backend: เพิ่ม validation ใน API ตรวจสอบลำดับ sample + ความครบถ้วนก่อน save',date:'17 เม.ย. 69',startTime:'19:00',endTime:'19:30',prompt:'ป้องกันไม่ให้ข้ามลำดับการบันทึก IPC sample — ต้องกรอกตามลำดับ 1,2,3... ห้ามข้าม'},
+  {module:'Production',menu:'Work Orders / Cleaning',sub:'Role-based Pass/Fail Verify',type:'feat',desc:'เพิ่มระบบ verify แบบแยกตาม role ใน Cleaning Checklist — Production (PROD_MANAGER/PROD_OPERATOR/admin) เห็นปุ่ม "Mark Clean", บุคลากรอื่นเห็น "Pass"/"Fail" สำหรับ verify — Verify Fail: reset isClean=false บังคับทำความสะอาดใหม่ (re-clean → re-verify cycle) + เพิ่ม verifyResult column ใน DB schema ทั้ง SQLite/MySQL + ALTER TABLE production databases',date:'17 เม.ย. 69',startTime:'19:30',endTime:'20:15',prompt:'Cleaning Checklist — Production เห็นปุ่ม Mark Clean, คนอื่นเห็น Pass/Fail verify — Fail ต้อง reset ให้ทำความสะอาดใหม่'},
+  {module:'Production',menu:'Work Orders / Material Weighing',sub:'Lot Checkbox Fix on First Edit',type:'fix',desc:'แก้ bug checkbox เลือก Lot ไม่แสดงตอน Edit ครั้งแรก — สาเหตุ: DxPopup ไม่ remount เมื่อเปลี่ยน selectedMaterial ทำให้ lot data เก่าค้าง → แก้โดยเพิ่ม key={selectedMaterial?.id} บน DxPopup เพื่อบังคับ remount + useEffect prefetch lots ของทุก material ผ่าน queryClient.prefetchQuery ลดเวลารอโหลด',date:'17 เม.ย. 69',startTime:'20:15',endTime:'20:30',prompt:'แก้ bug Material Weighing — กด Edit แล้ว checkbox lot ไม่ติ๊กตามค่าที่เคย save ไว้'},
+  {module:'Inventory',menu:'Items',sub:'Total Value + Avg Cost Columns',type:'feat',desc:'เพิ่ม 2 คอลัมน์คำนวณในตาราง Inventory Items — (1) Total Value (มูลค่ารวม ฿): onHandCost จาก API แสดง format เงินบาท (2) Avg Cost (ต้นทุนเฉลี่ย/หน่วย): คำนวณจาก onHandCost ÷ onHand — ลบ cost sub-display ออกจาก renderStockCell เพื่อลดความซ้ำ + เพิ่ม translation keys',date:'17 เม.ย. 69',startTime:'20:30',endTime:'20:50',prompt:'เพิ่มคอลัมน์ มูลค่ารวม (Total Value) และ ต้นทุนเฉลี่ย (Avg Cost) ในหน้า Inventory Items'},
+  {module:'Purchasing',menu:'Purchase Orders',sub:'Vendor Lot + Mfg Date + Auto-Lot',type:'feat',desc:'ปรับปรุง PO Receiving flow — (1) เพิ่มช่อง Vendor Lot Number (required) + Manufacturing Date (required) ในฟอร์มรับสินค้า (2) Auto-generate Lot Number format [ItemCode]-[YYMMDD]-[Running] เช่น RM001-260417-001 (3) Backend validation ตรวจสอบ vendorLotNumber + manufacturingDate ก่อน save → บันทึกลง inventory lot (4) UI warning แจ้งเมื่อไม่กรอกข้อมูลบังคับ',date:'17 เม.ย. 69',startTime:'20:50',endTime:'21:20',prompt:'PO Receiving — เพิ่ม Vendor Lot Number, Manufacturing Date + auto-generate lot number format [ItemCode]-[YYMMDD]-[Running]'},
+  {module:'Production',menu:'Work Orders / Output',sub:'Rename Reject → FG Loss + Formula',type:'feat',desc:'เปลี่ยนชื่อ "Reject Quantity" → "Finished Goods Loss" และ "Reject %" → "FG Loss %" ทั้ง UI + translation keys (th/en) — เปลี่ยนสูตรคำนวณ Loss% จาก (actualReject ÷ actualTotal × 100) เป็น (100 - yieldPercent) เพื่อสะท้อนค่า loss จริงที่สอดคล้องกับ yield',date:'17 เม.ย. 69',startTime:'21:20',endTime:'21:40',prompt:'เปลี่ยนชื่อ Reject Quantity → Finished Goods Loss + เปลี่ยนสูตร Loss% = 100 - Yield%'},
+  {module:'Master Data',menu:'IPC Criteria',sub:'Min/Max Auto-calc + Manual Override',type:'fix',desc:'แก้ logic คำนวณ Min/Max อัตโนมัติ — เดิม Min/Max เป็น read-only ผูก Target±tolerance ตลอด ตอนนี้เพิ่ม manualMinMax state ติดตามว่าผู้ใช้แก้เอง: auto-calc ทำงานเฉพาะเมื่อ !manualMinMax + Min/Max fields แก้ได้เสมอ + เพิ่มปุ่ม "↺ กลับใช้ค่าคำนวณอัตโนมัติ" reset กลับ auto-calc mode',date:'17 เม.ย. 69',startTime:'21:40',endTime:'22:00',prompt:'แก้ IPC Criteria — Min/Max ต้องแก้ไขเองได้ แต่ถ้าไม่แก้ให้คำนวณอัตโนมัติจาก Target ± tolerance'},
+  {module:'Production',menu:'Work Orders',sub:'Material Consumption Variance %',type:'feat',desc:'เพิ่มการแสดง Variance เป็นทั้งตัวเลขและเปอร์เซ็นต์ — เดิมแสดงแค่ "+5 g" ตอนนี้แสดง "+5 g (+0.05%)" ทั้งในตาราง DataGrid และ eBMR Print — สูตร: variance% = (variance ÷ plannedQty) × 100',date:'17 เม.ย. 69',startTime:'22:00',endTime:'22:15',prompt:'เพิ่มการแสดง Variance % ในตาราง Material Consumption — แสดงทั้งค่า absolute และ percentage'},
+  {module:'Inventory',menu:'Transactions',sub:'Double-Negative Sign Fix',type:'fix',desc:'แก้ปัญหาเครื่องหมายลบซ้ำ (--)  — Backend ส่ง quantity เป็นค่าติดลบ (เช่น -300) แต่ UI เติม "-" prefix อีกครั้ง ทำให้แสดง "--300" → แก้โดยใช้ Math.abs() ใน 3 จุด: (1) DataGrid column format (2) Mobile card view (3) totalOutgoing stats calculation',date:'17 เม.ย. 69',startTime:'22:15',endTime:'22:25',prompt:'แก้ Inventory Transactions — แสดงจำนวนติดลบซ้ำ --300 แทน -300'},
+  {module:'Inventory',menu:'Items / Master Data',sub:'Shelf Life Years+Months Input',type:'feat',desc:'เปลี่ยนช่อง Shelf Life จาก DxNumberBox เดียว (วัน) เป็น 2 ช่อง: Years (0-99) + Months (0-11) — สูตรแปลง: total_days = (years×365) + (months×30), reverse: years=floor(days/365), months=round((days%365)/30) — Quick Summary แสดง "2 ปี 6 เดือน (910 วัน)" — backend ยังเก็บ shelfLifeDays (วัน) เหมือนเดิม ไม่ต้องแก้ DB',date:'17 เม.ย. 69',startTime:'22:25',endTime:'23:00',prompt:'เปลี่ยน Shelf Life จากกรอกวัน เป็นกรอก ปี + เดือน — คำนวณเป็นวันเก็บ backend เหมือนเดิม'},
+
+  // ==================== 16 เมษายน 2569 ====================
+  {module:'Quality',menu:'Specifications',sub:'New/Edit Form',type:'feat',desc:'ปรับช่อง Test Name เป็น SelectBox search + dropdown ดึงจาก Master Data IPC Criteria — ค้นหาได้ทั้งภาษาไทย/อังกฤษ, Unit เปลี่ยนเป็น dropdown filter ตาม Test Name ที่เลือก (disable เมื่อยังไม่เลือก Test Name), เปลี่ยน Test Name → reset/auto-select unit, ลบ hardcoded "Common Test Parameters" sidebar แทนที่ด้วยลิงก์ไป Master Data — เพิ่ม auto-fill testMethod + specification จาก master ถ้าผู้ใช้ยังไม่กรอก',date:'16 เม.ย. 69',startTime:'17:00',endTime:'17:45',prompt:'ปรับปรุงฟอร์มหน้า Create Specification: Test Name เป็น search+dropdown, Unit filter ตาม Test Name, ห้ามเลือก Unit ก่อน Test Name'},
+  {module:'Inventory',menu:'Lots',sub:'Requisition Stock Display',type:'fix',desc:'แก้ logic แสดง "คงเหลือในคลัง" ของใบเบิกที่อนุมัติแล้ว — เลิก fallback ไป live stock เมื่อ stockAtApproval=null (legacy records) เพราะทำให้รายการเก่า "เปลี่ยนค่าย้อนหลัง" ทุกครั้งที่มี transaction ใหม่ ตอนนี้ approved + มี snapshot → แสดง snapshot (ณ วันอนุมัติ) · approved + ไม่มี snapshot → แสดง "—" + badge (ไม่มี snapshot) · pending/requested → แสดง live',date:'16 เม.ย. 69',startTime:'16:30',endTime:'17:00',prompt:'แก้ logic การแสดง "คงเหลือในคลัง" ของ Inventory Lots — รายการที่อนุมัติแล้วต้องแสดง stock ณ เวลาทำรายการ ห้ามใช้ค่าล่าสุด overwrite รายการเก่า'},
+  {module:'Production',menu:'Work Orders',sub:'Material Weighing',type:'fix',desc:'แก้ bug checkbox เลือก Lot ใน Material Weighing — architectural mismatch: UI เป็น multi-select แต่ DB เก็บ lotId singular → lot ที่ 2,3 หายตอน save ทำให้ reload แล้วติ๊กไม่ตรง เปลี่ยนเป็น single-select (scalar state selectedLotId ตรงกับ workOrderMaterials.lotId) ทำให้ UI = DB ทุกครั้ง, คลิก lot ใหม่ = replace, คลิก lot เดิม = clear',date:'16 เม.ย. 69',startTime:'15:30',endTime:'16:15',prompt:'แก้ bug checkbox เลือก Lot: ติ๊กแล้ว save → กลับมา edit แล้ว checkbox ไม่ติ๊กเหมือนเดิม ต้อง bind กับค่าที่ persist จริง'},
+  {module:'Quality',menu:'Tests',sub:'Select Lot Popup',type:'fix',desc:'แก้ 3 bug ใน popup Select Lot for QC Test — (1) เพิ่ม filterStatus="quarantine" ใน /quality/tests/new → แสดงเฉพาะ lot รอ release (2) ขยาย search ใน API /api/inventory/lots รวม items.code/nameTh/nameEn (join items ใน count query ด้วย) → ค้นชื่อสินค้าได้ (3) เพิ่มปุ่ม X มุมขวาบนของ LotSearchDialog + enable closeOnOutsideClick + ESC handler ทำงานแม้ results ว่าง',date:'16 เม.ย. 69',startTime:'14:45',endTime:'15:30',prompt:'แก้ bug popup Select Lot for QC Test: แสดง lot สถานะผิด (Released แทน Quarantine), ค้นหาจากชื่อสินค้าไม่ได้, ปิดด้วยปุ่ม X ไม่ได้'},
+  {module:'Production',menu:'Work Orders',sub:'Material Verify Error Handling',type:'fix',desc:'แก้ Internal Server Error (500) เมื่อผู้ weigh กด verify เอง — ต้นเหตุ: service throw Thai message "ไม่สามารถตรวจสอบรายการของตนเอง..." แต่ API route filter whitelist แค่ keyword อังกฤษ → fall through serverErrorResponse ที่กลืน message ใน prod เพิ่ม Thai keyword detection + return 422 Unprocessable Entity, frontend แยก toast title "(Dual Control)" สำหรับ 422 + เพิ่ม dual-control check ใน verifyWOPackagingMaterial service ด้วย',date:'16 เม.ย. 69',startTime:'13:45',endTime:'14:30',prompt:'แก้ bug verify แล้วขึ้น Internal Server Error (ต้อง return 400/422 พร้อม message ชัดเจน ไม่ใช่ 500)'},
+  {module:'Master Data',menu:'All (6 pages)',sub:'Table Column Truncation',type:'fix',desc:'แก้ UI table ใน Master Data 6 หน้า — Production Rooms/Equipment Type tag "...", Environmental Conditions header caption "Temperature Ran..." "Monitoring Interv...", SOP Templates + Packaging QC tag border ถูกตัด, IPC Criteria Critical tag "..." แก้ 3 ส่วน (1) Global CSS ใน @media print สำหรับ header wrap + cell line-height + utility class .dx-cell-tag (2) เปลี่ยน width={N} → minWidth={N+20~30} เพื่อยืดหยุ่น (3) เติม flex-shrink-0 บน icons',date:'16 เม.ย. 69',startTime:'12:00',endTime:'13:00',prompt:'แก้ UI table display issue ในระบบ Master Data: ห้าม truncate tag/badge, header caption ต้องแสดงเต็ม, tag border ต้องครบ'},
+  {module:'Production',menu:'Work Orders',sub:'Print eBMR CSS',type:'fix',desc:'แก้ Print Preview ของ eBMR พัง — Chrome แสดง scrollbar + content ถูกตัด แต่ Firefox ปกติ ต้นเหตุ: <main> ใน MainLayout ใช้ lg:h-[calc(100vh)] lg:overflow-hidden ซึ่ง Chrome print engine ยึดถือ แต่ Firefox ยอมผ่อน เพิ่ม @media print override: html/body/main/* { height:auto; overflow:visible } + position:static สำหรับ .fixed/.sticky → Chrome = Firefox',date:'16 เม.ย. 69',startTime:'11:30',endTime:'12:00',prompt:'แก้ bug Print eBMR หน้า Print Preview ใน Chrome มี scrollbar และ content ถูกตัด แต่ Firefox แสดงปกติ'},
+  {module:'User Management',menu:'Users',sub:'User Edit — HR Roles',type:'feat',desc:'เชื่อมโยง User กับ HR Roles — หน้า /users/[id] เดิมใช้ hardcoded roleOptions 10 ตัว (admin/manager/production...) เปลี่ยนเป็น fetch จาก /api/hr/roles dynamic (เหมือน /users/new) + /api/hr/org-units สำหรับ department, dropdown แยก 2 กลุ่ม: HR Roles (live) + Legacy (hardcoded fallback), แสดง description + permission count ของ role ที่เลือก, badge "HR Role" เมื่อ role มาจาก master จริง + ลิงก์จัดการ Role',date:'16 เม.ย. 69',startTime:'10:30',endTime:'11:15',prompt:'กำหนดข้อมูล user โดยเชื่อมโยงกับ role ในระบบ HR — ตอนนี้ /users/13 ไม่มีให้กำหนดเชื่อมโยงกับ role ใน HR'},
+
+  // ==================== 15 เมษายน 2569 ====================
+  {module:'Documentation',menu:'Public HTML',sub:'User Manual + Training + Checklist',type:'docs',desc:'สร้างชุดเอกสาร 3 ไฟล์ HTML ที่ link กัน — (1) training-herbal-erp.html หลักสูตร 5 หัวข้อ 15 รายการเรียนรู้ (2) installation-checklist-herbal-erp.html Checklist 3 phase 59 รายการ ติ๊ก+เก็บ localStorage + progress bar (3) user-manual-herbal-erp.html คู่มือ 6 บท step-by-step + FAQ + Glossary 16 ศัพท์ — เปิดได้จาก /training-herbal-erp.html, /installation-checklist-herbal-erp.html, /user-manual-herbal-erp.html ทั้งหมดมีปุ่ม Export Excel + Word + PDF (html2pdf.js + HTML-as-DOC)',date:'15 เม.ย. 69',startTime:'14:00',endTime:'18:00',prompt:'ทำไฟล์หลักสูตรอบรม + Checklist ติดตั้ง + คู่มือผู้ใช้งาน ให้ download เป็น Excel/Word/PDF ได้ และอ้างอิง path ตามเมนูจริงในระบบ'},
+  {module:'Cross-module',menu:'Multiple',sub:'Responsive UI Refactor (HR/Template/Issues/Reports/Users/Admin/Settings)',type:'refac',desc:'ปรับ UI ~20 หน้า ให้ใช้ ResponsivePageHeader แทน PageHeader/local headers เพื่อ consistency + responsive padding p-4 md:p-6 — HR 9 หน้า (แก้ outer p-1 → p-4 md:p-6), /users + /users/[id], /reports, /settings + sub-pages (approval-workflows, matching-tolerances, workflow-test), /issues + list + new, /admin/confidential-groups, /template — เพิ่ม icon+bgColor+subtitle สำหรับทุกหน้าที่เปลี่ยน',date:'15 เม.ย. 69',startTime:'10:00',endTime:'13:00',prompt:'ปรับเมนู HR/Template/Issues/Reports/Users/Admin/Settings ให้ responsive + Informative Design + user friendly'},
+
+  // ==================== 14 เมษายน 2569 ====================
+  {module:'Cost',menu:'Cost Management',sub:'Responsive UI Refactor (4 pages)',type:'refac',desc:'Refactor Cost Management 4 หน้า — (1) /cost landing: Period selector มือถือเต็ม, Quick links accent border (2) /cost/landed-costs: 5 StatCards คลิก filter ได้, filter chips scroll, MobileListView, skeleton/empty/error state (3) /cost/work-centers: เหมือน landed-costs + แก้ "Name (English)/Thai" hardcode → i18n (4) /cost/reports/cost-summary: KPI row (Total/Value/Avg WAC/Out of stock), **Export Excel** button, active filter indicator, mobile card + out-of-stock highlight — เพิ่ม i18n keys ทั้ง TH/EN',date:'14 เม.ย. 69',startTime:'13:00',endTime:'16:00',prompt:'ปรับ Cost Management menu ให้ responsive + Informative + user friendly'},
+  {module:'VMI',menu:'VMI Integration',sub:'Responsive UI Refactor (3 pages)',type:'refac',desc:'Refactor VMI 3 หน้า — (1) /vmi dashboard: grid 6 cards เปลี่ยนจาก 2→6 cols เป็น 2→3→6 cols กันจอเล็กอัด (2) /vmi/sync: เพิ่ม MobileListView สำหรับ sync history — card แสดง type+portal+progress bar+error inline+duration (desktop ยังใช้ DataGrid+MasterDetail เหมือนเดิม), empty state + skeleton (3) /sales/vmi-orders: มี "Responsive Refactor" อยู่แล้ว ข้าม',date:'14 เม.ย. 69',startTime:'16:00',endTime:'17:30',prompt:'ปรับ VMI menu (dashboard/sync/orders) ให้ responsive + Informative + user friendly'},
+
+  // ==================== 13 เมษายน 2569 ====================
+  {module:'Production',menu:'Work Orders',sub:'Materials Tab Unit Display',type:'fix',desc:'แก้ bug หน่วยในตาราง Material Consumption ไม่ตรงกับที่ชั่งจริง — เดิม UI ใช้ itemUnit (items.primaryUnit เช่น kg) แต่ตอนชั่งเป็น g ทำให้แสดง "222 kg" ทั้งที่ weigh 222g · นอกจากนี้ actualQuantity เก็บใน primary unit (หลัง verify) แต่ plannedQuantity เก็บใน weighing unit → variance เพี้ยน แก้ (1) UI ใช้ unit \\| itemUnit (fallback) (2) Detail API เพิ่ม weighedQty ใน response + ใช้ weighedQty เป็น actualQty display (3) service เก็บ actualQuantity เดิม (primary unit) เพื่อไม่กระทบ cost calculation ใน unit-cost.service.ts',date:'13 เม.ย. 69',startTime:'14:00',endTime:'15:30',prompt:'แก้ logic Work Order > Materials tab ให้ Planned/Actual Qty แสดงหน่วยตรงกับที่กรอกในหน้า Material Weighing'},
+  {module:'Master Data',menu:'IPC Criteria',sub:'Min/Max Value Binding Bug',type:'fix',desc:'แก้ bug คำนวณ Min Value ได้แต่ไม่แสดงในช่อง input — DxNumberBox รับ formData.minValue ?? undefined ตอนเริ่ม null → DevExtreme treat uncontrolled แล้วไม่ switch กลับ controlled เมื่อ useEffect set ค่า 450 + มี stale closure risk ใน onValueChanged เปลี่ยน value prop ให้อ่านจาก calculatedMinMax ตรง ๆ เมื่อ hasTarget + ใช้ functional setFormData updater + เปลี่ยน ?? undefined เป็น ?? null',date:'13 เม.ย. 69',startTime:'11:00',endTime:'12:00',prompt:'แก้ bug การคำนวณ Min Value อัตโนมัติในฟอร์ม IPC Criteria: คำนวณได้ 450 แต่ไม่ set เข้า field'},
+
+  // ==================== 11 เมษายน 2569 ====================
+  {module:'GMP',menu:'Complaints/Contracts',sub:'API Validation',type:'fix',desc:'แก้ "Invalid parameters" เมื่อเปิดหน้า /gmp/complaints (limit=1000) และ /gmp/contracts (limit=200) — Zod schema ใน complaints.ts / contracts.ts กำหนด limit.max(100) แต่หน้า UI request ค่าสูงเพื่อโหลด lot ให้ DevExtreme DataGrid filter/sort ฝั่ง client ขยายเพดานเป็น max(1000) ให้สอดคล้องกับ capa/change-control/documents/purchase-requisition ที่ใช้ pattern เดียวกัน',date:'11 เม.ย. 69',startTime:'14:00',endTime:'14:30',prompt:'/gmp/complaints และ /gmp/contracts ขึ้น Error: Invalid parameters'},
+
+  // ==================== 10 เมษายน 2569 ====================
+  {module:'Production',menu:'Environmental Monitoring',sub:'Phase-Aware Auto Recording',type:'feat',desc:'ระบบบันทึกข้อมูลสภาพแวดล้อมตาม phase แบบอัตโนมัติ — (1) computed active phase จาก activity checklist (pre→prod เมื่อ weighing verified 100%, prod→pack เมื่อ IPC approved 100%, pack→done เมื่อ integrity passed) (2) IoT POST gate: บันทึกเฉพาะ phase ที่ active, phase ที่ complete แล้วไม่รับข้อมูลใหม่ (frozen) (3) UI tab badge 🟢/✓/⏳ + banner สถานะแต่ละ phase + timestamps start/end (4) ไม่มีปุ่ม complete manual — user กดแค่ Release + Complete WO เท่าเดิม — ไม่มี schema ใหม่ state คำนวณ on-the-fly',date:'10 เม.ย. 69',startTime:'19:45',endTime:'21:00',prompt:'อยากให้แสดง ความชื้นเลยตั้งแต่แรกเลย จนกว่า phase นั้นจะ complete — ไม่ต้องกดปุ่ม complete ให้ auto-detect จาก activity'},
+  {module:'Inventory',menu:'Warehouses',sub:'Mobile Card Layout + Empty/Loading States',type:'feat',desc:'ปรับ Warehouses Page รอบ 2 — (1) Mobile (< md): เปลี่ยนจาก DataGrid เป็น Card Layout แต่ละ card แสดง name → code → location → status เน้นตามลำดับความสำคัญ พร้อม footer 3 ปุ่มใหญ่ (View/Edit/Delete) min-h 44px touch-friendly (2) Desktop/Tablet: DataGrid actions column เพิ่ม 3 ปุ่ม View/Edit/Delete แทนปุ่ม view เดียว (hover สี indigo/emerald/red) (3) Empty State พร้อม CTA "Add Warehouse" เมื่อยังไม่มีข้อมูล (4) No Results State พร้อมปุ่ม Clear Filters เมื่อ filter ยืดหัวข้อ 0 (5) Loading Skeleton สำหรับ mobile cards + desktop rows',date:'10 เม.ย. 69',startTime:'19:00',endTime:'19:45',prompt:'Responsive: บนมือถือเปลี่ยนจาก Table เป็น Card Layout, ปุ่มแก้ไข/ลบใหญ่พอให้กดด้วยนิ้ว, Empty State + Loading State'},
+  {module:'Inventory',menu:'Warehouses',sub:'Informative Design + Responsive',type:'refac',desc:'ปรับ /inventory/warehouses ให้เป็น Informative Design + responsive mobile/tablet — (1) เปลี่ยน PageHeader เป็น ResponsivePageHeader พร้อม Warehouse icon (2) เพิ่มแถว KPI StatCard 4 ใบ (Total, Active, Cold Storage, Inactive) (3) Type Tabs scrollable พร้อม snap-x + min-h 36px touch-friendly (4) Search bar + result count แยก row ตอบสนอง flex-col sm:flex-row (5) DataGrid ใช้ responsiveColumns — hide ช่อง Temperature/Humidity บน tablet, hide Capacity/Location บน mobile (6) Top actions: ซ่อนปุ่ม Refresh+Lots บน mobile เหลือเฉพาะ Add (7) DataGrid mobileHeight=520 tabletHeight=560',date:'10 เม.ย. 69',startTime:'18:30',endTime:'19:00',prompt:'ปรับการแสดงผลหน้าจอ Warehouses — responsive, Informative Design, user friendly'},
+  {module:'Production',menu:'Work Orders',sub:'BOM Number Display',type:'feat',desc:'แสดงหมายเลข BOM (code + version) ใน Work Order — (1) List page: คอลัมน์ใหม่ "BOM" แสดง code + version (2) Detail page: ส่วนหัวแสดง BOM ข้างหลัง Batch Number + Product Information card เพิ่มแถว BOM (code + version + name) — API GET work-orders และ detail route join bom table เพิ่ม bomCode/bomName/bomVersion',date:'10 เม.ย. 69',startTime:'18:00',endTime:'18:30',prompt:'ให้แสดงหมายเลข BOM ใน work order'},
+  {module:'Master Data',menu:'IPC Criteria',sub:'Spec Target + Tolerance',type:'feat',desc:'เพิ่มช่อง Target (Specification) + ±% Tolerance (Spec Range) — ระบบคำนวณ Min/Max อัตโนมัติ real-time ตามสูตร Min = Target−(Target×%Tol/100), Max = Target+(Target×%Tol/100) — รองรับ validation (Target>0, Tolerance 0-100), snapshot ไปที่ quality_tests ตอน WO initialization, แยกออกจาก Sample Failure Tolerance เดิม (batch acceptance)',date:'10 เม.ย. 69',startTime:'17:00',endTime:'18:00',prompt:'ปัญหา: การคำนวณ Min–Max ไม่สัมพันธ์กับ Specification และ %Tolerance — ให้ระบบคำนวณอัตโนมัติจาก Target + %Tolerance'},
+  {module:'Inventory',menu:'Lots',sub:'Responsive Mobile/Tablet',type:'refac',desc:'ปรับ Inventory Lots รองรับการใช้งานผ่าน mobile/tablet — DataGrid ซ่อน column รองบน tablet, Form modal ใช้ grid-cols-1 sm:grid-cols-2 md:grid-cols-3 + fullScreenOnMobile/Tablet, Input มี inputMode + text-base, Action buttons stack ต่ำกว่า sm, touch-target 40px+',date:'10 เม.ย. 69',startTime:'16:00',endTime:'17:00',prompt:'ปรับ Informative Design ของ Module Inventory Lots และ responsive รองรับการบันทึกผ่าน mobile tablet'},
+  {module:'Inventory',menu:'Dashboard',sub:'Landing Page',type:'feat',desc:'สร้างหน้า Inventory Dashboard ใหม่แบบ Informative Design — KPI cards (Items/Lots/Warehouses/Value), Alert widgets (ใกล้หมดอายุ/หมดอายุ/สต็อกต่ำ/ใบเบิกรออนุมัติ), Lot Status breakdown with stacked bar + chips, Quick navigation cards, auto-refresh ทุก 60 วินาที',date:'10 เม.ย. 69',startTime:'15:00',endTime:'16:00',prompt:'ปรับ Informative Design ของ Module ระบบ Inventory'},
+  {module:'Inventory',menu:'Lots',sub:'Filter Bar',type:'refac',desc:'ปรับ Filter Bar แบบ Informative Design — แยก 2 row: (1) Main filters พร้อม labels + icons uppercase (ค้นหา/คลัง/วันหมดอายุ), (2) Quick filters แยก section, แสดงจำนวนตัวกรองที่ใช้งาน + ปุ่มล้างทั้งหมดเด่นขึ้น',date:'10 เม.ย. 69',startTime:'14:30',endTime:'15:00',prompt:'ปรับ Layout และ Information Design ของ Filter Bar ในหน้า Inventory Lots'},
+  {module:'Inventory',menu:'Lots',sub:'Tab Header',type:'refac',desc:'ปรับแถบ Tab "รายการ Lot" และ "ใบเบิกวัตถุดิบ" เป็น Informative Design — แสดงจำนวน, มูลค่า, status chips (กักกัน/ปล่อย/ใกล้หมดอายุ/หมดอายุ), notification dot เมื่อมีใบเบิกรออนุมัติ',date:'10 เม.ย. 69',startTime:'14:00',endTime:'14:30',prompt:'ปรับแถบรายการ lot และแถบใบเบิกวัตถุดิบแบบ Informative Design'},
+  {module:'Production',menu:'Work Orders',sub:'Environmental Monitoring',type:'feat',desc:'บังคับ monitoringIntervalMinutes จาก BOM — บันทึกครั้งแรกทันทีเมื่อเปลี่ยน phase + ข้ามค่า IoT ที่ส่งมาระหว่าง interval + record ถัดไปเมื่อครบ interval ตาม BOM',date:'10 เม.ย. 69',startTime:'13:00',endTime:'14:00',prompt:'ตั้งกฎ 60 นาที เมื่อกดบันทึกแสดง record #1 ทันที จากนั้นอีก 60 นาทีแสดง record #2'},
+  {module:'Production',menu:'Environmental Monitoring',sub:'Auto-refresh',type:'feat',desc:'Environmental Monitoring ตาราง auto-refresh ทุก 10 วิ (refetchInterval) — หลังกดบันทึกเปลี่ยน phase เห็นค่าจาก IoT ภายใน 10-20 วิ ไม่ต้อง F5',date:'10 เม.ย. 69',startTime:'12:30',endTime:'13:00',prompt:'ตรวจสอบให้หน่อยจะแสดงผลทันทีที่กดบันทึกเปลี่ยน phase ไหม'},
+  {module:'Production',menu:'IoT Integration',sub:'Polling API',type:'feat',desc:'สร้าง GET /api/iot/should-send endpoint สำหรับ IoT device poll ทุก 10 วิ เพื่อรับคำสั่ง idle/normal/urgent จาก ERP — ส่งเกณฑ์ BOM + WO + phase + latest reading กลับ',date:'10 เม.ย. 69',startTime:'10:30',endTime:'11:30',prompt:'ฝั่ง IoT check ว่ามีการเปลี่ยน phase ภายใน 10 วิ — ถ้า WO released/in_progress ให้ส่งค่ามาทันที'},
+  {module:'Documentation',menu:'IoT',sub:'API Spec',type:'docs',desc:'สร้างเอกสาร docs/iot-api-spec.md — API spec สำหรับทีม IoT: authentication, polling endpoint, sending endpoint, pseudocode, cURL examples',date:'10 เม.ย. 69',startTime:'11:30',endTime:'12:00',prompt:'เขียน API spec ให้ทีม IoT ใช้เป็นคู่มือแก้ firmware'},
+  {module:'Inventory',menu:'Items',sub:'Item List',type:'fix',desc:'แก้ตัวเลข "คงเหลือ" แสดงเป็นตัวย่อ (11.2K) — เปลี่ยนเป็นตัวเลขเต็ม comma + ทศนิยม 2 ตำแหน่ง (11,163.03)',date:'10 เม.ย. 69',startTime:'00:00',endTime:'01:30',prompt:'หน้าทะเบียน รายการสินค้า ให้แสดงจำนวนเต็มไม่ต้องย่อ เช่น 11,200.00 kg'},
+  {module:'Inventory',menu:'Items',sub:'Item List',type:'fix',desc:'แก้ปุ่มรีเฟรชกดไม่ได้ — สาเหตุ toLocaleString ทำให้ hydration mismatch + เปลี่ยน refetch เป็น invalidateQueries',date:'10 เม.ย. 69',startTime:'01:30',endTime:'02:30',prompt:'ปุ่ม refresh กดไม่ได้ ยังแสดงตัวเลขไม่มี comma'},
+  {module:'Inventory',menu:'Lots',sub:'Requisition Tab',type:'feat',desc:'Stock Snapshot — เก็บ stock คงเหลือ ณ เวลาอนุมัติใบเบิก ไม่ overwrite รายการย้อนหลัง + backfill 138 transactions เดิม',date:'10 เม.ย. 69',startTime:'02:30',endTime:'04:00',prompt:'แก้ logic คงเหลือในคลังของใบเบิกที่อนุมัติแล้ว ให้เป็น snapshot ณ เวลาที่ทำรายการ'},
   // ==================== 9 เมษายน 2569 (ช่วงบ่าย) ====================
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM Configuration',type:'refac',desc:'เปลี่ยนตัวเลือก Environmental Condition ใน Room dialog จาก checkbox หลายตัวเป็น dropdown เลือกได้ 1 รายการ (1 Room = 1 Condition)',date:'9 เม.ย. 69',prompt:'ให้ปรับเป็นตัวเลือก lookup เลือกได้ตัวเลือกเดียว เนื่องจาก 1 room กำหนด 1 Environmental Conditions'},
-  {module:'Master Data',menu:'Environmental Conditions',sub:'List',type:'fix',desc:'กดลบ Environmental Condition แล้วรายการไม่หายจากตาราง — API GET default เป็น isActive=true',date:'9 เม.ย. 69',prompt:'กดลบรายการ Environmental Conditions แล้วรายการไม่ถูกลบ'},
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM List',type:'refac',desc:'ปรับ UI ทะเบียน BOM: รวม Tabs + Search + Filter ในบรรทัดเดียว, Grid auto-expand ตามจำนวนที่เลือก, ยอด All คงที่เมื่อกด Tab อื่น',date:'9 เม.ย. 69',prompt:'ให้ Search และสถานะอยู่บรรทัดเดียวกับ Tab, ยอด All ต้องไม่เปลี่ยน, Card ขยายตามจำนวน record'},
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM List',type:'refac',desc:'ปรับ Dashboard BOM Registry ให้กระชับ — compact rows, header word-wrap, emerald hover, dynamic viewport height, ลด padding รอบ card',date:'9 เม.ย. 69',prompt:'ปรับปรุง UI/UX หน้า BOM Registry ให้แสดง 20 รายการต่อหน้าโดยไม่ต้อง Scroll'},
-  {module:'GMP',menu:'All Verification',sub:'Dual Control',type:'feat',desc:'บังคับ Dual Control ทุกจุดตรวจสอบ — ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคน (Material Weighing, SOP, Cleaning, IPC, Sanitation, CAPA)',date:'9 เม.ย. 69',prompt:'แก้ไขระบบ Dual Control แยกสิทธิ์ผู้ปฏิบัติและผู้ตรวจสอบ'},
-  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เปลี่ยนช่องชื่อ IPC จากพิมพ์อิสระเป็น Dropdown มาตรฐาน 11 รายการ + auto-fill หน่วย, รองรับ "เพิ่มเกณฑ์กำหนดเอง"',date:'9 เม.ย. 69',prompt:'เปลี่ยนจากช่องพิมพ์อิสระให้เป็น Dropdown List มาตรฐาน IPC'},
-  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'ระบบคำนวณ Min-Max อัตโนมัติจาก Specification เช่น "300 ± 5%" → Min 285, Max 315',date:'9 เม.ย. 69',prompt:'เมื่อกรอก Specification ในรูปแบบ [ค่ากลาง] ± [จำนวน%] ให้คำนวณ Min/Max อัตโนมัติ'},
-  {module:'Production',menu:'Work Orders',sub:'WO List',type:'feat',desc:'เพิ่มคอลัมน์ "วันที่สร้าง" (Created Date) ในทะเบียน Work Orders — sortable, default เรียงจากใหม่ไปเก่า',date:'9 เม.ย. 69',prompt:'เพิ่ม column แสดงวันที่สร้าง work order ให้สามารถ sort ได้'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Configuration',type:'refac',desc:'เปลี่ยนตัวเลือก Environmental Condition ใน Room dialog จาก checkbox หลายตัวเป็น dropdown เลือกได้ 1 รายการ (1 Room = 1 Condition)',date:'9 เม.ย. 69',startTime:'13:00',endTime:'13:20',prompt:'ให้ปรับเป็นตัวเลือก lookup เลือกได้ตัวเลือกเดียว เนื่องจาก 1 room กำหนด 1 Environmental Conditions'},
+  {module:'Master Data',menu:'Environmental Conditions',sub:'List',type:'fix',desc:'กดลบ Environmental Condition แล้วรายการไม่หายจากตาราง — API GET default เป็น isActive=true',date:'9 เม.ย. 69',startTime:'13:20',endTime:'13:40',prompt:'กดลบรายการ Environmental Conditions แล้วรายการไม่ถูกลบ'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM List',type:'refac',desc:'ปรับ UI ทะเบียน BOM: รวม Tabs + Search + Filter ในบรรทัดเดียว, Grid auto-expand ตามจำนวนที่เลือก, ยอด All คงที่เมื่อกด Tab อื่น',date:'9 เม.ย. 69',startTime:'13:40',endTime:'14:20',prompt:'ให้ Search และสถานะอยู่บรรทัดเดียวกับ Tab, ยอด All ต้องไม่เปลี่ยน, Card ขยายตามจำนวน record'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM List',type:'refac',desc:'ปรับ Dashboard BOM Registry ให้กระชับ — compact rows, header word-wrap, emerald hover, dynamic viewport height, ลด padding รอบ card',date:'9 เม.ย. 69',startTime:'14:20',endTime:'15:00',prompt:'ปรับปรุง UI/UX หน้า BOM Registry ให้แสดง 20 รายการต่อหน้าโดยไม่ต้อง Scroll'},
+  {module:'GMP',menu:'All Verification',sub:'Dual Control',type:'feat',desc:'บังคับ Dual Control ทุกจุดตรวจสอบ — ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคน (Material Weighing, SOP, Cleaning, IPC, Sanitation, CAPA)',date:'9 เม.ย. 69',startTime:'15:00',endTime:'16:00',prompt:'แก้ไขระบบ Dual Control แยกสิทธิ์ผู้ปฏิบัติและผู้ตรวจสอบ'},
+  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เปลี่ยนช่องชื่อ IPC จากพิมพ์อิสระเป็น Dropdown มาตรฐาน 11 รายการ + auto-fill หน่วย, รองรับ "เพิ่มเกณฑ์กำหนดเอง"',date:'9 เม.ย. 69',startTime:'16:00',endTime:'16:30',prompt:'เปลี่ยนจากช่องพิมพ์อิสระให้เป็น Dropdown List มาตรฐาน IPC'},
+  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'ระบบคำนวณ Min-Max อัตโนมัติจาก Specification เช่น "300 ± 5%" → Min 285, Max 315',date:'9 เม.ย. 69',startTime:'16:30',endTime:'17:00',prompt:'เมื่อกรอก Specification ในรูปแบบ [ค่ากลาง] ± [จำนวน%] ให้คำนวณ Min/Max อัตโนมัติ'},
+  {module:'Production',menu:'Work Orders',sub:'WO List',type:'feat',desc:'เพิ่มคอลัมน์ "วันที่สร้าง" (Created Date) ในทะเบียน Work Orders — sortable, default เรียงจากใหม่ไปเก่า',date:'9 เม.ย. 69',startTime:'17:00',endTime:'17:30',prompt:'เพิ่ม column แสดงวันที่สร้าง work order ให้สามารถ sort ได้'},
   // ==================== 9 เมษายน 2569 (ช่วงเช้า) ====================
-  {module:'Production',menu:'Work Orders',sub:'Environmental Monitoring',type:'feat',desc:'เพิ่มปุ่มแก้ไขและลบข้อมูลสภาวะแวดล้อม ทั้ง 3 phase (Pre-Production, Production, Packaging)',date:'9 เม.ย. 69',prompt:'เพิ่มปุ่ม Edit/Delete สำหรับ Environmental Monitoring ทุก phase'},
-  {module:'Production',menu:'Work Orders',sub:'Environmental Monitoring',type:'feat',desc:'เพิ่ม dropdown เลือกห้อง (Room) ในหน้าบันทึกสภาวะแวดล้อม — ดึงห้องจาก BOM Config ตาม phase, แสดงคอลัมน์ Room ในตารางบันทึก',date:'9 เม.ย. 69',prompt:'เพิ่มตัวเลือก Room ในหน้า Environmental Monitoring ของ WO ทั้ง 3 phase'},
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM Configuration',type:'refac',desc:'ย้าย Environmental Conditions เข้ามาอยู่ใน Add Room dialog — ลบ tab Environmental ออก, เพิ่ม checklist เลือก condition ตอน Add Room, แสดง tag ในตาราง Rooms',date:'9 เม.ย. 69',prompt:'ย้าย env conditions มาอยู่ใน dialog Add Room ใน BOM Config แทน tab แยก'},
-  {module:'Production',menu:'Work Orders',sub:'Execution Dashboard',type:'feat',desc:'ล็อคขั้นตอน Execution ที่ยังทำไม่ได้ — แสดงไอคอนล็อค + เหตุผลที่ต้องทำก่อน ป้องกันการข้ามขั้นตอน',date:'8 เม.ย. 69',prompt:'ล็อค execution sections ใน dashboard ให้ไม่สามารถกดเข้าได้ถ้าขั้นตอนก่อนหน้ายังไม่เสร็จ'},
-  {module:'Production',menu:'Work Orders',sub:'Status Workflow',type:'feat',desc:'เพิ่มเงื่อนไข Workflow Gates: Released ต้องอนุมัติใบเบิก, In Progress ต้อง Cleaning+ชั่งเสร็จ, Completed ต้อง Final Inspection ผ่าน — แสดง Error แจ้งขั้นตอนที่ยังไม่ครบ',date:'8 เม.ย. 69',prompt:'ปรับ workflow ล็อคการเปลี่ยนสถานะ WO ให้ต้องทำขั้นตอนก่อนหน้าครบก่อน'},
-  {module:'Master Data',menu:'Items',sub:'Unit Conversion',type:'fix',desc:'แก้ bug แปลงหน่วยสต็อกผิด (kg/g) — ระบบบังคับ factor มาตรฐานสำหรับคู่หน่วย kg:g=1000, l:ml=1000 อัตโนมัติ',date:'8 เม.ย. 69',prompt:'แก้ conversionRate ผิดสำหรับคู่หน่วยมาตรฐาน kg/g ให้ใช้ 1000 เท่านั้น'},
-  {module:'Production',menu:'Work Orders',sub:'Environmental Monitoring',type:'feat',desc:'เพิ่มสภาวะแวดล้อม (อุณหภูมิ/ความชื้น) ใน Pre-Production — ตั้งค่าใน BOM Configuration + บันทึกใน Execution',date:'8 เม.ย. 69',prompt:'เพิ่มการบันทึกสภาวะแวดล้อมใน pre-production พร้อมตั้งค่า Master Data และ BOM'},
-  {module:'Master Data',menu:'Items',sub:'Stock Status',type:'feat',desc:'แสดง Secondary Unit ในกล่อง Current Stock Status + format ตัวเลขด้วย comma',date:'8 เม.ย. 69',prompt:'แสดง secondary unit ในกล่อง stock status และใส่ comma ให้ตัวเลข'},
-  {module:'Production',menu:'Work Orders',sub:'Material Weighing',type:'feat',desc:'เปลี่ยนตัวเลือก Lot จาก dropdown เป็น checkbox list เรียงตาม FEFO (ใกล้หมดอายุก่อน) กรองเฉพาะ lot ที่ยังไม่หมดอายุ',date:'8 เม.ย. 69',prompt:'หน้า weight แสดง lot ทั้งหมดแบบ checkbox เรียง FEFO กรอง lot หมดอายุออก'},
-  {module:'Production',menu:'Work Orders',sub:'Material Weighing',type:'feat',desc:'เพิ่มปุ่ม "เลือกอัตโนมัติ (FEFO)" และ auto-select เมื่อกดบันทึกโดยไม่เลือก lot — รวม lot หลายใบถ้าไม่พอ',date:'8 เม.ย. 69',prompt:'ถ้าไม่เลือก lot ให้ระบบเลือก lot อัตโนมัติ FEFO รวมหลาย lot ถ้าไม่พอ'},
-  {module:'Inventory',menu:'Requisitions',sub:'Approval',type:'fix',desc:'แก้ bug เทียบหน่วยวัตถุดิบผิดในการอนุมัติใบเบิก — ระบบเทียบ g กับ kg โดยไม่แปลงหน่วย ทำให้แจ้งวัตถุดิบไม่พอทั้งที่มีพอ',date:'8 เม.ย. 69',prompt:'แก้ bug หน่วยวัตถุดิบใน Requisition approval เทียบหน่วยผิด (g vs kg)'},
-  {module:'Inventory',menu:'Requisitions',sub:'Material List',type:'fix',desc:'แก้การแสดงผล "คงเหลือในคลัง" ให้แปลงหน่วยตาม conversionRate ก่อนแสดง',date:'8 เม.ย. 69',prompt:'แก้หน้า requisition แสดงคงเหลือในคลังไม่ตรงหน่วย'},
-  {module:'Production',menu:'Work Orders',sub:'Execution',type:'fix',desc:'ปรับเรียงลำดับหน้าจอ Execution ตาม GMP workflow 6 ขั้นตอน',date:'8 เม.ย. 69',prompt:'ปรับลำดับ sections ใน Execution Dashboard ตาม Pre-Production/Production/Post-Production/Packaging/Inspection'},
-  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เพิ่มช่องรูปแบบยา (Dosage Form) สำหรับจัดกลุ่มเกณฑ์ตามประเภทยา',date:'8 เม.ย. 69',prompt:'เพิ่มช่องกำหนดรูปแบบยาใน IPC Criteria'},
-  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เพิ่มประเภทเกณฑ์ 2 แบบ: ตัวเลข (Numeric) และ ติ๊กเลือก (Checkbox)',date:'8 เม.ย. 69',prompt:'เพิ่มช่องกำหนดเกณฑ์ numeric/checkbox ใน IPC Criteria'},
-  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เพิ่ม Tolerance ±% สำหรับกำหนดเปอร์เซ็นต์ที่ยอมรับได้',date:'8 เม.ย. 69',prompt:'เพิ่มเกณฑ์ tolerance percent ใน IPC Criteria'},
-  {module:'Production',menu:'Work Orders',sub:'IPC Control',type:'feat',desc:'รองรับการบันทึก IPC แบบ Checkbox (ติ๊กผ่าน/ไม่ผ่าน) นอกเหนือจากตัวเลข',date:'8 เม.ย. 69',prompt:'เพิ่มโหมด checkbox ในหน้าบันทึก IPC'},
-  {module:'Production',menu:'Work Orders',sub:'IPC Control',type:'feat',desc:'เพิ่ม Summary Bar แสดงผลผ่าน/ไม่ผ่าน แบบ real-time พร้อม Tolerance %',date:'8 เม.ย. 69',prompt:'เพิ่ม summary bar แสดงผลการตรวจ IPC'},
-  {module:'Production',menu:'Work Orders',sub:'IPC Control',type:'feat',desc:'ปรับ pass/fail logic ใช้ Tolerance % แทนแบบเดิม (sample ใดไม่ผ่าน=ทั้งหมดไม่ผ่าน)',date:'8 เม.ย. 69',prompt:'ปรับ logic ตัดสิน IPC ให้ใช้ tolerance percent'},
+  {module:'Production',menu:'Work Orders',sub:'Environmental Monitoring',type:'feat',desc:'เพิ่มปุ่มแก้ไขและลบข้อมูลสภาวะแวดล้อม ทั้ง 3 phase (Pre-Production, Production, Packaging)',date:'9 เม.ย. 69',startTime:'09:00',endTime:'09:30',prompt:'เพิ่มปุ่ม Edit/Delete สำหรับ Environmental Monitoring ทุก phase'},
+  {module:'Production',menu:'Work Orders',sub:'Environmental Monitoring',type:'feat',desc:'เพิ่ม dropdown เลือกห้อง (Room) ในหน้าบันทึกสภาวะแวดล้อม — ดึงห้องจาก BOM Config ตาม phase, แสดงคอลัมน์ Room ในตารางบันทึก',date:'9 เม.ย. 69',startTime:'09:30',endTime:'10:30',prompt:'เพิ่มตัวเลือก Room ในหน้า Environmental Monitoring ของ WO ทั้ง 3 phase'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Configuration',type:'refac',desc:'ย้าย Environmental Conditions เข้ามาอยู่ใน Add Room dialog — ลบ tab Environmental ออก, เพิ่ม checklist เลือก condition ตอน Add Room, แสดง tag ในตาราง Rooms',date:'9 เม.ย. 69',startTime:'10:30',endTime:'12:00',prompt:'ย้าย env conditions มาอยู่ใน dialog Add Room ใน BOM Config แทน tab แยก'},
+  {module:'Production',menu:'Work Orders',sub:'Execution Dashboard',type:'feat',desc:'ล็อคขั้นตอน Execution ที่ยังทำไม่ได้ — แสดงไอคอนล็อค + เหตุผลที่ต้องทำก่อน ป้องกันการข้ามขั้นตอน',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'ล็อค execution sections ใน dashboard ให้ไม่สามารถกดเข้าได้ถ้าขั้นตอนก่อนหน้ายังไม่เสร็จ'},
+  {module:'Production',menu:'Work Orders',sub:'Status Workflow',type:'feat',desc:'เพิ่มเงื่อนไข Workflow Gates: Released ต้องอนุมัติใบเบิก, In Progress ต้อง Cleaning+ชั่งเสร็จ, Completed ต้อง Final Inspection ผ่าน — แสดง Error แจ้งขั้นตอนที่ยังไม่ครบ',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'ปรับ workflow ล็อคการเปลี่ยนสถานะ WO ให้ต้องทำขั้นตอนก่อนหน้าครบก่อน'},
+  {module:'Master Data',menu:'Items',sub:'Unit Conversion',type:'fix',desc:'แก้ bug แปลงหน่วยสต็อกผิด (kg/g) — ระบบบังคับ factor มาตรฐานสำหรับคู่หน่วย kg:g=1000, l:ml=1000 อัตโนมัติ',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'แก้ conversionRate ผิดสำหรับคู่หน่วยมาตรฐาน kg/g ให้ใช้ 1000 เท่านั้น'},
+  {module:'Production',menu:'Work Orders',sub:'Environmental Monitoring',type:'feat',desc:'เพิ่มสภาวะแวดล้อม (อุณหภูมิ/ความชื้น) ใน Pre-Production — ตั้งค่าใน BOM Configuration + บันทึกใน Execution',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มการบันทึกสภาวะแวดล้อมใน pre-production พร้อมตั้งค่า Master Data และ BOM'},
+  {module:'Master Data',menu:'Items',sub:'Stock Status',type:'feat',desc:'แสดง Secondary Unit ในกล่อง Current Stock Status + format ตัวเลขด้วย comma',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'แสดง secondary unit ในกล่อง stock status และใส่ comma ให้ตัวเลข'},
+  {module:'Production',menu:'Work Orders',sub:'Material Weighing',type:'feat',desc:'เปลี่ยนตัวเลือก Lot จาก dropdown เป็น checkbox list เรียงตาม FEFO (ใกล้หมดอายุก่อน) กรองเฉพาะ lot ที่ยังไม่หมดอายุ',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'หน้า weight แสดง lot ทั้งหมดแบบ checkbox เรียง FEFO กรอง lot หมดอายุออก'},
+  {module:'Production',menu:'Work Orders',sub:'Material Weighing',type:'feat',desc:'เพิ่มปุ่ม "เลือกอัตโนมัติ (FEFO)" และ auto-select เมื่อกดบันทึกโดยไม่เลือก lot — รวม lot หลายใบถ้าไม่พอ',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'ถ้าไม่เลือก lot ให้ระบบเลือก lot อัตโนมัติ FEFO รวมหลาย lot ถ้าไม่พอ'},
+  {module:'Inventory',menu:'Requisitions',sub:'Approval',type:'fix',desc:'แก้ bug เทียบหน่วยวัตถุดิบผิดในการอนุมัติใบเบิก — ระบบเทียบ g กับ kg โดยไม่แปลงหน่วย ทำให้แจ้งวัตถุดิบไม่พอทั้งที่มีพอ',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'แก้ bug หน่วยวัตถุดิบใน Requisition approval เทียบหน่วยผิด (g vs kg)'},
+  {module:'Inventory',menu:'Requisitions',sub:'Material List',type:'fix',desc:'แก้การแสดงผล "คงเหลือในคลัง" ให้แปลงหน่วยตาม conversionRate ก่อนแสดง',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'แก้หน้า requisition แสดงคงเหลือในคลังไม่ตรงหน่วย'},
+  {module:'Production',menu:'Work Orders',sub:'Execution',type:'fix',desc:'ปรับเรียงลำดับหน้าจอ Execution ตาม GMP workflow 6 ขั้นตอน',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'ปรับลำดับ sections ใน Execution Dashboard ตาม Pre-Production/Production/Post-Production/Packaging/Inspection'},
+  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เพิ่มช่องรูปแบบยา (Dosage Form) สำหรับจัดกลุ่มเกณฑ์ตามประเภทยา',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มช่องกำหนดรูปแบบยาใน IPC Criteria'},
+  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เพิ่มประเภทเกณฑ์ 2 แบบ: ตัวเลข (Numeric) และ ติ๊กเลือก (Checkbox)',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มช่องกำหนดเกณฑ์ numeric/checkbox ใน IPC Criteria'},
+  {module:'Master Data',menu:'IPC Criteria',sub:'New/Edit',type:'feat',desc:'เพิ่ม Tolerance ±% สำหรับกำหนดเปอร์เซ็นต์ที่ยอมรับได้',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มเกณฑ์ tolerance percent ใน IPC Criteria'},
+  {module:'Production',menu:'Work Orders',sub:'IPC Control',type:'feat',desc:'รองรับการบันทึก IPC แบบ Checkbox (ติ๊กผ่าน/ไม่ผ่าน) นอกเหนือจากตัวเลข',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มโหมด checkbox ในหน้าบันทึก IPC'},
+  {module:'Production',menu:'Work Orders',sub:'IPC Control',type:'feat',desc:'เพิ่ม Summary Bar แสดงผลผ่าน/ไม่ผ่าน แบบ real-time พร้อม Tolerance %',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่ม summary bar แสดงผลการตรวจ IPC'},
+  {module:'Production',menu:'Work Orders',sub:'IPC Control',type:'feat',desc:'ปรับ pass/fail logic ใช้ Tolerance % แทนแบบเดิม (sample ใดไม่ผ่าน=ทั้งหมดไม่ผ่าน)',date:'8 เม.ย. 69',startTime:'',endTime:'',prompt:'ปรับ logic ตัดสิน IPC ให้ใช้ tolerance percent'},
   // Production > Work Orders
-  {module:'Production',menu:'Work Orders',sub:'WO List',type:'feat',desc:'เพิ่มปุ่ม Edit/Delete สำหรับ Work Order สถานะ draft/planned',date:'25 มี.ค. 69',prompt:'ต้องการให้ Work Order ที่อยู่ในสถานะ draft หรือ planned สามารถแก้ไขและลบได้จากหน้ารายการ'},
-  {module:'Production',menu:'Work Orders',sub:'WO Create/Edit',type:'feat',desc:'เพิ่มฟิลด์ Delivery Date ใน WO create + edit dialog',date:'26 มี.ค. 69',prompt:'เพิ่มช่องกำหนดวันส่งมอบ (Delivery Date) ให้สามารถระบุได้ตั้งแต่สร้างและแก้ไข Work Order'},
-  {module:'Production',menu:'Work Orders',sub:'WO Create/Edit',type:'fix',desc:'ปิดฟิลด์ Delivery Date จนกว่าจะกำหนด Planned Start/End',date:'28 มี.ค. 69',prompt:'ฟิลด์ Delivery Date ควร disable จนกว่าจะกรอก Planned Start/End Date ก่อน'},
-  {module:'Production',menu:'Work Orders',sub:'WO Detail',type:'feat',desc:'แสดง TTMT Code, รหัสยา 24 หลัก, เลขทะเบียน G บน WO detail',date:'1 เม.ย. 69',prompt:'แสดงข้อมูลทะเบียนยาบนหน้ารายละเอียด Work Order และ eBMR'},
-  {module:'Production',menu:'Work Orders',sub:'Production Output',type:'feat',desc:'สร้างหน้าจอ Production Output / Yield Recording (บันทึกผลผลิต)',date:'27 มี.ค. 69',prompt:'สร้างหน้าจอบันทึกผลผลิต สำหรับบันทึก Actual Quantity, Reject Quantity และ Yield %'},
-  {module:'Production',menu:'Work Orders',sub:'Production Output',type:'fix',desc:'Manual Actual Qty input + Auto-calculate Reject Qty',date:'6 เม.ย. 69',prompt:'ให้ระบุ Actual Quantity เอง เมื่อระบุแล้วให้คำนวณ Reject Quantity อัตโนมัติ'},
-  {module:'Production',menu:'Work Orders',sub:'WO Detail',type:'refac',desc:'Embed Execution Dashboard inline ใน WO detail tab (ลด code ซ้ำ ~500 บรรทัด)',date:'6 เม.ย. 69',prompt:'เมื่อคลิก Tab Execution ให้แสดงข้อมูลทันทีโดยไม่ต้องกดปุ่ม OPEN EXECUTION DASHBOARD'},
-  {module:'Production',menu:'Work Orders',sub:'WO Detail',type:'fix',desc:'ปุ่ม Back to Work Orders นำทางไปผิดหน้า',date:'27 มี.ค. 69',prompt:'ปุ่ม Back to Work Orders นำทางไปหน้า WO detail แทนที่จะกลับไปหน้ารายการ'},
-  {module:'Production',menu:'Work Orders',sub:'Material Requisition',type:'feat',desc:'Material Requisition Gate — request/approve workflow ก่อนชั่งวัตถุดิบ',date:'2 เม.ย. 69',prompt:'เพิ่มระบบใบเบิกวัตถุดิบ ต้องขอเบิกและได้รับอนุมัติก่อนจึงจะชั่งวัตถุดิบได้'},
-  {module:'Production',menu:'Work Orders',sub:'WO List',type:'fix',desc:'ตาราง Work Orders แสดง 20 rows/page + page size selector + Thai summary',date:'6 เม.ย. 69',prompt:'กำหนดตาราง Work Orders แสดง 20 รายการต่อหน้า มีตัวเลือก 10/20/50/100 และสรุปจำนวนภาษาไทย'},
-  {module:'Production',menu:'Work Orders',sub:'WO List',type:'fix',desc:'Chart Legend (By Status) ถูกตัดขาด — เปลี่ยนเป็น Custom flex-wrap Legend',date:'6 เม.ย. 69',prompt:'หัวข้อ By Status แสดงข้อความไม่ครบ พื้นสีขาวบังข้อความ แก้ไขให้ Legend ไม่ถูกตัด'},
+  {module:'Production',menu:'Work Orders',sub:'WO List',type:'feat',desc:'เพิ่มปุ่ม Edit/Delete สำหรับ Work Order สถานะ draft/planned',date:'25 มี.ค. 69',startTime:'',endTime:'',prompt:'ต้องการให้ Work Order ที่อยู่ในสถานะ draft หรือ planned สามารถแก้ไขและลบได้จากหน้ารายการ'},
+  {module:'Production',menu:'Work Orders',sub:'WO Create/Edit',type:'feat',desc:'เพิ่มฟิลด์ Delivery Date ใน WO create + edit dialog',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'เพิ่มช่องกำหนดวันส่งมอบ (Delivery Date) ให้สามารถระบุได้ตั้งแต่สร้างและแก้ไข Work Order'},
+  {module:'Production',menu:'Work Orders',sub:'WO Create/Edit',type:'fix',desc:'ปิดฟิลด์ Delivery Date จนกว่าจะกำหนด Planned Start/End',date:'28 มี.ค. 69',startTime:'',endTime:'',prompt:'ฟิลด์ Delivery Date ควร disable จนกว่าจะกรอก Planned Start/End Date ก่อน'},
+  {module:'Production',menu:'Work Orders',sub:'WO Detail',type:'feat',desc:'แสดง TTMT Code, รหัสยา 24 หลัก, เลขทะเบียน G บน WO detail',date:'1 เม.ย. 69',startTime:'',endTime:'',prompt:'แสดงข้อมูลทะเบียนยาบนหน้ารายละเอียด Work Order และ eBMR'},
+  {module:'Production',menu:'Work Orders',sub:'Production Output',type:'feat',desc:'สร้างหน้าจอ Production Output / Yield Recording (บันทึกผลผลิต)',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'สร้างหน้าจอบันทึกผลผลิต สำหรับบันทึก Actual Quantity, Reject Quantity และ Yield %'},
+  {module:'Production',menu:'Work Orders',sub:'Production Output',type:'fix',desc:'Manual Actual Qty input + Auto-calculate Reject Qty',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'ให้ระบุ Actual Quantity เอง เมื่อระบุแล้วให้คำนวณ Reject Quantity อัตโนมัติ'},
+  {module:'Production',menu:'Work Orders',sub:'WO Detail',type:'refac',desc:'Embed Execution Dashboard inline ใน WO detail tab (ลด code ซ้ำ ~500 บรรทัด)',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'เมื่อคลิก Tab Execution ให้แสดงข้อมูลทันทีโดยไม่ต้องกดปุ่ม OPEN EXECUTION DASHBOARD'},
+  {module:'Production',menu:'Work Orders',sub:'WO Detail',type:'fix',desc:'ปุ่ม Back to Work Orders นำทางไปผิดหน้า',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'ปุ่ม Back to Work Orders นำทางไปหน้า WO detail แทนที่จะกลับไปหน้ารายการ'},
+  {module:'Production',menu:'Work Orders',sub:'Material Requisition',type:'feat',desc:'Material Requisition Gate — request/approve workflow ก่อนชั่งวัตถุดิบ',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มระบบใบเบิกวัตถุดิบ ต้องขอเบิกและได้รับอนุมัติก่อนจึงจะชั่งวัตถุดิบได้'},
+  {module:'Production',menu:'Work Orders',sub:'WO List',type:'fix',desc:'ตาราง Work Orders แสดง 20 rows/page + page size selector + Thai summary',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'กำหนดตาราง Work Orders แสดง 20 รายการต่อหน้า มีตัวเลือก 10/20/50/100 และสรุปจำนวนภาษาไทย'},
+  {module:'Production',menu:'Work Orders',sub:'WO List',type:'fix',desc:'Chart Legend (By Status) ถูกตัดขาด — เปลี่ยนเป็น Custom flex-wrap Legend',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'หัวข้อ By Status แสดงข้อความไม่ครบ พื้นสีขาวบังข้อความ แก้ไขให้ Legend ไม่ถูกตัด'},
   // Production > BOM/Recipes
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM Config Panel',type:'feat',desc:'BOM Config Reference Panel + integrate ใน Execution pages ทุกหน้า',date:'25 มี.ค. 69',prompt:'สร้าง component แสดง BOM config อ้างอิงในหน้า Execution เพื่อให้ operator ดูสูตรได้ขณะปฏิบัติงาน'},
-  {module:'Production',menu:'BOM/Recipes',sub:'SOP Steps',type:'feat',desc:'Integrate BOM SOP step config inline ใน execution step cards',date:'25 มี.ค. 69',prompt:'แสดงข้อมูล BOM SOP step inline ในแต่ละ step card ของหน้า Execution'},
-  {module:'Production',menu:'BOM/Recipes',sub:'Cleaning Config',type:'feat',desc:'Map BOM room/equipment config ไป Cleaning execution checklist',date:'25 มี.ค. 69',prompt:'ดึงข้อมูลห้องผลิตและอุปกรณ์จาก BOM มาสร้าง checklist ทำความสะอาดอัตโนมัติ'},
-  {module:'Production',menu:'BOM/Recipes',sub:'Unit Conversion',type:'feat',desc:'BOM unit dropdown + unit conversion on Verify',date:'27 มี.ค. 69',prompt:'เพิ่ม dropdown เลือกหน่วยใน BOM พร้อมแปลงหน่วยอัตโนมัติเมื่อ Verify'},
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM Create',type:'feat',desc:'Multi-select material picker สำหรับ BOM creation',date:'27 มี.ค. 69',prompt:'เพิ่มฟังก์ชัน multi-select เลือกวัตถุดิบหลายรายการพร้อมกันตอนสร้าง BOM'},
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM List',type:'feat',desc:'Edit/Delete buttons สำหรับ draft BOMs',date:'2 เม.ย. 69',prompt:'เพิ่มปุ่ม Edit และ Delete สำหรับ BOM ที่อยู่ในสถานะ draft'},
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM Config Page',type:'fix',desc:'Restore full BOM Configuration page with all sections + IPC tab',date:'2 เม.ย. 69',prompt:'หน้า BOM Configuration แสดงไม่ครบทุก section กู้คืนให้แสดงทุก tab รวมถึง IPC'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Config Panel',type:'feat',desc:'BOM Config Reference Panel + integrate ใน Execution pages ทุกหน้า',date:'25 มี.ค. 69',startTime:'',endTime:'',prompt:'สร้าง component แสดง BOM config อ้างอิงในหน้า Execution เพื่อให้ operator ดูสูตรได้ขณะปฏิบัติงาน'},
+  {module:'Production',menu:'BOM/Recipes',sub:'SOP Steps',type:'feat',desc:'Integrate BOM SOP step config inline ใน execution step cards',date:'25 มี.ค. 69',startTime:'',endTime:'',prompt:'แสดงข้อมูล BOM SOP step inline ในแต่ละ step card ของหน้า Execution'},
+  {module:'Production',menu:'BOM/Recipes',sub:'Cleaning Config',type:'feat',desc:'Map BOM room/equipment config ไป Cleaning execution checklist',date:'25 มี.ค. 69',startTime:'',endTime:'',prompt:'ดึงข้อมูลห้องผลิตและอุปกรณ์จาก BOM มาสร้าง checklist ทำความสะอาดอัตโนมัติ'},
+  {module:'Production',menu:'BOM/Recipes',sub:'Unit Conversion',type:'feat',desc:'BOM unit dropdown + unit conversion on Verify',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'เพิ่ม dropdown เลือกหน่วยใน BOM พร้อมแปลงหน่วยอัตโนมัติเมื่อ Verify'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Create',type:'feat',desc:'Multi-select material picker สำหรับ BOM creation',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'เพิ่มฟังก์ชัน multi-select เลือกวัตถุดิบหลายรายการพร้อมกันตอนสร้าง BOM'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM List',type:'feat',desc:'Edit/Delete buttons สำหรับ draft BOMs',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มปุ่ม Edit และ Delete สำหรับ BOM ที่อยู่ในสถานะ draft'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Config Page',type:'fix',desc:'Restore full BOM Configuration page with all sections + IPC tab',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'หน้า BOM Configuration แสดงไม่ครบทุก section กู้คืนให้แสดงทุก tab รวมถึง IPC'},
   // Production > Execution
-  {module:'Production',menu:'Execution',sub:'Finished Inspection',type:'feat',desc:'Inline checklist UI สำหรับ Finished Product Inspection',date:'26 มี.ค. 69',prompt:'สร้าง UI checklist แบบ inline สำหรับตรวจสอบสินค้าสำเร็จรูป'},
-  {module:'Production',menu:'Execution',sub:'SOP Execution',type:'feat',desc:'SOP Execution: แสดง sub-steps + confirmation checkboxes',date:'1-2 เม.ย. 69',prompt:'แสดงขั้นตอนย่อยของ SOP พร้อม checkbox ยืนยันการทำแต่ละขั้นตอน'},
-  {module:'Production',menu:'Execution',sub:'SOP Execution',type:'fix',desc:'ต้อง Verify ก่อนถึงจะกด Step ถัดไปได้ + Complete กดแค่ 1 ครั้ง',date:'6 เม.ย. 69',prompt:'แก้ไข SOP ให้กรณีที่ยังไม่ Verify ต้องกด Step ถัดไปไม่ได้ และ Complete กดแค่ 1 ครั้ง'},
-  {module:'Production',menu:'Execution',sub:'IPC',type:'feat',desc:'In-Process Control (IPC) recording — inline form + dynamic status',date:'1-2 เม.ย. 69',prompt:'สร้างหน้าจอบันทึกผล IPC แบบ inline form พร้อมสถานะ pass/fail อัตโนมัติ'},
-  {module:'Production',menu:'Execution',sub:'IPC',type:'feat',desc:'เพิ่มรอบการทดสอบ IPC (Test Rounds) + ปุ่ม Approve แยกแต่ละรอบ',date:'6 เม.ย. 69',prompt:'แก้ไข IPC ให้เพิ่มรอบการทดสอบได้กี่ครั้งก็ได้ พร้อมปุ่ม Approve แยกของแต่ละรอบ'},
-  {module:'Production',menu:'Execution',sub:'Material Weighing',type:'feat',desc:'Material weighing: bilingual name, lot SelectBox, unit conversion',date:'26-27 มี.ค. 69',prompt:'ปรับปรุงหน้าชั่งวัตถุดิบ แสดงชื่อ 2 ภาษา เลือก Lot จาก dropdown และแปลงหน่วยอัตโนมัติ'},
-  {module:'Production',menu:'Execution',sub:'Packaging Weight',type:'feat',desc:'Packaging weight control: Edit + Delete functions',date:'25 มี.ค. 69',prompt:'เพิ่มปุ่ม Edit และ Delete สำหรับบันทึกน้ำหนักบรรจุภัณฑ์'},
-  {module:'Production',menu:'Execution',sub:'Material Weighing',type:'feat',desc:'Block material weighing จนกว่า requisition จะ approved',date:'2 เม.ย. 69',prompt:'ป้องกันไม่ให้ชั่งวัตถุดิบจนกว่าใบเบิกจะได้รับการอนุมัติแล้ว'},
-  {module:'Production',menu:'Execution',sub:'All Pages',type:'feat',desc:'แสดงชื่อ operator/verifier ทุกหน้า Execution',date:'1-2 เม.ย. 69',prompt:'แสดงชื่อผู้ปฏิบัติงานและผู้ตรวจสอบจริงแทนรหัส User ID'},
-  {module:'Production',menu:'Execution',sub:'Environmental',type:'feat',desc:'API Key auth สำหรับ external sensor environmental monitoring',date:'2 เม.ย. 69',prompt:'เพิ่มระบบ API Key authentication สำหรับ sensor ภายนอกส่งข้อมูลอุณหภูมิเข้าระบบ'},
+  {module:'Production',menu:'Execution',sub:'Finished Inspection',type:'feat',desc:'Inline checklist UI สำหรับ Finished Product Inspection',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'สร้าง UI checklist แบบ inline สำหรับตรวจสอบสินค้าสำเร็จรูป'},
+  {module:'Production',menu:'Execution',sub:'SOP Execution',type:'feat',desc:'SOP Execution: แสดง sub-steps + confirmation checkboxes',date:'1-2 เม.ย. 69',startTime:'',endTime:'',prompt:'แสดงขั้นตอนย่อยของ SOP พร้อม checkbox ยืนยันการทำแต่ละขั้นตอน'},
+  {module:'Production',menu:'Execution',sub:'SOP Execution',type:'fix',desc:'ต้อง Verify ก่อนถึงจะกด Step ถัดไปได้ + Complete กดแค่ 1 ครั้ง',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'แก้ไข SOP ให้กรณีที่ยังไม่ Verify ต้องกด Step ถัดไปไม่ได้ และ Complete กดแค่ 1 ครั้ง'},
+  {module:'Production',menu:'Execution',sub:'IPC',type:'feat',desc:'In-Process Control (IPC) recording — inline form + dynamic status',date:'1-2 เม.ย. 69',startTime:'',endTime:'',prompt:'สร้างหน้าจอบันทึกผล IPC แบบ inline form พร้อมสถานะ pass/fail อัตโนมัติ'},
+  {module:'Production',menu:'Execution',sub:'IPC',type:'feat',desc:'เพิ่มรอบการทดสอบ IPC (Test Rounds) + ปุ่ม Approve แยกแต่ละรอบ',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'แก้ไข IPC ให้เพิ่มรอบการทดสอบได้กี่ครั้งก็ได้ พร้อมปุ่ม Approve แยกของแต่ละรอบ'},
+  {module:'Production',menu:'Execution',sub:'Material Weighing',type:'feat',desc:'Material weighing: bilingual name, lot SelectBox, unit conversion',date:'26-27 มี.ค. 69',startTime:'',endTime:'',prompt:'ปรับปรุงหน้าชั่งวัตถุดิบ แสดงชื่อ 2 ภาษา เลือก Lot จาก dropdown และแปลงหน่วยอัตโนมัติ'},
+  {module:'Production',menu:'Execution',sub:'Packaging Weight',type:'feat',desc:'Packaging weight control: Edit + Delete functions',date:'25 มี.ค. 69',startTime:'',endTime:'',prompt:'เพิ่มปุ่ม Edit และ Delete สำหรับบันทึกน้ำหนักบรรจุภัณฑ์'},
+  {module:'Production',menu:'Execution',sub:'Material Weighing',type:'feat',desc:'Block material weighing จนกว่า requisition จะ approved',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'ป้องกันไม่ให้ชั่งวัตถุดิบจนกว่าใบเบิกจะได้รับการอนุมัติแล้ว'},
+  {module:'Production',menu:'Execution',sub:'All Pages',type:'feat',desc:'แสดงชื่อ operator/verifier ทุกหน้า Execution',date:'1-2 เม.ย. 69',startTime:'',endTime:'',prompt:'แสดงชื่อผู้ปฏิบัติงานและผู้ตรวจสอบจริงแทนรหัส User ID'},
+  {module:'Production',menu:'Execution',sub:'Environmental',type:'feat',desc:'API Key auth สำหรับ external sensor environmental monitoring',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มระบบ API Key authentication สำหรับ sensor ภายนอกส่งข้อมูลอุณหภูมิเข้าระบบ'},
   // Production > eBMR
-  {module:'Production',menu:'eBMR',sub:'eBMR Tab',type:'feat',desc:'เพิ่มข้อมูล execution (SOP, Cleaning, Environmental, Weighing, IPC) ใน eBMR',date:'2 เม.ย. 69',prompt:'eBMR tab ยังไม่แสดงข้อมูล execution ที่บันทึกไว้ เพิ่มทุก section ให้ครบถ้วน'},
-  {module:'Production',menu:'eBMR',sub:'Print eBMR',type:'feat',desc:'Professional print layout: ซ่อน sidebar/nav, company header/footer, A4',date:'6 เม.ย. 69',prompt:'เมื่อคลิก Print eBMR หน้า Print Preview ยังไม่เป็นระเบียบ มี UI เว็บติดเข้าไป'},
-  {module:'Production',menu:'eBMR',sub:'Print eBMR',type:'fix',desc:'Page break control: ป้องกัน Card ถูกตัดกลางหน้า',date:'6 เม.ย. 69',prompt:'เวลาสั่งพิมพ์ เนื้อหา Card ถูกตัดแบ่งหน้ากระดาษไม่เหมาะสม'},
-  {module:'Production',menu:'eBMR',sub:'Print eBMR',type:'fix',desc:'แก้รหัสยา 24 หลักทับเลขทะเบียน G + Material Consumption อ่านยาก',date:'6 เม.ย. 69',prompt:'ข้อมูลช่องรหัส 24 หลักทับกับช่องเลขทะเบียน G และ Material Consumption อ่านไม่รู้เรื่อง'},
-  {module:'Production',menu:'eBMR',sub:'Batch Records',type:'fix',desc:'Batch Records page อ่านจาก wo_* execution tables',date:'2 เม.ย. 69',prompt:'หน้า Batch Records ไม่แสดงข้อมูลเพราะ query จากตาราง batch_records ที่ว่าง'},
+  {module:'Production',menu:'eBMR',sub:'eBMR Tab',type:'feat',desc:'เพิ่มข้อมูล execution (SOP, Cleaning, Environmental, Weighing, IPC) ใน eBMR',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'eBMR tab ยังไม่แสดงข้อมูล execution ที่บันทึกไว้ เพิ่มทุก section ให้ครบถ้วน'},
+  {module:'Production',menu:'eBMR',sub:'Print eBMR',type:'feat',desc:'Professional print layout: ซ่อน sidebar/nav, company header/footer, A4',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'เมื่อคลิก Print eBMR หน้า Print Preview ยังไม่เป็นระเบียบ มี UI เว็บติดเข้าไป'},
+  {module:'Production',menu:'eBMR',sub:'Print eBMR',type:'fix',desc:'Page break control: ป้องกัน Card ถูกตัดกลางหน้า',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'เวลาสั่งพิมพ์ เนื้อหา Card ถูกตัดแบ่งหน้ากระดาษไม่เหมาะสม'},
+  {module:'Production',menu:'eBMR',sub:'Print eBMR',type:'fix',desc:'แก้รหัสยา 24 หลักทับเลขทะเบียน G + Material Consumption อ่านยาก',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'ข้อมูลช่องรหัส 24 หลักทับกับช่องเลขทะเบียน G และ Material Consumption อ่านไม่รู้เรื่อง'},
+  {module:'Production',menu:'eBMR',sub:'Batch Records',type:'fix',desc:'Batch Records page อ่านจาก wo_* execution tables',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'หน้า Batch Records ไม่แสดงข้อมูลเพราะ query จากตาราง batch_records ที่ว่าง'},
   // Production > Master Data
-  {module:'Production',menu:'Master Data',sub:'IPC Criteria',type:'feat',desc:'IPC Criteria master data + BOM IPC configuration',date:'2 เม.ย. 69',prompt:'สร้าง master data สำหรับเกณฑ์ IPC และเชื่อมโยงเข้ากับ BOM configuration'},
-  {module:'Production',menu:'Master Data',sub:'SOP Templates',type:'feat',desc:'SOP templates: procedure steps + sub-steps + 17 categories',date:'1 เม.ย. 69',prompt:'เพิ่มขั้นตอนย่อย (sub-steps) ใน SOP template และขยาย category เป็น 17 หมวดตาม GMP'},
-  {module:'Production',menu:'Master Data',sub:'Items',type:'feat',desc:'เพิ่ม G registration number field ใน item form',date:'1 เม.ย. 69',prompt:'เพิ่มช่องเลขทะเบียน G ในฟอร์มสินค้า เพื่อแสดงบน WO และ eBMR'},
-  {module:'Production',menu:'Master Data',sub:'All Edit Forms',type:'fix',desc:'Master data edit forms ไม่โหลดข้อมูล (DevExtreme TextBox bug)',date:'1 เม.ย. 69',prompt:'ฟอร์มแก้ไข Master Data เปิดขึ้นมาแล้วช่อง input ว่างเปล่า ไม่แสดงข้อมูลเดิม'},
-  {module:'Production',menu:'Master Data',sub:'All Tables',type:'fix',desc:'ตาราง Master Data ทุกหัวข้อแสดง 20 rows/page + auto height',date:'6 เม.ย. 69',prompt:'ตาราง Master Data ทุกหัวข้อให้แสดง 20 รายการต่อหน้า ไม่มี scrollbar ภายในตาราง'},
-  {module:'Production',menu:'Master Data',sub:'Dashboard',type:'fix',desc:'เพิ่ม IPC Criteria ใน About Master Data section',date:'6 เม.ย. 69',prompt:'หน้า Master Data หัวข้อ About ไม่มี IPC Criteria แสดงอยู่'},
+  {module:'Production',menu:'Master Data',sub:'IPC Criteria',type:'feat',desc:'IPC Criteria master data + BOM IPC configuration',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'สร้าง master data สำหรับเกณฑ์ IPC และเชื่อมโยงเข้ากับ BOM configuration'},
+  {module:'Production',menu:'Master Data',sub:'SOP Templates',type:'feat',desc:'SOP templates: procedure steps + sub-steps + 17 categories',date:'1 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มขั้นตอนย่อย (sub-steps) ใน SOP template และขยาย category เป็น 17 หมวดตาม GMP'},
+  {module:'Production',menu:'Master Data',sub:'Items',type:'feat',desc:'เพิ่ม G registration number field ใน item form',date:'1 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มช่องเลขทะเบียน G ในฟอร์มสินค้า เพื่อแสดงบน WO และ eBMR'},
+  {module:'Production',menu:'Master Data',sub:'All Edit Forms',type:'fix',desc:'Master data edit forms ไม่โหลดข้อมูล (DevExtreme TextBox bug)',date:'1 เม.ย. 69',startTime:'',endTime:'',prompt:'ฟอร์มแก้ไข Master Data เปิดขึ้นมาแล้วช่อง input ว่างเปล่า ไม่แสดงข้อมูลเดิม'},
+  {module:'Production',menu:'Master Data',sub:'All Tables',type:'fix',desc:'ตาราง Master Data ทุกหัวข้อแสดง 20 rows/page + auto height',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'ตาราง Master Data ทุกหัวข้อให้แสดง 20 รายการต่อหน้า ไม่มี scrollbar ภายในตาราง'},
+  {module:'Production',menu:'Master Data',sub:'Dashboard',type:'fix',desc:'เพิ่ม IPC Criteria ใน About Master Data section',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'หน้า Master Data หัวข้อ About ไม่มี IPC Criteria แสดงอยู่'},
   // Inventory
-  {module:'Inventory',menu:'Lots',sub:'Lot API',type:'feat',desc:'getAvailableLots() API สำหรับ lot selection',date:'26 มี.ค. 69',prompt:'สร้าง API ดึงรายการ Lot ที่มี stock คงเหลือสำหรับ dropdown เลือก lot'},
-  {module:'Inventory',menu:'Lots',sub:'Requisition Tab',type:'feat',desc:'Material requisition tab ใน Inventory Lots page',date:'2 เม.ย. 69',prompt:'เพิ่ม Tab ใบเบิกวัตถุดิบในหน้า Inventory Lots สำหรับดูและอนุมัติใบเบิก'},
-  {module:'Inventory',menu:'Lots',sub:'Requisition Tab',type:'feat',desc:'แสดงจำนวนคงเหลือในคลัง + หน่วยนับ ในใบเบิกวัตถุดิบ',date:'6 เม.ย. 69',prompt:'ใบเบิกวัตถุดิบ ขอเพิ่มให้แสดงจำนวนที่เหลือด้วย พร้อมแสดงหน่วยนับ'},
-  {module:'Inventory',menu:'Lots',sub:'On-hand Sync',type:'fix',desc:'Sync items.on_hand หลัง material issuance',date:'26 มี.ค. 69',prompt:'หลังจากตัด stock วัตถุดิบ ค่า on_hand ไม่ update ตาม ต้อง sync ใหม่'},
-  {module:'Inventory',menu:'Lots',sub:'Lot List',type:'fix',desc:'ขยาย Warehouse column ให้เต็มข้อความ + 20 rows/page',date:'6 เม.ย. 69',prompt:'หน้า Inventory Lots ช่อง warehouse ข้อความตกบรรทัด และให้แสดง 20 record ต่อหน้า'},
+  {module:'Inventory',menu:'Lots',sub:'Lot API',type:'feat',desc:'getAvailableLots() API สำหรับ lot selection',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'สร้าง API ดึงรายการ Lot ที่มี stock คงเหลือสำหรับ dropdown เลือก lot'},
+  {module:'Inventory',menu:'Lots',sub:'Requisition Tab',type:'feat',desc:'Material requisition tab ใน Inventory Lots page',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่ม Tab ใบเบิกวัตถุดิบในหน้า Inventory Lots สำหรับดูและอนุมัติใบเบิก'},
+  {module:'Inventory',menu:'Lots',sub:'Requisition Tab',type:'feat',desc:'แสดงจำนวนคงเหลือในคลัง + หน่วยนับ ในใบเบิกวัตถุดิบ',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'ใบเบิกวัตถุดิบ ขอเพิ่มให้แสดงจำนวนที่เหลือด้วย พร้อมแสดงหน่วยนับ'},
+  {module:'Inventory',menu:'Lots',sub:'On-hand Sync',type:'fix',desc:'Sync items.on_hand หลัง material issuance',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'หลังจากตัด stock วัตถุดิบ ค่า on_hand ไม่ update ตาม ต้อง sync ใหม่'},
+  {module:'Inventory',menu:'Lots',sub:'Lot List',type:'fix',desc:'ขยาย Warehouse column ให้เต็มข้อความ + 20 rows/page',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'หน้า Inventory Lots ช่อง warehouse ข้อความตกบรรทัด และให้แสดง 20 record ต่อหน้า'},
   // Quality
-  {module:'Quality',menu:'QC Tests',sub:'Lot Detail',type:'feat',desc:'Enhanced QC Tests display บน lot detail page',date:'1 เม.ย. 69',prompt:'ปรับปรุงการแสดงผล QC Tests ในหน้ารายละเอียด Lot ให้ดูง่ายขึ้น'},
-  {module:'Quality',menu:'QC Tests',sub:'Spec Snapshot',type:'fix',desc:'Snapshot spec values ตอนบันทึกผล QC',date:'27 มี.ค. 69',prompt:'เมื่อแก้ไข spec ย้อนหลัง ผลทดสอบเก่าถูกคำนวณใหม่ ต้อง snapshot ค่า spec ณ เวลาบันทึก'},
+  {module:'Quality',menu:'QC Tests',sub:'Lot Detail',type:'feat',desc:'Enhanced QC Tests display บน lot detail page',date:'1 เม.ย. 69',startTime:'',endTime:'',prompt:'ปรับปรุงการแสดงผล QC Tests ในหน้ารายละเอียด Lot ให้ดูง่ายขึ้น'},
+  {module:'Quality',menu:'QC Tests',sub:'Spec Snapshot',type:'fix',desc:'Snapshot spec values ตอนบันทึกผล QC',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'เมื่อแก้ไข spec ย้อนหลัง ผลทดสอบเก่าถูกคำนวณใหม่ ต้อง snapshot ค่า spec ณ เวลาบันทึก'},
   // GMP
-  {module:'GMP',menu:'Documents',sub:'Document-Training',type:'feat',desc:'Document-Training integration: reverse mapping + re-training alerts',date:'27 มี.ค. 69',prompt:'เชื่อมโยงเอกสาร GMP กับหลักสูตรอบรม แจ้งเตือนเมื่อต้อง re-training'},
-  {module:'GMP',menu:'Documents',sub:'Document Detail',type:'feat',desc:'Attachments section ใน GMP Document detail',date:'27 มี.ค. 69',prompt:'เพิ่มส่วนแนบไฟล์ (Attachments) ในหน้ารายละเอียดเอกสาร GMP'},
-  {module:'GMP',menu:'Documents',sub:'File Download',type:'fix',desc:'Enable document download สำหรับ BLOB-stored files',date:'27 มี.ค. 69',prompt:'ไม่สามารถดาวน์โหลดเอกสารที่เก็บเป็น BLOB ได้'},
-  {module:'GMP',menu:'CAPA',sub:'Actions',type:'fix',desc:'แก้ crash ปุ่ม CAPA Add Action + validation ก่อนปิด CAPA',date:'27 มี.ค. 69',prompt:'กดปุ่ม Add Action ใน CAPA แล้วระบบ crash และไม่มี validation ก่อนปิด'},
+  {module:'GMP',menu:'Documents',sub:'Document-Training',type:'feat',desc:'Document-Training integration: reverse mapping + re-training alerts',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'เชื่อมโยงเอกสาร GMP กับหลักสูตรอบรม แจ้งเตือนเมื่อต้อง re-training'},
+  {module:'GMP',menu:'Documents',sub:'Document Detail',type:'feat',desc:'Attachments section ใน GMP Document detail',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'เพิ่มส่วนแนบไฟล์ (Attachments) ในหน้ารายละเอียดเอกสาร GMP'},
+  {module:'GMP',menu:'Documents',sub:'File Download',type:'fix',desc:'Enable document download สำหรับ BLOB-stored files',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'ไม่สามารถดาวน์โหลดเอกสารที่เก็บเป็น BLOB ได้'},
+  {module:'GMP',menu:'CAPA',sub:'Actions',type:'fix',desc:'แก้ crash ปุ่ม CAPA Add Action + validation ก่อนปิด CAPA',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'กดปุ่ม Add Action ใน CAPA แล้วระบบ crash และไม่มี validation ก่อนปิด'},
   // Accounting
-  {module:'Accounting',menu:'Account Types',sub:'Summary Page',type:'feat',desc:'Account Types summary page: KPI cards + detail table',date:'6 เม.ย. 69',prompt:'ช่วยตรวจสอบว่าระบบมีหน้าจอดูข้อมูลสรุปประเภทบัญชีหรือยัง ถ้ายังไม่มีให้สร้าง'},
-  {module:'Accounting',menu:'AP Invoice',sub:'VAT Rate',type:'feat',desc:'Custom VAT rate selection (0%/7% + manual) ใน AP Invoice',date:'26 มี.ค. 69',prompt:'เพิ่มตัวเลือกอัตราภาษี VAT ใน AP Invoice ให้เลือก 0%, 7% หรือกรอกเอง'},
-  {module:'Accounting',menu:'AR Invoice',sub:'VAT Rate',type:'feat',desc:'Custom VAT rate selection ใน AR Invoice',date:'27 มี.ค. 69',prompt:'เพิ่มตัวเลือกอัตราภาษี VAT ใน AR Invoice เหมือนกับ AP Invoice'},
-  {module:'Accounting',menu:'AP Invoice',sub:'Vendor Dropdown',type:'fix',desc:'AP vendor dropdown ว่างเปล่า',date:'26 มี.ค. 69',prompt:'dropdown เลือก vendor ในฟอร์ม AP Invoice ว่างเปล่า ไม่แสดงรายชื่อ'},
-  {module:'Accounting',menu:'Dashboard',sub:'Aging Links',type:'fix',desc:'AP/AR aging links 404',date:'6 เม.ย. 69',prompt:'เมื่อคลิก card อายุเจ้าหนี้/ลูกหนี้ พบ Error 404'},
-  {module:'Accounting',menu:'Chart of Accounts',sub:'Save Button',type:'fix',desc:'ปุ่ม Save ไม่ทำงาน',date:'26 มี.ค. 69',prompt:'กดปุ่ม Save ในฟอร์ม Chart of Accounts แล้วไม่มีอะไรเกิดขึ้น'},
+  {module:'Accounting',menu:'Account Types',sub:'Summary Page',type:'feat',desc:'Account Types summary page: KPI cards + detail table',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'ช่วยตรวจสอบว่าระบบมีหน้าจอดูข้อมูลสรุปประเภทบัญชีหรือยัง ถ้ายังไม่มีให้สร้าง'},
+  {module:'Accounting',menu:'AP Invoice',sub:'VAT Rate',type:'feat',desc:'Custom VAT rate selection (0%/7% + manual) ใน AP Invoice',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'เพิ่มตัวเลือกอัตราภาษี VAT ใน AP Invoice ให้เลือก 0%, 7% หรือกรอกเอง'},
+  {module:'Accounting',menu:'AR Invoice',sub:'VAT Rate',type:'feat',desc:'Custom VAT rate selection ใน AR Invoice',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'เพิ่มตัวเลือกอัตราภาษี VAT ใน AR Invoice เหมือนกับ AP Invoice'},
+  {module:'Accounting',menu:'AP Invoice',sub:'Vendor Dropdown',type:'fix',desc:'AP vendor dropdown ว่างเปล่า',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'dropdown เลือก vendor ในฟอร์ม AP Invoice ว่างเปล่า ไม่แสดงรายชื่อ'},
+  {module:'Accounting',menu:'Dashboard',sub:'Aging Links',type:'fix',desc:'AP/AR aging links 404',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'เมื่อคลิก card อายุเจ้าหนี้/ลูกหนี้ พบ Error 404'},
+  {module:'Accounting',menu:'Chart of Accounts',sub:'Save Button',type:'fix',desc:'ปุ่ม Save ไม่ทำงาน',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'กดปุ่ม Save ในฟอร์ม Chart of Accounts แล้วไม่มีอะไรเกิดขึ้น'},
   // Cost
-  {module:'Cost',menu:'Work Centers',sub:'Name Field',type:'fix',desc:'Work Center name field คืน null (alias collision) — แก้ 3 รอบ',date:'27 มี.ค. 69',prompt:'ชื่อ Work Center แสดงเป็น null เพราะ column name ชนกับ alias ใน SQL query'},
-  {module:'Cost',menu:'Landed Costs',sub:'Invoice Date',type:'fix',desc:'Format invoiceDate เป็น YYYY-MM-DD',date:'27 มี.ค. 69',prompt:'invoiceDate ส่งไป API ในรูปแบบที่ MySQL ไม่รองรับ'},
-  {module:'Cost',menu:'Dashboard',sub:'Cost Summary',type:'fix',desc:'Cost summary คำนวณจาก inventory_lots',date:'2 เม.ย. 69',prompt:'หน้า Cost Dashboard แสดงตัวเลขไม่ถูกต้อง ต้องคำนวณจาก inventory_lots'},
+  {module:'Cost',menu:'Work Centers',sub:'Name Field',type:'fix',desc:'Work Center name field คืน null (alias collision) — แก้ 3 รอบ',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'ชื่อ Work Center แสดงเป็น null เพราะ column name ชนกับ alias ใน SQL query'},
+  {module:'Cost',menu:'Landed Costs',sub:'Invoice Date',type:'fix',desc:'Format invoiceDate เป็น YYYY-MM-DD',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'invoiceDate ส่งไป API ในรูปแบบที่ MySQL ไม่รองรับ'},
+  {module:'Cost',menu:'Dashboard',sub:'Cost Summary',type:'fix',desc:'Cost summary คำนวณจาก inventory_lots',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'หน้า Cost Dashboard แสดงตัวเลขไม่ถูกต้อง ต้องคำนวณจาก inventory_lots'},
   // HR
-  {module:'HR/Admin',menu:'Permissions',sub:'Admin Role',type:'feat',desc:'Admin role bypasses all permission checks',date:'2 เม.ย. 69',prompt:'ให้ admin role เข้าถึงทุกฟังก์ชันโดยไม่ต้องตรวจสอบ permission'},
-  {module:'HR/Admin',menu:'Settings',sub:'Company Settings',type:'feat',desc:'Company settings: real database persistence',date:'26 มี.ค. 69',prompt:'หน้า Company Settings บันทึกข้อมูลแล้วหายเมื่อ refresh ต้องบันทึกลง database จริง'},
-  {module:'HR/Admin',menu:'Organization',sub:'Org Chart',type:'fix',desc:'Organization Chart: infinite redirect loop',date:'26 มี.ค. 69',prompt:'เปิดหน้า Organization Chart แล้ว browser วนลูป redirect ไม่หยุด'},
-  {module:'HR/Admin',menu:'Roles',sub:'Role Edit',type:'fix',desc:'Role edit: infinite re-render + double MainLayout crash',date:'26 มี.ค. 69',prompt:'แก้ไข Role แล้ว component render วนลูปไม่หยุด และ MainLayout ซ้อนกัน 2 ชั้น'},
-  {module:'HR/Admin',menu:'Audit Trail',sub:'Popup Detail',type:'fix',desc:'Audit trail: safe JSON parsing, user names',date:'26 มี.ค. 69',prompt:'Audit trail popup แสดงผิดพลาด JSON parse error และไม่แสดงชื่อ user'},
-  {module:'HR/Admin',menu:'System',sub:'Date Handling',type:'fix',desc:'Date shifting back 1 day (UTC timezone)',date:'26 มี.ค. 69',prompt:'วันที่ในระบบถูกเลื่อนย้อนหลัง 1 วันเพราะแปลง timezone ไม่ถูกต้อง'},
+  {module:'HR/Admin',menu:'Permissions',sub:'Admin Role',type:'feat',desc:'Admin role bypasses all permission checks',date:'2 เม.ย. 69',startTime:'',endTime:'',prompt:'ให้ admin role เข้าถึงทุกฟังก์ชันโดยไม่ต้องตรวจสอบ permission'},
+  {module:'HR/Admin',menu:'Settings',sub:'Company Settings',type:'feat',desc:'Company settings: real database persistence',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'หน้า Company Settings บันทึกข้อมูลแล้วหายเมื่อ refresh ต้องบันทึกลง database จริง'},
+  {module:'HR/Admin',menu:'Organization',sub:'Org Chart',type:'fix',desc:'Organization Chart: infinite redirect loop',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'เปิดหน้า Organization Chart แล้ว browser วนลูป redirect ไม่หยุด'},
+  {module:'HR/Admin',menu:'Roles',sub:'Role Edit',type:'fix',desc:'Role edit: infinite re-render + double MainLayout crash',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'แก้ไข Role แล้ว component render วนลูปไม่หยุด และ MainLayout ซ้อนกัน 2 ชั้น'},
+  {module:'HR/Admin',menu:'Audit Trail',sub:'Popup Detail',type:'fix',desc:'Audit trail: safe JSON parsing, user names',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'Audit trail popup แสดงผิดพลาด JSON parse error และไม่แสดงชื่อ user'},
+  {module:'HR/Admin',menu:'System',sub:'Date Handling',type:'fix',desc:'Date shifting back 1 day (UTC timezone)',date:'26 มี.ค. 69',startTime:'',endTime:'',prompt:'วันที่ในระบบถูกเลื่อนย้อนหลัง 1 วันเพราะแปลง timezone ไม่ถูกต้อง'},
   // VMI
-  {module:'Sales/VMI',menu:'VMI Portal',sub:'Standard Codes',type:'feat',desc:'เพิ่มฟิลด์ รหัสยา 24 หลัก ใน VMI Standard Codes',date:'1 เม.ย. 69',prompt:'เพิ่มช่องรหัสยา 24 หลักใน VMI Standard Codes เพื่อเชื่อมกับระบบ TTMT'},
+  {module:'Sales/VMI',menu:'VMI Portal',sub:'Standard Codes',type:'feat',desc:'เพิ่มฟิลด์ รหัสยา 24 หลัก ใน VMI Standard Codes',date:'1 เม.ย. 69',startTime:'',endTime:'',prompt:'เพิ่มช่องรหัสยา 24 หลักใน VMI Standard Codes เพื่อเชื่อมกับระบบ TTMT'},
   // UI/UX
-  {module:'UI/UX',menu:'Components',sub:'Item Search',type:'feat',desc:'Quick-create item button ใน ItemSearchDialog',date:'27 มี.ค. 69',prompt:'เพิ่มปุ่มสร้างสินค้าใหม่ในหน้าต่าง ItemSearch เผื่อกรณียังไม่มีสินค้าในระบบ'},
-  {module:'UI/UX',menu:'Components',sub:'Edit Item Footer',type:'fix',desc:'Edit Item footer: sticky/fixed/flex layout + modern UI',date:'1-6 เม.ย. 69',prompt:'ส่วน Footer ของหน้า Edit Item มีดีไซน์ไม่สวยงาม และปุ่มกดไม่ได้ ต้องแก้ไขหลายรอบ'},
-  {module:'UI/UX',menu:'Components',sub:'Dropdowns',type:'fix',desc:'Render dropdown popups ที่ document.body แก้ Chrome positioning',date:'27 มี.ค. 69',prompt:'Dropdown popup ใน Chrome แสดงตำแหน่งผิด ต้อง render ที่ document.body'},
+  {module:'UI/UX',menu:'Components',sub:'Item Search',type:'feat',desc:'Quick-create item button ใน ItemSearchDialog',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'เพิ่มปุ่มสร้างสินค้าใหม่ในหน้าต่าง ItemSearch เผื่อกรณียังไม่มีสินค้าในระบบ'},
+  {module:'UI/UX',menu:'Components',sub:'Edit Item Footer',type:'fix',desc:'Edit Item footer: sticky/fixed/flex layout + modern UI',date:'1-6 เม.ย. 69',startTime:'',endTime:'',prompt:'ส่วน Footer ของหน้า Edit Item มีดีไซน์ไม่สวยงาม และปุ่มกดไม่ได้ ต้องแก้ไขหลายรอบ'},
+  {module:'UI/UX',menu:'Components',sub:'Dropdowns',type:'fix',desc:'Render dropdown popups ที่ document.body แก้ Chrome positioning',date:'27 มี.ค. 69',startTime:'',endTime:'',prompt:'Dropdown popup ใน Chrome แสดงตำแหน่งผิด ต้อง render ที่ document.body'},
   // Docs
-  {module:'Documentation',menu:'Reports',sub:'System Flow',type:'docs',desc:'System flow HTML: 17 modules, 79 pages, 44 APIs',date:'6 เม.ย. 69',prompt:'ระบบกวนทำ system flow ของระบบออกมาในรูปแบบ HTML ครอบคลุมทุก module'},
-  {module:'Documentation',menu:'Reports',sub:'Design Specs',type:'docs',desc:'Design specs + plans: BOM config, Weighing, Requisition',date:'25-27 มี.ค. 69',prompt:'เขียน design spec และ implementation plan สำหรับ BOM config, Material weighing, Requisition gate'},
-  {module:'Documentation',menu:'Reports',sub:'Changelog',type:'docs',desc:'Changelog HTML report พร้อม Export Excel',date:'6 เม.ย. 69',prompt:'สรุปการแก้ไขโปรแกรมแยกตาม Module ทำเป็น HTML พร้อม Export Excel และ Prompt ที่แก้ไข'},
+  {module:'Documentation',menu:'Reports',sub:'System Flow',type:'docs',desc:'System flow HTML: 17 modules, 79 pages, 44 APIs',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'ระบบกวนทำ system flow ของระบบออกมาในรูปแบบ HTML ครอบคลุมทุก module'},
+  {module:'Documentation',menu:'Reports',sub:'Design Specs',type:'docs',desc:'Design specs + plans: BOM config, Weighing, Requisition',date:'25-27 มี.ค. 69',startTime:'',endTime:'',prompt:'เขียน design spec และ implementation plan สำหรับ BOM config, Material weighing, Requisition gate'},
+  {module:'Documentation',menu:'Reports',sub:'Changelog',type:'docs',desc:'Changelog HTML report พร้อม Export Excel',date:'6 เม.ย. 69',startTime:'',endTime:'',prompt:'สรุปการแก้ไขโปรแกรมแยกตาม Module ทำเป็น HTML พร้อม Export Excel และ Prompt ที่แก้ไข'},
   // ==================== 7 เมษายน 2569 ====================
   // Production > BOM
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM Detail',type:'fix',desc:'Quantity, Batch Size, Yield แสดงตัวเลขไม่มี comma (MySQL decimal returns string) — เพิ่ม Number() conversion',date:'7 เม.ย. 69',prompt:'หน้าจอแสดงผล BOM เมื่อบันทึก 1000 ให้แสดง Quantity เป็น 1,000 และในหน้า Edit Material ก็ต้องแสดง 1,000'},
-  {module:'Production',menu:'BOM/Recipes',sub:'BOM List',type:'fix',desc:'ช่อง Batch ในทะเบียน BOM แสดงตัวเลขไม่มี comma (เช่น 1500 ต้องแสดง 1,500)',date:'7 เม.ย. 69',prompt:'หน้าทะเบียน BOM ช่อง Batch ถ้าค่า 1500 ให้แสดง 1,500'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Detail',type:'fix',desc:'Quantity, Batch Size, Yield แสดงตัวเลขไม่มี comma (MySQL decimal returns string) — เพิ่ม Number() conversion',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'หน้าจอแสดงผล BOM เมื่อบันทึก 1000 ให้แสดง Quantity เป็น 1,000 และในหน้า Edit Material ก็ต้องแสดง 1,000'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM List',type:'fix',desc:'ช่อง Batch ในทะเบียน BOM แสดงตัวเลขไม่มี comma (เช่น 1500 ต้องแสดง 1,500)',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'หน้าทะเบียน BOM ช่อง Batch ถ้าค่า 1500 ให้แสดง 1,500'},
   // Production > Execution > IPC
-  {module:'Production',menu:'Execution',sub:'IPC',type:'fix',desc:'ปุ่ม Cancel/Save แสดง translation key แทนข้อความ (PRODUCTION.ACTIONS.CANCEL) — แก้ใช้ common namespace',date:'7 เม.ย. 69',prompt:'ปุ่ม Cancel และ Save แสดงข้อความเป็น PRODUCTION.ACTIONS.CANCEL และ PRODUCTION.ACTIONS.SAVE ต้องแสดงเป็นข้อความที่ผู้ใช้เข้าใจ'},
-  {module:'Production',menu:'Execution',sub:'IPC',type:'fix',desc:'เปลี่ยนปุ่ม Cancel/Save เป็น text style (ไม่ใช่ปุ่มสีเขียว)',date:'7 เม.ย. 69',prompt:'หน้าจอ IPC control ปรับปุ่ม Cancel และ Save ให้เป็นข้อความปกติ'},
+  {module:'Production',menu:'Execution',sub:'IPC',type:'fix',desc:'ปุ่ม Cancel/Save แสดง translation key แทนข้อความ (PRODUCTION.ACTIONS.CANCEL) — แก้ใช้ common namespace',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'ปุ่ม Cancel และ Save แสดงข้อความเป็น PRODUCTION.ACTIONS.CANCEL และ PRODUCTION.ACTIONS.SAVE ต้องแสดงเป็นข้อความที่ผู้ใช้เข้าใจ'},
+  {module:'Production',menu:'Execution',sub:'IPC',type:'fix',desc:'เปลี่ยนปุ่ม Cancel/Save เป็น text style (ไม่ใช่ปุ่มสีเขียว)',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'หน้าจอ IPC control ปรับปุ่ม Cancel และ Save ให้เป็นข้อความปกติ'},
   // Inventory > Lots
-  {module:'Inventory',menu:'Lots',sub:'Lot List',type:'fix',desc:'Filter status แสดงเฉพาะรายการที่เลือก Total ไม่สอดคล้อง — แก้ให้ fetch ทั้งหมด filter ฝั่ง client',date:'7 เม.ย. 69',prompt:'เมนูรายการ Lot เมื่อกดตัวกรอง ระบบแสดงเฉพาะข้อมูลของตัวเลือกนั้น จำนวนรวม Total ไม่สอดคล้องกับรายการจริงทั้งหมด'},
+  {module:'Inventory',menu:'Lots',sub:'Lot List',type:'fix',desc:'Filter status แสดงเฉพาะรายการที่เลือก Total ไม่สอดคล้อง — แก้ให้ fetch ทั้งหมด filter ฝั่ง client',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'เมนูรายการ Lot เมื่อกดตัวกรอง ระบบแสดงเฉพาะข้อมูลของตัวเลือกนั้น จำนวนรวม Total ไม่สอดคล้องกับรายการจริงทั้งหมด'},
   // Inventory > Lots > Requisition
-  {module:'Inventory',menu:'Lots',sub:'Requisition Tab',type:'feat',desc:'ตรวจสอบวัตถุดิบก่อนอนุมัติใบเบิก — block ถ้าไม่พอ + แสดง released lot quantity',date:'7 เม.ย. 69',prompt:'วัตถุดิบไม่เพียงพอ ต้องไม่สามารถอนุมัติปล่อยของเพื่อเบิกได้'},
+  {module:'Inventory',menu:'Lots',sub:'Requisition Tab',type:'feat',desc:'ตรวจสอบวัตถุดิบก่อนอนุมัติใบเบิก — block ถ้าไม่พอ + แสดง released lot quantity',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'วัตถุดิบไม่เพียงพอ ต้องไม่สามารถอนุมัติปล่อยของเพื่อเบิกได้'},
   // Inventory > Warehouses
-  {module:'Inventory',menu:'Warehouses',sub:'Warehouse Detail',type:'fix',desc:'Inventory by type แสดงตัวเลขผิด (string concatenation แทน numeric sum) — MySQL decimal returns string',date:'7 เม.ย. 69',prompt:'Inventory by type แสดงผิด เช่น 09.00001000.0000 แทนที่จะเป็น 1009'},
-  {module:'Inventory',menu:'Warehouses',sub:'Warehouse Detail',type:'fix',desc:'Transactions แสดงรับสินค้าเป็นค่าลบ — field name mismatch + ไม่มี direction — เพิ่ม IN/OUT column',date:'7 เม.ย. 69',prompt:'การรับ lot ระบบแสดงเป็น -1000 แทน +1000 และ Inventory by type ไม่ลดลงตามจริง'},
+  {module:'Inventory',menu:'Warehouses',sub:'Warehouse Detail',type:'fix',desc:'Inventory by type แสดงตัวเลขผิด (string concatenation แทน numeric sum) — MySQL decimal returns string',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'Inventory by type แสดงผิด เช่น 09.00001000.0000 แทนที่จะเป็น 1009'},
+  {module:'Inventory',menu:'Warehouses',sub:'Warehouse Detail',type:'fix',desc:'Transactions แสดงรับสินค้าเป็นค่าลบ — field name mismatch + ไม่มี direction — เพิ่ม IN/OUT column',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'การรับ lot ระบบแสดงเป็น -1000 แทน +1000 และ Inventory by type ไม่ลดลงตามจริง'},
   // Production > Master Data
-  {module:'Production',menu:'Master Data',sub:'Items',type:'fix',desc:'Conversion Factor ไม่แสดงในหน้าแก้ไข Item — MySQL decimal returns string, DxNumberBox ต้องการ number',date:'7 เม.ย. 69',prompt:'เมื่อกดปุ่มแก้ไข ข้อมูลในช่อง Conversion Factor ไม่แสดง หายไป'},
-  {module:'Production',menu:'Execution',sub:'Material Requisition',type:'feat',desc:'Auto-create material requisition เมื่อสร้าง Work Order',date:'7 เม.ย. 69',prompt:'ให้ระบบสร้างใบเบิกวัตถุดิบอัตโนมัติเมื่อสร้าง Work Order ใหม่'},
-  {module:'Production',menu:'Execution',sub:'Environmental',type:'fix',desc:'แสดงชื่อ Operator ในช่อง Recorded By ของ Environmental Monitoring',date:'7 เม.ย. 69',prompt:'ช่อง Recorded By แสดง User ID แทนชื่อผู้บันทึก'},
+  {module:'Production',menu:'Master Data',sub:'Items',type:'fix',desc:'Conversion Factor ไม่แสดงในหน้าแก้ไข Item — MySQL decimal returns string, DxNumberBox ต้องการ number',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'เมื่อกดปุ่มแก้ไข ข้อมูลในช่อง Conversion Factor ไม่แสดง หายไป'},
+  {module:'Production',menu:'Execution',sub:'Material Requisition',type:'feat',desc:'Auto-create material requisition เมื่อสร้าง Work Order',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'ให้ระบบสร้างใบเบิกวัตถุดิบอัตโนมัติเมื่อสร้าง Work Order ใหม่'},
+  {module:'Production',menu:'Execution',sub:'Environmental',type:'fix',desc:'แสดงชื่อ Operator ในช่อง Recorded By ของ Environmental Monitoring',date:'7 เม.ย. 69',startTime:'',endTime:'',prompt:'ช่อง Recorded By แสดง User ID แทนชื่อผู้บันทึก'},
 ];
+
+// Date parsing helper: convert Thai short date to Date object for filtering
+var DATE_MAP={
+  'ม.ค.':0,'ก.พ.':1,'มี.ค.':2,'เม.ย.':3,'พ.ค.':4,'มิ.ย.':5,
+  'ก.ค.':6,'ส.ค.':7,'ก.ย.':8,'ต.ค.':9,'พ.ย.':10,'ธ.ค.':11
+};
+var MONTH_FULL_TH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+function parseThaiDate(str){
+  // e.g. '9 เม.ย. 69' or '1-2 เม.ย. 69'
+  var m=str.match(/(\d+)(?:-\d+)?\s+(\S+)\s+(\d+)/);
+  if(!m)return null;
+  var day=parseInt(m[1],10);
+  var monthKey=m[2];
+  var year=parseInt(m[3],10);
+  var monthIdx=DATE_MAP[monthKey];
+  if(monthIdx===undefined)return null;
+  // Convert BE short year to CE: 69 -> 2569 -> 2026
+  var ceYear=year+2500-543;
+  return new Date(ceYear,monthIdx,day);
+}
+
+function formatDateISO(d){
+  var y=d.getFullYear();var m=String(d.getMonth()+1).padStart(2,'0');var dd=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
+}
+
+// Duration calculation
+function calcDuration(startTime,endTime){
+  if(!startTime||!endTime)return '';
+  var sp=startTime.split(':');var ep=endTime.split(':');
+  var startMin=parseInt(sp[0],10)*60+parseInt(sp[1],10);
+  var endMin=parseInt(ep[0],10)*60+parseInt(ep[1],10);
+  var diff=endMin-startMin;
+  if(diff<=0)return '';
+  if(diff<60)return diff+' \u0E19\u0E32\u0E17\u0E35';
+  var h=Math.floor(diff/60);var mm=diff%60;
+  if(mm===0)return h+' \u0E0A\u0E21.';
+  return h+' \u0E0A\u0E21. '+mm+' \u0E19\u0E32\u0E17\u0E35';
+}
+
+// Format duration for Excel detail sheet
+function calcDurationFull(startTime,endTime){
+  return calcDuration(startTime,endTime);
+}
 
 // Build module list for nav
 var MOD_LIST=[];var modSeen={};
@@ -276,7 +410,7 @@ function renderNav(){
   var nav=document.getElementById('navRow');
   while(nav.firstChild)nav.removeChild(nav.firstChild);
   var allP=document.createElement('a');allP.className='nav-pill active';allP.setAttribute('data-mod','all');
-  allP.onclick=function(){filterMod('all');};allP.textContent='ทั้งหมด ('+DATA.length+')';nav.appendChild(allP);
+  allP.onclick=function(){filterMod('all');};allP.textContent='\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ('+DATA.length+')';nav.appendChild(allP);
   MOD_LIST.forEach(function(mod){
     var cnt=DATA.filter(function(d){return d.module===mod;}).length;
     var p=document.createElement('a');p.className='nav-pill';p.setAttribute('data-mod',mod);
@@ -294,6 +428,7 @@ function filterMod(mod){
 
 // Current base items (from module nav) and column filters
 var currentBaseItems=DATA;
+var currentFilteredItems=DATA;
 var colFilters={module:'',menu:'',sub:'',type:'',desc:'',date:'',prompt:''};
 
 function getUnique(items,key){
@@ -309,10 +444,16 @@ function applyFilters(){
     if(colFilters.sub&&d.sub!==colFilters.sub)return false;
     if(colFilters.type&&d.type!==colFilters.type)return false;
     if(colFilters.desc&&d.desc.toLowerCase().indexOf(colFilters.desc.toLowerCase())<0)return false;
-    if(colFilters.date&&d.date.indexOf(colFilters.date)<0)return false;
+    if(colFilters.date){
+      // date filter is an ISO date string from date picker
+      var parsed=parseThaiDate(d.date);
+      if(!parsed)return false;
+      if(formatDateISO(parsed)!==colFilters.date)return false;
+    }
     if(colFilters.prompt&&d.prompt.toLowerCase().indexOf(colFilters.prompt.toLowerCase())<0)return false;
     return true;
   });
+  currentFilteredItems=items;
   renderTableRows(items);
 }
 
@@ -331,59 +472,90 @@ function makeInput(key,placeholder){
   return inp;
 }
 
+function makeDateInput(){
+  var wrap=document.createElement('div');wrap.style.position='relative';
+  var inp=document.createElement('input');inp.type='date';inp.value=colFilters.date||'';
+  inp.style.cssText='cursor:pointer;opacity:0;position:absolute;inset:0;width:100%;height:100%;z-index:2;';
+  var display=document.createElement('input');display.type='text';display.readOnly=true;
+  display.placeholder='เลือกวันที่...';display.style.cursor='pointer';
+  display.style.cssText+='width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;color:#374151;background:white;';
+  inp.onchange=function(){
+    colFilters.date=inp.value;
+    if(inp.value){
+      var parts=inp.value.split('-');
+      var y=parseInt(parts[0])+543;
+      var m=parseInt(parts[1]);
+      var d=parseInt(parts[2]);
+      display.value=d+'/'+m+'/'+y;
+    }else{display.value='';}
+    applyFilters();
+  };
+  wrap.appendChild(display);wrap.appendChild(inp);
+  return wrap;
+}
+
 var currentTbody=null;
 var currentCountEl=null;
 
 function renderTable(items,mod){
   currentBaseItems=items;
+  currentFilteredItems=items;
   colFilters={module:'',menu:'',sub:'',type:'',desc:'',date:'',prompt:''};
 
   var area=document.getElementById('tableArea');
   while(area.firstChild)area.removeChild(area.firstChild);
-  var title=mod==='all'?'ทั้งหมด':mod;
+  var title=mod==='all'?'\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14':mod;
+
+  // Update inline title+count in legend row
+  var titleEl=document.getElementById('tblTitleInline');
+  var countEl=document.getElementById('tblCountInline');
+  if(titleEl)titleEl.textContent=title;
+  if(countEl)countEl.textContent=items.length+' \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23';
+  currentCountEl=countEl;
 
   var wrap=document.createElement('div');wrap.className='tbl-wrap';
-  var hdr=document.createElement('div');hdr.className='tbl-title';
-  hdr.appendChild(document.createTextNode(title));
-  var cnt=document.createElement('div');cnt.className='count';cnt.textContent=items.length+' รายการ';
-  currentCountEl=cnt;
-  hdr.appendChild(cnt);wrap.appendChild(hdr);
 
-  var sc=document.createElement('div');sc.style.overflowX='auto';
+  var sc=document.createElement('div');sc.style.overflowX='auto';sc.style.overflowY='auto';sc.style.maxHeight='calc(100vh - 200px)';
   var tbl=document.createElement('table');tbl.className='cl';
 
   // Header row
   var thead=document.createElement('thead');
   var hr=document.createElement('tr');
-  var cols=['ลำดับ','Module','Menu','Sub Menu','ประเภท','การแก้ไข / การพัฒนา','วัน/เดือน/ปี','Prompt ที่แก้ไข'];
+  var cols=['\u0E25\u0E33\u0E14\u0E31\u0E1A','Module','Menu','Sub Menu','\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17','\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32','\u0E27\u0E31\u0E19/\u0E40\u0E14\u0E37\u0E2D\u0E19/\u0E1B\u0E35','\u0E40\u0E27\u0E25\u0E32\u0E40\u0E23\u0E34\u0E48\u0E21','\u0E40\u0E27\u0E25\u0E32\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14','\u0E43\u0E0A\u0E49\u0E40\u0E27\u0E25\u0E32','Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02'];
   cols.forEach(function(c,i){var th=document.createElement('th');th.textContent=c;if(i===0)th.style.width='50px';hr.appendChild(th);});
   thead.appendChild(hr);
 
   // Filter row
   var fr=document.createElement('tr');fr.className='filter-row';
-  // #0 ลำดับ — empty
+  // #0 - empty
   var fth0=document.createElement('th');fr.appendChild(fth0);
-  // #1 Module — dropdown
-  var fth1=document.createElement('th');fth1.appendChild(makeSelect(items,'module','-- ทั้งหมด --'));fr.appendChild(fth1);
-  // #2 Menu — dropdown
-  var fth2=document.createElement('th');fth2.appendChild(makeSelect(items,'menu','-- ทั้งหมด --'));fr.appendChild(fth2);
-  // #3 Sub Menu — dropdown
-  var fth3=document.createElement('th');fth3.appendChild(makeSelect(items,'sub','-- ทั้งหมด --'));fr.appendChild(fth3);
-  // #4 Type — dropdown
+  // #1 Module
+  var fth1=document.createElement('th');fth1.appendChild(makeSelect(items,'module','-- \u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 --'));fr.appendChild(fth1);
+  // #2 Menu
+  var fth2=document.createElement('th');fth2.appendChild(makeSelect(items,'menu','-- \u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 --'));fr.appendChild(fth2);
+  // #3 Sub Menu
+  var fth3=document.createElement('th');fth3.appendChild(makeSelect(items,'sub','-- \u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 --'));fr.appendChild(fth3);
+  // #4 Type
   var fth4=document.createElement('th');
   var typeSel=document.createElement('select');
-  var typeOpt0=document.createElement('option');typeOpt0.value='';typeOpt0.textContent='-- ทั้งหมด --';typeSel.appendChild(typeOpt0);
+  var typeOpt0=document.createElement('option');typeOpt0.value='';typeOpt0.textContent='-- \u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 --';typeSel.appendChild(typeOpt0);
   [{v:'feat',l:'FEATURE'},{v:'fix',l:'BUG FIX'},{v:'refac',l:'REFACTOR'},{v:'docs',l:'DOCS'},{v:'test',l:'TEST'}].forEach(function(t){
     var o=document.createElement('option');o.value=t.v;o.textContent=t.l;typeSel.appendChild(o);
   });
   typeSel.onchange=function(){colFilters.type=typeSel.value;applyFilters();};
   fth4.appendChild(typeSel);fr.appendChild(fth4);
-  // #5 Description — text input
-  var fth5=document.createElement('th');fth5.appendChild(makeInput('desc','ค้นหา...'));fr.appendChild(fth5);
-  // #6 Date — text input
-  var fth6=document.createElement('th');fth6.appendChild(makeInput('date','ค้นหา...'));fr.appendChild(fth6);
-  // #7 Prompt — text input
-  var fth7=document.createElement('th');fth7.appendChild(makeInput('prompt','ค้นหา...'));fr.appendChild(fth7);
+  // #5 Description
+  var fth5=document.createElement('th');fth5.appendChild(makeInput('desc','\u0E04\u0E49\u0E19\u0E2B\u0E32...'));fr.appendChild(fth5);
+  // #6 Date - date picker
+  var fth6=document.createElement('th');fth6.appendChild(makeDateInput());fr.appendChild(fth6);
+  // #7 startTime - empty
+  var fth7=document.createElement('th');fr.appendChild(fth7);
+  // #8 endTime - empty
+  var fth8=document.createElement('th');fr.appendChild(fth8);
+  // #9 duration - empty
+  var fth9=document.createElement('th');fr.appendChild(fth9);
+  // #10 Prompt
+  var fth10=document.createElement('th');fth10.appendChild(makeInput('prompt','\u0E04\u0E49\u0E19\u0E2B\u0E32...'));fr.appendChild(fth10);
 
   thead.appendChild(fr);
   tbl.appendChild(thead);
@@ -399,7 +571,7 @@ function renderTable(items,mod){
 function renderTableRows(items){
   var tbody=currentTbody;if(!tbody)return;
   while(tbody.firstChild)tbody.removeChild(tbody.firstChild);
-  if(currentCountEl)currentCountEl.textContent=items.length+' รายการ';
+  if(currentCountEl)currentCountEl.textContent=items.length+' \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23';
 
   var typeMap={feat:['b-feat','FEATURE'],fix:['b-fix','BUG FIX'],refac:['b-refac','REFACTOR'],docs:['b-docs','DOCS'],test:['b-test','TEST']};
   items.forEach(function(d,i){
@@ -410,22 +582,59 @@ function renderTableRows(items){
     var td3=document.createElement('td');td3.className='sub-col';td3.textContent=d.sub;tr.appendChild(td3);
     var td4=document.createElement('td');var bg=document.createElement('span');bg.className='badge';
     var tm=typeMap[d.type]||['b-docs',d.type];bg.classList.add(tm[0]);bg.textContent=tm[1];td4.appendChild(bg);tr.appendChild(td4);
-    var td5=document.createElement('td');td5.className='desc-col';td5.textContent=d.desc;tr.appendChild(td5);
+    var td5=document.createElement('td');td5.className='desc-col';td5.textContent=d.desc;td5.setAttribute('title',d.desc);tr.appendChild(td5);
     var td6=document.createElement('td');td6.className='date-col';td6.textContent=d.date;tr.appendChild(td6);
-    var td7=document.createElement('td');td7.className='prompt-col';td7.textContent=d.prompt;tr.appendChild(td7);
+    var td7=document.createElement('td');td7.className='time-col';td7.textContent=d.startTime||'';tr.appendChild(td7);
+    var td8=document.createElement('td');td8.className='time-col';td8.textContent=d.endTime||'';tr.appendChild(td8);
+    var td9=document.createElement('td');td9.className='duration-col';td9.textContent=calcDuration(d.startTime,d.endTime);tr.appendChild(td9);
+    var td10=document.createElement('td');td10.className='prompt-col';td10.textContent=d.prompt;td10.setAttribute('title',d.prompt);tr.appendChild(td10);
     tbody.appendChild(tr);
   });
 }
 
+function formatDateLong(dateStr){
+  var parsed=parseThaiDate(dateStr);
+  if(!parsed)return dateStr;
+  var day=parsed.getDate();
+  var monthIdx=parsed.getMonth();
+  var ceYear=parsed.getFullYear();
+  var beYear=ceYear+543;
+  return day+' '+MONTH_FULL_TH[monthIdx]+' \u0E1E.\u0E28.'+beYear;
+}
+
 function exportExcel(){
-  var rows=DATA.map(function(d,i){return{'ลำดับ':i+1,'Module':d.module,'Menu':d.menu,'Sub Menu':d.sub,'ประเภท':d.type.toUpperCase(),'การแก้ไข / การพัฒนา':d.desc,'วัน/เดือน/ปี':d.date,'Prompt ที่แก้ไข':d.prompt};});
+  // Use currently filtered items
+  var items=currentFilteredItems;
+  var rows=items.map(function(d,i){return{'\u0E25\u0E33\u0E14\u0E31\u0E1A':i+1,'Module':d.module,'Menu':d.menu,'Sub Menu':d.sub,'\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17':d.type.toUpperCase(),'\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32':d.desc,'\u0E27\u0E31\u0E19/\u0E40\u0E14\u0E37\u0E2D\u0E19/\u0E1B\u0E35':d.date,'\u0E40\u0E27\u0E25\u0E32\u0E40\u0E23\u0E34\u0E48\u0E21':d.startTime||'','\u0E40\u0E27\u0E25\u0E32\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14':d.endTime||'','\u0E43\u0E0A\u0E49\u0E40\u0E27\u0E25\u0E32':calcDuration(d.startTime,d.endTime),'Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02':d.prompt};});
   var wb=XLSX.utils.book_new();var ws=XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:6},{wch:16},{wch:18},{wch:18},{wch:10},{wch:65},{wch:14},{wch:70}];
+  ws['!cols']=[{wch:6},{wch:16},{wch:18},{wch:18},{wch:10},{wch:65},{wch:14},{wch:10},{wch:10},{wch:14},{wch:70}];
   XLSX.utils.book_append_sheet(wb,ws,'Changelog');
-  var summary=MOD_LIST.map(function(mod){var it=DATA.filter(function(d){return d.module===mod;});return{Module:mod,Features:it.filter(function(d){return d.type==='feat';}).length,Fixes:it.filter(function(d){return d.type==='fix';}).length,Others:it.filter(function(d){return d.type!=='feat'&&d.type!=='fix';}).length,Total:it.length};});
+
+  // Summary sheet
+  var summary=MOD_LIST.map(function(mod){var it=items.filter(function(d){return d.module===mod;});if(it.length===0)return null;return{Module:mod,Features:it.filter(function(d){return d.type==='feat';}).length,Fixes:it.filter(function(d){return d.type==='fix';}).length,Others:it.filter(function(d){return d.type!=='feat'&&d.type!=='fix';}).length,Total:it.length};}).filter(Boolean);
   summary.push({Module:'TOTAL',Features:summary.reduce(function(s,r){return s+r.Features;},0),Fixes:summary.reduce(function(s,r){return s+r.Fixes;},0),Others:summary.reduce(function(s,r){return s+r.Others;},0),Total:summary.reduce(function(s,r){return s+r.Total;},0)});
   var ws2=XLSX.utils.json_to_sheet(summary);ws2['!cols']=[{wch:20},{wch:10},{wch:10},{wch:10},{wch:10}];
-  XLSX.utils.book_append_sheet(wb,ws2,'Summary');XLSX.writeFile(wb,'Herbal-ERP-Changelog.xlsx');
+  XLSX.utils.book_append_sheet(wb,ws2,'Summary');
+
+  // Detail sheet — vertical layout per entry
+  var detailRows=[];
+  items.forEach(function(d){
+    var dur=calcDuration(d.startTime,d.endTime);
+    var timeStr=(d.startTime&&d.endTime)?(d.startTime+' \u0E19. - '+d.endTime+' \u0E19.  \u0E43\u0E0A\u0E49\u0E40\u0E27\u0E25\u0E32\u0E23\u0E27\u0E21 '+dur):'';
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Module','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.module});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Menu','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.menu});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Sub Menu','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.sub});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.type.toUpperCase()});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.desc});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.prompt});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':formatDateLong(d.date)});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E40\u0E27\u0E25\u0E32\u0E40\u0E23\u0E34\u0E48\u0E21\u0E41\u0E25\u0E30\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':timeStr});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':''});
+  });
+  var ws3=XLSX.utils.json_to_sheet(detailRows);ws3['!cols']=[{wch:30},{wch:80}];
+  XLSX.utils.book_append_sheet(wb,ws3,'Detail');
+
+  XLSX.writeFile(wb,'Herbal-ERP-Changelog.xlsx');
 }
 
 window.addEventListener('scroll',function(){document.getElementById('backToTop').classList.toggle('visible',window.scrollY>300);},{passive:true});
@@ -435,7 +644,7 @@ document.getElementById('statCommits').textContent=DATA.length;
 document.getElementById('statFeatures').textContent=DATA.filter(function(d){return d.type==='feat';}).length;
 document.getElementById('statFixes').textContent=DATA.filter(function(d){return d.type==='fix';}).length;
 document.getElementById('statModules').textContent=MOD_LIST.length;
-document.getElementById('footerInfo').textContent=DATA.length+' items | Last updated: '+new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+document.getElementById('footerInfo').textContent=DATA.length+' items | Last updated: '+new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Bangkok'});
 
 renderNav();filterMod('all');
 </script>
