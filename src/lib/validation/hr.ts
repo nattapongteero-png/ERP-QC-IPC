@@ -162,6 +162,80 @@ export const jobDescriptionUpdateSchema = z.object({
 // Employee Schemas
 // ============================================
 
+// Shared field-level schemas so create + update stay in lockstep.
+// Every card on the EmployeeForm maps to a group below — if a field
+// isn't listed here the API strips it on parse() and the value never
+// reaches the DB (this is what caused cards other than "ข้อมูลพนักงาน"
+// to silently not persist).
+const _employeeEnums = {
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  bloodType: z.enum(['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']).optional(),
+  maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']).optional(),
+  educationLevel: z
+    .enum(['primary', 'secondary', 'vocational', 'bachelor', 'master', 'doctorate'])
+    .optional(),
+  militaryStatus: z.enum(['exempted', 'completed', 'pending', 'not_applicable']).optional(),
+};
+
+const _employeeExtraFields = {
+  nickname: z.string().max(50).optional(),
+
+  // Personal identification
+  thaiCid: z.string().max(20).optional(),
+  dateOfBirth: z.string().optional(),
+  gender: _employeeEnums.gender,
+  bloodType: _employeeEnums.bloodType,
+  religion: z.string().max(50).optional(),
+  maritalStatus: _employeeEnums.maritalStatus,
+  nationalityCode: z.string().max(3).optional(),
+
+  // Photo (set by the photo upload endpoint, but allow passthrough so the
+  // edit page doesn't blank them out if the form sends them back)
+  photoUrl: z.string().optional(),
+  photoThumbnailUrl: z.string().optional(),
+
+  // Government IDs
+  ssoNumber: z.string().max(20).optional(),
+  taxId: z.string().max(20).optional(),
+
+  // Address — current
+  addressLine1: z.string().max(200).optional(),
+  addressLine2: z.string().max(200).optional(),
+  subDistrict: z.string().max(100).optional(),
+  district: z.string().max(100).optional(),
+  province: z.string().max(100).optional(),
+  postalCode: z.string().max(10).optional(),
+
+  // Address — permanent
+  permanentAddressLine1: z.string().max(200).optional(),
+  permanentAddressLine2: z.string().max(200).optional(),
+  permanentSubDistrict: z.string().max(100).optional(),
+  permanentDistrict: z.string().max(100).optional(),
+  permanentProvince: z.string().max(100).optional(),
+  permanentPostalCode: z.string().max(10).optional(),
+  useSameAddress: z.boolean().optional(),
+
+  // Emergency contact
+  emergencyContactName: z.string().max(100).optional(),
+  emergencyContactRelation: z.string().max(50).optional(),
+  emergencyContactPhone: z.string().max(20).optional(),
+
+  // Banking
+  bankName: z.string().max(100).optional(),
+  bankBranch: z.string().max(100).optional(),
+  bankAccountNumber: z.string().max(30).optional(),
+  bankAccountName: z.string().max(100).optional(),
+
+  // Education
+  educationLevel: _employeeEnums.educationLevel,
+  educationField: z.string().max(100).optional(),
+  educationInstitution: z.string().max(200).optional(),
+
+  // Military / medical
+  militaryStatus: _employeeEnums.militaryStatus,
+  medicalNotes: z.string().max(2000).optional(),
+};
+
 export const employeeCreateSchema = z.object({
   userId: z.number().int().positive().optional(),
   employeeCode: z
@@ -190,6 +264,7 @@ export const employeeCreateSchema = z.object({
   hireDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: 'วันที่เริ่มงานต้องเป็นวันที่ที่ถูกต้อง',
   }),
+  ..._employeeExtraFields,
 });
 
 export const employeeUpdateSchema = z.object({
@@ -211,6 +286,11 @@ export const employeeUpdateSchema = z.object({
     .string()
     .refine((val) => !isNaN(Date.parse(val)))
     .optional(),
+  hireDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)))
+    .optional(),
+  ..._employeeExtraFields,
 });
 
 // ============================================

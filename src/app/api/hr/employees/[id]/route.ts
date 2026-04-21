@@ -60,18 +60,20 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           return errorResponse('Validation failed', 400, { errors });
         }
 
+        // Pass every validated field straight through — the service
+        // handles each card's columns (personal, address, bank, etc.)
+        // and only whitelisting the basic ones (as this route used to
+        // do) silently dropped every other card on save.
+        const { phone, positionId, orgUnitId, siteId, ...rest } = parseResult.data;
         const updateData = {
-          firstName: parseResult.data.firstName,
-          lastName: parseResult.data.lastName,
-          firstNameEn: parseResult.data.firstNameEn,
-          lastNameEn: parseResult.data.lastNameEn,
-          email: parseResult.data.email,
-          phone: parseResult.data.phone || undefined,
-          positionId: parseResult.data.positionId ?? undefined,
-          orgUnitId: parseResult.data.orgUnitId ?? undefined,
-          siteId: parseResult.data.siteId ?? undefined,
-          status: parseResult.data.status,
-          terminationDate: parseResult.data.terminationDate,
+          ...rest,
+          // preserve the old '' → undefined normalisation that the service expects
+          phone: phone || undefined,
+          // Zod schema allows null (to explicitly unset) but the service type
+          // only accepts number | undefined; coerce null → undefined.
+          positionId: positionId ?? undefined,
+          orgUnitId: orgUnitId ?? undefined,
+          siteId: siteId ?? undefined,
         };
         const employee = await updateEmployee(Number(id), updateData);
         return successResponse(employee, 'Employee updated successfully');
