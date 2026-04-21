@@ -136,13 +136,16 @@ export default function NewUserPage() {
     [roles],
   );
 
+  // users.department is stored as the org-unit name (matches the legacy Edit
+  // page and most existing rows). Keep the value = name for round-trip
+  // compatibility — id-based value silently lost the selection on reopen.
   const departmentItems = useMemo(
     () =>
       departments.map((d) => {
         const th = (d.nameTh || '').trim();
         const en = (d.name || '').trim();
         const both = th && en && th !== en ? `${th} / ${en}` : th || en;
-        return { value: d.id.toString(), label: both };
+        return { value: d.name, label: both };
       }),
     [departments],
   );
