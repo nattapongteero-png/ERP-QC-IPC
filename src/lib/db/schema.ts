@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, real, blob, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, mysqlEnum, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
+import { sqliteTable, text, integer, real, blob, uniqueIndex as sqliteUniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, mysqlEnum, uniqueIndex as mysqlUniqueIndex, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Custom type for MySQL LONGBLOB (for storing large binary files)
@@ -264,6 +264,8 @@ export const sqliteInventoryTransactions = sqliteTable('inventory_transactions',
   reason: text('reason'),
   performedBy: integer('performed_by').references(() => sqliteUsers.id),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  balanceAfter: real('balance_after'), // lot balance snapshot after this transaction
+  itemBalanceAfter: real('item_balance_after'), // item total balance snapshot after this transaction
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -359,6 +361,17 @@ export const sqliteWorkOrders = sqliteTable('work_orders', {
   requisitionRequestedAt: text('requisition_requested_at'),
   requisitionApprovedBy: integer('requisition_approved_by').references(() => sqliteUsers.id),
   requisitionApprovedAt: text('requisition_approved_at'),
+  // eBMR Approval Signatures — "Produced By" (captured on status → completed transition)
+  completedBy: integer('completed_by').references(() => sqliteUsers.id),
+  completedAt: text('completed_at'),
+  // Bulk Product Yield — recorded after Post-Production, before Packaging
+  bulkOutputQty: real('bulk_output_qty'),
+  bulkOutputRecordedAt: text('bulk_output_recorded_at'),
+  bulkOutputRecordedBy: integer('bulk_output_recorded_by').references(() => sqliteUsers.id),
+  // Finished Production Output/Yield — recorded after Inspection, creates FG lot
+  finishedOutputQty: real('finished_output_qty'),
+  finishedOutputRecordedAt: text('finished_output_recorded_at'),
+  finishedOutputRecordedBy: integer('finished_output_recorded_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -390,6 +403,7 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   unitCost: real('unit_cost'), // WAC at time of issue
   totalCost: real('total_cost'), // quantity × unitCost
   costLayerId: integer('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
+  stockAtApproval: real('stock_at_approval'), // Stock snapshot when requisition was approved
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -455,7 +469,9 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
   specSpecification: text('spec_specification'),
   specUnit: text('spec_unit'),
   criteriaType: text('criteria_type').default('numeric'), // numeric, checkbox — copied from ipc_criteria at init
-  tolerancePercent: real('tolerance_percent').default(0),
+  tolerancePercent: real('tolerance_percent').default(0), // sample-failure tolerance
+  specTarget: real('spec_target'), // copied from ipc_criteria at init
+  specTolerancePercent: real('spec_tolerance_percent').default(0), // Min/Max deviation tolerance
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: integer('disposition_by').references(() => sqliteUsers.id),
@@ -1040,12 +1056,17 @@ export const sqliteHRAppPermissions = sqliteTable('hr_app_permissions', {
 });
 
 // HR Role Permissions (สิทธิ์ของบทบาท)
+// Junction table: one row per (role, permission) pair. The unique index
+// on (role_id, permission_id) ensures INSERT IGNORE works idempotently
+// — without it, re-running permission seeds would produce duplicates.
 export const sqliteHRRolePermissions = sqliteTable('hr_role_permissions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   roleId: integer('role_id').notNull().references(() => sqliteHRAppRoles.id),
   permissionId: integer('permission_id').notNull().references(() => sqliteHRAppPermissions.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
-});
+}, (table) => [
+  sqliteUniqueIndex('uq_hr_role_permission').on(table.roleId, table.permissionId),
+]);
 
 // HR Employee Roles (บทบาทของพนักงาน)
 export const sqliteHREmployeeRoles = sqliteTable('hr_employee_roles', {
@@ -1212,7 +1233,9 @@ export const sqliteBOMEnvironmentalConditions = sqliteTable('bom_environmental_c
   bomRoomId: integer('bom_room_id').references(() => sqliteBOMRooms.id),
   phase: text('phase').notNull(), // pre_production, production, packaging
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
-});
+}, (table) => [
+  sqliteUniqueIndex('uq_bom_phase_condition').on(table.bomId, table.phase, table.conditionId),
+]);
 
 // BOM SOP Steps - Detailed SOP steps for BOM with parameters
 export const sqliteBOMSOPSteps = sqliteTable('bom_sop_steps', {
@@ -1259,7 +1282,11 @@ export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   dosageForm: text('dosage_form'),
   criteriaType: text('criteria_type').notNull().default('numeric'), // numeric, checkbox
-  tolerancePercent: real('tolerance_percent').notNull().default(0),
+  tolerancePercent: real('tolerance_percent').notNull().default(0), // sample-failure tolerance %
+  // Target-based spec (pharmacy/chemistry concept: "300 ± 5%")
+  // When specTarget is set, minValue/maxValue are derived from it at save time
+  specTarget: real('spec_target'),
+  specTolerancePercent: real('spec_tolerance_percent').notNull().default(0),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1322,6 +1349,7 @@ export const sqliteWOCleaningLogs = sqliteTable('wo_cleaning_logs', {
   performedAt: text('performed_at').notNull(),
   verifierId: integer('verifier_id').references(() => sqliteUsers.id),
   verifiedAt: text('verified_at'),
+  verifyResult: text('verify_result'), // pass, fail
   notes: text('notes'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -1661,6 +1689,8 @@ export const mysqlInventoryTransactions = mysqlTable('inventory_transactions', {
   reason: mysqlText('reason'),
   performedBy: int('performed_by').references(() => mysqlUsers.id),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  balanceAfter: decimal('balance_after', { precision: 15, scale: 4 }),
+  itemBalanceAfter: decimal('item_balance_after', { precision: 15, scale: 4 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -1756,6 +1786,17 @@ export const mysqlWorkOrders = mysqlTable('work_orders', {
   requisitionRequestedAt: datetime('requisition_requested_at'),
   requisitionApprovedBy: int('requisition_approved_by').references(() => mysqlUsers.id),
   requisitionApprovedAt: datetime('requisition_approved_at'),
+  // eBMR Approval Signatures — "Produced By" (captured on status → completed transition)
+  completedBy: int('completed_by').references(() => mysqlUsers.id),
+  completedAt: datetime('completed_at'),
+  // Bulk Product Yield — recorded after Post-Production, before Packaging
+  bulkOutputQty: decimal('bulk_output_qty', { precision: 15, scale: 4 }),
+  bulkOutputRecordedAt: datetime('bulk_output_recorded_at'),
+  bulkOutputRecordedBy: int('bulk_output_recorded_by').references(() => mysqlUsers.id),
+  // Finished Production Output/Yield — recorded after Inspection, creates FG lot
+  finishedOutputQty: decimal('finished_output_qty', { precision: 15, scale: 4 }),
+  finishedOutputRecordedAt: datetime('finished_output_recorded_at'),
+  finishedOutputRecordedBy: int('finished_output_recorded_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -1787,6 +1828,7 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   unitCost: decimal('unit_cost', { precision: 15, scale: 4 }), // WAC at time of issue
   totalCost: decimal('total_cost', { precision: 15, scale: 4 }), // quantity × unitCost
   costLayerId: int('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
+  stockAtApproval: decimal('stock_at_approval', { precision: 15, scale: 4 }), // Stock snapshot when requisition was approved
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -1852,7 +1894,9 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   specSpecification: varchar('spec_specification', { length: 500 }),
   specUnit: varchar('spec_unit', { length: 50 }),
   criteriaType: varchar('criteria_type', { length: 20 }).default('numeric'),
-  tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).default('0'),
+  tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).default('0'), // sample-failure tolerance
+  specTarget: decimal('spec_target', { precision: 15, scale: 4 }), // copied from ipc_criteria at init
+  specTolerancePercent: decimal('spec_tolerance_percent', { precision: 5, scale: 2 }).default('0'), // Min/Max deviation tolerance
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: varchar('disposition', { length: 50 }), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: int('disposition_by').references(() => mysqlUsers.id),
@@ -2503,12 +2547,17 @@ export const mysqlHRAppPermissions = mysqlTable('hr_app_permissions', {
 });
 
 // HR Role Permissions (สิทธิ์ของบทบาท)
+// Junction table: one row per (role, permission) pair. The unique index
+// on (role_id, permission_id) ensures INSERT IGNORE works idempotently
+// — without it, re-running permission seeds would produce duplicates.
 export const mysqlHRRolePermissions = mysqlTable('hr_role_permissions', {
   id: int('id').primaryKey().autoincrement(),
   roleId: int('role_id').notNull().references(() => mysqlHRAppRoles.id),
   permissionId: int('permission_id').notNull().references(() => mysqlHRAppPermissions.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => [
+  mysqlUniqueIndex('uq_hr_role_permission').on(table.roleId, table.permissionId),
+]);
 
 // HR Employee Roles (บทบาทของพนักงาน)
 export const mysqlHREmployeeRoles = mysqlTable('hr_employee_roles', {
@@ -4400,7 +4449,9 @@ export const mysqlBOMEnvironmentalConditions = mysqlTable('bom_environmental_con
   bomRoomId: int('bom_room_id').references(() => mysqlBOMRooms.id),
   phase: varchar('phase', { length: 50 }).notNull(), // pre_production, production, packaging
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => [
+  mysqlUniqueIndex('uq_bom_phase_condition').on(table.bomId, table.phase, table.conditionId),
+]);
 
 // BOM SOP Steps - MySQL
 export const mysqlBOMSOPSteps = mysqlTable('bom_sop_steps', {
@@ -4447,7 +4498,11 @@ export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
   isActive: mysqlBoolean('is_active').notNull().default(true),
   dosageForm: varchar('dosage_form', { length: 100 }),
   criteriaType: varchar('criteria_type', { length: 20 }).notNull().default('numeric'),
-  tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).notNull().default('0'),
+  tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).notNull().default('0'), // sample-failure tolerance %
+  // Target-based spec (pharmacy/chemistry concept: "300 ± 5%")
+  // When specTarget is set, minValue/maxValue are derived from it at save time
+  specTarget: decimal('spec_target', { precision: 15, scale: 4 }),
+  specTolerancePercent: decimal('spec_tolerance_percent', { precision: 5, scale: 2 }).notNull().default('0'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -4510,6 +4565,7 @@ export const mysqlWOCleaningLogs = mysqlTable('wo_cleaning_logs', {
   performedAt: datetime('performed_at').notNull(),
   verifierId: int('verifier_id').references(() => mysqlUsers.id),
   verifiedAt: datetime('verified_at'),
+  verifyResult: varchar('verify_result', { length: 20 }), // pass, fail
   notes: mysqlText('notes'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
