@@ -12,11 +12,10 @@ import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSwitch } from '@/components/ui/dx-switch';
 import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
-import { FileText } from 'lucide-react';
+import { FileText, ListChecks, CheckCircle2 } from 'lucide-react';
 import { SOPTemplateStepsEditor } from './SOPTemplateStepsEditor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -26,8 +25,6 @@ interface SOPTemplate {
   name: string;
   nameTh: string;
   category: string;
-  instructions?: string;
-  instructionsTh?: string;
   defaultParameters?: string;
   isActive: boolean;
 }
@@ -86,12 +83,10 @@ export function SOPTemplateForm({ mode, id }: SOPTemplateFormProps) {
         name: existingTemplate.name || '',
         nameTh: existingTemplate.nameTh || '',
         category: existingTemplate.category || '',
-        instructions: existingTemplate.instructions || '',
-        instructionsTh: existingTemplate.instructionsTh || '',
         defaultParameters: existingTemplate.defaultParameters || '',
         isActive: existingTemplate.isActive ?? true,
       }
-    : { code: '', name: '', nameTh: '', category: '', instructions: '', instructionsTh: '', defaultParameters: '', isActive: true };
+    : { code: '', name: '', nameTh: '', category: '', defaultParameters: '', isActive: true };
 
   return <SOPTemplateFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingTemplate={existingTemplate} />;
 }
@@ -120,13 +115,20 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['sop-templates'] });
       toast.success(
         mode === 'edit' ? 'Template Updated' : 'Template Created',
-        `${formData.name} has been ${mode === 'edit' ? 'updated' : 'created'} successfully.`
+        `${formData.name || formData.nameTh} ${mode === 'edit' ? 'ถูกอัปเดตแล้ว' : 'ถูกสร้างแล้ว — เพิ่ม SOP Steps ต่อได้เลย'}`,
       );
-      router.push('/master-data/sop-templates');
+      // Create mode: jump to the new template's edit page so the user can add
+      // procedure steps immediately (matching the feel of /sop-templates/[id]).
+      // Edit mode: return to the list.
+      if (mode === 'create' && data?.id) {
+        router.push(`/master-data/sop-templates/${data.id}`);
+      } else {
+        router.push('/master-data/sop-templates');
+      }
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -145,40 +147,43 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
     router.push('/master-data/sop-templates');
   };
 
+  const isCreate = mode === 'create';
+
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-4xl mx-auto">
-      {/* Header */}
+      {/* Header — keep it minimal (no save button duplicated here) */}
       <ResponsivePageHeader
-        title={mode === 'edit' ? 'Edit SOP Template' : 'New SOP Template'}
-        subtitle={mode === 'edit' ? `Editing ${existingTemplate?.name || ''}` : 'Create a new SOP step template'}
+        title={isCreate ? 'New SOP Template' : 'Edit SOP Template'}
+        subtitle={isCreate ? 'สร้าง SOP Template ใหม่ — เพิ่ม Step หลังบันทึก' : `กำลังแก้ไข: ${existingTemplate?.name || existingTemplate?.nameTh || ''}`}
         icon={FileText}
         iconBgColor="bg-amber-100"
         iconColor="text-amber-600"
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
           { label: 'SOP Templates', href: '/master-data/sop-templates' },
-          { label: mode === 'edit' ? 'Edit' : 'New' },
+          { label: isCreate ? 'New' : 'Edit' },
         ]}
         actions={
-          <div className="flex gap-2">
-            <DxButton
-              text="Cancel"
-              icon="back"
-              stylingMode="outlined"
-              onClick={handleCancel}
-            />
-            <DxButton
-              text={saveMutation.isPending ? 'Saving...' : 'Save'}
-              icon="save"
-              type="success"
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
-            />
-          </div>
+          <DxButton
+            text="Back"
+            icon="back"
+            stylingMode="outlined"
+            onClick={handleCancel}
+          />
         }
       />
 
-      {/* Form */}
+      {/* Create mode hint — tells the user exactly what happens after Save */}
+      {isCreate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900 flex items-start gap-2">
+          <ListChecks className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
+          <div>
+            <span className="font-medium">หลังกด Save</span> ระบบจะพาไปหน้าแก้ไข template ที่สร้าง เพื่อให้เพิ่ม <strong>Procedure Steps</strong> ต่อได้ทันที
+          </div>
+        </div>
+      )}
+
+      {/* Template Information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -186,31 +191,38 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
             Template Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Code <span className="text-red-500">*</span>
+              </label>
               <DxTextBox
                 value={formData.code || ''}
                 onValueChanged={(e) => setFormData({ ...formData, code: e.value })}
-                placeholder="e.g., SOP-MIX-01"
+                placeholder="เช่น SOP-MIX-01"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category <span className="text-red-500">*</span>
+              </label>
               <DxSelectBox
                 dataSource={categories}
                 displayExpr="label"
                 valueExpr="value"
                 value={formData.category}
                 onValueChanged={(e) => setFormData({ ...formData, category: e.value })}
-                placeholder="Select category"
+                placeholder="เลือกหมวดหมู่"
+                searchEnabled
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (TH) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              ชื่อ (TH) <span className="text-red-500">*</span>
+            </label>
             <DxTextBox
               value={formData.nameTh || ''}
               onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })}
@@ -223,57 +235,50 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
             <DxTextBox
               value={formData.name || ''}
               onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-              placeholder="SOP Template name in English"
+              placeholder="SOP Template name in English (optional)"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (TH)</label>
-            <DxTextArea
-              value={formData.instructionsTh || ''}
-              onValueChanged={(e) => setFormData({ ...formData, instructionsTh: e.value })}
-              placeholder="คำแนะนำโดยละเอียดเป็นภาษาไทย"
-              height={100}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
-            <DxTextArea
-              value={formData.instructions || ''}
-              onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
-              placeholder="Detailed instructions in English"
-              height={100}
-            />
-          </div>
-
-          <div className="flex items-center gap-2 pt-2">
+          <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className={`h-5 w-5 ${formData.isActive !== false ? 'text-green-600' : 'text-gray-400'}`} />
+              <div>
+                <div className="text-sm font-medium text-gray-700">สถานะใช้งาน</div>
+                <div className="text-xs text-gray-500">
+                  {formData.isActive !== false ? 'Template นี้พร้อมใช้ในการผลิต' : 'Template นี้ถูกปิดใช้งาน'}
+                </div>
+              </div>
+            </div>
             <DxSwitch
               value={formData.isActive !== false}
               onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setFormData({ ...formData, isActive: e.value })}
             />
-            <span className="text-sm text-gray-700">Active</span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Procedure Steps - only in edit mode */}
-      {mode === 'edit' && id && (
+      {/* Procedure Steps — only in edit mode (needs templateId) */}
+      {!isCreate && id && (
         <SOPTemplateStepsEditor templateId={id} />
       )}
 
-      {/* Bottom Actions */}
-      <div className="flex justify-end gap-2 pt-4">
+      {/* Bottom Actions — stack on mobile, inline on tablet+ */}
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t border-gray-200">
         <DxButton
           text="Cancel"
           stylingMode="outlined"
           onClick={handleCancel}
+          width="100%"
+          elementAttr={{ class: 'sm:!w-auto' }}
         />
         <DxButton
-          text={saveMutation.isPending ? 'Saving...' : (mode === 'edit' ? 'Update Template' : 'Create Template')}
+          text={saveMutation.isPending ? 'กำลังบันทึก…' : (isCreate ? 'Save & Add Steps' : 'Update Template')}
+          icon="save"
           type="success"
           onClick={handleSave}
           disabled={saveMutation.isPending}
+          width="100%"
+          elementAttr={{ class: 'sm:!w-auto' }}
         />
       </div>
     </div>
