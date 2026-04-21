@@ -15,8 +15,9 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSwitch } from '@/components/ui/dx-switch';
 import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, ListChecks, CheckCircle2 } from 'lucide-react';
+import { FileText, CheckCircle2 } from 'lucide-react';
 import { SOPTemplateStepsEditor } from './SOPTemplateStepsEditor';
+import { SOPTemplateStepsInline, type LocalStep } from './SOPTemplateStepsInline';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface SOPTemplate {
@@ -97,13 +98,19 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
   const toast = useToast();
 
   const [formData, setFormData] = React.useState<Partial<SOPTemplate>>(initialData);
+  // Pending steps for create mode — persisted once the template is POSTed.
+  const [pendingSteps, setPendingSteps] = React.useState<LocalStep[]>([]);
 
   // Create/Update mutation
+  // Create mode: persist template first, then POST each pending step in
+  // sequence so the user's local drafts land in the DB with the right
+  // sequence numbers. If any step POST fails we surface the error but
+  // keep the template — the user can finish adding steps on the edit
+  // page.
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<SOPTemplate>) => {
       const url = '/api/master-data/sop-templates';
       const method = mode === 'edit' ? 'PUT' : 'POST';
-
       const payload = mode === 'edit' ? { ...data, id } : data;
 
       const res = await fetch(url, {
@@ -113,17 +120,40 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
-      return result.data;
+
+      const template = result.data;
+
+      if (mode === 'create' && template?.id && pendingSteps.length > 0) {
+        for (let i = 0; i < pendingSteps.length; i++) {
+          const step = pendingSteps[i];
+          const stepRes = await fetch(
+            `/api/master-data/sop-templates/${template.id}/steps`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...step, sequence: i + 1 }),
+            },
+          );
+          const stepResult = await stepRes.json();
+          if (!stepResult.success) {
+            throw new Error(`บันทึก Step ${i + 1} ล้มเหลว: ${stepResult.error}`);
+          }
+        }
+      }
+
+      return template;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['sop-templates'] });
+      const stepsNote = mode === 'create' && pendingSteps.length > 0
+        ? ` พร้อม ${pendingSteps.length} Steps`
+        : '';
       toast.success(
         mode === 'edit' ? 'Template Updated' : 'Template Created',
-        `${formData.name || formData.nameTh} ${mode === 'edit' ? 'ถูกอัปเดตแล้ว' : 'ถูกสร้างแล้ว — เพิ่ม SOP Steps ต่อได้เลย'}`,
+        `${formData.name || formData.nameTh} ${mode === 'edit' ? 'ถูกอัปเดตแล้ว' : 'ถูกสร้างแล้ว' + stepsNote}`,
       );
-      // Create mode: jump to the new template's edit page so the user can add
-      // procedure steps immediately (matching the feel of /sop-templates/[id]).
-      // Edit mode: return to the list.
+      // Create mode: go to edit page so the user can keep adding/adjusting
+      // steps. Edit mode: back to list.
       if (mode === 'create' && data?.id) {
         router.push(`/master-data/sop-templates/${data.id}`);
       } else {
@@ -173,17 +203,10 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
         }
       />
 
-      {/* Create mode hint — tells the user exactly what happens after Save */}
-      {isCreate && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900 flex items-start gap-2">
-          <ListChecks className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
-          <div>
-            <span className="font-medium">หลังกด Save</span> ระบบจะพาไปหน้าแก้ไข template ที่สร้าง เพื่อให้เพิ่ม <strong>Procedure Steps</strong> ต่อได้ทันที
-          </div>
-        </div>
-      )}
-
-      {/* Template Information */}
+      {/* Template Information + Procedure Steps in a single card for create
+          mode so the user doesn't feel like they're filling two disconnected
+          forms. Edit mode keeps the legacy two-card layout (second card uses
+          the persistent SOPTemplateStepsEditor that reads from API). */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -254,10 +277,18 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
               onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setFormData({ ...formData, isActive: e.value })}
             />
           </div>
+
+          {/* Inline Procedure Steps — only in create mode. Steps buffer in
+              local state and are persisted alongside the template at save. */}
+          {isCreate && (
+            <div className="pt-4 border-t border-gray-200">
+              <SOPTemplateStepsInline steps={pendingSteps} onStepsChange={setPendingSteps} />
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Procedure Steps — only in edit mode (needs templateId) */}
+      {/* Edit mode uses the API-backed editor in its own card (unchanged). */}
       {!isCreate && id && (
         <SOPTemplateStepsEditor templateId={id} />
       )}
@@ -272,7 +303,15 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
           elementAttr={{ class: 'sm:!w-auto' }}
         />
         <DxButton
-          text={saveMutation.isPending ? 'กำลังบันทึก…' : (isCreate ? 'Save & Add Steps' : 'Update Template')}
+          text={
+            saveMutation.isPending
+              ? 'กำลังบันทึก…'
+              : isCreate
+                ? pendingSteps.length > 0
+                  ? `Save Template + ${pendingSteps.length} Steps`
+                  : 'Save Template'
+                : 'Update Template'
+          }
           icon="save"
           type="success"
           onClick={handleSave}
