@@ -109,9 +109,10 @@ export default function CleaningPage() {
 
   const phaseParam = searchParams.get('phase') as CleaningPhase | null;
 
-  const [currentPhase, setCurrentPhase] = useState<CleaningPhase>(
-    phaseParam && PHASE_ORDER.includes(phaseParam) ? phaseParam : 'pre_production',
-  );
+  // Phase is driven entirely by the ?phase= URL param — no in-page switching.
+  const currentPhase: CleaningPhase = phaseParam && PHASE_ORDER.includes(phaseParam)
+    ? phaseParam
+    : 'pre_production';
   const [showCleanDialog, setShowCleanDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CleaningRequirement | null>(null);
   const [formData, setFormData] = useState({
@@ -141,38 +142,9 @@ export default function CleaningPage() {
     },
   });
 
-  // Fetch per-phase counts so we can (a) hide tabs that have no rooms/equipment
-  // and (b) render a per-phase progress indicator in the tab bar.
-  const { data: phaseStats } = useQuery<Record<CleaningPhase, { total: number; completed: number; verified: number }>>({
-    queryKey: ['wo-cleaning-phase-stats', workOrderId],
-    queryFn: async () => {
-      const results = await Promise.all(
-        PHASE_ORDER.map(async (phase) => {
-          const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs?phase=${phase}`);
-          const data = await res.json();
-          const reqs: CleaningRequirement[] = data.success ? data.data : [];
-          return [phase, {
-            total: reqs.length,
-            completed: reqs.filter((r) => r.cleaningLog?.isClean).length,
-            verified: reqs.filter((r) => r.cleaningLog?.verifiedAt).length,
-          }] as const;
-        }),
-      );
-      return Object.fromEntries(results) as Record<CleaningPhase, { total: number; completed: number; verified: number }>;
-    },
-  });
-
-  const visiblePhases = PHASE_ORDER.filter((p) => (phaseStats?.[p]?.total ?? 0) > 0);
-  // Fall back to pre-production while phaseStats is loading so the tab bar
-  // isn't briefly empty.
-  const tabPhases: CleaningPhase[] = visiblePhases.length > 0 ? visiblePhases : ['pre_production'];
-
-  // If the current phase isn't in the visible list (e.g. BOM was just edited
-  // to remove it), snap the UI to the first visible one instead of rendering
-  // an empty card.
-  if (!tabPhases.includes(currentPhase) && tabPhases.length > 0) {
-    setCurrentPhase(tabPhases[0]);
-  }
+  // Intentionally no per-phase stats/selector — this page renders exactly
+  // one phase at a time as requested by the operator. Phase switching
+  // happens upstream (Execution Dashboard links go to each phase URL).
 
   // Create cleaning log mutation
   const createLogMutation = useMutation({
@@ -329,52 +301,10 @@ export default function CleaningPage() {
         }
       />
 
-      {/* Phase Selector — buttons styled as cards, one per BOM-used phase.
-          Each shows label + progress so the operator picks the phase they
-          need without drilling in first. Responsive grid collapses on
-          mobile. */}
-      <div className={`grid gap-2 grid-cols-2 sm:grid-cols-${Math.min(tabPhases.length, 5)}`}>
-        {tabPhases.map((phase) => {
-          const stat = phaseStats?.[phase] ?? { total: 0, completed: 0, verified: 0 };
-          const isActive = currentPhase === phase;
-          const pct = stat.total > 0 ? (stat.verified / stat.total) * 100 : 0;
-          const allDone = stat.total > 0 && stat.verified === stat.total;
-          return (
-            <button
-              key={phase}
-              type="button"
-              onClick={() => setCurrentPhase(phase)}
-              className={`p-3 rounded-xl border-2 text-left transition-all ${
-                isActive
-                  ? 'border-amber-500 bg-amber-50 shadow-sm'
-                  : 'border-gray-200 bg-white hover:border-amber-300'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className={`text-sm font-semibold ${isActive ? 'text-amber-800' : 'text-gray-700'}`}>
-                  {PHASE_META[phase].label}
-                </span>
-                {allDone && <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
-              </div>
-              <div className="text-xs text-gray-600 mb-1.5">
-                {stat.verified}/{stat.total} Verified
-              </div>
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-300 ${
-                    allDone ? 'bg-green-500' : stat.completed > 0 ? 'bg-amber-500' : 'bg-gray-300'
-                  }`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Current Phase Card — shows the rooms/equipment for the selected phase
-          and its own progress header. Single card = matches the request to
-          "show only the current phase". */}
+          only. The phase is driven by the ?phase= URL param set from the
+          Execution Dashboard, so the operator sees exactly one phase at a
+          time and other phases are not rendered. */}
       <Card className="border-amber-200">
         <CardContent className="p-0">
           <div className="p-4 border-b border-amber-100 bg-amber-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
