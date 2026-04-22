@@ -93,9 +93,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           .webp({ quality: 80 })
           .toFile(thumbnailPath);
 
-        // Generate URLs
-        const photoUrl = `/uploads/employees/${employeeId}/${photoFileName}`;
-        const photoThumbnailUrl = `/uploads/employees/${employeeId}/${thumbnailFileName}`;
+        // Generate URLs. We route through /api/uploads/... because Next.js
+        // standalone only serves files present in /public at build time, so
+        // /uploads/* would 404 for anything uploaded after deploy. The API
+        // route reads from disk on demand and works with the per-tenant
+        // bind mount.
+        const photoUrl = `/api/uploads/employees/${employeeId}/${photoFileName}`;
+        const photoThumbnailUrl = `/api/uploads/employees/${employeeId}/${thumbnailFileName}`;
 
         // Update employee record
         await executeDbOperation(async (db) => {
@@ -153,20 +157,22 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
         const employee = existing[0];
 
-        // Delete photo files
-        if (employee.photoUrl) {
-          const photoPath = path.join(process.cwd(), 'public', employee.photoUrl);
-          try {
-            await unlink(photoPath);
-          } catch {
-            // Ignore if file doesn't exist
-          }
-        }
+        // Resolve a stored photoUrl (either legacy /uploads/... or the new
+        // /api/uploads/... route) back to its on-disk path under UPLOAD_DIR.
+        const resolvePhotoFile = (url: string | null | undefined): string | null => {
+          if (!url) return null;
+          const marker = '/uploads/employees/';
+          const idx = url.indexOf(marker);
+          if (idx === -1) return null;
+          const tail = url.slice(idx + marker.length); // "{id}/{file}"
+          return path.join(UPLOAD_DIR, tail);
+        };
 
-        if (employee.photoThumbnailUrl) {
-          const thumbPath = path.join(process.cwd(), 'public', employee.photoThumbnailUrl);
+        for (const url of [employee.photoUrl, employee.photoThumbnailUrl]) {
+          const filePath = resolvePhotoFile(url);
+          if (!filePath) continue;
           try {
-            await unlink(thumbPath);
+            await unlink(filePath);
           } catch {
             // Ignore if file doesn't exist
           }
