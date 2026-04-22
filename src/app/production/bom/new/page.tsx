@@ -65,11 +65,15 @@ export default function NewBOMPage() {
   // Line counter for temporary IDs
   const [lineCounter, setLineCounter] = useState(1);
 
-  // Fetch all inventory items (exclude finished_goods) for material picker
+  // Fetch all inventory items (exclude finished_goods) for material picker.
+  // Use the API's max page size (1000) so the picker stays usable on tenants
+  // that have grown past the previous 500-row cap — arjaro already has ~745
+  // non-finished-goods items and items at the tail (e.g. RM-0005) were being
+  // silently dropped.
   const loadMaterialItems = useCallback(async () => {
     setMaterialItemsLoading(true);
     try {
-      const res = await fetch('/api/items?limit=500&activeOnly=true');
+      const res = await fetch('/api/items?limit=1000&activeOnly=true');
       const data = await res.json();
       if (data.success) {
         const allItems: Item[] = (data.data?.items || data.data || []);
