@@ -99,7 +99,12 @@ export function MaterialPickerDialog({
   const [search, setSearch] = useState('');
   const [selectedTab, setSelectedTab] = useState(0);
   const [items, setItems] = useState<MaterialItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  // `isFetching` is shown as a subtle top-bar spinner; it does NOT clear
+  // the grid. `isInitialLoad` shows the centered loader only the very
+  // first time the dialog ever renders, so tab switches don't flash an
+  // empty screen in between.
+  const [isFetching, setIsFetching] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // excludeIds comes from the parent's BOM line state and mutates as the
@@ -108,8 +113,28 @@ export function MaterialPickerDialog({
   const excludeIdsRef = useRef(excludeIds);
   excludeIdsRef.current = excludeIds;
 
+  // Per-(type|search) result cache. Tabs become instant on the second
+  // click, and a cached result is shown immediately while we refresh it
+  // in the background (stale-while-revalidate).
+  const cacheRef = useRef<Map<string, MaterialItem[]>>(new Map());
+  // Used to ignore stale responses when the user rapidly switches tabs
+  // or retypes — only the latest request wins.
+  const requestIdRef = useRef(0);
+
   const fetchItems = useCallback(async (query: string, type: string) => {
-    setLoading(true);
+    const cacheKey = `${type}|${query.trim()}`;
+    const cached = cacheRef.current.get(cacheKey);
+
+    // Paint cached results immediately so the grid stays populated
+    // through a tab switch. We still refetch to pick up stock changes.
+    if (cached) {
+      const exclude = new Set(excludeIdsRef.current);
+      setItems(cached.filter((it) => !exclude.has(it.id)));
+      setIsInitialLoad(false);
+    }
+
+    const myReqId = ++requestIdRef.current;
+    setIsFetching(true);
     try {
       const params = new URLSearchParams({
         limit: '500',
@@ -120,22 +145,29 @@ export function MaterialPickerDialog({
 
       const res = await fetch(`/api/items?${params}`);
       const data = await res.json();
+
+      // A newer request has started — don't overwrite its results.
+      if (myReqId !== requestIdRef.current) return;
+
       if (data.success) {
         const list: MaterialItem[] = data.data?.items || data.data || [];
+        // Always hide finished_goods from the material picker — a BOM
+        // never consumes a packaged finished product as a raw input.
+        const nonFg = list.filter((it) => it.type !== 'finished_goods');
+        cacheRef.current.set(cacheKey, nonFg);
+
         const exclude = new Set(excludeIdsRef.current);
-        // Always hide finished_goods from the material picker — a BOM never
-        // consumes a packaged finished product as a raw input.
-        const filtered = list.filter(
-          (it) => it.type !== 'finished_goods' && !exclude.has(it.id),
-        );
-        setItems(filtered);
-      } else {
+        setItems(nonFg.filter((it) => !exclude.has(it.id)));
+      } else if (!cached) {
         setItems([]);
       }
     } catch {
-      setItems([]);
+      if (!cached) setItems([]);
     } finally {
-      setLoading(false);
+      if (myReqId === requestIdRef.current) {
+        setIsFetching(false);
+        setIsInitialLoad(false);
+      }
     }
   }, []);
 
@@ -158,6 +190,8 @@ export function MaterialPickerDialog({
       setSelectedTab(0);
       setItems([]);
       setSelectedIds([]);
+      setIsInitialLoad(true);
+      cacheRef.current.clear();
     }
   }, [open]);
 
@@ -270,8 +304,11 @@ export function MaterialPickerDialog({
           )}
         </div>
 
-        {/* Sticky search + type tabs */}
-        <div className="bg-white border-b px-4 sm:px-6 py-3 space-y-3">
+        {/* Sticky search + type tabs. A hairline progress bar below the
+            tabs replaces the full-screen spinner that used to cause the
+            flicker on every tab click — the grid stays mounted while a
+            background refetch runs. */}
+        <div className="bg-white border-b px-4 sm:px-6 py-3 space-y-3 relative">
           <div className="w-full">
             <DxTextBox
               placeholder="ค้นหาด้วยรหัส / ชื่อไทย / ชื่ออังกฤษ... (เช่น แคปซูล เบอร์ 0 สีเหลือง)"
@@ -288,11 +325,16 @@ export function MaterialPickerDialog({
             selectedIndex={selectedTab}
             onItemClick={(e) => setSelectedTab(e.itemIndex ?? 0)}
           />
+          {isFetching && !isInitialLoad && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 overflow-hidden">
+              <div className="h-full bg-emerald-500 animate-pulse" style={{ width: '40%' }} />
+            </div>
+          )}
         </div>
 
         {/* Result grid (or skeleton / empty state) */}
         <div className="flex-1 px-4 sm:px-6 py-3 overflow-hidden">
-          {loading ? (
+          {isInitialLoad && isFetching ? (
             <div className="flex flex-col items-center justify-center h-full">
               <DxLoadIndicator />
               <p className="text-gray-500 mt-3">กำลังโหลดรายการ...</p>
