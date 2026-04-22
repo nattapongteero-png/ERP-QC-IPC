@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -10,11 +10,10 @@ import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { DxPopup } from '@/components/ui/dx-popup';
-import { DxDataGrid } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
+import { MaterialPickerDialog, MaterialItem } from '@/components/bom/MaterialPickerDialog';
 import {
   Package,
   ChevronRight,
@@ -57,39 +56,9 @@ export default function NewBOMPage() {
   // Dialog state
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
-  const [materialItems, setMaterialItems] = useState<Item[]>([]);
-  const [materialItemsLoading, setMaterialItemsLoading] = useState(false);
-  const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
-  // materialGridRef removed - tracking selection via onSelectionChanged state
 
   // Line counter for temporary IDs
   const [lineCounter, setLineCounter] = useState(1);
-
-  // Fetch all inventory items (exclude finished_goods) for material picker.
-  // Use the API's max page size (1000) so the picker stays usable on tenants
-  // that have grown past the previous 500-row cap — arjaro already has ~745
-  // non-finished-goods items and items at the tail (e.g. RM-0005) were being
-  // silently dropped.
-  const loadMaterialItems = useCallback(async () => {
-    setMaterialItemsLoading(true);
-    try {
-      const res = await fetch('/api/items?limit=1000&activeOnly=true');
-      const data = await res.json();
-      if (data.success) {
-        const allItems: Item[] = (data.data?.items || data.data || []);
-        // Filter: exclude finished_goods and already-added items
-        const existingIds = new Set(lines.map(l => l.itemId));
-        const filtered = allItems.filter(
-          (item: Item) => item.type !== 'finished_goods' && !existingIds.has(item.id)
-        );
-        setMaterialItems(filtered);
-      }
-    } catch (err) {
-      console.error('Failed to load items:', err);
-    } finally {
-      setMaterialItemsLoading(false);
-    }
-  }, [lines]);
 
   // Handle product selection from ItemSearchDialog
   const handleSelectProduct = async (item: Item) => {
@@ -125,23 +94,21 @@ export default function NewBOMPage() {
     setProductDialogOpen(false);
   };
 
-  // Handle open material picker
+  // Handle open material picker — the new dialog handles its own lazy
+  // fetch, so we don't pre-load anything up here anymore.
   const handleOpenMaterialPicker = () => {
-    setSelectedMaterialIds([]);
-    loadMaterialItems();
     setMaterialPickerOpen(true);
   };
 
-  // Handle confirm add selected materials
-  const handleConfirmAddMaterials = () => {
-    const selectedItems = materialItems.filter(item => selectedMaterialIds.includes(item.id));
+  // Handle confirm add selected materials from the picker
+  const handleConfirmAddMaterials = (selectedItems: MaterialItem[]) => {
     if (selectedItems.length === 0) return;
 
     let counter = lineCounter;
-    const newLines: BOMLine[] = selectedItems.map(item => {
+    const newLines: BOMLine[] = selectedItems.map((item) => {
       const unitOpts = [item.primaryUnit];
       if (item.secondaryUnit) unitOpts.push(item.secondaryUnit);
-      const line: BOMLine = {
+      return {
         id: counter++,
         itemId: item.id,
         itemCode: item.code,
@@ -152,13 +119,11 @@ export default function NewBOMPage() {
         isOptional: false,
         notes: '',
       };
-      return line;
     });
 
-    setLines(prev => [...prev, ...newLines]);
+    setLines((prev) => [...prev, ...newLines]);
     setLineCounter(counter);
     setMaterialPickerOpen(false);
-    setSelectedMaterialIds([]);
   };
 
   const handleUpdateLine = (id: number, field: keyof BOMLine, value: string | number | boolean) => {
@@ -580,95 +545,15 @@ export default function NewBOMPage() {
         allowCreate
       />
 
-      {/* Multi-Select Material Picker Dialog */}
-      <DxPopup
-        visible={materialPickerOpen}
-        onHiding={() => setMaterialPickerOpen(false)}
-        title="เลือกวัตถุดิบ — Select Materials"
-        width={900}
-        height={600}
-        showCloseButton
-      >
-        <div className="flex flex-col h-full p-4 gap-3">
-          <p className="text-sm text-gray-500">
-            เลือกวัตถุดิบที่ต้องการเพิ่มใน BOM (เลือกได้หลายรายการ) แล้วกด &quot;เพิ่มรายการที่เลือก&quot;
-          </p>
-
-          {materialItemsLoading ? (
-            <div className="flex items-center justify-center flex-1">
-              <div className="text-center text-gray-400">
-                <div className="animate-spin h-8 w-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full mx-auto mb-2" />
-                <p>กำลังโหลดรายการ...</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 min-h-0">
-              <DxDataGrid
-                dataSource={materialItems}
-                keyExpr="id"
-                showBorders
-                columnAutoWidth
-                height="100%"
-                paging={false}
-                virtualScrolling
-                selection="multiple"
-                selectedRowKeys={selectedMaterialIds}
-                onSelectionChanged={(e) => {
-                  const keys = e.selectedRowKeys as number[];
-                  setSelectedMaterialIds(keys);
-                }}
-                searchPanel
-                filterRow
-                columns={[
-                  { dataField: 'code', caption: 'Item Code', width: 140 },
-                  { dataField: 'nameTh', caption: 'ชื่อวัตถุดิบ' },
-                  { dataField: 'type', caption: 'ประเภท', width: 120,
-                    cellRender: (cellData) => {
-                      const typeLabels: Record<string, string> = {
-                        raw_material: 'วัตถุดิบ',
-                        packaging: 'บรรจุภัณฑ์',
-                        wip: 'งานระหว่างทำ',
-                        extract: 'สารสกัด',
-                        consumable: 'วัสดุสิ้นเปลือง',
-                      };
-                      return <span>{typeLabels[cellData.value as string] || cellData.value}</span>;
-                    },
-                  },
-                  { dataField: 'primaryUnit', caption: 'หน่วย', width: 80 },
-                  { dataField: 'onHand', caption: 'คงเหลือ', width: 100, dataType: 'number', format: '#,##0.##',
-                    cellRender: (cellData) => {
-                      const qty = Number(cellData.value) || 0;
-                      const color = qty <= 0 ? 'text-red-600' : qty <= (Number(cellData.data?.reorderPoint) || 0) ? 'text-amber-600' : 'text-green-600';
-                      return <span className={`font-medium ${color}`}>{qty.toLocaleString()}</span>;
-                    },
-                  },
-                ]}
-              />
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-3 border-t">
-            <span className="text-sm text-gray-500">
-              เลือกแล้ว {selectedMaterialIds.length} รายการ
-            </span>
-            <div className="flex gap-2">
-              <DxButton
-                text="ยกเลิก"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => setMaterialPickerOpen(false)}
-              />
-              <DxButton
-                text={`เพิ่มรายการที่เลือก (${selectedMaterialIds.length})`}
-                icon="plus"
-                type="success"
-                onClick={handleConfirmAddMaterials}
-                disabled={selectedMaterialIds.length === 0}
-              />
-            </div>
-          </div>
-        </div>
-      </DxPopup>
+      {/* Multi-select material picker — server-side search + type tabs +
+          responsive layout. Already-added line items are excluded so
+          they don't show in the list a second time. */}
+      <MaterialPickerDialog
+        open={materialPickerOpen}
+        onOpenChange={setMaterialPickerOpen}
+        onConfirm={handleConfirmAddMaterials}
+        excludeIds={lines.map((l) => l.itemId)}
+      />
     </div>
   );
 }
