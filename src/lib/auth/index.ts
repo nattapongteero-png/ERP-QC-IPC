@@ -96,7 +96,10 @@ export const PERMISSIONS = {
   'items:delete': [ROLES.ADMIN],
   
   // Inventory
-  'inventory:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION, ROLES.QC, ROLES.WAREHOUSE],
+  // PURCHASING is included on read because Procurement needs to pick the
+  // destination warehouse when creating a PO and to look up on-hand stock
+  // before ordering. Write/adjust stays restricted to warehouse/admin.
+  'inventory:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION, ROLES.QC, ROLES.WAREHOUSE, ROLES.PURCHASING, ROLES.SALES],
   'inventory:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.WAREHOUSE],
   'inventory:adjust': [ROLES.ADMIN, ROLES.MANAGER],
   
