@@ -58,7 +58,12 @@ interface ItemSearchDialogProps {
   onSelect: (item: Item) => void;
   title?: string;
   showPrice?: 'selling' | 'cost' | 'both' | 'none';
-  filterType?: string;
+  /**
+   * Restrict the picker to one or more item types. A single string pins the
+   * dialog to that type (no tab switching); an array renders one tab per
+   * type so the user can pick from any of them.
+   */
+  filterType?: string | string[];
   excludeType?: string;
   excludeIds?: number[];
   showStock?: boolean;
@@ -121,10 +126,21 @@ export function ItemSearchDialog({
   // Fetch-per-tab approach: each tab triggers its own API call with ?type=
   // so tabs always appear even when the "All" query truncates at the limit.
   const typeTabs = useMemo(() => {
-    // When filterType is pinned, no tab switching — single type only
+    // filterType can be a single string (pinned to one type) or an array
+    // (pinned to a small set, rendered as individual tabs so the user can
+    // switch between them — used by BOM new to offer both finished_goods
+    // and WIP as valid products).
     if (filterType) {
-      const config = itemTypeConfig[filterType] || { label: filterType };
-      return [{ text: config.label, value: filterType }];
+      const types = Array.isArray(filterType) ? filterType : [filterType];
+      if (types.length === 1) {
+        const t = types[0];
+        const config = itemTypeConfig[t] || { label: t };
+        return [{ text: config.label, value: t }];
+      }
+      return types.map((t) => {
+        const config = itemTypeConfig[t] || { label: t };
+        return { text: config.label, value: t };
+      });
     }
 
     const orderedTypes = ['raw_material', 'packaging', 'wip', 'finished_goods', 'extract', 'consumable'];
@@ -180,7 +196,16 @@ export function ItemSearchDialog({
     try {
       // All-tab pulls a larger page since it mixes every type;
       // type-tabs stay at 200 since they are already narrowed server-side.
-      const effectiveType = filterType || type || '';
+      // When filterType is an array the selected tab value (`type` arg) is
+      // authoritative — collapsing the whole array into a single query param
+      // would produce "finished_goods,wip" which the API doesn't understand.
+      const pinnedType =
+        typeof filterType === 'string'
+          ? filterType
+          : Array.isArray(filterType) && filterType.length === 1
+            ? filterType[0]
+            : '';
+      const effectiveType = pinnedType || type || '';
       const params = new URLSearchParams({ limit: effectiveType ? '200' : '500' });
       if (query && query.trim()) {
         params.set('search', query.trim());
@@ -452,8 +477,9 @@ export function ItemSearchDialog({
           )}
         </div>
 
-        {/* Type Filter Tabs */}
-        {typeTabs.length > 1 && !filterType && (
+        {/* Type Filter Tabs — shown when no filterType, OR when filterType is
+            a multi-value array (user can still switch between allowed types). */}
+        {typeTabs.length > 1 && (
           <DxTabs
             items={typeTabs.map(tab => ({ text: tab.text }))}
             selectedIndex={selectedTypeTab}
@@ -461,8 +487,8 @@ export function ItemSearchDialog({
           />
         )}
 
-        {/* Filter indicator */}
-        {filterType && (
+        {/* Filter indicator — only for a single pinned type (no tab switching) */}
+        {typeof filterType === 'string' && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Filtering by:</span>
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${itemTypeConfig[filterType]?.bgColor || 'bg-gray-100'} ${itemTypeConfig[filterType]?.color || 'text-gray-700'}`}>

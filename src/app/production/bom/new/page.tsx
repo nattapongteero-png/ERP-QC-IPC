@@ -88,11 +88,32 @@ export default function NewBOMPage() {
   }, [lines]);
 
   // Handle product selection from ItemSearchDialog
-  const handleSelectProduct = (item: Item) => {
+  const handleSelectProduct = async (item: Item) => {
     setSelectedProduct(item);
     setBatchUnit(item.primaryUnit);
     if (!code) {
-      setCode(`BOM-${item.code}`);
+      // Generate unique BOM code by checking existing codes
+      const baseCode = `BOM-${item.code}`;
+      try {
+        const res = await fetch(`/api/bom?search=${encodeURIComponent(baseCode)}&limit=100`);
+        const data = await res.json();
+        const existingCodes = new Set(
+          (data.data?.items || []).map((b: { code: string }) => b.code)
+        );
+        if (!existingCodes.has(baseCode)) {
+          setCode(baseCode);
+        } else {
+          // Find next available version number
+          let ver = 2;
+          while (existingCodes.has(`${baseCode}-V${ver}`)) {
+            ver++;
+          }
+          setCode(`${baseCode}-V${ver}`);
+        }
+      } catch {
+        // Fallback: append timestamp to guarantee uniqueness
+        setCode(`${baseCode}-${Date.now().toString(36).slice(-4).toUpperCase()}`);
+      }
     }
     if (!name) {
       setName(`BOM for ${item.nameTh}`);
@@ -146,23 +167,37 @@ export default function NewBOMPage() {
     setLines(lines.filter(line => line.id !== id));
   };
 
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [invalidLineIds, setInvalidLineIds] = useState<Set<number>>(new Set());
+
   const handleSubmit = async () => {
-    if (!code || !name || !selectedProduct || !batchSize || !batchUnit) {
-      alert('Please fill in all required fields');
-      return;
-    }
+    const errors: string[] = [];
+    const badLineIds = new Set<number>();
+
+    if (!selectedProduct) errors.push('กรุณาเลือกสินค้า (Product)');
+    if (!code) errors.push('กรุณาระบุรหัส BOM (BOM Code)');
+    if (!batchSize) errors.push('กรุณาระบุขนาดชุดผลิต (Batch Size)');
+    if (!batchUnit) errors.push('กรุณาระบุหน่วยชุดผลิต (Batch Unit)');
+    if (!name) errors.push('กรุณาระบุชื่อ BOM (BOM Name)');
 
     if (lines.length === 0) {
-      alert('Please add at least one material to the BOM');
-      return;
+      errors.push('กรุณาเพิ่มวัตถุดิบอย่างน้อย 1 รายการ');
+    } else {
+      lines.forEach(line => {
+        if (!line.quantity || line.quantity <= 0) {
+          badLineIds.add(line.id);
+        }
+      });
+      if (badLineIds.size > 0) {
+        errors.push(`กรุณาระบุจำนวน (Quantity) ให้ครบทุกรายการวัตถุดิบ (${badLineIds.size} รายการยังไม่ระบุ)`);
+      }
     }
 
-    // Validate all lines have quantities
-    const invalidLines = lines.filter(line => !line.quantity || line.quantity <= 0);
-    if (invalidLines.length > 0) {
-      alert('Please enter valid quantities for all materials');
-      return;
-    }
+    setValidationErrors(errors);
+    setInvalidLineIds(badLineIds);
+
+    if (errors.length > 0) return;
 
     setSaving(true);
     try {
@@ -172,7 +207,7 @@ export default function NewBOMPage() {
         body: JSON.stringify({
           code,
           name,
-          productId: selectedProduct.id,
+          productId: selectedProduct!.id,
           version,
           batchSize: parseFloat(batchSize),
           batchUnit,
@@ -398,7 +433,7 @@ export default function NewBOMPage() {
                       </thead>
                       <tbody>
                         {lines.map((line, index) => (
-                          <tr key={line.id} className="border-b hover:bg-gray-50">
+                          <tr key={line.id} className={`border-b hover:bg-gray-50 ${invalidLineIds.has(line.id) ? 'bg-red-50 border-red-200' : ''}`}>
                             <td className="px-4 py-2 text-center">{index + 1}</td>
                             <td className="px-4 py-2">
                               <p className="font-medium">{line.itemCode}</p>
@@ -407,12 +442,25 @@ export default function NewBOMPage() {
                             <td className="px-4 py-2">
                               <DxNumberBox
                                 value={line.quantity || 0}
-                                onValueChange={(value) => handleUpdateLine(line.id, 'quantity', value || 0)}
+                                onValueChange={(value) => {
+                                  handleUpdateLine(line.id, 'quantity', value || 0);
+                                  // Clear error for this line when user enters a value
+                                  if (value && value > 0) {
+                                    setInvalidLineIds(prev => {
+                                      const next = new Set(prev);
+                                      next.delete(line.id);
+                                      return next;
+                                    });
+                                  }
+                                }}
                                 format="#,##0.####"
                                 min={0}
                                 step={0.1}
                                 width={120}
                               />
+                              {invalidLineIds.has(line.id) && (
+                                <p className="text-xs text-red-500 mt-0.5">กรุณาระบุจำนวน</p>
+                              )}
                             </td>
                             <td className="px-4 py-2">
                               <DxSelectBox
@@ -483,6 +531,17 @@ export default function NewBOMPage() {
                   <Badge variant="secondary">Draft</Badge>
                 </div>
 
+                {validationErrors.length > 0 && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm font-semibold text-red-700 mb-1">กรุณาแก้ไขข้อมูลก่อนบันทึก:</p>
+                    <ul className="text-sm text-red-600 space-y-0.5">
+                      {validationErrors.map((err, i) => (
+                        <li key={i}>• {err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="pt-4 border-t space-y-2">
                   <DxButton
                     text={saving ? 'Creating...' : 'Create BOM'}
@@ -490,7 +549,7 @@ export default function NewBOMPage() {
                     type="success"
                     width="100%"
                     onClick={handleSubmit}
-                    disabled={saving || !code || !name || !selectedProduct || !batchSize || lines.length === 0}
+                    disabled={saving}
                   />
                   <DxButton
                     text="Cancel"
@@ -505,13 +564,15 @@ export default function NewBOMPage() {
           </div>
         </div>
 
-      {/* Product Selection Dialog */}
+      {/* Product Selection Dialog — finished goods AND WIP can both have a BOM
+          (a WIP item like a bulk powder is the "product" of its own upstream BOM
+          before being packaged into finished goods). */}
       <ItemSearchDialog
         open={productDialogOpen}
         onOpenChange={setProductDialogOpen}
         onSelect={handleSelectProduct}
         title="Select Product"
-        filterType="finished_goods"
+        filterType={['finished_goods', 'wip']}
         allowCreate
       />
 
