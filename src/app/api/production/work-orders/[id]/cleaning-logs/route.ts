@@ -26,6 +26,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   return withAuth(request, async () => {
+    // reading requirements/logs is part of the production read surface
+    // (no dedicated clean:read permission — Mark Clean / Verify are the
+    // write-side actions that need dual-control separation).
     try {
       const { id } = await params;
       const workOrderId = Number(id);
@@ -65,11 +68,14 @@ export async function GET(
 }
 
 // POST /api/production/work-orders/[id]/cleaning-logs - Create cleaning log
+// Requires production:clean_mark (cleaner side of the GMP dual-control).
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (session) => {
+  return withAuth(
+    request,
+    async (session) => {
     try {
       const { id } = await params;
       const workOrderId = Number(id);
@@ -121,15 +127,22 @@ export async function POST(
       console.error('Error creating WO cleaning log:', error);
       return serverErrorResponse(error);
     }
-  });
+    },
+    ['production:clean_mark'],
+  );
 }
 
 // PATCH /api/production/work-orders/[id]/cleaning-logs - Verify cleaning log
+// Requires production:clean_verify (verifier side of the GMP dual-control).
+// wo-execution.service additionally enforces operator_id != verifier_id so
+// the same user can never perform both actions on a single record.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (session) => {
+  return withAuth(
+    request,
+    async (session) => {
     try {
       const { id } = await params;
       const workOrderId = Number(id);
@@ -165,5 +178,7 @@ export async function PATCH(
       }
       return serverErrorResponse(error);
     }
-  });
+    },
+    ['production:clean_verify'],
+  );
 }

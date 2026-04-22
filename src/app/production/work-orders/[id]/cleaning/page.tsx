@@ -52,8 +52,11 @@ interface CleaningLog {
   notes?: string;
 }
 
-// Production roles that can Mark Clean (compared case-insensitively)
-const PRODUCTION_ROLES = ['prod_manager', 'prod_operator', 'admin'];
+// Permission codes that drive dual-control cleaning (GMP).
+// A user who marks a log as clean CANNOT verify it — enforced both here
+// (UI) and in wo-execution.service (backend: operator_id != verifier_id).
+const PERM_CLEAN_MARK = 'production:clean_mark';
+const PERM_CLEAN_VERIFY = 'production:clean_verify';
 
 interface CleaningRequirement {
   type: 'room' | 'equipment';
@@ -204,7 +207,9 @@ export default function CleaningPage() {
     },
   });
 
-  const isProductionRole = PRODUCTION_ROLES.includes((currentUser?.role || '').toLowerCase());
+  const userPermissions = currentUser?.permissions ?? [];
+  const canMarkClean = userPermissions.includes(PERM_CLEAN_MARK);
+  const canVerify = userPermissions.includes(PERM_CLEAN_VERIFY);
 
   const handleOpenCleanDialog = (item: CleaningRequirement) => {
     setSelectedItem(item);
@@ -409,9 +414,9 @@ export default function CleaningPage() {
                           const log = item.cleaningLog;
                           const isFailed = log?.verifyResult === 'fail';
 
-                          // State 1: No log yet — only Production can Mark Clean
+                          // State 1: No log yet — anyone with clean_mark can Mark Clean
                           if (!log) {
-                            if (!isProductionRole) return null;
+                            if (!canMarkClean) return null;
                             return (
                               <DxButton
                                 text="Mark Clean"
@@ -421,9 +426,9 @@ export default function CleaningPage() {
                             );
                           }
 
-                          // State 2: Verify failed — Production can re-mark clean
+                          // State 2: Verify failed — anyone with clean_mark can re-clean
                           if (isFailed) {
-                            if (!isProductionRole) {
+                            if (!canMarkClean) {
                               return <span className="text-xs text-red-600 font-medium">รอ Production ทำความสะอาดใหม่</span>;
                             }
                             return (
@@ -435,12 +440,14 @@ export default function CleaningPage() {
                             );
                           }
 
-                          // State 3: Cleaned but not verified — non-Production can verify (pass/fail)
+                          // State 3: Cleaned, waiting for verification — dual-control:
+                          // the operator can NEVER verify their own log, even if they
+                          // hold the clean_verify permission (e.g. admin).
                           if (!log.verifiedAt && log.isClean) {
                             if (currentUser?.id === log.operatorId) {
                               return <AwaitingOtherVerifierBadge />;
                             }
-                            if (isProductionRole) {
+                            if (!canVerify) {
                               return <span className="text-xs text-amber-600">รอผู้ตรวจสอบ Verify</span>;
                             }
                             return (
