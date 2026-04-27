@@ -683,10 +683,14 @@ export default function PackagingQCPage() {
           title={editingWeightLog ? t('weight.dialogEdit') : t('weight.dialogAdd')}
           width={640}
           height="auto"
+          maxWidth="95vw"
+          maxHeight="90vh"
+          fullScreenOnTablet
           showCloseButton
           dragEnabled={false}
         >
-          <div className="p-5 space-y-4">
+          <div className="flex flex-col h-full max-h-[calc(90vh-50px)]">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
             {editingWeightLog && (
               <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
@@ -725,7 +729,7 @@ export default function PackagingQCPage() {
                 <Hash className="h-4 w-4 text-indigo-500" />
                 {t('weight.inputLabel')}
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[420px] overflow-y-auto p-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-1">
                 {sampleWeights.map((weight, index) => {
                   const fail =
                     criteria &&
@@ -837,7 +841,9 @@ export default function PackagingQCPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t">
+            </div>
+
+            <div className="border-t border-gray-200 bg-white p-4 flex justify-end gap-2 flex-shrink-0">
               <DxButton
                 text={t('common.cancel')}
                 stylingMode="outlined"
@@ -1152,57 +1158,64 @@ export default function PackagingQCPage() {
         title={t('integrity.dialogTitle')}
         width={500}
         height="auto"
+        maxWidth="95vw"
+        maxHeight="90vh"
+        fullScreenOnTablet
         showCloseButton
         dragEnabled={false}
       >
-        <div className="p-5 space-y-4">
-          <div className="rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 p-3 text-sm text-purple-800">
-            {t('integrity.dialogIntro')}
+        <div className="flex flex-col h-full max-h-[calc(90vh-50px)]">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+            <div className="rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 p-3 text-sm text-purple-800">
+              {t('integrity.dialogIntro')}
+            </div>
+
+            <div className="space-y-2">
+              <ToggleRow
+                icon="🧴"
+                label={t('integrity.tubeCapLabel')}
+                sublabel={t('integrity.tubeCapFull')}
+                value={integrityForm.tubeCapComplete}
+                onChange={(v) =>
+                  setIntegrityForm({ ...integrityForm, tubeCapComplete: v })
+                }
+              />
+              <ToggleRow
+                icon="🔢"
+                label={t('integrity.lotLabel')}
+                sublabel={t('integrity.lotFull')}
+                value={integrityForm.lotNumberCorrect}
+                onChange={(v) =>
+                  setIntegrityForm({ ...integrityForm, lotNumberCorrect: v })
+                }
+              />
+              <ToggleRow
+                icon="📦"
+                label={t('integrity.packingLabel')}
+                sublabel={t('integrity.packingFull')}
+                value={integrityForm.packingCorrect}
+                onChange={(v) =>
+                  setIntegrityForm({ ...integrityForm, packingCorrect: v })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                {t('common.notes')}
+              </label>
+              <DxTextArea
+                value={integrityForm.notes}
+                onValueChanged={(e) =>
+                  setIntegrityForm({ ...integrityForm, notes: e.value })
+                }
+                placeholder={t('integrity.notesPlaceholder')}
+                height={80}
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <ToggleRow
-              icon="🧴"
-              label={t('integrity.tubeCapLabel')}
-              sublabel={t('integrity.tubeCapFull')}
-              value={integrityForm.tubeCapComplete}
-              onChange={(v) =>
-                setIntegrityForm({ ...integrityForm, tubeCapComplete: v })
-              }
-            />
-            <ToggleRow
-              icon="🔢"
-              label={t('integrity.lotLabel')}
-              sublabel={t('integrity.lotFull')}
-              value={integrityForm.lotNumberCorrect}
-              onChange={(v) =>
-                setIntegrityForm({ ...integrityForm, lotNumberCorrect: v })
-              }
-            />
-            <ToggleRow
-              icon="📦"
-              label={t('integrity.packingLabel')}
-              sublabel={t('integrity.packingFull')}
-              value={integrityForm.packingCorrect}
-              onChange={(v) =>
-                setIntegrityForm({ ...integrityForm, packingCorrect: v })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-semibold text-gray-700 mb-1 block">
-              {t('common.notes')}
-            </label>
-            <DxTextArea
-              value={integrityForm.notes}
-              onValueChanged={(e) => setIntegrityForm({ ...integrityForm, notes: e.value })}
-              placeholder={t('integrity.notesPlaceholder')}
-              height={80}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3 border-t">
+          <div className="border-t border-gray-200 bg-white p-4 flex justify-end gap-2 flex-shrink-0">
             <DxButton
               text={t('common.cancel')}
               stylingMode="outlined"
