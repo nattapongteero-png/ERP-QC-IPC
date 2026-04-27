@@ -868,14 +868,14 @@
       }
     };
 
+    var m = modules[moduleNum];
+    if (!m) { btn.disabled = false; btn.textContent = origText; return; }
+
     var pptx = new PptxGenJS();
     pptx.layout = 'LAYOUT_WIDE';
     pptx.author = 'Herbal Medicine ERP';
     pptx.company = 'Herbal Medicine ERP Training Program';
     pptx.title = m.title + ' Training';
-
-    var m = modules[moduleNum];
-    if (!m) { btn.disabled = false; btn.textContent = origText; return; }
 
     // ───── Cover slide — modern layered gradient + shapes ─────
     var cover = pptx.addSlide();
