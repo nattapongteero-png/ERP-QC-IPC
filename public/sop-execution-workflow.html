@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SOP Execution Workflow | Herbal ERP</title>
+<title>Work Order &amp; SOP Execution Workflow | Herbal ERP</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -292,174 +292,316 @@
 <div class="container">
 
   <header class="hero">
-    <div class="badge">📋 Production Step Workflow</div>
-    <h1>SOP Execution — คู่มือการบันทึก</h1>
-    <p>อธิบายแต่ละสถานะ (Pending / In Progress / Completed / Verified) บนหน้า
-      <code style="color:white;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:4px;">/production/work-orders/[id]/sop-execution</code> —
-      ทำอย่างไร, ใครทำ, และข้อความที่จะแสดง</p>
+    <div class="badge">📋 Work Order &amp; SOP Execution Workflow</div>
+    <h1>คู่มือ Workflow การบันทึกใบสั่งผลิต</h1>
+    <p>อธิบาย workflow ของ Work Order ตั้งแต่สร้างจนปิดงาน — สถานะแต่ละช่วง,
+      เงื่อนไขการเปลี่ยนสถานะ, ขั้นตอนการบันทึก WO และการบันทึก SOP Execution
+      แบบทุก phase</p>
   </header>
 
   <nav class="toc">
     <div class="toc-title">📑 สารบัญ</div>
     <ol>
-      <li><a href="#overview">ภาพรวม Workflow</a></li>
-      <li><a href="#status-pending">1. Pending — รอเริ่ม</a></li>
-      <li><a href="#status-progress">2. In Progress — กำลังทำ</a></li>
-      <li><a href="#status-completed">3. Completed — ทำเสร็จแล้ว</a></li>
-      <li><a href="#status-verified">4. Verified — ตรวจสอบรับรองแล้ว</a></li>
+      <li><a href="#overview">ภาพรวม Workflow ของ Work Order &amp; SOP</a></li>
+      <li><a href="#wo-status">สถานะของ Work Order — เปลี่ยนเมื่อบันทึกอะไร</a></li>
+      <li><a href="#wo-recording">ขั้นตอนการบันทึก Work Order</a></li>
+      <li><a href="#sop-execution">ขั้นตอนการบันทึก SOP Execution</a></li>
       <li><a href="#dual-control">Dual-Control (GMP)</a></li>
-      <li><a href="#example">ตัวอย่าง Flow จริง</a></li>
-      <li><a href="#badges">ป้ายเสริม (Badges)</a></li>
       <li><a href="#pitfalls">จุดที่คนพลาดบ่อย</a></li>
     </ol>
   </nav>
 
   <section class="section" id="overview">
-    <h2>🔄 ภาพรวม State Machine</h2>
-    <p>Step การผลิตหนึ่งขั้นจะเดินผ่าน <strong>4 สถานะ</strong> ตามลำดับ:</p>
+    <h2>🔄 ภาพรวม Workflow ของ Work Order &amp; SOP</h2>
+    <p>การผลิตประกอบด้วย 2 ระดับของ workflow ที่ทำงานคู่กัน:</p>
 
+    <h3>1. Work Order Lifecycle (วงจรชีวิตของใบสั่งผลิต)</h3>
+    <p>ใบสั่งผลิตเดินผ่าน <strong>5 สถานะ</strong> ในรูปแบบลูกศรเดียว — ขึ้นอย่างเดียว ไม่ถอยกลับ:</p>
     <div class="state-machine">
-      <div class="state-card pending">
-        <div class="icon">⏰</div>
-        <div class="label">Pending</div>
-        <div class="label-en">รอเริ่ม</div>
-      </div>
+      <div class="state-card pending"><div class="icon">📋</div><div class="label">Planned</div><div class="label-en">วางแผน</div></div>
       <span class="arrow">→</span>
-      <div class="state-card in-progress">
-        <div class="icon">▶</div>
-        <div class="label">In Progress</div>
-        <div class="label-en">กำลังทำ</div>
-      </div>
+      <div class="state-card in-progress" style="background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;"><div class="icon">🚀</div><div class="label">Released</div><div class="label-en">ปล่อยสายผลิต</div></div>
       <span class="arrow">→</span>
-      <div class="state-card completed">
-        <div class="icon">✓</div>
-        <div class="label">Completed</div>
-        <div class="label-en">ทำเสร็จ</div>
-      </div>
+      <div class="state-card in-progress" style="background:#fffbeb;border-color:#fcd34d;color:#b45309;"><div class="icon">⚙</div><div class="label">In Progress</div><div class="label-en">กำลังผลิต</div></div>
       <span class="arrow">→</span>
-      <div class="state-card verified">
-        <div class="icon">👤</div>
-        <div class="label">Verified</div>
-        <div class="label-en">ตรวจรับรอง</div>
-      </div>
+      <div class="state-card completed"><div class="icon">✓</div><div class="label">Completed</div><div class="label-en">เสร็จสิ้น</div></div>
+      <span class="arrow">→</span>
+      <div class="state-card verified"><div class="icon">🔒</div><div class="label">Closed</div><div class="label-en">ปิดงวด</div></div>
+    </div>
+
+    <h3>2. SOP Execution Step Lifecycle (วงจรชีวิตของแต่ละ step)</h3>
+    <p>แต่ละ step ของ SOP เดินผ่าน <strong>4 สถานะ</strong>:</p>
+    <div class="state-machine">
+      <div class="state-card pending"><div class="icon">⏰</div><div class="label">Pending</div><div class="label-en">รอเริ่ม</div></div>
+      <span class="arrow">→</span>
+      <div class="state-card in-progress"><div class="icon">▶</div><div class="label">In Progress</div><div class="label-en">กำลังทำ</div></div>
+      <span class="arrow">→</span>
+      <div class="state-card completed"><div class="icon">✓</div><div class="label">Completed</div><div class="label-en">ทำเสร็จ</div></div>
+      <span class="arrow">→</span>
+      <div class="state-card verified"><div class="icon">👤</div><div class="label">Verified</div><div class="label-en">ตรวจรับรอง</div></div>
     </div>
 
     <div class="callout">
-      <strong>💡 หลักการ:</strong> Step ถัดไปจะเริ่มได้เมื่อ Step ก่อนหน้า
-      <strong>Verified</strong> (หรือ <strong>Completed</strong> ถ้า step นั้นไม่ require verification)
+      <strong>💡 ความสัมพันธ์:</strong> Work Order จะเข้าสู่สถานะ <strong>Completed</strong>
+      ได้ก็ต่อเมื่อ <strong>SOP step ทุกขั้น Verified</strong> + IPC ผ่าน + finished inspection ผ่าน
+      (ระบบเช็คผ่าน gate validation อัตโนมัติ)
     </div>
   </section>
 
-  <section class="section" id="status-pending">
-    <h2>📋 รายละเอียดแต่ละสถานะ</h2>
+  <section class="section" id="wo-status">
+    <h2>📊 สถานะของ Work Order — เปลี่ยนเมื่อบันทึกอะไร</h2>
+    <p>ทุก WO มีสถานะปัจจุบัน 1 สถานะ. การเปลี่ยนสถานะแต่ละครั้งระบบจะเช็ค <strong>gate</strong>
+      (เงื่อนไขก่อนผ่าน) และบันทึก audit log</p>
 
-    <div class="status-card pending" id="card-pending">
+    <table>
+      <thead>
+        <tr>
+          <th>สถานะ</th>
+          <th>ความหมาย</th>
+          <th>เปลี่ยนไปสถานะถัดไปเมื่อ</th>
+          <th>เงื่อนไข Gate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="b-clock">Planned</span><br><small>วางแผน</small></td>
+          <td>WO ถูกสร้างใหม่ มี product, BOM, จำนวน, วันที่ผลิต</td>
+          <td>กดปุ่ม <strong>"Advance to Released"</strong></td>
+          <td><code>canRelease</code> — ต้องมี BOM ที่ valid + วัตถุดิบในคลัง</td>
+        </tr>
+        <tr>
+          <td><span class="b-purple">Released</span><br><small>ปล่อยสายผลิต</small></td>
+          <td>Production team รับงาน → เตรียม cleaning, ส่งใบเบิก, ชั่งวัตถุดิบ</td>
+          <td>กดปุ่ม <strong>"Advance to In Progress"</strong></td>
+          <td><code>canStartProduction</code> — Pre-production cleaning + Material weighing เสร็จครบ</td>
+        </tr>
+        <tr>
+          <td><span class="b-amber">In Progress</span><br><small>กำลังผลิต</small></td>
+          <td>Operator กำลังทำ SOP, IPC, packaging</td>
+          <td>กดปุ่ม <strong>"Advance to Completed"</strong></td>
+          <td><code>canCompleteProduction</code> — SOP ทุก step Verified + IPC pass + Finished Inspection pass + บันทึก yield</td>
+        </tr>
+        <tr>
+          <td><span class="b-green">Completed</span><br><small>เสร็จสิ้น</small></td>
+          <td>ผลิตเสร็จ — มี yield บันทึกครบ, สินค้าเข้า FG warehouse</td>
+          <td>Accounting period close (ทำที่ Accounting module)</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><span class="b-clock">Closed</span><br><small>ปิดงวด</small></td>
+          <td>ปิดบัญชีแล้ว — lock ไม่ให้แก้ไข</td>
+          <td>—</td>
+          <td>Terminal state</td>
+        </tr>
+        <tr style="background:#fef2f2;">
+          <td style="color:#991b1b;">Cancelled<br><small>ยกเลิก</small></td>
+          <td>ยกเลิกได้ทุกสถานะก่อน Completed (ไม่นับ output)</td>
+          <td>—</td>
+          <td>ไม่มี gate — กดยกเลิกได้เสมอ</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <strong>⚠ ระบบ block ถ้า gate ไม่ผ่าน:</strong> ตัวอย่างถ้ากด "Advance to Released"
+      แต่ยังไม่มี BOM → ระบบขึ้น popup "ยังทำขั้นตอนไม่ครบ" พร้อมรายการ blocker ตามลำดับ
+    </div>
+  </section>
+
+  <section class="section" id="wo-recording">
+    <h2>📝 ขั้นตอนการบันทึก Work Order</h2>
+    <p>ตั้งแต่สร้าง WO ใหม่จนปิดงาน — แต่ละ phase ต้องบันทึกข้อมูลอะไรบ้าง</p>
+
+    <div class="status-card pending">
       <div class="status-header">
-        <div class="status-icon">⏰</div>
+        <div class="status-icon">📋</div>
         <div>
-          <div class="status-title">1. Pending</div>
-          <div class="status-subtitle">รอเริ่ม — สีเทา · icon นาฬิกา</div>
+          <div class="status-title">Phase 1: สร้าง WO (Planned)</div>
+          <div class="status-subtitle">หน้า /production/work-orders/new</div>
         </div>
       </div>
       <div class="status-body">
-        <p><strong>ข้อความที่แสดง:</strong> <span class="b-clock">Pending</span> ป้ายสีเทา</p>
-        <p><strong>Operator ทำอะไร:</strong></p>
+        <p><strong>ข้อมูลที่ต้องกรอก:</strong></p>
         <ul>
-          <li>กดปุ่ม <span class="btn-pill start">▶ Start</span></li>
-          <li>ระบบเปิด dialog ยืนยัน → กด <strong>"Start Step"</strong></li>
+          <li><strong>Product</strong> — เลือกผลิตภัณฑ์ (Finished Goods หรือ WIP)</li>
+          <li><strong>BOM</strong> — เลือก Bill of Materials version ที่ใช้</li>
+          <li><strong>Planned Quantity</strong> — จำนวนที่ต้องการผลิต + หน่วย (ขวด/แคปซูล/g)</li>
+          <li><strong>Batch Number</strong> — เลข batch ตาม convention</li>
+          <li><strong>Planned Start / End Date</strong> — วันที่วางแผนเริ่ม/เสร็จ</li>
+          <li><strong>Priority</strong> — 1-10 (1 สำคัญสุด)</li>
+          <li><strong>Notes</strong> (optional) — หมายเหตุพิเศษจาก Production Planner</li>
         </ul>
-        <p><strong>เงื่อนไขที่ Start ได้:</strong></p>
-        <ul>
-          <li>Step ก่อนหน้าต้อง <strong>Completed</strong> (หรือ <strong>Verified</strong> ถ้า require verification)</li>
-          <li>ถ้ายังไม่พร้อม → จะเห็นป้ายสีเหลือง <span class="b-amber">รอตรวจสอบ Step X ก่อน</span></li>
-        </ul>
-        <p>➡ หลังกด Start → เปลี่ยนเป็น <strong>In Progress</strong></p>
+        <p>➡ บันทึก → WO เกิดในสถานะ <span class="b-clock">Planned</span></p>
       </div>
     </div>
-  </section>
 
-  <section class="section" id="status-progress">
-    <div class="status-card in-progress" id="card-in-progress">
+    <div class="status-card" style="border-color:#c4b5fd;background:#f5f3ff;">
       <div class="status-header">
-        <div class="status-icon">▶</div>
+        <div class="status-icon" style="background:#a78bfa;color:white;">🚀</div>
         <div>
-          <div class="status-title">2. In Progress</div>
-          <div class="status-subtitle">กำลังทำ — สีน้ำเงิน · card มี border + bg น้ำเงิน</div>
+          <div class="status-title">Phase 2: เตรียม Released</div>
+          <div class="status-subtitle">หน้า /production/work-orders/[id]/execution</div>
         </div>
       </div>
       <div class="status-body">
-        <p><strong>ข้อความที่แสดง:</strong> ป้ายสีน้ำเงิน <strong>In Progress</strong> + card highlight สีฟ้า</p>
-        <p><strong>Operator ทำอะไร:</strong></p>
+        <p><strong>ก่อนกดปุ่ม Advance ต้องบันทึก:</strong></p>
         <ul>
-          <li>ทำงานตามขั้นตอนใน <strong>BOM Instructions</strong></li>
-          <li>ติ๊ก checklist <strong>Sub-Steps</strong> ครบทุกข้อ (ถ้ามี) — ปุ่ม "ทำเครื่องหมายทั้งหมด" ก็ได้</li>
-          <li>กดปุ่ม <span class="btn-pill complete">✓ Complete</span></li>
+          <li><strong>ส่งใบเบิกวัตถุดิบ</strong> — กดปุ่ม "ส่งใบเบิกวัตถุดิบ" → คลังอนุมัติ</li>
+          <li><strong>Pre-Production Cleaning</strong> — Mark Clean ห้อง + อุปกรณ์ ตาม BOM + verify (dual-control)</li>
+          <li><strong>Material Weighing</strong> — ชั่งวัตถุดิบทุก line ตาม BOM + verify</li>
+          <li><strong>Pre-Production Environmental</strong> — บันทึกอุณหภูมิ + ความชื้น</li>
         </ul>
-        <p><strong>Dialog "Complete Production Step" ขึ้นมา ต้องกรอก:</strong></p>
-        <ul>
-          <li><strong>Actual Parameters</strong> — ค่าจริงที่ทำได้ เช่น
-            <ul>
-              <li><code>Temperature: 250</code> (expected: 240)</li>
-              <li><code>Time: 30</code> (expected: 30)</li>
-              <li><code>Pressure: 5</code> (expected: 5)</li>
-            </ul>
-          </li>
-          <li><strong>Notes</strong> — สังเกตการณ์ / ข้อสังเกตเพิ่มเติม</li>
-        </ul>
-        <p>➡ กด <strong>"Complete Step"</strong> → เปลี่ยนเป็น <strong>Completed</strong></p>
+        <p>➡ Gate <code>canStartProduction</code> ผ่าน → กด Advance to In Progress</p>
       </div>
     </div>
-  </section>
 
-  <section class="section" id="status-completed">
-    <div class="status-card completed" id="card-completed">
+    <div class="status-card" style="border-color:#fcd34d;background:#fffbeb;">
+      <div class="status-header">
+        <div class="status-icon" style="background:#f59e0b;color:white;">⚙</div>
+        <div>
+          <div class="status-title">Phase 3: ระหว่างผลิต (In Progress)</div>
+          <div class="status-subtitle">การบันทึกหลายส่วนคู่ขนานกัน</div>
+        </div>
+      </div>
+      <div class="status-body">
+        <p><strong>ระหว่างผลิตต้องบันทึกครบ:</strong></p>
+        <ul>
+          <li><strong>SOP Execution</strong> — ทุก step ตาม BOM (ดู section ถัดไป)</li>
+          <li><strong>Production Cleaning</strong> — cleaning ระหว่างผลิตถ้า BOM กำหนด</li>
+          <li><strong>Production Environmental</strong> — temp + humidity ทุก interval</li>
+          <li><strong>IPC (In-Process Control)</strong> — ทดสอบคุณภาพระหว่างผลิตตาม IPC criteria</li>
+          <li><strong>Bulk Output</strong> — บันทึกจำนวนผลิตภัณฑ์บัลก์ (ก่อนบรรจุ)</li>
+          <li><strong>Post-Production Cleaning</strong> — ทำความสะอาดหลังจบ production</li>
+          <li><strong>Pre-Packaging Cleaning</strong> + <strong>Packaging Cleaning</strong> — สำหรับห้องบรรจุ</li>
+          <li><strong>Packaging Weight Control</strong> — ชั่งน้ำหนัก sample บรรจุ</li>
+          <li><strong>Packaging Integrity Check</strong> — ตรวจสภาพบรรจุภัณฑ์</li>
+          <li><strong>Packaging Environmental</strong> — temp + humidity</li>
+          <li><strong>Finished Product Inspection</strong> — checklist 15 ข้อ</li>
+          <li><strong>Finished Output</strong> — จำนวนสินค้าสำเร็จรูป + yield %</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="status-card completed">
       <div class="status-header">
         <div class="status-icon">✓</div>
         <div>
-          <div class="status-title">3. Completed</div>
-          <div class="status-subtitle">ทำเสร็จแล้ว — สีเขียว · icon ✓</div>
+          <div class="status-title">Phase 4: ปิด Work Order (Completed)</div>
+          <div class="status-subtitle">eBMR + Yield + Sign-off</div>
         </div>
       </div>
       <div class="status-body">
-        <p><strong>ข้อความที่แสดง:</strong> <span class="b-green">Completed</span> ป้ายสีเขียว</p>
-        <p><strong>ขั้นตอนต่อไป:</strong></p>
+        <p><strong>กดปุ่ม "Advance to Completed" — ระบบ:</strong></p>
         <ul>
-          <li>ถ้า step <strong>ไม่</strong> Requires Verification → จบขั้นนี้ ไปทำ step ถัดไปได้</li>
-          <li>ถ้า step <strong>Requires Verification</strong> → ต้องมีคนอื่นมา <strong>Verify</strong></li>
+          <li>เช็ค gate ว่าทุก section ทำครบ + verified</li>
+          <li>บันทึก <strong>Actual Quantity</strong>, <strong>Yield %</strong>, <strong>Production Time</strong></li>
+          <li>บันทึก <strong>completedBy</strong> + <strong>completedAt</strong> (eBMR signature)</li>
+          <li>Trigger inventory: เพิ่ม FG ลงคลังตามจำนวน finished output</li>
+          <li>Ready สำหรับ Print eBMR เพื่อจัดเก็บเอกสาร GMP</li>
         </ul>
-
-        <div class="callout warn">
-          <strong>⚠ Dual-Control:</strong> คน Verify ต้องไม่ใช่คน Operator
-          <ul style="margin:6px 0 0;">
-            <li>ถ้าคุณคือคน Operator ของ step นี้ → ปุ่ม Verify <strong>ไม่แสดง</strong></li>
-            <li>จะเห็น <span class="b-amber">⏳ Awaiting other verifier</span> แทน</li>
-            <li>ต้องให้ user อื่น (Supervisor / QC) login เข้ามากด Verify</li>
-          </ul>
-        </div>
-
-        <p><strong>คนอื่นกดปุ่ม</strong> <span class="btn-pill verify">👤 Verify</span> → เปลี่ยนเป็น <strong>Verified</strong></p>
       </div>
     </div>
   </section>
 
-  <section class="section" id="status-verified">
-    <div class="status-card verified" id="card-verified">
+  <section class="section" id="sop-execution">
+    <h2>⚙ ขั้นตอนการบันทึก SOP Execution</h2>
+    <p>SOP Execution คือการบันทึกการปฏิบัติตาม Standard Operating Procedure ระหว่างผลิต —
+      ระบบ initialize SOP steps จาก BOM อัตโนมัติเมื่อ WO สถานะ In Progress</p>
+
+    <h3>4 Phases ของแต่ละ Step</h3>
+    <p>ทุก step ของ SOP จะเดินผ่าน 4 สถานะแบบลำดับ:</p>
+
+    <div class="status-card pending">
       <div class="status-header">
-        <div class="status-icon">👤</div>
+        <div class="status-icon">⏰</div>
         <div>
-          <div class="status-title">4. Verified</div>
-          <div class="status-subtitle">ตรวจสอบรับรองแล้ว — สีฟ้า · icon 👤</div>
+          <div class="status-title">Phase 1: Pending — รอเริ่ม</div>
+          <div class="status-subtitle">สีเทา · icon นาฬิกา</div>
         </div>
       </div>
       <div class="status-body">
-        <p><strong>ข้อความที่แสดง:</strong> ป้ายสีฟ้า <strong>Verified</strong></p>
-        <p><strong>ผลที่ตามมา:</strong></p>
+        <p><strong>ข้อมูลที่ระบบมีให้แล้ว:</strong></p>
         <ul>
-          <li>จบขั้นตอนนี้ — สามารถไปทำ step ถัดไปได้</li>
-          <li>ป้ายสีม่วง <span class="b-purple">Requires Verification</span> หาย</li>
-          <li>Progress bar ของ work order เคลื่อนไปข้างหน้า</li>
+          <li>Step Name, Sequence Order (ลำดับ)</li>
+          <li><strong>BOM Instructions</strong> — คำแนะนำการทำงาน</li>
+          <li><strong>Sub-Steps</strong> — checklist แต่ละข้อย่อย (ถ้ามี)</li>
+          <li><strong>Expected Parameters</strong> — ค่าเป้าหมาย เช่น Temp 240°C, Time 30min</li>
+          <li><strong>Required Equipment</strong> — อุปกรณ์ที่ต้องใช้</li>
         </ul>
-        <p>นี่คือสถานะ "สมบูรณ์" — ตามมาตรฐาน GMP</p>
+        <p><strong>Operator ต้องทำ:</strong> กดปุ่ม <span class="btn-pill start">▶ Start</span></p>
+        <p><strong>เงื่อนไข:</strong> Step ก่อนหน้าต้อง Completed (หรือ Verified ถ้า require verification)</p>
+      </div>
+    </div>
+
+    <div class="status-card in-progress">
+      <div class="status-header">
+        <div class="status-icon">▶</div>
+        <div>
+          <div class="status-title">Phase 2: In Progress — กำลังทำ</div>
+          <div class="status-subtitle">สีน้ำเงิน · card highlight</div>
+        </div>
+      </div>
+      <div class="status-body">
+        <p><strong>Operator ทำงานจริง + บันทึก:</strong></p>
+        <ul>
+          <li>ทำตาม BOM Instructions</li>
+          <li>ติ๊ก <strong>checklist sub-steps ครบทุกข้อ</strong> (ถ้ามี) — มีปุ่ม "ทำเครื่องหมายทั้งหมด"</li>
+          <li>กดปุ่ม <span class="btn-pill complete">✓ Complete</span></li>
+        </ul>
+        <p><strong>ใน Dialog "Complete Production Step" ต้องกรอก:</strong></p>
+        <ul>
+          <li><strong>Actual Parameters</strong> — ค่าจริงที่ทำได้
+            <ul>
+              <li><code>Temperature: 245</code> (expected: 240)</li>
+              <li><code>Time: 28</code> (expected: 30)</li>
+              <li><code>Speed: 1500 RPM</code> (expected: 1500)</li>
+            </ul>
+          </li>
+          <li><strong>Notes</strong> — สังเกตการณ์ / ค่าผิดปกติ / ข้อยกเว้น</li>
+        </ul>
+        <p>ระบบบันทึก operator ID + timestamp เข้า quality_test record อัตโนมัติ</p>
+      </div>
+    </div>
+
+    <div class="status-card completed">
+      <div class="status-header">
+        <div class="status-icon">✓</div>
+        <div>
+          <div class="status-title">Phase 3: Completed — ทำเสร็จแล้ว</div>
+          <div class="status-subtitle">สีเขียว · บันทึกเสร็จ รอตรวจ</div>
+        </div>
+      </div>
+      <div class="status-body">
+        <p><strong>ผลที่ได้:</strong></p>
+        <ul>
+          <li>ระบบบันทึก <code>operatorId</code>, <code>completedAt</code>, <code>actualParams</code> (JSON)</li>
+          <li>Step ถัดไปยังเริ่มไม่ได้ถ้า step นี้ <strong>require verification</strong> และยังไม่ verified</li>
+          <li>ป้าย <span class="b-purple">Requires Verification</span> ปรากฏ</li>
+        </ul>
+        <p><strong>ถ้าไม่ require verification</strong> → จบที่นี่ ไป step ถัดไปได้เลย</p>
+      </div>
+    </div>
+
+    <div class="status-card verified">
+      <div class="status-header">
+        <div class="status-icon">👤</div>
+        <div>
+          <div class="status-title">Phase 4: Verified — ตรวจสอบรับรองแล้ว</div>
+          <div class="status-subtitle">สีฟ้า · GMP dual-control sign-off</div>
+        </div>
+      </div>
+      <div class="status-body">
+        <p><strong>คนอื่น (ไม่ใช่ operator) login → กด</strong> <span class="btn-pill verify">👤 Verify</span></p>
+        <p><strong>ระบบบันทึก:</strong></p>
+        <ul>
+          <li><code>verifiedBy</code> = user ที่กด Verify (ต้องไม่ใช่ <code>operatorId</code>)</li>
+          <li><code>verifiedAt</code> = timestamp การตรวจสอบ</li>
+          <li>Step ถัดไปเริ่มได้แล้ว</li>
+        </ul>
+        <div class="callout warn">
+          <strong>⚠ Dual-Control Block:</strong> ถ้าคน login ตอน verify เป็นคนเดียวกับ operator
+          → ปุ่ม Verify <strong>ไม่แสดง</strong> + ขึ้น <span class="b-amber">⏳ Awaiting other verifier</span>
+        </div>
       </div>
     </div>
   </section>
@@ -492,48 +634,8 @@
     </table>
 
     <div class="callout info">
-      <strong>💡 หมายเหตุ:</strong> เมื่อมี user อื่นกด Verify จาก browser อื่น —
+      <strong>💡 Realtime Sync:</strong> เมื่อมี user อื่นกด Verify จาก browser อื่น —
       หน้าของคุณจะ refresh สถานะอัตโนมัติภายใน ~1 วินาที (ไม่ต้องกด refresh manual)
-    </div>
-  </section>
-
-  <section class="section" id="example">
-    <h2>🎬 ตัวอย่าง Flow จริง</h2>
-
-    <div class="flow-example">
-<div class="step-line"><strong>Step 1: ผสมผง</strong> (requires verification)</div>
-<div class="step-line">  <span class="user">Operator A</span> login → กด <span class="action">Start</span> <span class="state">Pending → In Progress</span></div>
-<div class="step-line">  <span class="user">Operator A</span> ทำงาน → ติ๊ก sub-steps ครบ → กด <span class="action">Complete</span></div>
-<div class="step-line">    กรอก: Temp=25°C, Time=15min, Notes="ผงผสมเรียบร้อย" <span class="state">In Progress → Completed</span></div>
-<div class="step-line">  → ปุ่ม Verify ไม่แสดงให้ A (เป็น operator)</div>
-<div class="step-line">  <span class="user">Supervisor B</span> login → เห็นปุ่ม <span class="action">Verify</span> → กด <span class="state">Completed → Verified ✓</span></div>
-<div class="step-line"></div>
-<div class="step-line"><strong>Step 2: Granulation</strong> (เริ่มได้ตอนนี้)</div>
-<div class="step-line">  ขณะ Step 1 ยัง <span class="state">Completed</span> (ยังไม่ Verified)</div>
-<div class="step-line">  Step 2 จะติด <span class="state">รอตรวจสอบ Step 1 ก่อน</span></div>
-    </div>
-  </section>
-
-  <section class="section" id="badges">
-    <h2>🏷 ป้ายเสริม (Badges)</h2>
-
-    <div class="badge-legend">
-      <div class="badge-row">
-        <span class="badge-display"><span class="b-purple">Requires Verification</span></span>
-        <span class="desc">Step นี้ต้องมีคนตรวจสอบหลังจาก Completed</span>
-      </div>
-      <div class="badge-row">
-        <span class="badge-display"><span class="b-amber">รอตรวจสอบ Step X ก่อน</span></span>
-        <span class="desc">Step ก่อนหน้ายังไม่ Verified — กด Start ตอนนี้ไม่ได้</span>
-      </div>
-      <div class="badge-row">
-        <span class="badge-display"><span class="b-amber">⏳ Awaiting other verifier</span></span>
-        <span class="desc">คุณเป็น operator ของ step นี้ — รอคนอื่นมาเป็น verifier</span>
-      </div>
-      <div class="badge-row">
-        <span class="badge-display"><span class="b-green">✓ Sub-steps confirmed</span></span>
-        <span class="desc">ติ๊ก checklist ครบทุกข้อแล้ว — กด Complete ได้</span>
-      </div>
     </div>
   </section>
 

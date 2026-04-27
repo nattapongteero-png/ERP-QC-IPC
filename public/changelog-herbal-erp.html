@@ -70,7 +70,22 @@
     td.mod-col{font-weight:600;color:#0f172a;}
     td.menu-col{color:#1e293b;}
     td.sub-col{color:#475569;font-size:13px;}
-    td.desc-col{color:#1e293b;font-size:14px;min-width:300px;}
+    td.desc-col{color:#1e293b;font-size:14px;min-width:280px;max-width:420px;}
+    .desc-summary{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;font-size:14px;color:#1e293b;}
+    .desc-details{margin-top:6px;}
+    .desc-expand{cursor:pointer;font-size:11px;color:#059669;font-weight:700;padding:3px 8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;display:inline-block;list-style:none;}
+    .desc-expand::-webkit-details-marker{display:none;}
+    .desc-expand:hover{background:#d1fae5;}
+    details[open] .desc-expand{background:#dcfce7;}
+    .desc-full{margin-top:8px;padding:10px 12px;background:linear-gradient(to right,#f0fdf4,#f8fafc);border-left:3px solid #059669;border-radius:0 8px 8px 0;font-size:13px;color:#334155;line-height:1.55;}
+    .desc-item{margin:4px 0;padding-left:4px;}
+    .date-filter-wrap{display:flex;gap:4px;align-items:stretch;}
+    .date-display{width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;color:#374151;background:white;cursor:pointer;}
+    .date-btn{padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;background:white;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;white-space:nowrap;}
+    .date-btn-today{color:#059669;border-color:#a7f3d0;background:#ecfdf5;}
+    .date-btn-today:hover{background:#d1fae5;}
+    .date-btn-clear{color:#94a3b8;font-size:14px;line-height:1;padding:4px 8px;}
+    .date-btn-clear:hover{color:#dc2626;background:#fef2f2;}
     td.date-col{white-space:nowrap;color:#64748b;font-size:13px;}
     td.prompt-col{color:#475569;font-size:13px;min-width:280px;}
     td.time-col{white-space:nowrap;color:#64748b;font-size:13px;text-align:center;}
@@ -138,6 +153,8 @@
 <script>
 var DATA=[
   // ==================== 28 เมษายน 2569 ====================
+  {module:'Docs',menu:'Changelog Page',sub:'Redesign UX — สรุป 2 บรรทัด + filter วันนี้ + รวมเวลาที่ใช้',type:'feat',desc:'ปรับ /changelog-herbal-erp.html — (1) คอลัมน์ข้อความ "การแก้ไข/พัฒนา" สรุป 2 บรรทัด clamp ellipsis + ปุ่ม "ดูรายละเอียด" expand เห็น (1)(2)(3) แต่ละข้อขึ้นบรรทัดใหม่ (2) Default filter = วันนี้ (ถ้ามี entry วันนี้) — ผู้ใช้กด × หรือเลือกวันอื่นได้ (3) ปุ่ม "วันนี้" + "×" ข้างช่องวันที่ — เลือกง่ายขึ้น (4) ลบคอลัมน์เวลาเริ่ม/สิ้นสุด รวมเป็น "เวลาที่ใช้" คอลัมน์เดียว (5) ประเภทเพิ่มภาษาไทย: FEATURE/ฟีเจอร์ใหม่, BUG FIX/แก้ Bug, REFACTOR/ปรับปรุง, DOCS/เอกสาร, TEST/ทดสอบ (6) Export ใช้ filtered items ตามที่แสดง + sheet headers ใหม่',date:'28 เม.ย. 69',startTime:'04:30',endTime:'05:00',prompt:'ปรับ ui-ux changelog: 2 บรรทัด + ขึ้นบรรทัดใหม่ที่ (1)(2)..., default วันนี้, date picker ดี, export ตาม filter, รวมเวลา, type ภาษาไทย'},
+  {module:'Docs',menu:'SOP Workflow Page',sub:'Rewrite — ครอบคลุม WO lifecycle + SOP execution',type:'docs',desc:'Rewrite /sop-execution-workflow.html ให้ครอบคลุม workflow ของ Work Order + SOP — (1) ภาพรวม 2 ระดับ: WO 5 สถานะ (Planned→Released→In Progress→Completed→Closed) + SOP step 4 สถานะ (Pending→In Progress→Completed→Verified) (2) ตารางสถานะ WO + เปลี่ยนเมื่อบันทึกอะไร + gate validation (3) ขั้นตอนบันทึก WO 4 phases + ข้อมูลที่ต้องบันทึก (4) ขั้นตอนบันทึก SOP execution per phase (5) GMP dual-control + pitfalls',date:'28 เม.ย. 69',startTime:'04:00',endTime:'04:30',prompt:'ปรับ /sop-execution-workflow.html ให้ครอบคลุม WO + SOP workflow + status เปลี่ยนเมื่อบันทึกอะไร + ขั้นตอนบันทึกแต่ละ phase'},
   {module:'Production',menu:'Work Orders / Packaging QC',sub:'แก้ dialog ล้นจอ — sticky footer + scrollable body',type:'fix',desc:'ปุ่มเพิ่มแล้ว dialog ล้นจอ — แก้: ใส่ maxHeight 90vh + maxWidth 95vw, fullScreenOnTablet, layout เป็น flex column, body scroll ได้, action footer pin อยู่ด้านล่าง border-t bg-white ไม่หายตามเลื่อน, sample input grid ลบ inner scroll cap (เลื่อนที่ outer แทน)',date:'28 เม.ย. 69',startTime:'04:00',endTime:'04:10',prompt:'/packaging-qc?tab=weight ตอนกดเพิ่ม หน้าจอที่แสดงล้นหน้าจอ'},
   {module:'Production',menu:'Work Orders / Packaging QC',sub:'i18n — รองรับสลับภาษาไทย/อังกฤษ',type:'fix',desc:'หน้า packaging-qc เดิม hardcode ภาษาไทยทั้งหน้า ทำให้สลับภาษาอังกฤษไม่ได้ — แก้: เพิ่ม namespace production.packagingQc ทั้ง th/en ครอบคลุม common (ปุ่ม/labels), weight (UI), integrity (UI), dialogs, toast, helper text + interpolation ({count}, {time}, {min}, {max}, {pass} ฯลฯ), wire useTranslations ให้ทุก string ในหน้า — สลับภาษาผ่าน language selector ปกติทำงานทันที',date:'28 เม.ย. 69',startTime:'03:15',endTime:'03:45',prompt:'/packaging-qc ยังขาดการเปลี่ยนภาษา ไม่เปลี่ยนตามเมื่อมีการเปลี่ยน'},
   {module:'Production',menu:'Work Orders / Packaging QC',sub:'Polish — Sarabun font + 2-decimal input + stats summary',type:'feat',desc:'ปรับปรุง packaging-qc ตาม feedback — (1) ใส่ Inter+Sarabun font เหมือนหน้า /master-data/ipc-criteria/new (2) Dialog input น้ำหนัก: format #0.00 (ทศนิยม 2 ตำแหน่ง), step 0.01, grid responsive 2/3/4 cols (ก่อนหน้าอัด 5 cols ดูยาก), แต่ละช่องโชว์ "OK / นอกเกณฑ์" badge real-time, helper text เกณฑ์ที่ผ่าน (3) Record card: stats summary 3 ตัว (เฉลี่ย/ต่ำสุด/สูงสุด) คำนวณจาก samples — แดงถ้านอกเกณฑ์, sample chips ใหญ่ขึ้น 2-decimal บอกชัด, gradient bg, hover shadow, action buttons เห็นเสมอ (ไม่ hide opacity-0) — รองรับ mobile (4) Integrity card: emoji + label + check/x icon, badge "✓ ผ่านครบ 3/3" หรือ "✗ X/3 ผ่าน" — responsive จาก 1 col → 3 col',date:'28 เม.ย. 69',startTime:'02:45',endTime:'03:00',prompt:'/packaging-qc — record list ดูยาก, input ทศนิยมไม่ครบ, font Sarabun, responsive, informative, user friendly'},
@@ -525,25 +542,48 @@ function makeInput(key,placeholder){
   return inp;
 }
 
+function todayISO(){
+  var d=new Date();
+  var y=d.getFullYear();var m=String(d.getMonth()+1).padStart(2,'0');var dd=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
+}
+
+function formatDisplayDate(iso){
+  if(!iso)return '';
+  var parts=iso.split('-');
+  return parseInt(parts[2])+'/'+parseInt(parts[1])+'/'+(parseInt(parts[0])+543);
+}
+
 function makeDateInput(){
-  var wrap=document.createElement('div');wrap.style.position='relative';
+  var wrap=document.createElement('div');wrap.className='date-filter-wrap';
+  // Visible display + native picker overlay
+  var inputWrap=document.createElement('div');inputWrap.style.position='relative';inputWrap.style.flex='1';
   var inp=document.createElement('input');inp.type='date';inp.value=colFilters.date||'';
   inp.style.cssText='cursor:pointer;opacity:0;position:absolute;inset:0;width:100%;height:100%;z-index:2;';
   var display=document.createElement('input');display.type='text';display.readOnly=true;
-  display.placeholder='เลือกวันที่...';display.style.cursor='pointer';
-  display.style.cssText+='width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;color:#374151;background:white;';
+  display.placeholder='\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48...';display.value=formatDisplayDate(colFilters.date||'');
+  display.className='date-display';
   inp.onchange=function(){
     colFilters.date=inp.value;
-    if(inp.value){
-      var parts=inp.value.split('-');
-      var y=parseInt(parts[0])+543;
-      var m=parseInt(parts[1]);
-      var d=parseInt(parts[2]);
-      display.value=d+'/'+m+'/'+y;
-    }else{display.value='';}
+    display.value=formatDisplayDate(inp.value);
     applyFilters();
   };
-  wrap.appendChild(display);wrap.appendChild(inp);
+  inputWrap.appendChild(display);inputWrap.appendChild(inp);
+  wrap.appendChild(inputWrap);
+  // Quick action buttons
+  var btnToday=document.createElement('button');btnToday.type='button';btnToday.className='date-btn date-btn-today';
+  btnToday.textContent='\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49';btnToday.title='\u0E01\u0E23\u0E2D\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49';
+  btnToday.onclick=function(){
+    var iso=todayISO();
+    inp.value=iso;colFilters.date=iso;display.value=formatDisplayDate(iso);applyFilters();
+  };
+  wrap.appendChild(btnToday);
+  var btnClear=document.createElement('button');btnClear.type='button';btnClear.className='date-btn date-btn-clear';
+  btnClear.textContent='\u00D7';btnClear.title='\u0E25\u0E49\u0E32\u0E07\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07';
+  btnClear.onclick=function(){
+    inp.value='';colFilters.date='';display.value='';applyFilters();
+  };
+  wrap.appendChild(btnClear);
   return wrap;
 }
 
@@ -553,7 +593,12 @@ var currentCountEl=null;
 function renderTable(items,mod){
   currentBaseItems=items;
   currentFilteredItems=items;
-  colFilters={module:'',menu:'',sub:'',type:'',desc:'',date:'',prompt:''};
+  // Default: filter by today's date so users see current-day work first.
+  // They can clear / pick a different date with the date column controls.
+  var initialDate=todayISO();
+  // If no items match today, leave filter blank instead of showing empty grid
+  var hasToday=items.some(function(d){var p=parseThaiDate(d.date);return p&&formatDateISO(p)===initialDate;});
+  colFilters={module:'',menu:'',sub:'',type:'',desc:'',date:hasToday?initialDate:'',prompt:''};
 
   var area=document.getElementById('tableArea');
   while(area.firstChild)area.removeChild(area.firstChild);
@@ -574,7 +619,7 @@ function renderTable(items,mod){
   // Header row
   var thead=document.createElement('thead');
   var hr=document.createElement('tr');
-  var cols=['\u0E25\u0E33\u0E14\u0E31\u0E1A','Module','Menu','Sub Menu','\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17','\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32','\u0E27\u0E31\u0E19/\u0E40\u0E14\u0E37\u0E2D\u0E19/\u0E1B\u0E35','\u0E40\u0E27\u0E25\u0E32\u0E40\u0E23\u0E34\u0E48\u0E21','\u0E40\u0E27\u0E25\u0E32\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14','\u0E43\u0E0A\u0E49\u0E40\u0E27\u0E25\u0E32','Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02'];
+  var cols=['\u0E25\u0E33\u0E14\u0E31\u0E1A','Module','Menu','Sub Menu','\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17','\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32','\u0E27\u0E31\u0E19/\u0E40\u0E14\u0E37\u0E2D\u0E19/\u0E1B\u0E35','\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49','Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02'];
   cols.forEach(function(c,i){var th=document.createElement('th');th.textContent=c;if(i===0)th.style.width='50px';hr.appendChild(th);});
   thead.appendChild(hr);
 
@@ -592,7 +637,7 @@ function renderTable(items,mod){
   var fth4=document.createElement('th');
   var typeSel=document.createElement('select');
   var typeOpt0=document.createElement('option');typeOpt0.value='';typeOpt0.textContent='-- \u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 --';typeSel.appendChild(typeOpt0);
-  [{v:'feat',l:'FEATURE'},{v:'fix',l:'BUG FIX'},{v:'refac',l:'REFACTOR'},{v:'docs',l:'DOCS'},{v:'test',l:'TEST'}].forEach(function(t){
+  [{v:'feat',l:'FEATURE / \u0E1F\u0E35\u0E40\u0E08\u0E2D\u0E23\u0E4C\u0E43\u0E2B\u0E21\u0E48'},{v:'fix',l:'BUG FIX / \u0E41\u0E01\u0E49 Bug'},{v:'refac',l:'REFACTOR / \u0E1B\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E38\u0E07\u0E42\u0E04\u0E49\u0E14'},{v:'docs',l:'DOCS / \u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23'},{v:'test',l:'TEST / \u0E17\u0E14\u0E2A\u0E2D\u0E1A'}].forEach(function(t){
     var o=document.createElement('option');o.value=t.v;o.textContent=t.l;typeSel.appendChild(o);
   });
   typeSel.onchange=function(){colFilters.type=typeSel.value;applyFilters();};
@@ -601,14 +646,10 @@ function renderTable(items,mod){
   var fth5=document.createElement('th');fth5.appendChild(makeInput('desc','\u0E04\u0E49\u0E19\u0E2B\u0E32...'));fr.appendChild(fth5);
   // #6 Date - date picker
   var fth6=document.createElement('th');fth6.appendChild(makeDateInput());fr.appendChild(fth6);
-  // #7 startTime - empty
+  // #7 duration - empty
   var fth7=document.createElement('th');fr.appendChild(fth7);
-  // #8 endTime - empty
-  var fth8=document.createElement('th');fr.appendChild(fth8);
-  // #9 duration - empty
-  var fth9=document.createElement('th');fr.appendChild(fth9);
-  // #10 Prompt
-  var fth10=document.createElement('th');fth10.appendChild(makeInput('prompt','\u0E04\u0E49\u0E19\u0E2B\u0E32...'));fr.appendChild(fth10);
+  // #8 Prompt
+  var fth8=document.createElement('th');fth8.appendChild(makeInput('prompt','\u0E04\u0E49\u0E19\u0E2B\u0E32...'));fr.appendChild(fth8);
 
   thead.appendChild(fr);
   tbl.appendChild(thead);
@@ -618,7 +659,21 @@ function renderTable(items,mod){
   tbl.appendChild(tbody);
   sc.appendChild(tbl);wrap.appendChild(sc);area.appendChild(wrap);
 
-  renderTableRows(items);
+  // Apply initial filters (which include the today-date default if available)
+  applyFilters();
+}
+
+// Split description into 2-line summary + (1)(2)(3) numbered detail lines.
+// Detail block is hidden by default; user clicks "ดูรายละเอียด" to expand.
+function formatDescription(text){
+  var idx=text.search(/\(1\)/);
+  if(idx<0)return{summary:text,items:null};
+  var summary=text.substring(0,idx).trim().replace(/[\u2014\-,:;]\s*$/,'').trim();
+  if(!summary)summary=text.substring(0,80);
+  // Split full text on space-followed-by-(N) so each numbered item is its own line
+  var rest=text.substring(idx);
+  var items=rest.split(/\s+(?=\(\d+\))/).map(function(s){return s.trim();}).filter(Boolean);
+  return{summary:summary,items:items};
 }
 
 function renderTableRows(items){
@@ -626,7 +681,13 @@ function renderTableRows(items){
   while(tbody.firstChild)tbody.removeChild(tbody.firstChild);
   if(currentCountEl)currentCountEl.textContent=items.length+' \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23';
 
-  var typeMap={feat:['b-feat','FEATURE'],fix:['b-fix','BUG FIX'],refac:['b-refac','REFACTOR'],docs:['b-docs','DOCS'],test:['b-test','TEST']};
+  var typeMap={
+    feat:['b-feat','FEATURE / \u0E1F\u0E35\u0E40\u0E08\u0E2D\u0E23\u0E4C\u0E43\u0E2B\u0E21\u0E48'],
+    fix:['b-fix','BUG FIX / \u0E41\u0E01\u0E49 Bug'],
+    refac:['b-refac','REFACTOR / \u0E1B\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E38\u0E07'],
+    docs:['b-docs','DOCS / \u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23'],
+    test:['b-test','TEST / \u0E17\u0E14\u0E2A\u0E2D\u0E1A']
+  };
   items.forEach(function(d,i){
     var tr=document.createElement('tr');
     var td0=document.createElement('td');td0.className='no';td0.textContent=String(i+1);tr.appendChild(td0);
@@ -635,12 +696,40 @@ function renderTableRows(items){
     var td3=document.createElement('td');td3.className='sub-col';td3.textContent=d.sub;tr.appendChild(td3);
     var td4=document.createElement('td');var bg=document.createElement('span');bg.className='badge';
     var tm=typeMap[d.type]||['b-docs',d.type];bg.classList.add(tm[0]);bg.textContent=tm[1];td4.appendChild(bg);tr.appendChild(td4);
-    var td5=document.createElement('td');td5.className='desc-col';td5.textContent=d.desc;td5.setAttribute('title',d.desc);tr.appendChild(td5);
+
+    // Description: 2-line summary + collapsible (1)(2)(3) detail
+    var td5=document.createElement('td');td5.className='desc-col';
+    var fmt=formatDescription(d.desc);
+    var summ=document.createElement('div');summ.className='desc-summary';summ.textContent=fmt.summary;
+    summ.setAttribute('title',d.desc);
+    td5.appendChild(summ);
+    if(fmt.items){
+      var details=document.createElement('details');details.className='desc-details';
+      var sumEl=document.createElement('summary');sumEl.className='desc-expand';
+      sumEl.textContent='\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ('+fmt.items.length+' \u0E02\u0E49\u0E2D)';
+      details.appendChild(sumEl);
+      var fullEl=document.createElement('div');fullEl.className='desc-full';
+      fmt.items.forEach(function(it){
+        var line=document.createElement('div');line.className='desc-item';line.textContent=it;
+        fullEl.appendChild(line);
+      });
+      details.appendChild(fullEl);
+      td5.appendChild(details);
+    }
+    tr.appendChild(td5);
+
     var td6=document.createElement('td');td6.className='date-col';td6.textContent=d.date;tr.appendChild(td6);
-    var td7=document.createElement('td');td7.className='time-col';td7.textContent=d.startTime||'';tr.appendChild(td7);
-    var td8=document.createElement('td');td8.className='time-col';td8.textContent=d.endTime||'';tr.appendChild(td8);
-    var td9=document.createElement('td');td9.className='duration-col';td9.textContent=calcDuration(d.startTime,d.endTime);tr.appendChild(td9);
-    var td10=document.createElement('td');td10.className='prompt-col';td10.textContent=d.prompt;td10.setAttribute('title',d.prompt);tr.appendChild(td10);
+
+    // Combined duration column (replaces start + end + duration)
+    var td7=document.createElement('td');td7.className='duration-col';
+    var dur=calcDuration(d.startTime,d.endTime);
+    td7.textContent=dur||'\u2014';
+    if(d.startTime&&d.endTime){
+      td7.setAttribute('title',d.startTime+' \u2192 '+d.endTime);
+    }
+    tr.appendChild(td7);
+
+    var td8=document.createElement('td');td8.className='prompt-col';td8.textContent=d.prompt;td8.setAttribute('title',d.prompt);tr.appendChild(td8);
     tbody.appendChild(tr);
   });
 }
@@ -655,12 +744,17 @@ function formatDateLong(dateStr){
   return day+' '+MONTH_FULL_TH[monthIdx]+' \u0E1E.\u0E28.'+beYear;
 }
 
+function typeLabelTh(t){
+  var map={feat:'FEATURE / \u0E1F\u0E35\u0E40\u0E08\u0E2D\u0E23\u0E4C\u0E43\u0E2B\u0E21\u0E48',fix:'BUG FIX / \u0E41\u0E01\u0E49 Bug',refac:'REFACTOR / \u0E1B\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E38\u0E07\u0E42\u0E04\u0E49\u0E14',docs:'DOCS / \u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23',test:'TEST / \u0E17\u0E14\u0E2A\u0E2D\u0E1A'};
+  return map[t]||t.toUpperCase();
+}
+
 function exportExcel(){
   // Use currently filtered items
   var items=currentFilteredItems;
-  var rows=items.map(function(d,i){return{'\u0E25\u0E33\u0E14\u0E31\u0E1A':i+1,'Module':d.module,'Menu':d.menu,'Sub Menu':d.sub,'\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17':d.type.toUpperCase(),'\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32':d.desc,'\u0E27\u0E31\u0E19/\u0E40\u0E14\u0E37\u0E2D\u0E19/\u0E1B\u0E35':d.date,'\u0E40\u0E27\u0E25\u0E32\u0E40\u0E23\u0E34\u0E48\u0E21':d.startTime||'','\u0E40\u0E27\u0E25\u0E32\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14':d.endTime||'','\u0E43\u0E0A\u0E49\u0E40\u0E27\u0E25\u0E32':calcDuration(d.startTime,d.endTime),'Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02':d.prompt};});
+  var rows=items.map(function(d,i){return{'\u0E25\u0E33\u0E14\u0E31\u0E1A':i+1,'Module':d.module,'Menu':d.menu,'Sub Menu':d.sub,'\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17':typeLabelTh(d.type),'\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32':d.desc,'\u0E27\u0E31\u0E19/\u0E40\u0E14\u0E37\u0E2D\u0E19/\u0E1B\u0E35':d.date,'\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49':calcDuration(d.startTime,d.endTime),'Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02':d.prompt};});
   var wb=XLSX.utils.book_new();var ws=XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:6},{wch:16},{wch:18},{wch:18},{wch:10},{wch:65},{wch:14},{wch:10},{wch:10},{wch:14},{wch:70}];
+  ws['!cols']=[{wch:6},{wch:16},{wch:18},{wch:18},{wch:32},{wch:65},{wch:14},{wch:14},{wch:70}];
   XLSX.utils.book_append_sheet(wb,ws,'Changelog');
 
   // Summary sheet
@@ -672,16 +766,14 @@ function exportExcel(){
   // Detail sheet — vertical layout per entry
   var detailRows=[];
   items.forEach(function(d){
-    var dur=calcDuration(d.startTime,d.endTime);
-    var timeStr=(d.startTime&&d.endTime)?(d.startTime+' \u0E19. - '+d.endTime+' \u0E19.  \u0E43\u0E0A\u0E49\u0E40\u0E27\u0E25\u0E32\u0E23\u0E27\u0E21 '+dur):'';
     detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Module','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.module});
     detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Menu','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.menu});
     detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Sub Menu','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.sub});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.type.toUpperCase()});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':typeLabelTh(d.type)});
     detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.desc});
     detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.prompt});
     detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':formatDateLong(d.date)});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E40\u0E27\u0E25\u0E32\u0E40\u0E23\u0E34\u0E48\u0E21\u0E41\u0E25\u0E30\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':timeStr});
+    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':calcDuration(d.startTime,d.endTime)||'\u2014'});
     detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':''});
   });
   var ws3=XLSX.utils.json_to_sheet(detailRows);ws3['!cols']=[{wch:30},{wch:80}];
