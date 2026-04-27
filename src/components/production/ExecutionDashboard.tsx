@@ -284,12 +284,14 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/ipc`,
       phase: 'production',
       description: t('execution.ipcDescription'),
+      // IPC has no operator-vs-supervisor verify step in this workflow —
+      // record = test result, no separate verify gate. Keep verified=0 so
+      // the bar stays green throughout (matches environmental cards).
       getStatus: (s) => ({
         completed: s.ipc.completed,
-        verified: s.ipc.approved,
+        verified: 0,
         total: s.ipc.total,
-        status: s.ipc.approved === s.ipc.total && s.ipc.total > 0 ? 'verified'
-          : s.ipc.completed === s.ipc.total && s.ipc.total > 0 ? 'completed'
+        status: s.ipc.completed === s.ipc.total && s.ipc.total > 0 ? 'completed'
           : s.ipc.completed > 0 ? 'in_progress' : 'pending',
       }),
     },
