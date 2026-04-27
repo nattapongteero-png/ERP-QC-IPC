@@ -358,8 +358,14 @@ export default function PackagingQCPage() {
     const passRate = totalChecks > 0 ? Math.round((passedChecks / totalChecks) * 100) : 0;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50/30">
-        <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+      <div
+        className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50/30"
+        style={{
+          fontFamily:
+            'var(--font-inter), var(--font-sarabun), system-ui, -apple-system, sans-serif',
+        }}
+      >
+        <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
           {/* HERO */}
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 shadow-xl shadow-indigo-500/20">
             <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
@@ -514,109 +520,144 @@ export default function PackagingQCPage() {
                   hint='คลิก "บันทึกการตรวจน้ำหนัก" ด้านบนเพื่อเริ่มต้น'
                 />
               ) : (
-                <div className="grid gap-3">
+                <div className="grid gap-3 md:gap-4">
                   {weightLogs?.map((log) => {
                     const samples = parseSampleWeights(log.sampleWeights);
+                    const validSamples = samples.filter((w) => typeof w === 'number');
+                    const avg = validSamples.length
+                      ? validSamples.reduce((a, b) => a + b, 0) / validSamples.length
+                      : 0;
+                    const minW = validSamples.length ? Math.min(...validSamples) : 0;
+                    const maxW = validSamples.length ? Math.max(...validSamples) : 0;
                     return (
                       <div
                         key={log.id}
-                        className={`group relative rounded-2xl border-2 p-4 transition-all hover:shadow-md ${
+                        className={`relative rounded-2xl border-2 p-4 md:p-5 transition-all hover:shadow-lg ${
                           log.isPass
-                            ? 'border-emerald-100 bg-emerald-50/30 hover:border-emerald-300'
-                            : 'border-rose-100 bg-rose-50/30 hover:border-rose-300'
+                            ? 'border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-white hover:border-emerald-400'
+                            : 'border-rose-200 bg-gradient-to-br from-rose-50/60 to-white hover:border-rose-400'
                         }`}
                       >
+                        {/* Header: result icon + time + actions */}
                         <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
                             <div
-                              className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                              className={`flex h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 items-center justify-center rounded-2xl shadow-md ${
                                 log.isPass
-                                  ? 'bg-emerald-500 text-white'
-                                  : 'bg-rose-500 text-white'
+                                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-emerald-200'
+                                  : 'bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-rose-200'
                               }`}
                             >
                               {log.isPass ? (
-                                <CheckCircle2 className="h-6 w-6" />
+                                <CheckCircle2 className="h-6 w-6 sm:h-7 sm:w-7" />
                               ) : (
-                                <XCircle className="h-6 w-6" />
+                                <XCircle className="h-6 w-6 sm:h-7 sm:w-7" />
                               )}
                             </div>
-                            <div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Clock className="h-3.5 w-3.5 text-gray-400" />
-                                <span className="font-semibold text-gray-900">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1.5 text-base font-bold text-gray-900">
+                                  <Clock className="h-4 w-4 text-gray-400" />
                                   {log.checkTime}
                                 </span>
                                 <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide ${
                                     log.isPass
                                       ? 'bg-emerald-100 text-emerald-700'
                                       : 'bg-rose-100 text-rose-700'
                                   }`}
                                 >
-                                  {log.isPass ? 'PASS' : 'FAIL'}
+                                  {log.isPass ? '✓ PASS' : '✗ FAIL'}
                                 </span>
-                              </div>
-                              <div className="mt-1 flex items-center gap-3 text-xs text-gray-500">
-                                {log.operatorName && (
-                                  <span className="flex items-center gap-1">
-                                    <User className="h-3 w-3" />
-                                    {log.operatorName}
-                                  </span>
-                                )}
                                 {log.failedCount > 0 && (
-                                  <span className="text-rose-600 font-medium">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200">
                                     เสีย {log.failedCount} ตัวอย่าง
                                   </span>
                                 )}
                               </div>
+                              {log.operatorName && (
+                                <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                                  <User className="h-3 w-3" />
+                                  <span className="truncate">{log.operatorName}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
 
                           {workOrder.status !== 'completed' && (
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-1.5">
                               <button
                                 onClick={() => handleEditWeightLog(log)}
-                                className="rounded-lg bg-white text-blue-600 hover:bg-blue-50 px-2 py-1 text-xs font-medium border border-blue-200 transition-colors flex items-center gap-1"
+                                className="rounded-lg bg-white text-blue-600 hover:bg-blue-50 active:bg-blue-100 px-3 py-1.5 text-xs font-semibold border border-blue-200 transition-colors flex items-center gap-1 shadow-sm"
                               >
-                                <Pencil className="h-3 w-3" />
+                                <Pencil className="h-3.5 w-3.5" />
                                 แก้ไข
                               </button>
                               <button
                                 onClick={() => setDeletingWeightLogId(log.id)}
-                                className="rounded-lg bg-white text-rose-600 hover:bg-rose-50 px-2 py-1 text-xs font-medium border border-rose-200 transition-colors flex items-center gap-1"
+                                className="rounded-lg bg-white text-rose-600 hover:bg-rose-50 active:bg-rose-100 px-3 py-1.5 text-xs font-semibold border border-rose-200 transition-colors flex items-center gap-1 shadow-sm"
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-3.5 w-3.5" />
                                 ลบ
                               </button>
                             </div>
                           )}
                         </div>
 
-                        {/* Sample weights chips */}
-                        <div className="flex flex-wrap gap-1.5">
+                        {/* Stats summary */}
+                        {validSamples.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2 mb-3 p-2.5 rounded-xl bg-white/70 border border-gray-100">
+                            <StatChip
+                              label="เฉลี่ย"
+                              value={`${avg.toFixed(2)}g`}
+                              tone="indigo"
+                            />
+                            <StatChip
+                              label="ต่ำสุด"
+                              value={`${minW.toFixed(2)}g`}
+                              tone={
+                                criteria && minW < criteria.weightMin ? 'rose' : 'emerald'
+                              }
+                            />
+                            <StatChip
+                              label="สูงสุด"
+                              value={`${maxW.toFixed(2)}g`}
+                              tone={
+                                criteria && maxW > criteria.weightMax ? 'rose' : 'emerald'
+                              }
+                            />
+                          </div>
+                        )}
+
+                        {/* Sample weight chips */}
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
                           {samples.map((w, i) => {
                             const fail =
                               criteria && (w < criteria.weightMin || w > criteria.weightMax);
                             return (
-                              <span
+                              <div
                                 key={i}
-                                className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-mono border ${
+                                className={`rounded-lg px-2 py-1.5 border text-center ${
                                   fail
-                                    ? 'bg-rose-100 text-rose-700 border-rose-200'
+                                    ? 'bg-rose-100 text-rose-800 border-rose-300'
                                     : 'bg-white text-gray-700 border-gray-200'
                                 }`}
                               >
-                                <span className="text-gray-400">#{i + 1}</span>
-                                <span className="font-semibold">{w}g</span>
-                              </span>
+                                <div className="text-[10px] font-semibold text-gray-400">
+                                  #{i + 1}
+                                </div>
+                                <div className="font-mono font-bold text-sm leading-tight">
+                                  {Number(w).toFixed(2)}
+                                </div>
+                              </div>
                             );
                           })}
                         </div>
 
                         {log.notes && (
-                          <div className="mt-3 text-xs text-gray-600 italic border-t border-dashed border-gray-200 pt-2">
-                            หมายเหตุ: {log.notes}
+                          <div className="mt-3 text-xs text-gray-600 border-t border-dashed border-gray-200 pt-2.5 flex items-start gap-2">
+                            <span className="font-semibold text-gray-500">หมายเหตุ:</span>
+                            <span className="italic">{log.notes}</span>
                           </div>
                         )}
                       </div>
@@ -681,39 +722,63 @@ export default function PackagingQCPage() {
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
                 <Hash className="h-4 w-4 text-indigo-500" />
-                ใส่น้ำหนักแต่ละตัวอย่าง (กรัม)
+                ใส่น้ำหนักแต่ละตัวอย่าง (กรัม) — ทศนิยม 2 ตำแหน่ง
               </label>
-              <div className="grid grid-cols-5 gap-2 max-h-72 overflow-y-auto p-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[420px] overflow-y-auto p-1">
                 {sampleWeights.map((weight, index) => {
                   const fail =
                     criteria &&
-                    weight !== 0 &&
+                    weight > 0 &&
                     (weight < criteria.weightMin || weight > criteria.weightMax);
                   return (
                     <div
                       key={index}
-                      className={`rounded-lg p-2 border-2 transition-colors ${
+                      className={`rounded-xl p-3 border-2 transition-colors ${
                         fail
                           ? 'border-rose-300 bg-rose-50'
                           : weight > 0
-                          ? 'border-emerald-200 bg-emerald-50/50'
+                          ? 'border-emerald-300 bg-emerald-50/60'
                           : 'border-gray-200 bg-gray-50/50'
                       }`}
                     >
-                      <div className="text-[10px] text-gray-500 font-semibold mb-1">
-                        #{index + 1}
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-bold text-gray-500">
+                          ตัวอย่าง #{index + 1}
+                        </span>
+                        {weight > 0 && (
+                          <span
+                            className={`text-[10px] font-bold ${
+                              fail ? 'text-rose-600' : 'text-emerald-600'
+                            }`}
+                          >
+                            {fail ? 'นอกเกณฑ์' : 'OK'}
+                          </span>
+                        )}
                       </div>
                       <DxNumberBox
                         value={weight}
                         onValueChanged={(e) => updateSampleWeight(index, e.value)}
-                        format="#0.0"
+                        format="#0.00"
+                        step={0.01}
                         min={0}
                         showSpinButtons
+                        placeholder="0.00"
                       />
                     </div>
                   );
                 })}
               </div>
+              {criteria && (
+                <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                  <span className="text-indigo-500">ⓘ</span>
+                  น้ำหนักที่ผ่าน:{' '}
+                  <strong className="text-emerald-700">
+                    {criteria.weightMin}–{criteria.weightMax}g
+                  </strong>{' '}
+                  (เสียได้ไม่เกิน{' '}
+                  <strong className="text-amber-700">{criteria.maxFailures}</strong> ตัวอย่าง)
+                </p>
+              )}
             </div>
 
             <div>
@@ -841,8 +906,14 @@ export default function PackagingQCPage() {
     totalIntegrity > 0 ? Math.round((allPassIntegrity / totalIntegrity) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/30">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+    <div
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/30"
+      style={{
+        fontFamily:
+          'var(--font-inter), var(--font-sarabun), system-ui, -apple-system, sans-serif',
+      }}
+    >
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* HERO */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-500 shadow-xl shadow-purple-500/20">
           <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
@@ -972,51 +1043,55 @@ export default function PackagingQCPage() {
                 hint='คลิก "บันทึกการตรวจ Integrity" ด้านบนเพื่อเริ่มต้น'
               />
             ) : (
-              <div className="grid gap-3">
+              <div className="grid gap-3 md:gap-4">
                 {integrityLogs?.map((log) => {
                   const allPass =
                     log.tubeCapComplete && log.lotNumberCorrect && log.packingCorrect;
+                  const failCount =
+                    (log.tubeCapComplete ? 0 : 1) +
+                    (log.lotNumberCorrect ? 0 : 1) +
+                    (log.packingCorrect ? 0 : 1);
                   return (
                     <div
                       key={log.id}
-                      className={`rounded-2xl border-2 p-4 transition-all hover:shadow-md ${
+                      className={`rounded-2xl border-2 p-4 md:p-5 transition-all hover:shadow-lg ${
                         allPass
-                          ? 'border-emerald-100 bg-emerald-50/30 hover:border-emerald-300'
-                          : 'border-rose-100 bg-rose-50/30 hover:border-rose-300'
+                          ? 'border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-white hover:border-emerald-400'
+                          : 'border-rose-200 bg-gradient-to-br from-rose-50/60 to-white hover:border-rose-400'
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div
-                            className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                            className={`flex h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 items-center justify-center rounded-2xl shadow-md ${
                               allPass
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-rose-500 text-white'
+                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-emerald-200'
+                                : 'bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-rose-200'
                             }`}
                           >
                             {allPass ? (
-                              <CheckCircle2 className="h-6 w-6" />
+                              <CheckCircle2 className="h-6 w-6 sm:h-7 sm:w-7" />
                             ) : (
-                              <AlertTriangle className="h-6 w-6" />
+                              <AlertTriangle className="h-6 w-6 sm:h-7 sm:w-7" />
                             )}
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Clock className="h-3.5 w-3.5 text-gray-400" />
-                              <span className="font-semibold text-gray-900">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="inline-flex items-center gap-1.5 text-base font-bold text-gray-900">
+                                <Clock className="h-4 w-4 text-gray-400" />
                                 {log.checkTime}
                               </span>
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide ${
                                   allPass
                                     ? 'bg-emerald-100 text-emerald-700'
                                     : 'bg-rose-100 text-rose-700'
                                 }`}
                               >
-                                {allPass ? 'ผ่านครบ' : 'มีปัญหา'}
+                                {allPass ? '✓ ผ่านครบ 3/3' : `✗ ${3 - failCount}/3 ผ่าน`}
                               </span>
                             </div>
-                            <div className="mt-1 flex items-center gap-3 text-xs text-gray-500">
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                               {log.operatorName && (
                                 <span className="flex items-center gap-1">
                                   <User className="h-3 w-3" />
@@ -1034,16 +1109,28 @@ export default function PackagingQCPage() {
                         </div>
                       </div>
 
-                      {/* Checklist results */}
-                      <div className="grid sm:grid-cols-3 gap-2">
-                        <CheckResult label="หลอด/ฝา" pass={log.tubeCapComplete} />
-                        <CheckResult label="Lot Number" pass={log.lotNumberCorrect} />
-                        <CheckResult label="การบรรจุ" pass={log.packingCorrect} />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <CheckResult
+                          icon="🧴"
+                          label="หลอด/ฝา ปิดสนิท"
+                          pass={log.tubeCapComplete}
+                        />
+                        <CheckResult
+                          icon="🔢"
+                          label="Lot Number ถูกต้อง"
+                          pass={log.lotNumberCorrect}
+                        />
+                        <CheckResult
+                          icon="📦"
+                          label="การบรรจุถูกต้อง"
+                          pass={log.packingCorrect}
+                        />
                       </div>
 
                       {log.notes && (
-                        <div className="mt-3 text-xs text-gray-600 italic border-t border-dashed border-gray-200 pt-2">
-                          หมายเหตุ: {log.notes}
+                        <div className="mt-3 text-xs text-gray-600 border-t border-dashed border-gray-200 pt-2.5 flex items-start gap-2">
+                          <span className="font-semibold text-gray-500">หมายเหตุ:</span>
+                          <span className="italic">{log.notes}</span>
                         </div>
                       )}
                     </div>
@@ -1135,6 +1222,30 @@ export default function PackagingQCPage() {
 // HELPERS
 // ============================================================
 
+function StatChip({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: 'indigo' | 'emerald' | 'rose';
+}) {
+  const toneClasses = {
+    indigo: 'text-indigo-700 bg-indigo-50',
+    emerald: 'text-emerald-700 bg-emerald-50',
+    rose: 'text-rose-700 bg-rose-50',
+  };
+  return (
+    <div className={`rounded-lg px-2 py-1.5 text-center ${toneClasses[tone]}`}>
+      <div className="text-[10px] uppercase tracking-wide font-semibold opacity-70">
+        {label}
+      </div>
+      <div className="font-mono font-bold text-sm">{value}</div>
+    </div>
+  );
+}
+
 function StatCard({
   icon,
   label,
@@ -1210,19 +1321,30 @@ function ChecklistItem({
   );
 }
 
-function CheckResult({ label, pass }: { label: string; pass: boolean }) {
+function CheckResult({
+  icon,
+  label,
+  pass,
+}: {
+  icon?: string;
+  label: string;
+  pass: boolean;
+}) {
   return (
     <div
-      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-        pass ? 'bg-emerald-100/60 text-emerald-800' : 'bg-rose-100/60 text-rose-800'
+      className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm border ${
+        pass
+          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+          : 'bg-rose-50 text-rose-800 border-rose-200'
       }`}
     >
+      {icon && <span className="text-xl flex-shrink-0">{icon}</span>}
       {pass ? (
         <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
       ) : (
         <XCircle className="h-4 w-4 flex-shrink-0" />
       )}
-      <span className="font-medium">{label}</span>
+      <span className="font-semibold truncate">{label}</span>
     </div>
   );
 }
