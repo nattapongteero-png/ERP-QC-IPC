@@ -4,682 +4,1480 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Work Order &amp; SOP Execution Workflow | Herbal ERP</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --brand: #10b981;
-    --brand-dark: #047857;
-    --brand-soft: #ecfdf5;
-    --slate-50: #f8fafc;
-    --slate-100: #f1f5f9;
-    --slate-200: #e2e8f0;
-    --slate-300: #cbd5e1;
-    --slate-500: #64748b;
-    --slate-600: #475569;
-    --slate-700: #334155;
-    --slate-800: #1e293b;
-    --slate-900: #0f172a;
+    /* Brand */
+    --teal-50:  #f0fdfa;
+    --teal-100: #ccfbf1;
+    --teal-200: #99f6e4;
+    --teal-400: #2dd4bf;
+    --teal-500: #14b8a6;
+    --teal-600: #0d9488;
+    --teal-700: #0f766e;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --emerald-700: #047857;
+
+    /* Status palette */
+    --slate: #64748b;
+    --indigo: #6366f1;
+    --indigo-soft: #eef2ff;
+    --amber: #f59e0b;
+    --amber-soft: #fffbeb;
+    --green: #10b981;
+    --green-soft: #ecfdf5;
+    --blue: #3b82f6;
+    --blue-soft: #eff6ff;
+    --rose: #f43f5e;
+    --rose-soft: #fff1f2;
+    --violet: #8b5cf6;
+    --violet-soft: #f5f3ff;
+
+    /* Ink */
+    --ink-50:  #f8fafc;
+    --ink-100: #f1f5f9;
+    --ink-200: #e2e8f0;
+    --ink-300: #cbd5e1;
+    --ink-400: #94a3b8;
+    --ink-500: #64748b;
+    --ink-600: #475569;
+    --ink-700: #334155;
+    --ink-800: #1e293b;
+    --ink-900: #0f172a;
+
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, .04), 0 1px 3px rgba(15, 23, 42, .04);
+    --shadow-md: 0 4px 16px rgba(15, 23, 42, .06), 0 2px 4px rgba(15, 23, 42, .04);
+    --shadow-lg: 0 10px 30px rgba(15, 23, 42, .08), 0 4px 8px rgba(15, 23, 42, .04);
+    --shadow-glow: 0 0 0 1px rgba(20, 184, 166, .2), 0 8px 24px rgba(20, 184, 166, .15);
   }
+
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 88px; }
   body {
-    font-family: 'Inter', 'Sarabun', system-ui, -apple-system, sans-serif;
-    background: linear-gradient(180deg, #f8fafc 0%, #ecfdf5 100%);
-    color: var(--slate-900);
-    line-height: 1.6;
+    font-family: 'Sarabun', 'Inter', system-ui, -apple-system, sans-serif;
+    background:
+      radial-gradient(ellipse at top left, rgba(20, 184, 166, 0.10), transparent 50%),
+      radial-gradient(ellipse at top right, rgba(99, 102, 241, 0.08), transparent 50%),
+      linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    background-attachment: fixed;
+    color: var(--ink-900);
+    line-height: 1.65;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-  .container { max-width: 1080px; margin: 0 auto; padding: 24px 20px 60px; }
 
-  /* Hero */
-  .hero {
-    background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
-    color: white;
-    border-radius: 24px;
-    padding: 32px 28px;
-    margin-bottom: 24px;
-    box-shadow: 0 12px 40px rgba(37, 99, 235, 0.25);
-  }
-  .hero .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 500;
-    margin-bottom: 12px;
-  }
-  .hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 700; line-height: 1.2; }
-  .hero p { margin: 0; opacity: 0.9; font-size: 15px; }
-
-  /* TOC */
-  .toc {
-    background: white;
-    border: 1px solid var(--slate-200);
-    border-radius: 16px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  }
-  .toc-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--slate-500); letter-spacing: 0.5px; margin-bottom: 8px; }
-  .toc ol { margin: 0; padding-left: 20px; font-size: 14px; }
-  .toc li { margin-bottom: 4px; }
-  .toc a { color: var(--brand-dark); text-decoration: none; }
-  .toc a:hover { text-decoration: underline; }
-
-  /* Section */
-  .section {
-    background: white;
-    border: 1px solid var(--slate-200);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
-  }
-  .section h2 {
-    margin: 0 0 14px;
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--slate-900);
-  }
-  .section h3 { margin: 18px 0 8px; font-size: 16px; font-weight: 600; color: var(--slate-700); }
-  .section p { margin: 0 0 12px; font-size: 14px; color: var(--slate-600); }
-
-  /* State machine diagram */
-  .state-machine {
+  /* Layout */
+  .layout {
     display: grid;
-    grid-template-columns: repeat(7, auto);
-    align-items: center;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 16px 0;
-    margin: 12px 0;
-    justify-content: center;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 1280px;
+    margin: 0 auto;
   }
-  .state-card {
-    text-align: center;
-    padding: 14px 12px;
-    border-radius: 12px;
-    border: 2px solid;
-    min-width: 110px;
-  }
-  .state-card.pending { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
-  .state-card.in-progress { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
-  .state-card.completed { background: #ecfdf5; border-color: #6ee7b7; color: #047857; }
-  .state-card.verified { background: #dbeafe; border-color: #60a5fa; color: #1e40af; }
-  .state-card .icon { font-size: 22px; margin-bottom: 4px; }
-  .state-card .label { font-weight: 700; font-size: 13px; }
-  .state-card .label-en { font-size: 11px; opacity: 0.7; }
-  .arrow {
-    font-size: 24px;
-    color: var(--slate-400);
-    font-weight: 300;
+  @media (min-width: 1024px) {
+    .layout {
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 32px;
+      padding: 24px 24px 60px;
+    }
   }
 
-  /* Status cards */
-  .status-card {
-    border: 2px solid;
-    border-radius: 14px;
-    padding: 18px;
-    margin: 16px 0;
-    background: white;
+  /* ───── Top Nav ───── */
+  .topnav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    border-bottom: 1px solid rgba(226, 232, 240, .8);
   }
-  .status-card.pending { border-color: #cbd5e1; background: #f8fafc; }
-  .status-card.in-progress { border-color: #93c5fd; background: #eff6ff; }
-  .status-card.completed { border-color: #6ee7b7; background: #ecfdf5; }
-  .status-card.verified { border-color: #60a5fa; background: #dbeafe; }
-
-  .status-header {
+  .topnav-inner {
+    max-width: 1280px;
+    margin: 0 auto;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
     gap: 12px;
-    margin-bottom: 12px;
   }
-  .status-icon {
-    width: 44px;
-    height: 44px;
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    color: var(--ink-900);
+    text-decoration: none;
+    font-size: 15px;
+  }
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--teal-600), var(--emerald-600));
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 4px 10px rgba(13, 148, 136, .3);
+  }
+  .nav-links {
+    display: none;
+    gap: 4px;
+  }
+  @media (min-width: 768px) {
+    .nav-links { display: inline-flex; }
+  }
+  .nav-link {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-600);
+    text-decoration: none;
+    transition: all .15s ease;
+  }
+  .nav-link:hover { color: var(--teal-700); background: var(--teal-50); }
+
+  /* ───── Sidebar (desktop only) ───── */
+  .sidebar {
+    display: none;
+  }
+  @media (min-width: 1024px) {
+    .sidebar {
+      display: block;
+      position: sticky;
+      top: 88px;
+      align-self: start;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+  }
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+    padding: 0 12px;
+    margin: 16px 0 8px;
+  }
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    margin: 2px 0;
+    border-radius: 9px;
+    color: var(--ink-600);
+    font-size: 13.5px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all .15s ease;
+    border: 1px solid transparent;
+  }
+  .sidebar-link:hover {
+    color: var(--teal-700);
+    background: white;
+    border-color: var(--ink-200);
+    transform: translateX(2px);
+  }
+  .sidebar-link.active {
+    background: linear-gradient(90deg, var(--teal-50), transparent);
+    color: var(--teal-700);
+    font-weight: 700;
+    border-color: var(--teal-200);
+  }
+  .sidebar-link .num {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: var(--ink-100);
+    color: var(--ink-500);
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sidebar-link.active .num {
+    background: linear-gradient(135deg, var(--teal-500), var(--emerald-500));
+    color: white;
+  }
+
+  /* ───── Content ───── */
+  .content { padding: 20px 16px 40px; }
+  @media (min-width: 1024px) {
+    .content { padding: 0; }
+  }
+
+  /* ───── Hero ───── */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    padding: 40px 32px 44px;
+    margin-bottom: 28px;
+    color: white;
+    background:
+      radial-gradient(ellipse at top right, rgba(255, 255, 255, .15), transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(99, 102, 241, .35), transparent 50%),
+      linear-gradient(135deg, #0f766e 0%, #0d9488 30%, #059669 70%, #10b981 100%);
+    box-shadow: 0 20px 50px rgba(13, 148, 136, .25);
+  }
+  .hero::before, .hero::after {
+    content: '';
+    position: absolute;
     border-radius: 50%;
+    pointer-events: none;
+  }
+  .hero::before {
+    top: -80px;
+    right: -80px;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(255, 255, 255, .15), transparent 70%);
+  }
+  .hero::after {
+    bottom: -60px;
+    left: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255, 255, 255, .08), transparent 70%);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  @media (min-width: 768px) {
+    .hero-grid { grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: center; }
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    background: rgba(255, 255, 255, .15);
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    margin-bottom: 16px;
+    backdrop-filter: blur(10px);
+  }
+  .hero h1 {
+    margin: 0 0 12px;
+    font-size: clamp(26px, 4vw, 38px);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+  }
+  .hero p {
+    margin: 0;
+    font-size: 15px;
+    opacity: .92;
+    max-width: 56ch;
+  }
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .hero-stat {
+    background: rgba(255, 255, 255, .12);
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 16px;
+    padding: 14px 14px 12px;
+    backdrop-filter: blur(10px);
+    transition: transform .2s ease;
+  }
+  .hero-stat:hover { transform: translateY(-2px); }
+  .hero-stat .stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+  .hero-stat .stat-num {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+    letter-spacing: -.02em;
+  }
+  .hero-stat .stat-label {
+    font-size: 11px;
+    opacity: .85;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 600;
+  }
+
+  /* ───── Section ───── */
+  .section {
+    background: white;
+    border: 1px solid var(--ink-200);
+    border-radius: 22px;
+    padding: 28px 28px 24px;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow-md);
+    scroll-margin-top: 100px;
+  }
+  @media (max-width: 640px) {
+    .section { padding: 22px 18px 20px; border-radius: 18px; }
+  }
+  .section-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--ink-100);
+  }
+  .section-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 22px;
     flex-shrink: 0;
+    color: white;
+    box-shadow: var(--shadow-md);
   }
-  .pending .status-icon { background: #cbd5e1; color: #475569; }
-  .in-progress .status-icon { background: #93c5fd; color: white; }
-  .completed .status-icon { background: #6ee7b7; color: white; }
-  .verified .status-icon { background: #60a5fa; color: white; }
+  .ic-overview { background: linear-gradient(135deg, #14b8a6, #10b981); }
+  .ic-status   { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .ic-record   { background: linear-gradient(135deg, #f59e0b, #f97316); }
+  .ic-sop      { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+  .ic-dual     { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+  .ic-pitfall  { background: linear-gradient(135deg, #f43f5e, #f97316); }
 
-  .status-title {
-    font-size: 18px;
+  .section h2 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink-900);
+    letter-spacing: -.01em;
+  }
+  .section-subtitle {
+    font-size: 13.5px;
+    color: var(--ink-500);
+    margin: 0;
+  }
+  .section h3 {
+    font-size: 16px;
     font-weight: 700;
-    color: var(--slate-900);
+    color: var(--ink-800);
+    margin: 24px 0 12px;
   }
-  .status-subtitle { font-size: 13px; color: var(--slate-500); }
+  .section p { font-size: 14.5px; color: var(--ink-600); margin: 8px 0 12px; }
 
-  .status-body { padding-left: 56px; font-size: 14px; }
-  .status-body p { color: var(--slate-700); margin: 6px 0; }
-  .status-body strong { color: var(--slate-900); }
-  .status-body ul { padding-left: 20px; margin: 6px 0; }
-  .status-body li { margin-bottom: 4px; color: var(--slate-700); }
+  /* ───── Workflow Stage Diagram ───── */
+  .workflow-card {
+    background: linear-gradient(180deg, var(--ink-50) 0%, white 100%);
+    border: 1px solid var(--ink-200);
+    border-radius: 18px;
+    padding: 26px 22px;
+    margin: 20px 0 8px;
+  }
+  .workflow-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink-700);
+    margin: 0 0 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .workflow-card-title .badge-mini {
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(135deg, var(--teal-600), var(--emerald-600));
+    padding: 3px 9px;
+    border-radius: 999px;
+    letter-spacing: .04em;
+  }
 
-  /* Action buttons */
-  .btn-pill {
+  .stage-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    align-items: stretch;
+    position: relative;
+  }
+  .stage-row::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--ink-200) 5%, var(--ink-200) 95%, transparent);
+    z-index: 0;
+    transform: translateY(-50%);
+  }
+  @media (max-width: 640px) {
+    .stage-row::before { display: none; }
+  }
+
+  .stage {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    background: white;
+    border: 2px solid var(--ink-200);
+    border-radius: 16px;
+    padding: 18px 12px 16px;
+    transition: all .2s ease;
+    cursor: default;
+  }
+  .stage:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+  }
+  .stage .stage-num {
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    background: white;
+    border: 1.5px solid currentColor;
+    color: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: .08em;
+  }
+  .stage .stage-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  .stage .stage-name {
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .stage .stage-th {
+    font-size: 12px;
+    color: var(--ink-500);
+    font-weight: 500;
+  }
+
+  .stage.s-planned     { color: #475569; border-color: #cbd5e1; background: linear-gradient(180deg, #f8fafc, white); }
+  .stage.s-released    { color: #6d28d9; border-color: #c4b5fd; background: linear-gradient(180deg, #faf5ff, white); }
+  .stage.s-progress    { color: #b45309; border-color: #fcd34d; background: linear-gradient(180deg, #fffbeb, white); }
+  .stage.s-completed   { color: #047857; border-color: #6ee7b7; background: linear-gradient(180deg, #ecfdf5, white); }
+  .stage.s-closed      { color: #1d4ed8; border-color: #93c5fd; background: linear-gradient(180deg, #eff6ff, white); }
+  .stage.s-pending     { color: #475569; border-color: #cbd5e1; background: linear-gradient(180deg, #f8fafc, white); }
+  .stage.s-doing       { color: #1d4ed8; border-color: #93c5fd; background: linear-gradient(180deg, #eff6ff, white); }
+  .stage.s-done        { color: #047857; border-color: #6ee7b7; background: linear-gradient(180deg, #ecfdf5, white); }
+  .stage.s-verified    { color: #1e40af; border-color: #60a5fa; background: linear-gradient(180deg, #dbeafe, white); }
+
+  .stage-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-300);
+    font-size: 18px;
+    z-index: 1;
+  }
+  @media (max-width: 640px) {
+    .stage-arrow { display: none; }
+  }
+
+  /* ───── Callout ───── */
+  .callout {
+    display: flex;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    margin: 18px 0;
+    background: var(--teal-50);
+    border-left: 4px solid var(--teal-500);
+    font-size: 14px;
+    color: var(--ink-700);
+  }
+  .callout.warn { background: var(--amber-soft); border-left-color: var(--amber); }
+  .callout.danger { background: var(--rose-soft); border-left-color: var(--rose); }
+  .callout.info { background: var(--blue-soft); border-left-color: var(--blue); }
+  .callout-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .callout strong { color: var(--ink-900); }
+  .callout-body { flex: 1; }
+
+  /* ───── Modern Status Table ───── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid var(--ink-200);
+    box-shadow: var(--shadow-sm);
+    margin: 16px 0;
+  }
+  table.modern {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: white;
+  }
+  table.modern thead th {
+    background: linear-gradient(180deg, var(--ink-50), white);
+    text-align: left;
+    padding: 14px 16px;
+    font-weight: 700;
+    color: var(--ink-700);
+    font-size: 12.5px;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--ink-200);
+    white-space: nowrap;
+  }
+  table.modern tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--ink-100);
+    color: var(--ink-700);
+    vertical-align: top;
+    font-size: 13.5px;
+  }
+  table.modern tbody tr:last-child td { border-bottom: none; }
+  table.modern tbody tr:hover td { background: var(--ink-50); }
+  table.modern code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--teal-50);
+    color: var(--teal-700);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--teal-100);
+  }
+  td.cell-status { white-space: nowrap; }
+  .status-pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 12px;
+    padding: 4px 10px;
     border-radius: 999px;
-    font-weight: 600;
-    font-size: 13px;
-    margin: 4px 4px 4px 0;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .03em;
   }
-  .btn-pill.start { background: #2563eb; color: white; }
-  .btn-pill.complete { background: var(--brand); color: white; }
-  .btn-pill.verify { background: #1e40af; color: white; }
-  .btn-pill.gray { background: #cbd5e1; color: #475569; }
-
-  /* Callouts */
-  .callout {
-    border-left: 4px solid var(--brand);
-    background: var(--brand-soft);
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin: 12px 0;
-    font-size: 14px;
-    color: var(--slate-700);
+  .status-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
   }
-  .callout.warn { border-left-color: #f59e0b; background: #fffbeb; }
-  .callout.danger { border-left-color: #ef4444; background: #fef2f2; }
-  .callout.info { border-left-color: #2563eb; background: #eff6ff; }
-  .callout strong { color: var(--slate-900); }
+  .sp-planned { background: #f1f5f9; color: #475569; }
+  .sp-released { background: #f5f3ff; color: #6d28d9; }
+  .sp-progress { background: #fffbeb; color: #b45309; }
+  .sp-completed { background: #ecfdf5; color: #047857; }
+  .sp-closed { background: #eff6ff; color: #1d4ed8; }
+  .sp-cancelled { background: #fef2f2; color: #b91c1c; }
+  .row-cancelled { background: rgba(254, 242, 242, .5); }
 
-  /* Tables */
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--slate-200); }
-  th { background: var(--slate-50); font-weight: 600; color: var(--slate-700); font-size: 13px; }
-  td { color: var(--slate-700); vertical-align: top; }
-  td code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--brand-soft); color: var(--brand-dark); padding: 1px 6px; border-radius: 4px; }
-
-  /* Example flow */
-  .flow-example {
-    background: var(--slate-50);
-    border-left: 4px solid #2563eb;
-    border-radius: 8px;
-    padding: 16px 20px;
+  /* ───── Phase Card (record steps) ───── */
+  .phase-card {
+    border: 1.5px solid var(--ink-200);
+    border-radius: 18px;
+    padding: 22px 22px 20px;
     margin: 16px 0;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 13px;
-    line-height: 1.8;
+    background: white;
+    transition: all .2s ease;
+    position: relative;
+    overflow: hidden;
   }
-  .flow-example .step-line { margin: 6px 0; }
-  .flow-example .arrow-down { color: #94a3b8; margin: 0 8px; }
-  .flow-example .user { font-weight: 600; color: #1d4ed8; }
-  .flow-example .action { color: var(--brand-dark); font-weight: 600; }
-  .flow-example .state { background: white; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 11px; margin-left: 6px; }
+  .phase-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5px;
+    height: 100%;
+    background: var(--accent, var(--teal-500));
+  }
+  .phase-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  .phase-card.p-planned   { --accent: linear-gradient(180deg, #94a3b8, #64748b); }
+  .phase-card.p-released  { --accent: linear-gradient(180deg, #a78bfa, #8b5cf6); }
+  .phase-card.p-progress  { --accent: linear-gradient(180deg, #fcd34d, #f59e0b); }
+  .phase-card.p-completed { --accent: linear-gradient(180deg, #6ee7b7, #10b981); }
+  .phase-card.p-pending   { --accent: linear-gradient(180deg, #94a3b8, #64748b); }
+  .phase-card.p-doing     { --accent: linear-gradient(180deg, #93c5fd, #3b82f6); }
+  .phase-card.p-done      { --accent: linear-gradient(180deg, #6ee7b7, #10b981); }
+  .phase-card.p-verified  { --accent: linear-gradient(180deg, #60a5fa, #2563eb); }
 
-  /* Pitfall cards */
-  .pitfall-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px;
-    margin: 12px 0;
-  }
-  .pitfall {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: 10px;
-    padding: 14px;
-    font-size: 13px;
-  }
-  .pitfall .title {
-    font-weight: 600;
-    color: #92400e;
-    margin-bottom: 4px;
+  .phase-head {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 14px;
+    margin-bottom: 12px;
   }
-  .pitfall .desc { color: #78350f; }
+  .phase-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+    flex-shrink: 0;
+    background: var(--accent, var(--teal-500));
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .12);
+  }
+  .phase-card .phase-title {
+    font-size: 16.5px;
+    font-weight: 800;
+    color: var(--ink-900);
+    line-height: 1.25;
+  }
+  .phase-card .phase-sub {
+    font-size: 12.5px;
+    color: var(--ink-500);
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .phase-body { font-size: 14px; }
+  .phase-body p { margin: 6px 0; color: var(--ink-700); }
+  .phase-body strong { color: var(--ink-900); font-weight: 700; }
 
-  /* Badge legend */
-  .badge-legend {
+  /* Field list — visual chips for required fields */
+  .field-list {
     display: grid;
-    gap: 10px;
-    margin: 12px 0;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 10px 0;
   }
-  .badge-row {
+  @media (min-width: 768px) {
+    .field-list { grid-template-columns: 1fr 1fr; }
+  }
+  .field-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 8px 0;
-    border-bottom: 1px dashed var(--slate-200);
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--ink-50);
+    border-radius: 10px;
+    border: 1px solid var(--ink-100);
+    font-size: 13.5px;
+    color: var(--ink-700);
+    line-height: 1.5;
   }
-  .badge-row:last-child { border-bottom: none; }
-  .badge-row .badge-display { flex-shrink: 0; }
-  .badge-row .desc { color: var(--slate-700); font-size: 14px; }
-  .b-purple { background: #f3e8ff; color: #6b21a8; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-  .b-amber { background: #fffbeb; color: #92400e; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid #fde68a; }
-  .b-clock { background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-  .b-green { background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .field-item .check {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--teal-500);
+    color: white;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .phase-card.p-progress .field-item .check { background: var(--amber); }
+  .phase-card.p-released .field-item .check { background: var(--violet); }
+  .phase-card.p-doing .field-item .check { background: var(--blue); }
+  .phase-card.p-verified .field-item .check { background: #2563eb; }
+  .phase-card.p-pending .field-item .check { background: var(--ink-400); }
 
-  /* Footer */
+  /* Action chips */
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin: 14px 0 4px;
+    padding: 12px 14px;
+    background: linear-gradient(90deg, var(--teal-50), transparent);
+    border-radius: 10px;
+    border: 1px dashed var(--teal-200);
+    font-size: 13px;
+    color: var(--ink-700);
+  }
+  .action-row .label {
+    font-weight: 700;
+    color: var(--ink-900);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .btn-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 12.5px;
+    color: white;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-pill.start { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+  .btn-pill.complete { background: linear-gradient(135deg, #10b981, #059669); }
+  .btn-pill.verify { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+  .btn-pill.advance { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+
+  .b-purple { background: #f3e8ff; color: #6b21a8; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+  .b-amber { background: #fffbeb; color: #92400e; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; border: 1px solid #fde68a; }
+
+  /* Sub-section grid (Phase 3 multi-column) */
+  .sub-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  @media (min-width: 768px) {
+    .sub-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .sub-item {
+    padding: 12px 14px;
+    background: white;
+    border: 1px solid var(--ink-200);
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: var(--ink-700);
+    border-left: 3px solid var(--amber);
+  }
+  .sub-item strong { color: var(--ink-900); display: block; margin-bottom: 2px; }
+
+  /* ───── Pitfall Grid (modern) ───── */
+  .pitfall-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  @media (min-width: 640px) { .pitfall-grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1024px) { .pitfall-grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+  .pitfall {
+    position: relative;
+    padding: 18px 18px 16px;
+    background: white;
+    border: 1px solid var(--ink-200);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all .2s ease;
+  }
+  .pitfall::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--amber), var(--rose));
+  }
+  .pitfall:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--amber);
+  }
+  .pitfall .pf-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--amber-soft);
+    color: var(--amber);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .pitfall .pf-title {
+    font-weight: 700;
+    color: var(--ink-900);
+    margin-bottom: 6px;
+    font-size: 14.5px;
+  }
+  .pitfall .pf-desc {
+    color: var(--ink-600);
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .pitfall .pf-desc strong { color: #92400e; }
+
+  /* ───── Footer ───── */
   footer {
     text-align: center;
-    color: var(--slate-500);
-    font-size: 12px;
-    padding: 20px 0 0;
-    border-top: 1px solid var(--slate-200);
+    color: var(--ink-500);
+    font-size: 13px;
+    padding: 28px 16px 0;
+    border-top: 1px solid var(--ink-200);
     margin-top: 40px;
+    line-height: 1.8;
   }
-  footer a { color: var(--brand-dark); text-decoration: none; }
+  footer code {
+    background: var(--ink-100);
+    color: var(--ink-700);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
 
-  @media (max-width: 640px) {
-    .container { padding: 16px 12px 40px; }
-    .hero { padding: 24px 20px; }
-    .hero h1 { font-size: 22px; }
-    .section { padding: 18px 16px; }
-    .section h2 { font-size: 19px; }
-    .status-body { padding-left: 0; }
-    .state-machine { grid-template-columns: 1fr; }
-    .arrow { transform: rotate(90deg); margin: 4px auto; }
+  /* Smooth section anchor */
+  section[id] { scroll-margin-top: 90px; }
+
+  /* Print */
+  @media print {
+    body { background: white; }
+    .topnav, .sidebar { display: none !important; }
+    .section { box-shadow: none; break-inside: avoid; }
+    .hero { color: black; background: none; box-shadow: none; }
+    .hero::before, .hero::after { display: none; }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+    html { scroll-behavior: auto; }
   }
 </style>
 </head>
 <body>
-<div class="container">
 
-  <header class="hero">
-    <div class="badge">📋 Work Order &amp; SOP Execution Workflow</div>
-    <h1>คู่มือ Workflow การบันทึกใบสั่งผลิต</h1>
-    <p>อธิบาย workflow ของ Work Order ตั้งแต่สร้างจนปิดงาน — สถานะแต่ละช่วง,
-      เงื่อนไขการเปลี่ยนสถานะ, ขั้นตอนการบันทึก WO และการบันทึก SOP Execution
-      แบบทุก phase</p>
-  </header>
-
-  <nav class="toc">
-    <div class="toc-title">📑 สารบัญ</div>
-    <ol>
-      <li><a href="#overview">ภาพรวม Workflow ของ Work Order &amp; SOP</a></li>
-      <li><a href="#wo-status">สถานะของ Work Order — เปลี่ยนเมื่อบันทึกอะไร</a></li>
-      <li><a href="#wo-recording">ขั้นตอนการบันทึก Work Order</a></li>
-      <li><a href="#sop-execution">ขั้นตอนการบันทึก SOP Execution</a></li>
-      <li><a href="#dual-control">Dual-Control (GMP)</a></li>
-      <li><a href="#pitfalls">จุดที่คนพลาดบ่อย</a></li>
-    </ol>
-  </nav>
-
-  <section class="section" id="overview">
-    <h2>🔄 ภาพรวม Workflow ของ Work Order &amp; SOP</h2>
-    <p>การผลิตประกอบด้วย 2 ระดับของ workflow ที่ทำงานคู่กัน:</p>
-
-    <h3>1. Work Order Lifecycle (วงจรชีวิตของใบสั่งผลิต)</h3>
-    <p>ใบสั่งผลิตเดินผ่าน <strong>5 สถานะ</strong> ในรูปแบบลูกศรเดียว — ขึ้นอย่างเดียว ไม่ถอยกลับ:</p>
-    <div class="state-machine">
-      <div class="state-card pending"><div class="icon">📋</div><div class="label">Planned</div><div class="label-en">วางแผน</div></div>
-      <span class="arrow">→</span>
-      <div class="state-card in-progress" style="background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;"><div class="icon">🚀</div><div class="label">Released</div><div class="label-en">ปล่อยสายผลิต</div></div>
-      <span class="arrow">→</span>
-      <div class="state-card in-progress" style="background:#fffbeb;border-color:#fcd34d;color:#b45309;"><div class="icon">⚙</div><div class="label">In Progress</div><div class="label-en">กำลังผลิต</div></div>
-      <span class="arrow">→</span>
-      <div class="state-card completed"><div class="icon">✓</div><div class="label">Completed</div><div class="label-en">เสร็จสิ้น</div></div>
-      <span class="arrow">→</span>
-      <div class="state-card verified"><div class="icon">🔒</div><div class="label">Closed</div><div class="label-en">ปิดงวด</div></div>
+<nav class="topnav" role="navigation">
+  <div class="topnav-inner">
+    <a href="#top" class="brand">
+      <span class="brand-mark">🌿</span>
+      <span>Herbal&nbsp;ERP <span style="color:var(--ink-400);font-weight:500;">/ Workflow Guide</span></span>
+    </a>
+    <div class="nav-links">
+      <a class="nav-link" href="#overview">ภาพรวม</a>
+      <a class="nav-link" href="#wo-status">สถานะ WO</a>
+      <a class="nav-link" href="#wo-recording">บันทึก WO</a>
+      <a class="nav-link" href="#sop-execution">SOP</a>
+      <a class="nav-link" href="#dual-control">Dual-Control</a>
     </div>
+  </div>
+</nav>
 
-    <h3>2. SOP Execution Step Lifecycle (วงจรชีวิตของแต่ละ step)</h3>
-    <p>แต่ละ step ของ SOP เดินผ่าน <strong>4 สถานะ</strong>:</p>
-    <div class="state-machine">
-      <div class="state-card pending"><div class="icon">⏰</div><div class="label">Pending</div><div class="label-en">รอเริ่ม</div></div>
-      <span class="arrow">→</span>
-      <div class="state-card in-progress"><div class="icon">▶</div><div class="label">In Progress</div><div class="label-en">กำลังทำ</div></div>
-      <span class="arrow">→</span>
-      <div class="state-card completed"><div class="icon">✓</div><div class="label">Completed</div><div class="label-en">ทำเสร็จ</div></div>
-      <span class="arrow">→</span>
-      <div class="state-card verified"><div class="icon">👤</div><div class="label">Verified</div><div class="label-en">ตรวจรับรอง</div></div>
-    </div>
+<div class="layout" id="top">
 
-    <div class="callout">
-      <strong>💡 ความสัมพันธ์:</strong> Work Order จะเข้าสู่สถานะ <strong>Completed</strong>
-      ได้ก็ต่อเมื่อ <strong>SOP step ทุกขั้น Verified</strong> + IPC ผ่าน + finished inspection ผ่าน
-      (ระบบเช็คผ่าน gate validation อัตโนมัติ)
-    </div>
-  </section>
+  <aside class="sidebar" aria-label="สารบัญด้านข้าง">
+    <div class="sidebar-title">📑 สารบัญ</div>
+    <a class="sidebar-link" href="#overview"><span class="num">1</span><span>ภาพรวม Workflow</span></a>
+    <a class="sidebar-link" href="#wo-status"><span class="num">2</span><span>สถานะ Work Order</span></a>
+    <a class="sidebar-link" href="#wo-recording"><span class="num">3</span><span>บันทึก Work Order</span></a>
+    <a class="sidebar-link" href="#sop-execution"><span class="num">4</span><span>SOP Execution</span></a>
+    <a class="sidebar-link" href="#dual-control"><span class="num">5</span><span>Dual-Control (GMP)</span></a>
+    <a class="sidebar-link" href="#pitfalls"><span class="num">6</span><span>จุดที่พลาดบ่อย</span></a>
+  </aside>
 
-  <section class="section" id="wo-status">
-    <h2>📊 สถานะของ Work Order — เปลี่ยนเมื่อบันทึกอะไร</h2>
-    <p>ทุก WO มีสถานะปัจจุบัน 1 สถานะ. การเปลี่ยนสถานะแต่ละครั้งระบบจะเช็ค <strong>gate</strong>
-      (เงื่อนไขก่อนผ่าน) และบันทึก audit log</p>
+  <main class="content">
 
-    <table>
-      <thead>
-        <tr>
-          <th>สถานะ</th>
-          <th>ความหมาย</th>
-          <th>เปลี่ยนไปสถานะถัดไปเมื่อ</th>
-          <th>เงื่อนไข Gate</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><span class="b-clock">Planned</span><br><small>วางแผน</small></td>
-          <td>WO ถูกสร้างใหม่ มี product, BOM, จำนวน, วันที่ผลิต</td>
-          <td>กดปุ่ม <strong>"Advance to Released"</strong></td>
-          <td><code>canRelease</code> — ต้องมี BOM ที่ valid + วัตถุดิบในคลัง</td>
-        </tr>
-        <tr>
-          <td><span class="b-purple">Released</span><br><small>ปล่อยสายผลิต</small></td>
-          <td>Production team รับงาน → เตรียม cleaning, ส่งใบเบิก, ชั่งวัตถุดิบ</td>
-          <td>กดปุ่ม <strong>"Advance to In Progress"</strong></td>
-          <td><code>canStartProduction</code> — Pre-production cleaning + Material weighing เสร็จครบ</td>
-        </tr>
-        <tr>
-          <td><span class="b-amber">In Progress</span><br><small>กำลังผลิต</small></td>
-          <td>Operator กำลังทำ SOP, IPC, packaging</td>
-          <td>กดปุ่ม <strong>"Advance to Completed"</strong></td>
-          <td><code>canCompleteProduction</code> — SOP ทุก step Verified + IPC pass + Finished Inspection pass + บันทึก yield</td>
-        </tr>
-        <tr>
-          <td><span class="b-green">Completed</span><br><small>เสร็จสิ้น</small></td>
-          <td>ผลิตเสร็จ — มี yield บันทึกครบ, สินค้าเข้า FG warehouse</td>
-          <td>Accounting period close (ทำที่ Accounting module)</td>
-          <td>—</td>
-        </tr>
-        <tr>
-          <td><span class="b-clock">Closed</span><br><small>ปิดงวด</small></td>
-          <td>ปิดบัญชีแล้ว — lock ไม่ให้แก้ไข</td>
-          <td>—</td>
-          <td>Terminal state</td>
-        </tr>
-        <tr style="background:#fef2f2;">
-          <td style="color:#991b1b;">Cancelled<br><small>ยกเลิก</small></td>
-          <td>ยกเลิกได้ทุกสถานะก่อน Completed (ไม่นับ output)</td>
-          <td>—</td>
-          <td>ไม่มี gate — กดยกเลิกได้เสมอ</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="callout warn">
-      <strong>⚠ ระบบ block ถ้า gate ไม่ผ่าน:</strong> ตัวอย่างถ้ากด "Advance to Released"
-      แต่ยังไม่มี BOM → ระบบขึ้น popup "ยังทำขั้นตอนไม่ครบ" พร้อมรายการ blocker ตามลำดับ
-    </div>
-  </section>
-
-  <section class="section" id="wo-recording">
-    <h2>📝 ขั้นตอนการบันทึก Work Order</h2>
-    <p>ตั้งแต่สร้าง WO ใหม่จนปิดงาน — แต่ละ phase ต้องบันทึกข้อมูลอะไรบ้าง</p>
-
-    <div class="status-card pending">
-      <div class="status-header">
-        <div class="status-icon">📋</div>
+    <header class="hero">
+      <div class="hero-grid">
         <div>
-          <div class="status-title">Phase 1: สร้าง WO (Planned)</div>
-          <div class="status-subtitle">หน้า /production/work-orders/new</div>
+          <div class="hero-eyebrow">📋 GMP-Compliant Workflow Guide</div>
+          <h1>คู่มือ Workflow ของ Work Order &amp; SOP Execution</h1>
+          <p>เรียนรู้วงจรชีวิตของใบสั่งผลิตตั้งแต่สร้างจนปิดงาน — ทุกสถานะ ทุกขั้นตอนการบันทึก
+            และเงื่อนไขการเปลี่ยนสถานะ พร้อมตัวอย่างจริงจากระบบ</p>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="stat-icon">📊</div>
+            <div class="stat-num">5</div>
+            <div class="stat-label">WO Status</div>
+          </div>
+          <div class="hero-stat">
+            <div class="stat-icon">⚙️</div>
+            <div class="stat-num">4</div>
+            <div class="stat-label">SOP Phases</div>
+          </div>
+          <div class="hero-stat">
+            <div class="stat-icon">📝</div>
+            <div class="stat-num">12+</div>
+            <div class="stat-label">บันทึกหลัก</div>
+          </div>
+          <div class="hero-stat">
+            <div class="stat-icon">🛡️</div>
+            <div class="stat-num">2x</div>
+            <div class="stat-label">Dual-Control</div>
+          </div>
         </div>
       </div>
-      <div class="status-body">
-        <p><strong>ข้อมูลที่ต้องกรอก:</strong></p>
-        <ul>
-          <li><strong>Product</strong> — เลือกผลิตภัณฑ์ (Finished Goods หรือ WIP)</li>
-          <li><strong>BOM</strong> — เลือก Bill of Materials version ที่ใช้</li>
-          <li><strong>Planned Quantity</strong> — จำนวนที่ต้องการผลิต + หน่วย (ขวด/แคปซูล/g)</li>
-          <li><strong>Batch Number</strong> — เลข batch ตาม convention</li>
-          <li><strong>Planned Start / End Date</strong> — วันที่วางแผนเริ่ม/เสร็จ</li>
-          <li><strong>Priority</strong> — 1-10 (1 สำคัญสุด)</li>
-          <li><strong>Notes</strong> (optional) — หมายเหตุพิเศษจาก Production Planner</li>
-        </ul>
-        <p>➡ บันทึก → WO เกิดในสถานะ <span class="b-clock">Planned</span></p>
-      </div>
-    </div>
+    </header>
 
-    <div class="status-card" style="border-color:#c4b5fd;background:#f5f3ff;">
-      <div class="status-header">
-        <div class="status-icon" style="background:#a78bfa;color:white;">🚀</div>
+    <!-- ═══════════ OVERVIEW ═══════════ -->
+    <section class="section" id="overview">
+      <div class="section-head">
+        <div class="section-icon ic-overview">🔄</div>
         <div>
-          <div class="status-title">Phase 2: เตรียม Released</div>
-          <div class="status-subtitle">หน้า /production/work-orders/[id]/execution</div>
+          <h2>ภาพรวม Workflow ของ Work Order &amp; SOP</h2>
+          <p class="section-subtitle">การผลิตประกอบด้วย 2 ระดับ workflow ที่ทำงานคู่กัน</p>
         </div>
       </div>
-      <div class="status-body">
-        <p><strong>ก่อนกดปุ่ม Advance ต้องบันทึก:</strong></p>
-        <ul>
-          <li><strong>ส่งใบเบิกวัตถุดิบ</strong> — กดปุ่ม "ส่งใบเบิกวัตถุดิบ" → คลังอนุมัติ</li>
-          <li><strong>Pre-Production Cleaning</strong> — Mark Clean ห้อง + อุปกรณ์ ตาม BOM + verify (dual-control)</li>
-          <li><strong>Material Weighing</strong> — ชั่งวัตถุดิบทุก line ตาม BOM + verify</li>
-          <li><strong>Pre-Production Environmental</strong> — บันทึกอุณหภูมิ + ความชื้น</li>
-        </ul>
-        <p>➡ Gate <code>canStartProduction</code> ผ่าน → กด Advance to In Progress</p>
-      </div>
-    </div>
 
-    <div class="status-card" style="border-color:#fcd34d;background:#fffbeb;">
-      <div class="status-header">
-        <div class="status-icon" style="background:#f59e0b;color:white;">⚙</div>
+      <p>ใบสั่งผลิตเดินผ่าน <strong>5 สถานะ</strong> แบบลูกศรเดียว (ขึ้นอย่างเดียว ไม่ถอยกลับ)
+        ในขณะที่ SOP ของแต่ละ step เดินผ่าน <strong>4 สถานะ</strong> แบบขั้นบันได</p>
+
+      <!-- Work Order Stages -->
+      <div class="workflow-card">
+        <div class="workflow-card-title">
+          <span class="badge-mini">LEVEL 1</span>
+          <span>Work Order Lifecycle — วงจรชีวิตของใบสั่งผลิต</span>
+        </div>
+        <div class="stage-row">
+          <div class="stage s-planned">
+            <span class="stage-num">01</span>
+            <div class="stage-icon">📋</div>
+            <div class="stage-name">Planned</div>
+            <div class="stage-th">วางแผน</div>
+          </div>
+          <div class="stage-arrow">→</div>
+          <div class="stage s-released">
+            <span class="stage-num">02</span>
+            <div class="stage-icon">🚀</div>
+            <div class="stage-name">Released</div>
+            <div class="stage-th">ปล่อยสายผลิต</div>
+          </div>
+          <div class="stage-arrow">→</div>
+          <div class="stage s-progress">
+            <span class="stage-num">03</span>
+            <div class="stage-icon">⚙️</div>
+            <div class="stage-name">In Progress</div>
+            <div class="stage-th">กำลังผลิต</div>
+          </div>
+          <div class="stage-arrow">→</div>
+          <div class="stage s-completed">
+            <span class="stage-num">04</span>
+            <div class="stage-icon">✅</div>
+            <div class="stage-name">Completed</div>
+            <div class="stage-th">เสร็จสิ้น</div>
+          </div>
+          <div class="stage-arrow">→</div>
+          <div class="stage s-closed">
+            <span class="stage-num">05</span>
+            <div class="stage-icon">🔒</div>
+            <div class="stage-name">Closed</div>
+            <div class="stage-th">ปิดงวด</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOP Stages -->
+      <div class="workflow-card">
+        <div class="workflow-card-title">
+          <span class="badge-mini" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">LEVEL 2</span>
+          <span>SOP Step Lifecycle — แต่ละ step ของ SOP</span>
+        </div>
+        <div class="stage-row">
+          <div class="stage s-pending">
+            <span class="stage-num">01</span>
+            <div class="stage-icon">⏰</div>
+            <div class="stage-name">Pending</div>
+            <div class="stage-th">รอเริ่ม</div>
+          </div>
+          <div class="stage-arrow">→</div>
+          <div class="stage s-doing">
+            <span class="stage-num">02</span>
+            <div class="stage-icon">▶️</div>
+            <div class="stage-name">In Progress</div>
+            <div class="stage-th">กำลังทำ</div>
+          </div>
+          <div class="stage-arrow">→</div>
+          <div class="stage s-done">
+            <span class="stage-num">03</span>
+            <div class="stage-icon">✓</div>
+            <div class="stage-name">Completed</div>
+            <div class="stage-th">ทำเสร็จ</div>
+          </div>
+          <div class="stage-arrow">→</div>
+          <div class="stage s-verified">
+            <span class="stage-num">04</span>
+            <div class="stage-icon">👤</div>
+            <div class="stage-name">Verified</div>
+            <div class="stage-th">ตรวจรับรอง</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-icon">💡</div>
+        <div class="callout-body">
+          <strong>ความสัมพันธ์ของ 2 ระดับ:</strong> Work Order จะเข้าสู่ <strong>Completed</strong>
+          ได้ก็ต่อเมื่อ <strong>SOP step ทุกขั้น Verified</strong> + IPC ผ่าน + Finished Inspection ผ่าน
+          (ระบบเช็คผ่าน gate validation อัตโนมัติ — กดปุ่มไม่ผ่านถ้าทำไม่ครบ)
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ WO STATUS ═══════════ -->
+    <section class="section" id="wo-status">
+      <div class="section-head">
+        <div class="section-icon ic-status">📊</div>
         <div>
-          <div class="status-title">Phase 3: ระหว่างผลิต (In Progress)</div>
-          <div class="status-subtitle">การบันทึกหลายส่วนคู่ขนานกัน</div>
+          <h2>สถานะของ Work Order — เปลี่ยนเมื่อบันทึกอะไร</h2>
+          <p class="section-subtitle">ทุก WO มีสถานะปัจจุบัน 1 สถานะ — เปลี่ยนผ่าน gate validation + audit log</p>
         </div>
       </div>
-      <div class="status-body">
-        <p><strong>ระหว่างผลิตต้องบันทึกครบ:</strong></p>
-        <ul>
-          <li><strong>SOP Execution</strong> — ทุก step ตาม BOM (ดู section ถัดไป)</li>
-          <li><strong>Production Cleaning</strong> — cleaning ระหว่างผลิตถ้า BOM กำหนด</li>
-          <li><strong>Production Environmental</strong> — temp + humidity ทุก interval</li>
-          <li><strong>IPC (In-Process Control)</strong> — ทดสอบคุณภาพระหว่างผลิตตาม IPC criteria</li>
-          <li><strong>Bulk Output</strong> — บันทึกจำนวนผลิตภัณฑ์บัลก์ (ก่อนบรรจุ)</li>
-          <li><strong>Post-Production Cleaning</strong> — ทำความสะอาดหลังจบ production</li>
-          <li><strong>Pre-Packaging Cleaning</strong> + <strong>Packaging Cleaning</strong> — สำหรับห้องบรรจุ</li>
-          <li><strong>Packaging Weight Control</strong> — ชั่งน้ำหนัก sample บรรจุ</li>
-          <li><strong>Packaging Integrity Check</strong> — ตรวจสภาพบรรจุภัณฑ์</li>
-          <li><strong>Packaging Environmental</strong> — temp + humidity</li>
-          <li><strong>Finished Product Inspection</strong> — checklist 15 ข้อ</li>
-          <li><strong>Finished Output</strong> — จำนวนสินค้าสำเร็จรูป + yield %</li>
-        </ul>
-      </div>
-    </div>
 
-    <div class="status-card completed">
-      <div class="status-header">
-        <div class="status-icon">✓</div>
+      <div class="table-wrap">
+        <table class="modern">
+          <thead>
+            <tr>
+              <th>สถานะ</th>
+              <th>ความหมาย</th>
+              <th>เปลี่ยนถัดไปเมื่อ</th>
+              <th>เงื่อนไข Gate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cell-status"><span class="status-pill sp-planned">Planned</span><br><small style="color:var(--ink-500);">วางแผน</small></td>
+              <td>WO ถูกสร้างใหม่ มี product, BOM, จำนวน, วันที่ผลิต</td>
+              <td>กดปุ่ม <strong>"Advance to Released"</strong></td>
+              <td><code>canRelease</code> — ต้องมี BOM ที่ valid + วัตถุดิบในคลัง</td>
+            </tr>
+            <tr>
+              <td class="cell-status"><span class="status-pill sp-released">Released</span><br><small style="color:var(--ink-500);">ปล่อยสายผลิต</small></td>
+              <td>Production team รับงาน → เตรียม cleaning, ส่งใบเบิก, ชั่งวัตถุดิบ</td>
+              <td>กดปุ่ม <strong>"Advance to In Progress"</strong></td>
+              <td><code>canStartProduction</code> — Pre-production cleaning + Material weighing เสร็จครบ</td>
+            </tr>
+            <tr>
+              <td class="cell-status"><span class="status-pill sp-progress">In Progress</span><br><small style="color:var(--ink-500);">กำลังผลิต</small></td>
+              <td>Operator กำลังทำ SOP, IPC, Packaging</td>
+              <td>กดปุ่ม <strong>"Advance to Completed"</strong></td>
+              <td><code>canCompleteProduction</code> — SOP ทุก step Verified + IPC pass + Finished Inspection pass + บันทึก yield</td>
+            </tr>
+            <tr>
+              <td class="cell-status"><span class="status-pill sp-completed">Completed</span><br><small style="color:var(--ink-500);">เสร็จสิ้น</small></td>
+              <td>ผลิตเสร็จ — มี yield บันทึกครบ, สินค้าเข้า FG warehouse</td>
+              <td>Accounting period close (ทำที่ Accounting module)</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td class="cell-status"><span class="status-pill sp-closed">Closed</span><br><small style="color:var(--ink-500);">ปิดงวด</small></td>
+              <td>ปิดบัญชีแล้ว — lock ไม่ให้แก้ไข</td>
+              <td>—</td>
+              <td>Terminal state</td>
+            </tr>
+            <tr class="row-cancelled">
+              <td class="cell-status"><span class="status-pill sp-cancelled">Cancelled</span><br><small style="color:#b91c1c;">ยกเลิก</small></td>
+              <td>ยกเลิกได้ทุกสถานะก่อน Completed (ไม่นับ output)</td>
+              <td>—</td>
+              <td>ไม่มี gate — กดยกเลิกได้เสมอ</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-body">
+          <strong>ระบบ block ถ้า gate ไม่ผ่าน:</strong> ตัวอย่างถ้ากด "Advance to Released"
+          แต่ยังไม่มี BOM → ระบบขึ้น popup "ยังทำขั้นตอนไม่ครบ" พร้อมรายการ blocker ตามลำดับ
+          ผู้ใช้ต้องไปทำให้ครบก่อน
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ WO RECORDING ═══════════ -->
+    <section class="section" id="wo-recording">
+      <div class="section-head">
+        <div class="section-icon ic-record">📝</div>
         <div>
-          <div class="status-title">Phase 4: ปิด Work Order (Completed)</div>
-          <div class="status-subtitle">eBMR + Yield + Sign-off</div>
+          <h2>ขั้นตอนการบันทึก Work Order</h2>
+          <p class="section-subtitle">ตั้งแต่สร้าง WO ใหม่จนปิดงาน — แต่ละ phase ต้องบันทึกอะไรบ้าง</p>
         </div>
       </div>
-      <div class="status-body">
-        <p><strong>กดปุ่ม "Advance to Completed" — ระบบ:</strong></p>
-        <ul>
-          <li>เช็ค gate ว่าทุก section ทำครบ + verified</li>
-          <li>บันทึก <strong>Actual Quantity</strong>, <strong>Yield %</strong>, <strong>Production Time</strong></li>
-          <li>บันทึก <strong>completedBy</strong> + <strong>completedAt</strong> (eBMR signature)</li>
-          <li>Trigger inventory: เพิ่ม FG ลงคลังตามจำนวน finished output</li>
-          <li>Ready สำหรับ Print eBMR เพื่อจัดเก็บเอกสาร GMP</li>
-        </ul>
+
+      <!-- Phase 1 -->
+      <div class="phase-card p-planned">
+        <div class="phase-head">
+          <div class="phase-icon">📋</div>
+          <div>
+            <div class="phase-title">Phase 1 · สร้าง WO ใหม่ (Planned)</div>
+            <div class="phase-sub">/production/work-orders/new</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <p><strong>ข้อมูลที่ต้องกรอกในแบบฟอร์ม:</strong></p>
+          <div class="field-list">
+            <div class="field-item"><span class="check">✓</span><div><strong>Product</strong> — เลือกผลิตภัณฑ์ (Finished Goods หรือ WIP)</div></div>
+            <div class="field-item"><span class="check">✓</span><div><strong>BOM</strong> — เลือก Bill of Materials version ที่ใช้</div></div>
+            <div class="field-item"><span class="check">✓</span><div><strong>Planned Quantity</strong> — จำนวน + หน่วย (ขวด/แคปซูล/g)</div></div>
+            <div class="field-item"><span class="check">✓</span><div><strong>Batch Number</strong> — เลข batch ตาม convention</div></div>
+            <div class="field-item"><span class="check">✓</span><div><strong>Planned Start / End Date</strong> — วันที่วางแผนเริ่ม/เสร็จ</div></div>
+            <div class="field-item"><span class="check">✓</span><div><strong>Priority 1-10</strong> — 1 สำคัญสุด</div></div>
+          </div>
+          <div class="action-row">
+            <span class="label">ผลลัพธ์:</span>
+            <span>WO เกิดในสถานะ</span>
+            <span class="status-pill sp-planned">Planned</span>
+          </div>
+        </div>
       </div>
-    </div>
-  </section>
 
-  <section class="section" id="sop-execution">
-    <h2>⚙ ขั้นตอนการบันทึก SOP Execution</h2>
-    <p>SOP Execution คือการบันทึกการปฏิบัติตาม Standard Operating Procedure ระหว่างผลิต —
-      ระบบ initialize SOP steps จาก BOM อัตโนมัติเมื่อ WO สถานะ In Progress</p>
+      <!-- Phase 2 -->
+      <div class="phase-card p-released">
+        <div class="phase-head">
+          <div class="phase-icon">🚀</div>
+          <div>
+            <div class="phase-title">Phase 2 · เตรียมก่อน Released</div>
+            <div class="phase-sub">/production/work-orders/[id]/execution</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <p><strong>ก่อนกดปุ่ม Advance ต้องบันทึกครบ:</strong></p>
+          <div class="field-list">
+            <div class="field-item"><span class="check">✓</span><div><strong>ส่งใบเบิกวัตถุดิบ</strong> — กดปุ่ม "ส่งใบเบิกวัตถุดิบ" → คลังอนุมัติ</div></div>
+            <div class="field-item"><span class="check">✓</span><div><strong>Pre-Production Cleaning</strong> — Mark Clean ห้อง+อุปกรณ์ ตาม BOM + verify (dual-control)</div></div>
+            <div class="field-item"><span class="check">✓</span><div><strong>Material Weighing</strong> — ชั่งวัตถุดิบทุก line ตาม BOM + verify</div></div>
+            <div class="field-item"><span class="check">✓</span><div><strong>Pre-Production Environmental</strong> — บันทึกอุณหภูมิ + ความชื้น</div></div>
+          </div>
+          <div class="action-row">
+            <span class="label">เมื่อครบ:</span>
+            <span>Gate</span><code>canStartProduction</code><span>ผ่าน → กด</span>
+            <span class="btn-pill advance">⬆ Advance to In Progress</span>
+          </div>
+        </div>
+      </div>
 
-    <h3>4 Phases ของแต่ละ Step</h3>
-    <p>ทุก step ของ SOP จะเดินผ่าน 4 สถานะแบบลำดับ:</p>
+      <!-- Phase 3 -->
+      <div class="phase-card p-progress">
+        <div class="phase-head">
+          <div class="phase-icon">⚙️</div>
+          <div>
+            <div class="phase-title">Phase 3 · ระหว่างผลิต (In Progress)</div>
+            <div class="phase-sub">การบันทึกหลายส่วนคู่ขนานกัน</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <p><strong>ระหว่างผลิตต้องบันทึกครบ 12 ส่วน:</strong></p>
+          <div class="sub-grid">
+            <div class="sub-item"><strong>SOP Execution</strong>ทุก step ตาม BOM (ดู section ถัดไป)</div>
+            <div class="sub-item"><strong>Production Cleaning</strong>cleaning ระหว่างผลิตถ้า BOM กำหนด</div>
+            <div class="sub-item"><strong>Production Environmental</strong>temp + humidity ทุก interval</div>
+            <div class="sub-item"><strong>IPC (In-Process Control)</strong>ทดสอบคุณภาพระหว่างผลิตตาม IPC criteria</div>
+            <div class="sub-item"><strong>Bulk Output</strong>บันทึกจำนวนผลิตภัณฑ์บัลก์ (ก่อนบรรจุ)</div>
+            <div class="sub-item"><strong>Post-Production Cleaning</strong>ทำความสะอาดหลังจบ production</div>
+            <div class="sub-item"><strong>Pre-Packaging + Packaging Cleaning</strong>สำหรับห้องบรรจุ</div>
+            <div class="sub-item"><strong>Packaging Weight Control</strong>ชั่งน้ำหนัก sample บรรจุ</div>
+            <div class="sub-item"><strong>Packaging Integrity Check</strong>ตรวจสภาพบรรจุภัณฑ์</div>
+            <div class="sub-item"><strong>Packaging Environmental</strong>temp + humidity</div>
+            <div class="sub-item"><strong>Finished Product Inspection</strong>checklist 15 ข้อ</div>
+            <div class="sub-item"><strong>Finished Output</strong>จำนวนสินค้าสำเร็จรูป + yield %</div>
+          </div>
+        </div>
+      </div>
 
-    <div class="status-card pending">
-      <div class="status-header">
-        <div class="status-icon">⏰</div>
+      <!-- Phase 4 -->
+      <div class="phase-card p-completed">
+        <div class="phase-head">
+          <div class="phase-icon">✅</div>
+          <div>
+            <div class="phase-title">Phase 4 · ปิด Work Order (Completed)</div>
+            <div class="phase-sub">eBMR signature + Yield + Sign-off</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <p><strong>กดปุ่ม "Advance to Completed" — ระบบจะทำ:</strong></p>
+          <div class="field-list">
+            <div class="field-item"><span class="check">✓</span><div>เช็ค gate ว่าทุก section ทำครบ + verified</div></div>
+            <div class="field-item"><span class="check">✓</span><div>บันทึก <strong>Actual Quantity</strong>, <strong>Yield %</strong>, <strong>Production Time</strong></div></div>
+            <div class="field-item"><span class="check">✓</span><div>บันทึก <strong>completedBy</strong> + <strong>completedAt</strong> (eBMR signature)</div></div>
+            <div class="field-item"><span class="check">✓</span><div>Trigger inventory: เพิ่ม FG ลงคลังตามจำนวน finished output</div></div>
+            <div class="field-item"><span class="check">✓</span><div>Ready สำหรับ Print eBMR เพื่อจัดเก็บเอกสาร GMP</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ SOP EXECUTION ═══════════ -->
+    <section class="section" id="sop-execution">
+      <div class="section-head">
+        <div class="section-icon ic-sop">⚙️</div>
         <div>
-          <div class="status-title">Phase 1: Pending — รอเริ่ม</div>
-          <div class="status-subtitle">สีเทา · icon นาฬิกา</div>
+          <h2>ขั้นตอนการบันทึก SOP Execution</h2>
+          <p class="section-subtitle">การบันทึกการปฏิบัติตาม Standard Operating Procedure ระหว่างผลิต</p>
         </div>
       </div>
-      <div class="status-body">
-        <p><strong>ข้อมูลที่ระบบมีให้แล้ว:</strong></p>
-        <ul>
-          <li>Step Name, Sequence Order (ลำดับ)</li>
-          <li><strong>BOM Instructions</strong> — คำแนะนำการทำงาน</li>
-          <li><strong>Sub-Steps</strong> — checklist แต่ละข้อย่อย (ถ้ามี)</li>
-          <li><strong>Expected Parameters</strong> — ค่าเป้าหมาย เช่น Temp 240°C, Time 30min</li>
-          <li><strong>Required Equipment</strong> — อุปกรณ์ที่ต้องใช้</li>
-        </ul>
-        <p><strong>Operator ต้องทำ:</strong> กดปุ่ม <span class="btn-pill start">▶ Start</span></p>
-        <p><strong>เงื่อนไข:</strong> Step ก่อนหน้าต้อง Completed (หรือ Verified ถ้า require verification)</p>
-      </div>
-    </div>
 
-    <div class="status-card in-progress">
-      <div class="status-header">
-        <div class="status-icon">▶</div>
+      <p>ระบบ initialize SOP steps จาก BOM อัตโนมัติเมื่อ WO เข้าสถานะ <strong>In Progress</strong> —
+        แต่ละ step จะเดินผ่าน 4 phase ตามลำดับ</p>
+
+      <h3>4 Phases ของแต่ละ Step</h3>
+
+      <!-- Phase 1: Pending -->
+      <div class="phase-card p-pending">
+        <div class="phase-head">
+          <div class="phase-icon">⏰</div>
+          <div>
+            <div class="phase-title">Phase 1 · Pending — รอเริ่ม</div>
+            <div class="phase-sub">สีเทา · icon นาฬิกา · รอ operator กด Start</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <p><strong>ข้อมูลที่ระบบมีให้แล้ว:</strong></p>
+          <div class="field-list">
+            <div class="field-item"><span class="check">i</span><div>Step Name + Sequence Order (ลำดับ)</div></div>
+            <div class="field-item"><span class="check">i</span><div><strong>BOM Instructions</strong> — คำแนะนำการทำงาน</div></div>
+            <div class="field-item"><span class="check">i</span><div><strong>Sub-Steps</strong> — checklist แต่ละข้อย่อย (ถ้ามี)</div></div>
+            <div class="field-item"><span class="check">i</span><div><strong>Expected Parameters</strong> — ค่าเป้าหมาย เช่น Temp 240°C, Time 30min</div></div>
+            <div class="field-item"><span class="check">i</span><div><strong>Required Equipment</strong> — อุปกรณ์ที่ต้องใช้</div></div>
+          </div>
+          <div class="action-row">
+            <span class="label">Operator ทำ:</span>
+            <span>กดปุ่ม</span><span class="btn-pill start">▶ Start</span>
+            <span style="color:var(--ink-500);">(ถ้า step ก่อนหน้า Completed/Verified แล้ว)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2: In Progress -->
+      <div class="phase-card p-doing">
+        <div class="phase-head">
+          <div class="phase-icon">▶️</div>
+          <div>
+            <div class="phase-title">Phase 2 · In Progress — กำลังทำ</div>
+            <div class="phase-sub">สีน้ำเงิน · card highlight · ระหว่างปฏิบัติงาน</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <p><strong>Operator ทำงานจริง + บันทึก:</strong></p>
+          <div class="field-list">
+            <div class="field-item"><span class="check">✓</span><div>ทำตาม BOM Instructions</div></div>
+            <div class="field-item"><span class="check">✓</span><div>ติ๊ก <strong>checklist sub-steps ครบทุกข้อ</strong> (ถ้ามี) — มีปุ่ม "ทำเครื่องหมายทั้งหมด"</div></div>
+            <div class="field-item"><span class="check">✓</span><div>กรอก Actual Parameters: <code>Temp: 245</code> (expected 240), <code>Time: 28</code> (expected 30)</div></div>
+            <div class="field-item"><span class="check">✓</span><div><strong>Notes</strong> — สังเกตการณ์ / ค่าผิดปกติ / ข้อยกเว้น</div></div>
+          </div>
+          <div class="action-row">
+            <span class="label">เมื่อครบ:</span>
+            <span>กดปุ่ม</span><span class="btn-pill complete">✓ Complete</span>
+            <span style="color:var(--ink-500);">→ ระบบบันทึก operator ID + timestamp</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3: Completed -->
+      <div class="phase-card p-done">
+        <div class="phase-head">
+          <div class="phase-icon">✓</div>
+          <div>
+            <div class="phase-title">Phase 3 · Completed — ทำเสร็จ รอตรวจ</div>
+            <div class="phase-sub">สีเขียว · บันทึกเสร็จแล้ว รอ verifier ตรวจ</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <p><strong>ผลที่ได้:</strong></p>
+          <div class="field-list">
+            <div class="field-item"><span class="check">✓</span><div>ระบบบันทึก <code>operatorId</code>, <code>completedAt</code>, <code>actualParams</code> (JSON)</div></div>
+            <div class="field-item"><span class="check">✓</span><div>Step ถัดไปยังเริ่มไม่ได้ถ้า step นี้ <strong>require verification</strong> และยังไม่ verified</div></div>
+            <div class="field-item"><span class="check">✓</span><div>ป้าย <span class="b-purple">Requires Verification</span> ปรากฏ</div></div>
+          </div>
+          <p style="color:var(--ink-500);font-size:13.5px;margin-top:10px;">
+            <strong style="color:var(--emerald-700);">ถ้า step ไม่ require verification</strong> → จบที่ Phase 3 นี้, ไป step ถัดไปได้เลย
+          </p>
+        </div>
+      </div>
+
+      <!-- Phase 4: Verified -->
+      <div class="phase-card p-verified">
+        <div class="phase-head">
+          <div class="phase-icon">👤</div>
+          <div>
+            <div class="phase-title">Phase 4 · Verified — ตรวจรับรองแล้ว</div>
+            <div class="phase-sub">สีฟ้า · GMP dual-control sign-off</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <p><strong>คนอื่น (ไม่ใช่ operator) login → กดปุ่ม</strong>
+            <span class="btn-pill verify">👤 Verify</span></p>
+          <p><strong>ระบบบันทึก:</strong></p>
+          <div class="field-list">
+            <div class="field-item"><span class="check">✓</span><div><code>verifiedBy</code> = user ที่กด Verify (ต้องไม่ใช่ <code>operatorId</code>)</div></div>
+            <div class="field-item"><span class="check">✓</span><div><code>verifiedAt</code> = timestamp การตรวจสอบ</div></div>
+            <div class="field-item"><span class="check">✓</span><div>Step ถัดไปเริ่มได้แล้ว (unblock)</div></div>
+          </div>
+          <div class="callout warn" style="margin-top:14px;">
+            <div class="callout-icon">⚠️</div>
+            <div class="callout-body">
+              <strong>Dual-Control Block:</strong> ถ้าคน login ตอน verify เป็นคนเดียวกับ operator
+              → ปุ่ม Verify <strong>ไม่แสดง</strong> + ขึ้นป้าย <span class="b-amber">⏳ Awaiting other verifier</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ DUAL CONTROL ═══════════ -->
+    <section class="section" id="dual-control">
+      <div class="section-head">
+        <div class="section-icon ic-dual">🛡️</div>
         <div>
-          <div class="status-title">Phase 2: In Progress — กำลังทำ</div>
-          <div class="status-subtitle">สีน้ำเงิน · card highlight</div>
+          <h2>GMP Dual-Control Rule</h2>
+          <p class="section-subtitle">มาตรฐาน GMP กำหนดว่า "คนที่ทำ ≠ คนที่ตรวจสอบ" เพื่อให้มี independent check</p>
         </div>
       </div>
-      <div class="status-body">
-        <p><strong>Operator ทำงานจริง + บันทึก:</strong></p>
-        <ul>
-          <li>ทำตาม BOM Instructions</li>
-          <li>ติ๊ก <strong>checklist sub-steps ครบทุกข้อ</strong> (ถ้ามี) — มีปุ่ม "ทำเครื่องหมายทั้งหมด"</li>
-          <li>กดปุ่ม <span class="btn-pill complete">✓ Complete</span></li>
-        </ul>
-        <p><strong>ใน Dialog "Complete Production Step" ต้องกรอก:</strong></p>
-        <ul>
-          <li><strong>Actual Parameters</strong> — ค่าจริงที่ทำได้
-            <ul>
-              <li><code>Temperature: 245</code> (expected: 240)</li>
-              <li><code>Time: 28</code> (expected: 30)</li>
-              <li><code>Speed: 1500 RPM</code> (expected: 1500)</li>
-            </ul>
-          </li>
-          <li><strong>Notes</strong> — สังเกตการณ์ / ค่าผิดปกติ / ข้อยกเว้น</li>
-        </ul>
-        <p>ระบบบันทึก operator ID + timestamp เข้า quality_test record อัตโนมัติ</p>
-      </div>
-    </div>
 
-    <div class="status-card completed">
-      <div class="status-header">
-        <div class="status-icon">✓</div>
+      <div class="table-wrap">
+        <table class="modern">
+          <thead>
+            <tr>
+              <th>สถานการณ์</th>
+              <th>ปุ่ม Verify</th>
+              <th>ป้ายที่แสดง</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>คุณเป็น operator ของ step นี้</td>
+              <td>❌ <strong>ไม่แสดง</strong></td>
+              <td><span class="b-amber">⏳ Awaiting other verifier</span></td>
+            </tr>
+            <tr>
+              <td>คุณเป็น user คนอื่น (Supervisor)</td>
+              <td>✅ <strong>แสดง</strong></td>
+              <td><span class="btn-pill verify">👤 Verify</span></td>
+            </tr>
+            <tr>
+              <td>Step ไม่ require verification</td>
+              <td>—</td>
+              <td>ไม่ต้อง Verify, จบที่ Completed</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">⚡</div>
+        <div class="callout-body">
+          <strong>Realtime Sync:</strong> เมื่อมี user อื่นกด Verify จาก browser อื่น —
+          หน้าของคุณจะ refresh สถานะอัตโนมัติภายใน ~1 วินาที (ไม่ต้องกด refresh manual)
+          ระบบใช้ Server-Sent Events (SSE) ในการ sync
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ PITFALLS ═══════════ -->
+    <section class="section" id="pitfalls">
+      <div class="section-head">
+        <div class="section-icon ic-pitfall">⚠️</div>
         <div>
-          <div class="status-title">Phase 3: Completed — ทำเสร็จแล้ว</div>
-          <div class="status-subtitle">สีเขียว · บันทึกเสร็จ รอตรวจ</div>
+          <h2>จุดที่คนพลาดบ่อย</h2>
+          <p class="section-subtitle">ปัญหาที่พบบ่อยในการใช้งาน + วิธีแก้</p>
         </div>
       </div>
-      <div class="status-body">
-        <p><strong>ผลที่ได้:</strong></p>
-        <ul>
-          <li>ระบบบันทึก <code>operatorId</code>, <code>completedAt</code>, <code>actualParams</code> (JSON)</li>
-          <li>Step ถัดไปยังเริ่มไม่ได้ถ้า step นี้ <strong>require verification</strong> และยังไม่ verified</li>
-          <li>ป้าย <span class="b-purple">Requires Verification</span> ปรากฏ</li>
-        </ul>
-        <p><strong>ถ้าไม่ require verification</strong> → จบที่นี่ ไป step ถัดไปได้เลย</p>
-      </div>
-    </div>
 
-    <div class="status-card verified">
-      <div class="status-header">
-        <div class="status-icon">👤</div>
-        <div>
-          <div class="status-title">Phase 4: Verified — ตรวจสอบรับรองแล้ว</div>
-          <div class="status-subtitle">สีฟ้า · GMP dual-control sign-off</div>
+      <div class="pitfall-grid">
+        <div class="pitfall">
+          <div class="pf-icon">😕</div>
+          <div class="pf-title">กดปุ่ม Start ไม่ได้</div>
+          <div class="pf-desc">ตรวจ: <strong>Step ก่อนหน้า Verified แล้วหรือยัง?</strong>
+            ถ้ายัง Completed อยู่ก็ยังเริ่มไม่ได้ (ถ้า require verification)</div>
+        </div>
+        <div class="pitfall">
+          <div class="pf-icon">🔍</div>
+          <div class="pf-title">ไม่มีปุ่ม Verify</div>
+          <div class="pf-desc">คุณคือ <strong>operator ของ step นี้</strong> —
+            ต้องให้ user คนอื่น login เข้ามาแทน (GMP dual-control)</div>
+        </div>
+        <div class="pitfall">
+          <div class="pf-icon">📝</div>
+          <div class="pf-title">Sub-steps ยังไม่ติ๊กครบ</div>
+          <div class="pf-desc">ปุ่ม Complete จะใช้ไม่ได้จนกว่าจะ <strong>ติ๊ก checklist ครบทุกข้อ</strong>
+            — ใช้ปุ่ม "ทำเครื่องหมายทั้งหมด" ช่วยได้</div>
+        </div>
+        <div class="pitfall">
+          <div class="pf-icon">⚖️</div>
+          <div class="pf-title">Actual ห่างจาก Expected</div>
+          <div class="pf-desc">ระบบไม่ block แต่ควรใส่ <strong>Notes</strong> อธิบายเหตุผล
+            เพื่อให้ตอน Verify เข้าใจ</div>
+        </div>
+        <div class="pitfall">
+          <div class="pf-icon">🔄</div>
+          <div class="pf-title">หน้าไม่ refresh</div>
+          <div class="pf-desc">ระบบ realtime sync ทำงานอัตโนมัติ — ถ้ายังไม่ update ลอง <strong>refresh browser</strong>
+            หรือเช็คว่า login session ยัง active</div>
+        </div>
+        <div class="pitfall">
+          <div class="pf-icon">🚫</div>
+          <div class="pf-title">Operator login ผิดคน</div>
+          <div class="pf-desc">ถ้าคน login ที่กด Complete ไม่ใช่คนทำจริง —
+            ตอน Verify จะ block เพราะระบบจำว่า "<strong>คน login = operator</strong>"</div>
         </div>
       </div>
-      <div class="status-body">
-        <p><strong>คนอื่น (ไม่ใช่ operator) login → กด</strong> <span class="btn-pill verify">👤 Verify</span></p>
-        <p><strong>ระบบบันทึก:</strong></p>
-        <ul>
-          <li><code>verifiedBy</code> = user ที่กด Verify (ต้องไม่ใช่ <code>operatorId</code>)</li>
-          <li><code>verifiedAt</code> = timestamp การตรวจสอบ</li>
-          <li>Step ถัดไปเริ่มได้แล้ว</li>
-        </ul>
-        <div class="callout warn">
-          <strong>⚠ Dual-Control Block:</strong> ถ้าคน login ตอน verify เป็นคนเดียวกับ operator
-          → ปุ่ม Verify <strong>ไม่แสดง</strong> + ขึ้น <span class="b-amber">⏳ Awaiting other verifier</span>
-        </div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="section" id="dual-control">
-    <h2>🛡 GMP Dual-Control Rule</h2>
-    <p>มาตรฐาน GMP กำหนดว่า "<strong>คนที่ทำ ≠ คนที่ตรวจสอบ</strong>" เพื่อให้มี independent check</p>
+    <footer>
+      <p>
+        Reference: <code>src/app/production/work-orders/[id]/sop-execution/page.tsx</code><br>
+        Service: <code>src/lib/services/wo-execution.service.ts</code><br>
+        <span style="color:var(--ink-400);">เอกสารนี้เผยแพร่เฉพาะ tenant <strong>metaherb</strong> · อัปเดตล่าสุด เม.ย. 2569</span>
+      </p>
+    </footer>
 
-    <table>
-      <thead>
-        <tr><th>สถานการณ์</th><th>ปุ่ม Verify</th><th>ป้ายที่แสดง</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>คุณเป็น operator ของ step นี้</td>
-          <td>❌ ไม่แสดง</td>
-          <td><span class="b-amber">⏳ Awaiting other verifier</span></td>
-        </tr>
-        <tr>
-          <td>คุณเป็น user คนอื่น (เช่น Supervisor)</td>
-          <td>✅ แสดง</td>
-          <td><span class="btn-pill verify">👤 Verify</span></td>
-        </tr>
-        <tr>
-          <td>Step ไม่ require verification</td>
-          <td>—</td>
-          <td>ไม่ต้อง Verify, จบที่ Completed</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="callout info">
-      <strong>💡 Realtime Sync:</strong> เมื่อมี user อื่นกด Verify จาก browser อื่น —
-      หน้าของคุณจะ refresh สถานะอัตโนมัติภายใน ~1 วินาที (ไม่ต้องกด refresh manual)
-    </div>
-  </section>
-
-  <section class="section" id="pitfalls">
-    <h2>⚠ จุดที่คนพลาดบ่อย</h2>
-
-    <div class="pitfall-grid">
-      <div class="pitfall">
-        <div class="title">😕 กดปุ่ม Start ไม่ได้</div>
-        <div class="desc">ตรวจ: <strong>Step ก่อนหน้า Verified แล้วหรือยัง?</strong> ถ้ายัง Completed ก็ยังเริ่มไม่ได้ (ถ้า require verification)</div>
-      </div>
-      <div class="pitfall">
-        <div class="title">🔍 ไม่มีปุ่ม Verify</div>
-        <div class="desc">คุณคือ <strong>operator</strong> ของ step นี้ — ต้องให้ user คนอื่น login เข้ามาแทน (GMP dual control)</div>
-      </div>
-      <div class="pitfall">
-        <div class="title">📝 Sub-steps ยังไม่ติ๊กครบ</div>
-        <div class="desc">ปุ่ม Complete จะใช้ไม่ได้จนกว่าจะติ๊ก <strong>checklist ครบทุกข้อ</strong> — ใช้ปุ่ม "ทำเครื่องหมายทั้งหมด" ช่วยได้</div>
-      </div>
-      <div class="pitfall">
-        <div class="title">⚖ Actual ห่างจาก Expected</div>
-        <div class="desc">ระบบไม่ block แต่ควรใส่ <strong>Notes</strong> อธิบาย เพื่อให้ตอน Verify เข้าใจ</div>
-      </div>
-      <div class="pitfall">
-        <div class="title">🔄 หน้าไม่ refresh</div>
-        <div class="desc">ระบบ realtime sync ทำงานอัตโนมัติ — ถ้ายังไม่ update ลอง <strong>refresh browser</strong> หรือเช็คว่า login session ยัง active</div>
-      </div>
-      <div class="pitfall">
-        <div class="title">🚫 Operator login ผิดคน</div>
-        <div class="desc">ถ้าคน login ที่กด Complete ไม่ใช่คนทำจริง — ตอน Verify จะ block เพราะระบบจำว่า "คน login = operator"</div>
-      </div>
-    </div>
-  </section>
-
-  <footer>
-    <p>
-      Reference: <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">src/app/production/work-orders/[id]/sop-execution/page.tsx</code>
-      <br>
-      Service logic: <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">src/lib/services/wo-execution.service.ts</code>
-      <br>
-      <span style="color:#94a3b8;">เอกสารนี้เผยแพร่เฉพาะ tenant <strong>metaherb</strong></span>
-    </p>
-  </footer>
-
+  </main>
 </div>
+
+<script>
+  (function() {
+    var sections = document.querySelectorAll('section[id]');
+    var sidebarLinks = document.querySelectorAll('.sidebar-link');
+    if (!sections.length || !sidebarLinks.length) return;
+
+    var current = '';
+    function update() {
+      var top = window.scrollY + 120;
+      var found = '';
+      for (var i = 0; i < sections.length; i++) {
+        var s = sections[i];
+        if (s.offsetTop <= top) found = s.id;
+      }
+      if (found !== current) {
+        current = found;
+        sidebarLinks.forEach(function(a) {
+          var hash = a.getAttribute('href').slice(1);
+          a.classList.toggle('active', hash === current);
+        });
+      }
+    }
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+  })();
+</script>
+
 </body>
 </html>
