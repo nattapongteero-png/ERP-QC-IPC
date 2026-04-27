@@ -31,6 +31,28 @@ import {
   Layers,
 } from 'lucide-react';
 import { parseAcceptanceStages, calcStageAcceptance, type AcceptanceStage } from '@/lib/master-data/ipc-stages';
+import { parseSpecPayload, type SpecPayload } from '@/lib/master-data/ipc-spec-payload';
+import { cn } from '@/lib/utils/cn';
+
+/**
+ * Pass/Fail and Visual criteria are stored as per-sample 'pass'/'fail' just like
+ * the legacy 'checkbox' type. We treat them together so the operator UI uses the
+ * same per-sample buttons. Numeric uses range checks; Text uses free-text input.
+ */
+function isChecklistMode(t: string | null | undefined): boolean {
+  return t === 'checkbox' || t === 'pass_fail' || t === 'visual';
+}
+
+function isTextMode(t: string | null | undefined): boolean {
+  return t === 'text';
+}
+
+/** Extract the structured spec payload (pass/fail definitions, visual checklist,
+ *  text format) from quality_tests.spec_specification when it's stored as JSON.
+ *  Falls back to a legacy plain-text mapping for older rows. */
+function getSpecPayload(test: IPCTest): SpecPayload | null {
+  return parseSpecPayload(test.criteriaType ?? 'numeric', test.specSpecification);
+}
 
 /** Resolve the stage that applies to a given round (1-indexed). Returns null
  *  for single-stage tests or rounds beyond the configured plan. */
@@ -246,7 +268,7 @@ export default function IPCPage() {
       numericResult?: number;
       notes?: string;
       testRound?: number;
-      samples?: Array<{ sampleNumber: number; numericValue?: number; result?: string }>;
+      samples?: Array<{ sampleNumber: number; numericValue?: number; textValue?: string; result?: string }>;
     }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/ipc`, {
         method: 'POST',
@@ -303,19 +325,36 @@ export default function IPCPage() {
     const nextRound = round || (test.totalRounds || 0) + 1;
     setRecordRound(nextRound);
 
-    // Phase 3: use stage-specific sample size when multi-stage; fall back to test-level
-    const sampleSize = getEffectiveSampleSize(test, nextRound);
+    // Phase 3: use stage-specific sample size when multi-stage; fall back to test-level.
+    // Phase 4: visual mode overrides sample size with checklist length so each
+    // checklist item becomes its own sample.
+    let sampleSize = getEffectiveSampleSize(test, nextRound);
     const criteriaType = test.criteriaType || 'numeric';
+    if (criteriaType === 'visual') {
+      const payload = getSpecPayload(test);
+      if (payload?.type === 'visual' && payload.checklist.length > 0) {
+        sampleSize = payload.checklist.length;
+      }
+    }
 
     const roundSamples = test.rounds?.find((r) => r.round === nextRound)?.samples || [];
 
-    if (criteriaType === 'checkbox') {
+    if (isChecklistMode(criteriaType)) {
       const results = Array.from({ length: sampleSize }, (_, i) => {
         const sample = roundSamples.find((s) => s.sampleNumber === i + 1);
         return (sample?.result as 'pass' | 'fail' | null) ?? null;
       });
       setCheckboxResults(results);
       setSampleValues([]);
+      setNumericResult(undefined);
+    } else if (isTextMode(criteriaType)) {
+      // Text mode: use sampleValues array but with single text input — store
+      // text in a parallel state isn't needed; we'll bind to recordNotes which
+      // doubles as the single text answer. Reset the numeric/checkbox state.
+      const existingText = roundSamples[0]?.textValue ?? '';
+      setRecordNotes(existingText);
+      setSampleValues([]);
+      setCheckboxResults([]);
       setNumericResult(undefined);
     } else if (sampleSize > 1) {
       const values = Array.from({ length: sampleSize }, (_, i) => {
@@ -341,7 +380,7 @@ export default function IPCPage() {
     const sampleSize = getEffectiveSampleSize(selectedTest, recordRound);
     const criteriaType = selectedTest.criteriaType || 'numeric';
 
-    if (criteriaType === 'checkbox') {
+    if (isChecklistMode(criteriaType)) {
       const samples = checkboxResults.map((r, i) => ({
         sampleNumber: i + 1,
         result: r || 'pass',
@@ -351,6 +390,19 @@ export default function IPCPage() {
         notes: recordNotes || undefined,
         testRound: recordRound,
         samples,
+      });
+    } else if (isTextMode(criteriaType)) {
+      // Text mode: store the operator's free-text answer as a single sample
+      const text = (recordNotes || '').trim();
+      if (!text) {
+        toast.error('Validation', 'กรุณากรอกข้อความที่ตรวจสอบ');
+        return;
+      }
+      recordMutation.mutate({
+        qualityTestId: selectedTest.id,
+        notes: text,
+        testRound: recordRound,
+        samples: [{ sampleNumber: 1, textValue: text, result: 'pass' }],
       });
     } else if (sampleSize > 1) {
       const samples = sampleValues.map((v, i) => ({
@@ -718,18 +770,11 @@ export default function IPCPage() {
                       {/* Phase 3: stage info for current round */}
                       <StageInfoBanner test={test} round={recordRound} />
 
-                      {/* Spec info */}
-                      {(test.specMinValue != null || test.specSpecification) && (
-                        <div className="text-xs text-blue-700 bg-blue-50 rounded p-2">
-                          {test.specMinValue != null && test.specMaxValue != null && (
-                            <span>{t('execution.range')}: {test.specMinValue} - {test.specMaxValue}{test.specUnit ? ` ${test.specUnit}` : ''}</span>
-                          )}
-                          {test.specSpecification && <span> | {test.specSpecification}</span>}
-                        </div>
-                      )}
+                      {/* Spec info — typed renderer based on criteriaType */}
+                      <SpecInfoCard test={test} />
 
-                      {/* Single value input */}
-                      {test.criteriaType !== 'checkbox' && getEffectiveSampleSize(test, recordRound) <= 1 && (
+                      {/* Single value input — numeric only */}
+                      {test.criteriaType === 'numeric' && getEffectiveSampleSize(test, recordRound) <= 1 && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('execution.measuredValue')} {test.specUnit ? `(${test.specUnit})` : ''}
@@ -742,8 +787,8 @@ export default function IPCPage() {
                         </div>
                       )}
 
-                      {/* Multi-sample inputs */}
-                      {test.criteriaType !== 'checkbox' && getEffectiveSampleSize(test, recordRound) > 1 && (
+                      {/* Multi-sample inputs — numeric only */}
+                      {test.criteriaType === 'numeric' && getEffectiveSampleSize(test, recordRound) > 1 && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('execution.sampleValues')} ({getEffectiveSampleSize(test, recordRound)} {t('execution.samples')})
@@ -771,19 +816,51 @@ export default function IPCPage() {
                         </div>
                       )}
 
-                      {/* Checkbox mode inputs */}
-                      {(test.criteriaType === 'checkbox') && (
+                      {/* Text mode — single text input */}
+                      {isTextMode(test.criteriaType) && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            ผลตรวจ (ข้อความ) <span className="text-red-500">*</span>
+                          </label>
+                          <DxTextArea
+                            value={recordNotes}
+                            onValueChanged={(e) => setRecordNotes(e.value)}
+                            placeholder={(() => {
+                              const p = getSpecPayload(test);
+                              return p?.type === 'text' && p.example ? `เช่น ${p.example}` : 'พิมพ์ผลที่บันทึก';
+                            })()}
+                            height={80}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            ระบบจะบันทึกเป็น sample #1 พร้อมข้อความที่กรอก
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Checklist mode — checkbox/pass_fail/visual */}
+                      {isChecklistMode(test.criteriaType) && (() => {
+                        // Visual mode replaces generic #N labels with the
+                        // admin-defined checklist items so operators know
+                        // exactly what each box represents.
+                        const visualPayload = test.criteriaType === 'visual' ? getSpecPayload(test) : null;
+                        const checklistLabels = visualPayload?.type === 'visual' && visualPayload.checklist.length > 0
+                          ? visualPayload.checklist
+                          : null;
+                        const totalSize = checklistLabels ? checklistLabels.length : (test.sampleSize || 1);
+                        const itemLabel = checklistLabels ? 'จุดตรวจ' : 'ตัวอย่าง';
+                        const isVisualLayout = !!checklistLabels;
+                        return (
                         <div>
                           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                             <label className="block text-sm font-medium text-gray-700">
-                              ผลการตรวจ ({test.sampleSize} ตัวอย่าง)
+                              ผลการตรวจ ({totalSize} {itemLabel})
                             </label>
                             <div className="flex gap-2" data-testid="ipc-bulk-actions">
                               <button
                                 type="button"
                                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"
                                 onClick={() => {
-                                  setCheckboxResults(Array(test.sampleSize || 1).fill('pass'));
+                                  setCheckboxResults(Array(totalSize).fill('pass'));
                                 }}
                                 title="ทำเครื่องหมายผ่านทั้งหมด"
                                 data-testid="ipc-pass-all"
@@ -795,7 +872,7 @@ export default function IPCPage() {
                                 type="button"
                                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm"
                                 onClick={() => {
-                                  setCheckboxResults(Array(test.sampleSize || 1).fill('fail'));
+                                  setCheckboxResults(Array(totalSize).fill('fail'));
                                 }}
                                 title="ทำเครื่องหมายไม่ผ่านทั้งหมด"
                                 data-testid="ipc-fail-all"
@@ -807,7 +884,7 @@ export default function IPCPage() {
                                 type="button"
                                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors border border-gray-300"
                                 onClick={() => {
-                                  setCheckboxResults(Array(test.sampleSize || 1).fill(null));
+                                  setCheckboxResults(Array(totalSize).fill(null));
                                 }}
                                 title="ล้างค่าทั้งหมด"
                                 data-testid="ipc-clear-all"
@@ -817,14 +894,34 @@ export default function IPCPage() {
                               </button>
                             </div>
                           </div>
-                          <div className="grid grid-cols-5 gap-2">
+                          <div className={isVisualLayout ? 'space-y-1.5' : 'grid grid-cols-5 gap-2'}>
                             {checkboxResults.map((val, idx) => {
                               // Bulk-fill removes sequential requirement; allow editing any sample once bulk action applied
                               const anyFilled = checkboxResults.some((r) => r != null);
                               const prevFilled = idx === 0 || checkboxResults[idx - 1] != null || anyFilled;
+                              const labelText = checklistLabels?.[idx] || `#${idx + 1}`;
                               return (
-                                <div key={idx} className={`text-center ${!prevFilled ? 'opacity-40 pointer-events-none' : ''}`}>
-                                  <label className="block text-xs text-gray-500 mb-0.5">#{idx + 1}</label>
+                                <div
+                                  key={idx}
+                                  className={cn(
+                                    !prevFilled && 'opacity-40 pointer-events-none',
+                                    isVisualLayout
+                                      ? 'flex items-center gap-2 bg-white border border-amber-100 rounded-md px-2 py-1.5'
+                                      : 'text-center'
+                                  )}
+                                >
+                                  <label className={cn(
+                                    isVisualLayout
+                                      ? 'flex-1 text-xs text-slate-700 font-medium'
+                                      : 'block text-xs text-gray-500 mb-0.5'
+                                  )}>
+                                    {isVisualLayout && (
+                                      <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold mr-2">
+                                        {idx + 1}
+                                      </span>
+                                    )}
+                                    {labelText}
+                                  </label>
                                   <div className="flex gap-1">
                                     <button
                                       type="button"
@@ -864,7 +961,8 @@ export default function IPCPage() {
                             })}
                           </div>
                         </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Summary bar — real-time pass/fail preview */}
                       {(() => {
@@ -873,10 +971,14 @@ export default function IPCPage() {
                         let passCount = 0;
                         let totalCount = 0;
 
-                        if (criteriaType === 'checkbox') {
+                        if (isChecklistMode(criteriaType)) {
                           const filled = checkboxResults.filter((r) => r != null);
                           totalCount = filled.length;
                           passCount = filled.filter((r) => r === 'pass').length;
+                        } else if (isTextMode(criteriaType)) {
+                          // Text mode has a single sample (the typed answer)
+                          totalCount = recordNotes.trim() ? 1 : 0;
+                          passCount = totalCount;
                         } else if ((test.sampleSize || 1) > 1) {
                           const filled = sampleValues.filter((v) => v != null);
                           totalCount = filled.length;
@@ -920,17 +1022,27 @@ export default function IPCPage() {
                       {/* Actions */}
                       {(() => {
                         const criteriaType = test.criteriaType || 'numeric';
-                        const ss = test.sampleSize || 1;
+                        // Phase 4: visual mode counts per checklist length, not sample size.
+                        // Text mode requires a non-empty answer.
+                        let ss = test.sampleSize || 1;
+                        if (criteriaType === 'visual') {
+                          const p = getSpecPayload(test);
+                          if (p?.type === 'visual' && p.checklist.length > 0) ss = p.checklist.length;
+                        }
                         let allFilled = false;
-                        if (criteriaType === 'checkbox') {
+                        if (isChecklistMode(criteriaType)) {
                           allFilled = checkboxResults.length === ss && checkboxResults.every(r => r != null);
+                        } else if (isTextMode(criteriaType)) {
+                          allFilled = recordNotes.trim().length > 0;
                         } else if (ss > 1) {
                           allFilled = sampleValues.length === ss && sampleValues.every(v => v != null);
                         } else {
                           allFilled = numericResult != null;
                         }
-                        const filledCount = criteriaType === 'checkbox'
+                        const filledCount = isChecklistMode(criteriaType)
                           ? checkboxResults.filter(r => r != null).length
+                          : isTextMode(criteriaType)
+                          ? (recordNotes.trim() ? 1 : 0)
                           : ss > 1 ? sampleValues.filter(v => v != null).length
                           : numericResult != null ? 1 : 0;
                         return (
@@ -967,4 +1079,91 @@ export default function IPCPage() {
       {/* Popup removed — inline recording is used instead */}
     </div>
   );
+}
+
+/**
+ * Render the test's specification box in a way that matches the criteria type.
+ * Numeric: range + spec text. Pass/Fail: PASS/FAIL definitions side-by-side.
+ * Visual: description + checklist preview. Text: expected format + example.
+ */
+function SpecInfoCard({ test }: { test: IPCTest }) {
+  const payload = getSpecPayload(test);
+  const ct = test.criteriaType ?? 'numeric';
+
+  // Numeric: keep the original range/spec line
+  if (ct === 'numeric' || ct === 'checkbox') {
+    if (test.specMinValue == null && !test.specSpecification) return null;
+    return (
+      <div className="text-xs text-blue-700 bg-blue-50 rounded p-2">
+        {test.specMinValue != null && test.specMaxValue != null && (
+          <span>
+            Range: {test.specMinValue} - {test.specMaxValue}
+            {test.specUnit ? ` ${test.specUnit}` : ''}
+          </span>
+        )}
+        {test.specSpecification && (
+          <span> | {test.specSpecification.startsWith('{') ? '' : test.specSpecification}</span>
+        )}
+      </div>
+    );
+  }
+
+  if (ct === 'pass_fail' && payload?.type === 'pass_fail') {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-xs">
+          <div className="font-semibold text-emerald-700 mb-0.5">✓ เกณฑ์ &quot;ผ่าน&quot;</div>
+          <div className="text-emerald-900/80">
+            {payload.passDefinition || <span className="italic text-emerald-600/50">— ไม่ระบุ —</span>}
+          </div>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-xs">
+          <div className="font-semibold text-red-700 mb-0.5">✕ เกณฑ์ &quot;ไม่ผ่าน&quot;</div>
+          <div className="text-red-900/80">
+            {payload.failDefinition || <span className="italic text-red-600/50">— ไม่ระบุ —</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (ct === 'visual' && payload?.type === 'visual') {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs">
+        <div className="font-semibold text-amber-800 mb-1">👁 ลักษณะที่ยอมรับ</div>
+        <div className="text-amber-900/80 mb-2">
+          {payload.description || <span className="italic text-amber-600/60">— ไม่ระบุ —</span>}
+        </div>
+        {payload.referenceImage && (
+          <div className="text-[11px] text-amber-700 mb-1">
+            Reference: <a href={payload.referenceImage} target="_blank" rel="noreferrer" className="underline">ดูรูป</a>
+          </div>
+        )}
+        <div className="text-[11px] text-amber-700">
+          Checklist: {payload.checklist.filter(Boolean).length} จุดตรวจ
+        </div>
+      </div>
+    );
+  }
+
+  if (ct === 'text' && payload?.type === 'text') {
+    return (
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs">
+        <div className="text-slate-500 mb-0.5">รูปแบบที่คาดหวัง:</div>
+        <div className="font-mono text-slate-700 mb-1">
+          {payload.format || <span className="italic text-slate-400">— ไม่ระบุ —</span>}
+        </div>
+        {payload.example && (
+          <div className="text-slate-500">
+            ตัวอย่าง: <span className="font-mono text-slate-700">{payload.example}</span>
+          </div>
+        )}
+        {payload.required && (
+          <div className="text-[11px] text-slate-500 mt-1">* บังคับให้กรอก</div>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 }

@@ -1955,13 +1955,20 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
       // Use stage tolerance when multi-stage; fall back to test-level tolerance.
       const tolerancePct = currentStage ? currentStage.tolerancePercent : (Number(test.tolerancePercent) || 0);
 
-      // Insert samples with round number
+      // Per-sample pass/fail comes from the user when the criteria is
+      // checkbox / pass_fail / visual; numeric is auto-calculated from spec.
+      // Text mode treats every recorded answer as 'pass' — the spec defines
+      // the format, not the answer.
+      const isChecklistMode = criteriaType === 'checkbox' || criteriaType === 'pass_fail' || criteriaType === 'visual';
+      const isTextMode = criteriaType === 'text';
+
       for (const sample of input.samples) {
         let sampleResult: string | null = null;
 
-        if (criteriaType === 'checkbox') {
-          // Checkbox mode: result comes directly from user input
+        if (isChecklistMode) {
           sampleResult = sample.result || null;
+        } else if (isTextMode) {
+          sampleResult = sample.result || 'pass';
         } else {
           // Numeric mode: auto-calculate from min/max
           if (sample.numericValue != null && test.specMinValue != null && test.specMaxValue != null) {
@@ -1983,8 +1990,12 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
 
       // Aggregate: tolerance-based pass/fail
       const sampleResults = input.samples.map((s) => {
-        if (criteriaType === 'checkbox') {
+        if (isChecklistMode) {
           return s.result === 'pass';
+        }
+        if (isTextMode) {
+          // Text answers are accepted as long as a value was provided
+          return (s.result ?? 'pass') === 'pass';
         }
         if (s.numericValue != null && test.specMinValue != null && test.specMaxValue != null) {
           return s.numericValue >= Number(test.specMinValue) && s.numericValue <= Number(test.specMaxValue);
