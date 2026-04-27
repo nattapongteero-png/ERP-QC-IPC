@@ -58,6 +58,25 @@ export function getInsertId(result: unknown): number {
 }
 
 /**
+ * Extract the affected row count from an UPDATE/DELETE result
+ * Handles the difference between SQLite (changes) and MySQL (affectedRows)
+ *
+ * Use this to detect optimistic-lock failures, e.g. UPDATE ... WHERE status='requested'
+ * returning 0 affected rows means another caller changed the status first.
+ */
+export function getAffectedRows(result: unknown): number {
+  if (isSqlite()) {
+    const r = result as { changes?: number } | undefined;
+    return Number(r?.changes ?? 0);
+  }
+  const r = result as [{ affectedRows?: number }] | { affectedRows?: number } | undefined;
+  if (Array.isArray(r)) {
+    return Number(r[0]?.affectedRows ?? 0);
+  }
+  return Number((r as { affectedRows?: number } | undefined)?.affectedRows ?? 0);
+}
+
+/**
  * Execute a database operation with proper type handling
  */
 export async function executeDbOperation<T = any>(

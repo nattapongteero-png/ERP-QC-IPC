@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { eq, and, sql } from 'drizzle-orm';
-import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
+import { getTableRef, executeDbOperation, getAffectedRows } from '@/lib/db/db-helper';
 import { successResponse, errorResponse, serverErrorResponse, withAuth } from '@/lib/api-utils';
 import { getNow } from '@/lib/db/date-utils';
+import { realtimeBus } from '@/lib/realtime';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -188,7 +189,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         });
       }
 
-      await executeDbOperation(async (db) => {
+      // Atomic guard: only update if status is still 'requested'.
+      // If another concurrent approval already changed the status, affectedRows = 0
+      // and we return a 409 telling the caller to refresh.
+      const updateResult = await executeDbOperation(async (db) => {
         return db
           .update(workOrdersTable)
           .set({
@@ -196,7 +200,25 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             requisitionApprovedBy: session.userId,
             requisitionApprovedAt: getNow(),
           })
-          .where(eq(workOrdersTable.id, workOrderId));
+          .where(and(
+            eq(workOrdersTable.id, workOrderId),
+            eq(workOrdersTable.requisitionStatus, 'requested'),
+          ));
+      });
+
+      if (getAffectedRows(updateResult) === 0) {
+        return errorResponse(
+          'ใบเบิกนี้ถูกอนุมัติไปแล้ว — กรุณา refresh หน้าจอ',
+          409
+        );
+      }
+
+      // Notify subscribers (other browser tabs) that this requisition changed.
+      // Done after commit succeeded; never published on failure.
+      realtimeBus.publish('requisition-changed', {
+        workOrderId,
+        status: 'approved',
+        changedBy: session.userId,
       });
 
       return successResponse(
