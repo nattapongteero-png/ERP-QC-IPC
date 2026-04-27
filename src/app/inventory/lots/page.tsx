@@ -27,6 +27,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils/cn';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 
 /** Get today's date as YYYY-MM-DD using local timezone (avoids UTC shift from toISOString) */
 function getLocalDateStr(): string {
@@ -2070,7 +2071,34 @@ export default function LotsPage() {
 function RequisitionTab() {
   const [filter, setFilter] = useState('requested');
   const [expandedWo, setExpandedWo] = useState<number | null>(null);
+  const [recentlyChangedIds, setRecentlyChangedIds] = useState<Set<number>>(new Set());
   const queryClient = useQueryClient();
+
+  // Subscribe to realtime requisition events so all open browsers stay in sync
+  // when any user approves/rejects a requisition. Server publishes only after
+  // a successful DB commit, so this never fires for failed approvals.
+  useRealtimeTopic('requisition-changed', (data) => {
+    const id = data.workOrderId as number | undefined;
+    if (typeof id !== 'number') return;
+
+    queryClient.invalidateQueries({ queryKey: ['inventory-requisitions'] });
+    queryClient.invalidateQueries({ queryKey: ['inventory-requisitions-all-counts'] });
+
+    setRecentlyChangedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    // Remove highlight after the flash animation finishes
+    setTimeout(() => {
+      setRecentlyChangedIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 1500);
+  });
 
   const { data: requisitions = [], isLoading } = useQuery({
     queryKey: ['inventory-requisitions', filter],
@@ -2170,7 +2198,13 @@ function RequisitionTab() {
       {/* Requisition cards */}
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       {requisitions.map((req: any) => (
-        <div key={req.workOrderId} className="bg-white border rounded-lg shadow-sm overflow-hidden">
+        <div
+          key={req.workOrderId}
+          className={cn(
+            'bg-white border rounded-lg shadow-sm overflow-hidden',
+            recentlyChangedIds.has(req.workOrderId) && 'animate-flash-green'
+          )}
+        >
           <div className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>

@@ -1007,3 +1007,22 @@ a:not([class]):hover {
   overflow: visible;
   text-overflow: clip;
 }
+
+/* =========================================================
+   Realtime sync — flash highlight
+   ---------------------------------------------------------
+   Briefly tints rows that just changed via SSE event so other
+   users notice the update before it settles into its new tab.
+   ========================================================= */
+@keyframes flash-green {
+  0% {
+    background-color: rgb(34 197 94 / 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-flash-green {
+  animation: flash-green 1.5s ease-out;
+}
