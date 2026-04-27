@@ -90,7 +90,12 @@ interface ExecutionSection {
   getStatus: (summary: ExecutionSummary) => SectionStatus;
 }
 
-/** Compute the milestone-aware status from raw counts. */
+/** Compute the milestone-aware status from raw counts.
+ *
+ * Cleaning + other 4-step cards transition to 'verified' as soon as ANY item
+ * has been verified (not when all are verified) — the status label is the
+ * cue that verification has begun, while the (X/Y) count tracks the progress.
+ */
 function computeStatus(
   completed: number,
   verified: number,
@@ -108,7 +113,10 @@ function computeStatus(
   if (!hasVerification) {
     return { ...base, status: 'completed' };
   }
-  if (verified < total) {
+  // 4-step section: completed=total. Stay 'completed' until first verify;
+  // once any item is verified, switch to 'verified' so the count shows
+  // verifier progress.
+  if (verified === 0) {
     return { ...base, status: 'completed' };
   }
   return { ...base, status: 'verified' };
@@ -454,17 +462,13 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   ];
 
   /**
-   * Renders the section status badge with the operator's progress count (X/Y).
-   * X is always the "marked / completed" count so users immediately see how much
-   * of the section's work has been done. The status label tracks the milestone:
-   *   - Pending      — not started (no count)
-   *   - In Progress  — some marked, not all
-   *   - Completed    — all marked; awaiting verification (when applicable)
-   *   - Verified     — verified === total
+   * Renders the section status badge.
    *
-   * For dual-control sections (cleaning, weighing, SOP, IPC) the verifier's
-   * progress is shown as a small subtext next to the badge, e.g. "ตรวจ 1/3",
-   * so it's visible without crowding the main label.
+   * Display rules per status:
+   *   - Pending      — no count
+   *   - In Progress  — '(marked/total)' so operator sees their progress
+   *   - Completed    — no count (all items are marked at this milestone)
+   *   - Verified     — '(verified/total)' so verifier sees their progress
    */
   const renderStatusBadge = (info: SectionStatus) => {
     const styles = {
@@ -486,32 +490,19 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       verified: <CheckCircle2 className="h-3 w-3" />,
     };
 
-    // Main count: operator progress (marked / total). When verified, switch to
-    // verified count so the badge reads the milestone it just hit.
     let countSuffix = '';
-    if (info.total > 0 && info.status !== 'pending') {
-      const current = info.status === 'verified' ? info.verified : info.completed;
-      countSuffix = ` (${current}/${info.total})`;
+    if (info.total > 0) {
+      if (info.status === 'in_progress') {
+        countSuffix = ` (${info.completed}/${info.total})`;
+      } else if (info.status === 'verified') {
+        countSuffix = ` (${info.verified}/${info.total})`;
+      }
     }
 
-    // Verifier-progress subtext only when meaningful: section uses verification,
-    // marking is done, and verification is in progress (0 ≤ verified < total).
-    const showVerifySubtext =
-      info.hasVerification &&
-      info.status === 'completed' &&
-      info.total > 0;
-
     return (
-      <span className="inline-flex items-center gap-1.5 flex-wrap">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${styles[info.status]}`}>
-          {icons[info.status]}
-          {labels[info.status]}{countSuffix}
-        </span>
-        {showVerifySubtext && (
-          <span className="text-[11px] text-blue-600/80 font-medium">
-            ตรวจ {info.verified}/{info.total}
-          </span>
-        )}
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${styles[info.status]}`}>
+        {icons[info.status]}
+        {labels[info.status]}{countSuffix}
       </span>
     );
   };
