@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Template — Page Redesign | Herbal ERP</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand: #10b981;
+    --brand-dark: #047857;
+    --brand-soft: #ecfdf5;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', 'Sarabun', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(180deg, #f8fafc 0%, #ecfdf5 100%);
+    color: var(--slate-900);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  .container { max-width: 980px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* Header */
+  .hero {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    color: white;
+    border-radius: 24px;
+    padding: 32px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 40px rgba(16, 185, 129, 0.25);
+  }
+  .hero .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 700; line-height: 1.2; }
+  .hero p { margin: 0; opacity: 0.9; font-size: 15px; }
+
+  /* TOC */
+  .toc {
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .toc-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--slate-500); letter-spacing: 0.5px; margin-bottom: 8px; }
+  .toc ol { margin: 0; padding-left: 20px; font-size: 14px; }
+  .toc li { margin-bottom: 4px; }
+  .toc a { color: var(--brand-dark); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Section */
+  .section {
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
+  .section h2 {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--slate-900);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section h2::before {
+    content: counter(section);
+    counter-increment: section;
+    width: 28px;
+    height: 28px;
+    background: var(--brand);
+    color: white;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  body { counter-reset: section; }
+  .section h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 600; color: var(--slate-700); }
+  .section p { margin: 0 0 12px; font-size: 14px; color: var(--slate-600); }
+  .section ul, .section ol { padding-left: 22px; margin: 8px 0 12px; }
+  .section li { font-size: 14px; color: var(--slate-700); margin-bottom: 4px; }
+
+  /* Code blocks */
+  .code-block {
+    background: var(--slate-900);
+    color: #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    overflow-x: auto;
+    position: relative;
+    margin: 8px 0 12px;
+  }
+  .code-block .lang {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.5px;
+  }
+  .code-inline {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.875em;
+    background: var(--brand-soft);
+    color: var(--brand-dark);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid #a7f3d0;
+  }
+  .code-block .keyword { color: #93c5fd; }
+  .code-block .string  { color: #86efac; }
+  .code-block .comment { color: #64748b; font-style: italic; }
+  .code-block .heading { color: #fcd34d; font-weight: 600; }
+
+  /* Callouts */
+  .callout {
+    border-left: 4px solid var(--brand);
+    background: var(--brand-soft);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 14px;
+    color: var(--slate-700);
+  }
+  .callout.warn { border-left-color: #f59e0b; background: #fffbeb; }
+  .callout.danger { border-left-color: #ef4444; background: #fef2f2; }
+  .callout strong { color: var(--slate-900); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--slate-200); }
+  th { background: var(--slate-50); font-weight: 600; color: var(--slate-700); font-size: 13px; }
+  td { color: var(--slate-700); vertical-align: top; }
+  td code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--brand-soft); color: var(--brand-dark); padding: 1px 6px; border-radius: 4px; }
+
+  /* Tabs (template variations) */
+  .tabs { display: flex; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid var(--slate-200); }
+  .tabs button {
+    padding: 8px 14px;
+    background: transparent;
+    border: none;
+    color: var(--slate-500);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tabs button:hover { color: var(--slate-700); }
+  .tabs button.active { color: var(--brand-dark); border-bottom-color: var(--brand); font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Copy button */
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #cbd5e1;
+    font-size: 11px;
+    font-family: inherit;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: rgba(255, 255, 255, 0.2); color: white; }
+  .copy-btn.copied { background: var(--brand); border-color: var(--brand); color: white; }
+
+  /* Examples */
+  .example {
+    background: #f8fafc;
+    border: 1px dashed var(--slate-300);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 8px 0 12px;
+    font-size: 13px;
+  }
+  .example .label {
+    display: inline-block;
+    background: var(--brand-soft);
+    color: var(--brand-dark);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  /* Quick reference card */
+  .quick-ref {
+    background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+    border: 1px solid #a7f3d0;
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .quick-ref h3 { margin-top: 0; color: var(--brand-dark); }
+  .quick-ref-grid { display: grid; gap: 8px; }
+  .quick-ref-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dashed #a7f3d0;
+    font-size: 13px;
+  }
+  .quick-ref-row:last-child { border-bottom: none; }
+  .quick-ref-row .icon { font-size: 18px; flex-shrink: 0; }
+  .quick-ref-row .label { font-weight: 600; color: var(--slate-800); min-width: 110px; }
+  .quick-ref-row .desc { color: var(--slate-600); flex: 1; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    color: var(--slate-500);
+    font-size: 12px;
+    padding: 20px 0 0;
+    border-top: 1px solid var(--slate-200);
+    margin-top: 40px;
+  }
+  footer a { color: var(--brand-dark); text-decoration: none; }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .container { padding: 16px 12px 40px; }
+    .hero { padding: 24px 20px; }
+    .hero h1 { font-size: 22px; }
+    .section { padding: 18px 16px; }
+    .section h2 { font-size: 17px; }
+    table { font-size: 12px; }
+    th, td { padding: 8px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="hero">
+    <div class="badge">📝 Prompt Engineering Reference</div>
+    <h1>Prompt Template สำหรับ Page Redesign</h1>
+    <p>ใช้ template นี้เมื่อต้องการขอ redesign font / dropdown / layout / component
+      ของหน้าใดๆ ให้สอดคล้องกับ design language ของระบบ — อ้างอิงจากหน้า
+      <a href="/master-data/ipc-criteria/new" style="color:white;text-decoration:underline;">/master-data/ipc-criteria/new</a></p>
+  </header>
+
+  <nav class="toc">
+    <div class="toc-title">📑 สารบัญ</div>
+    <ol>
+      <li><a href="#full-template">Template หลัก (Full version)</a></li>
+      <li><a href="#quick-template">Template สั้น (Quick version)</a></li>
+      <li><a href="#scenario-templates">Template เฉพาะกรณี</a></li>
+      <li><a href="#tips">Tips ในการเขียน Prompt</a></li>
+      <li><a href="#examples">ตัวอย่างการใช้จริง</a></li>
+      <li><a href="#quick-ref">Quick Reference Card</a></li>
+    </ol>
+  </nav>
+
+  <section class="section" id="full-template">
+    <h2>Template หลัก (Full version)</h2>
+    <p>ใช้เมื่อ scope ใหญ่ ต้องการรายละเอียดครบถ้วน — copy ทั้งก้อนแล้วลบ/ปรับเฉพาะที่ไม่ต้องการ</p>
+
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;"><span class="heading"># ขอ Redesign หน้า [URL หรือชื่อหน้า]</span>
+
+<span class="heading">## เป้าหมาย</span>
+ปรับ layout / component / font / dropdown ให้ตรง prototype design
+เพื่อให้ UX ของ ERP มี design language ที่สอดคล้องกัน
+
+<span class="heading">## Reference Design</span>
+[ลิงก์ prototype หรือ design]
+- เช่น: https://oommiemie.github.io/ipc-criteria-prototype/
+- หรือ: screenshot ที่แนบ
+- หรือ: หน้าอื่นในระบบที่ทำเสร็จแล้ว เช่น /master-data/ipc-criteria/new
+
+<span class="heading">## ขอบเขตที่ต้องการแก้</span>
+[เลือกข้อที่ต้องการ — ถ้าต้องการครบให้ระบุทั้งหมด]
+
+<span class="heading">### 1. Font + Typography</span>
+- ใช้ font Inter (English) + Sarabun (Thai) จาก next/font/google
+- ขนาด font: input 14px, label 13px font-weight 600, helper 12px
+- Apply เฉพาะหน้านี้ (ไม่กระทบหน้าอื่น)
+
+<span class="heading">### 2. Layout</span>
+- Numbered sections (badge 7×7 emerald + ชื่อไทย/อังกฤษ + เส้นคั่น)
+- 2-column grid (sm:grid-cols-2)
+- Panel styling: bg-white, rounded-2xl, subtle shadow
+- Sub-panels สำหรับ section พิเศษ (สี emerald-50)
+
+<span class="heading">### 3. Dropdown (Lookup)</span>
+- ใช้ SearchableSelect ที่มีอยู่แล้ว
+  (src/components/master-data/SearchableSelect.tsx)
+- Click trigger เปิด panel ด้านล่าง
+- ช่องค้นหา + magnifier icon
+- Highlight match สีเหลือง
+- Arrow keys navigate, Enter select, Esc close
+- Selected option emerald-50 + Check icon
+
+<span class="heading">### 4. Form Components</span>
+- Input fields: rounded-[10px], border-slate-200, focus emerald-500
+- Helper text ใต้ input (text-xs slate-500)
+- Required field: ใส่ * สีแดง
+- Toggle cards แทน checkbox (ถ้าเป็น on/off)
+- Auto badges (⚡ Auto) สำหรับช่องที่ระบบเติมให้
+
+<span class="heading">### 5. Live Preview Panel (optional)</span>
+- Sticky ขวามือ (xl:col-span-1)
+- Real-time update
+- จุดเขียวกระพริบ (animate-pulse)
+- Preview content ที่ user/operator จะเห็นจริง
+
+<span class="heading">### 6. Sticky Footer (optional)</span>
+- Fixed bottom bar
+- Status indicator + Cancel/Save buttons
+
+<span class="heading">## ข้อจำกัด</span>
+- Backwards-compatible — ข้อมูลเดิมต้องแสดงได้
+- ไม่กระทบ consumer pages อื่นที่ใช้ component เดียวกัน
+- Deploy ทั้ง 5 tenants
+  (metaherb + arjaro + renunakhon + huaikoeng + phonphisai)
+
+<span class="heading">## ขั้นตอน</span>
+1. วิเคราะห์ผลกระทบกับ consumers/schema ก่อน
+2. เสนอเป็น Phase ถ้า scope ใหญ่
+3. Test pass + type check clean ก่อน commit
+4. Update changelog
+5. Deploy 5 tenants</pre>
+    </div>
+  </section>
+
+  <section class="section" id="quick-template">
+    <h2>Template สั้น (Quick version)</h2>
+    <p>ใช้เมื่อต้องการให้เร็ว — รวมทุกอย่างใน 5-7 บรรทัด</p>
+
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">ขอ redesign หน้า [URL] ให้ตรงตาม prototype:
+[ลิงก์หรือ reference]
+
+ปรับ:
+- Font Inter + Sarabun (ขนาด 14/13/12)
+- Layout numbered sections + sub-panels
+- Dropdown ใช้ SearchableSelect (เหมือนหน้า /master-data/ipc-criteria/new)
+- Live preview ขวามือ (ถ้าต้องการ)
+- Sticky footer (ถ้าต้องการ)
+
+ข้อจำกัด:
+- Backwards-compatible
+- Deploy ทั้ง 5 tenants
+
+ทำให้เสร็จจนถึง commit + deploy</pre>
+    </div>
+  </section>
+
+  <section class="section" id="scenario-templates">
+    <h2>Template เฉพาะกรณี (Specific Scenarios)</h2>
+    <p>เลือกใช้ตาม scope ที่ต้องการ — สั้นที่สุดเมื่อต้องการแค่ส่วนเดียว</p>
+
+    <div class="tabs">
+      <button class="active" onclick="showTab('tab1', this)">เฉพาะ Dropdown</button>
+      <button onclick="showTab('tab2', this)">เฉพาะ Font</button>
+      <button onclick="showTab('tab3', this)">Layout ใหม่ทั้งหมด</button>
+    </div>
+
+    <div id="tab1" class="tab-content active">
+      <div class="example">
+        <div class="label">CASE 1: ต้องการแค่ปรับ Dropdown</div>
+        <p style="margin:8px 0 0;">เปลี่ยน DxSelectBox เป็น SearchableSelect — เหมาะกับหน้าที่ layout/font OK อยู่แล้ว</p>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">หน้า [URL] — เปลี่ยน DxSelectBox เป็น SearchableSelect
+component อยู่ที่ src/components/master-data/SearchableSelect.tsx
+ใช้ pattern เดียวกับหน้า /master-data/ipc-criteria/new
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+
+    <div id="tab2" class="tab-content">
+      <div class="example">
+        <div class="label">CASE 2: ต้องการแค่ปรับ Font</div>
+        <p style="margin:8px 0 0;">Font + ขนาด เหมือน prototype — apply เฉพาะหน้านี้</p>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">หน้า [URL] — ปรับ font เป็น Inter + Sarabun
+ขนาด: input 14px, label 13px, helper 12px
+ใช้ pattern เดียวกับ /master-data/ipc-criteria/new
+Apply เฉพาะหน้านี้
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+
+    <div id="tab3" class="tab-content">
+      <div class="example">
+        <div class="label">CASE 3: ต้องการ Layout ใหม่ทั้งหมด</div>
+        <p style="margin:8px 0 0;">Redesign full layout — ครอบคลุมทุก element</p>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">หน้า [URL] — redesign layout ทั้งหมด
+ตาม style ของ /master-data/ipc-criteria/new:
+- Numbered sections
+- 2-column grid
+- Sub-panels
+- Live preview ขวามือ
+- Sticky footer
+
+โดยไม่เปลี่ยน schema/business logic
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="tips">
+    <h2>Tips ในการเขียน Prompt</h2>
+
+    <h3>✅ ทำให้ทำงานง่าย</h3>
+    <ul>
+      <li><strong>อ้างอิงหน้าที่ทำเสร็จแล้ว</strong> เช่น "เหมือน <code class="code-inline">/master-data/ipc-criteria/new</code>" — AI จะดูโค้ดของหน้านั้นแล้วใช้ pattern เดียวกัน</li>
+      <li><strong>ระบุ scope ชัดเจน</strong> — แค่ font? แค่ dropdown? หรือทั้งหมด?</li>
+      <li><strong>บอก deploy targets</strong> — "Deploy 5 tenants" หรือเฉพาะที่ต้องการ</li>
+      <li><strong>ระบุข้อจำกัด</strong> — backwards-compat, ไม่แตะ consumer</li>
+    </ul>
+
+    <h3>❌ หลีกเลี่ยง</h3>
+    <ul>
+      <li>"ปรับให้สวยขึ้น" — ไม่ชัดเจนว่าสวยแบบไหน</li>
+      <li>"เหมือนหน้านั้น" โดยไม่ระบุว่าหน้าไหน</li>
+      <li>"ทำให้เสร็จ" โดยไม่ระบุว่าจบที่ commit หรือ deploy</li>
+    </ul>
+
+    <div class="callout warn">
+      <strong>⚠ สำคัญ:</strong> ถ้าหน้าที่จะแก้มี <strong>schema</strong> หรือ <strong>consumers</strong> หลายตัว ให้บอก AI ตั้งแต่แรกว่า "วิเคราะห์ผลกระทบก่อน" — AI จะทำเป็น phase ที่เล็กลงและปลอดภัยกว่า
+    </div>
+  </section>
+
+  <section class="section" id="examples">
+    <h2>ตัวอย่างการใช้จริง</h2>
+
+    <div class="example">
+      <div class="label">EXAMPLE 1: หน้า Quality Specs</div>
+      <div class="code-block" style="margin-top:8px;">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">หน้า /quality/specs/new ขอ redesign ให้ตรงตาม pattern ของ
+/master-data/ipc-criteria/new:
+- Font Inter + Sarabun
+- Numbered sections + sub-panels
+- Dropdown ใช้ SearchableSelect
+- Live preview ขวามือ
+- Sticky footer
+
+Backwards-compat กับข้อมูลเดิม
+Deploy 5 tenants
+ทำเสร็จจนถึง commit + deploy</pre>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label">EXAMPLE 2: หน้า Item Master (เฉพาะบางจุด)</div>
+      <div class="code-block" style="margin-top:8px;">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">หน้า /inventory/items/new — ปรับเฉพาะ:
+1. Font เป็น Inter + Sarabun
+2. ทุก dropdown เปลี่ยนเป็น SearchableSelect
+
+ไม่ต้องเปลี่ยน layout
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label">EXAMPLE 3: หลายหน้าพร้อมกัน (Phased)</div>
+      <div class="code-block" style="margin-top:8px;">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">ขอ redesign 3 หน้านี้ให้ตรงตาม /master-data/ipc-criteria/new:
+1. /quality/specs/new
+2. /master-data/sop-templates/new
+3. /production/bom/new
+
+ทำเป็น 3 phases (1 หน้า/phase) — phase แรก deploy ก่อน
+แล้วค่อยทำ phase ต่อไป</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="quick-ref">
+    <h2>Quick Reference Card</h2>
+    <p>Checklist ก่อนส่ง prompt — ถ้าครบทุกข้อ AI จะทำงานได้แม่นยำที่สุด</p>
+
+    <div class="quick-ref">
+      <div class="quick-ref-grid">
+        <div class="quick-ref-row">
+          <span class="icon">🎯</span>
+          <span class="label">หน้าที่จะแก้</span>
+          <span class="desc"><code class="code-inline">/path/to/page</code> หรือ URL เต็ม</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">📐</span>
+          <span class="label">Reference</span>
+          <span class="desc">URL prototype หรือ "เหมือน /master-data/ipc-criteria/new"</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">🎨</span>
+          <span class="label">ขอบเขต</span>
+          <span class="desc">font / dropdown / layout / preview / footer</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">🚀</span>
+          <span class="label">Deploy</span>
+          <span class="desc">5 tenants? เฉพาะ tenant?</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">⚠️</span>
+          <span class="label">ข้อจำกัด</span>
+          <span class="desc">backwards-compat? schema ห้ามเปลี่ยน?</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">✅</span>
+          <span class="label">Done =</span>
+          <span class="desc">commit, deploy, หรือ test?</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:16px;">
+      <strong>💡 Pro Tip:</strong> ถ้าใช้ <code class="code-inline">"เหมือน /master-data/ipc-criteria/new"</code>
+      AI จะอ่านโค้ดของหน้านั้นและใช้ pattern เดียวกันทุกอย่าง — รวมถึง font, dropdown, layout, sticky footer, live preview
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      สร้างจากการ redesign จริงของ <a href="/master-data/ipc-criteria/new">/master-data/ipc-criteria/new</a> ที่ deploy ไป 5 tenants
+      <br>
+      <span style="color:#94a3b8;">Reference Prototype:</span>
+      <a href="https://oommiemie.github.io/ipc-criteria-prototype/" target="_blank" rel="noreferrer">oommiemie/ipc-criteria-prototype</a>
+    </p>
+  </footer>
+
+</div>
+
+<script>
+  function copyCode(btn) {
+    const block = btn.closest('.code-block');
+    const pre = block.querySelector('pre');
+    if (!pre) return;
+    const text = pre.textContent || '';
+    navigator.clipboard.writeText(text.trim()).then(() => {
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  }
+  function showTab(id, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>
