@@ -7,7 +7,7 @@ import {
 } from '@/lib/api-utils';
 import {
   getWOMaterials,
-  getCleaningRequirements,
+  getWOCleaningLogs,
   getWOSOPExecution,
   getWOEnvironmentalLogs,
   getWOPackagingWeightLogs,
@@ -32,12 +32,7 @@ export async function GET(
         return errorResponse('Invalid work order ID');
       }
 
-      // Fetch all execution data in parallel.
-      // Cleaning uses getCleaningRequirements (which merges BOM rooms+equipment
-      // with logs) so 'total' reflects everything the operator has to do — not
-      // just the items they've already touched. Earlier we used getWOCleaningLogs
-      // which only contained started items, so a BOM with 2 items but only 1
-      // marked clean would report total=1 instead of total=2.
+      // Fetch all execution data in parallel
       const [
         materials,
         preProductionCleaning,
@@ -55,11 +50,11 @@ export async function GET(
         ipcTests,
       ] = await Promise.all([
         getWOMaterials(workOrderId),
-        getCleaningRequirements(workOrderId, 'pre_production'),
-        getCleaningRequirements(workOrderId, 'production'),
-        getCleaningRequirements(workOrderId, 'post_production'),
-        getCleaningRequirements(workOrderId, 'pre_packaging'),
-        getCleaningRequirements(workOrderId, 'packaging'),
+        getWOCleaningLogs(workOrderId, 'pre_production'),
+        getWOCleaningLogs(workOrderId, 'production'),
+        getWOCleaningLogs(workOrderId, 'post_production'),
+        getWOCleaningLogs(workOrderId, 'pre_packaging'),
+        getWOCleaningLogs(workOrderId, 'packaging'),
         getWOSOPExecution(workOrderId),
         getWOEnvironmentalLogs(workOrderId, 'pre_production'),
         getWOEnvironmentalLogs(workOrderId, 'production'),
@@ -77,20 +72,18 @@ export async function GET(
         verified: materials.filter((m: any) => m.verifiedAt).length,
       };
 
-      // Cleaning data comes from getCleaningRequirements which is a list of
-      // BOM-required items (rooms + equipment) with optional cleaningLog.
-      // Total = items from BOM, completed = items with isClean log, verified
-      // = items with a verifiedAt timestamp on their log.
+      // Calculate pre-production cleaning status
       const preProductionCleaningStatus = {
         total: preProductionCleaning.length,
-        completed: preProductionCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
-        verified: preProductionCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
+        completed: preProductionCleaning.filter((l: any) => l.isClean).length,
+        verified: preProductionCleaning.filter((l: any) => l.verifiedAt).length,
       };
 
+      // Calculate production cleaning status
       const productionCleaningStatus = {
         total: productionCleaning.length,
-        completed: productionCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
-        verified: productionCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
+        completed: productionCleaning.filter((l: any) => l.isClean).length,
+        verified: productionCleaning.filter((l: any) => l.verifiedAt).length,
       };
 
       // Calculate SOP execution status
@@ -114,22 +107,25 @@ export async function GET(
         normal: productionEnvLogs.filter((l: any) => l.isNormal).length,
       };
 
+      // Calculate post-production cleaning status
       const postProductionCleaningStatus = {
         total: postProductionCleaning.length,
-        completed: postProductionCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
-        verified: postProductionCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
+        completed: postProductionCleaning.filter((l: any) => l.isClean).length,
+        verified: postProductionCleaning.filter((l: any) => l.verifiedAt).length,
       };
 
+      // Calculate pre-packaging cleaning status
       const prePackagingCleaningStatus = {
         total: prePackagingCleaning.length,
-        completed: prePackagingCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
-        verified: prePackagingCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
+        completed: prePackagingCleaning.filter((l: any) => l.isClean).length,
+        verified: prePackagingCleaning.filter((l: any) => l.verifiedAt).length,
       };
 
+      // Calculate packaging cleaning status
       const packagingCleaningStatus = {
         total: packagingCleaning.length,
-        completed: packagingCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
-        verified: packagingCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
+        completed: packagingCleaning.filter((l: any) => l.isClean).length,
+        verified: packagingCleaning.filter((l: any) => l.verifiedAt).length,
       };
 
       // Calculate packaging weight status
