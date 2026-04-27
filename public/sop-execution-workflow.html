@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOP Execution Workflow | Herbal ERP</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand: #10b981;
+    --brand-dark: #047857;
+    --brand-soft: #ecfdf5;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', 'Sarabun', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(180deg, #f8fafc 0%, #ecfdf5 100%);
+    color: var(--slate-900);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  .container { max-width: 1080px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+    color: white;
+    border-radius: 24px;
+    padding: 32px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 40px rgba(37, 99, 235, 0.25);
+  }
+  .hero .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 700; line-height: 1.2; }
+  .hero p { margin: 0; opacity: 0.9; font-size: 15px; }
+
+  /* TOC */
+  .toc {
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .toc-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--slate-500); letter-spacing: 0.5px; margin-bottom: 8px; }
+  .toc ol { margin: 0; padding-left: 20px; font-size: 14px; }
+  .toc li { margin-bottom: 4px; }
+  .toc a { color: var(--brand-dark); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Section */
+  .section {
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
+  .section h2 {
+    margin: 0 0 14px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--slate-900);
+  }
+  .section h3 { margin: 18px 0 8px; font-size: 16px; font-weight: 600; color: var(--slate-700); }
+  .section p { margin: 0 0 12px; font-size: 14px; color: var(--slate-600); }
+
+  /* State machine diagram */
+  .state-machine {
+    display: grid;
+    grid-template-columns: repeat(7, auto);
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 16px 0;
+    margin: 12px 0;
+    justify-content: center;
+  }
+  .state-card {
+    text-align: center;
+    padding: 14px 12px;
+    border-radius: 12px;
+    border: 2px solid;
+    min-width: 110px;
+  }
+  .state-card.pending { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
+  .state-card.in-progress { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+  .state-card.completed { background: #ecfdf5; border-color: #6ee7b7; color: #047857; }
+  .state-card.verified { background: #dbeafe; border-color: #60a5fa; color: #1e40af; }
+  .state-card .icon { font-size: 22px; margin-bottom: 4px; }
+  .state-card .label { font-weight: 700; font-size: 13px; }
+  .state-card .label-en { font-size: 11px; opacity: 0.7; }
+  .arrow {
+    font-size: 24px;
+    color: var(--slate-400);
+    font-weight: 300;
+  }
+
+  /* Status cards */
+  .status-card {
+    border: 2px solid;
+    border-radius: 14px;
+    padding: 18px;
+    margin: 16px 0;
+    background: white;
+  }
+  .status-card.pending { border-color: #cbd5e1; background: #f8fafc; }
+  .status-card.in-progress { border-color: #93c5fd; background: #eff6ff; }
+  .status-card.completed { border-color: #6ee7b7; background: #ecfdf5; }
+  .status-card.verified { border-color: #60a5fa; background: #dbeafe; }
+
+  .status-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .status-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .pending .status-icon { background: #cbd5e1; color: #475569; }
+  .in-progress .status-icon { background: #93c5fd; color: white; }
+  .completed .status-icon { background: #6ee7b7; color: white; }
+  .verified .status-icon { background: #60a5fa; color: white; }
+
+  .status-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--slate-900);
+  }
+  .status-subtitle { font-size: 13px; color: var(--slate-500); }
+
+  .status-body { padding-left: 56px; font-size: 14px; }
+  .status-body p { color: var(--slate-700); margin: 6px 0; }
+  .status-body strong { color: var(--slate-900); }
+  .status-body ul { padding-left: 20px; margin: 6px 0; }
+  .status-body li { margin-bottom: 4px; color: var(--slate-700); }
+
+  /* Action buttons */
+  .btn-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 13px;
+    margin: 4px 4px 4px 0;
+  }
+  .btn-pill.start { background: #2563eb; color: white; }
+  .btn-pill.complete { background: var(--brand); color: white; }
+  .btn-pill.verify { background: #1e40af; color: white; }
+  .btn-pill.gray { background: #cbd5e1; color: #475569; }
+
+  /* Callouts */
+  .callout {
+    border-left: 4px solid var(--brand);
+    background: var(--brand-soft);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 14px;
+    color: var(--slate-700);
+  }
+  .callout.warn { border-left-color: #f59e0b; background: #fffbeb; }
+  .callout.danger { border-left-color: #ef4444; background: #fef2f2; }
+  .callout.info { border-left-color: #2563eb; background: #eff6ff; }
+  .callout strong { color: var(--slate-900); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--slate-200); }
+  th { background: var(--slate-50); font-weight: 600; color: var(--slate-700); font-size: 13px; }
+  td { color: var(--slate-700); vertical-align: top; }
+  td code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--brand-soft); color: var(--brand-dark); padding: 1px 6px; border-radius: 4px; }
+
+  /* Example flow */
+  .flow-example {
+    background: var(--slate-50);
+    border-left: 4px solid #2563eb;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .flow-example .step-line { margin: 6px 0; }
+  .flow-example .arrow-down { color: #94a3b8; margin: 0 8px; }
+  .flow-example .user { font-weight: 600; color: #1d4ed8; }
+  .flow-example .action { color: var(--brand-dark); font-weight: 600; }
+  .flow-example .state { background: white; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 11px; margin-left: 6px; }
+
+  /* Pitfall cards */
+  .pitfall-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    margin: 12px 0;
+  }
+  .pitfall {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 13px;
+  }
+  .pitfall .title {
+    font-weight: 600;
+    color: #92400e;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pitfall .desc { color: #78350f; }
+
+  /* Badge legend */
+  .badge-legend {
+    display: grid;
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .badge-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--slate-200);
+  }
+  .badge-row:last-child { border-bottom: none; }
+  .badge-row .badge-display { flex-shrink: 0; }
+  .badge-row .desc { color: var(--slate-700); font-size: 14px; }
+  .b-purple { background: #f3e8ff; color: #6b21a8; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .b-amber { background: #fffbeb; color: #92400e; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid #fde68a; }
+  .b-clock { background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .b-green { background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    color: var(--slate-500);
+    font-size: 12px;
+    padding: 20px 0 0;
+    border-top: 1px solid var(--slate-200);
+    margin-top: 40px;
+  }
+  footer a { color: var(--brand-dark); text-decoration: none; }
+
+  @media (max-width: 640px) {
+    .container { padding: 16px 12px 40px; }
+    .hero { padding: 24px 20px; }
+    .hero h1 { font-size: 22px; }
+    .section { padding: 18px 16px; }
+    .section h2 { font-size: 19px; }
+    .status-body { padding-left: 0; }
+    .state-machine { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); margin: 4px auto; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="hero">
+    <div class="badge">📋 Production Step Workflow</div>
+    <h1>SOP Execution — คู่มือการบันทึก</h1>
+    <p>อธิบายแต่ละสถานะ (Pending / In Progress / Completed / Verified) บนหน้า
+      <code style="color:white;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:4px;">/production/work-orders/[id]/sop-execution</code> —
+      ทำอย่างไร, ใครทำ, และข้อความที่จะแสดง</p>
+  </header>
+
+  <nav class="toc">
+    <div class="toc-title">📑 สารบัญ</div>
+    <ol>
+      <li><a href="#overview">ภาพรวม Workflow</a></li>
+      <li><a href="#status-pending">1. Pending — รอเริ่ม</a></li>
+      <li><a href="#status-progress">2. In Progress — กำลังทำ</a></li>
+      <li><a href="#status-completed">3. Completed — ทำเสร็จแล้ว</a></li>
+      <li><a href="#status-verified">4. Verified — ตรวจสอบรับรองแล้ว</a></li>
+      <li><a href="#dual-control">Dual-Control (GMP)</a></li>
+      <li><a href="#example">ตัวอย่าง Flow จริง</a></li>
+      <li><a href="#badges">ป้ายเสริม (Badges)</a></li>
+      <li><a href="#pitfalls">จุดที่คนพลาดบ่อย</a></li>
+    </ol>
+  </nav>
+
+  <section class="section" id="overview">
+    <h2>🔄 ภาพรวม State Machine</h2>
+    <p>Step การผลิตหนึ่งขั้นจะเดินผ่าน <strong>4 สถานะ</strong> ตามลำดับ:</p>
+
+    <div class="state-machine">
+      <div class="state-card pending">
+        <div class="icon">⏰</div>
+        <div class="label">Pending</div>
+        <div class="label-en">รอเริ่ม</div>
+      </div>
+      <span class="arrow">→</span>
+      <div class="state-card in-progress">
+        <div class="icon">▶</div>
+        <div class="label">In Progress</div>
+        <div class="label-en">กำลังทำ</div>
+      </div>
+      <span class="arrow">→</span>
+      <div class="state-card completed">
+        <div class="icon">✓</div>
+        <div class="label">Completed</div>
+        <div class="label-en">ทำเสร็จ</div>
+      </div>
+      <span class="arrow">→</span>
+      <div class="state-card verified">
+        <div class="icon">👤</div>
+        <div class="label">Verified</div>
+        <div class="label-en">ตรวจรับรอง</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>💡 หลักการ:</strong> Step ถัดไปจะเริ่มได้เมื่อ Step ก่อนหน้า
+      <strong>Verified</strong> (หรือ <strong>Completed</strong> ถ้า step นั้นไม่ require verification)
+    </div>
+  </section>
+
+  <section class="section" id="status-pending">
+    <h2>📋 รายละเอียดแต่ละสถานะ</h2>
+
+    <div class="status-card pending" id="card-pending">
+      <div class="status-header">
+        <div class="status-icon">⏰</div>
+        <div>
+          <div class="status-title">1. Pending</div>
+          <div class="status-subtitle">รอเริ่ม — สีเทา · icon นาฬิกา</div>
+        </div>
+      </div>
+      <div class="status-body">
+        <p><strong>ข้อความที่แสดง:</strong> <span class="b-clock">Pending</span> ป้ายสีเทา</p>
+        <p><strong>Operator ทำอะไร:</strong></p>
+        <ul>
+          <li>กดปุ่ม <span class="btn-pill start">▶ Start</span></li>
+          <li>ระบบเปิด dialog ยืนยัน → กด <strong>"Start Step"</strong></li>
+        </ul>
+        <p><strong>เงื่อนไขที่ Start ได้:</strong></p>
+        <ul>
+          <li>Step ก่อนหน้าต้อง <strong>Completed</strong> (หรือ <strong>Verified</strong> ถ้า require verification)</li>
+          <li>ถ้ายังไม่พร้อม → จะเห็นป้ายสีเหลือง <span class="b-amber">รอตรวจสอบ Step X ก่อน</span></li>
+        </ul>
+        <p>➡ หลังกด Start → เปลี่ยนเป็น <strong>In Progress</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="status-progress">
+    <div class="status-card in-progress" id="card-in-progress">
+      <div class="status-header">
+        <div class="status-icon">▶</div>
+        <div>
+          <div class="status-title">2. In Progress</div>
+          <div class="status-subtitle">กำลังทำ — สีน้ำเงิน · card มี border + bg น้ำเงิน</div>
+        </div>
+      </div>
+      <div class="status-body">
+        <p><strong>ข้อความที่แสดง:</strong> ป้ายสีน้ำเงิน <strong>In Progress</strong> + card highlight สีฟ้า</p>
+        <p><strong>Operator ทำอะไร:</strong></p>
+        <ul>
+          <li>ทำงานตามขั้นตอนใน <strong>BOM Instructions</strong></li>
+          <li>ติ๊ก checklist <strong>Sub-Steps</strong> ครบทุกข้อ (ถ้ามี) — ปุ่ม "ทำเครื่องหมายทั้งหมด" ก็ได้</li>
+          <li>กดปุ่ม <span class="btn-pill complete">✓ Complete</span></li>
+        </ul>
+        <p><strong>Dialog "Complete Production Step" ขึ้นมา ต้องกรอก:</strong></p>
+        <ul>
+          <li><strong>Actual Parameters</strong> — ค่าจริงที่ทำได้ เช่น
+            <ul>
+              <li><code>Temperature: 250</code> (expected: 240)</li>
+              <li><code>Time: 30</code> (expected: 30)</li>
+              <li><code>Pressure: 5</code> (expected: 5)</li>
+            </ul>
+          </li>
+          <li><strong>Notes</strong> — สังเกตการณ์ / ข้อสังเกตเพิ่มเติม</li>
+        </ul>
+        <p>➡ กด <strong>"Complete Step"</strong> → เปลี่ยนเป็น <strong>Completed</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="status-completed">
+    <div class="status-card completed" id="card-completed">
+      <div class="status-header">
+        <div class="status-icon">✓</div>
+        <div>
+          <div class="status-title">3. Completed</div>
+          <div class="status-subtitle">ทำเสร็จแล้ว — สีเขียว · icon ✓</div>
+        </div>
+      </div>
+      <div class="status-body">
+        <p><strong>ข้อความที่แสดง:</strong> <span class="b-green">Completed</span> ป้ายสีเขียว</p>
+        <p><strong>ขั้นตอนต่อไป:</strong></p>
+        <ul>
+          <li>ถ้า step <strong>ไม่</strong> Requires Verification → จบขั้นนี้ ไปทำ step ถัดไปได้</li>
+          <li>ถ้า step <strong>Requires Verification</strong> → ต้องมีคนอื่นมา <strong>Verify</strong></li>
+        </ul>
+
+        <div class="callout warn">
+          <strong>⚠ Dual-Control:</strong> คน Verify ต้องไม่ใช่คน Operator
+          <ul style="margin:6px 0 0;">
+            <li>ถ้าคุณคือคน Operator ของ step นี้ → ปุ่ม Verify <strong>ไม่แสดง</strong></li>
+            <li>จะเห็น <span class="b-amber">⏳ Awaiting other verifier</span> แทน</li>
+            <li>ต้องให้ user อื่น (Supervisor / QC) login เข้ามากด Verify</li>
+          </ul>
+        </div>
+
+        <p><strong>คนอื่นกดปุ่ม</strong> <span class="btn-pill verify">👤 Verify</span> → เปลี่ยนเป็น <strong>Verified</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="status-verified">
+    <div class="status-card verified" id="card-verified">
+      <div class="status-header">
+        <div class="status-icon">👤</div>
+        <div>
+          <div class="status-title">4. Verified</div>
+          <div class="status-subtitle">ตรวจสอบรับรองแล้ว — สีฟ้า · icon 👤</div>
+        </div>
+      </div>
+      <div class="status-body">
+        <p><strong>ข้อความที่แสดง:</strong> ป้ายสีฟ้า <strong>Verified</strong></p>
+        <p><strong>ผลที่ตามมา:</strong></p>
+        <ul>
+          <li>จบขั้นตอนนี้ — สามารถไปทำ step ถัดไปได้</li>
+          <li>ป้ายสีม่วง <span class="b-purple">Requires Verification</span> หาย</li>
+          <li>Progress bar ของ work order เคลื่อนไปข้างหน้า</li>
+        </ul>
+        <p>นี่คือสถานะ "สมบูรณ์" — ตามมาตรฐาน GMP</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="dual-control">
+    <h2>🛡 GMP Dual-Control Rule</h2>
+    <p>มาตรฐาน GMP กำหนดว่า "<strong>คนที่ทำ ≠ คนที่ตรวจสอบ</strong>" เพื่อให้มี independent check</p>
+
+    <table>
+      <thead>
+        <tr><th>สถานการณ์</th><th>ปุ่ม Verify</th><th>ป้ายที่แสดง</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>คุณเป็น operator ของ step นี้</td>
+          <td>❌ ไม่แสดง</td>
+          <td><span class="b-amber">⏳ Awaiting other verifier</span></td>
+        </tr>
+        <tr>
+          <td>คุณเป็น user คนอื่น (เช่น Supervisor)</td>
+          <td>✅ แสดง</td>
+          <td><span class="btn-pill verify">👤 Verify</span></td>
+        </tr>
+        <tr>
+          <td>Step ไม่ require verification</td>
+          <td>—</td>
+          <td>ไม่ต้อง Verify, จบที่ Completed</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>💡 หมายเหตุ:</strong> เมื่อมี user อื่นกด Verify จาก browser อื่น —
+      หน้าของคุณจะ refresh สถานะอัตโนมัติภายใน ~1 วินาที (ไม่ต้องกด refresh manual)
+    </div>
+  </section>
+
+  <section class="section" id="example">
+    <h2>🎬 ตัวอย่าง Flow จริง</h2>
+
+    <div class="flow-example">
+<div class="step-line"><strong>Step 1: ผสมผง</strong> (requires verification)</div>
+<div class="step-line">  <span class="user">Operator A</span> login → กด <span class="action">Start</span> <span class="state">Pending → In Progress</span></div>
+<div class="step-line">  <span class="user">Operator A</span> ทำงาน → ติ๊ก sub-steps ครบ → กด <span class="action">Complete</span></div>
+<div class="step-line">    กรอก: Temp=25°C, Time=15min, Notes="ผงผสมเรียบร้อย" <span class="state">In Progress → Completed</span></div>
+<div class="step-line">  → ปุ่ม Verify ไม่แสดงให้ A (เป็น operator)</div>
+<div class="step-line">  <span class="user">Supervisor B</span> login → เห็นปุ่ม <span class="action">Verify</span> → กด <span class="state">Completed → Verified ✓</span></div>
+<div class="step-line"></div>
+<div class="step-line"><strong>Step 2: Granulation</strong> (เริ่มได้ตอนนี้)</div>
+<div class="step-line">  ขณะ Step 1 ยัง <span class="state">Completed</span> (ยังไม่ Verified)</div>
+<div class="step-line">  Step 2 จะติด <span class="state">รอตรวจสอบ Step 1 ก่อน</span></div>
+    </div>
+  </section>
+
+  <section class="section" id="badges">
+    <h2>🏷 ป้ายเสริม (Badges)</h2>
+
+    <div class="badge-legend">
+      <div class="badge-row">
+        <span class="badge-display"><span class="b-purple">Requires Verification</span></span>
+        <span class="desc">Step นี้ต้องมีคนตรวจสอบหลังจาก Completed</span>
+      </div>
+      <div class="badge-row">
+        <span class="badge-display"><span class="b-amber">รอตรวจสอบ Step X ก่อน</span></span>
+        <span class="desc">Step ก่อนหน้ายังไม่ Verified — กด Start ตอนนี้ไม่ได้</span>
+      </div>
+      <div class="badge-row">
+        <span class="badge-display"><span class="b-amber">⏳ Awaiting other verifier</span></span>
+        <span class="desc">คุณเป็น operator ของ step นี้ — รอคนอื่นมาเป็น verifier</span>
+      </div>
+      <div class="badge-row">
+        <span class="badge-display"><span class="b-green">✓ Sub-steps confirmed</span></span>
+        <span class="desc">ติ๊ก checklist ครบทุกข้อแล้ว — กด Complete ได้</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="pitfalls">
+    <h2>⚠ จุดที่คนพลาดบ่อย</h2>
+
+    <div class="pitfall-grid">
+      <div class="pitfall">
+        <div class="title">😕 กดปุ่ม Start ไม่ได้</div>
+        <div class="desc">ตรวจ: <strong>Step ก่อนหน้า Verified แล้วหรือยัง?</strong> ถ้ายัง Completed ก็ยังเริ่มไม่ได้ (ถ้า require verification)</div>
+      </div>
+      <div class="pitfall">
+        <div class="title">🔍 ไม่มีปุ่ม Verify</div>
+        <div class="desc">คุณคือ <strong>operator</strong> ของ step นี้ — ต้องให้ user คนอื่น login เข้ามาแทน (GMP dual control)</div>
+      </div>
+      <div class="pitfall">
+        <div class="title">📝 Sub-steps ยังไม่ติ๊กครบ</div>
+        <div class="desc">ปุ่ม Complete จะใช้ไม่ได้จนกว่าจะติ๊ก <strong>checklist ครบทุกข้อ</strong> — ใช้ปุ่ม "ทำเครื่องหมายทั้งหมด" ช่วยได้</div>
+      </div>
+      <div class="pitfall">
+        <div class="title">⚖ Actual ห่างจาก Expected</div>
+        <div class="desc">ระบบไม่ block แต่ควรใส่ <strong>Notes</strong> อธิบาย เพื่อให้ตอน Verify เข้าใจ</div>
+      </div>
+      <div class="pitfall">
+        <div class="title">🔄 หน้าไม่ refresh</div>
+        <div class="desc">ระบบ realtime sync ทำงานอัตโนมัติ — ถ้ายังไม่ update ลอง <strong>refresh browser</strong> หรือเช็คว่า login session ยัง active</div>
+      </div>
+      <div class="pitfall">
+        <div class="title">🚫 Operator login ผิดคน</div>
+        <div class="desc">ถ้าคน login ที่กด Complete ไม่ใช่คนทำจริง — ตอน Verify จะ block เพราะระบบจำว่า "คน login = operator"</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Reference: <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">src/app/production/work-orders/[id]/sop-execution/page.tsx</code>
+      <br>
+      Service logic: <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">src/lib/services/wo-execution.service.ts</code>
+      <br>
+      <span style="color:#94a3b8;">เอกสารนี้เผยแพร่เฉพาะ tenant <strong>metaherb</strong></span>
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>
