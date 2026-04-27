@@ -1290,6 +1290,10 @@ export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
   // When specTarget is set, minValue/maxValue are derived from it at save time
   specTarget: real('spec_target'),
   specTolerancePercent: real('spec_tolerance_percent').notNull().default(0),
+  // Multi-stage acceptance plan (USP <711>, <905>) — JSON array of stages.
+  // Empty/null = single-stage (uses sampleSize + tolerancePercent above).
+  // Each stage: { sampleSize, tolerancePercent, onFail: 'next_stage'|'reject_batch'|'deviation' }
+  acceptanceStages: text('acceptance_stages'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -4509,6 +4513,10 @@ export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
   // When specTarget is set, minValue/maxValue are derived from it at save time
   specTarget: decimal('spec_target', { precision: 15, scale: 4 }),
   specTolerancePercent: decimal('spec_tolerance_percent', { precision: 5, scale: 2 }).notNull().default('0'),
+  // Multi-stage acceptance plan (USP <711>, <905>) — JSON string of stages array.
+  // Empty/null = single-stage (uses sampleSize + tolerancePercent above).
+  // Each stage: { sampleSize, tolerancePercent, onFail: 'next_stage'|'reject_batch'|'deviation' }
+  acceptanceStages: mysqlText('acceptance_stages'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

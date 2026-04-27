@@ -9,6 +9,7 @@ import { executeDbOperation, getTableRef, getInsertId } from '@/lib/db/db-helper
 import { getNow } from '@/lib/db/date-utils';
 import { eq, asc, desc } from 'drizzle-orm';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
+import { serializeAcceptanceStages } from '@/lib/master-data/ipc-stages';
 
 function getTable() {
   return getTableRef('iPCCriteria');
@@ -89,6 +90,10 @@ export async function POST(request: NextRequest) {
         maxValue = calc.max;
       }
 
+      // Stringify acceptanceStages array for storage. Empty/null = single-stage.
+      // Validates shape so malformed data doesn't reach the DB.
+      const acceptanceStages = serializeAcceptanceStages(data.acceptanceStages);
+
       const table = getTable();
       const ipcValues = {
         name: data.name, nameTh: data.nameTh || null, testMethod: data.testMethod || null,
@@ -98,6 +103,7 @@ export async function POST(request: NextRequest) {
         dosageForm: data.dosageForm || null, criteriaType: data.criteriaType || 'numeric',
         tolerancePercent: data.tolerancePercent ?? 0,
         specTarget, specTolerancePercent,
+        acceptanceStages,
       };
 
       // Upsert
@@ -177,6 +183,11 @@ export async function PUT(request: NextRequest) {
       ];
       for (const field of fields) {
         if (data[field] !== undefined) updateData[field] = data[field];
+      }
+
+      // Serialize stages independently so empty/null clears multi-stage cleanly
+      if (data.acceptanceStages !== undefined) {
+        updateData.acceptanceStages = serializeAcceptanceStages(data.acceptanceStages);
       }
 
       // When specTarget is touched, validate and recompute minValue/maxValue

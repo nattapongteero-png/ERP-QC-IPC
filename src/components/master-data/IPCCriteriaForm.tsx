@@ -25,6 +25,17 @@ import {
   suggestCodeForTest,
   type CriteriaType,
 } from '@/lib/master-data/ipc-test-catalog';
+import {
+  parseAcceptanceStages,
+  calcStageAcceptance,
+  totalStageSamples,
+  emptyStage,
+  getOnFailLabel,
+  USP_DISSOLUTION_PLAN,
+  USP_UNIFORMITY_PLAN,
+  type AcceptanceStage,
+  type OnFailAction,
+} from '@/lib/master-data/ipc-stages';
 
 const CUSTOM_OPTION_VALUE = '__custom__';
 
@@ -47,6 +58,8 @@ interface IPCCriteria {
   tolerancePercent: number;
   specTarget: number | null;
   specTolerancePercent: number;
+  /** JSON string from DB or array after parse — see ipc-stages module */
+  acceptanceStages: string | AcceptanceStage[] | null;
 }
 
 interface Props {
@@ -112,6 +125,12 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   const queryClient = useQueryClient();
   const toast = useToast();
   const [formData, setFormData] = React.useState<Partial<IPCCriteria>>(initialData);
+  const [stages, setStages] = React.useState<AcceptanceStage[]>(() =>
+    parseAcceptanceStages(initialData.acceptanceStages)
+  );
+  const [multiStageEnabled, setMultiStageEnabled] = React.useState<boolean>(() =>
+    parseAcceptanceStages(initialData.acceptanceStages).length > 0
+  );
   const [autoFilled, setAutoFilled] = React.useState<Set<string>>(new Set());
   const [autoFillNote, setAutoFillNote] = React.useState<string>('');
   const [isCustomName, setIsCustomName] = React.useState(() => {
@@ -227,7 +246,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   };
 
   const saveMutation = useMutation({
-    mutationFn: async (data: Partial<IPCCriteria>) => {
+    mutationFn: async (data: Partial<IPCCriteria> & { acceptanceStages?: AcceptanceStage[] | null }) => {
       const method = mode === 'edit' ? 'PUT' : 'POST';
       const payload = mode === 'edit' ? { ...data, id } : data;
       const res = await fetch('/api/master-data/ipc-criteria', {
@@ -262,8 +281,26 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
         return;
       }
     }
-    saveMutation.mutate(formData);
+    if (multiStageEnabled && stages.length === 0) {
+      toast.error('Validation', 'Multi-Stage โหมด ต้องมี Stage อย่างน้อย 1 ขั้น');
+      return;
+    }
+    // Send stages array (or null when single-stage mode) — API serializes
+    saveMutation.mutate({
+      ...formData,
+      acceptanceStages: multiStageEnabled ? stages : null,
+    });
   };
+
+  // ── Multi-Stage helpers ──────────────────────────────────────────────
+  const addStage = () => setStages((prev) => [...prev, emptyStage()]);
+  const removeStage = (idx: number) => setStages((prev) => prev.filter((_, i) => i !== idx));
+  const updateStage = (idx: number, patch: Partial<AcceptanceStage>) =>
+    setStages((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+  const loadUSPDissolutionPlan = () => setStages([...USP_DISSOLUTION_PLAN]);
+  const loadUSPUniformityPlan = () => setStages([...USP_UNIFORMITY_PLAN]);
+
+  const totalSamples = totalStageSamples(stages);
 
   const isAutoFilled = (field: string) => autoFilled.has(field);
 
@@ -558,41 +595,74 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           {/* ── Section 3: Sampling Plan ────────────────────────────── */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">3</span>
-                Sampling Plan
+              <CardTitle className="flex items-center gap-2 justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">3</span>
+                  Sampling Plan
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (multiStageEnabled) {
+                      // Disable multi-stage but keep stage data in case user re-enables
+                      setMultiStageEnabled(false);
+                    } else {
+                      setMultiStageEnabled(true);
+                      // Seed with one stage if empty so UI has something to show
+                      if (stages.length === 0) {
+                        setStages([{
+                          sampleSize: formData.sampleSize ?? 6,
+                          tolerancePercent: formData.tolerancePercent ?? 0,
+                          onFail: 'next_stage',
+                        }]);
+                      }
+                    }
+                  }}
+                  className={cn(
+                    'text-xs font-medium px-3 py-1 rounded-full border transition-colors',
+                    multiStageEnabled
+                      ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                  )}
+                >
+                  {multiStageEnabled ? '✓ Multi-Stage Acceptance' : '+ Enable Multi-Stage (USP <711>/<905>)'}
+                </button>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Sample Size <span className="text-red-500">*</span>
-                    {isAutoFilled('sampleSize') && <AutoBadge />}
-                  </label>
-                  <DxNumberBox
-                    value={formData.sampleSize ?? 5}
-                    onValueChanged={(e) => setFormData({ ...formData, sampleSize: Number(e.value) || 1 })}
-                    min={1}
-                    max={1000}
-                    step={1}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">จำนวนหน่วยที่ต้องสุ่มทดสอบ</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Failure Tolerance ±%
-                  </label>
-                  <DxNumberBox
-                    value={formData.tolerancePercent ?? 0}
-                    onValueChanged={(e) => setFormData({ ...formData, tolerancePercent: Number(e.value) || 0 })}
-                    min={0}
-                    max={100}
-                    format="#0.##'%'"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">ยอมให้ตัวอย่างเสียได้กี่ %</p>
-                </div>
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {!multiStageEnabled && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Sample Size <span className="text-red-500">*</span>
+                        {isAutoFilled('sampleSize') && <AutoBadge />}
+                      </label>
+                      <DxNumberBox
+                        value={formData.sampleSize ?? 5}
+                        onValueChanged={(e) => setFormData({ ...formData, sampleSize: Number(e.value) || 1 })}
+                        min={1}
+                        max={1000}
+                        step={1}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">จำนวนหน่วยที่ต้องสุ่มทดสอบ</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Failure Tolerance ±%
+                      </label>
+                      <DxNumberBox
+                        value={formData.tolerancePercent ?? 0}
+                        onValueChanged={(e) => setFormData({ ...formData, tolerancePercent: Number(e.value) || 0 })}
+                        min={0}
+                        max={100}
+                        format="#0.##'%'"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">ยอมให้ตัวอย่างเสียได้กี่ %</p>
+                    </div>
+                  </>
+                )}
+                <div className={cn(multiStageEnabled ? 'md:col-span-1' : '')}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Check Interval (min)
                   </label>
@@ -607,11 +677,62 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 </div>
               </div>
 
-              {acceptanceMath && (
+              {!multiStageEnabled && acceptanceMath && (
                 <div className="grid grid-cols-3 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
                   <StatTile label="ทดสอบ" value={acceptanceMath.sampleSize} unit="ชิ้น" tone="default" />
                   <StatTile label="ยอมเสียได้" value={acceptanceMath.allowedFail} unit="ชิ้น" tone="warn" />
                   <StatTile label="ต้องผ่าน" value={acceptanceMath.mustPass} unit="ชิ้น" tone="success" />
+                </div>
+              )}
+
+              {multiStageEnabled && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-gray-600">USP recommended plans:</span>
+                    <button
+                      type="button"
+                      onClick={loadUSPDissolutionPlan}
+                      className="text-xs font-medium px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                    >
+                      USP &lt;711&gt; Dissolution (6 → 6 → 12)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadUSPUniformityPlan}
+                      className="text-xs font-medium px-2 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100"
+                    >
+                      USP &lt;905&gt; Uniformity (10 → 20)
+                    </button>
+                  </div>
+
+                  {stages.map((stage, idx) => (
+                    <StageCard
+                      key={idx}
+                      idx={idx}
+                      stage={stage}
+                      isLast={idx === stages.length - 1}
+                      onChange={(patch) => updateStage(idx, patch)}
+                      onRemove={() => removeStage(idx)}
+                      canRemove={stages.length > 1}
+                    />
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={addStage}
+                    className="w-full py-2 rounded-lg border-2 border-dashed border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-emerald-400 hover:text-emerald-700 transition-colors text-sm font-medium"
+                  >
+                    + Add Stage {stages.length + 1}
+                  </button>
+
+                  {totalSamples > 0 && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-emerald-800">
+                      <strong>Total samples across all stages:</strong> {totalSamples} ชิ้น
+                      <span className="ml-2 text-emerald-600">
+                        (Stage 1 จะถูกสุ่มก่อน → ถ้า fail → Stage 2 → …)
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -665,7 +786,13 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
         {showPreview && (
           <div className="hidden xl:block">
             <div className="sticky top-4">
-              <LivePreviewPanel formData={formData} acceptanceMath={acceptanceMath} calculatedMinMax={calculatedMinMax} />
+              <LivePreviewPanel
+                formData={formData}
+                acceptanceMath={acceptanceMath}
+                calculatedMinMax={calculatedMinMax}
+                multiStageEnabled={multiStageEnabled}
+                stages={stages}
+              />
             </div>
           </div>
         )}
@@ -674,7 +801,13 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       {/* Mobile preview (below form) */}
       {showPreview && (
         <div className="xl:hidden">
-          <LivePreviewPanel formData={formData} acceptanceMath={acceptanceMath} calculatedMinMax={calculatedMinMax} />
+          <LivePreviewPanel
+            formData={formData}
+            acceptanceMath={acceptanceMath}
+            calculatedMinMax={calculatedMinMax}
+            multiStageEnabled={multiStageEnabled}
+            stages={stages}
+          />
         </div>
       )}
     </div>
@@ -698,6 +831,92 @@ interface StatTileProps {
   value: number;
   unit: string;
   tone: 'default' | 'warn' | 'success';
+}
+
+interface StageCardProps {
+  idx: number;
+  stage: AcceptanceStage;
+  isLast: boolean;
+  onChange: (patch: Partial<AcceptanceStage>) => void;
+  onRemove: () => void;
+  canRemove: boolean;
+}
+
+function StageCard({ idx, stage, isLast, onChange, onRemove, canRemove }: StageCardProps) {
+  const math = calcStageAcceptance(stage);
+  const stageColors = ['border-emerald-300 bg-emerald-50/60', 'border-blue-300 bg-blue-50/60', 'border-purple-300 bg-purple-50/60'];
+  const colorClass = stageColors[idx] ?? 'border-slate-300 bg-slate-50/60';
+
+  return (
+    <div className={cn('rounded-lg border-2 p-3 space-y-3', colorClass)}>
+      <div className="flex items-center justify-between">
+        <h4 className="font-semibold text-sm text-gray-800">
+          Stage {idx + 1} {isLast && '(สุดท้าย)'}
+        </h4>
+        {canRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-xs text-red-600 hover:text-red-800 hover:underline"
+          >
+            ลบ Stage
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Sample Size</label>
+          <DxNumberBox
+            value={stage.sampleSize}
+            onValueChanged={(e) => onChange({ sampleSize: Number(e.value) || 1 })}
+            min={1}
+            max={1000}
+            step={1}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Tolerance ±%</label>
+          <DxNumberBox
+            value={stage.tolerancePercent}
+            onValueChanged={(e) => onChange({ tolerancePercent: Number(e.value) || 0 })}
+            min={0}
+            max={100}
+            format="#0.##'%'"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">ถ้า fail</label>
+          <DxSelectBox
+            value={stage.onFail}
+            onValueChanged={(e) => onChange({ onFail: e.value as OnFailAction })}
+            items={[
+              { value: 'next_stage', label: '→ ไปยัง Stage ถัดไป' },
+              { value: 'reject_batch', label: '✗ Reject Batch' },
+              { value: 'deviation', label: '⚑ บันทึก Deviation' },
+            ]}
+            valueExpr="value"
+            displayExpr="label"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 bg-white rounded p-2 text-center">
+        <div>
+          <div className="text-[10px] text-gray-500">ทดสอบ</div>
+          <div className="text-base font-bold text-slate-700">{math.sampleSize}</div>
+        </div>
+        <div>
+          <div className="text-[10px] text-gray-500">ยอมเสียได้</div>
+          <div className="text-base font-bold text-amber-700">{math.allowedFail}</div>
+        </div>
+        <div>
+          <div className="text-[10px] text-gray-500">ต้องผ่าน</div>
+          <div className="text-base font-bold text-green-700">{math.mustPass}</div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function StatTile({ label, value, unit, tone }: StatTileProps) {
@@ -758,9 +977,11 @@ interface LivePreviewProps {
   formData: Partial<IPCCriteria>;
   acceptanceMath: { sampleSize: number; allowedFail: number; mustPass: number } | null;
   calculatedMinMax: { min: number; max: number } | null;
+  multiStageEnabled: boolean;
+  stages: AcceptanceStage[];
 }
 
-function LivePreviewPanel({ formData, acceptanceMath, calculatedMinMax }: LivePreviewProps) {
+function LivePreviewPanel({ formData, acceptanceMath, calculatedMinMax, multiStageEnabled, stages }: LivePreviewProps) {
   const criteriaType = (formData.criteriaType || 'numeric') as CriteriaType;
   const typeMeta = CRITERIA_TYPE_META[criteriaType];
 
@@ -868,8 +1089,8 @@ function LivePreviewPanel({ formData, acceptanceMath, calculatedMinMax }: LivePr
           </div>
         )}
 
-        {/* Sampling */}
-        {acceptanceMath && (
+        {/* Sampling — single-stage view */}
+        {!multiStageEnabled && acceptanceMath && (
           <div className="bg-white border rounded-lg p-3">
             <div className="text-xs font-medium text-gray-500 mb-1.5">Sampling Plan</div>
             <div className="grid grid-cols-3 gap-1 text-center">
@@ -891,6 +1112,42 @@ function LivePreviewPanel({ formData, acceptanceMath, calculatedMinMax }: LivePr
                 Method: {SAMPLING_METHOD_OPTIONS.find((s) => s.value === formData.testMethod)?.label.split(' — ')[0] || formData.testMethod}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Multi-stage acceptance flow diagram */}
+        {multiStageEnabled && stages.length > 0 && (
+          <div className="bg-white border rounded-lg p-3 space-y-2">
+            <div className="text-xs font-medium text-gray-500">Multi-Stage Acceptance Flow</div>
+            <div className="space-y-1.5">
+              {stages.map((stage, i) => {
+                const m = calcStageAcceptance(stage);
+                return (
+                  <div key={i}>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">
+                        {i + 1}
+                      </span>
+                      <span className="flex-1">
+                        <strong>{m.sampleSize}</strong> ตัวอย่าง · ยอมเสีย <strong>{m.allowedFail}</strong> · ผ่าน <strong>{m.mustPass}</strong>
+                      </span>
+                    </div>
+                    <div className="ml-7 text-[11px] text-gray-500">
+                      ถ้า fail: {getOnFailLabel(stage.onFail)}
+                      {i < stages.length - 1 && stage.onFail === 'next_stage' && ' ↓'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="border-t pt-1.5 text-[11px] text-gray-500">
+              Total samples: <strong className="text-gray-700">{totalStageSamples(stages)}</strong> ชิ้น
+              {formData.testMethod && (
+                <span className="ml-2">
+                  · Method: {SAMPLING_METHOD_OPTIONS.find((s) => s.value === formData.testMethod)?.label.split(' — ')[0] || formData.testMethod}
+                </span>
+              )}
+            </div>
           </div>
         )}
 
