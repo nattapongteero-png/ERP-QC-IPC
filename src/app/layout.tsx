@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter, Sarabun } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { ClientErrorReporter } from "@/components/dev/ClientErrorReporter";
 import { I18nProvider } from "@/components/providers/i18n-provider";
@@ -15,6 +15,20 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Fonts used by the IPC criteria prototype-match design.
+// Loaded via next/font/google so they're optimized + self-hosted.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const sarabun = Sarabun({
+  variable: "--font-sarabun",
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -48,7 +62,7 @@ export default async function RootLayout({
         `}</Script>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${sarabun.variable} antialiased bg-white text-gray-900`}
       >
         <I18nProvider locale={locale} messages={messages}>
           <Providers>

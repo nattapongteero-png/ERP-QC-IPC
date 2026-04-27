@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { ResponsivePageHeader } from '@/components/shared';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { SearchableSelect, type SearchableSelectOption } from '@/components/master-data/SearchableSelect';
 import { FlaskConical, Shield, Eye, FileText, Layers, Dice5, Plus, Trash2, AlertTriangle, Sparkles, ArrowDown } from 'lucide-react';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 import { cn } from '@/lib/utils/cn';
@@ -359,7 +359,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   // Render
   // ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-7xl mx-auto pb-24">
+    <div
+      className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-7xl mx-auto pb-24"
+      style={{ fontFamily: 'var(--font-inter), var(--font-sarabun), system-ui, -apple-system, sans-serif' }}
+    >
       <ResponsivePageHeader
         title={mode === 'edit' ? 'Edit IPC Criteria' : 'New IPC Criteria'}
         subtitle={mode === 'edit' ? `Editing ${initialData.name || ''}` : 'สร้างเกณฑ์ควบคุมคุณภาพระหว่างการผลิต (In-Process Control) ตามมาตรฐาน GMP / USP'}
@@ -387,21 +390,17 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   หัวข้อการทดสอบ (Test Name) <span className="text-red-500">*</span>
                   <span className="ml-auto text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">⚡ Smart auto-fill</span>
                 </label>
-                <DxSelectBox
+                <SearchableSelect
                   value={isCustomName ? '__custom__' : formData.name || ''}
-                  onValueChanged={(e) => handleSelectTest(e.value)}
-                  dataSource={[
-                    ...filteredTests.map((t) => ({
+                  onChange={(v) => handleSelectTest(v)}
+                  options={[
+                    ...filteredTests.map((t): SearchableSelectOption => ({
                       value: t.nameEn,
-                      display: `${t.nameEn} — ${t.nameTh}`,
+                      label: `${t.nameEn} — ${t.nameTh}`,
                     })),
-                    { value: '__custom__', display: '➕ เพิ่มหัวข้อใหม่ (Add Custom)' },
+                    { value: '__custom__', label: '➕ เพิ่มหัวข้อใหม่ (Add Custom)' },
                   ]}
-                  valueExpr="value"
-                  displayExpr="display"
                   placeholder="เริ่มจากเลือกหัวข้อทดสอบ — ระบบจะเติมช่องอื่นให้อัตโนมัติ"
-                  searchEnabled
-                  showClearButton
                 />
                 {autoFillNote ? (
                   <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
@@ -470,15 +469,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   Unit
                   {isAutoFilled('unit') && <AutoBadge />}
                 </label>
-                <DxSelectBox
+                <SearchableSelect
                   value={formData.unit || ''}
-                  onValueChanged={(e) => setFormData({ ...formData, unit: e.value || '' })}
-                  items={UNIT_OPTIONS}
-                  valueExpr="value"
-                  displayExpr="label"
+                  onChange={(v) => setFormData({ ...formData, unit: v || '' })}
+                  options={UNIT_OPTIONS}
                   placeholder="เลือกหน่วยวัด"
-                  searchEnabled
-                  showClearButton
                 />
                 <p className={FIELD_HELPER}>{isAutoFilled('unit') ? 'แนะนำตาม Test Name — เปลี่ยนได้' : 'หน่วยวัดของค่าที่บันทึก'}</p>
               </div>
@@ -486,32 +481,27 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               {/* Dosage Form */}
               <div>
                 <label className={FIELD_LABEL}>รูปแบบยา (Dosage Form)</label>
-                <DxSelectBox
+                <SearchableSelect
                   value={formData.dosageForm || ''}
-                  onValueChanged={(e) => setFormData({ ...formData, dosageForm: e.value || null })}
-                  items={DOSAGE_FORM_OPTIONS}
-                  valueExpr="value"
-                  displayExpr="label"
+                  onChange={(v) => setFormData({ ...formData, dosageForm: v || null })}
+                  options={DOSAGE_FORM_OPTIONS}
                   placeholder="เลือกรูปแบบยา"
-                  searchEnabled
-                  showClearButton
                 />
               </div>
 
               {/* Criteria Type */}
               <div>
                 <label className={FIELD_LABEL}>ประเภทเกณฑ์ (Criteria Type) <span className="text-red-500">*</span></label>
-                <DxSelectBox
+                <SearchableSelect
                   value={criteriaType}
-                  onValueChanged={(e) => handleCriteriaTypeChange(e.value as CriteriaType)}
-                  items={[
+                  onChange={(v) => handleCriteriaTypeChange(v as CriteriaType)}
+                  options={[
                     { value: 'numeric', label: 'ตัวเลข (Numeric) — ใส่ค่าวัด + เทียบ Min/Max' },
                     { value: 'pass_fail', label: 'Pass/Fail — ผ่าน/ไม่ผ่าน' },
                     { value: 'visual', label: 'Visual — ตรวจด้วยสายตา' },
                     { value: 'text', label: 'Text — บันทึกข้อความ' },
                   ]}
-                  valueExpr="value"
-                  displayExpr="label"
+                  showClear={false}
                 />
               </div>
 
@@ -645,15 +635,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                   <div>
                     <label className={FIELD_LABEL}>Sampling Method</label>
-                    <DxSelectBox
+                    <SearchableSelect
                       value={formData.testMethod || ''}
-                      onValueChanged={(e) => setFormData({ ...formData, testMethod: e.value || null })}
-                      items={SAMPLING_METHOD_OPTIONS}
-                      valueExpr="value"
-                      displayExpr="label"
+                      onChange={(v) => setFormData({ ...formData, testMethod: v || null })}
+                      options={SAMPLING_METHOD_OPTIONS}
                       placeholder="เลือกวิธีสุ่ม"
-                      searchEnabled
-                      showClearButton
                     />
                     <p className={FIELD_HELPER}>วิธีการสุ่มตัวอย่างที่ operator ต้องใช้</p>
                   </div>
