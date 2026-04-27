@@ -674,13 +674,6 @@ export default function WorkOrderDetailPage() {
                     </p>
                   </div>
                 </div>
-                {!lineClearanceStatus.canStartProduction && (
-                  <DxButton
-                    text="Complete Line Clearance"
-                    type="default"
-                    onClick={() => router.push(`/production/line-clearance?workOrderId=${workOrder.id}`)}
-                  />
-                )}
               </div>
             </CardContent>
           </Card>
