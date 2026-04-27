@@ -11,6 +11,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
@@ -147,6 +148,15 @@ export default function MaterialWeighingPage() {
 
   const materials = materialsResult?.materials || [];
   const requisitionStatus = materialsResult?.requisitionStatus || 'none';
+
+  // Auto-update when warehouse approves/rejects this WO's requisition
+  // from another browser (e.g. /inventory/lots) — flips status without refresh.
+  useRealtimeTopic('requisition-changed', (data) => {
+    const eventWorkOrderId = data.workOrderId as number | undefined;
+    if (eventWorkOrderId !== workOrderId) return;
+    queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
+  });
 
   // Prefetch available lots for all materials so they're cached before Edit click
   useEffect(() => {

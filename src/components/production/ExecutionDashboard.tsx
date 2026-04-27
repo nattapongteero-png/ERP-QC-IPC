@@ -9,6 +9,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -127,6 +128,17 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       if (!data.success) return defaultSummaryValue;
       return data.data;
     },
+  });
+
+  // Auto-update when another user changes this requisition's status
+  // (e.g. warehouse approves on /inventory/lots → status here flips
+  // from 'รอคลังอนุมัติ' to 'อนุมัติแล้ว' without manual refresh).
+  useRealtimeTopic('requisition-changed', (data) => {
+    const eventWorkOrderId = data.workOrderId as number | undefined;
+    if (eventWorkOrderId !== workOrderId) return;
+    queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
   const requisitionMutation = useMutation({
