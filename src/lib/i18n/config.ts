@@ -60,6 +60,7 @@ export const namespaces = [
   'reports',
   'sales',
   'settings',
+  'template',
   'users',
   'vmi',
 ] as const;

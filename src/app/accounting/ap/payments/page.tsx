@@ -13,6 +13,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import DataGrid, {
   Column,
   Paging,
@@ -40,6 +41,7 @@ import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
 import notify from 'devextreme/ui/notify';
+import { confirm } from 'devextreme/ui/dialog';
 import {
   AccountingPageHeader,
   AccountingKPICard,
@@ -162,10 +164,11 @@ export default function APPaymentsPage() {
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<APInvoice | null>(null);
   const [formData, setFormData] = useState<PaymentFormData>({
     apInvoiceId: null,
-    paymentDate: new Date().toISOString().split('T')[0],
+    paymentDate: toLocalDateStr(new Date()),
     bankAccountId: null,
     paymentMethod: 'transfer',
     referenceNumber: '',
@@ -178,8 +181,8 @@ export default function APPaymentsPage() {
   const filters = useMemo(() => {
     const f: { paymentMethod?: string; dateFrom?: string; dateTo?: string } = {};
     if (paymentMethodFilter) f.paymentMethod = paymentMethodFilter;
-    if (dateFrom) f.dateFrom = dateFrom.toISOString().split('T')[0];
-    if (dateTo) f.dateTo = dateTo.toISOString().split('T')[0];
+    if (dateFrom) f.dateFrom = toLocalDateStr(dateFrom);
+    if (dateTo) f.dateTo = toLocalDateStr(dateTo);
     return f;
   }, [paymentMethodFilter, dateFrom, dateTo]);
 
@@ -218,11 +221,83 @@ export default function APPaymentsPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/accounting/payments/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to delete payment');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      notify('ลบรายการชำระเงินสำเร็จ', 'success', 3000);
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถลบรายการชำระเงินได้', 'error', 4000);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await fetch(`/api/accounting/payments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to update payment');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      notify('แก้ไขรายการชำระเงินสำเร็จ', 'success', 3000);
+      setIsDialogOpen(false);
+      setEditingPaymentId(null);
+      resetForm();
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถแก้ไขรายการชำระเงินได้', 'error', 4000);
+    },
+  });
+
   // Handlers
+  const handleDelete = useCallback(
+    async (payment: Payment) => {
+      const result = await confirm(
+        `คุณต้องการลบรายการชำระเงิน ${payment.paymentNumber} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้`,
+        'ยืนยันการลบ'
+      );
+      if (result) {
+        deleteMutation.mutate(payment.id);
+      }
+    },
+    [deleteMutation]
+  );
+
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+
+  const handleEdit = useCallback((payment: Payment) => {
+    setFormData({
+      apInvoiceId: payment.apInvoiceId || null,
+      paymentDate: payment.paymentDate ? payment.paymentDate.split('T')[0] : '',
+      bankAccountId: payment.bankAccountId,
+      paymentMethod: payment.paymentMethod,
+      referenceNumber: payment.referenceNumber || '',
+      amount: payment.amount,
+      whtRate: 0,
+      description: payment.description || '',
+    });
+    setEditingPayment(payment);
+    setEditingPaymentId(payment.id);
+    setIsDialogOpen(true);
+  }, []);
+
   const resetForm = useCallback(() => {
     setFormData({
       apInvoiceId: null,
-      paymentDate: new Date().toISOString().split('T')[0],
+      paymentDate: toLocalDateStr(new Date()),
       bankAccountId: null,
       paymentMethod: 'transfer',
       referenceNumber: '',
@@ -235,11 +310,14 @@ export default function APPaymentsPage() {
 
   const handleOpenDialog = useCallback(() => {
     resetForm();
+    setEditingPaymentId(null);
     setIsDialogOpen(true);
   }, [resetForm]);
 
   const handleCloseDialog = useCallback(() => {
     setIsDialogOpen(false);
+    setEditingPaymentId(null);
+    setEditingPayment(null);
     resetForm();
   }, [resetForm]);
 
@@ -265,6 +343,22 @@ export default function APPaymentsPage() {
   }, [apInvoices]);
 
   const handleRecordPayment = useCallback(() => {
+    if (editingPaymentId) {
+      // Update mode — save editable fields
+      updateMutation.mutate({
+        id: editingPaymentId,
+        data: {
+          paymentDate: formData.paymentDate,
+          paymentMethod: formData.paymentMethod,
+          bankAccountId: formData.bankAccountId,
+          referenceNumber: formData.referenceNumber || null,
+          description: formData.description || null,
+        },
+      });
+      return;
+    }
+
+    // Create mode
     if (!formData.apInvoiceId || !formData.bankAccountId) {
       notify('กรุณาเลือกใบแจ้งหนี้และบัญชีจ่าย', 'warning', 3000);
       return;
@@ -287,7 +381,7 @@ export default function APPaymentsPage() {
         description: formData.description || undefined,
       },
     });
-  }, [formData, paymentMutation]);
+  }, [formData, paymentMutation, updateMutation, editingPaymentId]);
 
   const handleClearDateFilter = useCallback(() => {
     setDateFrom(null);
@@ -325,7 +419,7 @@ export default function APPaymentsPage() {
     // Calculate this month's date range
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthStr = firstDayOfMonth.toISOString().split('T')[0];
+    const monthStr = toLocalDateStr(firstDayOfMonth);
 
     const paidThisMonth = payments
       .filter((p) => p.status === 'completed' && p.paymentDate >= monthStr)
@@ -347,6 +441,11 @@ export default function APPaymentsPage() {
         title={t('accountsPayable.payments.title')}
         subtitle={t('accountsPayable.description')}
         icon="credit-card"
+        onBack={() => window.location.href = '/accounting/ap'}
+        breadcrumbs={[
+          { label: 'Accounts Payable', href: '/accounting/ap' },
+          { label: t('accountsPayable.payments.title') },
+        ]}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['payments'] })}
         actions={
           <Button
@@ -522,6 +621,34 @@ export default function APPaymentsPage() {
               width={100}
               cellRender={statusCellRender}
             />
+            <Column
+              caption="การดำเนินการ"
+              width={120}
+              allowFiltering={false}
+              allowSorting={false}
+              cellRender={(cellData: { data: Payment }) => {
+                const payment = cellData.data;
+                if (payment.status === 'cancelled') return null;
+                return (
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <Button
+                      icon="edit"
+                      hint="แก้ไข"
+                      stylingMode="text"
+                      height={28}
+                      onClick={() => handleEdit(payment)}
+                    />
+                    <Button
+                      icon="trash"
+                      hint="ลบ"
+                      stylingMode="text"
+                      height={28}
+                      onClick={() => handleDelete(payment)}
+                    />
+                  </div>
+                );
+              }}
+            />
 
             <Summary>
               <TotalItem column="amount" summaryType="sum" displayFormat="Total: {0}">
@@ -538,7 +665,7 @@ export default function APPaymentsPage() {
         <Popup
           visible={isDialogOpen}
           onHiding={handleCloseDialog}
-          title="Record Vendor Payment"
+          title={editingPaymentId ? 'แก้ไขรายการชำระเงิน' : 'Record Vendor Payment'}
           width={600}
           height="auto"
           showCloseButton={true}
@@ -569,22 +696,40 @@ export default function APPaymentsPage() {
               </div>
             )}
 
-            <Form formData={formData} labelLocation="top" showColonAfterLabel={true}>
-              <SimpleItem
-                dataField="apInvoiceId"
-                editorType="dxSelectBox"
-                label={{ text: 'AP Invoice' }}
-                editorOptions={{
-                  dataSource: apInvoices,
-                  displayExpr: (item: APInvoice) =>
-                    item ? `${item.invoiceNumber} - ${item.vendorName || 'Unknown'} (Outstanding: ${(item.totalAmount - item.paidAmount).toFixed(2)})` : '',
-                  valueExpr: 'id',
-                  searchEnabled: true,
-                  onValueChanged: (e: { value: number | null }) => handleInvoiceChange(e.value),
-                }}
-              >
-                <RequiredRule message="Please select an invoice" />
-              </SimpleItem>
+            {/* Edit mode: show read-only invoice & amount info */}
+            {editingPayment && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-gray-600">Invoice Number:</div>
+                  <div className="font-semibold">{editingPayment.invoiceNumber || '-'}</div>
+                  <div className="text-gray-600">Vendor:</div>
+                  <div className="font-semibold">{editingPayment.vendorName || '-'}</div>
+                  <div className="text-gray-600">Amount (THB):</div>
+                  <div className="font-semibold">{Number(editingPayment.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB</div>
+                  <div className="text-gray-600">WHT Amount:</div>
+                  <div className="font-semibold">{Number(editingPayment.whtAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB</div>
+                </div>
+              </div>
+            )}
+
+            <Form key={editingPaymentId || 'new'} formData={formData} labelLocation="top" showColonAfterLabel={true}>
+              {!editingPaymentId && (
+                <SimpleItem
+                  dataField="apInvoiceId"
+                  editorType="dxSelectBox"
+                  label={{ text: 'AP Invoice' }}
+                  editorOptions={{
+                    dataSource: apInvoices,
+                    displayExpr: (item: APInvoice) =>
+                      item ? `${item.invoiceNumber} - ${item.vendorName || 'Unknown'} (Outstanding: ${(item.totalAmount - item.paidAmount).toFixed(2)})` : '',
+                    valueExpr: 'id',
+                    searchEnabled: true,
+                    onValueChanged: (e: { value: number | null }) => handleInvoiceChange(e.value),
+                  }}
+                >
+                  <RequiredRule message="Please select an invoice" />
+                </SimpleItem>
+              )}
               <GroupItem colCount={2}>
                 <SimpleItem
                   dataField="paymentDate"
@@ -623,30 +768,32 @@ export default function APPaymentsPage() {
               >
                 <RequiredRule message="Please select bank account" />
               </SimpleItem>
-              <GroupItem colCount={2}>
-                <SimpleItem
-                  dataField="amount"
-                  editorType="dxNumberBox"
-                  label={{ text: 'Amount (THB)' }}
-                  editorOptions={{
-                    format: '#,##0.00',
-                    min: 0.01,
-                    max: selectedInvoice ? selectedInvoice.totalAmount - selectedInvoice.paidAmount : undefined,
-                  }}
-                >
-                  <RequiredRule message="Please enter amount" />
-                </SimpleItem>
-                <SimpleItem
-                  dataField="whtRate"
-                  editorType="dxNumberBox"
-                  label={{ text: 'WHT Rate (%)' }}
-                  editorOptions={{
-                    format: '#,##0.00',
-                    min: 0,
-                    max: 100,
-                  }}
-                />
-              </GroupItem>
+              {!editingPaymentId && (
+                <GroupItem colCount={2}>
+                  <SimpleItem
+                    dataField="amount"
+                    editorType="dxNumberBox"
+                    label={{ text: 'Amount (THB)' }}
+                    editorOptions={{
+                      format: '#,##0.00',
+                      min: 0.01,
+                      max: selectedInvoice ? selectedInvoice.totalAmount - selectedInvoice.paidAmount : undefined,
+                    }}
+                  >
+                    <RequiredRule message="Please enter amount" />
+                  </SimpleItem>
+                  <SimpleItem
+                    dataField="whtRate"
+                    editorType="dxNumberBox"
+                    label={{ text: 'WHT Rate (%)' }}
+                    editorOptions={{
+                      format: '#,##0.00',
+                      min: 0,
+                      max: 100,
+                    }}
+                  />
+                </GroupItem>
+              )}
               <SimpleItem
                 dataField="referenceNumber"
                 label={{ text: 'Reference Number' }}
@@ -663,10 +810,10 @@ export default function APPaymentsPage() {
             <div className="mt-6 flex justify-end gap-2">
               <Button text="Cancel" type="normal" stylingMode="outlined" onClick={handleCloseDialog} />
               <Button
-                text="Record Payment"
+                text={editingPaymentId ? 'บันทึกการแก้ไข' : 'Record Payment'}
                 type="success"
                 onClick={handleRecordPayment}
-                disabled={paymentMutation.isPending}
+                disabled={paymentMutation.isPending || updateMutation.isPending}
               />
             </div>
           </div>

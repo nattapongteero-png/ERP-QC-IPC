@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { PageHeader } from '@/components/ui/page-header';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
@@ -17,6 +18,22 @@ import {
   ChevronRight,
   BoxSelect,
 } from 'lucide-react';
+
+// Master test parameter — loaded from /api/master-data/ipc-criteria.
+// Each row carries one name + one unit. Multiple rows may share the same
+// name (with different units), which is how a test name can map to more
+// than one valid unit option in the form.
+interface TestParameterMaster {
+  id: number;
+  code: string;
+  name: string;         // English name (used as Test Name value)
+  nameTh: string | null;
+  unit: string | null;
+  testMethod: string | null;
+  specification: string | null;
+  minValue: number | null;
+  maxValue: number | null;
+}
 
 export default function NewQualitySpecPage() {
   const router = useRouter();
@@ -37,6 +54,82 @@ export default function NewQualitySpecPage() {
     unit: '',
     isCritical: false,
   });
+
+  // Master test parameters (from /api/master-data/ipc-criteria)
+  const [testMaster, setTestMaster] = useState<TestParameterMaster[]>([]);
+  const [masterLoading, setMasterLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setMasterLoading(true);
+        const res = await fetch('/api/master-data/ipc-criteria');
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.success && Array.isArray(data.data)) {
+          setTestMaster(data.data as TestParameterMaster[]);
+        }
+      } catch (err) {
+        console.error('Failed to load test parameter master:', err);
+      } finally {
+        if (!cancelled) setMasterLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Distinct test names for the Test Name dropdown. Each entry includes TH
+  // name where available so search matches both languages.
+  const testNameOptions = useMemo(() => {
+    const seen = new Map<string, { value: string; label: string; nameTh: string | null }>();
+    for (const t of testMaster) {
+      if (!t.name) continue;
+      if (!seen.has(t.name)) {
+        seen.set(t.name, {
+          value: t.name,
+          label: t.nameTh ? `${t.name} — ${t.nameTh}` : t.name,
+          nameTh: t.nameTh,
+        });
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) => a.value.localeCompare(b.value));
+  }, [testMaster]);
+
+  // Units available for the currently-selected Test Name. If the same test
+  // name exists in the master with multiple distinct units, all show up.
+  const unitOptions = useMemo(() => {
+    if (!formData.testName) return [] as { value: string; label: string }[];
+    const units = new Set<string>();
+    for (const t of testMaster) {
+      if (t.name === formData.testName && t.unit) units.add(t.unit);
+    }
+    return Array.from(units)
+      .sort()
+      .map((u) => ({ value: u, label: u }));
+  }, [testMaster, formData.testName]);
+
+  // When Test Name changes:
+  // - Reset unit if the new selection doesn't offer it.
+  // - Auto-select the unit if there's exactly one choice (nicer UX).
+  const handleTestNameChange = (newName: string) => {
+    const matching = testMaster.filter((t) => t.name === newName && t.unit);
+    const validUnits = Array.from(new Set(matching.map((t) => t.unit))) as string[];
+    let nextUnit = formData.unit;
+    if (!validUnits.includes(nextUnit)) {
+      nextUnit = validUnits.length === 1 ? validUnits[0] : '';
+    }
+    // Also auto-fill testMethod / specification if master has one and the
+    // form is still empty (don't clobber user edits).
+    const first = matching[0];
+    setFormData((prev) => ({
+      ...prev,
+      testName: newName,
+      unit: nextUnit,
+      testMethod: prev.testMethod || first?.testMethod || prev.testMethod,
+      specification: prev.specification || first?.specification || prev.specification,
+    }));
+  };
 
   const handleSelectItem = (item: Item) => {
     setSelectedItem(item);
@@ -154,15 +247,41 @@ export default function NewQualitySpecPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Test Name <span className="text-red-500">*</span>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
+                        <span>
+                          Test Name <span className="text-red-500">*</span>
+                        </span>
+                        <a
+                          href="/master-data/ipc-criteria"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-green-600 hover:text-green-800 hover:underline font-normal"
+                        >
+                          จัดการ master →
+                        </a>
                       </label>
-                      <DxTextBox
-                        placeholder="e.g., Moisture Content, pH, Microbial Count"
+                      {/* Search + dropdown: user can type to filter or pick
+                          from the master list (from /api/master-data/ipc-criteria).
+                          Selecting resets Unit to a matching option (or the
+                          single valid one). */}
+                      <DxSelectBox
+                        dataSource={testNameOptions}
                         value={formData.testName}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({ ...prev, testName: value }))
+                        onValueChange={(value) => handleTestNameChange((value as string) || '')}
+                        valueExpr="value"
+                        displayExpr="label"
+                        searchEnabled
+                        searchExpr={['value', 'label', 'nameTh']}
+                        showClearButton
+                        placeholder={
+                          masterLoading
+                            ? 'กำลังโหลดรายการทดสอบ...'
+                            : testNameOptions.length === 0
+                            ? 'ยังไม่มีข้อมูล master test parameter'
+                            : 'พิมพ์ค้นหาหรือเลือกจากรายการ...'
                         }
+                        disabled={masterLoading}
+                        noDataText="ไม่พบรายการที่ตรงกับคำค้นหา"
                       />
                     </div>
                     <div>
@@ -230,13 +349,34 @@ export default function NewQualitySpecPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Unit
                       </label>
-                      <DxTextBox
-                        placeholder="e.g., %, mg/g, pH, CFU/g"
+                      {/* Unit dropdown — strictly driven by the selected
+                          Test Name. Disabled until a test is chosen so the
+                          user cannot pick a unit that doesn't match the test
+                          definition in master data. */}
+                      <DxSelectBox
+                        dataSource={unitOptions}
                         value={formData.unit}
                         onValueChange={(value) =>
-                          setFormData((prev) => ({ ...prev, unit: value }))
+                          setFormData((prev) => ({ ...prev, unit: (value as string) || '' }))
                         }
+                        valueExpr="value"
+                        displayExpr="label"
+                        showClearButton
+                        disabled={!formData.testName || unitOptions.length === 0}
+                        placeholder={
+                          !formData.testName
+                            ? 'เลือก Test Name ก่อน'
+                            : unitOptions.length === 0
+                            ? 'ไม่มีหน่วยที่ผูกกับ test นี้'
+                            : 'เลือกหน่วย...'
+                        }
+                        noDataText="ไม่มีหน่วยที่ใช้ได้สำหรับ test นี้"
                       />
+                      {formData.testName && unitOptions.length === 0 && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          test นี้ยังไม่มี unit ใน master — แก้ไขได้ที่ <a href="/master-data/ipc-criteria" target="_blank" className="underline">Master Data</a>
+                        </p>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-500">
@@ -328,37 +468,38 @@ export default function NewQualitySpecPage() {
               </CardContent>
             </Card>
 
-            {/* Common Tests */}
+            {/* Test Parameter Master info card.
+                The sidebar previously listed hardcoded "Common Test
+                Parameters" which duplicated the searchable Test Name
+                dropdown. Replace it with a pointer to Master Data so
+                users know where to add new parameters. */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Common Test Parameters</CardTitle>
+                <CardTitle className="text-sm">📋 Master Data</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {[
-                    'Appearance',
-                    'Color',
-                    'Odor',
-                    'pH',
-                    'Moisture Content',
-                    'Loss on Drying',
-                    'Assay',
-                    'Total Aerobic Count',
-                    'Yeast & Mold',
-                    'E. coli',
-                    'Salmonella',
-                    'Heavy Metals',
-                  ].map((test) => (
-                    <button
-                      key={test}
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, testName: test }))}
-                      className="block w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-100 text-gray-600"
-                    >
-                      {test}
-                    </button>
-                  ))}
+                <p className="text-sm text-gray-600 mb-2">
+                  Test Name และ Unit ทั้งหมดมาจาก Master Data
+                </p>
+                <div className="text-xs text-gray-500 space-y-1 mb-3">
+                  <p>• Test Name: ค้นหาและเลือกจาก dropdown</p>
+                  <p>• Unit: filter อัตโนมัติตาม Test Name</p>
+                  <p>• ถ้า test / unit ที่ต้องการไม่มี — เพิ่มที่ Master ก่อน</p>
                 </div>
+                <a
+                  href="/master-data/ipc-criteria"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-800 hover:underline font-medium"
+                >
+                  ไปที่ Master Data
+                  <ChevronRight className="h-3 w-3" />
+                </a>
+                {testMaster.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-3">
+                    กำลังโหลด {testMaster.length} test parameters
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>

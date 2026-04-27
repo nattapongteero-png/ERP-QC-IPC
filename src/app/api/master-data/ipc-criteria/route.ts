@@ -8,6 +8,7 @@ import {
 import { executeDbOperation, getTableRef, getInsertId } from '@/lib/db/db-helper';
 import { getNow } from '@/lib/db/date-utils';
 import { eq, asc, desc } from 'drizzle-orm';
+import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 
 function getTable() {
   return getTableRef('iPCCriteria');
@@ -66,14 +67,37 @@ export async function POST(request: NextRequest) {
         return errorResponse('Name is required');
       }
 
+      // When specTarget is provided, validate and auto-compute Min/Max
+      let minValue = data.minValue ?? null;
+      let maxValue = data.maxValue ?? null;
+      let specTarget = data.specTarget ?? null;
+      const specTolerancePercent = data.specTolerancePercent ?? 0;
+
+      if (specTarget !== null && specTarget !== undefined && specTarget !== '') {
+        const targetNum = Number(specTarget);
+        const tolNum = Number(specTolerancePercent);
+        const validationError = validateSpecInputs(targetNum, tolNum);
+        if (validationError) {
+          return errorResponse(validationError);
+        }
+        const calc = calculateMinMax(targetNum, tolNum);
+        if (!calc) {
+          return errorResponse('Invalid Target or Tolerance values');
+        }
+        specTarget = targetNum;
+        minValue = calc.min;
+        maxValue = calc.max;
+      }
+
       const table = getTable();
       const ipcValues = {
         name: data.name, nameTh: data.nameTh || null, testMethod: data.testMethod || null,
-        specification: data.specification || null, minValue: data.minValue ?? null, maxValue: data.maxValue ?? null,
+        specification: data.specification || null, minValue, maxValue,
         unit: data.unit || null, sampleSize: data.sampleSize || 5, checkIntervalMinutes: data.checkIntervalMinutes || 30,
         isCritical: data.isCritical ?? false, isActive: data.isActive ?? true,
         dosageForm: data.dosageForm || null, criteriaType: data.criteriaType || 'numeric',
         tolerancePercent: data.tolerancePercent ?? 0,
+        specTarget, specTolerancePercent,
       };
 
       // Upsert
@@ -145,9 +169,32 @@ export async function PUT(request: NextRequest) {
       const table = getTable();
       const updateData: Record<string, unknown> = {};
 
-      const fields = ['code', 'name', 'nameTh', 'testMethod', 'specification', 'minValue', 'maxValue', 'unit', 'sampleSize', 'checkIntervalMinutes', 'isCritical', 'isActive', 'dosageForm', 'criteriaType', 'tolerancePercent'];
+      const fields = [
+        'code', 'name', 'nameTh', 'testMethod', 'specification', 'minValue', 'maxValue',
+        'unit', 'sampleSize', 'checkIntervalMinutes', 'isCritical', 'isActive',
+        'dosageForm', 'criteriaType', 'tolerancePercent',
+        'specTarget', 'specTolerancePercent',
+      ];
       for (const field of fields) {
         if (data[field] !== undefined) updateData[field] = data[field];
+      }
+
+      // When specTarget is touched, validate and recompute minValue/maxValue
+      if (updateData.specTarget !== undefined && updateData.specTarget !== null && updateData.specTarget !== '') {
+        const targetNum = Number(updateData.specTarget);
+        const tolNum = Number(updateData.specTolerancePercent ?? 0);
+        const validationError = validateSpecInputs(targetNum, tolNum);
+        if (validationError) {
+          return errorResponse(validationError);
+        }
+        const calc = calculateMinMax(targetNum, tolNum);
+        if (!calc) {
+          return errorResponse('Invalid Target or Tolerance values');
+        }
+        updateData.specTarget = targetNum;
+        updateData.specTolerancePercent = tolNum;
+        updateData.minValue = calc.min;
+        updateData.maxValue = calc.max;
       }
 
       await executeDbOperation(async (db) => {

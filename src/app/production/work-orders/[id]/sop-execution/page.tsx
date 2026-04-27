@@ -10,7 +10,8 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import type { BOMConfigResponse } from '@/types/bom-config';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -99,6 +100,10 @@ export default function SOPExecutionPage() {
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [actualParams, setActualParams] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
+
+  // Used to gate the Verify button under GMP dual-control:
+  // a step's operator cannot also be its verifier.
+  const { data: currentUser } = useCurrentUser();
 
   // Fetch Work Order basic info
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderBasic>({
@@ -457,7 +462,14 @@ export default function SOPExecutionPage() {
                     : (prevStep.status === 'completed' || prevStep.status === 'verified'));
                 const canStart = step.status === 'pending' && prevStepDone;
                 const canComplete = step.status === 'in_progress';
-                const canVerify = step.status === 'completed' && step.requiresVerification;
+                // GMP dual-control: cannot verify your own work.
+                // Separate "eligible" from "allowed" so we can render a helpful
+                // badge when the current user is the operator.
+                const verifyEligible = step.status === 'completed' && step.requiresVerification;
+                const isOwnOperator =
+                  !!currentUser && !!step.operatorId && currentUser.id === step.operatorId;
+                const canVerify = verifyEligible && !isOwnOperator;
+                const showAwaitingOtherVerifier = verifyEligible && isOwnOperator;
                 // Show message when step is blocked waiting for previous verification
                 const isBlockedByVerification = step.status === 'pending' && prevStep &&
                   prevStep.requiresVerification && prevStep.status === 'completed';
@@ -700,6 +712,7 @@ export default function SOPExecutionPage() {
                             disabled={verifyStepMutation.isPending}
                           />
                         )}
+                        {showAwaitingOtherVerifier && <AwaitingOtherVerifierBadge />}
                       </div>
                     </div>
                   </div>

@@ -257,6 +257,15 @@
     "edit": "แก้ไข",
     "delete": "ลบ"
   },
+  "workflowTest": {
+    "title": "ทดสอบขั้นตอนการทำงาน",
+    "subtitle": "ทดสอบกระบวนการ ERP แบบครบวงจรพร้อมการแสดงผลแบบเรียลไทม์",
+    "configure": "ตั้งค่า",
+    "clear": "ล้าง",
+    "cancel": "ยกเลิก",
+    "running": "กำลังทำงาน...",
+    "runBasicTest": "รันการทดสอบขั้นตอนพื้นฐาน"
+  },
   "matchingTolerances": {
     "title": "ค่าเผื่อการจับคู่",
     "description": "กำหนดค่าเผื่อสำหรับการตรวจสอบ 3-Way Matching",

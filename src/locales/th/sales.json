@@ -9,7 +9,141 @@
   "vmiOrders": {
     "noData": "ไม่พบคำสั่งซื้อ VMI",
     "pollDescription": "สำรวจคำสั่งซื้อใหม่จาก VMI Portal",
-    "pollOrders": "สำรวจคำสั่งซื้อ"
+    "pollOrders": "Poll Orders",
+    "pageTitle": "คำสั่งซื้อ VMI",
+    "pageSubtitle": "จัดการคำสั่งซื้อจาก VMI Portals",
+    "breadcrumbSales": "การขาย",
+    "breadcrumbVmiOrders": "คำสั่งซื้อ VMI",
+    "detailTitle": "รายละเอียดคำสั่งซื้อ VMI",
+    "detailSubtitle": "ดูและจัดการคำสั่งซื้อจาก VMI Portal",
+    "polling": "กำลังดึง...",
+    "refresh": "รีเฟรช",
+    "views": {
+      "grid": "มุมมองตาราง",
+      "cards": "มุมมองการ์ด",
+      "analytics": "มุมมองวิเคราะห์"
+    },
+    "stats": {
+      "totalOrders": "คำสั่งซื้อทั้งหมด",
+      "pending": "รอดำเนินการ",
+      "delivered": "ส่งมอบแล้ว",
+      "overdue": "เกินกำหนด"
+    },
+    "status": {
+      "all": "ทั้งหมด",
+      "pending": "รอดำเนินการ",
+      "confirmed": "ยืนยันแล้ว",
+      "processing": "กำลังจัดเตรียม",
+      "shipped": "จัดส่งแล้ว",
+      "delivered": "ส่งมอบแล้ว",
+      "cancelled": "ยกเลิก"
+    },
+    "priority": {
+      "all": "ทุกความสำคัญ",
+      "low": "ต่ำ",
+      "normal": "ปกติ",
+      "high": "สูง",
+      "urgent": "เร่งด่วน"
+    },
+    "placeholders": {
+      "allStatus": "ทุกสถานะ",
+      "allPriority": "ทุกความสำคัญ",
+      "search": "ค้นหาด้วยรหัสคำสั่งซื้อ, โรงพยาบาล, หรือ Portal..."
+    },
+    "columns": {
+      "orderId": "รหัสคำสั่งซื้อ",
+      "portal": "Portal",
+      "customer": "โรงพยาบาล/ลูกค้า",
+      "orderDate": "วันที่สั่ง",
+      "deliveryDate": "กำหนดส่ง",
+      "matchItems": "จับคู่สินค้า",
+      "priority": "ความสำคัญ",
+      "totalAmount": "มูลค่า",
+      "status": "สถานะ"
+    },
+    "list": {
+      "title": "รายการคำสั่งซื้อ",
+      "showingOf": "แสดง {shown} จาก {total} รายการ",
+      "noMatching": "ไม่พบคำสั่งซื้อที่ตรงกับเงื่อนไข",
+      "viewDetails": "ดูรายละเอียด"
+    },
+    "dates": {
+      "overdueDays": "เกิน {days} วัน",
+      "today": "วันนี้",
+      "daysRemaining": "อีก {days} วัน",
+      "overdueShort": "เกิน {days}d",
+      "daysShort": "{days}d",
+      "overdueLabel": "เกินกำหนด"
+    },
+    "card": {
+      "urgent": "เร่งด่วน",
+      "matched": "จับคู่ {matched}/{total}",
+      "overdueMessage": "เกินกำหนดส่งแล้ว"
+    },
+    "alerts": {
+      "overdueTitle": "{count} คำสั่งซื้อเกินกำหนดส่ง",
+      "overdueMessage": "กรุณาตรวจสอบและดำเนินการโดยเร็ว",
+      "unmatchedTitle": "{count} คำสั่งซื้อมีสินค้ารอจับคู่",
+      "unmatchedMessage": "กรุณาจับคู่สินค้าก่อนยืนยันคำสั่งซื้อ",
+      "urgentTitle": "{count} คำสั่งซื้อเร่งด่วน",
+      "urgentMessage": "ต้องดำเนินการโดยเร็ว",
+      "viewList": "ดูรายการ"
+    },
+    "charts": {
+      "statusDistribution": "การกระจายตามสถานะ",
+      "priorityDistribution": "การกระจายตามความสำคัญ",
+      "noData": "ไม่มีข้อมูล",
+      "itemsSuffix": "รายการ"
+    },
+    "sections": {
+      "urgentAction": "ต้องดำเนินการเร่งด่วน",
+      "unmatchedItems": "รอจับคู่สินค้า",
+      "allOrders": "คำสั่งซื้อทั้งหมด ({count})",
+      "noMatchingSearch": "ไม่พบคำสั่งซื้อที่ตรงกับเงื่อนไข",
+      "viewMore": "ดูเพิ่มเติมอีก {count} รายการ",
+      "portalStats": "VMI Portals",
+      "summary": "สรุปรวม",
+      "totalValue": "มูลค่ารวม",
+      "deliveredValue": "ส่งมอบแล้ว",
+      "matchRate": "อัตราจับคู่",
+      "fulfillmentRate": "อัตราส่งมอบ",
+      "recent": "ล่าสุด",
+      "noData": "ไม่มีข้อมูล",
+      "workflowTitle": "วิธีการทำงาน",
+      "workflow1": "Poll ดึงคำสั่งซื้อจาก Portals",
+      "workflow2": "จับคู่สินค้า (Match)",
+      "workflow3": "ยืนยันคำสั่งซื้อ (Confirm)",
+      "workflow4": "จัดส่ง (Ship)",
+      "pending": "รอดำเนินการ",
+      "orders": "รายการ"
+    },
+    "analytics": {
+      "statusBreakdown": "สรุปตามสถานะ",
+      "valueSummary": "สรุปมูลค่า",
+      "totalValue": "มูลค่ารวมทั้งหมด",
+      "pending": "รอดำเนินการ",
+      "delivered": "ส่งมอบแล้ว",
+      "fulfillmentRate": "อัตราส่งมอบ",
+      "portalStats": "สถิติตาม Portal",
+      "portalOrders": "คำสั่งซื้อ",
+      "portalValue": "มูลค่า",
+      "portalOrdersCount": "{count} รายการ",
+      "portalPending": "{count} รอดำเนินการ",
+      "noPortalData": "ไม่มีข้อมูล Portal",
+      "matchRateAnalysis": "อัตราการจับคู่สินค้า",
+      "matchRate": "อัตราการจับคู่",
+      "matchedItems": "สินค้าจับคู่แล้ว",
+      "unmatchedItems": "รอจับคู่"
+    },
+    "empty": {
+      "title": "ยังไม่มีคำสั่งซื้อ VMI",
+      "description": "ดึงคำสั่งซื้อล่าสุดจาก VMI Portals ที่เชื่อมต่ออยู่"
+    },
+    "noResults": {
+      "title": "ไม่พบคำสั่งซื้อที่ตรงกับเงื่อนไข",
+      "description": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองอื่น",
+      "clearFilters": "ล้างตัวกรอง"
+    }
   },
   "webhooks": {
     "totalWebhooks": "Webhook ทั้งหมด"
@@ -121,7 +255,9 @@
       "today": "วันนี้",
       "daysRemaining": "อีก {days} วัน",
       "overdueAlert": "{count} ใบสั่งขายเกินกำหนดส่ง",
-      "urgentAction": "กรุณาตรวจสอบและดำเนินการโดยเร็ว"
+      "urgentAction": "กรุณาตรวจสอบและดำเนินการโดยเร็ว",
+      "overdueShort": "เกิน {days}d",
+      "daysShort": "{days}d"
     },
     "searchPlaceholder": "ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า...",
     "detail": {
@@ -399,7 +535,9 @@
     },
     "actions": {
       "addCustomer": "เพิ่มลูกค้า",
-      "viewMore": "ดูเพิ่มเติมอีก {count} ราย"
+      "viewMore": "ดูเพิ่มเติมอีก {count} ราย",
+      "refresh": "รีเฟรช",
+      "clearFilters": "ล้างตัวกรอง"
     },
     "stats": {
       "total": "ทั้งหมด",
@@ -417,7 +555,8 @@
       "recent": "ล่าสุด",
       "filteredCustomers": "ลูกค้าที่กรองแล้ว",
       "noMatchingCustomers": "ไม่พบลูกค้าที่ตรงกับเงื่อนไข",
-      "count": "{count} ราย"
+      "count": "{count} ราย",
+      "viewCustomer": "ดูรายละเอียด"
     },
     "charts": {
       "typeDistribution": "การกระจายตามประเภท",

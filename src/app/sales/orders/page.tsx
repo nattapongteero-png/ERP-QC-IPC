@@ -1,17 +1,28 @@
 'use client';
 
+/**
+ * Sales Orders Dashboard Page
+ * Feature: Sales Management
+ *
+ * Professional dashboard for managing sales orders with DevExtreme UI.
+ * Responsive: ResponsivePageHeader, StatCard KPI row, mobile card view,
+ * empty state, no-results state, loading skeletons.
+ */
+
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils/cn';
 import {
+  ShoppingBag,
   ShoppingCart,
   Package,
   Truck,
@@ -20,18 +31,15 @@ import {
   XCircle,
   FileText,
   BarChart3,
-  LayoutGrid,
-  List,
   DollarSign,
   TrendingUp,
   Users,
   Calendar,
-  ArrowRight,
   AlertTriangle,
   Building2,
-  RefreshCw,
-  Plus,
-  User,
+  Eye,
+  SearchX,
+  Boxes,
 } from 'lucide-react';
 import PieChart, { Series, Legend, Tooltip, Label } from 'devextreme-react/pie-chart';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
@@ -57,7 +65,6 @@ interface SalesOrder {
   updatedAt: string;
 }
 
-type ViewMode = 'grid' | 'cards' | 'analytics';
 type StatusFilter = '' | 'draft' | 'confirmed' | 'processing' | 'ready' | 'shipped' | 'delivered' | 'cancelled';
 
 // ============================================================================
@@ -70,6 +77,7 @@ const STATUS_CONFIG: Record<string, {
   bgClass: string;
   textClass: string;
   hoverBg: string;
+  borderClass: string;
   icon: React.ElementType;
   badgeVariant: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'secondary';
 }> = {
@@ -79,6 +87,7 @@ const STATUS_CONFIG: Record<string, {
     bgClass: 'bg-slate-100',
     textClass: 'text-slate-700',
     hoverBg: 'hover:bg-slate-200',
+    borderClass: 'border-slate-400',
     icon: FileText,
     badgeVariant: 'default',
   },
@@ -88,6 +97,7 @@ const STATUS_CONFIG: Record<string, {
     bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
     hoverBg: 'hover:bg-blue-200',
+    borderClass: 'border-blue-400',
     icon: CheckCircle2,
     badgeVariant: 'info',
   },
@@ -97,6 +107,7 @@ const STATUS_CONFIG: Record<string, {
     bgClass: 'bg-amber-100',
     textClass: 'text-amber-700',
     hoverBg: 'hover:bg-amber-200',
+    borderClass: 'border-amber-400',
     icon: Clock,
     badgeVariant: 'warning',
   },
@@ -106,6 +117,7 @@ const STATUS_CONFIG: Record<string, {
     bgClass: 'bg-violet-100',
     textClass: 'text-violet-700',
     hoverBg: 'hover:bg-violet-200',
+    borderClass: 'border-violet-400',
     icon: Package,
     badgeVariant: 'info',
   },
@@ -115,6 +127,7 @@ const STATUS_CONFIG: Record<string, {
     bgClass: 'bg-cyan-100',
     textClass: 'text-cyan-700',
     hoverBg: 'hover:bg-cyan-200',
+    borderClass: 'border-cyan-400',
     icon: Truck,
     badgeVariant: 'info',
   },
@@ -124,6 +137,7 @@ const STATUS_CONFIG: Record<string, {
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
     hoverBg: 'hover:bg-green-200',
+    borderClass: 'border-green-400',
     icon: CheckCircle2,
     badgeVariant: 'success',
   },
@@ -133,6 +147,7 @@ const STATUS_CONFIG: Record<string, {
     bgClass: 'bg-red-100',
     textClass: 'text-red-700',
     hoverBg: 'hover:bg-red-200',
+    borderClass: 'border-red-400',
     icon: XCircle,
     badgeVariant: 'danger',
   },
@@ -219,7 +234,9 @@ async function fetchOrders() {
 export default function SalesOrdersPage() {
   const router = useRouter();
   const t = useTranslations('sales');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const { isMobile } = useMobile();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
 
@@ -261,6 +278,7 @@ export default function SalesOrdersPage() {
 
     const uniqueCustomers = new Set(orders.map(o => o.customerName)).size;
     const fulfillmentRate = total > 0 ? Math.round((delivered / total) * 100) : 0;
+    const openCount = draft + confirmed + processing + ready + shipped;
 
     return {
       total,
@@ -277,7 +295,8 @@ export default function SalesOrdersPage() {
       deliveredValue,
       uniqueCustomers,
       fulfillmentRate,
-      activeCount: draft + confirmed + processing + ready + shipped,
+      openCount,
+      activeCount: openCount,
     };
   }, [orders]);
 
@@ -315,30 +334,7 @@ export default function SalesOrdersPage() {
       .filter(item => item.value > 0);
   }, [orders, t]);
 
-  // Recent orders
-  const recentOrders = useMemo(() => {
-    return [...orders]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5);
-  }, [orders]);
-
-  // Urgent orders (overdue or near due date)
-  const urgentOrders = useMemo(() => {
-    return orders
-      .filter(o => {
-        if (['delivered', 'cancelled'].includes(o.status)) return false;
-        const days = getDaysUntilRequired(o.requiredDate, o.status);
-        return days !== null && days <= 3;
-      })
-      .sort((a, b) => {
-        const daysA = getDaysUntilRequired(a.requiredDate, a.status) ?? 999;
-        const daysB = getDaysUntilRequired(b.requiredDate, b.status) ?? 999;
-        return daysA - daysB;
-      })
-      .slice(0, 5);
-  }, [orders]);
-
-  // Top customers by order count
+  // Top customers by order value
   const topCustomers = useMemo(() => {
     const customerMap = new Map<string, { count: number; value: number }>();
     orders.forEach(o => {
@@ -354,23 +350,33 @@ export default function SalesOrdersPage() {
       .slice(0, 5);
   }, [orders]);
 
-  // Navigation handler
+  // Navigation handlers
   const handleRowClick = useCallback((e: DataGridTypes.RowClickEvent) => {
     if (e.data?.id) {
       router.push(`/sales/orders/${e.data.id}`);
     }
   }, [router]);
 
-  const handleOrderClick = useCallback((id: number) => {
-    router.push(`/sales/orders/${id}`);
+  const handleCreate = useCallback(() => {
+    router.push('/sales/orders/new');
   }, [router]);
 
-  // DataGrid columns
+  const handleView = useCallback((order: SalesOrder) => {
+    router.push(`/sales/orders/${order.id}`);
+  }, [router]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearch('');
+    setStatusFilter('');
+  }, []);
+
+  // DataGrid columns (min widths ensure usability; hide on mobile via prop)
   const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'soNumber',
       caption: t('orders.grid.columns.soNumber'),
-      width: 150,
+      minWidth: 160,
+      width: 170,
       cellRender: (data: { data?: SalesOrder }) => {
         if (!data.data) return null;
         const order = data.data;
@@ -378,13 +384,13 @@ export default function SalesOrdersPage() {
         return (
           <div className="flex items-center gap-2">
             <div className={cn(
-              'h-8 w-8 rounded-lg flex items-center justify-center',
-              overdue ? 'bg-red-100' : 'bg-blue-100'
+              'h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0',
+              overdue ? 'bg-red-100' : 'bg-indigo-100'
             )}>
-              <FileText className={cn('h-4 w-4', overdue ? 'text-red-600' : 'text-blue-600')} />
+              <FileText className={cn('h-4 w-4', overdue ? 'text-red-600' : 'text-indigo-600')} />
             </div>
-            <div>
-              <span className="font-mono font-semibold text-blue-600">{order.soNumber}</span>
+            <div className="min-w-0">
+              <span className="font-mono font-semibold text-indigo-600">{order.soNumber}</span>
               {overdue && (
                 <div className="flex items-center gap-1 text-red-600 text-xs">
                   <AlertTriangle className="h-3 w-3" />
@@ -405,7 +411,7 @@ export default function SalesOrdersPage() {
         const order = data.data;
         return (
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-medium text-xs">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-medium text-xs flex-shrink-0">
               {order.customerName?.charAt(0)?.toUpperCase() || 'C'}
             </div>
             <div className="min-w-0">
@@ -424,6 +430,7 @@ export default function SalesOrdersPage() {
       width: 130,
       dataType: 'date',
       hideOnMobile: true,
+      hideOnTablet: true,
       cellRender: (data: { data?: SalesOrder }) => {
         if (!data.data) return null;
         return (
@@ -437,7 +444,7 @@ export default function SalesOrdersPage() {
     {
       dataField: 'requiredDate',
       caption: t('orders.grid.columns.requiredDate'),
-      width: 150,
+      width: 160,
       dataType: 'date',
       hideOnMobile: true,
       cellRender: (data: { data?: SalesOrder }) => {
@@ -473,10 +480,11 @@ export default function SalesOrdersPage() {
       caption: t('orders.grid.columns.totalAmount'),
       width: 140,
       dataType: 'number',
+      alignment: 'right',
       cellRender: (data: { data?: SalesOrder }) => {
         if (!data.data) return null;
         return (
-          <span className="font-semibold text-green-600">
+          <span className="font-semibold text-emerald-600 tabular-nums">
             {formatCurrency(data.data.totalAmount, data.data.currency)}
           </span>
         );
@@ -491,704 +499,254 @@ export default function SalesOrdersPage() {
         const config = STATUS_CONFIG[data.data.status];
         if (!config) return <Badge>-</Badge>;
         return (
-          <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
+          <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1', config.bgClass, config.textClass)}>
+            <config.icon className="h-3 w-3" />
             {t(`orders.status.${config.translationKey}`)}
           </span>
         );
       },
     },
-  ], [t]);
+    {
+      dataField: 'actions',
+      caption: '',
+      width: 80,
+      allowSorting: false,
+      allowFiltering: false,
+      cellRender: (cellInfo: { data?: SalesOrder }) => (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            title={t('orders.actions.viewOrder')}
+            aria-label={t('orders.actions.viewOrder')}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (cellInfo.data) handleView(cellInfo.data);
+            }}
+            className="p-2 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ], [t, handleView]);
+
+  // Empty / no-results detection
+  const showEmptyState = !isLoading && orders.length === 0;
+  const showNoResultsState = !isLoading && orders.length > 0 && filteredOrders.length === 0;
 
   // ============================================================================
-  // Render Functions
-  // ============================================================================
-
-  const renderOrderCard = (order: SalesOrder) => {
-    const statusConfig = STATUS_CONFIG[order.status];
-    const overdue = isOverdue(order.requiredDate, order.status);
-    const daysUntil = getDaysUntilRequired(order.requiredDate, order.status);
-
-    return (
-      <Card
-        key={order.id}
-        elevation="raised"
-        className="cursor-pointer transition-all hover:shadow-lg overflow-hidden"
-        onClick={() => handleOrderClick(order.id)}
-      >
-        <CardContent className="p-0">
-          <div className="flex items-stretch">
-            <div className="w-1" style={{ backgroundColor: statusConfig?.color || '#ccc' }} />
-            <div className="flex-1 p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="font-mono font-semibold text-blue-600">{order.soNumber}</p>
-                  <p className="font-medium mt-1">{order.customerName}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-green-600">
-                    {formatCurrency(order.totalAmount, order.currency)}
-                  </p>
-                  {statusConfig && (
-                    <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium mt-1 inline-block', statusConfig.bgClass, statusConfig.textClass)}>
-                      {t(`orders.status.${statusConfig.translationKey}`)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" />
-                  <span>{formatDateShort(order.orderDate)}</span>
-                </div>
-                {order.requiredDate && (
-                  <div className={cn('flex items-center gap-1', overdue ? 'text-red-600 font-medium' : '')}>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                    <span>{formatDateShort(order.requiredDate)}</span>
-                    {daysUntil !== null && (
-                      <span className={cn(daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : '')}>
-                        ({daysUntil < 0 ? t('orders.dates.overdue', { days: Math.abs(daysUntil) }).replace(' วัน', 'd') : daysUntil === 0 ? t('orders.dates.today') : `${daysUntil}d`})
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {overdue && (
-                <div className="mt-2 p-2 bg-red-50 rounded-md flex items-center gap-2 text-red-600 text-xs">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  <span>{t('orders.grid.overdue')}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderCharts = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Status Distribution */}
-      <Card elevation="raised">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            {t('orders.charts.statusDistribution')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {statusChartData.length > 0 ? (
-            <PieChart
-              id="status-pie"
-              dataSource={statusChartData}
-              type="doughnut"
-              palette={statusChartData.map(d => d.color)}
-              innerRadius={0.6}
-              size={{ height: 220 }}
-            >
-              <Series argumentField="status" valueField="count">
-                <Label visible={false} />
-              </Series>
-              <Legend
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
-              />
-              <Tooltip enabled={true} customizeTooltip={(arg) => ({
-                text: `${arg.argumentText}: ${arg.valueText} ${t('orders.cards.orders', { count: '' }).trim()}`
-              })} />
-            </PieChart>
-          ) : (
-            <div className="h-[220px] flex items-center justify-center text-gray-400">
-              {t('orders.charts.noData')}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Value Distribution */}
-      <Card elevation="raised">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            {t('orders.charts.valueByStatus')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {valueChartData.length > 0 ? (
-            <PieChart
-              id="value-pie"
-              dataSource={valueChartData}
-              type="doughnut"
-              palette={valueChartData.map(d => d.color)}
-              innerRadius={0.6}
-              size={{ height: 220 }}
-            >
-              <Series argumentField="status" valueField="value">
-                <Label visible={false} />
-              </Series>
-              <Legend
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
-              />
-              <Tooltip enabled={true} customizeTooltip={(arg) => ({
-                text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`
-              })} />
-            </PieChart>
-          ) : (
-            <div className="h-[220px] flex items-center justify-center text-gray-400">
-              {t('orders.charts.noData')}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderGridView = () => (
-    <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
-      <CardContent className="flex-1 min-h-0 flex flex-col p-0">
-        <DxDataGrid
-          dataSource={filteredOrders}
-          keyExpr="id"
-          columns={columns}
-          loading={isLoading}
-          sorting
-          filterRow
-          headerFilter
-          export
-          exportFileName="sales-orders"
-          columnChooser
-          virtualScrolling={filteredOrders.length > 100}
-          fillHeight
-          onRowClick={handleRowClick}
-          noDataText={t('orders.grid.noData')}
-          rowAlternationEnabled
-          elementAttr={{ 'data-testid': 'so-data-grid' }}
-        />
-      </CardContent>
-    </Card>
-  );
-
-  const renderCardsView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1">
-      {/* Main Content */}
-      <div className="lg:col-span-3 space-y-4">
-        {renderCharts()}
-
-        {urgentOrders.length > 0 && (
-          <Card elevation="raised">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                {t('orders.cards.urgentOrders')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {urgentOrders.map(renderOrderCard)}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-blue-500" />
-              {t('orders.cards.filteredOrders')} ({filteredOrders.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {filteredOrders.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {filteredOrders.slice(0, 10).map(renderOrderCard)}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-400">
-                {t('orders.cards.noMatchingOrders')}
-              </div>
-            )}
-            {filteredOrders.length > 10 && (
-              <div className="mt-4 text-center">
-                <DxButton
-                  text={t('orders.actions.viewList', { count: filteredOrders.length - 10 })}
-                  type="normal"
-                  onClick={() => setViewMode('grid')}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sidebar */}
-      <div className="space-y-4">
-        {/* Quick Stats */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
-              {t('orders.cards.summary')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 space-y-3">
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">{t('orders.cards.totalValue')}</span>
-              <span className="font-semibold text-green-600">{formatCurrencyShort(stats.totalValue)}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">{t('orders.cards.deliveredValue')}</span>
-              <span className="font-semibold text-green-600">{formatCurrencyShort(stats.deliveredValue)}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">{t('orders.cards.customers')}</span>
-              <span className="font-semibold">{stats.uniqueCustomers}</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-gray-500">{t('orders.cards.fulfillmentRate')}</span>
-              <span className="font-semibold text-blue-600">{stats.fulfillmentRate}%</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Customers */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="h-4 w-4 text-purple-500" />
-              {t('orders.cards.topCustomers')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              {topCustomers.map((customer) => (
-                <div key={customer.name} className="p-2 rounded-lg bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium truncate">{customer.name}</span>
-                    <span className="text-xs text-gray-500">{t('orders.cards.orders', { count: customer.count })}</span>
-                  </div>
-                  <p className="text-xs text-green-600 font-semibold">{formatCurrencyShort(customer.value)}</p>
-                </div>
-              ))}
-              {topCustomers.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">{t('orders.charts.noData')}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Orders */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-500" />
-              {t('orders.cards.recent')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              {recentOrders.map((order) => {
-                const statusConfig = STATUS_CONFIG[order.status];
-                return (
-                  <div
-                    key={order.id}
-                    className="p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border-l-2"
-                    style={{ borderLeftColor: statusConfig?.color || '#ccc' }}
-                    onClick={() => handleOrderClick(order.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="font-mono text-xs text-blue-600">{order.soNumber}</p>
-                      <p className="text-xs font-semibold text-green-600">{formatCurrencyShort(order.totalAmount)}</p>
-                    </div>
-                    <p className="text-sm truncate">{order.customerName}</p>
-                    <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
-                  </div>
-                );
-              })}
-              {recentOrders.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">{t('orders.charts.noData')}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-
-  const renderAnalyticsView = () => (
-    <div className="space-y-4 flex-1">
-      {/* Full-width Charts */}
-      {renderCharts()}
-
-      {/* Analytics Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Status Breakdown */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-indigo-500" />
-              {t('orders.analytics.statusBreakdown')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-3">
-              {Object.entries(STATUS_CONFIG).map(([key, config]) => {
-                const count = orders.filter(o => o.status === key).length;
-                const percentage = stats.total > 0 ? (count / stats.total) * 100 : 0;
-                const Icon = config.icon;
-                return (
-                  <div key={key} className="flex items-center gap-3">
-                    <div className={cn('p-2 rounded-lg', config.bgClass)}>
-                      <Icon className={cn('h-4 w-4', config.textClass)} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">{t(`orders.status.${config.translationKey}`)}</span>
-                        <span className="text-sm text-gray-500">{count} ({percentage.toFixed(0)}%)</span>
-                      </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${percentage}%`, backgroundColor: config.color }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Value Summary */}
-        <Card elevation="raised">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-500" />
-              {t('orders.analytics.valueSummary')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <p className="text-sm text-gray-600">{t('orders.analytics.totalValue')}</p>
-                <p className="text-3xl font-bold text-green-600">{formatCurrency(stats.totalValue)}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-gray-500">{t('orders.analytics.pending')}</p>
-                  <p className="text-lg font-bold text-blue-600">{formatCurrencyShort(stats.pendingValue)}</p>
-                </div>
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-xs text-gray-500">{t('orders.analytics.delivered')}</p>
-                  <p className="text-lg font-bold text-green-600">{formatCurrencyShort(stats.deliveredValue)}</p>
-                </div>
-              </div>
-              <div className="pt-3 border-t">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">{t('orders.analytics.fulfillmentRate')}</span>
-                  <span className="text-sm font-semibold">{stats.fulfillmentRate}%</span>
-                </div>
-                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-green-500 transition-all"
-                    style={{ width: `${stats.fulfillmentRate}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Top Customers Analysis */}
-      <Card elevation="raised">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-purple-500" />
-            {t('orders.analytics.topCustomers')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {topCustomers.map((customer, idx) => (
-              <Card key={customer.name} className="border overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="flex items-stretch">
-                    <div className="w-1 bg-purple-500" />
-                    <div className="flex-1 p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">
-                          {idx + 1}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm truncate">{customer.name}</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="p-2 bg-gray-50 rounded">
-                          <span className="text-gray-500">{t('orders.cards.amount')}</span>
-                          <p className="font-semibold">{t('orders.cards.orders', { count: customer.count })}</p>
-                        </div>
-                        <div className="p-2 bg-gray-50 rounded">
-                          <span className="text-gray-500">{t('orders.cards.value')}</span>
-                          <p className="font-semibold text-green-600">{formatCurrencyShort(customer.value)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {topCustomers.length === 0 && (
-              <div className="col-span-5 text-center py-8 text-gray-400">
-                {t('orders.analytics.noCustomers')}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  // ============================================================================
-  // Main Render
+  // Render
   // ============================================================================
 
   return (
     <MainLayout>
-      <div className="flex flex-col h-full gap-4">
-        {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-24 -translate-x-24" />
+      <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
+        {/* Responsive Page Header */}
+        <ResponsivePageHeader
+          title={t('orders.pageTitle')}
+          subtitle={t('orders.description')}
+          icon={ShoppingBag}
+          iconBgColor="bg-indigo-100"
+          iconColor="text-indigo-600"
+          actions={
+            <div className="flex items-center gap-2 flex-wrap">
+              <DxButton
+                icon="refresh"
+                text={tCommon('actions.refresh')}
+                stylingMode="outlined"
+                onClick={() => refetch()}
+                className="hidden sm:inline-flex"
+                elementAttr={{ 'data-testid': 'so-refresh-btn' }}
+              />
+              <DxButton
+                text={t('orders.actions.createOrder')}
+                icon="plus"
+                type="success"
+                onClick={handleCreate}
+                elementAttr={{ 'data-testid': 'so-add-btn' }}
+              />
+            </div>
+          }
+        />
 
-          <div className="relative z-10 p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <ShoppingCart className="h-7 w-7 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white">{t('orders.pageTitle')}</h1>
-                  <p className="text-white/80 text-sm">{t('orders.description')}</p>
+        {/* KPI Stat Cards (4) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <StatCard
+            label={t('orders.stats.total')}
+            value={stats.total}
+            icon={ShoppingCart}
+            iconColor="text-indigo-500"
+            accentColor="border-indigo-500"
+            isLoading={isLoading}
+          />
+          <StatCard
+            label={t('orders.stats.active')}
+            value={stats.openCount}
+            icon={Clock}
+            iconColor="text-amber-500"
+            accentColor="border-amber-500"
+            isLoading={isLoading}
+          />
+          <StatCard
+            label={t('orders.stats.delivered')}
+            value={stats.delivered}
+            icon={CheckCircle2}
+            iconColor="text-emerald-500"
+            accentColor="border-emerald-500"
+            isLoading={isLoading}
+          />
+          <StatCard
+            label={t('orders.cards.totalValue')}
+            value={formatCurrencyShort(stats.totalValue)}
+            icon={DollarSign}
+            iconColor="text-green-500"
+            accentColor="border-green-500"
+            isLoading={isLoading}
+          />
+        </div>
+
+        {/* Charts Section - hidden on mobile to prioritize the list */}
+        <div className="hidden lg:grid grid-cols-1 lg:grid-cols-3 gap-3">
+          {/* Status Distribution */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="p-2 bg-indigo-50 rounded-lg">
+                <BarChart3 className="h-5 w-5 text-indigo-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 text-base">{t('orders.charts.statusDistribution')}</h3>
+            </div>
+            {statusChartData.length > 0 ? (
+              <PieChart
+                key={`status-${locale}`}
+                dataSource={statusChartData}
+                palette={statusChartData.map(d => d.color)}
+                type="doughnut"
+                innerRadius={0.65}
+                size={{ height: 200 }}
+              >
+                <Series argumentField="status" valueField="count">
+                  <Label visible={false} />
+                </Series>
+                <Legend horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" />
+                <Tooltip enabled customizeTooltip={(arg) => ({
+                  text: `${arg.argumentText}: ${arg.valueText}`,
+                })} />
+              </PieChart>
+            ) : (
+              <div className="flex items-center justify-center h-[200px] text-gray-400">
+                <div className="text-center">
+                  <ShoppingCart className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">{t('orders.charts.noData')}</p>
                 </div>
               </div>
+            )}
+          </div>
 
-              <div className="flex items-center gap-2">
-                {/* View Mode Toggle */}
-                <div className="hidden md:flex items-center bg-white/20 backdrop-blur-sm rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={cn(
-                      'p-2 rounded-lg transition-colors',
-                      viewMode === 'grid' ? 'bg-white/30 text-white' : 'text-white/70 hover:text-white'
-                    )}
-                    title="Grid View"
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('cards')}
-                    className={cn(
-                      'p-2 rounded-lg transition-colors',
-                      viewMode === 'cards' ? 'bg-white/30 text-white' : 'text-white/70 hover:text-white'
-                    )}
-                    title="Cards View"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('analytics')}
-                    className={cn(
-                      'p-2 rounded-lg transition-colors',
-                      viewMode === 'analytics' ? 'bg-white/30 text-white' : 'text-white/70 hover:text-white'
-                    )}
-                    title="Analytics View"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => refetch()}
-                  className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg flex items-center justify-center text-white transition-colors"
-                  data-testid="so-refresh-btn"
-                >
-                  <RefreshCw className="h-5 w-5" />
-                </button>
-                <DxButton
-                  text={t('orders.actions.createOrder')}
-                  icon="plus"
-                  type="success"
-                  onClick={() => router.push('/sales/orders/new')}
-                  elementAttr={{ 'data-testid': 'so-add-btn' }}
-                />
+          {/* Value by Status */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="p-2 bg-emerald-50 rounded-lg">
+                <DollarSign className="h-5 w-5 text-emerald-600" />
               </div>
+              <h3 className="font-semibold text-gray-900 text-base">{t('orders.charts.valueByStatus')}</h3>
+            </div>
+            {valueChartData.length > 0 ? (
+              <PieChart
+                key={`value-${locale}`}
+                dataSource={valueChartData}
+                palette={valueChartData.map(d => d.color)}
+                type="doughnut"
+                innerRadius={0.65}
+                size={{ height: 200 }}
+              >
+                <Series argumentField="status" valueField="value">
+                  <Label visible={false} />
+                </Series>
+                <Legend horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" />
+                <Tooltip enabled customizeTooltip={(arg) => ({
+                  text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`,
+                })} />
+              </PieChart>
+            ) : (
+              <div className="flex items-center justify-center h-[200px] text-gray-400">
+                <div className="text-center">
+                  <DollarSign className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">{t('orders.charts.noData')}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Top Customers */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0 overflow-hidden">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <Users className="h-5 w-5 text-purple-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 text-base">{t('orders.cards.topCustomers')}</h3>
+            </div>
+            <div className="space-y-2.5">
+              {topCustomers.length > 0 ? (
+                topCustomers.map((customer, index) => (
+                  <div key={customer.name} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-7 h-7 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-sm font-medium shrink-0">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 text-sm truncate" title={customer.name}>{customer.name}</p>
+                      <p className="text-xs text-gray-500">{t('orders.cards.orders', { count: customer.count })}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-semibold text-emerald-600 text-sm tabular-nums">{formatCurrencyShort(customer.value)}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-gray-400">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">{t('orders.analytics.noCustomers')}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-indigo-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <ShoppingCart className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.stats.total')}</p>
-                      <p className="text-lg font-bold text-gray-900">{stats.total}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-amber-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-amber-100 rounded-lg flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.stats.active')}</p>
-                      <p className="text-lg font-bold text-gray-900">{stats.activeCount}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-violet-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-violet-100 rounded-lg flex items-center justify-center">
-                      <Package className="h-5 w-5 text-violet-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.stats.ready')}</p>
-                      <p className="text-lg font-bold text-gray-900">{stats.ready}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-green-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-green-100 rounded-lg flex items-center justify-center">
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.stats.delivered')}</p>
-                      <p className="text-lg font-bold text-gray-900">{stats.delivered}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-red-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-red-100 rounded-lg flex items-center justify-center">
-                      <AlertTriangle className="h-5 w-5 text-red-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.stats.overdue')}</p>
-                      <p className={cn('text-lg font-bold', stats.overdue > 0 ? 'text-red-600' : 'text-gray-900')}>
-                        {stats.overdue}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-emerald-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-emerald-100 rounded-lg flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.stats.pendingValue')}</p>
-                      <p className="text-lg font-bold text-gray-900">{formatCurrencyShort(stats.pendingValue)}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Overdue Alert */}
         {stats.overdue > 0 && (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="p-2 bg-red-100 rounded-lg shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-red-800">
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-red-800 text-sm block">
                     {t('orders.dates.overdueAlert', { count: stats.overdue })}
-                  </p>
-                  <p className="text-sm text-red-600">
+                  </span>
+                  <span className="text-sm text-red-700">
                     {t('orders.dates.urgentAction')}
-                  </p>
+                  </span>
                 </div>
-                <DxButton
-                  text={t('orders.actions.viewOrder')}
-                  type="danger"
-                  onClick={() => {
-                    setStatusFilter('');
-                    setSearch('');
-                  }}
-                />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
-        {/* Main Content Card with Tabs and Search */}
-        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
-          <CardHeader className="border-b pb-0 space-y-3">
-            {/* Status Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-0 scrollbar-thin">
+        {/* Data Card: Tabs + Search + List/Grid */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          {/* Status Tabs — scrollable on mobile */}
+          <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+            <div className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x">
               {STATUS_ORDER.map((status) => {
                 const config = status === ''
-                  ? { translationKey: 'all', bgClass: 'bg-gray-100', textClass: 'text-gray-700', hoverBg: 'hover:bg-gray-200', icon: Building2 }
+                  ? {
+                      translationKey: 'all',
+                      bgClass: 'bg-gray-900',
+                      textClass: 'text-white',
+                      hoverBg: 'hover:bg-gray-100',
+                      icon: Building2,
+                    }
                   : STATUS_CONFIG[status];
                 const count = statusCounts[status];
                 const isActive = statusFilter === status;
@@ -1200,18 +758,20 @@ export default function SalesOrdersPage() {
                     onClick={() => setStatusFilter(status)}
                     data-testid={`so-status-tab-${status || 'all'}`}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border-b-2',
+                      'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]',
                       isActive
-                        ? `${config.bgClass} ${config.textClass} border-current`
-                        : `text-gray-500 border-transparent ${config.hoverBg}`
+                        ? status === ''
+                          ? 'bg-gray-900 text-white shadow-sm'
+                          : `${config.bgClass} ${config.textClass} shadow-sm`
+                        : 'text-gray-600 hover:bg-gray-100'
                     )}
                   >
                     <Icon className="h-4 w-4" />
                     <span>{t(`orders.status.${config.translationKey}`)}</span>
                     <span
                       className={cn(
-                        'ml-1 px-1.5 py-0.5 rounded text-xs font-semibold',
-                        isActive ? 'bg-white/50' : 'bg-gray-200/70'
+                        'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                        isActive ? 'bg-white/25 text-inherit' : 'bg-gray-200 text-gray-700'
                       )}
                     >
                       {count}
@@ -1220,33 +780,285 @@ export default function SalesOrdersPage() {
                 );
               })}
             </div>
+          </div>
 
-            {/* Search */}
-            <div className="flex items-center gap-3 pb-3">
-              <div className="flex-1 max-w-md" data-testid="so-search-container">
-                <DxTextBox
-                  placeholder={t('orders.searchPlaceholder')}
-                  value={search}
-                  onValueChange={setSearch}
-                  showClearButton
-                  mode="search"
-                  elementAttr={{ 'data-testid': 'so-search-input' }}
-                />
-              </div>
-              <div className="text-sm text-gray-500">
-                {t('orders.grid.showing', { count: filteredOrders.length })}
-              </div>
+          {/* Search + Result count */}
+          <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="w-full sm:max-w-md" data-testid="so-search-container">
+              <DxTextBox
+                placeholder={t('orders.searchPlaceholder')}
+                value={search}
+                onValueChange={setSearch}
+                showClearButton
+                mode="search"
+                elementAttr={{ 'data-testid': 'so-search-input' }}
+              />
             </div>
-          </CardHeader>
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+              <Boxes className="h-4 w-4 text-gray-400" />
+              <span>{t('orders.grid.showing', { count: filteredOrders.length })}</span>
+            </div>
+          </div>
 
-          <CardContent className="flex-1 min-h-0 flex flex-col pt-4">
-            {/* Content based on view mode */}
-            {viewMode === 'grid' && renderGridView()}
-            {viewMode === 'cards' && renderCardsView()}
-            {viewMode === 'analytics' && renderAnalyticsView()}
-          </CardContent>
-        </Card>
+          {/* Content: Loading / Empty / No-results / Mobile Cards / Desktop Grid */}
+          {isLoading ? (
+            isMobile ? (
+              <OrderCardSkeletonList count={4} />
+            ) : (
+              <DataGridLoadingSkeleton />
+            )
+          ) : showEmptyState ? (
+            <EmptyState onCreate={handleCreate} t={t} />
+          ) : showNoResultsState ? (
+            <NoResultsState onClear={handleClearFilters} t={t} tCommon={tCommon} />
+          ) : isMobile ? (
+            <OrderCardList
+              orders={filteredOrders}
+              onView={handleView}
+              t={t}
+            />
+          ) : (
+            <DxDataGrid
+              key={locale}
+              dataSource={filteredOrders}
+              keyExpr="id"
+              columns={columns}
+              sorting
+              filterRow
+              headerFilter
+              export
+              exportFileName="sales-orders"
+              columnChooser
+              responsiveColumns
+              virtualScrolling={filteredOrders.length > 100}
+              height={600}
+              mobileHeight={520}
+              tabletHeight={560}
+              noDataText={t('orders.grid.noData')}
+              onRowClick={handleRowClick}
+              rowAlternationEnabled
+              elementAttr={{ 'data-testid': 'so-data-grid' }}
+            />
+          )}
+        </div>
       </div>
     </MainLayout>
+  );
+}
+
+// ============================================
+// Helper Components
+// ============================================
+
+// next-intl's translator type; accept a compatible superset.
+type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
+
+/** Mobile Card List — replaces DataGrid on mobile viewports. */
+function OrderCardList({
+  orders,
+  onView,
+  t,
+}: {
+  orders: SalesOrder[];
+  onView: (order: SalesOrder) => void;
+  t: TranslateFn;
+}) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30">
+      {orders.map((order) => {
+        const config = STATUS_CONFIG[order.status];
+        const overdue = isOverdue(order.requiredDate, order.status);
+        const daysUntil = getDaysUntilRequired(order.requiredDate, order.status);
+        const StatusIcon = config?.icon || FileText;
+
+        return (
+          <div
+            key={order.id}
+            className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md active:bg-gray-50 transition-all overflow-hidden"
+          >
+            {/* Left color strip + tap-to-view body */}
+            <button
+              type="button"
+              onClick={() => onView(order)}
+              className="w-full text-left p-4 flex items-start gap-3"
+            >
+              <div
+                className={cn(
+                  'h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0',
+                  overdue ? 'bg-red-100' : 'bg-indigo-100'
+                )}
+              >
+                <FileText className={cn('h-5 w-5', overdue ? 'text-red-600' : 'text-indigo-600')} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="min-w-0">
+                    <p className="font-mono font-semibold text-indigo-600 text-base truncate">{order.soNumber}</p>
+                    <p className="text-sm text-gray-700 truncate mt-0.5" title={order.customerName}>
+                      {order.customerName}
+                    </p>
+                  </div>
+                  {config && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold tracking-wide shrink-0',
+                        config.bgClass,
+                        config.textClass,
+                      )}
+                    >
+                      <StatusIcon className="h-3 w-3" />
+                      {t(`orders.status.${config.translationKey}`)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Price + delivery date */}
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <span className="text-lg font-bold text-emerald-600 tabular-nums">
+                    {formatCurrency(order.totalAmount, order.currency)}
+                  </span>
+                  {order.requiredDate && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded',
+                        overdue ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-700',
+                      )}
+                    >
+                      <Truck className="h-3 w-3" />
+                      {formatDateShort(order.requiredDate)}
+                      {daysUntil !== null && (
+                        <span className="ml-1">
+                          {daysUntil < 0
+                            ? `(${t('orders.dates.overdueShort', { days: Math.abs(daysUntil) })})`
+                            : daysUntil === 0
+                              ? `(${t('orders.dates.today')})`
+                              : `(${t('orders.dates.daysShort', { days: daysUntil })})`}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
+
+                {overdue && (
+                  <div className="mt-2 p-1.5 bg-red-50 rounded-md flex items-center gap-1.5 text-red-600 text-xs">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span>{t('orders.grid.overdue')}</span>
+                  </div>
+                )}
+              </div>
+            </button>
+
+            {/* Card footer: View Details button (touch-friendly) */}
+            <div className="flex items-center border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => onView(order)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 transition-colors min-h-[44px]"
+              >
+                <Eye className="h-4 w-4" />
+                <span>{t('orders.actions.viewOrder')}</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Loading skeleton for mobile card list */
+function OrderCardSkeletonList({ count = 3 }: { count?: number }) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="h-11 w-11 rounded-xl bg-gray-200 flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/2 bg-gray-200 rounded" />
+              <div className="h-3 w-1/3 bg-gray-200 rounded" />
+              <div className="h-3 w-2/3 bg-gray-200 rounded" />
+              <div className="flex gap-2 pt-1">
+                <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                <div className="h-5 w-20 bg-gray-200 rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading skeleton for desktop DataGrid area */
+function DataGridLoadingSkeleton() {
+  return (
+    <div className="p-4 space-y-2" aria-busy="true" aria-live="polite">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-lg animate-pulse">
+          <div className="h-8 w-8 rounded-lg bg-gray-200" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-1/4 bg-gray-200 rounded" />
+            <div className="h-2 w-1/6 bg-gray-200 rounded" />
+          </div>
+          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-16 bg-gray-200 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Empty State — shown when there are zero orders at all */
+function EmptyState({ onCreate, t }: { onCreate: () => void; t: TranslateFn }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <div className="h-20 w-20 rounded-2xl bg-indigo-100 flex items-center justify-center mb-5">
+        <ShoppingBag className="h-10 w-10 text-indigo-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        {t('orders.grid.noData')}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-6">
+        {t('orders.description')}
+      </p>
+      <DxButton
+        text={t('orders.actions.createOrder')}
+        icon="plus"
+        type="success"
+        onClick={onCreate}
+      />
+    </div>
+  );
+}
+
+/** No Results State — shown when filter/search yields zero results */
+function NoResultsState({
+  onClear,
+  t,
+  tCommon,
+}: {
+  onClear: () => void;
+  t: TranslateFn;
+  tCommon: TranslateFn;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+      <div className="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+        <SearchX className="h-8 w-8 text-gray-400" />
+      </div>
+      <h3 className="text-base font-semibold text-gray-900 mb-1">
+        {t('orders.cards.noMatchingOrders')}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-4">
+        {t('orders.grid.noData')}
+      </p>
+      <DxButton
+        text={tCommon('actions.clear')}
+        icon="clear"
+        stylingMode="outlined"
+        onClick={onClear}
+      />
+    </div>
   );
 }

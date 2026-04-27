@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getSession, hasPermission, isAdminRole, Permission, Role } from './auth';
-import { getRolePermissionSet } from './auth/permission-resolver';
 
 // Check if running in development mode
 export function isDevelopment(): boolean {
@@ -192,16 +191,11 @@ export async function withAuth(
   if (requiredPermissions && requiredPermissions.length > 0) {
     // Administrator bypasses all permission checks
     if (!isAdminRole(session.role)) {
-      // Grant a permission if EITHER the hardcoded PERMISSIONS map allows
-      // it (the built-in defaults) OR the DB-backed role-permission table
-      // allows it (admin overrides through /hr/roles). This makes the
-      // Role Management UI effective without requiring every legacy code
-      // path to migrate off the static map.
-      const dbPerms = await getRolePermissionSet(session.role);
-      const missing = requiredPermissions.filter((permission) => {
-        if (dbPerms.has(permission)) return false;
-        return !hasPermission(session.role as Role, permission);
-      });
+      // Collect ALL missing permissions (not just the first) so the admin
+      // can grant them in a single edit, not N round-trips.
+      const missing = requiredPermissions.filter(
+        (permission) => !hasPermission(session.role as Role, permission)
+      );
 
       if (missing.length > 0) {
         const url = new URL(request.url);

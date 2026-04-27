@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สรุปสิทธิ์ผู้ใช้งาน (User Roles) - Herbal Medicine ERP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Sarabun','Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b;line-height:1.6;font-size:15px;}
+
+    .header{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 50%,#7c3aed 100%);color:white;padding:28px 0;text-align:center;position:relative;overflow:hidden;}
+    .header::before{content:'';position:absolute;top:-50%;right:-20%;width:500px;height:500px;background:rgba(255,255,255,0.04);border-radius:50%;}
+    .header .logo{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:16px;font-size:28px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.2);}
+    .header h1{font-size:24px;font-weight:700;margin:0;}
+    .header .subtitle{font-size:15px;opacity:0.9;margin-top:6px;}
+
+    .top-bar{background:white;border-bottom:1px solid #e2e8f0;padding:12px 20px;text-align:center;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+    .top-bar a{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;margin:0 4px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;transition:all 0.2s;}
+    .top-bar a:hover{background:#eff6ff;color:#2563eb;border-color:#bfdbfe;}
+    .top-bar a.primary{background:#2563eb;color:white;border-color:#2563eb;}
+    .top-bar a.primary:hover{background:#1d4ed8;}
+
+    .container{max-width:1400px;margin:0 auto;padding:0 20px;}
+    .content{padding:24px 0 60px;}
+
+    .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px;}
+    .stat-card{background:white;border-radius:12px;border:1px solid #e2e8f0;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);text-align:center;}
+    .stat-card .val{font-size:26px;font-weight:700;}
+    .stat-card .lbl{font-size:13px;color:#64748b;margin-top:2px;}
+    .stat-card.blue .val{color:#2563eb;}
+    .stat-card.purple .val{color:#7c3aed;}
+    .stat-card.green .val{color:#059669;}
+    .stat-card.orange .val{color:#ea580c;}
+
+    .intro{background:#eff6ff;border-left:4px solid #3b82f6;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:14px;color:#1e40af;}
+    .intro b{color:#1e3a8a;}
+
+    .section-title{font-size:18px;font-weight:700;color:#1e293b;margin:24px 0 14px;padding-left:12px;border-left:4px solid #2563eb;display:flex;align-items:center;gap:10px;}
+    .section-title .badge{font-size:12px;background:#e0e7ff;color:#4338ca;padding:3px 10px;border-radius:999px;font-weight:600;}
+
+    .group-card{background:white;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+    .group-head{padding:14px 22px;display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;border-bottom:1px solid #e2e8f0;}
+    .group-head.red{background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#991b1b;}
+    .group-head.green{background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:#065f46;}
+    .group-head.yellow{background:linear-gradient(135deg,#fffbeb,#fef3c7);color:#78350f;}
+    .group-head.blue{background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1e3a8a;}
+    .group-head.purple{background:linear-gradient(135deg,#faf5ff,#ede9fe);color:#5b21b6;}
+    .group-head.orange{background:linear-gradient(135deg,#fff7ed,#ffedd5);color:#7c2d12;}
+    .group-head.teal{background:linear-gradient(135deg,#f0fdfa,#ccfbf1);color:#134e4a;}
+    .group-head.gray{background:linear-gradient(135deg,#f8fafc,#e2e8f0);color:#334155;}
+
+    .tbl-wrap{overflow-x:auto;}
+    table.roles{width:100%;border-collapse:collapse;font-size:13.5px;}
+    table.roles th{background:#f8fafc;padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:2px solid #e2e8f0;white-space:nowrap;font-size:13px;}
+    table.roles td{padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;}
+    table.roles tr:last-child td{border-bottom:none;}
+    table.roles tr:hover td{background:#f8fafc;}
+    table.roles code{background:#f1f5f9;padding:2px 7px;border-radius:4px;font-size:12px;color:#1e40af;font-family:ui-monospace,'Fira Code',monospace;font-weight:600;}
+    table.roles td.menus{color:#475569;font-size:13px;}
+    table.roles td.menus b{color:#059669;}
+
+    .mod-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;margin-top:14px;}
+    .mod-card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:0;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+    .mod-card-head{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:700;color:#1e293b;border-bottom:1px solid #e2e8f0;background:linear-gradient(135deg,#f8fafc,#eef2ff);}
+    .mod-card-head .cnt{background:#e0e7ff;color:#4338ca;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;}
+    .mod-purpose{padding:10px 16px;font-size:12.5px;color:#475569;background:#fafbfc;border-bottom:1px solid #f1f5f9;line-height:1.5;}
+    .mod-purpose b{color:#1e293b;}
+    .mod-perm-list{padding:8px 0;}
+    .perm-item{padding:7px 16px;display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid #f8fafc;}
+    .perm-item:last-child{border-bottom:none;}
+    .perm-item:hover{background:#f8fafc;}
+    .perm-item code{background:#eef2ff;color:#4338ca;padding:3px 8px;border-radius:4px;font-size:11.5px;font-family:ui-monospace,'Fira Code',monospace;font-weight:600;white-space:nowrap;flex-shrink:0;min-width:155px;}
+    .perm-item .desc{font-size:13px;color:#475569;line-height:1.45;flex:1;}
+
+    .alert-box{background:#fef3c7;border:1px solid #fbbf24;border-left:4px solid #d97706;border-radius:8px;padding:14px 18px;margin-top:24px;}
+    .alert-box h3{color:#78350f;font-size:15px;margin-bottom:10px;}
+    .alert-box ul{margin:0;padding-left:22px;font-size:13.5px;color:#713f12;}
+    .alert-box ul li{padding:3px 0;}
+
+    .footer{text-align:center;padding:24px;color:#64748b;font-size:13px;margin-top:20px;}
+
+    @media (max-width:768px){
+      .section-title{font-size:16px;}
+      table.roles{font-size:12.5px;}
+      table.roles th,table.roles td{padding:8px 10px;}
+    }
+    @media print{
+      body{background:white;}
+      .top-bar{display:none;}
+      .group-card{break-inside:avoid;page-break-inside:avoid;border:1px solid #ccc;box-shadow:none;}
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <div class="logo">🔐</div>
+      <h1>สรุปสิทธิ์การใช้งาน (User Roles)</h1>
+      <div class="subtitle">รายการ Role ทั้งหมด + เมนูที่แต่ละ Role เข้าถึงได้ - Herbal Medicine ERP</div>
+    </div>
+  </div>
+
+  <div class="top-bar">
+    <a href="user-manual-herbal-erp.html" class="primary">📘 คู่มือการใช้งาน</a>
+    <a href="training-herbal-erp.html">📋 หลักสูตรอบรม</a>
+    <a href="installation-checklist-herbal-erp.html">✅ Checklist ติดตั้ง</a>
+    <a href="changelog-herbal-erp.html">📝 Changelog</a>
+  </div>
+
+  <div class="container content">
+    <div class="intro">
+      <b>📌 เกี่ยวกับ:</b> ระบบมี 2 ชั้นการจัดการสิทธิ์ — (1) <b>Legacy System Role</b> ที่ใช้จริงใน Sidebar (7 role: admin, manager, qc, production, warehouse, purchasing, sales, hr, accounting, finance) และ (2) <b>HR App Role</b> (21+ role) ที่ถูก map กลับมาที่ Legacy Role ผ่าน <code>role-mapping.ts</code> เพื่อให้สิทธิ์การเข้าถึงเมนูสอดคล้องกับตำแหน่งงานจริงตามมาตรฐาน GMP
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card blue">
+        <div class="val">34</div>
+        <div class="lbl">HR Roles (รวม alias)</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="val">21</div>
+        <div class="lbl">Roles ใน DB</div>
+      </div>
+      <div class="stat-card green">
+        <div class="val">67</div>
+        <div class="lbl">Permission Codes</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="lbl">ใน</div>
+        <div class="val">16</div>
+        <div class="lbl">Modules</div>
+      </div>
+    </div>
+
+    <h2 class="section-title">🔴 1. ระดับ Executive / Admin <span class="badge">เข้าถึงทุกเมนู</span></h2>
+    <div class="group-card">
+      <div class="group-head red">👑 Executive &amp; Admin (เต็มสิทธิ์)</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>ADMIN</code></td><td>ผู้ดูแลระบบ</td><td>admin</td><td class="menus"><b>✅ ทุกเมนูทั้งหมด</b> + Admin Panel + Users + Audit Trail</td></tr>
+            <tr><td><code>DIRECTOR</code></td><td>ผู้อำนวยการ</td><td>manager, admin</td><td class="menus"><b>✅ ทุกเมนู</b> (catch-all)</td></tr>
+            <tr><td><code>DEPUTY_DIRECTOR</code></td><td>รองผู้อำนวยการ</td><td>manager</td><td class="menus">ทุกเมนูยกเว้น Admin Panel</td></tr>
+            <tr><td><code>DIV_HEAD</code></td><td>หัวหน้าฝ่าย</td><td>manager</td><td class="menus">ทุกเมนูยกเว้น Admin Panel</td></tr>
+            <tr><td><code>SECTION_HEAD</code></td><td>หัวหน้ากลุ่มงาน</td><td>manager</td><td class="menus">ทุกเมนูยกเว้น Admin Panel</td></tr>
+            <tr><td><code>IT_MANAGER</code></td><td>IT Manager</td><td>admin</td><td class="menus"><b>✅ ทุกเมนูทั้งหมด</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">🟢 2. ฝ่ายประกันคุณภาพ &amp; QC</h2>
+    <div class="group-card">
+      <div class="group-head green">🔬 Quality Assurance &amp; Quality Control</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>PHARMACIST</code></td><td>เภสัชกร</td><td>qc, qa</td><td class="menus">Inventory, Production, Quality, <b>GMP</b>, Issues</td></tr>
+            <tr><td><code>QA_MANAGER</code></td><td>หัวหน้าประกันคุณภาพ</td><td>qc, qa</td><td class="menus">Inventory, Production, Quality, <b>GMP</b>, Issues</td></tr>
+            <tr><td><code>QA_OFFICER</code></td><td>เจ้าหน้าที่ประกันคุณภาพ</td><td>qc, qa</td><td class="menus">Inventory, Production, Quality, <b>GMP</b>, Issues</td></tr>
+            <tr><td><code>QC_MANAGER</code></td><td>หัวหน้าควบคุมคุณภาพ</td><td>qc</td><td class="menus">Inventory, Production, Quality, GMP, Issues</td></tr>
+            <tr><td><code>QC_ANALYST</code></td><td>ผู้วิเคราะห์คุณภาพ</td><td>qc</td><td class="menus">Inventory, Production, Quality, GMP, Issues</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">🟡 3. ฝ่ายผลิต</h2>
+    <div class="group-card">
+      <div class="group-head yellow">🏭 Production &amp; Maintenance</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>PROD_MANAGER</code></td><td>หัวหน้าผลิต</td><td>production</td><td class="menus">Inventory, Production, Quality, GMP, Cost, Issues</td></tr>
+            <tr><td><code>PROD_OPERATOR</code></td><td>พนักงานผลิต</td><td>production</td><td class="menus">Inventory, Production, Quality, GMP, Cost, Issues</td></tr>
+            <tr><td><code>TECHNICIAN</code></td><td>เจ้าพนักงาน</td><td>production</td><td class="menus">Inventory, Production, Quality, GMP, Cost, Issues</td></tr>
+            <tr><td><code>MAINT_MANAGER</code></td><td>หัวหน้าซ่อมบำรุง</td><td>production, qc</td><td class="menus">Inventory, Production, Quality, GMP, Cost, Issues</td></tr>
+            <tr><td><code>MAINT_STAFF</code></td><td>ช่างซ่อมบำรุง</td><td>production, qc</td><td class="menus">Inventory, Production, Quality, GMP, Cost, Issues</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">🔵 4. ฝ่ายคลังสินค้า</h2>
+    <div class="group-card">
+      <div class="group-head blue">📦 Warehouse</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>WH_MANAGER</code></td><td>หัวหน้าคลัง</td><td>warehouse</td><td class="menus">Inventory, Purchasing, Sales, VMI, Issues</td></tr>
+            <tr><td><code>WH_STAFF</code></td><td>พนักงานคลัง</td><td>warehouse</td><td class="menus">Inventory, Purchasing, Sales, VMI, Issues</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">🟣 5. ฝ่ายจัดซื้อ</h2>
+    <div class="group-card">
+      <div class="group-head purple">🛒 Purchasing</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>PROCUREMENT</code></td><td>พนักงานจัดซื้อ</td><td>purchasing</td><td class="menus">Inventory, Purchasing, Cost, Issues</td></tr>
+            <tr><td><code>PROCUREMENT_MANAGER</code></td><td>หัวหน้าจัดซื้อ</td><td>purchasing</td><td class="menus">Inventory, Purchasing, Cost, Issues</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">🟠 6. ฝ่ายขาย / การตลาด / โลจิสติกส์</h2>
+    <div class="group-card">
+      <div class="group-head orange">💰 Sales / Marketing / Logistics</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>SALES_MANAGER</code></td><td>หัวหน้าขาย</td><td>sales</td><td class="menus">Sales, VMI, Issues</td></tr>
+            <tr><td><code>SALES_STAFF</code></td><td>พนักงานขาย</td><td>sales</td><td class="menus">Sales, VMI, Issues</td></tr>
+            <tr><td><code>MARKETING_MANAGER</code></td><td>หัวหน้าการตลาด</td><td>sales</td><td class="menus">Sales, VMI, Issues</td></tr>
+            <tr><td><code>MARKETING_STAFF</code></td><td>พนักงานการตลาด</td><td>sales</td><td class="menus">Sales, VMI, Issues</td></tr>
+            <tr><td><code>LOGISTIC_MANAGER</code></td><td>หัวหน้าโลจิสติกส์</td><td>warehouse, sales</td><td class="menus">Inventory, Purchasing, Sales, VMI, Issues</td></tr>
+            <tr><td><code>LOGISTIC_STAFF</code></td><td>พนักงานโลจิสติกส์</td><td>warehouse, sales</td><td class="menus">Inventory, Purchasing, Sales, VMI, Issues</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">⚫ 7. ฝ่ายบัญชี / การเงิน</h2>
+    <div class="group-card">
+      <div class="group-head gray">💳 Accounting &amp; Finance</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>ACCOUNTING_MANAGER</code></td><td>หัวหน้าบัญชี</td><td>accounting, finance</td><td class="menus">Accounting, Cost, Issues</td></tr>
+            <tr><td><code>FINANCE_MANAGER</code></td><td>หัวหน้าการเงิน</td><td>finance, accounting</td><td class="menus">Accounting, Cost, Issues</td></tr>
+            <tr><td><code>AP_STAFF</code></td><td>เจ้าหน้าที่ AP</td><td>accounting</td><td class="menus">Accounting, Cost, Issues</td></tr>
+            <tr><td><code>AR_STAFF</code></td><td>เจ้าหน้าที่ AR</td><td>accounting</td><td class="menus">Accounting, Cost, Issues</td></tr>
+            <tr><td><code>GL_ACCOUNTANT</code></td><td>นักบัญชี GL</td><td>accounting</td><td class="menus">Accounting, Cost, Issues</td></tr>
+            <tr><td><code>FINANCE_STAFF</code></td><td>พนักงานการเงิน</td><td>finance, accountant</td><td class="menus">Accounting (partial), Cost, Issues</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">🟤 8. ฝ่ายบุคคล / ทะเบียน</h2>
+    <div class="group-card">
+      <div class="group-head teal">👥 HR &amp; Registration</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>HR_ADMIN</code></td><td>ผู้ดูแลบุคคล</td><td>hr_admin, hr</td><td class="menus">HR (ครบ), Reports, Issues</td></tr>
+            <tr><td><code>HR_MANAGER</code></td><td>หัวหน้า HR</td><td>hr_admin, hr</td><td class="menus">HR (ครบ), Reports, Issues</td></tr>
+            <tr><td><code>HR_STAFF</code></td><td>พนักงาน HR</td><td>hr_staff, hr</td><td class="menus">HR (บางส่วน), Reports, Issues</td></tr>
+            <tr><td><code>REGISTRATION</code></td><td>พนักงานทะเบียน</td><td>hr_staff, qc</td><td class="menus">HR (partial), Quality, Production, Issues</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">🔬 9. R&amp;D / นักวิทยาศาสตร์</h2>
+    <div class="group-card">
+      <div class="group-head green">🧪 Research &amp; Development</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>RD_MANAGER</code></td><td>หัวหน้า R&amp;D</td><td>qc, production</td><td class="menus">Inventory, Production, Quality, GMP, Cost, Issues</td></tr>
+            <tr><td><code>RD_STAFF</code></td><td>พนักงาน R&amp;D</td><td>qc, production</td><td class="menus">Inventory, Production, Quality, GMP, Cost, Issues</td></tr>
+            <tr><td><code>RD_RESEARCHER</code></td><td>นักวิจัย</td><td>qc, production</td><td class="menus">Inventory, Production, Quality, GMP, Cost, Issues</td></tr>
+            <tr><td><code>SCIENTIST</code></td><td>นักวิทยาศาสตร์</td><td>qc, production</td><td class="menus">Inventory, Production, Quality, GMP, Cost, Issues</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">⚪ 10. View Only</h2>
+    <div class="group-card">
+      <div class="group-head gray">👁️ Read-only Access</div>
+      <div class="tbl-wrap">
+        <table class="roles">
+          <thead>
+            <tr><th>Role Code</th><th>ชื่อ (ไทย)</th><th>Maps to</th><th>เมนูที่เข้าถึงได้</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>VIEWER</code></td><td>ผู้ดูรายงาน</td><td>user</td><td class="menus">Dashboard, Issues (อย่างเดียว)</td></tr>
+            <tr><td><code>IT_STAFF</code></td><td>IT Staff</td><td>user</td><td class="menus">Dashboard, Issues (อย่างเดียว)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ PERMISSION MATRIX ============ -->
+    <h2 class="section-title">🔑 67 Permission Codes ใน 16 Modules <span class="badge">พร้อมคำอธิบาย</span></h2>
+
+    <div class="intro" style="background:#eef2ff;border-color:#6366f1;color:#3730a3;">
+      <b>💡 Permission Code</b> คือสิทธิ์ระดับ <b>Action</b> (เช่น อ่าน/แก้ไข/อนุมัติ) ในแต่ละ Module ของระบบ
+      — แต่ละ Role จะถูกกำหนดให้มี permission codes หลายตัวรวมกัน เพื่อให้สามารถทำงานตามหน้าที่ได้ครบตามมาตรฐาน GMP
+    </div>
+
+    <div class="mod-grid">
+      <!-- Accounting -->
+      <div class="mod-card">
+        <div class="mod-card-head">💳 Accounting <span class="cnt">7 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบบัญชีครบวงจร — AP/AR, Journal Entries, Fixed Assets, Period Close, 3-Way Matching, Bank Reconciliation, รายงานการเงิน</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>accounting:read</code><span class="desc">ดู AP / AR / Journal / รายงานบัญชี</span></div>
+          <div class="perm-item"><code>accounting:write</code><span class="desc">สร้าง/แก้ไข Invoices + Journal Entries</span></div>
+          <div class="perm-item"><code>accounting:approve</code><span class="desc">อนุมัติ Payment / Credit Note</span></div>
+          <div class="perm-item"><code>accounting:assets</code><span class="desc">จัดการ Fixed Assets + Depreciation (ค่าเสื่อม)</span></div>
+          <div class="perm-item"><code>accounting:close</code><span class="desc">ปิดงวดบัญชี (Period Close)</span></div>
+          <div class="perm-item"><code>accounting:matching</code><span class="desc">3-Way Matching (PO-GR-Invoice) ตรวจความสอดคล้อง 3 เอกสาร</span></div>
+          <div class="perm-item"><code>accounting:reconcile</code><span class="desc">กระทบยอดธนาคาร (Bank Reconciliation)</span></div>
+        </div>
+      </div>
+
+      <!-- Admin -->
+      <div class="mod-card">
+        <div class="mod-card-head">🛠️ Admin <span class="cnt">3 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> สิทธิ์ดูแลระบบระดับสูง — ตั้งค่าระบบ, ดู Audit Trail, จัดการกลุ่มข้อมูลลับ (PDPA)</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>admin:system</code><span class="desc">สิทธิ์ดูแลระบบระดับสูงสุด (Super Admin)</span></div>
+          <div class="perm-item"><code>admin:audit_trail</code><span class="desc">ดู Audit Trail ทั้งระบบ (ประวัติการเปลี่ยนแปลงข้อมูล)</span></div>
+          <div class="perm-item"><code>admin:confidential</code><span class="desc">จัดการกลุ่มข้อมูลลับ (Confidential Access Groups)</span></div>
+        </div>
+      </div>
+
+      <!-- Cost -->
+      <div class="mod-card">
+        <div class="mod-card-head">💰 Cost Management <span class="cnt">3 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> คำนวณต้นทุนสินค้า — Landed Cost (ต้นทุนรวมค่าขนส่ง/ภาษี), Work Centers, ต้นทุนมาตรฐาน</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>cost:read</code><span class="desc">ดูต้นทุน / Landed Cost / Work Centers</span></div>
+          <div class="perm-item"><code>cost:write</code><span class="desc">สร้าง/แก้ไข Landed Cost + Work Centers</span></div>
+          <div class="perm-item"><code>cost:approve</code><span class="desc">Post Landed Cost เข้าบัญชี (commit ต้นทุน)</span></div>
+        </div>
+      </div>
+
+      <!-- GMP -->
+      <div class="mod-card">
+        <div class="mod-card-head">🛡️ GMP Compliance <span class="cnt">9 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบปฏิบัติตาม GMP — SOP Documents, Change Control, CAPA, Complaints, Recall, Internal Audit, Sanitation, Stability, PQR</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>gmp:read</code><span class="desc">ดูเอกสาร GMP / CAPA / Complaints</span></div>
+          <div class="perm-item"><code>gmp:write</code><span class="desc">สร้าง/แก้ไขเอกสาร GMP</span></div>
+          <div class="perm-item"><code>gmp:approve</code><span class="desc">อนุมัติ Change Control / CAPA / Documents</span></div>
+          <div class="perm-item"><code>gmp:audit</code><span class="desc">ดำเนินการ Internal Audit</span></div>
+          <div class="perm-item"><code>gmp:complaint</code><span class="desc">จัดการข้อร้องเรียนลูกค้า (Complaint handling)</span></div>
+          <div class="perm-item"><code>gmp:pqr</code><span class="desc">จัดทำ Product Quality Review (PQR ประจำปี)</span></div>
+          <div class="perm-item"><code>gmp:recall</code><span class="desc">ดำเนินการเรียกคืนสินค้า (Recall) + แจ้งลูกค้า</span></div>
+          <div class="perm-item"><code>gmp:sanitation</code><span class="desc">บันทึกการทำความสะอาด / กำจัดแมลง (Pest Control)</span></div>
+          <div class="perm-item"><code>gmp:stability</code><span class="desc">ศึกษาความคงตัวของผลิตภัณฑ์ (Stability Studies)</span></div>
+        </div>
+      </div>
+
+      <!-- HR -->
+      <div class="mod-card">
+        <div class="mod-card-head">👥 HR <span class="cnt">4 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบบุคคล — Employees, Positions, Organizations, Training, Health Records, Role Assignment</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>hr:read</code><span class="desc">ดูข้อมูลพนักงาน (View HR data)</span></div>
+          <div class="perm-item"><code>hr:write</code><span class="desc">สร้าง/แก้ไขข้อมูลพนักงาน</span></div>
+          <div class="perm-item"><code>hr:admin</code><span class="desc">สิทธิ์ HR ระดับสูง (Full HR administration)</span></div>
+          <div class="perm-item"><code>hr:health_staff</code><span class="desc">จัดการ Health Records (ข้อมูลสุขภาพ - ลับ)</span></div>
+        </div>
+      </div>
+
+      <!-- Inventory -->
+      <div class="mod-card">
+        <div class="mod-card-head">📦 Inventory <span class="cnt">5 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบคลังสินค้า — Items, Lots, Warehouses, Transactions, Expiry Alerts, Requisitions, Transfers</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>inventory:read</code><span class="desc">ดูข้อมูลสต๊อก / Lots / Transactions</span></div>
+          <div class="perm-item"><code>inventory:write</code><span class="desc">สร้าง/แก้ไขข้อมูล Items, Lots, Warehouses</span></div>
+          <div class="perm-item"><code>inventory:adjust</code><span class="desc">ปรับปรุงสต๊อก (Inventory Adjustment) — GMP critical</span></div>
+          <div class="perm-item"><code>inventory:requisition</code><span class="desc">อนุมัติใบเบิกวัตถุดิบเข้าผลิต</span></div>
+          <div class="perm-item"><code>inventory:transfer</code><span class="desc">โอนสต๊อกระหว่างคลัง (Warehouse Transfer)</span></div>
+        </div>
+      </div>
+
+      <!-- Issues -->
+      <div class="mod-card">
+        <div class="mod-card-head">🐛 Issues (Bug Tracker) <span class="cnt">3 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบแจ้งปัญหา / Bug Tracking — รายงาน Bug, Feature Request, Support ticket</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>issues:read</code><span class="desc">ดูรายการ Issues / Bug Tracker</span></div>
+          <div class="perm-item"><code>issues:write</code><span class="desc">แจ้งปัญหา/ข้อเสนอแนะ (ผู้ใช้ทุกคน)</span></div>
+          <div class="perm-item"><code>issues:resolve</code><span class="desc">Triage + ปิด Issues (สำหรับ Dev/QA team)</span></div>
+        </div>
+      </div>
+
+      <!-- Master Data -->
+      <div class="mod-card">
+        <div class="mod-card-head">🗂️ Master Data <span class="cnt">2 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ข้อมูลแม่ระบบผลิต — IPC Criteria, Rooms, Equipment, SOP Templates, Packaging QC, Environmental Conditions</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>master_data:read</code><span class="desc">ดู IPC Criteria / Rooms / Equipment / SOP</span></div>
+          <div class="perm-item"><code>master_data:write</code><span class="desc">สร้าง/แก้ไข Master Data (IPC, Rooms, Equipment, SOP, Packaging QC, Env. Conditions)</span></div>
+        </div>
+      </div>
+
+      <!-- Production -->
+      <div class="mod-card">
+        <div class="mod-card-head">🏭 Production <span class="cnt">5 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบผลิต — BOM, Work Orders, Batch Records, Material Weighing, IPC Recording, SOP Execution, FG Receipt</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>production:read</code><span class="desc">ดูข้อมูล WO / BOM / Batch Records</span></div>
+          <div class="perm-item"><code>production:write</code><span class="desc">สร้าง/แก้ไข Work Orders + BOM</span></div>
+          <div class="perm-item"><code>production:execute</code><span class="desc">ปฏิบัติงานจริง (Weighing, Operations, IPC)</span></div>
+          <div class="perm-item"><code>production:approve</code><span class="desc">อนุมัติ Production Records (Supervisor sign-off)</span></div>
+          <div class="perm-item"><code>production:complete</code><span class="desc">ปิด Work Order + บันทึก FG Receipt</span></div>
+        </div>
+      </div>
+
+      <!-- Purchasing -->
+      <div class="mod-card">
+        <div class="mod-card-head">🛒 Purchasing <span class="cnt">5 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบจัดซื้อ — Purchase Requisitions, Purchase Orders, Vendor Management, Goods Receipt (GR)</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>purchasing:read</code><span class="desc">ดู PR / PO / Vendors</span></div>
+          <div class="perm-item"><code>purchasing:write</code><span class="desc">สร้าง/แก้ไข Purchase Orders</span></div>
+          <div class="perm-item"><code>purchasing:approve</code><span class="desc">อนุมัติใบสั่งซื้อ (Approve PO)</span></div>
+          <div class="perm-item"><code>purchasing:receive</code><span class="desc">บันทึกรับเข้าวัตถุดิบ (Goods Receipt)</span></div>
+          <div class="perm-item"><code>purchasing:vendor</code><span class="desc">จัดการข้อมูลผู้ขาย (Approved Vendor List)</span></div>
+        </div>
+      </div>
+
+      <!-- Quality -->
+      <div class="mod-card">
+        <div class="mod-card-head">🔬 Quality <span class="cnt">5 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบควบคุมคุณภาพ — Quality Tests, Specifications, Deviations, Lot Release (Quarantine → Released)</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>quality:read</code><span class="desc">ดูผล QC Tests / Specifications / Deviations</span></div>
+          <div class="perm-item"><code>quality:write</code><span class="desc">สร้าง/แก้ไข QC Tests + Specifications</span></div>
+          <div class="perm-item"><code>quality:approve</code><span class="desc">อนุมัติผล QC (Pass/Fail Disposition)</span></div>
+          <div class="perm-item"><code>quality:deviation</code><span class="desc">จัดการ Deviation / OOS / CAPA initiation</span></div>
+          <div class="perm-item"><code>quality:release</code><span class="desc"><b style="color:#dc2626;">⚠ GMP Critical</b> — ปล่อย Lot (Quarantine → Released) เฉพาะเภสัชกร/QA</span></div>
+        </div>
+      </div>
+
+      <!-- Reports -->
+      <div class="mod-card">
+        <div class="mod-card-head">📊 Reports <span class="cnt">3 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบรายงาน — Report Templates, Export Excel/PDF, Dashboard, Custom Reports</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>reports:read</code><span class="desc">ดูรายงานทั้งระบบ</span></div>
+          <div class="perm-item"><code>reports:create</code><span class="desc">สร้าง/แก้ไข Report Templates</span></div>
+          <div class="perm-item"><code>reports:publish</code><span class="desc">Publish Report Template ให้ใช้ได้ทั้งองค์กร</span></div>
+        </div>
+      </div>
+
+      <!-- Sales -->
+      <div class="mod-card">
+        <div class="mod-card-head">💵 Sales <span class="cnt">5 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> ระบบขาย — Sales Orders, Customers, Invoice + DO, Credit Limit, VMI Orders</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>sales:read</code><span class="desc">ดู Sales Orders / Customers</span></div>
+          <div class="perm-item"><code>sales:write</code><span class="desc">สร้าง/แก้ไข Sales Orders</span></div>
+          <div class="perm-item"><code>sales:approve</code><span class="desc">อนุมัติ SO / Credit Limit</span></div>
+          <div class="perm-item"><code>sales:customer</code><span class="desc">จัดการข้อมูลลูกค้า</span></div>
+          <div class="perm-item"><code>sales:invoice</code><span class="desc">ออกใบกำกับภาษี + Delivery Order (DO)</span></div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="mod-card">
+        <div class="mod-card-head">⚙️ Settings <span class="cnt">2 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> การตั้งค่าระบบ — Company Info, Approval Workflow, Matching Tolerance, System Parameters</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>settings:read</code><span class="desc">ดูการตั้งค่าระบบ</span></div>
+          <div class="perm-item"><code>settings:write</code><span class="desc">แก้ไขการตั้งค่า (Company, Approval Workflow, Matching Tolerance)</span></div>
+        </div>
+      </div>
+
+      <!-- User Management -->
+      <div class="mod-card">
+        <div class="mod-card-head">🔐 User Management <span class="cnt">3 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> จัดการผู้ใช้งาน — Create/Edit Users, Assign Roles, Reset Password, Enable/Disable Account</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>users:read</code><span class="desc">ดูรายชื่อผู้ใช้งาน</span></div>
+          <div class="perm-item"><code>users:write</code><span class="desc">สร้าง/แก้ไข User + รีเซ็ตรหัสผ่าน</span></div>
+          <div class="perm-item"><code>users:admin</code><span class="desc">กำหนด Role ให้ User + ปิด/เปิดใช้งานบัญชี</span></div>
+        </div>
+      </div>
+
+      <!-- VMI -->
+      <div class="mod-card">
+        <div class="mod-card-head">🔄 VMI (Vendor Managed Inventory) <span class="cnt">3 permissions</span></div>
+        <div class="mod-purpose"><b>ใช้ทำอะไร:</b> Vendor Managed Inventory portal — ซิงก์ข้อมูลสินค้า/ราคา/สต๊อก กับ vendor portal, VMI Orders</div>
+        <div class="mod-perm-list">
+          <div class="perm-item"><code>vmi:read</code><span class="desc">ดูคำสั่งซื้อ VMI / Sync Status</span></div>
+          <div class="perm-item"><code>vmi:write</code><span class="desc">จัดการ VMI Orders + Portal Settings</span></div>
+          <div class="perm-item"><code>vmi:sync</code><span class="desc">Trigger manual sync (items/prices/inventory)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert-box">
+      <h3>⚠️ ข้อสำคัญที่ควรทราบ</h3>
+      <ul>
+        <li><b>Sidebar Menu Filter</b> — ใช้ <code>role-mapping.ts</code> แปลง HR Role → Legacy Role (hardcoded ในโค้ด)</li>
+        <li><b>Fine-grained Permission (67 codes)</b> — กำหนดใน DB แต่ตาราง <code>hr_role_permissions</code> <b>ว่างเปล่า</b> → ยังไม่มีการตรวจ permission ระดับ action</li>
+        <li><b>Employee Role Assignment</b> — ตาราง <code>hr_employee_roles</code> <b>ว่างเปล่า</b> (พนักงาน 7 คนไม่มีใครเชื่อมกับ user account)</li>
+        <li><b>'manager' = catch-all</b> — Director / DIV_HEAD / SECTION_HEAD เห็นทุกเมนูยกเว้น Admin Panel</li>
+        <li><b>Recommended:</b> ควร migrate matrix นี้เข้า DB (seed <code>hr_role_permissions</code>) เพื่อ configure ได้จาก UI โดยไม่ต้องแก้โค้ด</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      <b>Herbal Medicine ERP</b> &middot; User Roles &amp; Permissions Matrix<br>
+      อ้างอิงจาก <code>src/lib/auth/role-mapping.ts</code>, <code>src/components/layout/sidebar.tsx</code>, ตาราง <code>hr_app_roles</code>, <code>hr_app_permissions</code> &middot; ปรับปรุงล่าสุด 20 เม.ย. 2569
+    </div>
+  </div>
+</body>
+</html>

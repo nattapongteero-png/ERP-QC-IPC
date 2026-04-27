@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/item-edit-form';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
+import { useTranslations } from 'next-intl';
 
 // Re-export types for backward compatibility
 export type { Item, ItemFormData } from '@/components/ui/item-edit-form';
@@ -29,6 +30,7 @@ export function ItemEditDialog({
   item,
   onSave,
 }: ItemEditDialogProps) {
+  const t = useTranslations('inventory');
   const [isSaving, setIsSaving] = React.useState(false);
   const isEditing = !!item;
   const typeConfig = getTypeConfig(item?.type || 'raw_material');
@@ -54,12 +56,12 @@ export function ItemEditDialog({
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {isEditing ? 'Edit Item' : 'Create New Item'}
+                {isEditing ? t('itemForm.editTitle') : t('itemForm.createTitle')}
               </h2>
               <p className="text-sm text-gray-500 mt-0.5">
                 {isEditing
-                  ? `Editing ${item.code} - ${item.nameTh}`
-                  : 'Add a new item to your inventory system'}
+                  ? t('itemForm.editSubtitle', { code: item.code, name: item.nameTh })
+                  : t('itemForm.createSubtitle')}
               </p>
             </div>
           </div>
@@ -71,7 +73,7 @@ export function ItemEditDialog({
                 dot
                 className="text-sm px-3 py-1"
               >
-                {item.isActive ? 'Active' : 'Inactive'}
+                {item.isActive ? t('itemForm.active') : t('itemForm.inactive')}
               </Badge>
             )}
           </div>

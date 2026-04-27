@@ -9,6 +9,7 @@ import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import {
   DollarSign,
   Pencil,
@@ -94,7 +95,7 @@ function getDefaultFormData(): PriceOfferFormData {
     packPrice: null,
     moq: null,
     leadTimeDays: null,
-    effectiveDate: new Date().toISOString().split('T')[0],
+    effectiveDate: toLocalDateStr(new Date()),
     expiryDate: null,
     isActive: true,
   };

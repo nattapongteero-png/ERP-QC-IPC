@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -42,7 +43,7 @@ export default function NewCreditDebitNotePage() {
     referenceInvoiceId: 0,
     customerId: 0,
     vendorId: 0,
-    noteDate: new Date().toISOString().split('T')[0],
+    noteDate: toLocalDateStr(new Date()),
     reasonCode: '' as ReasonCode | '',
     reasonDescription: '',
     vatRate: 0.07,
@@ -307,7 +308,7 @@ export default function NewCreditDebitNotePage() {
                 onValueChanged={(e) =>
                   setFormData({
                     ...formData,
-                    noteDate: e.value?.toISOString().split('T')[0] || '',
+                    noteDate: e.value ? toLocalDateStr(e.value) : '',
                   })
                 }
                 type="date"

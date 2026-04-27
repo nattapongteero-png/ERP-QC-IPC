@@ -83,12 +83,190 @@
   },
   "moduleKpis": {
     "title": "Module KPIs",
+    "cardTitle": "Module KPIs",
+    "cardDescription": "Performance indicators broken down by module",
     "tabs": {
+      "hr": "HR / Personnel",
+      "purchase": "Purchasing",
+      "sales": "Sales",
+      "vmi": "VMI",
+      "gmp": "GMP Compliance",
       "inventory": "Inventory",
       "production": "Production",
       "quality": "Quality",
-      "purchasing": "Purchasing",
-      "sales": "Sales"
+      "purchasing": "Purchasing"
+    },
+    "hr": {
+      "totalEmployees": {
+        "label": "Total Employees",
+        "subtitleActive": "{count} active"
+      },
+      "trainingCompliance": {
+        "label": "Training Compliance",
+        "subtitle": "Up-to-date training",
+        "onTrack": "On track",
+        "needsAttention": "Needs attention"
+      },
+      "healthRecordsDue": {
+        "label": "Health Records Due",
+        "subtitle": "Overdue examinations"
+      },
+      "gmpAuthorized": {
+        "label": "GMP Authorized",
+        "subtitle": "Active authorizations"
+      },
+      "notifications": {
+        "label": "Notifications"
+      }
+    },
+    "purchase": {
+      "pendingPOs": {
+        "label": "Pending POs",
+        "subtitle": "Awaiting approval"
+      },
+      "poValueMtd": {
+        "label": "PO Value (MTD)",
+        "subtitle": "Month-to-date"
+      },
+      "activeVendors": {
+        "label": "Active Vendors",
+        "subtitle": "Approved suppliers"
+      },
+      "avlCoverage": {
+        "label": "AVL Coverage",
+        "subtitle": "Items with approved vendors",
+        "goodCoverage": "Good coverage",
+        "needsImprovement": "Needs improvement"
+      },
+      "approvedPOs": {
+        "label": "Approved POs"
+      },
+      "onTimeDelivery": {
+        "label": "On-Time Delivery"
+      }
+    },
+    "sales": {
+      "pendingOrders": {
+        "label": "Pending Orders",
+        "subtitle": "Awaiting processing"
+      },
+      "salesValueMtd": {
+        "label": "Sales Value (MTD)",
+        "subtitle": "Month-to-date"
+      },
+      "ordersFulfilled": {
+        "label": "Orders Fulfilled",
+        "subtitle": "This month"
+      },
+      "fulfillmentRate": {
+        "label": "Fulfillment Rate",
+        "subtitle": "On-time delivery",
+        "onTrack": "On track",
+        "belowTarget": "Below target"
+      },
+      "atpShortages": {
+        "label": "ATP Shortages"
+      }
+    },
+    "vmi": {
+      "vmiItems": {
+        "label": "VMI Items",
+        "subtitle": "Managed via VMI"
+      },
+      "belowReorder": {
+        "label": "Below Reorder",
+        "subtitle": "Need replenishment"
+      },
+      "pendingAsns": {
+        "label": "Pending ASNs",
+        "subtitle": "Awaiting receipt"
+      },
+      "outstandingValue": {
+        "label": "Outstanding Value",
+        "subtitle": "VMI orders"
+      },
+      "lastSync": {
+        "label": "Last Sync",
+        "never": "Never"
+      }
+    },
+    "gmp": {
+      "complianceScore": {
+        "label": "Compliance Score",
+        "subtitle": "Overall GMP compliance",
+        "excellent": "Excellent",
+        "good": "Good",
+        "needsAttention": "Needs attention"
+      },
+      "openDeviations": {
+        "label": "Open Deviations",
+        "subtitle": "Pending resolution"
+      },
+      "openCapas": {
+        "label": "Open CAPAs",
+        "subtitle": "Corrective actions"
+      },
+      "auditFindings": {
+        "label": "Audit Findings",
+        "subtitle": "Open findings"
+      },
+      "trainingGaps": {
+        "label": "Training Gaps"
+      }
+    }
+  },
+  "auditCards": {
+    "rmSummary": {
+      "title": "RM Received YTD",
+      "subtitle": "lots",
+      "unitsTotal": "{count} units total"
+    },
+    "rmStatus": {
+      "title": "RM Status",
+      "subtitle": "total lots",
+      "quarantine": "Quarantine",
+      "underTest": "Under Test",
+      "released": "Released",
+      "rejected": "Rejected"
+    },
+    "expiryAlert": {
+      "title": "Expiry Alerts",
+      "subtitle": "lots",
+      "expired": "Expired",
+      "expiringSoon": "30 days",
+      "expiringWarning": "90 days"
+    },
+    "minStockAlert": {
+      "title": "Min Stock Alerts",
+      "subtitle": "items",
+      "belowMin": "Below Min",
+      "belowReorder": "Below Reorder",
+      "allOk": "All OK"
+    },
+    "qcSummary": {
+      "title": "QC Summary YTD",
+      "subtitle": "pass rate",
+      "pass": "Pass",
+      "fail": "Fail",
+      "pending": "Pending"
+    },
+    "productionStatus": {
+      "title": "Production YTD",
+      "subtitle": "completion",
+      "completed": "Done",
+      "inProgress": "In Progress",
+      "planned": "Planned"
+    },
+    "pendingQc": {
+      "title": "Pending QC Release",
+      "subtitle": "lots",
+      "oldestDays": "Oldest: {days} days waiting",
+      "noItems": "No items pending"
+    },
+    "fgApproved": {
+      "title": "FG Approved YTD",
+      "subtitle": "batches",
+      "unitsTotal": "{count} units total"
     }
   },
   "audit": {

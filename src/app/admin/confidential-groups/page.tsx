@@ -31,6 +31,7 @@ import TextBox from 'devextreme-react/text-box';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxPopup, DxConfirmDialog } from '@/components/ui/dx-popup';
+import { ResponsivePageHeader } from '@/components/shared';
 import type { ConfidentialAccessGroup } from '@/types/confidentiality';
 
 // Page header component
@@ -355,23 +356,32 @@ export default function ConfidentialAccessGroupsPage() {
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       {/* Header */}
-      <PageHeader
+      <ResponsivePageHeader
         title={t('confidentialGroups.title')}
         subtitle={t('confidentialGroups.subtitle')}
         icon={ShieldCheck}
-        iconClassName="from-amber-500 to-orange-600"
-        onRefresh={() => refetch()}
-        isRefreshing={isFetching}
+        iconBgColor="bg-amber-100"
+        iconColor="text-amber-600"
         actions={
-          <Button
-            text={t('confidentialGroups.addGroup')}
-            icon="add"
-            type="success"
-            onClick={openCreateDialog}
-            data-testid="add-group-btn"
-          />
+          <>
+            <Button
+              icon={isFetching ? 'spindown' : 'refresh'}
+              stylingMode="outlined"
+              hint="Refresh"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              data-testid="refresh-btn"
+            />
+            <Button
+              text={t('confidentialGroups.addGroup')}
+              icon="add"
+              type="success"
+              onClick={openCreateDialog}
+              data-testid="add-group-btn"
+            />
+          </>
         }
       />
 

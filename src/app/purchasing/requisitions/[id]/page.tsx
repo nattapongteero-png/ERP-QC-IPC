@@ -43,6 +43,10 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   const [approvalComments, setApprovalComments] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  // Delete PR state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   // Cancel PR state
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -72,10 +76,10 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const response = await fetch('/api/vendors');
+        const response = await fetch('/api/vendors?limit=1000');
         const result = await response.json();
         if (result.success) {
-          setVendors(result.data || []);
+          setVendors(result.data?.items || result.data || []);
         }
       } catch (err) {
         console.error('Error fetching vendors:', err);
@@ -178,6 +182,29 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
     }
   };
 
+  const handleDeletePR = async () => {
+    try {
+      setDeleting(true);
+      setError(null);
+
+      const response = await fetch(`/api/purchasing/requisitions/${id}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setShowDeleteModal(false);
+        router.push('/purchasing/requisitions');
+      } else {
+        setError(result.error);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete PR');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -205,17 +232,36 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   return (
     <div className="p-4">
         <div className="mb-4 flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-              {pr?.prNumber || t('requisitions.detailTitle')}
-            </h1>
-            <p className="text-gray-600">
-              {pr?.status === 'draft' ? 'Edit and submit for approval' : `Status: ${pr?.status}`}
-            </p>
+          <div className="flex items-start gap-3">
+            <Button
+              icon="back"
+              type="normal"
+              stylingMode="text"
+              onClick={() => router.push('/purchasing/requisitions')}
+              data-testid="back-btn"
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
+                {pr?.prNumber || t('requisitions.detailTitle')}
+              </h1>
+              <p className="text-gray-600">
+                {pr?.status === 'draft' ? 'Edit and submit for approval' : `Status: ${pr?.status}`}
+              </p>
+            </div>
           </div>
 
           {/* Action buttons based on status */}
           <div className="flex gap-2">
+            {pr?.status === 'draft' && (
+              <Button
+                text="ลบใบ PR"
+                type="danger"
+                stylingMode="outlined"
+                icon="trash"
+                onClick={() => setShowDeleteModal(true)}
+                data-testid="delete-pr-btn"
+              />
+            )}
             {(pr?.status === 'draft' || pr?.status === 'submitted' || pr?.status === 'pending_approval') && (
               <Button
                 text="ยกเลิกใบ PR"
@@ -393,6 +439,39 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 onClick={handleCancelPR}
                 disabled={cancelling}
                 data-testid="confirm-cancel-pr-btn"
+              />
+            </div>
+          </div>
+        </Popup>
+
+        {/* Delete PR Modal */}
+        <Popup
+          visible={showDeleteModal}
+          onHiding={() => setShowDeleteModal(false)}
+          title="ลบใบขอซื้อ (Delete PR)"
+          width={400}
+          height={220}
+          showCloseButton={true}
+        >
+          <div className="p-4">
+            <p className="text-sm text-gray-600 mb-4">
+              คุณต้องการลบใบขอซื้อ <strong>{pr?.prNumber}</strong> ใช่หรือไม่? การลบจะไม่สามารถย้อนกลับได้
+            </p>
+
+            <div className="flex gap-2 justify-end mt-6">
+              <Button
+                text="ปิด"
+                type="normal"
+                onClick={() => setShowDeleteModal(false)}
+              />
+              <Button
+                text={deleting ? 'กำลังลบ...' : 'ยืนยันลบ'}
+                type="danger"
+                stylingMode="contained"
+                icon="trash"
+                onClick={handleDeletePR}
+                disabled={deleting}
+                data-testid="confirm-delete-pr-btn"
               />
             </div>
           </div>

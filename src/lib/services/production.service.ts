@@ -594,13 +594,14 @@ export async function calculateYield(workOrderId: number): Promise<YieldCalculat
   const theoretical = Number(wo.plannedQuantity) || 0;
   const actualGood = Number(wo.actualQuantity) || 0;
   const actualReject = Number(wo.rejectQuantity) || 0;
-  const actualTotal = actualGood + actualReject;
   const yieldTarget = Number(wo.yieldTarget) || 95;
 
   // Calculate percentages
   const yieldPercent = theoretical > 0 ? (actualGood / theoretical) * 100 : 0;
-  const rejectPercent = actualTotal > 0 ? (actualReject / actualTotal) * 100 : 0;
-  const lossPercent = theoretical > 0 ? ((theoretical - actualTotal) / theoretical) * 100 : 0;
+  // FG Loss % = 100 - Yield %
+  const rejectPercent = theoretical > 0 ? (100 - yieldPercent) : 0;
+  // Material loss (theoretical vs total output)
+  const lossPercent = theoretical > 0 ? (100 - yieldPercent) : 0;
 
   // Determine status
   let status: 'normal' | 'low_yield' | 'high_yield' = 'normal';
@@ -624,6 +625,52 @@ export async function calculateYield(workOrderId: number): Promise<YieldCalculat
 /**
  * Record Production Output
  */
+/**
+ * Record Bulk Product Yield — recorded after Post-Production, before Packaging.
+ * Tracks bulk material output (e.g., powder, extract) before it's packaged.
+ * Does NOT create an FG lot (bulk is still in transit to packaging area).
+ */
+export async function recordBulkOutput(
+  workOrderId: number,
+  bulkQuantity: number,
+  userId: number
+): Promise<void> {
+  const { workOrders } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  const [wo] = await database
+    .select({ id: workOrders.id, status: workOrders.status })
+    .from(workOrders)
+    .where(eq(workOrders.id, workOrderId));
+
+  if (!wo) {
+    throw new Error(`Work Order ${workOrderId} not found`);
+  }
+
+  if (wo.status !== 'in_progress') {
+    throw new Error('Work Order must be In Progress to record bulk output');
+  }
+
+  await database
+    .update(workOrders)
+    .set({
+      bulkOutputQty: bulkQuantity,
+      bulkOutputRecordedAt: getNow(),
+      bulkOutputRecordedBy: userId,
+      updatedAt: getNow(),
+    })
+    .where(eq(workOrders.id, workOrderId));
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'work_orders',
+    recordId: workOrderId,
+    newValue: { type: 'BULK_OUTPUT_RECORDED', bulkQuantity },
+  });
+}
+
 export async function recordProductionOutput(
   workOrderId: number,
   actualQuantity: number,
@@ -670,12 +717,15 @@ export async function recordProductionOutput(
     expiryDate = expiry.toISOString().split('T')[0]; // String for receiveMaterial parameter
   }
 
-  // Update work order
+  // Update work order — finished stage audit + legacy fields
   await database
     .update(workOrders)
     .set({
       actualQuantity,
       rejectQuantity,
+      finishedOutputQty: actualQuantity,
+      finishedOutputRecordedAt: getNow(),
+      finishedOutputRecordedBy: userId,
       updatedAt: getNow(),
     })
     .where(eq(workOrders.id, workOrderId));

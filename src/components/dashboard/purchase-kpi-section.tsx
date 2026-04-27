@@ -1,6 +1,7 @@
 // src/components/dashboard/purchase-kpi-section.tsx
 'use client';
 
+import { useTranslations, useLocale } from 'next-intl';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatCard } from '@/components/ui/stat-card';
 import {
@@ -25,8 +26,13 @@ interface PurchaseKpiSectionProps {
 }
 
 export function PurchaseKpiSection({ data }: PurchaseKpiSectionProps) {
+  const t = useTranslations('dashboard.moduleKpis.purchase');
+  const locale = useLocale();
+
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('th-TH', {
+    // Currency symbol remains THB but number format follows current locale.
+    const formatLocale = locale === 'th' ? 'th-TH' : 'en-US';
+    return new Intl.NumberFormat(formatLocale, {
       style: 'currency',
       currency: 'THB',
       minimumFractionDigits: 0,
@@ -39,52 +45,56 @@ export function PurchaseKpiSection({ data }: PurchaseKpiSectionProps) {
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          label="Pending POs"
+          label={t('pendingPOs.label')}
           value={data.pendingPOs}
-          subtitle="Awaiting approval"
+          subtitle={t('pendingPOs.subtitle')}
           icon={<ShoppingCart className="h-6 w-6" />}
           iconBgColor="bg-orange-100"
           iconColor="text-orange-600"
         />
         <KPICard
-          label="PO Value (MTD)"
+          label={t('poValueMtd.label')}
           value={formatCurrency(data.poValueMtd)}
-          subtitle="Month-to-date"
+          subtitle={t('poValueMtd.subtitle')}
           icon={<TrendingUp className="h-6 w-6" />}
           iconBgColor="bg-green-100"
           iconColor="text-green-600"
         />
         <KPICard
-          label="Active Vendors"
+          label={t('activeVendors.label')}
           value={data.activeVendors}
-          subtitle="Approved suppliers"
+          subtitle={t('activeVendors.subtitle')}
           icon={<Building2 className="h-6 w-6" />}
           iconBgColor="bg-blue-100"
           iconColor="text-blue-600"
         />
         <KPICard
-          label="AVL Coverage"
+          label={t('avlCoverage.label')}
           value={`${data.avlCoverage}%`}
-          subtitle="Items with approved vendors"
+          subtitle={t('avlCoverage.subtitle')}
           icon={<Package className="h-6 w-6" />}
           iconBgColor="bg-purple-100"
           iconColor="text-purple-600"
           trend={data.avlCoverage >= 80 ? 'up' : 'down'}
-          trendValue={data.avlCoverage >= 80 ? 'Good coverage' : 'Needs improvement'}
+          trendValue={
+            data.avlCoverage >= 80
+              ? t('avlCoverage.goodCoverage')
+              : t('avlCoverage.needsImprovement')
+          }
         />
       </div>
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Approved POs"
+          label={t('approvedPOs.label')}
           value={data.approvedPOs}
           icon={<CheckCircle className="h-5 w-5" />}
           variant="success"
           size="md"
         />
         <StatCard
-          label="On-Time Delivery"
+          label={t('onTimeDelivery.label')}
           value={`${data.onTimeDeliveryRate}%`}
           icon={<TrendingUp className="h-5 w-5" />}
           variant={data.onTimeDeliveryRate >= 90 ? 'success' : 'warning'}

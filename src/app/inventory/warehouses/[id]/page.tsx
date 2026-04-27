@@ -58,7 +58,9 @@ interface WarehouseDetail {
     type: string;
     lotId: number;
     quantity: number;
-    reference: string;
+    unit: string;
+    direction: 'inbound' | 'outbound';
+    reference: string | null;
     createdAt: string;
   }>;
 }
@@ -230,11 +232,27 @@ export default function WarehouseDetailPage() {
       dataField: 'type',
       caption: 'Type',
       width: 120,
-      cellRender: (cellInfo) => (
-        <Badge variant={cellInfo.data.type === 'receive' ? 'success' : cellInfo.data.type === 'issue' ? 'danger' : 'default'}>
-          {cellInfo.data.type}
-        </Badge>
-      )
+      cellRender: (cellInfo) => {
+        const isInbound = cellInfo.data.direction === 'inbound';
+        return (
+          <Badge variant={isInbound ? 'success' : cellInfo.data.type === 'issue' ? 'danger' : 'default'}>
+            {cellInfo.data.type}
+          </Badge>
+        );
+      }
+    },
+    {
+      dataField: 'direction',
+      caption: 'Direction',
+      width: 100,
+      cellRender: (cellInfo) => {
+        const isInbound = cellInfo.data.direction === 'inbound';
+        return (
+          <span className={isInbound ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+            {isInbound ? 'IN' : 'OUT'}
+          </span>
+        );
+      }
     },
     {
       dataField: 'reference',
@@ -244,12 +262,17 @@ export default function WarehouseDetailPage() {
     {
       dataField: 'quantity',
       caption: 'Quantity',
-      width: 120,
-      cellRender: (cellInfo) => (
-        <span className={cellInfo.data.type === 'receive' ? 'text-green-600' : 'text-red-600'}>
-          {cellInfo.data.type === 'receive' ? '+' : '-'}{cellInfo.data.quantity}
-        </span>
-      )
+      width: 150,
+      alignment: 'right',
+      cellRender: (cellInfo) => {
+        const qty = Number(cellInfo.data.quantity) || 0;
+        const isPositive = qty >= 0;
+        return (
+          <span className={isPositive ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+            {isPositive ? '+' : ''}{qty.toLocaleString()} {cellInfo.data.unit || ''}
+          </span>
+        );
+      }
     },
   ];
 

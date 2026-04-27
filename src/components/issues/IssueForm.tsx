@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -98,16 +99,6 @@ async function validateIssue(title: string, description: IssueDescription, categ
 }
 
 // ============================================
-// Severity Options
-// ============================================
-
-const SEVERITY_OPTIONS = [
-  { id: 'critical', name: 'Critical', description: 'Immediate action required' },
-  { id: 'major', name: 'Major', description: 'Significant impact, urgent attention needed' },
-  { id: 'minor', name: 'Minor', description: 'Low impact, can be scheduled' },
-];
-
-// ============================================
 // Component
 // ============================================
 
@@ -117,8 +108,18 @@ export function IssueForm({
   onCancel,
   onValidate,
 }: IssueFormProps) {
+  const t = useTranslations('issues.form');
+  const locale = useLocale();
   const isEditing = !!issue;
   const queryClient = useQueryClient();
+
+  // Severity options translated at render time so switching language
+  // refreshes the dropdown labels
+  const SEVERITY_OPTIONS = [
+    { id: 'critical', name: t('severity.critical'), description: t('severity.criticalDesc') },
+    { id: 'major', name: t('severity.major'), description: t('severity.majorDesc') },
+    { id: 'minor', name: t('severity.minor'), description: t('severity.minorDesc') },
+  ];
 
   // Form state
   const [formData, setFormData] = useState<FormData>({
@@ -269,20 +270,20 @@ export function IssueForm({
   const saveError = createMutation.error || updateMutation.error;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" key={locale}>
       {/* Basic Information */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('sections.basic')}</h3>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title <span className="text-red-500">*</span>
+              {t('fields.title')} <span className="text-red-500">*</span>
             </label>
             <DxTextBox
               value={formData.title}
               onValueChange={(value) => handleChange('title', value)}
-              placeholder="Enter a clear, descriptive title"
+              placeholder={t('placeholders.title')}
               data-testid="issue-title"
             />
             {errors.title && (
@@ -293,7 +294,7 @@ export function IssueForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category <span className="text-red-500">*</span>
+                {t('fields.category')} <span className="text-red-500">*</span>
               </label>
               <DxSelectBox
                 dataSource={(categories || []) as unknown as Record<string, unknown>[]}
@@ -301,7 +302,7 @@ export function IssueForm({
                 onValueChange={(value) => handleChange('categoryId', value)}
                 displayExpr="name"
                 valueExpr="id"
-                placeholder="Select category"
+                placeholder={t('placeholders.category')}
                 data-testid="issue-category"
               />
               {errors.categoryId && (
@@ -311,7 +312,7 @@ export function IssueForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Severity <span className="text-red-500">*</span>
+                {t('fields.severity')} <span className="text-red-500">*</span>
               </label>
               <DxSelectBox
                 dataSource={SEVERITY_OPTIONS}
@@ -319,7 +320,7 @@ export function IssueForm({
                 onValueChange={(value) => handleChange('severity', value)}
                 displayExpr="name"
                 valueExpr="id"
-                placeholder="Select severity"
+                placeholder={t('placeholders.severity')}
                 data-testid="issue-severity"
               />
             </div>
@@ -329,17 +330,17 @@ export function IssueForm({
 
       {/* Description */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold mb-4">Description</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('sections.description')}</h3>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Summary <span className="text-red-500">*</span>
+              {t('fields.summary')} <span className="text-red-500">*</span>
             </label>
             <DxTextArea
               value={formData.summary}
               onValueChange={(value) => handleChange('summary', value)}
-              placeholder="Describe the issue clearly and concisely"
+              placeholder={t('placeholders.summary')}
               height={100}
               data-testid="issue-summary"
             />
@@ -350,12 +351,12 @@ export function IssueForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Impact
+              {t('fields.impact')}
             </label>
             <DxTextArea
               value={formData.impact}
               onValueChange={(value) => handleChange('impact', value)}
-              placeholder="What is the impact of this issue? Who/what is affected?"
+              placeholder={t('placeholders.impact')}
               height={80}
               data-testid="issue-impact"
             />
@@ -363,12 +364,12 @@ export function IssueForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Environment
+              {t('fields.environment')}
             </label>
             <DxTextBox
               value={formData.environment}
               onValueChange={(value) => handleChange('environment', value)}
-              placeholder="Production, Staging, etc. Include versions if relevant"
+              placeholder={t('placeholders.environment')}
               data-testid="issue-environment"
             />
           </div>
@@ -377,18 +378,18 @@ export function IssueForm({
 
       {/* For Bugs */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold mb-4">Bug Details (Optional)</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('sections.bugDetails')}</h3>
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Expected Behavior
+                {t('fields.expectedBehavior')}
               </label>
               <DxTextArea
                 value={formData.expectedBehavior}
                 onValueChange={(value) => handleChange('expectedBehavior', value)}
-                placeholder="What should happen?"
+                placeholder={t('placeholders.expectedBehavior')}
                 height={80}
                 data-testid="issue-expected-behavior"
               />
@@ -396,12 +397,12 @@ export function IssueForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Actual Behavior
+                {t('fields.actualBehavior')}
               </label>
               <DxTextArea
                 value={formData.actualBehavior}
                 onValueChange={(value) => handleChange('actualBehavior', value)}
-                placeholder="What actually happens?"
+                placeholder={t('placeholders.actualBehavior')}
                 height={80}
                 data-testid="issue-actual-behavior"
               />
@@ -410,12 +411,12 @@ export function IssueForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Steps to Reproduce
+              {t('fields.stepsToReproduce')}
             </label>
             <DxTextArea
               value={formData.stepsToReproduce}
               onValueChange={(value) => handleChange('stepsToReproduce', value)}
-              placeholder="1. Go to...&#10;2. Click on...&#10;3. Observe..."
+              placeholder={t('placeholders.stepsToReproduce')}
               height={100}
               data-testid="issue-steps-to-reproduce"
             />
@@ -428,16 +429,16 @@ export function IssueForm({
         <div className={`p-4 rounded-lg border ${validationResult.pass ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
           <div className="flex items-center gap-2 mb-2">
             <span className={`font-semibold ${validationResult.pass ? 'text-green-700' : 'text-yellow-700'}`}>
-              {validationResult.pass ? 'Validation Passed' : 'Validation Needs Attention'}
+              {validationResult.pass ? t('validation.passed') : t('validation.needsAttention')}
             </span>
             {validationResult.aiUnavailable && (
-              <span className="text-sm text-gray-500">(AI unavailable)</span>
+              <span className="text-sm text-gray-500">{t('validation.aiUnavailable')}</span>
             )}
           </div>
 
           {validationResult.missingItems.length > 0 && (
             <div className="mb-2">
-              <p className="text-sm font-medium text-yellow-700">Missing Items:</p>
+              <p className="text-sm font-medium text-yellow-700">{t('validation.missingItems')}</p>
               <ul className="list-disc list-inside text-sm text-yellow-600">
                 {validationResult.missingItems.map((item, idx) => (
                   <li key={idx}>{item}</li>
@@ -448,7 +449,7 @@ export function IssueForm({
 
           {validationResult.followUpQuestions.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-yellow-700">Follow-up Questions:</p>
+              <p className="text-sm font-medium text-yellow-700">{t('validation.followUpQuestions')}</p>
               <ul className="list-disc list-inside text-sm text-yellow-600">
                 {validationResult.followUpQuestions.map((q, idx) => (
                   <li key={idx}>{q}</li>
@@ -470,7 +471,7 @@ export function IssueForm({
       <div className="flex justify-end gap-3">
         {onCancel && (
           <DxButton
-            text="Cancel"
+            text={t('actions.cancel')}
             type="normal"
             stylingMode="outlined"
             onClick={onCancel}
@@ -479,7 +480,7 @@ export function IssueForm({
         )}
 
         <DxButton
-          text={isValidating ? 'Validating...' : 'Validate with AI'}
+          text={isValidating ? t('actions.validating') : t('actions.validate')}
           type="default"
           stylingMode="outlined"
           onClick={handleValidate}
@@ -488,7 +489,7 @@ export function IssueForm({
         />
 
         <DxButton
-          text={isSaving ? 'Saving...' : (isEditing ? 'Update Issue' : 'Create Issue')}
+          text={isSaving ? t('actions.saving') : (isEditing ? t('actions.update') : t('actions.create'))}
           type="default"
           stylingMode="contained"
           onClick={handleSubmit}

@@ -5,7 +5,7 @@
 // Pattern: Aligned with Template module design
 
 import { useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -40,16 +40,16 @@ import type {
 } from '@/types/hr';
 import type { HealthRecordWithDetails, UpcomingHealthCheck } from '@/lib/services/hr.service';
 
-const EXAMINATION_TYPE_CONFIG: Record<ExaminationType, { label: string; color: string }> = {
-  pre_employment: { label: 'ก่อนเข้างาน', color: 'text-blue-700' },
-  periodic: { label: 'ตรวจประจำปี', color: 'text-green-700' },
-  special: { label: 'ตรวจพิเศษ', color: 'text-orange-700' },
+const EXAMINATION_TYPE_CONFIG: Record<ExaminationType, { translationKey: string; color: string }> = {
+  pre_employment: { translationKey: 'preEmployment', color: 'text-blue-700' },
+  periodic: { translationKey: 'periodic', color: 'text-green-700' },
+  special: { translationKey: 'special', color: 'text-orange-700' },
 };
 
-const FITNESS_STATUS_CONFIG: Record<FitnessStatus, { label: string; variant: 'success' | 'danger' | 'warning' }> = {
-  fit: { label: 'พร้อมปฏิบัติงาน', variant: 'success' },
-  unfit: { label: 'ไม่พร้อมปฏิบัติงาน', variant: 'danger' },
-  restricted: { label: 'มีข้อจำกัด', variant: 'warning' },
+const FITNESS_STATUS_CONFIG: Record<FitnessStatus, { translationKey: string; variant: 'success' | 'danger' | 'warning' }> = {
+  fit: { translationKey: 'fit', variant: 'success' },
+  unfit: { translationKey: 'unfit', variant: 'danger' },
+  restricted: { translationKey: 'restricted', variant: 'warning' },
 };
 
 type HealthRecord = HealthRecordWithDetails | HealthRecordPublic;
@@ -85,6 +85,7 @@ async function deleteHealthRecord(id: number): Promise<void> {
 
 export default function HealthRecordsPage() {
   const t = useTranslations('hr');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'records' | 'due' | 'overdue'>('records');
@@ -110,7 +111,7 @@ export default function HealthRecordsPage() {
     mutationFn: deleteHealthRecord,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'health-records'] });
-      notify('ลบบันทึกสุขภาพสำเร็จ', 'success', 3000);
+      notify(t('healthRecords.toast.deleteSuccess'), 'success', 3000);
       setShowDeleteConfirm(false);
       setSelectedRecord(null);
     },
@@ -139,7 +140,7 @@ export default function HealthRecordsPage() {
     if (!config) return cellData.value;
     return (
       <span className={'font-medium ' + config.color}>
-        {config.label}
+        {t(`healthRecords.examinationType.${config.translationKey}`)}
       </span>
     );
   };
@@ -147,7 +148,7 @@ export default function HealthRecordsPage() {
   const renderFitnessStatusCell = (cellData: { value: FitnessStatus }) => {
     const config = FITNESS_STATUS_CONFIG[cellData.value];
     if (!config) return cellData.value;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge variant={config.variant}>{t(`healthRecords.fitnessStatus.${config.translationKey}`)}</Badge>;
   };
 
   const renderDaysUntilDue = (cellData: { value: number }) => {
@@ -155,20 +156,20 @@ export default function HealthRecordsPage() {
     if (days < 0) {
       return (
         <span className="text-red-600 font-medium">
-          เกินกำหนด {Math.abs(days)} วัน
+          {t('healthRecords.daysStatus.overdueBy', { 0: Math.abs(days) })}
         </span>
       );
     }
     if (days <= 7) {
       return (
         <span className="text-orange-600 font-medium">
-          อีก {days} วัน
+          {t('healthRecords.daysStatus.inDays', { 0: days })}
         </span>
       );
     }
     return (
       <span className="text-green-600">
-        อีก {days} วัน
+        {t('healthRecords.daysStatus.inDays', { 0: days })}
       </span>
     );
   };
@@ -182,7 +183,7 @@ export default function HealthRecordsPage() {
             router.push(`/hr/health-records/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="ดูรายละเอียด"
+          title={t('healthRecords.actionsHint.view')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -192,7 +193,7 @@ export default function HealthRecordsPage() {
             router.push(`/hr/health-records/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="แก้ไข"
+          title={t('healthRecords.actionsHint.edit')}
         >
           <Edit className="h-4 w-4" />
         </button>
@@ -202,7 +203,7 @@ export default function HealthRecordsPage() {
             handleDelete(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="ลบ"
+          title={t('healthRecords.actionsHint.delete')}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -211,7 +212,7 @@ export default function HealthRecordsPage() {
   };
 
   return (
-    <div className="space-y-6 p-1" data-testid="hr-health-records-page">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6" data-testid="hr-health-records-page">
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
         title={t('healthRecords.title')}
@@ -221,11 +222,11 @@ export default function HealthRecordsPage() {
         iconColor="text-red-600"
         breadcrumbs={[
           { label: 'HR', href: '/hr' },
-          { label: 'บันทึกสุขภาพ' },
+          { label: t('healthRecords.breadcrumb') },
         ]}
         actions={
           <Button
-            text="บันทึกผลตรวจ"
+            text={t('healthRecords.addRecord')}
             icon="plus"
             type="success"
             onClick={() => router.push('/hr/health-records/new')}
@@ -240,14 +241,16 @@ export default function HealthRecordsPage() {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                <p className="font-medium text-red-800">{t('healthRecords.deleteConfirm.title')}</p>
                 <p className="text-sm text-red-600">
-                  คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกสุขภาพของ &quot;{(selectedRecord as HealthRecordWithDetails).employeeName || 'พนักงาน'}&quot;? การดำเนินการนี้ไม่สามารถยกเลิกได้
+                  {t('healthRecords.deleteConfirm.message', {
+                    0: (selectedRecord as HealthRecordWithDetails).employeeName || t('healthRecords.deleteConfirm.defaultEmployee'),
+                  })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="ยกเลิก"
+                  text={t('healthRecords.deleteConfirm.cancel')}
                   stylingMode="outlined"
                   onClick={() => {
                     setShowDeleteConfirm(false);
@@ -255,7 +258,7 @@ export default function HealthRecordsPage() {
                   }}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'กำลังลบ...' : 'ลบ'}
+                  text={deleteMutation.isPending ? t('healthRecords.deleteConfirm.deleting') : t('healthRecords.deleteConfirm.delete')}
                   icon={deleteMutation.isPending ? 'spindown' : 'trash'}
                   type="danger"
                   onClick={confirmDelete}
@@ -270,28 +273,28 @@ export default function HealthRecordsPage() {
       {/* Stats using StatCard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="hr-health-stats">
         <StatCard
-          label="รายการทั้งหมด"
+          label={t('healthRecords.stats.total')}
           value={healthRecords.length}
           icon={Heart}
           iconColor="text-green-500"
           accentColor="border-green-500"
         />
         <StatCard
-          label="ครบกำหนดใน 30 วัน"
+          label={t('healthRecords.stats.dueIn30')}
           value={healthChecksDue.length}
           icon={Calendar}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
         />
         <StatCard
-          label="เกินกำหนด"
+          label={t('healthRecords.stats.overdue')}
           value={overdueChecks.length}
           icon={AlertTriangle}
           iconColor="text-red-500"
           accentColor="border-red-500"
         />
         <StatCard
-          label="มีข้อจำกัด"
+          label={t('healthRecords.stats.restricted')}
           value={healthRecords.filter((r) => 'fitnessStatus' in r && r.fitnessStatus === 'restricted').length}
           icon={Clock}
           iconColor="text-orange-500"
@@ -309,7 +312,7 @@ export default function HealthRecordsPage() {
           }`}
           onClick={() => setActiveTab('records')}
         >
-          ประวัติตรวจสุขภาพ
+          {t('healthRecords.tabs.records')}
         </button>
         <button
           className={`px-3 md:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm md:text-base min-h-[44px] ${
@@ -319,7 +322,7 @@ export default function HealthRecordsPage() {
           }`}
           onClick={() => setActiveTab('due')}
         >
-          ใกล้ครบกำหนด ({healthChecksDue.length})
+          {t('healthRecords.tabs.due')} ({healthChecksDue.length})
         </button>
         <button
           className={`px-3 md:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm md:text-base min-h-[44px] ${
@@ -329,7 +332,7 @@ export default function HealthRecordsPage() {
           }`}
           onClick={() => setActiveTab('overdue')}
         >
-          เกินกำหนด ({overdueChecks.length})
+          {t('healthRecords.tabs.overdue')} ({overdueChecks.length})
         </button>
       </div>
 
@@ -338,6 +341,7 @@ export default function HealthRecordsPage() {
         <Card data-testid="hr-health-records-grid">
           <CardContent className="p-0">
             <DataGrid
+              key={locale}
               dataSource={healthRecords}
               showBorders={false}
               showRowLines
@@ -347,7 +351,7 @@ export default function HealthRecordsPage() {
               onRowClick={handleRowClick}
               className="min-h-[400px]"
             >
-            <SearchPanel visible placeholder="ค้นหา..." width={200} />
+            <SearchPanel visible placeholder={t('common.search')} width={200} />
             <HeaderFilter visible />
             <FilterRow visible />
             <Scrolling mode="virtual" />
@@ -362,20 +366,20 @@ export default function HealthRecordsPage() {
 
             <Column
               dataField="employeeName"
-              caption="พนักงาน"
+              caption={t('healthRecords.columns.employee')}
               minWidth={150}
               hidingPriority={0}
             />
             <Column
               dataField="examinationType"
-              caption="ประเภทการตรวจ"
+              caption={t('healthRecords.columns.examType')}
               width={130}
               cellRender={renderExamTypeCell}
               hidingPriority={3}
             />
             <Column
               dataField="examinationDate"
-              caption="วันที่ตรวจ"
+              caption={t('healthRecords.columns.examDate')}
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
@@ -384,20 +388,20 @@ export default function HealthRecordsPage() {
             />
             <Column
               dataField="fitnessStatus"
-              caption="สถานะ"
+              caption={t('healthRecords.columns.status')}
               width={140}
               cellRender={renderFitnessStatusCell}
               hidingPriority={1}
             />
             <Column
               dataField="restrictions"
-              caption="ข้อจำกัด"
+              caption={t('healthRecords.columns.restrictions')}
               width={180}
               hidingPriority={5}
             />
             <Column
               dataField="nextExamDue"
-              caption="ครบกำหนดถัดไป"
+              caption={t('healthRecords.columns.nextDue')}
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
@@ -406,12 +410,12 @@ export default function HealthRecordsPage() {
             />
             <Column
               dataField="examinerName"
-              caption="ผู้ตรวจ"
+              caption={t('healthRecords.columns.examiner')}
               width={130}
               hidingPriority={6}
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('healthRecords.columns.actions')}
               width={120}
               cellRender={renderActionsCell}
               allowFiltering={false}
@@ -428,6 +432,7 @@ export default function HealthRecordsPage() {
         <Card>
           <CardContent className="p-0">
             <DataGrid
+              key={locale}
               dataSource={healthChecksDue}
               showBorders={false}
               showRowLines
@@ -436,7 +441,7 @@ export default function HealthRecordsPage() {
               hoverStateEnabled
               className="min-h-[400px]"
             >
-            <SearchPanel visible placeholder="ค้นหา..." width={200} />
+            <SearchPanel visible placeholder={t('common.search')} width={200} />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector
@@ -446,19 +451,19 @@ export default function HealthRecordsPage() {
 
             <Column
               dataField="employeeName"
-              caption="พนักงาน"
+              caption={t('healthRecords.columns.employee')}
               minWidth={150}
               hidingPriority={0}
             />
             <Column
               dataField="employeeEmail"
-              caption="อีเมล"
+              caption={t('healthRecords.columns.email')}
               width={180}
               hidingPriority={4}
             />
             <Column
               dataField="lastExamDate"
-              caption="ตรวจครั้งล่าสุด"
+              caption={t('healthRecords.columns.lastExamDate')}
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
@@ -467,7 +472,7 @@ export default function HealthRecordsPage() {
             />
             <Column
               dataField="nextExamDue"
-              caption="ครบกำหนด"
+              caption={t('healthRecords.columns.dueDate')}
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
@@ -476,14 +481,14 @@ export default function HealthRecordsPage() {
             />
             <Column
               dataField="daysUntilDue"
-              caption="เหลือเวลา"
+              caption={t('healthRecords.columns.daysRemaining')}
               width={100}
               cellRender={renderDaysUntilDue}
               hidingPriority={1}
             />
             <Column
               dataField="lastFitnessStatus"
-              caption="สถานะล่าสุด"
+              caption={t('healthRecords.columns.lastStatus')}
               width={130}
               cellRender={renderFitnessStatusCell}
               hidingPriority={5}
@@ -498,6 +503,7 @@ export default function HealthRecordsPage() {
         <Card>
           <CardContent className="p-0">
             <DataGrid
+              key={locale}
               dataSource={overdueChecks}
               showBorders={false}
               showRowLines
@@ -506,7 +512,7 @@ export default function HealthRecordsPage() {
               hoverStateEnabled
               className="min-h-[400px]"
             >
-            <SearchPanel visible placeholder="ค้นหา..." width={200} />
+            <SearchPanel visible placeholder={t('common.search')} width={200} />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector
@@ -516,19 +522,19 @@ export default function HealthRecordsPage() {
 
             <Column
               dataField="employeeName"
-              caption="พนักงาน"
+              caption={t('healthRecords.columns.employee')}
               minWidth={150}
               hidingPriority={0}
             />
             <Column
               dataField="employeeEmail"
-              caption="อีเมล"
+              caption={t('healthRecords.columns.email')}
               width={180}
               hidingPriority={4}
             />
             <Column
               dataField="lastExamDate"
-              caption="ตรวจครั้งล่าสุด"
+              caption={t('healthRecords.columns.lastExamDate')}
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
@@ -537,7 +543,7 @@ export default function HealthRecordsPage() {
             />
             <Column
               dataField="nextExamDue"
-              caption="กำหนดตรวจ"
+              caption={t('healthRecords.columns.examDue')}
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
@@ -546,14 +552,14 @@ export default function HealthRecordsPage() {
             />
             <Column
               dataField="daysUntilDue"
-              caption="เกินกำหนด"
+              caption={t('healthRecords.stats.overdue')}
               width={100}
               cellRender={renderDaysUntilDue}
               hidingPriority={1}
             />
             <Column
               dataField="lastFitnessStatus"
-              caption="สถานะล่าสุด"
+              caption={t('healthRecords.columns.lastStatus')}
               width={130}
               cellRender={renderFitnessStatusCell}
               hidingPriority={5}

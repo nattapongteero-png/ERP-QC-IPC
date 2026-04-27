@@ -4,12 +4,14 @@
  * Quality Tests Dashboard Page
  *
  * Professional dashboard for viewing and managing quality control tests.
- * Redesigned with DevExtreme UI components following GMP module patterns.
+ * Responsive: ResponsivePageHeader, StatCard KPI row, mobile card view,
+ * empty state, no-results state, loading skeletons.
  */
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -40,8 +42,8 @@ import {
   Label as ChartLabel,
 } from 'devextreme-react/chart';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxTabs } from '@/components/ui/dx-tabs';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { useMobile } from '@/hooks/use-mobile';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
 import { exportDataGrid } from 'devextreme/excel_exporter';
@@ -62,6 +64,8 @@ import {
   BarChart3,
   Calendar,
   Percent,
+  SearchX,
+  ChevronRight,
 } from 'lucide-react';
 
 // ============================================
@@ -94,6 +98,9 @@ interface QualityTest {
   dispositionBy?: number | null;
   dispositionApprovedBy?: number | null;
 }
+
+// next-intl translator type (compatible superset for helper components)
+type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
 
 // ============================================
 // Constants
@@ -153,6 +160,9 @@ const TYPE_CONFIG = {
   },
 } as const;
 
+// Tab key → status mapping
+type TabKey = 'all' | 'pending' | 'pass' | 'fail' | 'retest';
+
 // ============================================
 // API Functions
 // ============================================
@@ -173,7 +183,8 @@ async function fetchTests(): Promise<QualityTest[]> {
 export default function QualityTestsPage() {
   const router = useRouter();
   const t = useTranslations('quality');
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const { isMobile } = useMobile();
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
 
   // Fetch quality tests
   const { data: tests = [], isLoading, refetch } = useQuery({
@@ -210,7 +221,7 @@ export default function QualityTestsPage() {
     }, {} as Record<string, { count: number; passRate: number }>);
 
     // Today's tests
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalDateStr(new Date());
     const todayTests = tests.filter(t => t.testDate?.startsWith(today)).length;
 
     // Disposition stats (FR-067 to FR-070)
@@ -226,9 +237,9 @@ export default function QualityTestsPage() {
 
   // Filtered tests based on status
   const filteredTests = useMemo(() => {
-    if (!statusFilter) return tests;
-    return tests.filter(t => t.status === statusFilter);
-  }, [tests, statusFilter]);
+    if (activeTab === 'all') return tests;
+    return tests.filter(t => t.status === activeTab);
+  }, [tests, activeTab]);
 
   // Chart data
   const statusChartData = useMemo(() => {
@@ -248,18 +259,17 @@ export default function QualityTestsPage() {
     ];
   }, [stats, t]);
 
-  // Status tabs
-  const statusTabs = useMemo(() => [
-    { id: 0, text: t('tests.tabs.all'), icon: 'selectall' },
-    { id: 1, text: t('tests.tabs.pending'), icon: 'clock' },
-    { id: 2, text: t('tests.tabs.passed'), icon: 'check' },
-    { id: 3, text: t('tests.tabs.failed'), icon: 'close' },
-    { id: 4, text: t('tests.tabs.retest'), icon: 'warning' },
-  ], [t]);
+  // Status tabs (scroll-snap responsive)
+  const statusTabs: Array<{ key: TabKey; label: string; count: number }> = useMemo(() => [
+    { key: 'all', label: t('tests.tabs.all'), count: stats.total },
+    { key: 'pending', label: t('tests.tabs.pending'), count: stats.pending },
+    { key: 'pass', label: t('tests.tabs.passed'), count: stats.pass },
+    { key: 'fail', label: t('tests.tabs.failed'), count: stats.fail },
+    { key: 'retest', label: t('tests.tabs.retest'), count: stats.retest },
+  ], [t, stats]);
 
-  const handleTabChange = (index: number) => {
-    const statusMap: (string | undefined)[] = [undefined, 'pending', 'pass', 'fail', 'retest'];
-    setStatusFilter(statusMap[index]);
+  const handleClearFilters = () => {
+    setActiveTab('all');
   };
 
   // Export handler
@@ -275,7 +285,7 @@ export default function QualityTestsPage() {
       workbook.xlsx.writeBuffer().then((buffer) => {
         saveAs(
           new Blob([buffer], { type: 'application/octet-stream' }),
-          `Quality_Tests_${new Date().toISOString().split('T')[0]}.xlsx`
+          `Quality_Tests_${toLocalDateStr(new Date())}.xlsx`
         );
       });
     });
@@ -390,27 +400,35 @@ export default function QualityTestsPage() {
     </button>
   ), [router, t]);
 
+  const handleView = useCallback((test: QualityTest) => {
+    router.push(`/quality/tests/${test.id}`);
+  }, [router]);
+
+  const showEmptyState = !isLoading && tests.length === 0;
+  const showNoResultsState = !isLoading && tests.length > 0 && filteredTests.length === 0;
+
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
-      {/* Page Header */}
+    <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
+      {/* Responsive Page Header */}
       <ResponsivePageHeader
         title={t('inspections.title')}
         subtitle={t('inspections.description')}
         icon={FlaskConical}
-        iconBgColor="bg-blue-100"
-        iconColor="text-blue-600"
+        iconBgColor="bg-pink-100"
+        iconColor="text-pink-600"
         breadcrumbs={[
           { label: t('tests.breadcrumbs.quality'), href: '/quality' },
           { label: t('tests.breadcrumbs.tests') },
         ]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <DxButton
               icon="refresh"
+              text={t('tests.actions.refresh')}
               type="default"
               stylingMode="outlined"
-              hint={t('tests.actions.refresh')}
               onClick={() => refetch()}
+              className="hidden sm:inline-flex"
             />
             <DxButton
               icon="doc"
@@ -418,6 +436,7 @@ export default function QualityTestsPage() {
               type="default"
               stylingMode="outlined"
               onClick={() => router.push('/quality/specs')}
+              className="hidden md:inline-flex"
             />
             <DxButton
               icon="plus"
@@ -429,22 +448,22 @@ export default function QualityTestsPage() {
         }
       />
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
+      {/* KPI Stat Cards - 4 primary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label={t('tests.stats.totalTests')}
           value={stats.total}
-          icon={FlaskConical}
-          iconColor="text-blue-500"
-          accentColor="border-blue-500"
+          icon={FileText}
+          iconColor="text-indigo-500"
+          accentColor="border-indigo-500"
           isLoading={isLoading}
         />
         <StatCard
           label={t('tests.stats.pending')}
           value={stats.pending}
           icon={Clock}
-          iconColor="text-slate-500"
-          accentColor="border-slate-500"
+          iconColor="text-amber-500"
+          accentColor="border-amber-500"
           isLoading={isLoading}
         />
         <StatCard
@@ -463,6 +482,10 @@ export default function QualityTestsPage() {
           accentColor="border-red-500"
           isLoading={isLoading}
         />
+      </div>
+
+      {/* Secondary Stats Row - visible on large screens only */}
+      <div className="hidden xl:grid grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label={t('tests.stats.retest')}
           value={stats.retest}
@@ -497,8 +520,8 @@ export default function QualityTestsPage() {
         />
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-5">
+      {/* Charts Section - hidden on small screens to prioritize the list */}
+      <div className="hidden lg:grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-5">
         {/* Status Distribution */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
@@ -626,8 +649,8 @@ export default function QualityTestsPage() {
         </div>
       </div>
 
-      {/* Test Type Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Test Type Cards - hidden on small screens */}
+      <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-4">
         {(Object.keys(TYPE_CONFIG) as Array<keyof typeof TYPE_CONFIG>).map(type => {
           const config = TYPE_CONFIG[type];
           const typeStats = stats.typeStats[type];
@@ -656,118 +679,375 @@ export default function QualityTestsPage() {
         })}
       </div>
 
-      {/* Main Content - Tabs + DataGrid */}
+      {/* Main Content - Tabs + Content */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* Tabs Header */}
-        <div className="border-b border-gray-200 px-4 py-3 bg-gray-50">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <DxTabs
-              items={statusTabs}
-              selectedIndex={
-                statusFilter === undefined ? 0 :
-                statusFilter === 'pending' ? 1 :
-                statusFilter === 'pass' ? 2 :
-                statusFilter === 'fail' ? 3 : 4
-              }
-              onSelectedIndexChange={handleTabChange}
-              stylingMode="secondary"
-            />
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <FlaskConical className="w-4 h-4" />
-                {t('tests.testsCount', { count: filteredTests.length })}
-              </span>
-            </div>
+        {/* Tabs Header - scroll-snap responsive */}
+        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+          <div className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x w-full">
+            {statusTabs.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 snap-start min-h-[36px] ${
+                    isActive
+                      ? 'bg-pink-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold ${
+                    isActive ? 'bg-white/25 text-inherit' : 'bg-gray-200 text-gray-700'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* DataGrid */}
-        <DataGrid
-          dataSource={filteredTests}
-          showBorders={false}
-          showRowLines={true}
-          showColumnLines={false}
-          rowAlternationEnabled={true}
-          hoverStateEnabled={true}
-          height={500}
-          columnAutoWidth={true}
-          wordWrapEnabled={false}
-          onExporting={handleExporting}
-          onRowClick={(e) => {
-            if (e.data && e.rowType === 'data') {
-              router.push(`/quality/tests/${e.data.id}`);
-            }
-          }}
-        >
-          <Scrolling mode="virtual" />
-          <Paging defaultPageSize={15} />
-          <Pager
-            showPageSizeSelector={true}
-            allowedPageSizes={[10, 15, 25, 50]}
-            showInfo={true}
-            showNavigationButtons={true}
-          />
-          <FilterRow visible={true} />
-          <SearchPanel visible={true} placeholder={t('tests.grid.searchPlaceholder')} width={250} />
-          <HeaderFilter visible={true} />
-          <Export enabled={true} formats={['xlsx']} />
+        {/* Result count row */}
+        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500">
+            <FlaskConical className="w-4 h-4 text-gray-400" />
+            <span>{t('tests.testsCount', { count: filteredTests.length })}</span>
+          </div>
+        </div>
 
-          <Column
-            dataField="lotNumber"
-            caption={t('tests.grid.lotItem')}
-            width={220}
-            cellRender={renderLotCell}
+        {/* Content: Loading / Empty / No Results / Mobile Cards / Desktop Grid */}
+        {isLoading ? (
+          isMobile ? (
+            <QualityTestCardSkeletonList count={4} />
+          ) : (
+            <DataGridLoadingSkeleton />
+          )
+        ) : showEmptyState ? (
+          <EmptyState onCreate={() => router.push('/quality/tests/new')} t={t} />
+        ) : showNoResultsState ? (
+          <NoResultsState onClear={handleClearFilters} t={t} />
+        ) : isMobile ? (
+          <QualityTestCardList
+            tests={filteredTests}
+            onView={handleView}
+            t={t}
           />
-          <Column
-            caption={t('tests.grid.testName')}
-            minWidth={200}
-            cellRender={renderTestCell}
-            calculateCellValue={(data: QualityTest) => data.testName}
-          />
-          <Column
-            dataField="testType"
-            caption={t('tests.grid.type')}
-            width={140}
-            cellRender={renderTypeCell}
-          />
-          <Column
-            caption={t('tests.grid.specification')}
-            width={150}
-            cellRender={renderSpecCell}
-          />
-          <Column
-            caption={t('tests.grid.result')}
-            width={100}
-            cellRender={renderResultCell}
-          />
-          <Column
-            dataField="testDate"
-            caption={t('tests.grid.testDate')}
-            dataType="date"
-            format="dd MMM yyyy"
-            width={120}
-          />
-          <Column
-            dataField="status"
-            caption={t('tests.grid.status')}
-            width={120}
-            cellRender={renderStatusCell}
-          />
-          <Column
-            caption={t('tests.grid.disposition')}
-            width={130}
-            cellRender={renderDispositionCell}
-            allowFiltering={false}
-          />
-          <Column
-            caption=""
-            width={60}
-            cellRender={renderActionsCell}
-            allowFiltering={false}
-            allowSorting={false}
-          />
-        </DataGrid>
+        ) : (
+          <DataGrid
+            dataSource={filteredTests}
+            showBorders={false}
+            showRowLines={true}
+            showColumnLines={false}
+            rowAlternationEnabled={true}
+            hoverStateEnabled={true}
+            height={500}
+            columnAutoWidth={true}
+            wordWrapEnabled={false}
+            onExporting={handleExporting}
+            onRowClick={(e) => {
+              if (e.data && e.rowType === 'data') {
+                router.push(`/quality/tests/${e.data.id}`);
+              }
+            }}
+          >
+            <Scrolling mode="virtual" />
+            <Paging defaultPageSize={15} />
+            <Pager
+              showPageSizeSelector={true}
+              allowedPageSizes={[10, 15, 25, 50]}
+              showInfo={true}
+              showNavigationButtons={true}
+            />
+            <FilterRow visible={true} />
+            <SearchPanel visible={true} placeholder={t('tests.grid.searchPlaceholder')} width={250} />
+            <HeaderFilter visible={true} />
+            <Export enabled={true} formats={['xlsx']} />
+
+            <Column
+              dataField="lotNumber"
+              caption={t('tests.grid.lotItem')}
+              minWidth={220}
+              cellRender={renderLotCell}
+            />
+            <Column
+              caption={t('tests.grid.testName')}
+              minWidth={200}
+              cellRender={renderTestCell}
+              calculateCellValue={(data: QualityTest) => data.testName}
+            />
+            <Column
+              dataField="testType"
+              caption={t('tests.grid.type')}
+              width={140}
+              cellRender={renderTypeCell}
+            />
+            <Column
+              caption={t('tests.grid.specification')}
+              minWidth={150}
+              cellRender={renderSpecCell}
+            />
+            <Column
+              caption={t('tests.grid.result')}
+              width={100}
+              cellRender={renderResultCell}
+            />
+            <Column
+              dataField="testDate"
+              caption={t('tests.grid.testDate')}
+              dataType="date"
+              format="dd MMM yyyy"
+              width={120}
+            />
+            <Column
+              dataField="status"
+              caption={t('tests.grid.status')}
+              width={120}
+              cellRender={renderStatusCell}
+            />
+            <Column
+              caption={t('tests.grid.disposition')}
+              width={130}
+              cellRender={renderDispositionCell}
+              allowFiltering={false}
+            />
+            <Column
+              caption=""
+              width={60}
+              cellRender={renderActionsCell}
+              allowFiltering={false}
+              allowSorting={false}
+            />
+          </DataGrid>
+        )}
       </div>
+    </div>
+  );
+}
+
+// ============================================
+// Helper Components
+// ============================================
+
+/**
+ * Mobile Card List — replaces DataGrid on mobile viewports.
+ * Each card prioritizes: Lot/Item → Test Name → Type → Status.
+ * Tap card to view; footer "View Details" action with min-h-[44px].
+ */
+function QualityTestCardList({
+  tests,
+  onView,
+  t,
+}: {
+  tests: QualityTest[];
+  onView: (test: QualityTest) => void;
+  t: TranslateFn;
+}) {
+  const statusBadge = (status: QualityTest['status']) => {
+    const config = STATUS_CONFIG[status];
+    if (!config) return null;
+    const IconComponent = config.icon;
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${config.bgClass}`}>
+        <IconComponent className="h-3 w-3" />
+        {t(`tests.status.${status}`)}
+      </span>
+    );
+  };
+
+  const typeBadge = (testType: QualityTest['testType']) => {
+    const config = TYPE_CONFIG[testType];
+    if (!config) return null;
+    const IconComponent = config.icon;
+    return (
+      <span className={`inline-flex items-center gap-1 text-xs bg-gradient-to-r ${config.gradient} text-white px-2 py-0.5 rounded`}>
+        <IconComponent className="h-3 w-3" />
+        {t(`tests.type.${testType}`)}
+      </span>
+    );
+  };
+
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return '-';
+    try {
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return '-';
+      return date.toISOString().slice(0, 10);
+    } catch {
+      return '-';
+    }
+  };
+
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30">
+      {tests.map((test) => (
+        <div
+          key={test.id}
+          className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md active:bg-gray-50 transition-all"
+        >
+          {/* Card body: tap to view */}
+          <button
+            type="button"
+            onClick={() => onView(test)}
+            className="w-full text-left p-4 flex items-start gap-3"
+          >
+            <div className="h-11 w-11 rounded-xl bg-pink-100 flex items-center justify-center flex-shrink-0">
+              <FlaskConical className="h-5 w-5 text-pink-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="min-w-0">
+                  <p className="font-mono font-semibold text-blue-700 text-base truncate">{test.lotNumber || '-'}</p>
+                  {test.sampleNumber && (
+                    <p className="text-xs text-gray-500 font-mono truncate mt-0.5">
+                      {t('tests.sample', { number: test.sampleNumber })}
+                    </p>
+                  )}
+                </div>
+                {statusBadge(test.status)}
+              </div>
+
+              {/* Item info */}
+              {(test.itemCode || test.itemName) && (
+                <p className="text-xs text-gray-600 flex items-center gap-1 mt-1.5">
+                  <Package className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                  {test.itemCode && <span className="font-mono text-gray-500">{test.itemCode}</span>}
+                  {test.itemName && <span className="truncate">- {test.itemName}</span>}
+                </p>
+              )}
+
+              {/* Test name / method */}
+              {test.testName && (
+                <p className="text-sm text-gray-700 truncate mt-1.5" title={test.testName}>
+                  {test.testName}
+                  {test.testMethod && (
+                    <span className="text-xs text-gray-500 ml-1">({test.testMethod})</span>
+                  )}
+                </p>
+              )}
+
+              {/* Tags row: type, result, date */}
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {typeBadge(test.testType)}
+                {(test.numericResult !== null || test.result) && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-mono">
+                    {test.numericResult !== null ? test.numericResult : test.result}
+                  </span>
+                )}
+                {test.testDate && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                    <Clock className="h-3 w-3" />
+                    {formatDate(test.testDate)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0 mt-2" />
+          </button>
+
+          {/* Card footer: view action (touch-friendly) */}
+          <div className="flex items-center border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => onView(test)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-pink-50 hover:text-pink-700 active:bg-pink-100 transition-colors min-h-[44px]"
+            >
+              <Eye className="h-4 w-4" />
+              <span>{t('tests.actions.viewDetails')}</span>
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading skeleton for mobile card list */
+function QualityTestCardSkeletonList({ count = 3 }: { count?: number }) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="h-11 w-11 rounded-xl bg-gray-200 flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/2 bg-gray-200 rounded" />
+              <div className="h-3 w-1/3 bg-gray-200 rounded" />
+              <div className="h-3 w-2/3 bg-gray-200 rounded" />
+              <div className="flex gap-2 pt-1">
+                <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                <div className="h-5 w-20 bg-gray-200 rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading skeleton for desktop DataGrid area */
+function DataGridLoadingSkeleton() {
+  return (
+    <div className="p-4 space-y-2" aria-busy="true" aria-live="polite">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-lg animate-pulse">
+          <div className="h-8 w-8 rounded-lg bg-gray-200" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-1/4 bg-gray-200 rounded" />
+            <div className="h-2 w-1/6 bg-gray-200 rounded" />
+          </div>
+          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-16 bg-gray-200 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Empty State — shown when there are zero tests at all */
+function EmptyState({ onCreate, t }: { onCreate: () => void; t: TranslateFn }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <div className="h-20 w-20 rounded-2xl bg-pink-100 flex items-center justify-center mb-5">
+        <FlaskConical className="h-10 w-10 text-pink-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        {t('tests.charts.noData')}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-6">
+        {t('inspections.description')}
+      </p>
+      <DxButton
+        text={t('tests.actions.newTest')}
+        icon="plus"
+        type="success"
+        onClick={onCreate}
+      />
+    </div>
+  );
+}
+
+/** No Results State — shown when filter/search yields zero results but tests exist */
+function NoResultsState({ onClear, t }: { onClear: () => void; t: TranslateFn }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+      <div className="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+        <SearchX className="h-8 w-8 text-gray-400" />
+      </div>
+      <h3 className="text-base font-semibold text-gray-900 mb-1">
+        {t('tests.charts.noData')}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-4">
+        {t('tests.grid.searchPlaceholder')}
+      </p>
+      <DxButton
+        text={t('tests.tabs.all')}
+        icon="clear"
+        stylingMode="outlined"
+        onClick={onClear}
+      />
     </div>
   );
 }

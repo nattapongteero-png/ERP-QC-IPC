@@ -155,6 +155,39 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         );
       }
 
+      // Save stock snapshot at approval time for each material
+      for (const mat of materials) {
+        const availableResult = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              totalAvailable: sql<string>`COALESCE(SUM(${lotsTable.quantity} - ${lotsTable.reservedQuantity}), 0)`,
+            })
+            .from(lotsTable)
+            .where(and(
+              eq(lotsTable.itemId, mat.itemId),
+              eq(lotsTable.status, 'released'),
+              sql`${lotsTable.quantity} - ${lotsTable.reservedQuantity} > 0`
+            ));
+        });
+
+        let stockSnapshot = Number(availableResult[0]?.totalAvailable) || 0;
+        // Convert to material unit if needed
+        if (mat.unit && mat.secondaryUnit && mat.conversionRate &&
+            mat.unit === mat.secondaryUnit && Number(mat.conversionRate) > 0) {
+          stockSnapshot = stockSnapshot * Number(mat.conversionRate);
+        }
+
+        await executeDbOperation(async (db) => {
+          return db
+            .update(workOrderMaterialsTable)
+            .set({ stockAtApproval: stockSnapshot })
+            .where(and(
+              eq(workOrderMaterialsTable.workOrderId, workOrderId),
+              eq(workOrderMaterialsTable.itemId, mat.itemId),
+            ));
+        });
+      }
+
       await executeDbOperation(async (db) => {
         return db
           .update(workOrdersTable)

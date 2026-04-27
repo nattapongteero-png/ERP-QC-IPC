@@ -158,6 +158,29 @@ export async function recalculateItemOnHand(itemId: number): Promise<{ onHand: n
 }
 
 /**
+ * Get balance snapshot for a lot and its parent item after a transaction.
+ * Used to record point-in-time balances in inventory_transactions.
+ */
+async function getBalanceSnapshot(database: any, lotId: number, itemId: number) {
+  const { lots } = getTables();
+  // Lot balance after transaction
+  const [lotRow] = await database
+    .select({ quantity: lots.quantity })
+    .from(lots)
+    .where(eq(lots.id, lotId));
+  const balanceAfter = Number(lotRow?.quantity) || 0;
+
+  // Item total balance (sum of all lots for this item)
+  const [itemRow] = await database
+    .select({ total: sql`COALESCE(SUM(${lots.quantity}), 0)` })
+    .from(lots)
+    .where(eq(lots.itemId, itemId));
+  const itemBalanceAfter = Number(itemRow?.total) || 0;
+
+  return { balanceAfter, itemBalanceAfter };
+}
+
+/**
  * FEFO Algorithm - First Expiry First Out
  * Returns lots ordered by expiry date for picking
  */
@@ -356,6 +379,9 @@ export async function issueMaterial(
     })
     .where(eq(lots.id, lotId));
 
+  // Snapshot balance after deduction
+  const snapshot = await getBalanceSnapshot(database, lotId, lot.itemId);
+
   // Create transaction record
   let txnId: number;
   if (isSqlite()) {
@@ -372,6 +398,8 @@ export async function issueMaterial(
         fromWarehouseId: lot.warehouseId,
         reason,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
         createdAt: getNow(),
       })
       .returning({ id: transactions.id });
@@ -390,6 +418,8 @@ export async function issueMaterial(
         fromWarehouseId: lot.warehouseId,
         reason,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
         createdAt: getNow(),
       });
     txnId = getInsertId(result);
@@ -511,6 +541,9 @@ export async function receiveMaterial(
     newLotId = getInsertId(result);
   }
 
+  // Snapshot balance after receive
+  const snapshot = await getBalanceSnapshot(database, newLotId, itemId);
+
   // Create transaction record
   if (isSqlite()) {
     await database
@@ -524,6 +557,8 @@ export async function receiveMaterial(
         referenceNumber: poNumber,
         toWarehouseId: warehouseId,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
         createdAt: getNow(),
       })
       .returning({ id: transactions.id });
@@ -539,6 +574,8 @@ export async function receiveMaterial(
         referenceNumber: poNumber,
         toWarehouseId: warehouseId,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
         createdAt: getNow(),
       });
   }
@@ -954,6 +991,9 @@ export async function adjustInventory(
     })
     .where(eq(lots.id, lotId));
 
+  // Snapshot balance after adjustment
+  const snapshot = await getBalanceSnapshot(database, lotId, lot.itemId);
+
   // Create transaction record
   let txnId: number;
   if (isSqlite()) {
@@ -968,6 +1008,8 @@ export async function adjustInventory(
         reason,
         performedBy: userId,
         approvedBy,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
         createdAt: getNow(),
       })
       .returning({ id: transactions.id });
@@ -984,6 +1026,8 @@ export async function adjustInventory(
         reason,
         performedBy: userId,
         approvedBy,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
         createdAt: getNow(),
       });
     txnId = getInsertId(result);
@@ -1085,6 +1129,9 @@ export async function transferInventory(
     newLotId = getInsertId(result);
   }
 
+  // Snapshot balance of new lot after transfer
+  const snapshot = await getBalanceSnapshot(database, newLotId, lot.itemId);
+
   // Create transaction record
   let txnId: number;
   if (isSqlite()) {
@@ -1100,6 +1147,8 @@ export async function transferInventory(
         toWarehouseId,
         reason,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
         createdAt: getNow(),
       })
       .returning({ id: transactions.id });
@@ -1117,6 +1166,8 @@ export async function transferInventory(
         toWarehouseId,
         reason,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
         createdAt: getNow(),
       });
     txnId = getInsertId(result);
@@ -1207,6 +1258,9 @@ export async function receiveMaterialExtended(
     newLotId = getInsertId(result);
   }
 
+  // Snapshot balance after receive
+  const snapshot = await getBalanceSnapshot(database, newLotId, data.itemId);
+
   // Create transaction record
   await database
     .insert(transactions)
@@ -1219,6 +1273,8 @@ export async function receiveMaterialExtended(
       referenceNumber: data.poNumber,
       toWarehouseId: data.warehouseId,
       performedBy: userId,
+      balanceAfter: snapshot.balanceAfter,
+      itemBalanceAfter: snapshot.itemBalanceAfter,
       createdAt: getNow(),
     });
 

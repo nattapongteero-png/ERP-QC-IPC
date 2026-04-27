@@ -1,0 +1,196 @@
+{
+  "dashboard": {
+    "title": "Template Dashboard",
+    "subtitle": "DevExtreme Charts Showcase - ERP Module Demo",
+    "newItem": "New Item",
+    "quickAccess": "Quick Access",
+    "chartsReference": "DevExtreme Charts Reference",
+    "chartsReferenceDescription": "This dashboard demonstrates the following chart types available in DevExtreme React",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "noCategories": "No categories found",
+    "noItemsFound": "No items found",
+    "createFirstItem": "Create your first item",
+    "viewAll": "View all",
+    "kpi": {
+      "totalItems": "Total Items",
+      "totalItemsDescription": "All items in system",
+      "activeItems": "Active Items",
+      "activeItemsPercent": "{percent}% of total",
+      "draftItems": "Draft Items",
+      "draftItemsDescription": "Pending review",
+      "totalValue": "Total Value",
+      "totalValueDescription": "Portfolio value"
+    },
+    "cards": {
+      "activeRate": "Active Items Rate",
+      "activeRateDescription": "Percentage of active items",
+      "monthlyTarget": "Monthly Target",
+      "monthlyTargetDescription": "Progress towards 100 items goal",
+      "statusDistribution": "Status Distribution",
+      "statusDistributionDescription": "Active / Draft / Archived",
+      "itemsByStatus": "Items by Status",
+      "itemsByStatusDescription": "Doughnut chart visualization",
+      "itemsByPriority": "Items by Priority",
+      "itemsByPriorityDescription": "Horizontal bar chart",
+      "monthlyTrend": "Monthly Trend",
+      "monthlyTrendDescription": "Spline area chart with gradient",
+      "workflowPipeline": "Workflow Pipeline",
+      "workflowPipelineDescription": "Funnel chart showing item lifecycle stages",
+      "performanceMetrics": "Performance Metrics",
+      "performanceMetricsDescription": "Polar/Radar chart for multi-dimensional analysis",
+      "categoryAnalysis": "Category Analysis",
+      "categoryAnalysisDescription": "Stacked bar showing items and value by category",
+      "recentItems": "Recent Items",
+      "recentItemsDescription": "Latest items added to the system"
+    },
+    "chartSeries": {
+      "items": "Items",
+      "valueScaled": "Value (x1000)",
+      "itemsCount": "Items Count",
+      "valueThb": "Value (THB)",
+      "score": "Score",
+      "count": "Count",
+      "conversion": "Conversion",
+      "itemsAxis": "Items",
+      "valueAxis": "Value"
+    },
+    "statuses": {
+      "active": "Active",
+      "draft": "Draft",
+      "archived": "Archived"
+    },
+    "workflowStages": {
+      "created": "Created",
+      "inReview": "In Review",
+      "approved": "Approved",
+      "active": "Active",
+      "completed": "Completed"
+    },
+    "performance": {
+      "quality": "Quality",
+      "speed": "Speed",
+      "accuracy": "Accuracy",
+      "efficiency": "Efficiency",
+      "cost": "Cost",
+      "safety": "Safety"
+    },
+    "quickLinks": {
+      "allItems": "All Items",
+      "allItemsDescription": "View and manage all items",
+      "newItem": "New Item",
+      "newItemDescription": "Create a new item",
+      "categories": "Categories",
+      "categoriesDescription": "Manage categories",
+      "reports": "Reports",
+      "reportsDescription": "View analytics"
+    },
+    "chartTypes": {
+      "sparkline": "Sparkline",
+      "sparklineDescription": "Area, Bar, Line, WinLoss",
+      "circularGauge": "Circular Gauge",
+      "circularGaugeDescription": "With range indicators",
+      "linearGauge": "Linear Gauge",
+      "linearGaugeDescription": "Horizontal progress",
+      "barGauge": "Bar Gauge",
+      "barGaugeDescription": "Multi-value circular",
+      "pieDoughnut": "Pie/Doughnut",
+      "pieDoughnutDescription": "With labels & legend",
+      "barChart": "Bar Chart",
+      "barChartDescription": "Horizontal bars",
+      "splineArea": "Spline Area",
+      "splineAreaDescription": "Multi-series, dual axis",
+      "funnel": "Funnel",
+      "funnelDescription": "Pipeline visualization",
+      "polarRadar": "Polar/Radar",
+      "polarRadarDescription": "Performance metrics",
+      "stackedBar": "Stacked Bar",
+      "stackedBarDescription": "Category comparison"
+    }
+  },
+  "categories": {
+    "title": "Template Categories",
+    "subtitle": "Manage categories for organizing items",
+    "newCategory": "New Category",
+    "searchPlaceholder": "Search categories...",
+    "statusPlaceholder": "Status",
+    "filters": "Filters:",
+    "stats": {
+      "total": "Total:",
+      "active": "Active:",
+      "inactive": "Inactive:"
+    },
+    "statusOptions": {
+      "all": "All Status",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "columns": {
+      "code": "Code",
+      "nameTh": "Name (Thai)",
+      "nameEn": "Name (English)",
+      "color": "Color",
+      "sortOrder": "Order",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "deleteConfirm": {
+      "title": "Confirm Delete",
+      "message": "Are you sure you want to delete \"{name}\"? Categories with items cannot be deleted."
+    },
+    "toast": {
+      "deleteSuccess": "Category deleted successfully"
+    }
+  },
+  "items": {
+    "title": "Template Items",
+    "subtitle": "Manage all items in the system",
+    "newItem": "New Item",
+    "searchPlaceholder": "Search items...",
+    "statusPlaceholder": "Status",
+    "categoryPlaceholder": "Category",
+    "filters": "Filters:",
+    "stats": {
+      "total": "Total:",
+      "active": "Active:",
+      "draft": "Draft:",
+      "value": "Value:"
+    },
+    "statusOptions": {
+      "all": "All Status",
+      "draft": "Draft",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "categoryOptions": {
+      "all": "All Categories"
+    },
+    "columns": {
+      "code": "Code",
+      "nameTh": "Name (Thai)",
+      "nameEn": "Name (English)",
+      "category": "Category",
+      "status": "Status",
+      "priority": "Priority",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "totalValue": "Total Value",
+      "actions": "Actions"
+    },
+    "deleteConfirm": {
+      "title": "Confirm Delete",
+      "message": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
+    },
+    "toast": {
+      "deleteSuccess": "Item deleted successfully"
+    }
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "clear": "Clear",
+    "view": "View",
+    "edit": "Edit"
+  }
+}

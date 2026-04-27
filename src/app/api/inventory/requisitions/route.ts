@@ -114,6 +114,7 @@ export async function GET(request: NextRequest) {
             conversionRate: itemsTable.conversionRate,
             status: workOrderMaterialsTable.status,
             onHand: itemsTable.onHand,
+            stockAtApproval: workOrderMaterialsTable.stockAtApproval,
           })
           .from(workOrderMaterialsTable)
           .leftJoin(itemsTable, eq(workOrderMaterialsTable.itemId, itemsTable.id))

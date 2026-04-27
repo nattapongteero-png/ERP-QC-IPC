@@ -36,6 +36,7 @@ export async function GET(
             // Spec snapshot fields
             specMinValue: qualityTests.specMinValue,
             specMaxValue: qualityTests.specMaxValue,
+            specTarget: qualityTests.specTarget,
             specSpecification: qualityTests.specSpecification,
             specUnit: qualityTests.specUnit,
             createdAt: qualityTests.createdAt,
@@ -163,6 +164,7 @@ export async function GET(
       }
 
       // Build effective spec: snapshot values take priority over live spec
+      // Plus UI-friendly aliases: parameter, method, specCode, targetValue
       const effectiveSpec = hasSnapshot
         ? {
             ...specInfo,
@@ -174,13 +176,34 @@ export async function GET(
           }
         : specInfo ? { ...specInfo, isSnapshot: false } : null;
 
+      const specResponse = effectiveSpec
+        ? {
+            ...effectiveSpec,
+            specCode: effectiveSpec.id ? `SPEC-${String(effectiveSpec.id).padStart(4, '0')}` : '-',
+            parameter: effectiveSpec.testName ?? '-',
+            method: effectiveSpec.testMethod ?? '-',
+            targetValue: test.specTarget ?? null,
+          }
+        : null;
+
+      // UI-friendly test shape: actualValue + testedAt + testCode aliases
+      const testResponse = {
+        ...test,
+        testCode: test.sampleNumber || `QC-${String(test.id).padStart(4, '0')}`,
+        testedAt: test.testDate,
+        // actualValue: prefer numericResult (strip trailing zeros), fall back to result (string)
+        actualValue: test.numericResult !== null && test.numericResult !== undefined
+          ? String(Number(test.numericResult))
+          : (test.result || ''),
+      };
+
       return NextResponse.json({
         success: true,
         data: {
-          test,
+          test: testResponse,
           item: itemInfo,
           lot: lotInfo,
-          specification: effectiveSpec,
+          specification: specResponse,
           currentSpecification: specInfo,
           tester: testerInfo,
           approver: approverInfo,

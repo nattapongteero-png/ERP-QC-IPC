@@ -73,6 +73,7 @@ import {
 } from '../db/schema';
 import { getNow } from '../db/date-utils';
 import { issueMaterial, getLotsForPicking, getAvailableLots } from './inventory.service';
+import { calculateMinMax } from '../utils/ipc-criteria-calc';
 
 // Get the appropriate tables based on database type
 function getTables() {
@@ -271,6 +272,7 @@ export async function validateEnvironmentalReading(
         temperatureMin: tables.environmentalConditions.temperatureMin,
         temperatureMax: tables.environmentalConditions.temperatureMax,
         humidityMax: tables.environmentalConditions.humidityMax,
+        monitoringIntervalMinutes: tables.environmentalConditions.monitoringIntervalMinutes,
       })
       .from(tables.bomEnvironmentalConditions)
       .innerJoin(
@@ -285,7 +287,7 @@ export async function validateEnvironmentalReading(
       );
 
     if (conditions.length === 0) {
-      return { isNormal: true, limits: null, bomConditionId: null };
+      return { isNormal: true, limits: null, bomConditionId: null, monitoringIntervalMinutes: null };
     }
 
     const condition = conditions[0];
@@ -302,6 +304,9 @@ export async function validateEnvironmentalReading(
         humidityMax: condition.humidityMax,
       },
       bomConditionId: condition.bomConditionId,
+      monitoringIntervalMinutes: condition.monitoringIntervalMinutes
+        ? Number(condition.monitoringIntervalMinutes)
+        : null,
     };
   });
 }
@@ -346,10 +351,29 @@ export async function getWOCleaningLogs(workOrderId: number, phase?: string) {
       .where(eq(tables.woCleaningLogs.workOrderId, workOrderId))
       .orderBy(desc(tables.woCleaningLogs.performedAt));
 
-    if (phase) {
-      return logs.filter((log: any) => log.phase === phase);
+    const filtered = phase ? logs.filter((log: any) => log.phase === phase) : logs;
+
+    // Resolve operator + verifier user names in one round-trip
+    const userIds = new Set<number>();
+    for (const l of filtered) {
+      if (l.operatorId) userIds.add(l.operatorId);
+      if (l.verifierId) userIds.add(l.verifierId);
     }
-    return logs;
+
+    const userMap = new Map<number, string>();
+    if (userIds.size > 0) {
+      const users = await db
+        .select({ id: tables.users.id, name: tables.users.name })
+        .from(tables.users)
+        .where(inArray(tables.users.id, Array.from(userIds)));
+      for (const u of users) userMap.set(u.id, u.name);
+    }
+
+    return filtered.map((log: any) => ({
+      ...log,
+      operatorName: log.operatorId ? userMap.get(log.operatorId) || null : null,
+      verifierName: log.verifierId ? userMap.get(log.verifierId) || null : null,
+    }));
   });
 }
 
@@ -357,6 +381,40 @@ export async function createWOCleaningLog(data: CreateWOCleaningLogInput) {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
+    // Check if there's an existing log that was verify-failed (re-mark-clean flow)
+    const conditions = [
+      eq(tables.woCleaningLogs.workOrderId, data.workOrderId),
+      eq(tables.woCleaningLogs.phase, data.phase),
+      eq(tables.woCleaningLogs.itemType, data.itemType),
+    ];
+    if (data.roomId) conditions.push(eq(tables.woCleaningLogs.roomId, data.roomId));
+    if (data.equipmentId) conditions.push(eq(tables.woCleaningLogs.equipmentId, data.equipmentId));
+
+    const existing = await db.select().from(tables.woCleaningLogs).where(and(...conditions)).limit(1);
+
+    if (existing.length > 0 && existing[0].verifyResult === 'fail') {
+      // Re-mark clean: update existing log, reset verify fields
+      const updateData = {
+        isClean: data.isClean,
+        operatorId: data.operatorId,
+        performedAt: isSqlite() ? data.performedAt : new Date(data.performedAt),
+        verifierId: null,
+        verifiedAt: null,
+        verifyResult: null,
+        notes: data.notes || null,
+      };
+
+      if (isSqlite()) {
+        const [log] = await db.update(tables.woCleaningLogs).set(updateData).where(eq(tables.woCleaningLogs.id, existing[0].id)).returning();
+        return log;
+      } else {
+        await db.update(tables.woCleaningLogs).set(updateData).where(eq(tables.woCleaningLogs.id, existing[0].id));
+        const [log] = await db.select().from(tables.woCleaningLogs).where(eq(tables.woCleaningLogs.id, existing[0].id));
+        return log;
+      }
+    }
+
+    // Normal create
     const values = {
       workOrderId: data.workOrderId,
       phase: data.phase,
@@ -366,6 +424,7 @@ export async function createWOCleaningLog(data: CreateWOCleaningLogInput) {
       isClean: data.isClean,
       operatorId: data.operatorId,
       performedAt: isSqlite() ? data.performedAt : new Date(data.performedAt),
+      notes: data.notes || null,
       createdAt: getNow(),
     };
 
@@ -381,7 +440,7 @@ export async function createWOCleaningLog(data: CreateWOCleaningLogInput) {
   });
 }
 
-export async function verifyWOCleaningLog(logId: number, verifierId: number) {
+export async function verifyWOCleaningLog(logId: number, verifierId: number, verifyResult: string = 'pass') {
   const tables = getTables();
 
   // Dual control: check operator != verifier
@@ -394,10 +453,16 @@ export async function verifyWOCleaningLog(logId: number, verifierId: number) {
   }
 
   return executeDbOperation(async (db: any) => {
-    const updateData = {
+    const updateData: Record<string, unknown> = {
       verifierId,
       verifiedAt: getNow(),
+      verifyResult,
     };
+
+    // If verify failed, reset isClean so Production must re-mark
+    if (verifyResult === 'fail') {
+      updateData.isClean = false;
+    }
 
     if (isSqlite()) {
       const [log] = await db.update(tables.woCleaningLogs).set(updateData).where(eq(tables.woCleaningLogs.id, logId)).returning();
@@ -560,6 +625,7 @@ export async function getCleaningRequirements(workOrderId: number, phase: string
               verifierId: log.verifierId || undefined,
               verifierName: log.verifierId ? userMap.get(log.verifierId) || undefined : undefined,
               verifiedAt: log.verifiedAt || undefined,
+              verifyResult: log.verifyResult || undefined,
               notes: log.notes || undefined,
             }
           : undefined,
@@ -589,6 +655,7 @@ export async function getCleaningRequirements(workOrderId: number, phase: string
               verifierId: log.verifierId || undefined,
               verifierName: log.verifierId ? userMap.get(log.verifierId) || undefined : undefined,
               verifiedAt: log.verifiedAt || undefined,
+              verifyResult: log.verifyResult || undefined,
               notes: log.notes || undefined,
             }
           : undefined,
@@ -1079,7 +1146,14 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
       throw new Error('Cannot verify — inventory issue failed for all lots');
     }
 
-    // Assign primary lot (first allocated) to material record
+    // Assign primary lot (first allocated) to material record.
+    //
+    // `actualQuantity` is stored in PRIMARY unit (= totalIssued) because cost
+    // calculation in unit-cost.service.ts multiplies it by `unitCost`/`currentWAC`
+    // which are per primary unit. The weighing-unit value is preserved on
+    // `weighedQty` and is used for display in the WO Materials tab (see the
+    // detail API — variance/actualQty are computed from weighedQty so that the
+    // tab shows unit-consistent numbers, e.g. planned 222 g vs actual 222 g).
     await executeDbOperation(async (db: any) => {
       await db.update(tables.workOrderMaterials).set({
         lotId: allocated[0].lotId,
@@ -1567,6 +1641,24 @@ export async function updateWOPackagingMaterial(
 export async function verifyWOPackagingMaterial(materialId: number, verifierId: number) {
   const tables = getTables();
 
+  // GMP Dual Control: the verifier must be a different user than the
+  // operator who issued/used this packaging material. We check this up
+  // front and throw a business-rule error so the API route can surface
+  // a 422 instead of letting a DB update succeed incorrectly.
+  const [existing] = await executeDbOperation(async (db: any) => {
+    return db.select({
+      id: tables.woPackagingMaterials.id,
+      operatorId: tables.woPackagingMaterials.operatorId,
+    }).from(tables.woPackagingMaterials).where(eq(tables.woPackagingMaterials.id, materialId));
+  });
+
+  if (!existing) {
+    throw new Error('Packaging material not found');
+  }
+  if (existing.operatorId && Number(existing.operatorId) === verifierId) {
+    throw new Error('ไม่สามารถตรวจสอบรายการของตนเองได้ ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคนกัน');
+  }
+
   return executeDbOperation(async (db: any) => {
     const updateData = {
       verifierId,
@@ -1614,6 +1706,8 @@ export async function getBOMIPCConfig(bomId: number) {
         unit: ipcCriteria.unit,
         criteriaType: ipcCriteria.criteriaType,
         tolerancePercent: ipcCriteria.tolerancePercent,
+        specTarget: ipcCriteria.specTarget,
+        specTolerancePercent: ipcCriteria.specTolerancePercent,
         dosageForm: ipcCriteria.dosageForm,
         criteriaIsCritical: ipcCriteria.isCritical,
       })
@@ -2102,6 +2196,22 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
       // Skip if already initialized (based on count match)
       if (existingCount >= ipcConfig.length) continue;
 
+      // When specTarget is present, recompute Min/Max from Target + SpecTolerancePercent
+      // so the quality test always uses the formula-derived bounds (server-authoritative).
+      let effectiveMin = config.minValue;
+      let effectiveMax = config.maxValue;
+      const specTargetNum = config.specTarget !== null && config.specTarget !== undefined
+        ? Number(config.specTarget)
+        : null;
+      const specTolPctNum = Number(config.specTolerancePercent) || 0;
+      if (specTargetNum !== null && !Number.isNaN(specTargetNum)) {
+        const calc = calculateMinMax(specTargetNum, specTolPctNum);
+        if (calc) {
+          effectiveMin = calc.min;
+          effectiveMax = calc.max;
+        }
+      }
+
       const testResult = await db.insert(tables.qualityTests).values({
         lotId: targetLotId,
         testType: 'in_process',
@@ -2111,12 +2221,14 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
         requestedBy: operatorId,
         requestedAt: getNow(),
         // Snapshot criteria values
-        specMinValue: config.minValue,
-        specMaxValue: config.maxValue,
+        specMinValue: effectiveMin,
+        specMaxValue: effectiveMax,
         specSpecification: config.specification || config.testName,
         specUnit: config.unit,
         criteriaType: config.criteriaType || 'numeric',
         tolerancePercent: Number(config.tolerancePercent) || 0,
+        specTarget: specTargetNum,
+        specTolerancePercent: specTolPctNum,
         notes: config.testNameTh || config.testName,
         createdAt: getNow(),
         updatedAt: getNow(),

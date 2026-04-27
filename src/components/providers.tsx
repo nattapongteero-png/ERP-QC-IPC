@@ -77,6 +77,11 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
               debug: data.debug,
               url,
               method,
+              // Forward permission-denial metadata so the toast can render
+              // an actionable hint (which permission to grant + where).
+              missingPermissions: data.missingPermissions,
+              userRole: data.userRole,
+              actionHint: data.actionHint,
             });
           }
         } catch {

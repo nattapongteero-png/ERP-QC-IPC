@@ -8,6 +8,7 @@
  */
 
 import { useRouter } from 'next/navigation';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import DataGrid, {
   Column,
   Paging,
@@ -171,7 +172,7 @@ export function StabilityStudyList({
       workbook.xlsx.writeBuffer().then((buffer) => {
         saveAs(
           new Blob([buffer], { type: 'application/octet-stream' }),
-          `Stability_Studies_${new Date().toISOString().split('T')[0]}.xlsx`
+          `Stability_Studies_${toLocalDateStr(new Date())}.xlsx`
         );
       });
     });

@@ -17,6 +17,7 @@ import {
   PositionSelect,
 } from '@/components/shared';
 import { handleApiError, showSuccess, showWarning } from '@/lib/hr/error-handler';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import {
   User,
   Building2,
@@ -320,7 +321,7 @@ export function EmployeeForm({
     medicalNotes: initialData?.medicalNotes || '',
     positionId: initialData?.positionId || undefined,
     orgUnitId: initialData?.orgUnitId || undefined,
-    hireDate: initialData?.hireDate?.split('T')[0] || new Date().toISOString().split('T')[0],
+    hireDate: initialData?.hireDate?.split('T')[0] || toLocalDateStr(new Date()),
     status: initialData?.status,
   }), [initialData]);
 

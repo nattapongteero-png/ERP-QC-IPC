@@ -3,7 +3,7 @@
  * Part of 011-accounting-spec-gap
  */
 
-import { eq, and, or, like, gte, lte, desc, asc, sql, isNull } from 'drizzle-orm';
+import { eq, and, or, like, gte, lte, desc, asc, sql, isNull, inArray } from 'drizzle-orm';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb } from '../db/date-utils';
 import { submitForApproval, approveRequest, rejectRequest } from './approval-workflow.service';
@@ -191,6 +191,22 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
       }
     }
 
+    // Lookup item codes for lines that have itemId
+    const itemIds = lines
+      .map((l: any) => l.itemId)
+      .filter((id: unknown): id is number => id != null);
+    const itemCodeMap: Record<number, string> = {};
+    if (itemIds.length > 0) {
+      const itemsTable = getTableRef('items');
+      const itemsResult = await db
+        .select({ id: itemsTable.id, code: itemsTable.code })
+        .from(itemsTable)
+        .where(inArray(itemsTable.id, itemIds));
+      for (const item of itemsResult) {
+        itemCodeMap[item.id] = item.code;
+      }
+    }
+
     return {
       ...pr,
       requesterName,
@@ -215,7 +231,7 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
         prId: line.prId,
         lineNumber: line.lineNumber,
         itemId: line.itemId,
-        itemCode: null, // Database doesn't store itemCode separately
+        itemCode: line.itemId ? (itemCodeMap[line.itemId] || null) : null,
         description: line.description || '',
         quantity: Number(line.quantity) || 0,
         unitOfMeasure: line.unit || '', // Map unit -> unitOfMeasure
@@ -499,6 +515,35 @@ export async function deletePRLine(prId: number, lineId: number): Promise<void> 
 }
 
 /**
+ * Delete an entire PR and its lines (draft only)
+ */
+export async function deletePR(prId: number): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    const prResult = await db
+      .select({ status: tables.requisitions.status })
+      .from(tables.requisitions)
+      .where(eq(tables.requisitions.id, prId))
+      .limit(1);
+
+    if (prResult.length === 0) {
+      throw new Error('PR_NOT_FOUND');
+    }
+
+    if (prResult[0].status !== 'draft') {
+      throw new Error('PR_NOT_DELETABLE');
+    }
+
+    // Delete lines first (foreign key)
+    await db.delete(tables.lines).where(eq(tables.lines.prId, prId));
+
+    // Delete PR header
+    await db.delete(tables.requisitions).where(eq(tables.requisitions.id, prId));
+  });
+}
+
+/**
  * Recalculate PR total from lines
  */
 async function recalculatePRTotal(prId: number): Promise<void> {
@@ -619,12 +664,28 @@ export async function approvePR(
       throw new Error('PR_NOT_PENDING_APPROVAL');
     }
 
-    if (!pr.approvalRequestId) {
+    // Look up approval request from approval_requests table
+    const approvalRequests = getTableRef('approvalRequests');
+    const arResult = await db
+      .select({ id: approvalRequests.id })
+      .from(approvalRequests)
+      .where(
+        and(
+          eq(approvalRequests.documentType, 'purchase_requisition'),
+          eq(approvalRequests.documentId, prId),
+          eq(approvalRequests.status, 'pending')
+        )
+      )
+      .limit(1);
+
+    if (arResult.length === 0) {
       throw new Error('NO_APPROVAL_REQUEST');
     }
 
+    const approvalRequestId = arResult[0].id;
+
     // Approve in workflow
-    const result = await approveRequest(pr.approvalRequestId, approverId, comments);
+    const result = await approveRequest(approvalRequestId, approverId, comments);
 
     // Check if fully approved
     if (result.isFullyApproved) {
@@ -678,12 +739,28 @@ export async function rejectPR(
       throw new Error('PR_NOT_PENDING_APPROVAL');
     }
 
-    if (!pr.approvalRequestId) {
+    // Look up approval request from approval_requests table
+    const approvalRequests = getTableRef('approvalRequests');
+    const arResult = await db
+      .select({ id: approvalRequests.id })
+      .from(approvalRequests)
+      .where(
+        and(
+          eq(approvalRequests.documentType, 'purchase_requisition'),
+          eq(approvalRequests.documentId, prId),
+          eq(approvalRequests.status, 'pending')
+        )
+      )
+      .limit(1);
+
+    if (arResult.length === 0) {
       throw new Error('NO_APPROVAL_REQUEST');
     }
 
+    const approvalRequestId = arResult[0].id;
+
     // Reject in workflow
-    await rejectRequest(pr.approvalRequestId, approverId, reason);
+    await rejectRequest(approvalRequestId, approverId, reason);
 
     // Update PR status
     const now = getNow();
@@ -770,7 +847,7 @@ export async function convertPRToPO(
     // Calculate PO total
     let poTotal = 0;
     for (const line of lines) {
-      poTotal += line.estimatedAmount || 0;
+      poTotal += Number(line.lineTotal) || 0;
     }
 
     const now = getNow();
@@ -829,20 +906,18 @@ export async function convertPRToPO(
     for (const prLine of lines) {
       poLineNumber++;
 
-      // Create PO line
+      // Create PO line (map PR line fields to PO line schema)
+      const qty = Number(prLine.quantity) || 0;
+      const price = Number(prLine.estimatedPrice) || 0;
       const poLineResult = await db.insert(tables.purchaseOrderLines).values({
         poId,
-        lineNumber: poLineNumber,
         itemId: prLine.itemId,
-        itemCode: prLine.itemCode,
-        description: prLine.description,
-        quantity: prLine.quantity,
-        unitOfMeasure: prLine.unitOfMeasure,
-        unitPrice: prLine.estimatedUnitPrice,
-        amount: prLine.estimatedAmount,
-        prLineId: prLine.id,
+        quantity: qty,
+        unit: prLine.unit || 'pcs',
+        unitPrice: price,
+        totalPrice: qty * price,
+        notes: prLine.description || null,
         createdAt: now,
-        updatedAt: now,
       });
 
       const poLineId = getInsertId(poLineResult);
@@ -851,10 +926,8 @@ export async function convertPRToPO(
       await db
         .update(tables.lines)
         .set({
-          status: 'full_po',
-          convertedPoId: poId,
+          status: 'converted',
           convertedPoLineId: poLineId,
-          updatedAt: now,
         })
         .where(eq(tables.lines.id, prLine.id));
     }

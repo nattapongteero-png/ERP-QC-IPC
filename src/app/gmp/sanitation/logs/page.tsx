@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { SanitationLogList } from '@/components/sanitation';
@@ -91,7 +92,7 @@ export default function SanitationLogsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(showNewParam === '1');
   const [formData, setFormData] = useState<Partial<SanitationLogCreate>>({
     scheduleId: scheduleIdParam ? parseInt(scheduleIdParam, 10) : undefined,
-    performedDate: new Date().toISOString().split('T')[0],
+    performedDate: toLocalDateStr(new Date()),
     status: 'completed',
   });
 
@@ -116,7 +117,7 @@ export default function SanitationLogsPage() {
       queryClient.invalidateQueries({ queryKey: ['sanitation-pending'] });
       setShowCreateDialog(false);
       setFormData({
-        performedDate: new Date().toISOString().split('T')[0],
+        performedDate: toLocalDateStr(new Date()),
         status: 'completed',
       });
     },
@@ -222,7 +223,7 @@ export default function SanitationLogsPage() {
                     performedDate:
                       typeof e.value === 'string'
                         ? e.value
-                        : e.value?.toISOString().split('T')[0],
+                        : e.value ? toLocalDateStr(e.value) : '',
                   })
                 }
                 type="date"

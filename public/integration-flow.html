@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integration Flow — HOSxP × VMI Portal × Herb ERP</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f172a;--card:#fff;--muted:#64748b;--text:#0f172a;
+    --emerald:#059669;--emerald-light:#ecfdf5;--emerald-border:#a7f3d0;
+    --indigo:#4f46e5;--indigo-light:#eef2ff;--indigo-border:#c7d2fe;
+    --amber:#d97706;--amber-light:#fef3c7;--amber-border:#fde68a;
+    --rose:#e11d48;--rose-light:#ffe4e6;--rose-border:#fda4af;
+    --slate:#475569;--slate-light:#f1f5f9;--slate-border:#cbd5e1;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Sarabun,"IBM Plex Sans Thai",sans-serif;
+       background:linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%);color:var(--text);line-height:1.6;min-height:100vh}
+  .container{max-width:1200px;margin:0 auto;padding:24px 16px}
+  header{background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;padding:32px 24px;border-radius:16px;
+         box-shadow:0 4px 20px rgba(99,102,241,0.25);margin-bottom:24px}
+  header h1{font-size:1.6rem;font-weight:700;margin-bottom:6px}
+  header p{font-size:.95rem;opacity:.92}
+  header .meta{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;font-size:.78rem}
+  header .chip{background:rgba(255,255,255,.2);padding:4px 10px;border-radius:99px}
+  nav.toc{background:#fff;padding:16px;border-radius:12px;margin-bottom:24px;
+          box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid #e2e8f0}
+  nav.toc h3{font-size:.78rem;text-transform:uppercase;color:var(--muted);letter-spacing:.05em;margin-bottom:10px}
+  nav.toc ol{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
+  nav.toc a{color:var(--indigo);text-decoration:none;font-size:.88rem;padding:6px 8px;border-radius:6px;display:block}
+  nav.toc a:hover{background:var(--indigo-light)}
+  section{background:#fff;padding:24px;border-radius:12px;margin-bottom:18px;
+          box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid #e2e8f0;scroll-margin-top:24px}
+  section h2{font-size:1.25rem;color:var(--indigo);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  section h2 .num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+                  background:var(--indigo);color:#fff;border-radius:8px;font-size:.85rem;font-weight:600}
+  section h3{font-size:1rem;color:var(--slate);margin:18px 0 8px}
+  section h4{font-size:.92rem;color:var(--text);margin:14px 0 6px;font-weight:600}
+  section p{margin-bottom:10px}
+  section ul,section ol{padding-left:24px;margin-bottom:10px}
+  section li{margin-bottom:4px}
+  code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+       background:var(--slate-light);padding:1px 6px;border-radius:4px;font-size:.85em;color:var(--rose)}
+  pre{background:#1e293b;color:#e2e8f0;padding:14px;border-radius:8px;overflow-x:auto;font-size:.82rem;
+      margin:10px 0;line-height:1.5}
+  pre code{background:transparent;color:inherit;padding:0;font-size:inherit}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0}
+  @media(max-width:768px){.grid-3{grid-template-columns:1fr}}
+  .role-card{padding:14px;border-radius:10px;border:2px solid;text-align:center}
+  .role-card .icon{font-size:1.6rem;margin-bottom:6px}
+  .role-card h4{font-weight:600;margin-bottom:4px}
+  .role-card p{font-size:.78rem;color:var(--muted);margin:0}
+  .role-card.his{border-color:var(--amber-border);background:var(--amber-light)}
+  .role-card.his .icon{color:var(--amber)}
+  .role-card.portal{border-color:var(--indigo-border);background:var(--indigo-light)}
+  .role-card.portal .icon{color:var(--indigo)}
+  .role-card.erp{border-color:var(--emerald-border);background:var(--emerald-light)}
+  .role-card.erp .icon{color:var(--emerald)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.88rem}
+  th{background:var(--slate-light);padding:10px;text-align:left;font-weight:600;border-bottom:2px solid var(--slate-border)}
+  td{padding:10px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+  tr:hover td{background:#f8fafc}
+  .step{background:#f8fafc;border-left:4px solid var(--emerald);padding:14px;border-radius:0 8px 8px 0;margin:14px 0}
+  .step .step-head{font-weight:600;color:var(--emerald);margin-bottom:6px;font-size:.95rem}
+  .step.alt{border-left-color:var(--indigo)}
+  .step.alt .step-head{color:var(--indigo)}
+  .step.warn{border-left-color:var(--amber);background:var(--amber-light)}
+  .step.warn .step-head{color:var(--amber)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.7rem;font-weight:600;
+         text-transform:uppercase;letter-spacing:.04em;vertical-align:middle}
+  .badge.green{background:var(--emerald-light);color:var(--emerald);border:1px solid var(--emerald-border)}
+  .badge.indigo{background:var(--indigo-light);color:var(--indigo);border:1px solid var(--indigo-border)}
+  .badge.amber{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-border)}
+  .flow-diagram{background:#0f172a;color:#e2e8f0;padding:20px;border-radius:10px;
+                font-family:ui-monospace,monospace;font-size:.78rem;overflow-x:auto;margin:14px 0;line-height:1.7}
+  .flow-diagram .h{color:#60a5fa;font-weight:600}
+  .flow-diagram .e{color:#34d399}
+  .flow-diagram .a{color:#fbbf24}
+  .arrow{display:inline-block;color:var(--emerald);font-weight:bold}
+  .ext{color:var(--indigo);text-decoration:none}
+  .ext:hover{text-decoration:underline}
+  details{background:var(--slate-light);padding:10px 14px;border-radius:8px;margin:10px 0;cursor:pointer}
+  details summary{font-weight:600;color:var(--text);user-select:none}
+  details[open] summary{margin-bottom:8px;color:var(--indigo)}
+  .note{background:var(--amber-light);border:1px solid var(--amber-border);padding:10px 14px;
+        border-radius:8px;font-size:.88rem;margin:10px 0}
+  .note strong{color:var(--amber)}
+  .info{background:var(--indigo-light);border:1px solid var(--indigo-border);padding:10px 14px;
+        border-radius:8px;font-size:.88rem;margin:10px 0}
+  .info strong{color:var(--indigo)}
+  footer{text-align:center;padding:20px;color:var(--muted);font-size:.82rem}
+  /* Sequence box for status flow */
+  .seq{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.85rem;margin:10px 0;padding:12px;
+       background:var(--slate-light);border-radius:8px}
+  .seq .s{padding:4px 12px;background:#fff;border:1px solid var(--slate-border);border-radius:99px;font-weight:600}
+  .seq .s.start{background:var(--amber-light);border-color:var(--amber-border);color:var(--amber)}
+  .seq .s.mid{background:var(--indigo-light);border-color:var(--indigo-border);color:var(--indigo)}
+  .seq .s.end{background:var(--emerald-light);border-color:var(--emerald-border);color:var(--emerald)}
+  .seq .a{color:var(--muted);font-family:monospace}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>🔗 Integration Flow</h1>
+  <p>การเชื่อมโยงข้อมูล Order ระหว่าง <strong>HOSxP XE</strong> → <strong>VMI Portal</strong> → <strong>Herb ERP</strong></p>
+  <div class="meta">
+    <span class="chip">📅 อัปเดต 27 เม.ย. 2569</span>
+    <span class="chip">👤 Vendor: METAHERB (VEN-0010)</span>
+    <span class="chip">🏥 Hub: vmi-portal.bmscloud.in.th</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h3>📑 สารบัญ</h3>
+  <ol>
+    <li><a href="#overview">1. ภาพรวม + บทบาทของแต่ละระบบ</a></li>
+    <li><a href="#flow">2. Flow ทีละขั้นตอน</a></li>
+    <li><a href="#step1">3. Step 1: HOSxP → Portal</a></li>
+    <li><a href="#step2">4. Step 2: Portal → ERP</a></li>
+    <li><a href="#step3">5. Step 3: ERP ดำเนินการ</a></li>
+    <li><a href="#step4">6. Step 4: รับสินค้า + ปิด loop</a></li>
+    <li><a href="#tables">7. ตารางหลักในแต่ละระบบ</a></li>
+    <li><a href="#auth">8. การยืนยันตัวตน + API Keys</a></li>
+    <li><a href="#config">9. การตั้งค่าเริ่มต้นสำหรับ Vendor ใหม่</a></li>
+    <li><a href="#troubleshoot">10. Debug + Troubleshoot</a></li>
+  </ol>
+</nav>
+
+<section id="overview">
+  <h2><span class="num">1</span>ภาพรวม + บทบาทของแต่ละระบบ</h2>
+  <p>ระบบใช้สถาปัตยกรรม <strong>Hub-and-spoke</strong> โดย VMI Portal เป็นศูนย์กลาง — โรงพยาบาล (HOSxP) และ Vendor (Herb ERP) <strong>ไม่ได้คุยกันโดยตรง</strong> ทั้งสองฝ่ายเชื่อมต่อกับ Portal เท่านั้น</p>
+
+  <div class="grid-3">
+    <div class="role-card his">
+      <div class="icon">🏥</div>
+      <h4>HOSxP XE</h4>
+      <p>ระบบของโรงพยาบาล — สร้าง PO + บันทึกการรับสินค้า</p>
+      <p style="margin-top:6px"><code>vmi_hosp_&lt;CODE&gt;_…</code></p>
+    </div>
+    <div class="role-card portal">
+      <div class="icon">🌐</div>
+      <h4>VMI Portal (hub)</h4>
+      <p>กลั่นกรอง PO → match vendor → กระจายให้ vendor + ติดตามสถานะ</p>
+      <p style="margin-top:6px"><a class="ext" href="https://vmi-portal.bmscloud.in.th/" target="_blank">vmi-portal.bmscloud.in.th</a></p>
+    </div>
+    <div class="role-card erp">
+      <div class="icon">🌿</div>
+      <h4>Herb ERP (Metaherb)</h4>
+      <p>vendor รับ PO → ผลิต → ส่ง</p>
+      <p style="margin-top:6px"><code>vmi_vend_VEN-0010_…</code></p>
+    </div>
+  </div>
+
+  <div class="flow-diagram">
+    <span class="h">┌─────────────┐</span>      <span class="h">┌──────────────┐</span>      <span class="h">┌──────────────┐</span>
+    <span class="h">│   HOSxP XE   │</span>──📤─▶<span class="h">│  VMI Portal  │</span>──📨─▶<span class="h">│   Herb ERP   │</span>
+    <span class="h">│ Hospital     │</span>      <span class="h">│ (hub กลาง)   │</span>      <span class="h">│ Vendor side  │</span>
+    <span class="h">└─────────────┘</span>      <span class="h">└──────────────┘</span>      <span class="h">└──────────────┘</span>
+         <span class="a">▲</span>                       <span class="a">│</span>                       <span class="a">│</span>
+         <span class="a">└──── 📥 receipt ──────┘ status updates ◀───┘</span>
+  </div>
+</section>
+
+<section id="flow">
+  <h2><span class="num">2</span>Flow ทีละขั้นตอน — Status Lifecycle</h2>
+  <div class="seq">
+    <span class="s start">submitted</span><span class="a">──[vendor confirm]──▶</span>
+    <span class="s mid">confirmed</span><span class="a">──[vendor ship]──▶</span>
+    <span class="s mid">shipped</span><span class="a">──[hospital receipt]──▶</span>
+    <span class="s end">received</span>
+  </div>
+  <p>แต่ละ status เปลี่ยนได้เฉพาะฝ่ายที่มีสิทธิ์ — vendor เปลี่ยน <code>submitted → confirmed → shipped</code>, hospital เปลี่ยน <code>shipped → received</code> ผ่าน goods receipt</p>
+</section>
+
+<section id="step1">
+  <h2><span class="num">3</span>Step 1: HOSxP → VMI Portal (Push PO)</h2>
+  <h4>Endpoint ที่ HOSxP เรียก:</h4>
+  <pre><code>POST https://vmi-portal.bmscloud.in.th/api/external/hosxp/orders
+Headers:
+  X-API-Key: vmi_hosp_&lt;HOSPITAL_CODE&gt;_xxx
+  Content-Type: application/json
+
+Body:
+{
+  "orders": [{
+    "localCode": "HSP-001-2026-0042",
+    "warehouseLocalCode": "WH01",
+    "poNumber": "PO-2026-001",
+    "localVendorCode": "V-METAHERB",
+    "orderDate": "2026-04-27",
+    "expectedDeliveryDate": "2026-05-04",
+    "status": "submitted",
+    "totalValue": 25000,
+    "items": [{
+      "localCode": "FAT-001",
+      "quantityOrdered": 100,
+      "unitPrice": 250,
+      "lineTotal": 25000
+    }]
+  }]
+}</code></pre>
+
+  <h4>VMI Portal ทำอะไรเมื่อรับ:</h4>
+  <ol>
+    <li>Validate hospital API key → รู้ <code>hospitalCode</code> อัตโนมัติ</li>
+    <li>Map <code>localVendorCode</code> → ตาราง <code>hospital_vendor</code> → ได้ portal's <code>vendor_id = 52</code> (METAHERB)</li>
+    <li>Map item.<code>localCode</code> → portal's <code>item.id</code> (ผ่าน item sync ที่ทำไว้ก่อน)</li>
+    <li>INSERT <code>purchase_order</code> + <code>purchase_order_item</code></li>
+    <li>Queue <strong>webhook event</strong> <code>order.created</code> ลง <code>vendor_webhook_delivery</code></li>
+  </ol>
+
+  <div class="note">
+    <strong>⚠ ก่อน HOSxP push PO ได้</strong> ต้องทำสิ่งเหล่านี้ก่อน:
+    <ul style="margin-top:6px">
+      <li>โรงพยาบาลลงทะเบียน vendor ใน portal — ระบบสร้าง row <code>hospital_vendor</code> ผูก <code>localVendorCode</code> ↔ <code>vendor_id</code></li>
+      <li>HOSxP sync items กับ portal (ผ่าน <code>POST /api/external/hosxp/items</code>) เพื่อให้ <code>item.localCode</code> มีตัวตน</li>
+    </ul>
+  </div>
+</section>
+
+<section id="step2">
+  <h2><span class="num">4</span>Step 2: VMI Portal → Herb ERP (2 modes)</h2>
+
+  <div class="step alt">
+    <div class="step-head">📨 Mode A: Webhook (push)</div>
+    <ul>
+      <li>ERP ลงทะเบียน webhook URL ผ่าน <code>POST /api/external/vendor/webhooks</code> + เลือก subscribe events <code>order.created</code></li>
+      <li>เมื่อมี PO ใหม่ portal queue delivery → background worker POST ไปที่ ERP webhook URL</li>
+      <li>มี <strong>HMAC-SHA256 signature</strong> ใน header <code>X-Webhook-Signature</code> เพื่อ verify ความถูกต้อง</li>
+      <li>Retry 5 ครั้งแบบ exponential backoff ถ้า fail</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-head">⏰ Mode B: Polling (pull) <span class="badge green">ใช้งานจริง</span></div>
+    <ul>
+      <li>ERP มี cron <code>/api/purchasing/vmi/cron/poll-orders</code> ทำงานทุก <code>order_poll_interval_minutes</code> (default 15 นาที)</li>
+      <li>ERP เรียก <code>GET https://vmi-portal.bmscloud.in.th/api/external/vendor/orders?status=submitted</code> ส่ง header <code>X-API-Key: vmi_vend_VEN-0010_…</code></li>
+      <li>Portal ตอบกลับ orders ที่ <code>vendor_id = 52</code> เท่านั้น (filter จาก API key auto)</li>
+      <li>ERP เปรียบเทียบกับ <code>vmi_orders.vmi_order_id</code> ที่มีอยู่ → INSERT รายการใหม่</li>
+      <li>ดึง detail แยก: <code>GET /orders/:id</code> → INSERT <code>vmi_order_lines</code></li>
+    </ul>
+  </div>
+
+  <details>
+    <summary>🔍 ดูตัวอย่าง response จาก portal</summary>
+    <pre><code>{
+  "success": true,
+  "vendorId": 52,
+  "orders": [{
+    "id": 12345,
+    "hospitalCode": "11111",
+    "hospitalName": "โรงพยาบาลตัวอย่าง",
+    "poNumber": "PO-2026-001",
+    "warehouseName": "คลังยาสมุนไพร",
+    "status": "submitted",
+    "orderDate": "2026-04-27",
+    "expectedDeliveryDate": "2026-05-04",
+    "totalValue": 25000,
+    "itemCount": 1
+  }],
+  "pagination": { "page": 1, "pageSize": 50, "totalItems": 1 }
+}</code></pre>
+  </details>
+</section>
+
+<section id="step3">
+  <h2><span class="num">5</span>Step 3: ERP ดำเนินการ (vendor side)</h2>
+  <p>UI: <code>/purchasing/vmi</code> (Dashboard) → คลิก order → <code>/purchasing/vmi/orders/[id]</code></p>
+
+  <div class="step">
+    <div class="step-head">3.1 ✅ Confirm Order</div>
+    <p>ERP เรียก <code>service.confirmOrder(orderId)</code> → ส่ง <code>PATCH /orders/:id</code> body <code>{"action":"confirm"}</code></p>
+    <ul>
+      <li>Portal เปลี่ยน status <code>submitted → confirmed</code></li>
+      <li>Portal log transaction</li>
+      <li>ERP บันทึก <code>vmi_orders.confirmed_at</code></li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-head">3.2 🏭 ผลิต / เตรียมสินค้า</div>
+    <p>ใช้ flow ปกติของ ERP (Work Order, Production)</p>
+    <ul>
+      <li>(ทางเลือก) สร้าง Sales Order หรือ Work Order จาก vmi_order</li>
+      <li>field <code>local_po_id</code> ใน <code>vmi_orders</code> ใช้ link กลับไปยัง local PO/SO ของ ERP</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-head">3.3 🚚 Ship Order</div>
+    <p><code>PATCH /orders/:id</code> body <code>{"action":"ship", "expectedDeliveryDate":"2026-05-04"}</code></p>
+    <ul>
+      <li>Portal เปลี่ยน status <code>confirmed → shipped</code></li>
+      <li>ERP บันทึก <code>vmi_orders.shipped_at</code></li>
+    </ul>
+  </div>
+</section>
+
+<section id="step4">
+  <h2><span class="num">6</span>Step 4: รับสินค้า + ปิด loop</h2>
+
+  <h4>HOSxP บันทึกการรับสินค้า → push ไป Portal</h4>
+  <pre><code>POST /api/external/hosxp/receipts
+{
+  "receipts": [{
+    "poLocalCode": "HSP-001-2026-0042",
+    "items": [{
+      "localCode": "FAT-001",
+      "quantityReceived": 100,
+      "lotNumber": "L240427",
+      "expiryDate": "2027-04-27"
+    }]
+  }]
+}</code></pre>
+
+  <h4>Portal ทำ:</h4>
+  <ol>
+    <li>INSERT <code>goods_receipt</code></li>
+    <li>ถ้ารับครบทุก item → <code>purchase_order.status = 'received'</code></li>
+    <li>(อาจ) trigger webhook <code>order.received</code></li>
+  </ol>
+
+  <h4>ERP รอบ poll ถัดไป:</h4>
+  <ul>
+    <li>เห็น status = received → UPDATE <code>vmi_orders.status</code> + <code>received_at</code></li>
+    <li>ปิด loop การส่งสินค้า</li>
+  </ul>
+</section>
+
+<section id="tables">
+  <h2><span class="num">7</span>ตารางหลักในแต่ละระบบ</h2>
+
+  <h3>VMI Portal DB (<code>vmi_portal</code>)</h3>
+  <table>
+    <thead><tr><th>Table</th><th>ใช้ทำอะไร</th></tr></thead>
+    <tbody>
+      <tr><td><code>vendor</code></td><td>ทะเบียน vendor (VEN-0010 = Metaherb, VEN-0005 = เรณูนคร...)</td></tr>
+      <tr><td><code>vendor_api_key</code></td><td>API keys ของ vendor (เก็บเป็น SHA-256 hash)</td></tr>
+      <tr><td><code>api_key</code></td><td>API keys ของ hospital</td></tr>
+      <tr><td><code>hospital_vendor</code></td><td>Mapping: hospital's <code>localVendorCode</code> ↔ portal <code>vendor_id</code></td></tr>
+      <tr><td><code>purchase_order</code></td><td>PO ที่ HOSxP push เข้ามา</td></tr>
+      <tr><td><code>purchase_order_item</code></td><td>Line items ของ PO</td></tr>
+      <tr><td><code>goods_receipt</code></td><td>บันทึกการรับสินค้าจาก HOSxP</td></tr>
+      <tr><td><code>vendor_webhook</code> + <code>vendor_webhook_delivery</code></td><td>Webhook subscription + delivery queue</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Herb ERP DB (per tenant)</h3>
+  <table>
+    <thead><tr><th>Table</th><th>ใช้ทำอะไร</th></tr></thead>
+    <tbody>
+      <tr><td><code>vmi_portal_config</code></td><td>URL + API key ของ Portal (admin ตั้งใน <code>/settings/vmi</code>)</td></tr>
+      <tr><td><code>vmi_vendor_config</code></td><td>Per-vendor settings: poll interval, sync flags</td></tr>
+      <tr><td><code>vmi_orders</code></td><td>สำเนา PO จาก portal (cache local)</td></tr>
+      <tr><td><code>vmi_order_lines</code></td><td>Line items ของ vmi_orders</td></tr>
+      <tr><td><code>vmi_transactions</code></td><td>Log ทุก call ที่ ERP ทำกับ portal (audit trail)</td></tr>
+      <tr><td><code>vmi_sync_history</code></td><td>History ของ sync items / prices / inventory</td></tr>
+    </tbody>
+  </table>
+
+  <h3>HOSxP DB</h3>
+  <p style="font-size:.9rem;color:var(--muted)">ใช้ stored procedures + Delphi forms (BMSHOSxP*) ส่งข้อมูลผ่าน HTTPS — ไม่อยู่ใน scope ของ codebase นี้</p>
+</section>
+
+<section id="auth">
+  <h2><span class="num">8</span>การยืนยันตัวตน + API Keys</h2>
+  <p>API keys มี 2 ประเภท แยกกันชัดเจน — endpoint ตรวจสอบประเภท key ที่ส่งมาเทียบกับ endpoint ที่เรียก ถ้าไม่ตรงจะ <span class="badge amber">403 Forbidden</span></p>
+
+  <table>
+    <thead><tr><th>Type</th><th>Format</th><th>ใช้ที่ endpoint</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="badge amber">Hospital</span></td>
+        <td><code>vmi_hosp_&lt;HOSP_CODE&gt;_&lt;32_hex&gt;</code></td>
+        <td><code>/api/external/hosxp/*</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge green">Vendor</span></td>
+        <td><code>vmi_vend_&lt;VENDOR_CODE&gt;_&lt;32_hex&gt;</code></td>
+        <td><code>/api/external/vendor/*</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="info">
+    <strong>🔐 API Key isolation:</strong> ทุก endpoint ของ portal filter by <code>vendor_id</code> หรือ <code>hospital_code</code> auto จาก key ที่ส่งมา — vendor หนึ่งจะเห็นแต่ orders ของตัวเองเท่านั้น
+  </div>
+
+  <h3>การเก็บ Key</h3>
+  <ul>
+    <li><strong>Portal side:</strong> เก็บเป็น <code>SHA-256 hash</code> + <code>key_prefix</code> 8 ตัวแรก (เพื่อ index lookup ก่อน hash compare)</li>
+    <li><strong>ERP side:</strong> เก็บใน <code>vmi_portal_config.api_key_encrypted</code> — encrypted ด้วย AES (บางตัวเป็น legacy plaintext รองรับได้)</li>
+  </ul>
+</section>
+
+<section id="config">
+  <h2><span class="num">9</span>การตั้งค่าเริ่มต้นสำหรับ Vendor ใหม่</h2>
+
+  <h4>ฝั่ง VMI Portal:</h4>
+  <ol>
+    <li>Login เป็น admin ที่ <a class="ext" href="https://vmi-portal.bmscloud.in.th/vendors" target="_blank">vmi-portal.bmscloud.in.th/vendors</a></li>
+    <li>สร้าง vendor record (กรอกชื่อ, code) → ระบบ auto-generate <code>VEN-xxxx</code></li>
+    <li>สร้าง <strong>API Key</strong> ใหม่ → ระบบโชว์ plaintext key <strong>ครั้งเดียว</strong> ต้อง copy ทันที</li>
+  </ol>
+
+  <h4>ฝั่ง Herb ERP:</h4>
+  <ol>
+    <li>เข้า <code>/settings/vmi</code> ของ tenant</li>
+    <li>ใส่ Portal URL: <code>https://vmi-portal.bmscloud.in.th/</code></li>
+    <li>Paste API Key ที่ copy จาก step 3</li>
+    <li>กด Save → ระบบ test connection (status เปลี่ยนจาก <code>disconnected → connected</code>)</li>
+  </ol>
+
+  <h4>ฝั่งโรงพยาบาล (HOSxP):</h4>
+  <ol>
+    <li>โรงพยาบาลลงทะเบียน vendor ในระบบ HOSxP — กำหนด <code>localVendorCode</code></li>
+    <li>VMI Portal admin สร้าง row ใน <code>hospital_vendor</code> เพื่อ map <code>(hospital_code, localVendorCode)</code> → <code>vendor_id</code></li>
+  </ol>
+
+  <div class="note">
+    <strong>📋 Status ปัจจุบัน (Metaherb VEN-0010):</strong>
+    <ul style="margin-top:6px">
+      <li>VMI Portal: ✅ vendor active, API key id=14 ("metahearb")</li>
+      <li>Herb ERP Metaherb: ✅ <code>vmi_portal_config</code> connected</li>
+      <li>โรงพยาบาลที่จะส่ง PO: ต้องสร้าง row ใน <code>hospital_vendor</code> ของ portal เพื่อ map รหัส vendor ของ HOSxP</li>
+    </ul>
+  </div>
+</section>
+
+<section id="troubleshoot">
+  <h2><span class="num">10</span>Debug + Troubleshoot</h2>
+
+  <table>
+    <thead>
+      <tr><th>อาการ</th><th>สาเหตุที่เป็นไปได้</th><th>วิธีตรวจ</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>PO จากโรงพยาบาลไม่เข้า ERP</td>
+        <td>HOSxP ไม่ได้ push / portal ไม่ได้ map vendor / ERP ไม่ poll</td>
+        <td>เช็ค <code>purchase_order</code> ที่ portal vs <code>vmi_orders</code> ที่ ERP</td>
+      </tr>
+      <tr>
+        <td>ERP ไม่ poll</td>
+        <td>cron ไม่ทำงาน / ตั้ง <code>order_poll_interval_minutes</code> นานเกินไป</td>
+        <td>ดู <code>vmi_transactions</code> ที่ <code>/purchasing/vmi/transactions</code></td>
+      </tr>
+      <tr>
+        <td>HTTP 403 จาก portal</td>
+        <td>Vendor ไม่มี API Key / Key ผิด / Key ถูกเพิกถอน</td>
+        <td>เช็ค <code>vendor_api_key</code> ที่ portal</td>
+      </tr>
+      <tr>
+        <td>HTTP 401</td>
+        <td>ส่ง key ประเภทผิด (vendor key ไปยิง hospital endpoint หรือกลับกัน)</td>
+        <td>ตรวจ URL กับ prefix key ให้ตรง</td>
+      </tr>
+      <tr>
+        <td>Webhook ไม่ส่ง</td>
+        <td>Vendor ไม่มี webhook subscription / disabled by failures</td>
+        <td>ดู <code>vendor_webhook_delivery.status</code></td>
+      </tr>
+      <tr>
+        <td>HOSxP push ไม่ผ่าน</td>
+        <td>localVendorCode ไม่ match / item ยังไม่ sync / format ผิด</td>
+        <td>ดู container logs ของ <code>vmi-portal-app</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details>
+    <summary>🛠 SQL queries ที่ใช้บ่อย</summary>
+    <pre><code># Portal: ดู PO ล่าสุดของ vendor
+SELECT po.id, po.po_number, po.status, h.hospital_name, po.total_value
+FROM purchase_order po
+JOIN hospital_code h ON po.hospital_code = h.hospital_code
+WHERE po.vendor_id = 52
+ORDER BY po.created_at DESC LIMIT 10;
+
+# Portal: ดู API keys ของ vendor
+SELECT vak.id, v.code, v.name, vak.name AS key_name, vak.is_active
+FROM vendor_api_key vak JOIN vendor v ON vak.vendor_id = v.id
+WHERE v.code = 'VEN-0010';
+
+# ERP: ดู vmi_orders ที่ poll มาแล้ว
+SELECT id, vmi_order_id, hospital_name, po_number, status, order_date
+FROM vmi_orders ORDER BY id DESC LIMIT 10;
+
+# ERP: ดู transaction logs (call ทุกครั้งที่ ERP คุยกับ portal)
+SELECT id, transaction_type, status, http_status_code, error_message, created_at
+FROM vmi_transactions ORDER BY created_at DESC LIMIT 20;</code></pre>
+  </details>
+</section>
+
+<footer>
+  <p>สร้างขึ้นโดยทีมพัฒนา Herbal Medicine ERP — เอกสารอัปเดตอัตโนมัติเมื่อ codebase เปลี่ยน</p>
+  <p style="margin-top:6px">📚 ดูเอกสารเพิ่มเติม: <a class="ext" href="/changelog-herbal-erp.html">Changelog</a></p>
+</footer>
+
+</div>
+</body>
+</html>

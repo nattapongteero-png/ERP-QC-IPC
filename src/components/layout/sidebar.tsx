@@ -62,7 +62,10 @@ import {
   Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { LanguageSwitcher } from '@/components/shared/language-switcher';
+import { expandRole } from '@/lib/auth/role-mapping';
+import { navLabel } from '@/lib/i18n/nav-labels';
+import { useTranslations } from 'next-intl';
+import { SidebarLanguageToggle } from '@/components/shared/language-switcher';
 
 interface NavItem {
   name: string;
@@ -222,7 +225,7 @@ const navigation: NavItem[] = [
     name: 'Template',
     href: '/template',
     icon: LayoutGrid,
-    roles: [], // Accessible to all authenticated users
+    roles: ['admin'], // Admin-family only (dev reference module — not for end users)
     children: [
       { name: 'Dashboard', href: '/template', icon: LayoutDashboard },
       { name: 'Items', href: '/template/items', icon: Package },
@@ -274,20 +277,25 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
-// Helper function to filter navigation based on role
+// Helper function to filter navigation based on role.
+//
+// Uses `expandRole()` so an HR role code like "QC_ANALYST" (stored on
+// users.role when set via /users/new) gets translated to the legacy
+// lowercase equivalents (["qc"]) that the menu definitions above compare
+// against. Without this, HR-coded users see an empty sidebar because the
+// string "qc_analyst" is not in any item.roles list.
 function getFilteredNavigation(role: string | undefined): NavItem[] {
+  const expanded = expandRole(role);
+  const isAdmin = expanded.includes('admin');
   return navigation.filter((item) => {
-    // Administrator sees all menu items — bypass role filtering
-    if (role?.toLowerCase() === 'admin') return true;
-    // If no roles specified, item is visible to all authenticated users
+    // Administrator sees all menu items — bypass role filtering.
+    if (isAdmin) return true;
+    // If no roles specified, item is visible to all authenticated users.
     if (!item.roles || item.roles.length === 0) {
       return true;
     }
-    // Check if user's role is in the allowed roles
-    if (role) {
-      return item.roles.includes(role.toLowerCase());
-    }
-    return false;
+    // User's role passes if ANY of its expanded aliases is in the allow-list.
+    return item.roles.some((allowed) => expanded.includes(allowed.toLowerCase()));
   });
 }
 
@@ -311,6 +319,9 @@ function findParentForPath(pathname: string, navItems: NavItem[]): string | null
 export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
+  // Sidebar nav array uses English labels as the source; navLabel resolves
+  // them to Thai/English at render time via src/locales/*/navigation.json.
+  const tNav = useTranslations('navigation');
 
   // Filter navigation items based on user role
   const filteredNavigation = getFilteredNavigation(user?.role);
@@ -436,7 +447,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                       >
                         <item.icon className="h-4 w-4" />
                       </div>
-                      <span className="text-sm">{item.name}</span>
+                      <span className="text-sm">{navLabel(item.name, tNav)}</span>
                     </div>
                     <ChevronDown
                       className={cn(
@@ -482,7 +493,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                               )}
                             />
                           )}
-                          <span>{child.name}</span>
+                          <span>{navLabel(child.name, tNav)}</span>
                         </Link>
                       ))}
                     </div>
@@ -515,7 +526,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                   >
                     <item.icon className="h-4 w-4" />
                   </div>
-                  <span className="text-sm">{item.name}</span>
+                  <span className="text-sm">{navLabel(item.name, tNav)}</span>
                 </Link>
               )}
             </div>
@@ -579,9 +590,9 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
             </button>
           </div>
 
-          {/* Language Switcher */}
+          {/* Language Toggle — native HTML button (reliable on Chrome/Firefox/Edge) */}
           <div className="mt-3 px-1 sidebar-language-switcher">
-            <LanguageSwitcher width="100%" showFlag={true} />
+            <SidebarLanguageToggle />
           </div>
         </div>
       )}

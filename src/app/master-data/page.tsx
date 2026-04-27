@@ -271,76 +271,6 @@ export default function MasterDataPage() {
   };
 
   // Download template — includes lookup reference sheets
-  // Download actual data — not a template. Pulls every configured module
-  // (rooms, equipment, env conditions, SOP templates, packaging QC, IPC
-  // criteria, plus lookup tables) and dumps each into its own sheet inside
-  // a single Master_Data_Export-YYYY-MM-DD.xlsx so the operator can archive
-  // / hand off the full master config with one click.
-  const handleDownloadAllData = async () => {
-    try {
-      toast.info('กำลังเตรียมไฟล์…', 'กำลังดึงข้อมูลจากทุกโมดูล');
-      const wb = XLSX.utils.book_new();
-
-      // Pull the six importable modules from their list endpoints in parallel
-      const moduleResults = await Promise.all(
-        Object.entries(IMPORT_CONFIGS).map(async ([key, cfg]) => {
-          try {
-            const res = await fetch(cfg.apiUrl);
-            const data = await res.json();
-            return { key, cfg, rows: data.success ? data.data || [] : [] };
-          } catch {
-            return { key, cfg, rows: [] as unknown[] };
-          }
-        }),
-      );
-
-      // Additional lookup tables not in IMPORT_CONFIGS (categories, units)
-      const [catsRes, unitsRes] = await Promise.all([
-        fetch('/api/master-data/item-categories').then((r) => r.json()).catch(() => ({ success: false })),
-        fetch('/api/master-data/item-units').then((r) => r.json()).catch(() => ({ success: false })),
-      ]);
-
-      // Sheet per module — pick the useful-looking fields and ignore dev-only
-      // metadata (ids, timestamps) to keep the export readable.
-      for (const m of moduleResults) {
-        const rows = (m.rows as Record<string, unknown>[]).map((r) => {
-          const out: Record<string, unknown> = {};
-          for (const [k, v] of Object.entries(r)) {
-            if (k === 'id' || k === 'createdAt' || k === 'updatedAt') continue;
-            if (v !== null && v !== undefined && typeof v !== 'object') out[k] = v;
-          }
-          return out;
-        });
-        const ws = rows.length > 0 ? XLSX.utils.json_to_sheet(rows) : XLSX.utils.aoa_to_sheet([['(ไม่มีข้อมูล)']]);
-        XLSX.utils.book_append_sheet(wb, ws, m.cfg.sheetName.slice(0, 31));
-      }
-
-      // Lookup sheets
-      if (catsRes?.success) {
-        const ws = XLSX.utils.json_to_sheet(
-          (catsRes.data || []).map((c: Record<string, unknown>) => ({
-            code: c.code, nameTh: c.nameTh, nameEn: c.nameEn, description: c.description, isActive: c.isActive,
-          })),
-        );
-        XLSX.utils.book_append_sheet(wb, ws, 'Item Categories');
-      }
-      if (unitsRes?.success) {
-        const ws = XLSX.utils.json_to_sheet(
-          (unitsRes.data || []).map((u: Record<string, unknown>) => ({
-            code: u.code, nameTh: u.nameTh, nameEn: u.nameEn, symbol: u.symbol, isActive: u.isActive,
-          })),
-        );
-        XLSX.utils.book_append_sheet(wb, ws, 'Item Units');
-      }
-
-      const ts = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `Master_Data_Export-${ts}.xlsx`);
-      toast.success('ดาวน์โหลดสำเร็จ', `${moduleResults.length} โมดูล + lookup รวมในไฟล์เดียว`);
-    } catch (err) {
-      toast.error('ดาวน์โหลดล้มเหลว', err instanceof Error ? err.message : 'Unknown error');
-    }
-  };
-
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
 
@@ -535,36 +465,24 @@ export default function MasterDataPage() {
           { label: 'Production', href: '/production/work-orders' },
           { label: 'Master Data' },
         ]}
-        actions={(
-          <div className="flex items-center gap-2 flex-wrap">
+        actions={isAdmin ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleDownloadAllData}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
-              title="ดาวน์โหลดข้อมูลจริงทั้ง 7 โมดูลเป็น Excel (ไฟล์เดียวหลาย Sheet)"
+              onClick={handleDownloadTemplate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Download className="h-4 w-4" />
-              Download All Data
+              {t('actions.downloadTemplate')}
             </button>
-            {isAdmin && (
-              <>
-                <button
-                  onClick={handleDownloadTemplate}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Download className="h-4 w-4" />
-                  {t('actions.downloadTemplate')}
-                </button>
-                <button
-                  onClick={() => { setShowImportDialog(true); setImportLog([]); }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <Upload className="h-4 w-4" />
-                  {t('actions.importExcel')}
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => { setShowImportDialog(true); setImportLog([]); }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <Upload className="h-4 w-4" />
+              {t('actions.importExcel')}
+            </button>
           </div>
-        )}
+        ) : undefined}
       />
 
       {/* Module Cards */}

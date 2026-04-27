@@ -229,7 +229,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
               </label>
               <TextBox
                 value={formData.code}
-                onValueChanged={(e) => setFormData({ ...formData, code: e.value || '' })}
+                onValueChanged={(e) => setFormData(prev => ({ ...prev, code: e.value || '' }))}
                 placeholder="e.g., WC-MIX-01"
                 maxLength={20}
                 disabled={mode === 'edit'}
@@ -243,7 +243,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
               </label>
               <TextBox
                 value={formData.name}
-                onValueChanged={(e) => setFormData({ ...formData, name: e.value || '' })}
+                onValueChanged={(e) => setFormData(prev => ({ ...prev, name: e.value || '' }))}
                 placeholder="e.g., Mixing Station 1"
                 maxLength={100}
                 data-testid="work-center-name"
@@ -256,7 +256,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
               </label>
               <TextBox
                 value={formData.nameTh}
-                onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value || '' })}
+                onValueChanged={(e) => setFormData(prev => ({ ...prev, nameTh: e.value || '' }))}
                 placeholder="e.g., สถานีผสม 1"
                 maxLength={100}
                 data-testid="work-center-name-th"
@@ -272,7 +272,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 displayExpr="name"
                 valueExpr="id"
                 value={formData.orgUnitId}
-                onValueChanged={(e) => setFormData({ ...formData, orgUnitId: e.value })}
+                onValueChanged={(e) => setFormData(prev => ({ ...prev, orgUnitId: e.value }))}
                 placeholder="Select org unit..."
                 showClearButton
                 searchEnabled
@@ -283,7 +283,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
             <div className="flex items-center gap-3">
               <Switch
                 value={formData.isActive}
-                onValueChanged={(e) => setFormData({ ...formData, isActive: e.value })}
+                onValueChanged={(e) => setFormData(prev => ({ ...prev, isActive: e.value }))}
                 data-testid="work-center-active"
               />
               <label className="text-sm font-medium text-gray-700">
@@ -308,7 +308,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
               </label>
               <NumberBox
                 value={formData.laborRatePerHour}
-                onValueChanged={(e) => setFormData({ ...formData, laborRatePerHour: e.value ?? 0 })}
+                onValueChanged={(e) => setFormData(prev => ({ ...prev, laborRatePerHour: e.value ?? 0 }))}
                 min={0}
                 format="#,##0.00"
                 showSpinButtons
@@ -323,7 +323,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
               </label>
               <NumberBox
                 value={formData.overheadRatePerHour}
-                onValueChanged={(e) => setFormData({ ...formData, overheadRatePerHour: e.value ?? 0 })}
+                onValueChanged={(e) => setFormData(prev => ({ ...prev, overheadRatePerHour: e.value ?? 0 }))}
                 min={0}
                 format="#,##0.00"
                 showSpinButtons
@@ -338,7 +338,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
               </label>
               <NumberBox
                 value={formData.machineRatePerHour}
-                onValueChanged={(e) => setFormData({ ...formData, machineRatePerHour: e.value ?? 0 })}
+                onValueChanged={(e) => setFormData(prev => ({ ...prev, machineRatePerHour: e.value ?? 0 }))}
                 min={0}
                 format="#,##0.00"
                 showSpinButtons
@@ -373,7 +373,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
               </label>
               <NumberBox
                 value={formData.capacityHoursPerDay}
-                onValueChanged={(e) => setFormData({ ...formData, capacityHoursPerDay: e.value })}
+                onValueChanged={(e) => setFormData(prev => ({ ...prev, capacityHoursPerDay: e.value }))}
                 min={0}
                 max={24}
                 format="#,##0.0"

@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
-import { PageHeader } from '@/components/ui/page-header';
+import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { ReportList, type ReportTemplate } from '@/components/reports/ReportList';
 import { ReportCategoryTree, type ReportCategory } from '@/components/reports/ReportCategoryTree';
-import { Plus, FileText, AlertCircle, Settings } from 'lucide-react';
+import { FileText, AlertCircle, Settings } from 'lucide-react';
 
 interface TemplatesResponse {
   success: boolean;
@@ -131,22 +131,22 @@ export default function ReportsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <PageHeader
-            title={t('page.title')}
-            description={t('page.description')}
-          />
-          <div className="flex items-center gap-3">
+      <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+        <ResponsivePageHeader
+          title={t('page.title')}
+          subtitle={t('page.description')}
+          icon={FileText}
+          iconBgColor="bg-indigo-100"
+          iconColor="text-indigo-600"
+          actions={
             <DxButton
               text={t('actions.newReport')}
               icon="add"
               type="default"
               onClick={handleCreateReport}
             />
-          </div>
-        </div>
+          }
+        />
 
         {/* Error Alert */}
         {error && (

@@ -11,11 +11,10 @@
  * DataGrid minWidth to preserve info density on wide screens.
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
@@ -26,9 +25,6 @@ import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils/cn';
 import {
-  Download,
-  Upload,
-  X,
   Users,
   Building2,
   Hospital,
@@ -237,155 +233,6 @@ export default function CustomersPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-
-  // Excel import state — mirrors the items page so the two imports feel the same
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [showImportDialog, setShowImportDialog] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importLog, setImportLog] = useState<string[]>([]);
-
-  // Single-sheet template — customers don't split into sub-types the way items
-  // do; customer_type is just a column.
-  const CUSTOMER_COLUMNS = [
-    { header: 'รหัส (Code)*', field: 'code' },
-    { header: 'ชื่อลูกค้า (Name)*', field: 'name' },
-    { header: 'ประเภท (Type)', field: 'customerType' },
-    { header: 'ผู้ติดต่อ (Contact Person)', field: 'contactPerson' },
-    { header: 'โทรศัพท์ (Phone)', field: 'phone' },
-    { header: 'อีเมล (Email)', field: 'email' },
-    { header: 'ที่อยู่ (Address)', field: 'address' },
-    { header: 'เลขผู้เสียภาษี (Tax ID)', field: 'taxId' },
-    { header: 'วงเงินเครดิต (Credit Limit)', field: 'creditLimit' },
-    { header: 'เครดิต (วัน) (Credit Term Days)', field: 'creditTermDays' },
-    { header: 'เงื่อนไขการชำระ (Payment Terms)', field: 'paymentTerms' },
-    { header: 'หมายเหตุ (Notes)', field: 'notes' },
-  ];
-
-  const handleDownloadTemplate = () => {
-    const wb = XLSX.utils.book_new();
-    // Instructions
-    const instr = [
-      ['Template นำเข้าลูกค้า — Herbal Medicine ERP'],
-      [''],
-      ['กรอกข้อมูลใน Sheet "Customers" (บังคับฟิลด์ที่มี *)'],
-      ['Code ต้องไม่ซ้ำกับที่มีอยู่ในระบบ'],
-      ['ประเภท (customerType) ใช้ค่าจาก Sheet "ตัวเลือก (Lookup)"'],
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instr), 'คำแนะนำ');
-
-    // Example data
-    const example = [
-      { 'รหัส (Code)*': 'CUST-0001', 'ชื่อลูกค้า (Name)*': 'โรงพยาบาลสมเด็จพระปกเกล้า', 'ประเภท (Type)': 'hospital', 'ผู้ติดต่อ (Contact Person)': 'คุณสมชาย', 'โทรศัพท์ (Phone)': '02-123-4567', 'อีเมล (Email)': 'contact@hospital.example', 'ที่อยู่ (Address)': 'กรุงเทพฯ', 'เลขผู้เสียภาษี (Tax ID)': '0123456789012', 'วงเงินเครดิต (Credit Limit)': 500000, 'เครดิต (วัน) (Credit Term Days)': 30, 'เงื่อนไขการชำระ (Payment Terms)': 'Net 30', 'หมายเหตุ (Notes)': '' },
-      { 'รหัส (Code)*': 'CUST-0002', 'ชื่อลูกค้า (Name)*': 'ร้านขายยาสมุนไพรเจริญ', 'ประเภท (Type)': 'pharmacy', 'ผู้ติดต่อ (Contact Person)': 'คุณสมหญิง', 'โทรศัพท์ (Phone)': '081-234-5678', 'อีเมล (Email)': '', 'ที่อยู่ (Address)': 'เชียงใหม่', 'เลขผู้เสียภาษี (Tax ID)': '', 'วงเงินเครดิต (Credit Limit)': 100000, 'เครดิต (วัน) (Credit Term Days)': 15, 'เงื่อนไขการชำระ (Payment Terms)': 'Net 15', 'หมายเหตุ (Notes)': '' },
-    ];
-    const ws = XLSX.utils.json_to_sheet(example);
-    ws['!cols'] = CUSTOMER_COLUMNS.map(() => ({ wch: 25 }));
-    XLSX.utils.book_append_sheet(wb, ws, 'Customers');
-
-    // Lookup sheet
-    const lookupRows: string[][] = [
-      ['ตัวเลือก (Lookup Values)'], [''],
-      ['Customer Type (ประเภทลูกค้า)'], ['ค่า', 'คำอธิบาย'],
-      ['hospital', 'โรงพยาบาล'],
-      ['clinic', 'คลินิก'],
-      ['pharmacy', 'ร้านขายยา'],
-      ['distributor', 'ตัวแทนจำหน่าย'],
-      ['traditional_medicine', 'ร้านยาแผนโบราณ'],
-      ['spa_wellness', 'สปา/Wellness'],
-      ['government', 'หน่วยงานราชการ'],
-      ['export', 'ส่งออก'],
-      ['other', 'อื่นๆ'],
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lookupRows), 'ตัวเลือก (Lookup)');
-    XLSX.writeFile(wb, 'Customer_Import_Template.xlsx');
-  };
-
-  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const log: string[] = [];
-        setImporting(true);
-
-        const sheetName = workbook.SheetNames.find(n => n === 'Customers' || n.toLowerCase() === 'customers');
-        if (!sheetName) {
-          log.push('⚠️ ไม่พบ Sheet "Customers"');
-          setImportLog(log);
-          setImporting(false);
-          return;
-        }
-
-        const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(workbook.Sheets[sheetName]);
-        if (jsonData.length === 0) {
-          log.push('⚠️ ไม่มีข้อมูลใน Sheet "Customers"');
-          setImportLog(log);
-          setImporting(false);
-          return;
-        }
-
-        let created = 0;
-        const errors: string[] = [];
-
-        for (let i = 0; i < jsonData.length; i++) {
-          const row = jsonData[i];
-          const code = String(row['รหัส (Code)*'] ?? row['code'] ?? '').trim();
-          const name = String(row['ชื่อลูกค้า (Name)*'] ?? row['name'] ?? '').trim();
-          if (!code || !name) {
-            errors.push(`แถว ${i + 2}: ต้องมี Code และ Name`);
-            continue;
-          }
-
-          const payload: Record<string, unknown> = { code, name };
-          for (const col of CUSTOMER_COLUMNS) {
-            if (col.field === 'code' || col.field === 'name') continue;
-            const val = String(row[col.header] ?? row[col.field] ?? '').trim();
-            if (!val) continue;
-            // Numeric fields
-            if (col.field === 'creditLimit' || col.field === 'creditTermDays') {
-              const num = Number(val);
-              if (!isNaN(num)) payload[col.field] = num;
-            } else {
-              payload[col.field] = val;
-            }
-          }
-
-          try {
-            const res = await fetch('/api/customers', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-            const result = await res.json();
-            if (result.success) {
-              created++;
-            } else {
-              errors.push(`${code}: ${result.error}`);
-            }
-          } catch (err) {
-            errors.push(`แถว ${i + 2}: ${err instanceof Error ? err.message : 'Error'}`);
-          }
-        }
-
-        log.push(`✅ สร้างลูกค้า ${created}/${jsonData.length} รายการ`);
-        if (errors.length > 0) {
-          log.push(...errors.slice(0, 5).map(e => `   ❌ ${e}`));
-          if (errors.length > 5) log.push(`   …และอีก ${errors.length - 5} ข้อผิดพลาด`);
-        }
-        setImportLog(log);
-        setImporting(false);
-        refetch();
-      } catch (err) {
-        setImportLog([`❌ ไฟล์ผิดรูปแบบ: ${err instanceof Error ? err.message : 'Error'}`]);
-        setImporting(false);
-      }
-    };
-    reader.readAsArrayBuffer(file);
-    event.target.value = '';
-  };
 
   // Data fetching with React Query
   const { data: customers = [], isLoading, refetch } = useQuery<Customer[]>({
@@ -680,18 +527,6 @@ export default function CustomersPage() {
                 onClick={() => refetch()}
                 className="hidden sm:inline-flex"
               />
-              <button
-                onClick={handleDownloadTemplate}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Download className="h-4 w-4" /> Template
-              </button>
-              <button
-                onClick={() => { setShowImportDialog(true); setImportLog([]); }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-              >
-                <Upload className="h-4 w-4" /> Import Excel
-              </button>
               <DxButton
                 text={t('customers.actions.addCustomer')}
                 icon="plus"
@@ -1106,68 +941,6 @@ export default function CustomersPage() {
           </div>
         )}
       </div>
-
-      {/* Hidden file input — triggered from the Import dialog below */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx,.xls"
-        onChange={handleImportFile}
-        className="hidden"
-      />
-
-      {/* Import Dialog */}
-      {showImportDialog && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
-              <h2 className="text-lg font-semibold text-gray-900">นำเข้าลูกค้า</h2>
-              <button
-                onClick={() => setShowImportDialog(false)}
-                className="p-1 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4 overflow-y-auto flex-1">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900">
-                <div className="font-medium mb-1">ขั้นตอน:</div>
-                <ol className="list-decimal list-inside text-xs space-y-0.5">
-                  <li>กด &quot;Template&quot; ที่ header เพื่อดาวน์โหลดไฟล์ตัวอย่าง</li>
-                  <li>กรอกข้อมูลใน Sheet &quot;Customers&quot;</li>
-                  <li>กลับมากด &quot;เลือกไฟล์&quot; ด้านล่าง</li>
-                </ol>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">เลือกไฟล์ Excel</label>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={importing}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
-                >
-                  <Upload className="h-5 w-5" />
-                  {importing ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
-                </button>
-              </div>
-              {importLog.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-3 border">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">ผลการนำเข้า:</label>
-                  <div className="text-xs font-mono space-y-0.5 max-h-40 overflow-y-auto">
-                    {importLog.map((line, i) => (
-                      <div
-                        key={i}
-                        className={line.includes('❌') ? 'text-red-600' : 'text-gray-700'}
-                      >
-                        {line}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </MainLayout>
   );
 }

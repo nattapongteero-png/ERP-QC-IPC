@@ -15,6 +15,7 @@ import {
   Keyboard,
   Calendar,
   Warehouse,
+  X,
 } from 'lucide-react';
 
 export interface Lot {
@@ -150,7 +151,16 @@ export function LotSearchDialog({
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open || results.length === 0) return;
+      if (!open) return;
+
+      // ESC always closes the dialog, even when the result list is empty.
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onOpenChange(false);
+        return;
+      }
+
+      if (results.length === 0) return;
 
       switch (e.key) {
         case 'ArrowDown':
@@ -172,7 +182,7 @@ export function LotSearchDialog({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, results, highlightedIndex, handleSelect]);
+  }, [open, results, highlightedIndex, handleSelect, onOpenChange]);
 
   // Scroll highlighted item into view
   useEffect(() => {
@@ -205,21 +215,34 @@ export function LotSearchDialog({
 
   const renderDialogContent = () => (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="pb-4 border-b bg-gradient-to-r from-emerald-50 to-teal-50 -mx-4 -mt-4 px-4 pt-4 rounded-t-lg">
-        <div className="flex items-center gap-2 text-xl font-semibold text-gray-900">
+      {/* Header with explicit close (X) button.
+          DevExtreme's built-in close button lives inside the title bar, and
+          we render with showTitle={false}, so the native one is hidden. An
+          explicit button here guarantees users always have a visible way
+          to dismiss the dialog alongside ESC and outside-click. */}
+      <div className="pb-4 border-b bg-gradient-to-r from-emerald-50 to-teal-50 -mx-4 -mt-4 px-4 pt-4 rounded-t-lg relative">
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={() => onOpenChange(false)}
+          className="absolute top-3 right-3 h-8 w-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-white/70 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400"
+          data-testid="lot-search-close-btn"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <div className="flex items-center gap-2 text-xl font-semibold text-gray-900 pr-10">
           <Package className="h-5 w-5 text-emerald-600" />
           {title}
         </div>
         <p className="text-sm text-gray-500 mt-1">
-          Search by lot number or batch number
+          Search by lot number, batch number, item code, or item name
         </p>
       </div>
 
       {/* Search Input */}
       <div className="py-4 border-b -mx-4 px-4 bg-white">
         <DxTextBox
-          placeholder="Search lots by lot number or batch number..."
+          placeholder="Search by lot / batch number, item code, or item name..."
           value={search}
           onValueChange={setSearch}
           mode="search"
@@ -399,8 +422,13 @@ export function LotSearchDialog({
       title=""
       width={900}
       height={700}
-      showCloseButton
+      // `showCloseButton` has no effect here because we render without the
+      // title bar — the explicit X button in the custom header handles it.
+      showCloseButton={false}
       showTitle={false}
+      // Allow clicking the backdrop to close; also matches the ESC handler
+      // hint shown in the footer.
+      closeOnOutsideClick
     >
       {renderDialogContent()}
     </DxPopup>

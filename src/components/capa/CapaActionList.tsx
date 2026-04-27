@@ -14,17 +14,16 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxTextBox } from '@/components/ui/dx-text-box';
 import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Plus,
   User,
   Calendar,
   Shield,
 } from 'lucide-react';
 import type { CapaAction, CapaActionCreate, CapaActionStatus, CapaActionType } from '@/types/capa';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 // ============================================
 // Types
@@ -85,10 +84,12 @@ async function verifyAction(capaId: number, actionId: number): Promise<CapaActio
 }
 
 async function fetchUsers(): Promise<{ id: number; name: string }[]> {
-  const response = await fetch('/api/users');
+  const response = await fetch('/api/users?limit=100');
   const result = await response.json();
   if (!result.success) return [];
-  return result.data || [];
+  // API returns paginated response with items array
+  const items = result.data?.items || result.data || [];
+  return Array.isArray(items) ? items : [];
 }
 
 // ============================================
@@ -379,7 +380,7 @@ export function CapaActionList({
               onValueChange={(value) =>
                 setNewAction((prev) => ({
                   ...prev,
-                  dueDate: value ? new Date(value).toISOString().split('T')[0] : '',
+                  dueDate: value ? toLocalDateStr(new Date(value)) : '',
                 }))
               }
               type="date"

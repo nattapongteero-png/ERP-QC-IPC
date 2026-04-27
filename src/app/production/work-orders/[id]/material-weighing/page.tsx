@@ -6,12 +6,13 @@
  * Form Section: 5 (Material Weighing)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -84,6 +85,8 @@ interface WorkOrderBasic {
 }
 
 export default function MaterialWeighingPage() {
+  // GMP dual-control: a material's weigher can't verify their own work
+  const { data: currentUser } = useCurrentUser();
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -97,7 +100,11 @@ export default function MaterialWeighingPage() {
   const [showWeighDialog, setShowWeighDialog] = useState(false);
   const [formData, setFormData] = useState({
     weighedQty: 0,
-    selectedLotIds: [] as number[],
+    // Single-select: the DB stores exactly one primary lot id on
+    // work_order_materials.lotId. Using a scalar here (instead of an
+    // array) keeps the UI state, save payload, and persisted DB value in
+    // lockstep so the checkbox always reflects what is actually saved.
+    selectedLotId: undefined as number | undefined,
     notes: '',
     // Water fields
     waterDate: '',
@@ -141,6 +148,23 @@ export default function MaterialWeighingPage() {
   const materials = materialsResult?.materials || [];
   const requisitionStatus = materialsResult?.requisitionStatus || 'none';
 
+  // Prefetch available lots for all materials so they're cached before Edit click
+  useEffect(() => {
+    const itemIds = [...new Set(materials.map(m => m.itemId))];
+    itemIds.forEach(itemId => {
+      if (!itemId) return;
+      queryClient.prefetchQuery({
+        queryKey: ['available-lots', itemId],
+        queryFn: async () => {
+          const res = await fetch(`/api/inventory/lots/available?itemId=${itemId}`);
+          const data = await res.json();
+          return data.success ? data.data : [];
+        },
+        staleTime: 30000,
+      });
+    });
+  }, [materials.length, queryClient]);
+
   // Fetch available lots for selected material
   const { data: availableLots, isLoading: lotsLoading } = useQuery<AvailableLot[]>({
     queryKey: ['available-lots', selectedMaterial?.itemId],
@@ -174,7 +198,7 @@ export default function MaterialWeighingPage() {
       setSelectedMaterial(null);
       setFormData({
         weighedQty: 0,
-        selectedLotIds: [],
+        selectedLotId: undefined,
         notes: '',
         waterDate: '',
         waterConductivity: 0,
@@ -195,46 +219,68 @@ export default function MaterialWeighingPage() {
         body: JSON.stringify({ materialId }),
       });
       const result = await res.json();
-      if (!result.success) throw new Error(result.error);
+      if (!result.success) {
+        // Tag dual-control violations so the toast can show the right
+        // icon/title. The backend returns 422 for dual-control errors.
+        const err = new Error(result.error || 'Verify failed') as Error & { statusCode?: number; isDualControl?: boolean };
+        err.statusCode = res.status;
+        err.isDualControl =
+          res.status === 422 ||
+          (typeof result.error === 'string' && (
+            result.error.includes('ตรวจสอบรายการของตนเอง') ||
+            result.error.includes('ผู้ปฏิบัติและผู้ตรวจสอบ')
+          ));
+        throw err;
+      }
       return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
       toast.success(tw('toast.weightVerified'), tw('toast.weightVerified'));
     },
-    onError: (error: Error) => {
-      toast.error('Error', error.message);
+    onError: (error: Error & { isDualControl?: boolean }) => {
+      // Dual-control violation: show a clear, actionable message with
+      // its own title so the operator understands what to do.
+      if (error.isDualControl) {
+        toast.error(
+          'ไม่สามารถตรวจสอบได้ (Dual Control)',
+          error.message || 'ผู้สร้างรายการและผู้ตรวจสอบต้องเป็นคนละคน กรุณาให้เจ้าหน้าที่ท่านอื่นมาตรวจสอบแทน',
+        );
+        return;
+      }
+      toast.error('ไม่สามารถบันทึกได้', error.message);
     },
   });
 
-  // Auto-select lots via FEFO to cover weighedQty
-  const autoSelectLots = (lots: AvailableLot[], weighedQty: number, material: MaterialLine | null): number[] => {
-    if (!lots || lots.length === 0 || weighedQty <= 0) return [];
-
-    // Convert weighedQty from material unit to lot unit (primaryUnit) if needed
-    let targetQty = weighedQty;
-    if (material && material.unit && material.secondaryUnit && material.conversionRate &&
-        material.unit === material.secondaryUnit && Number(material.conversionRate) > 0) {
-      targetQty = weighedQty / Number(material.conversionRate);
-    }
-
-    const selected: number[] = [];
-    let remaining = targetQty;
-
-    // Lots already sorted by FEFO from backend
-    for (const lot of lots) {
-      if (remaining <= 0) break;
-      selected.push(lot.id);
-      remaining -= lot.availableQty;
-    }
-    return selected;
+  // Auto-pick the primary lot via FEFO (earliest expiry that has stock).
+  //
+  // Important: the backend's work_order_materials table only stores ONE
+  // lot id per material row (lotId FK). The verify step uses FEFO at that
+  // point to pull from additional lots if the primary lot's stock is not
+  // enough. So from the user's perspective, this screen only needs to
+  // capture the **primary lot preference** — the allocation engine handles
+  // the rest on verify.
+  const autoPickPrimaryLot = (
+    lots: AvailableLot[],
+    weighedQty: number,
+    material: MaterialLine | null,
+  ): number | undefined => {
+    if (!lots || lots.length === 0 || weighedQty <= 0) return undefined;
+    void material; // reserved for future per-material FEFO rules
+    // FEFO already sorted by backend — pick the first lot that has any stock.
+    const first = lots.find((l) => (l.availableQty ?? 0) > 0);
+    return first?.id;
   };
 
   const handleOpenWeighDialog = (material: MaterialLine) => {
     setSelectedMaterial(material);
+    // Load the persisted primary lot (or undefined if never saved). This
+    // is the single source of truth for the checkbox state — no derived
+    // array wrapping, so reopening this dialog always shows exactly what
+    // the DB has.
     setFormData({
       weighedQty: material.plannedQty,
-      selectedLotIds: material.lotId ? [material.lotId] : [],
+      selectedLotId: material.lotId ?? undefined,
       notes: '',
       waterDate: material.waterDate || toLocalDateStr(new Date()),
       waterConductivity: material.waterConductivity || 0,
@@ -246,17 +292,19 @@ export default function MaterialWeighingPage() {
   const handleSubmitWeight = () => {
     if (!selectedMaterial) return;
 
-    // Auto-select lots if none selected
-    let lotIds = formData.selectedLotIds;
-    if (lotIds.length === 0 && availableLots && availableLots.length > 0) {
-      lotIds = autoSelectLots(availableLots, formData.weighedQty, selectedMaterial);
+    // Auto-pick primary lot via FEFO if user hasn't chosen one. The verify
+    // step uses multi-lot FEFO allocation if this primary lot's stock is
+    // short, so we only need to persist the user's preferred primary lot.
+    let lotId = formData.selectedLotId;
+    if (lotId === undefined && availableLots && availableLots.length > 0) {
+      lotId = autoPickPrimaryLot(availableLots, formData.weighedQty, selectedMaterial);
     }
 
     recordWeightMutation.mutate({
       materialId: selectedMaterial.id,
       data: {
         weighedQty: formData.weighedQty,
-        lotId: lotIds[0] || undefined,  // Primary lot for backend
+        lotId,
         notes: formData.notes,
         waterDate: formData.waterDate,
         waterConductivity: formData.waterConductivity,
@@ -495,12 +543,16 @@ export default function MaterialWeighingPage() {
                               disabled={requisitionStatus !== 'approved'}
                             />
                             {(material.itemAvailableQty ?? 0) > 0 ? (
-                              <DxButton
-                                text={tw('actions.verify')}
-                                type="default"
-                                onClick={() => verifyWeightMutation.mutate(material.id)}
-                                disabled={verifyWeightMutation.isPending || requisitionStatus !== 'approved'}
-                              />
+                              currentUser?.id === material.weighedBy ? (
+                                <AwaitingOtherVerifierBadge />
+                              ) : (
+                                <DxButton
+                                  text={tw('actions.verify')}
+                                  type="default"
+                                  onClick={() => verifyWeightMutation.mutate(material.id)}
+                                  disabled={verifyWeightMutation.isPending || requisitionStatus !== 'approved'}
+                                />
+                              )
                             ) : (
                               <span className="text-xs text-red-500 self-center max-w-[140px] text-right">
                                 ยอดคงเหลือในคลังเป็น 0
@@ -518,8 +570,9 @@ export default function MaterialWeighingPage() {
         </CardContent>
       </Card>
 
-      {/* Weigh Dialog */}
+      {/* Weigh Dialog — key forces remount so checkbox state always syncs from formData */}
       <DxPopup
+        key={selectedMaterial?.id ?? 'none'}
         visible={showWeighDialog}
         onHiding={() => {
           setShowWeighDialog(false);
@@ -558,18 +611,23 @@ export default function MaterialWeighingPage() {
             />
           </div>
 
-          {/* Lot selection - checkbox list (FEFO sorted, non-expired only) */}
+          {/* Lot selection (single-select).
+              The DB stores ONE primary lot per material row. This UI uses a
+              checkbox appearance (familiar to users) but enforces single-
+              selection — clicking a lot replaces the previous one. Clicking
+              the already-selected lot clears it. This guarantees what the
+              user sees in the form always matches workOrderMaterials.lotId. */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700">
-                {tw('form.lot.label')} <span className="text-xs text-gray-400 font-normal">(FEFO — ใกล้หมดอายุก่อน)</span>
+                {tw('form.lot.label')} <span className="text-xs text-gray-400 font-normal">(FEFO — ใกล้หมดอายุก่อน · เลือก 1 lot)</span>
               </label>
               {availableLots && availableLots.length > 0 && (
                 <button
                   type="button"
                   onClick={() => {
-                    const auto = autoSelectLots(availableLots, formData.weighedQty, selectedMaterial);
-                    setFormData({ ...formData, selectedLotIds: auto });
+                    const primary = autoPickPrimaryLot(availableLots, formData.weighedQty, selectedMaterial);
+                    setFormData({ ...formData, selectedLotId: primary });
                   }}
                   className="text-xs text-emerald-600 hover:text-emerald-800 font-medium"
                 >
@@ -586,7 +644,7 @@ export default function MaterialWeighingPage() {
             ) : (
               <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
                 {availableLots.map((lot) => {
-                  const isChecked = formData.selectedLotIds.includes(lot.id);
+                  const isChecked = formData.selectedLotId === lot.id;
                   const expiry = lot.expiryDate
                     ? new Date(lot.expiryDate).toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' })
                     : 'ไม่ระบุ';
@@ -599,10 +657,12 @@ export default function MaterialWeighingPage() {
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {
-                          const ids = isChecked
-                            ? formData.selectedLotIds.filter(id => id !== lot.id)
-                            : [...formData.selectedLotIds, lot.id];
-                          setFormData({ ...formData, selectedLotIds: ids });
+                          // Single-select: toggling a different lot replaces
+                          // the previous one. Toggling the same lot clears.
+                          setFormData({
+                            ...formData,
+                            selectedLotId: isChecked ? undefined : lot.id,
+                          });
                         }}
                         className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                       />
@@ -625,18 +685,18 @@ export default function MaterialWeighingPage() {
               </div>
             )}
             {/* Selection summary */}
-            {formData.selectedLotIds.length > 0 && availableLots && (
-              <div className="mt-2 text-xs text-gray-600 bg-gray-50 rounded px-3 py-1.5">
-                เลือก {formData.selectedLotIds.length} lot
-                {' — '}
-                รวม {availableLots
-                  .filter(l => formData.selectedLotIds.includes(l.id))
-                  .reduce((sum, l) => sum + l.availableQty, 0)
-                  .toFixed(2)}{' '}
-                {availableLots[0]?.unit}
-              </div>
-            )}
-            {formData.selectedLotIds.length === 0 && formData.weighedQty > 0 && (
+            {formData.selectedLotId !== undefined && availableLots && (() => {
+              const selected = availableLots.find((l) => l.id === formData.selectedLotId);
+              if (!selected) return null;
+              return (
+                <div className="mt-2 text-xs text-gray-600 bg-gray-50 rounded px-3 py-1.5">
+                  เลือก 1 lot ({selected.lotNumber})
+                  {' — '}
+                  คงเหลือ {selected.availableQty?.toFixed(2)} {selected.unit}
+                </div>
+              );
+            })()}
+            {formData.selectedLotId === undefined && formData.weighedQty > 0 && (
               <p className="mt-1 text-xs text-amber-600">
                 ไม่ได้เลือก lot — ระบบจะเลือกอัตโนมัติ (FEFO) เมื่อกดบันทึก
               </p>

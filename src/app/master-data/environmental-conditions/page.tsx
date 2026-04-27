@@ -70,16 +70,16 @@ export default function EnvironmentalConditionsPage() {
 
   const renderTempRange = (data: EnvironmentalCondition) => {
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-        <Thermometer className="h-3 w-3" />
-        {data.temperatureMin}-{data.temperatureMax}C
+      <span className="dx-cell-tag inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <Thermometer className="h-3 w-3 flex-shrink-0" />
+        {data.temperatureMin}-{data.temperatureMax}°C
       </span>
     );
   };
 
   const renderHumidity = (value: number) => {
     return (
-      <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+      <span className="dx-cell-tag inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
         {value}% RH
       </span>
     );
@@ -87,7 +87,7 @@ export default function EnvironmentalConditionsPage() {
 
   const renderInterval = (value: number) => {
     return (
-      <span className="text-gray-600">
+      <span className="text-gray-600 whitespace-nowrap">
         Every {value} min
       </span>
     );
@@ -136,12 +136,12 @@ export default function EnvironmentalConditionsPage() {
             <span className="font-mono font-medium text-teal-700">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Profile Name" minWidth={200} />
-          <DxColumn caption="Temperature Range" width={150} cellRender={(cell) => renderTempRange(cell.data)} />
-          <DxColumn dataField="humidityMax" caption="Max Humidity" width={120} cellRender={(cell) => renderHumidity(cell.value)} />
-          <DxColumn dataField="monitoringIntervalMinutes" caption="Monitoring Interval" width={150} cellRender={(cell) => renderInterval(cell.value)} />
+          <DxColumn caption="Temperature Range" minWidth={170} cellRender={(cell) => renderTempRange(cell.data)} />
+          <DxColumn dataField="humidityMax" caption="Max Humidity" minWidth={130} cellRender={(cell) => renderHumidity(cell.value)} />
+          <DxColumn dataField="monitoringIntervalMinutes" caption="Monitoring Interval" minWidth={170} cellRender={(cell) => renderInterval(cell.value)} />
           <DxColumn dataField="notes" caption="Notes" minWidth={200} />
           <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />

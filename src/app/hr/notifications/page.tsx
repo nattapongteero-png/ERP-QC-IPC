@@ -5,7 +5,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import DataGrid, {
   Column,
   HeaderFilter,
@@ -82,13 +82,13 @@ async function deleteNotification(id: number): Promise<void> {
   if (!response.ok) throw new Error('Failed to delete notification');
 }
 
-const NOTIFICATION_TYPES: { value: string; label: string }[] = [
-  { value: '', label: 'ทั้งหมด' },
-  { value: 'training_expiring', label: 'การอบรมใกล้หมดอายุ' },
-  { value: 'training_expired', label: 'การอบรมหมดอายุแล้ว' },
-  { value: 'health_check_due', label: 'ถึงกำหนดตรวจสุขภาพ' },
-  { value: 'health_check_overdue', label: 'เลยกำหนดตรวจสุขภาพ' },
-  { value: 'authorization_expiring', label: 'สิทธิ์ใกล้หมดอายุ' },
+const NOTIFICATION_TYPE_CONFIG: { value: string; translationKey: string }[] = [
+  { value: '', translationKey: 'all' },
+  { value: 'training_expiring', translationKey: 'trainingExpiring' },
+  { value: 'training_expired', translationKey: 'trainingExpired' },
+  { value: 'health_check_due', translationKey: 'healthCheckDue' },
+  { value: 'health_check_overdue', translationKey: 'healthCheckOverdue' },
+  { value: 'authorization_expiring', translationKey: 'authorizationExpiring' },
 ];
 
 const TYPE_ICONS: Record<NotificationType, typeof Bell> = {
@@ -107,18 +107,28 @@ const TYPE_COLORS: Record<NotificationType, string> = {
   authorization_expiring: 'bg-orange-100 text-orange-800',
 };
 
-const TYPE_LABELS: Record<NotificationType, string> = {
-  training_expiring: 'อบรมใกล้หมดอายุ',
-  training_expired: 'อบรมหมดอายุ',
-  health_check_due: 'ตรวจสุขภาพ',
-  health_check_overdue: 'เลยกำหนดตรวจ',
-  authorization_expiring: 'สิทธิ์หมดอายุ',
+const TYPE_LABEL_KEYS: Record<NotificationType, string> = {
+  training_expiring: 'trainingExpiring',
+  training_expired: 'trainingExpired',
+  health_check_due: 'healthCheckDue',
+  health_check_overdue: 'healthCheckOverdue',
+  authorization_expiring: 'authorizationExpiring',
 };
 
 export default function NotificationsPage() {
   const t = useTranslations('hr');
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  const NOTIFICATION_TYPES = useMemo(
+    () =>
+      NOTIFICATION_TYPE_CONFIG.map((c) => ({
+        value: c.value,
+        label: t(`notifications.types.${c.translationKey}`),
+      })),
+    [t]
+  );
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [searchText, setSearchText] = useState('');
   const [selectedNotification, setSelectedNotification] =
@@ -163,9 +173,9 @@ export default function NotificationsPage() {
       runNotificationCheck('/api/hr/training/notifications/check'),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['hr-notifications'] });
-      toast.success(`สร้างการแจ้งเตือน ${data.totalCreated} รายการ`);
+      toast.success(t('notifications.toast.checkSuccess', { 0: data.totalCreated }));
     },
-    onError: () => toast.error('เกิดข้อผิดพลาดในการตรวจสอบ'),
+    onError: () => toast.error(t('notifications.toast.checkError')),
   });
 
   // Mutation: Run health check
@@ -174,9 +184,9 @@ export default function NotificationsPage() {
       runNotificationCheck('/api/hr/health-records/notifications/check'),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['hr-notifications'] });
-      toast.success(`สร้างการแจ้งเตือน ${data.totalCreated} รายการ`);
+      toast.success(t('notifications.toast.checkSuccess', { 0: data.totalCreated }));
     },
-    onError: () => toast.error('เกิดข้อผิดพลาดในการตรวจสอบ'),
+    onError: () => toast.error(t('notifications.toast.checkError')),
   });
 
   // Mutation: Mark as read
@@ -184,10 +194,10 @@ export default function NotificationsPage() {
     mutationFn: markNotificationRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr-notifications'] });
-      toast.success('ทำเครื่องหมายอ่านแล้ว');
+      toast.success(t('notifications.toast.markReadSuccess'));
       setShowDetailPopup(false);
     },
-    onError: () => toast.error('เกิดข้อผิดพลาด'),
+    onError: () => toast.error(t('notifications.toast.error')),
   });
 
   // Mutation: Delete notification
@@ -195,12 +205,12 @@ export default function NotificationsPage() {
     mutationFn: deleteNotification,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr-notifications'] });
-      toast.success('ลบการแจ้งเตือนสำเร็จ');
+      toast.success(t('notifications.toast.deleteSuccess'));
       setShowDeleteConfirm(false);
       setNotificationToDelete(null);
       setShowDetailPopup(false);
     },
-    onError: () => toast.error('เกิดข้อผิดพลาด'),
+    onError: () => toast.error(t('notifications.toast.error')),
   });
 
   const allNotifications = useMemo(() => notificationsData?.data || [], [notificationsData]);
@@ -247,10 +257,11 @@ export default function NotificationsPage() {
   const renderTypeCell = (data: { data: HRNotificationWithEmployee }) => {
     const type = data.data.type;
     const Icon = TYPE_ICONS[type] || Bell;
+    const labelKey = TYPE_LABEL_KEYS[type];
     return (
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4" />
-        <Badge className={TYPE_COLORS[type]}>{TYPE_LABELS[type]}</Badge>
+        <Badge className={TYPE_COLORS[type]}>{labelKey ? t(`notifications.typeLabels.${labelKey}`) : type}</Badge>
       </div>
     );
   };
@@ -265,7 +276,7 @@ export default function NotificationsPage() {
             setShowDetailPopup(true);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="ดูรายละเอียด"
+          title={t('notifications.actionsHint.view')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -275,7 +286,7 @@ export default function NotificationsPage() {
             markReadMutation.mutate(data.data.id);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="ทำเครื่องหมายอ่านแล้ว"
+          title={t('notifications.actionsHint.markAsRead')}
         >
           <Check className="h-4 w-4" />
         </button>
@@ -285,16 +296,16 @@ export default function NotificationsPage() {
             handleDelete(data.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="ลบ"
+          title={t('notifications.actionsHint.delete')}
         >
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
     );
-  }, [markReadMutation, handleDelete]);
+  }, [markReadMutation, handleDelete, t]);
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
         title={t('notifications.title')}
@@ -304,12 +315,12 @@ export default function NotificationsPage() {
         iconColor="text-blue-600"
         breadcrumbs={[
           { label: 'HR', href: '/hr' },
-          { label: 'การแจ้งเตือน' },
+          { label: t('notifications.breadcrumb') },
         ]}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button
-              text="ตรวจสอบอบรม"
+              text={t('notifications.checkTraining')}
               icon="event"
               type="default"
               stylingMode="outlined"
@@ -317,7 +328,7 @@ export default function NotificationsPage() {
               disabled={runTrainingCheckMutation.isPending}
             />
             <Button
-              text="ตรวจสอบสุขภาพ"
+              text={t('notifications.checkHealth')}
               icon="mediumiconslayout"
               type="default"
               stylingMode="outlined"
@@ -326,7 +337,7 @@ export default function NotificationsPage() {
             />
             <Button
               icon="refresh"
-              hint="รีเฟรช"
+              hint={t('notifications.refreshHint')}
               stylingMode="text"
               onClick={() => refetch()}
             />
@@ -337,35 +348,35 @@ export default function NotificationsPage() {
       {/* Stats using StatCard - 2x2 on mobile, 5 cols on desktop */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         <StatCard
-          label="รายการทั้งหมด"
+          label={t('notifications.stats.total')}
           value={stats.total}
           icon={Bell}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
         />
         <StatCard
-          label="อบรมใกล้หมดอายุ"
+          label={t('notifications.stats.trainingExpiring')}
           value={stats.trainingExpiring}
           icon={Clock}
           iconColor="text-yellow-500"
           accentColor="border-yellow-500"
         />
         <StatCard
-          label="อบรมหมดอายุ"
+          label={t('notifications.stats.trainingExpired')}
           value={stats.trainingExpired}
           icon={AlertTriangle}
           iconColor="text-red-500"
           accentColor="border-red-500"
         />
         <StatCard
-          label="ตรวจสุขภาพใกล้ถึง"
+          label={t('notifications.stats.healthDue')}
           value={stats.healthDue}
           icon={HeartPulse}
           iconColor="text-blue-400"
           accentColor="border-blue-400"
         />
         <StatCard
-          label="เลยกำหนดตรวจ"
+          label={t('notifications.stats.healthOverdue')}
           value={stats.healthOverdue}
           icon={AlertTriangle}
           iconColor="text-red-400"
@@ -379,14 +390,14 @@ export default function NotificationsPage() {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                <p className="font-medium text-red-800">{t('notifications.deleteConfirm.title')}</p>
                 <p className="text-sm text-red-600">
-                  คุณต้องการลบการแจ้งเตือน &quot;{notificationToDelete.title}&quot; หรือไม่?
+                  {t('notifications.deleteConfirm.message', { 0: notificationToDelete.title })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="ยกเลิก"
+                  text={t('notifications.deleteConfirm.cancel')}
                   stylingMode="outlined"
                   onClick={() => {
                     setShowDeleteConfirm(false);
@@ -394,7 +405,7 @@ export default function NotificationsPage() {
                   }}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'กำลังลบ...' : 'ลบ'}
+                  text={deleteMutation.isPending ? t('notifications.deleteConfirm.deleting') : t('notifications.deleteConfirm.delete')}
                   icon="trash"
                   type="danger"
                   onClick={confirmDelete}
@@ -414,14 +425,14 @@ export default function NotificationsPage() {
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">ตัวกรอง:</span>
+                <span className="text-sm font-medium text-gray-700">{t('notifications.filters.label')}</span>
               </div>
               <div className="w-56">
                 <TextBox
                   value={searchText}
                   onValueChanged={(e) => setSearchText(e.value || '')}
                   valueChangeEvent="keyup"
-                  placeholder="ค้นหา..."
+                  placeholder={t('notifications.filters.searchPlaceholder')}
                   showClearButton
                   mode="search"
                 />
@@ -433,12 +444,12 @@ export default function NotificationsPage() {
                   displayExpr="label"
                   value={typeFilter}
                   onValueChanged={(e) => setTypeFilter(e.value)}
-                  placeholder="ประเภท"
+                  placeholder={t('notifications.filters.typePlaceholder')}
                 />
               </div>
               {(searchText || typeFilter) && (
                 <Button
-                  text="ล้าง"
+                  text={t('notifications.filters.clear')}
                   stylingMode="text"
                   onClick={() => {
                     setSearchText('');
@@ -451,7 +462,7 @@ export default function NotificationsPage() {
             {/* Compact Statistics */}
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-md">
-                <span className="text-gray-500">แสดง:</span>
+                <span className="text-gray-500">{t('notifications.showing')}</span>
                 <span className="font-semibold text-gray-900">{notifications.length}</span>
               </div>
             </div>
@@ -463,6 +474,7 @@ export default function NotificationsPage() {
       <Card>
         <CardContent className="p-0">
           <DataGrid
+            key={locale}
             dataSource={notifications}
             keyExpr="id"
             showBorders={false}
@@ -488,27 +500,27 @@ export default function NotificationsPage() {
 
             <Column
               dataField="type"
-              caption="ประเภท"
+              caption={t('notifications.columns.type')}
               width={160}
               cellRender={renderTypeCell}
               hidingPriority={2}
             />
             <Column
               dataField="employeeCode"
-              caption="รหัสพนักงาน"
+              caption={t('notifications.columns.employeeCode')}
               width={100}
               hidingPriority={4}
             />
             <Column
               dataField="employeeName"
-              caption="ชื่อพนักงาน"
+              caption={t('notifications.columns.employeeName')}
               minWidth={150}
               hidingPriority={0}
             />
-            <Column dataField="title" caption="หัวข้อ" minWidth={200} hidingPriority={1} />
+            <Column dataField="title" caption={t('notifications.columns.title')} minWidth={200} hidingPriority={1} />
             <Column
               dataField="createdAt"
-              caption="วันที่สร้าง"
+              caption={t('notifications.columns.createdAt')}
               dataType="datetime"
               width={140}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -516,7 +528,7 @@ export default function NotificationsPage() {
               hidingPriority={5}
             />
             <Column
-              caption="จัดการ"
+              caption={t('notifications.columns.actions')}
               width={120}
               cellRender={renderActionsCell}
               allowFiltering={false}
@@ -531,7 +543,7 @@ export default function NotificationsPage() {
       <Popup
         visible={showDetailPopup}
         onHiding={() => setShowDetailPopup(false)}
-        title="รายละเอียดการแจ้งเตือน"
+        title={t('notifications.detailPopup.title')}
         width={500}
         height="auto"
         showCloseButton={true}
@@ -544,13 +556,15 @@ export default function NotificationsPage() {
                 return <Icon className="h-6 w-6" />;
               })()}
               <Badge className={TYPE_COLORS[selectedNotification.type]}>
-                {TYPE_LABELS[selectedNotification.type]}
+                {TYPE_LABEL_KEYS[selectedNotification.type]
+                  ? t(`notifications.typeLabels.${TYPE_LABEL_KEYS[selectedNotification.type]}`)
+                  : selectedNotification.type}
               </Badge>
             </div>
 
             <div>
               <label className="text-sm font-medium text-gray-500">
-                พนักงาน
+                {t('notifications.detailPopup.employee')}
               </label>
               <p className="text-lg">
                 {selectedNotification.employeeCode} -{' '}
@@ -559,7 +573,7 @@ export default function NotificationsPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">หัวข้อ</label>
+              <label className="text-sm font-medium text-gray-500">{t('notifications.detailPopup.titleLabel')}</label>
               <p className="text-lg font-semibold">
                 {selectedNotification.title}
               </p>
@@ -568,7 +582,7 @@ export default function NotificationsPage() {
             {selectedNotification.message && (
               <div>
                 <label className="text-sm font-medium text-gray-500">
-                  รายละเอียด
+                  {t('notifications.detailPopup.message')}
                 </label>
                 <p className="text-gray-700">{selectedNotification.message}</p>
               </div>
@@ -576,25 +590,25 @@ export default function NotificationsPage() {
 
             <div>
               <label className="text-sm font-medium text-gray-500">
-                วันที่สร้าง
+                {t('notifications.detailPopup.createdAt')}
               </label>
               <p>
                 {new Date(selectedNotification.createdAt).toLocaleString(
-                  'th-TH'
+                  locale === 'th' ? 'th-TH' : 'en-US'
                 )}
               </p>
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button
-                text="ทำเครื่องหมายอ่านแล้ว"
+                text={t('notifications.detailPopup.markAsRead')}
                 icon="check"
                 type="success"
                 onClick={() => markReadMutation.mutate(selectedNotification.id)}
                 disabled={markReadMutation.isPending}
               />
               <Button
-                text="ลบ"
+                text={t('notifications.detailPopup.delete')}
                 icon="trash"
                 type="danger"
                 onClick={() => {
@@ -604,7 +618,7 @@ export default function NotificationsPage() {
                 disabled={deleteMutation.isPending}
               />
               <Button
-                text="ปิด"
+                text={t('notifications.detailPopup.close')}
                 stylingMode="outlined"
                 onClick={() => setShowDetailPopup(false)}
               />

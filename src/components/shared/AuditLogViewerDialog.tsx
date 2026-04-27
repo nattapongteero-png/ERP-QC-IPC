@@ -54,6 +54,7 @@ import type {
 } from '@/types/audit-log';
 import { ACTION_LABELS_TH } from '@/types/audit-log';
 import { parseFieldChanges } from '@/lib/utils/audit-utils';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 // Action icon and color configuration
 interface ActionConfig {
@@ -343,8 +344,8 @@ export function AuditLogViewerDialog({
 
       if (filterUser) params.set('userId', String(filterUser));
       if (filterAction) params.set('action', filterAction);
-      if (filterFromDate) params.set('fromDate', filterFromDate.toISOString().split('T')[0]);
-      if (filterToDate) params.set('toDate', filterToDate.toISOString().split('T')[0]);
+      if (filterFromDate) params.set('fromDate', toLocalDateStr(filterFromDate));
+      if (filterToDate) params.set('toDate', toLocalDateStr(filterToDate));
       if (searchText) params.set('searchText', searchText);
 
       const res = await fetch(`/api/audit-logs?${params}`);
@@ -565,7 +566,7 @@ export function AuditLogViewerDialog({
                     ตั้งแต่วันที่
                   </label>
                   <DxDateBox
-                    value={filterFromDate ? filterFromDate.toISOString().split('T')[0] : undefined}
+                    value={filterFromDate ? toLocalDateStr(filterFromDate) : undefined}
                     onValueChange={(val) => setFilterFromDate(val ? new Date(val) : null)}
                     type="date"
                     displayFormat="dd/MM/yyyy"
@@ -578,7 +579,7 @@ export function AuditLogViewerDialog({
                     ถึงวันที่
                   </label>
                   <DxDateBox
-                    value={filterToDate ? filterToDate.toISOString().split('T')[0] : undefined}
+                    value={filterToDate ? toLocalDateStr(filterToDate) : undefined}
                     onValueChange={(val) => setFilterToDate(val ? new Date(val) : null)}
                     type="date"
                     displayFormat="dd/MM/yyyy"

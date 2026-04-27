@@ -3,6 +3,10 @@
     "title": "ข้อมูลหลัก",
     "description": "จัดการข้อมูลหลักสำหรับการผลิตตามมาตรฐาน GMP"
   },
+  "actions": {
+    "downloadTemplate": "ดาวน์โหลด Template",
+    "importExcel": "นำเข้า Excel"
+  },
   "modules": {
     "productionRooms": {
       "title": "ห้องผลิต",

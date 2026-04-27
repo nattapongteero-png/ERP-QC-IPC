@@ -10,9 +10,10 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
 import { StatCard } from '@/components/shared';
 import { ResponsivePageHeader } from '@/components/shared';
+import { useMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils/cn';
 import {
   AlertTriangle,
   AlertCircle,
@@ -24,11 +25,13 @@ import {
   LayoutGrid,
   List,
   Search,
+  SearchX,
   Factory,
   Package,
   Microscope,
   TrendingUp,
   Calendar,
+  ChevronRight,
 } from 'lucide-react';
 import PieChart, { Series, Legend, Tooltip, Label } from 'devextreme-react/pie-chart';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
@@ -59,6 +62,7 @@ interface Deviation {
 }
 
 type ViewMode = 'grid' | 'cards' | 'analytics';
+type StatusTab = '' | 'open' | 'investigating' | 'resolved' | 'closed';
 
 // ============================================================================
 // Configuration Constants (labels removed - use t() instead)
@@ -131,6 +135,15 @@ const SOURCE_CONFIG = {
   },
 };
 
+// Status tabs (used for scroll-snap filter row)
+const STATUS_TABS: Array<{ key: StatusTab; color: string; bgActive: string }> = [
+  { key: '', color: 'text-white', bgActive: 'bg-gray-900' },
+  { key: 'open', color: 'text-white', bgActive: 'bg-blue-600' },
+  { key: 'investigating', color: 'text-white', bgActive: 'bg-amber-500' },
+  { key: 'resolved', color: 'text-white', bgActive: 'bg-cyan-600' },
+  { key: 'closed', color: 'text-white', bgActive: 'bg-emerald-600' },
+];
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -188,21 +201,14 @@ async function fetchDeviations() {
 export default function DeviationsPage() {
   const router = useRouter();
   const t = useTranslations('quality');
+  const { isMobile } = useMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusTab>('');
   const [severityFilter, setSeverityFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
 
   // Filter options (inside component because t() is a hook)
-  const statusOptions = useMemo(() => [
-    { value: '', label: t('deviations.filter.allStatuses') },
-    { value: 'open', label: t('deviations.status.open') },
-    { value: 'investigating', label: t('deviations.status.investigating') },
-    { value: 'resolved', label: t('deviations.status.resolved') },
-    { value: 'closed', label: t('deviations.status.closed') },
-  ], [t]);
-
   const severityOptions = useMemo(() => [
     { value: '', label: t('deviations.filter.allSeverities') },
     { value: 'minor', label: t('deviations.severity.minor') },
@@ -237,6 +243,24 @@ export default function DeviationsPage() {
       return matchesSearch && matchesStatus && matchesSeverity && matchesSource;
     });
   }, [deviations, search, statusFilter, severityFilter, sourceFilter]);
+
+  // Per-tab counts (total irrespective of search/severity/source)
+  const statusCounts = useMemo(() => {
+    const counts: Record<StatusTab, number> = {
+      '': deviations.length,
+      open: 0,
+      investigating: 0,
+      resolved: 0,
+      closed: 0,
+    };
+    deviations.forEach((d) => {
+      if (d.status === 'open') counts.open++;
+      else if (d.status === 'investigating') counts.investigating++;
+      else if (d.status === 'resolved') counts.resolved++;
+      else if (d.status === 'closed') counts.closed++;
+    });
+    return counts;
+  }, [deviations]);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -320,6 +344,13 @@ export default function DeviationsPage() {
   const handleDeviationClick = useCallback((id: number) => {
     router.push(`/quality/deviations/${id}`);
   }, [router]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearch('');
+    setStatusFilter('');
+    setSeverityFilter('');
+    setSourceFilter('');
+  }, []);
 
   // Cell renderers
   const renderDeviationNumberCell = useCallback((data: { data?: Deviation }) => {
@@ -426,20 +457,20 @@ export default function DeviationsPage() {
     {
       dataField: 'sourceType',
       caption: t('deviations.grid.columns.source'),
-      width: 130,
+      minWidth: 130,
       hideOnMobile: true,
       cellRender: renderSourceCell,
     },
     {
       dataField: 'severity',
       caption: t('deviations.grid.columns.severity'),
-      width: 100,
+      width: 110,
       cellRender: renderSeverityCell,
     },
     {
       dataField: 'dueDate',
       caption: t('deviations.grid.columns.dueDate'),
-      width: 140,
+      width: 150,
       dataType: 'date',
       hideOnMobile: true,
       cellRender: renderDueDateCell,
@@ -457,7 +488,7 @@ export default function DeviationsPage() {
   // ============================================================================
 
   const renderStatCards = () => (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       <StatCard
         label={t('deviations.stats.total')}
         value={stats.total}
@@ -470,17 +501,9 @@ export default function DeviationsPage() {
         label={t('deviations.stats.active')}
         value={stats.activeTotal}
         icon={Clock}
-        iconColor="text-blue-500"
-        accentColor="border-blue-500"
-        trend={stats.activeTotal > 0 ? { value: String(stats.activeTotal), direction: 'neutral' } : undefined}
-        isLoading={isLoading}
-      />
-      <StatCard
-        label={t('deviations.stats.investigating')}
-        value={stats.investigating}
-        icon={Search}
         iconColor="text-amber-500"
         accentColor="border-amber-500"
+        trend={stats.activeTotal > 0 ? { value: String(stats.activeTotal), direction: 'neutral' } : undefined}
         isLoading={isLoading}
       />
       <StatCard
@@ -493,20 +516,11 @@ export default function DeviationsPage() {
         isLoading={isLoading}
       />
       <StatCard
-        label={t('deviations.stats.overdue')}
-        value={stats.overdue}
-        icon={AlertTriangle}
-        iconColor="text-orange-500"
-        accentColor="border-orange-500"
-        trend={stats.overdue > 0 ? { value: String(stats.overdue), direction: 'down' } : undefined}
-        isLoading={isLoading}
-      />
-      <StatCard
         label={t('deviations.stats.resolutionRate')}
         value={`${stats.resolutionRate}%`}
         icon={TrendingUp}
-        iconColor="text-green-500"
-        accentColor="border-green-500"
+        iconColor="text-emerald-500"
+        accentColor="border-emerald-500"
         trend={stats.resolutionRate >= 80 ? { value: String(stats.resolutionRate), direction: 'up' } : undefined}
         isLoading={isLoading}
       />
@@ -517,78 +531,35 @@ export default function DeviationsPage() {
     if (stats.critical === 0) return null;
 
     return (
-      <Card className="border-red-200 bg-red-50">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertOctagon className="h-6 w-6 text-red-600" />
+      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+        <div className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="p-2 bg-red-100 rounded-lg flex-shrink-0">
+              <AlertOctagon className="h-5 w-5 text-red-600" />
             </div>
-            <div className="flex-1">
-              <p className="font-medium text-red-800">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-red-800 text-sm">
                 {t('deviations.alert.criticalCount', { count: stats.critical })}
               </p>
-              <p className="text-sm text-red-600">
+              <p className="text-xs text-red-600 mt-0.5">
                 {t('deviations.alert.criticalDescription')}
               </p>
             </div>
-            <DxButton
-              text={t('deviations.alert.viewAll')}
-              type="danger"
-              onClick={() => setSeverityFilter('critical')}
-            />
           </div>
-        </CardContent>
-      </Card>
+          <DxButton
+            text={t('deviations.alert.viewAll')}
+            type="danger"
+            stylingMode="contained"
+            onClick={() => setSeverityFilter('critical')}
+            className="self-end sm:self-auto"
+          />
+        </div>
+      </div>
     );
   };
 
-  const renderFilters = () => (
-    <Card elevation="raised">
-      <CardContent className="py-3">
-        <div className="flex flex-col md:flex-row gap-3 items-end">
-          <div className="flex-1">
-            <DxTextBox
-              placeholder={t('deviations.filter.searchPlaceholder')}
-              value={search}
-              onValueChange={setSearch}
-              showClearButton
-              mode="search"
-            />
-          </div>
-          <div className="w-full md:w-36">
-            <DxSelectBox
-              items={statusOptions}
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              placeholder={t('deviations.filter.statusPlaceholder')}
-              showClearButton
-            />
-          </div>
-          <div className="w-full md:w-36">
-            <DxSelectBox
-              items={severityOptions}
-              value={severityFilter}
-              onValueChange={setSeverityFilter}
-              placeholder={t('deviations.filter.severityPlaceholder')}
-              showClearButton
-            />
-          </div>
-          <div className="w-full md:w-36">
-            <DxSelectBox
-              items={sourceOptions}
-              value={sourceFilter}
-              onValueChange={setSourceFilter}
-              placeholder={t('deviations.filter.sourcePlaceholder')}
-              showClearButton
-            />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   const renderCharts = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="hidden lg:grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Status Distribution */}
       <Card elevation="raised">
         <CardHeader className="pb-2">
@@ -777,39 +748,144 @@ export default function DeviationsPage() {
     );
   };
 
+  const hasAnyFilter = search.trim() !== '' || statusFilter !== '' || severityFilter !== '' || sourceFilter !== '';
+
+  // Grid view content with mobile fallback
+  const renderGridContent = () => {
+    if (isLoading) {
+      return isMobile ? (
+        <DeviationCardSkeletonList count={4} />
+      ) : (
+        <DataGridLoadingSkeleton />
+      );
+    }
+
+    if (deviations.length === 0) {
+      return (
+        <DeviationsEmptyState
+          onCreate={() => router.push('/quality/deviations/new')}
+          title={t('deviations.emptyState.title')}
+          description={t('deviations.emptyState.description')}
+          actionLabel={t('deviations.emptyState.action')}
+        />
+      );
+    }
+
+    if (filteredDeviations.length === 0) {
+      return (
+        <DeviationsNoResultsState
+          onClear={handleClearFilters}
+          clearLabel={t('common.clearFilters')}
+        />
+      );
+    }
+
+    if (isMobile) {
+      return (
+        <DeviationCardList
+          deviations={filteredDeviations}
+          onClick={handleDeviationClick}
+          t={t}
+        />
+      );
+    }
+
+    return (
+      <DxDataGrid
+        dataSource={filteredDeviations}
+        keyExpr="id"
+        columns={columns}
+        loading={false}
+        sorting
+        filterRow
+        headerFilter
+        export
+        exportFileName="deviations"
+        columnChooser
+        responsiveColumns
+        virtualScrolling={filteredDeviations.length > 100}
+        height={600}
+        mobileHeight={520}
+        tabletHeight={560}
+        onRowClick={handleRowClick}
+        noDataText={t('deviations.grid.noData')}
+      />
+    );
+  };
+
   const renderGridView = () => (
-    <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
-      <CardContent className="flex-1 min-h-0 flex flex-col p-0">
-        {filteredDeviations.length > 0 || isLoading ? (
-          <DxDataGrid
-            dataSource={filteredDeviations}
-            keyExpr="id"
-            columns={columns}
-            loading={isLoading}
-            sorting
-            filterRow
-            headerFilter
-            export
-            exportFileName="deviations"
-            columnChooser
-            virtualScrolling={filteredDeviations.length > 100}
-            fillHeight
-            onRowClick={handleRowClick}
-            noDataText={t('deviations.grid.noData')}
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      {/* Filter Header: Status Tabs (scroll-snap) */}
+      <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+        <div className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x">
+          {STATUS_TABS.map((tab) => {
+            const isActive = statusFilter === tab.key;
+            const labelKey = tab.key === '' ? 'common.all' : `deviations.status.${tab.key}`;
+            const count = statusCounts[tab.key];
+            return (
+              <button
+                key={tab.key || 'all'}
+                onClick={() => setStatusFilter(tab.key)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]',
+                  isActive
+                    ? `${tab.bgActive} ${tab.color} shadow-sm`
+                    : 'text-gray-600 hover:bg-gray-100'
+                )}
+              >
+                <span>{t(labelKey)}</span>
+                <span className={cn(
+                  'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                  isActive ? 'bg-white/25 text-inherit' : 'bg-gray-200 text-gray-700'
+                )}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Search + extra filters + count row */}
+      <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="w-full sm:max-w-md">
+          <DxTextBox
+            placeholder={t('deviations.filter.searchPlaceholder')}
+            value={search}
+            onValueChange={setSearch}
+            showClearButton
+            mode="search"
           />
-        ) : (
-          <EmptyState
-            icon={<FileWarning className="h-8 w-8" />}
-            title={t('deviations.emptyState.title')}
-            description={t('deviations.emptyState.description')}
-            action={{
-              label: t('deviations.emptyState.action'),
-              onClick: () => router.push('/quality/deviations/new'),
-            }}
-          />
-        )}
-      </CardContent>
-    </Card>
+        </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="w-full sm:w-40">
+            <DxSelectBox
+              items={severityOptions}
+              value={severityFilter}
+              onValueChange={setSeverityFilter}
+              placeholder={t('deviations.filter.severityPlaceholder')}
+              showClearButton
+            />
+          </div>
+          <div className="w-full sm:w-40">
+            <DxSelectBox
+              items={sourceOptions}
+              value={sourceFilter}
+              onValueChange={setSourceFilter}
+              placeholder={t('deviations.filter.sourcePlaceholder')}
+              showClearButton
+            />
+          </div>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap sm:ml-2">
+            <FileWarning className="h-4 w-4 text-gray-400" />
+            <span>{filteredDeviations.length} / {deviations.length}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      {renderGridContent()}
+    </div>
   );
 
   const renderCardsView = () => (
@@ -935,7 +1011,7 @@ export default function DeviationsPage() {
 
   const renderAnalyticsView = () => (
     <div className="space-y-4 flex-1">
-      {/* Full-width Charts */}
+      {/* Charts - hidden on mobile to preserve readability */}
       {renderCharts()}
 
       {/* Analytics Summary */}
@@ -1028,7 +1104,7 @@ export default function DeviationsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {(Object.keys(SOURCE_CONFIG) as Array<keyof typeof SOURCE_CONFIG>).map((key) => {
               const config = SOURCE_CONFIG[key];
               const sourceDeviations = deviations.filter(d => d.sourceType === key);
@@ -1069,23 +1145,30 @@ export default function DeviationsPage() {
     </div>
   );
 
+  // Suppress unused-variable warning
+  void hasAnyFilter;
+
   // ============================================================================
   // Main Render
   // ============================================================================
 
   return (
-    <div className="flex flex-col h-full gap-4 max-w-[1800px] mx-auto w-full">
+    <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
       <ResponsivePageHeader
         title={t('nonConformance.title')}
         subtitle={t('nonConformance.description')}
+        icon={AlertTriangle}
+        iconBgColor="bg-rose-100"
+        iconColor="text-rose-600"
         actions={
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <div className="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* View Mode Toggle - hidden on mobile */}
+            <div className="hidden md:inline-flex items-center bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
                 title={t('common.viewGrid')}
+                aria-label={t('common.viewGrid')}
               >
                 <List className="h-4 w-4" />
               </button>
@@ -1093,6 +1176,7 @@ export default function DeviationsPage() {
                 onClick={() => setViewMode('cards')}
                 className={`p-1.5 rounded ${viewMode === 'cards' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
                 title={t('common.viewCards')}
+                aria-label={t('common.viewCards')}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -1100,6 +1184,7 @@ export default function DeviationsPage() {
                 onClick={() => setViewMode('analytics')}
                 className={`p-1.5 rounded ${viewMode === 'analytics' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
                 title={t('common.viewAnalytics')}
+                aria-label={t('common.viewAnalytics')}
               >
                 <BarChart3 className="h-4 w-4" />
               </button>
@@ -1107,9 +1192,11 @@ export default function DeviationsPage() {
 
             <DxButton
               icon="refresh"
-              hint={t('deviations.actions.refresh')}
+              text={t('deviations.actions.refresh')}
+              stylingMode="outlined"
               onClick={() => refetch()}
               data-testid="dx-button-refresh"
+              className="hidden sm:inline-flex"
             />
             <DxButton
               text={t('deviations.actions.report')}
@@ -1127,13 +1214,230 @@ export default function DeviationsPage() {
       {/* Critical Alert */}
       {renderCriticalAlert()}
 
-      {/* Filters */}
-      {renderFilters()}
-
       {/* Content based on view mode */}
       {viewMode === 'grid' && renderGridView()}
       {viewMode === 'cards' && renderCardsView()}
       {viewMode === 'analytics' && renderAnalyticsView()}
+    </div>
+  );
+}
+
+// ============================================================================
+// Helper Components
+// ============================================================================
+
+type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
+
+/**
+ * Mobile Card List — replaces DataGrid on mobile viewports.
+ * Each card prioritizes: Number → Title → Severity/Status → Source/DueDate.
+ * Tap card navigates to detail. Footer CTA is 44px min touch target.
+ */
+function DeviationCardList({
+  deviations,
+  onClick,
+  t,
+}: {
+  deviations: Deviation[];
+  onClick: (id: number) => void;
+  t: TranslateFn;
+}) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30">
+      {deviations.map((dev) => {
+        const statusConfig = STATUS_CONFIG[dev.status as keyof typeof STATUS_CONFIG];
+        const severityConfig = SEVERITY_CONFIG[dev.severity as keyof typeof SEVERITY_CONFIG];
+        const sourceConfig = SOURCE_CONFIG[dev.sourceType as keyof typeof SOURCE_CONFIG];
+        const overdue = isOverdue(dev.dueDate, dev.status);
+        const daysUntil = getDaysUntilDue(dev.dueDate, dev.status);
+
+        return (
+          <div
+            key={dev.id}
+            className={cn(
+              'bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md active:bg-gray-50 transition-all border-l-4',
+              dev.severity === 'critical' ? 'border-l-red-500' :
+              dev.severity === 'major' ? 'border-l-amber-500' :
+              'border-l-gray-300'
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => onClick(dev.id)}
+              className="w-full text-left p-4"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-sm font-semibold text-indigo-600">{dev.deviationNumber}</p>
+                  <p className="font-medium text-gray-900 text-base mt-1 truncate">{dev.title}</p>
+                </div>
+                <div className="flex flex-col gap-1 items-end flex-shrink-0">
+                  {statusConfig && (
+                    <Badge variant={statusConfig.badgeVariant} size="sm" dot>
+                      {t(`deviations.status.${dev.status}`)}
+                    </Badge>
+                  )}
+                  {severityConfig && (
+                    <Badge variant={severityConfig.badgeVariant} size="sm">
+                      {t(`deviations.severity.${dev.severity}`)}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {dev.description && (
+                <p className="text-sm text-gray-500 line-clamp-2 mb-2">{dev.description}</p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 pt-2 border-t border-gray-100">
+                {sourceConfig && (
+                  <span className="inline-flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded">
+                    <sourceConfig.icon className="h-3 w-3" style={{ color: sourceConfig.color }} />
+                    <span>{t(`deviations.source.${dev.sourceType}`)}</span>
+                  </span>
+                )}
+                {dev.dueDate && (
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 px-2 py-0.5 rounded',
+                      overdue ? 'bg-red-50 text-red-700 font-medium' : 'bg-gray-50'
+                    )}
+                  >
+                    <Calendar className="h-3 w-3" />
+                    <span>{formatDateShort(dev.dueDate)}</span>
+                    {daysUntil !== null && daysUntil < 0 && (
+                      <span>({t('deviations.overdue.daysOver', { days: Math.abs(daysUntil) })})</span>
+                    )}
+                  </span>
+                )}
+              </div>
+
+              {overdue && (
+                <div className="mt-2 p-2 bg-red-50 rounded-md flex items-center gap-2 text-red-600 text-xs">
+                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>{t('deviations.cards.overdueWarning')}</span>
+                </div>
+              )}
+            </button>
+
+            {/* Card footer - single CTA, touch-friendly */}
+            <div className="border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => onClick(dev.id)}
+                className="w-full flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 transition-colors min-h-[44px]"
+              >
+                <ChevronRight className="h-4 w-4" />
+                <span>{t('common.view')}</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Loading skeleton for mobile card list */
+function DeviationCardSkeletonList({ count = 4 }: { count?: number }) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-1/3 bg-gray-200 rounded" />
+              <div className="h-4 w-2/3 bg-gray-200 rounded" />
+              <div className="h-3 w-full bg-gray-200 rounded" />
+              <div className="flex gap-2 pt-1">
+                <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                <div className="h-5 w-20 bg-gray-200 rounded-full" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5 items-end">
+              <div className="h-5 w-16 bg-gray-200 rounded-full" />
+              <div className="h-5 w-14 bg-gray-200 rounded-full" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading skeleton for desktop DataGrid area */
+function DataGridLoadingSkeleton() {
+  return (
+    <div className="p-4 space-y-2" aria-busy="true" aria-live="polite">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-lg animate-pulse">
+          <div className="h-8 w-24 rounded-lg bg-gray-200" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-1/3 bg-gray-200 rounded" />
+            <div className="h-2 w-1/5 bg-gray-200 rounded" />
+          </div>
+          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-16 bg-gray-200 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Empty state — shown when user has zero deviations at all */
+function DeviationsEmptyState({
+  onCreate,
+  title,
+  description,
+  actionLabel,
+}: {
+  onCreate: () => void;
+  title: string;
+  description: string;
+  actionLabel: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <div className="h-20 w-20 rounded-2xl bg-rose-100 flex items-center justify-center mb-5">
+        <AlertTriangle className="h-10 w-10 text-rose-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-6">{description}</p>
+      <DxButton
+        text={actionLabel}
+        icon="plus"
+        type="success"
+        onClick={onCreate}
+      />
+    </div>
+  );
+}
+
+/** No-results state — shown when filters yield zero but deviations exist */
+function DeviationsNoResultsState({
+  onClear,
+  clearLabel,
+}: {
+  onClear: () => void;
+  clearLabel: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+      <div className="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+        <SearchX className="h-8 w-8 text-gray-400" />
+      </div>
+      <h3 className="text-base font-semibold text-gray-900 mb-1">
+        {clearLabel}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-4">
+        {clearLabel}
+      </p>
+      <DxButton
+        text={clearLabel}
+        icon="clear"
+        stylingMode="outlined"
+        onClick={onClear}
+      />
     </div>
   );
 }

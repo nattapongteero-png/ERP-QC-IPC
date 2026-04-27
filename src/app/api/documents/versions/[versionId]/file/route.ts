@@ -18,7 +18,7 @@ import {
 import { getDb, isSqlite } from '@/lib/db';
 import { sqliteDocumentVersions, mysqlDocumentVersions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { getVersionFileData } from '@/lib/services/document-service';
+import { getVersionFileData, deleteVersionFile } from '@/lib/services/document-service';
 
 // MIME types mapping
 const MIME_TYPES: Record<string, string> = {
@@ -129,5 +129,40 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     },
     ['documents:read']
+  );
+}
+
+// DELETE /api/documents/versions/[versionId]/file - Delete file from version
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  return withAuth(
+    request,
+    async (session) => {
+      try {
+        const { versionId } = await params;
+        const versionIdNum = parseInt(versionId, 10);
+
+        if (isNaN(versionIdNum) || versionIdNum <= 0) {
+          return errorResponse('Invalid version ID', 400);
+        }
+
+        await deleteVersionFile(versionIdNum, session.userId);
+
+        return new NextResponse(
+          JSON.stringify({ success: true, message: 'File deleted successfully' }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('not found')) {
+            return errorResponse(error.message, 404);
+          }
+          if (error.message.includes('draft')) {
+            return errorResponse(error.message, 400);
+          }
+        }
+        return serverErrorResponse(error);
+      }
+    },
+    ['documents:write']
   );
 }

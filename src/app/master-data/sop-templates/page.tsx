@@ -112,8 +112,8 @@ export default function SOPTemplatesPage() {
     const colors = categoryColors[category] || categoryColors.other;
     const label = categories.find((c) => c.value === category)?.label || category;
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
-        <ClipboardList className="h-3 w-3" />
+      <span className={`dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
+        <ClipboardList className="h-3 w-3 flex-shrink-0" />
         {label}
       </span>
     );
@@ -163,9 +163,9 @@ export default function SOPTemplatesPage() {
           )} />
           <DxColumn dataField="name" caption="Name (EN)" minWidth={200} />
           <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={200} />
-          <DxColumn dataField="category" caption="Category" width={130} cellRender={(cell) => renderCategoryBadge(cell.value)} />
+          <DxColumn dataField="category" caption="Category" minWidth={160} cellRender={(cell) => renderCategoryBadge(cell.value)} />
           <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />

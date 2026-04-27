@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { LucideIcon } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw, CalendarCheck } from 'lucide-react';
+import { RefreshCcw, CalendarCheck, ArrowLeft } from 'lucide-react';
 
 type IconName = 'book' | 'file-text' | 'receipt' | 'dollar-sign' | 'building' | 'wrench' | 'bar-chart' | 'calendar' | 'calculator' | 'clock' | 'credit-card' | 'wallet' | 'banknote';
 
@@ -24,6 +25,11 @@ const iconMap: Record<IconName, LucideIcon> = {
   'banknote': Icons.Banknote,
 };
 
+export interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
 export interface AccountingPageHeaderProps {
   title: string;
   subtitle?: string;
@@ -31,6 +37,8 @@ export interface AccountingPageHeaderProps {
   currentPeriod?: string;
   periodStatus?: 'open' | 'closed' | 'soft_closed';
   onRefresh?: () => void;
+  onBack?: () => void;
+  breadcrumbs?: BreadcrumbItem[];
   actions?: React.ReactNode;
   className?: string;
 }
@@ -42,6 +50,8 @@ export function AccountingPageHeader({
   currentPeriod,
   periodStatus,
   onRefresh,
+  onBack,
+  breadcrumbs,
   actions,
   className = '',
 }: AccountingPageHeaderProps) {
@@ -55,9 +65,29 @@ export function AccountingPageHeader({
 
   return (
     <div className={`bg-gradient-to-r from-slate-50 via-white to-blue-50 border-b border-gray-100 px-6 py-5 ${className}`}>
+      {/* Breadcrumbs */}
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <nav className="text-sm text-gray-500 mb-2">
+          {breadcrumbs.map((crumb, index) => (
+            <span key={index}>
+              {index > 0 && <span className="mx-2">/</span>}
+              {crumb.href ? (
+                <Link href={crumb.href} className="hover:text-blue-600 transition-colors">{crumb.label}</Link>
+              ) : (
+                <span className="text-gray-700">{crumb.label}</span>
+              )}
+            </span>
+          ))}
+        </nav>
+      )}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        {/* Left: Icon + Title */}
+        {/* Left: Back + Icon + Title */}
         <div className="flex items-center gap-4">
+          {onBack && (
+            <Button variant="ghost" size="sm" onClick={onBack} className="p-2">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
           <div className="relative">
             <div className="p-3.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/25">
               <IconComponent className="h-7 w-7 text-white" />

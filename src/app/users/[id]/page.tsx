@@ -54,31 +54,23 @@ interface PasswordForm {
   confirmPassword: string;
 }
 
-const roleOptions = [
-  { value: 'admin', label: 'ผู้ดูแลระบบ' },
-  { value: 'manager', label: 'ผู้จัดการ' },
-  { value: 'production', label: 'ฝ่ายผลิต' },
-  { value: 'qc', label: 'ฝ่าย QC' },
-  { value: 'warehouse', label: 'ฝ่ายคลัง' },
-  { value: 'purchasing', label: 'ฝ่ายจัดซื้อ' },
-  { value: 'sales', label: 'ฝ่ายขาย' },
-  { value: 'accounting', label: 'ฝ่ายบัญชี' },
-  { value: 'hr', label: 'ฝ่ายบุคคล' },
-  { value: 'user', label: 'ผู้ใช้ทั่วไป' },
-];
+// HR Role loaded from /api/hr/roles — source of truth for role dropdown
+interface HRRole {
+  id: number;
+  code: string;
+  name: string;
+  description?: string | null;
+  isSystemRole?: boolean;
+  isActive?: boolean;
+  permissionCount?: number;
+}
 
-const departmentOptions = [
-  { value: '', label: 'ไม่ระบุ' },
-  { value: 'ฝ่ายผลิต', label: 'ฝ่ายผลิต' },
-  { value: 'ฝ่ายควบคุมคุณภาพ', label: 'ฝ่ายควบคุมคุณภาพ' },
-  { value: 'ฝ่ายคลังสินค้า', label: 'ฝ่ายคลังสินค้า' },
-  { value: 'ฝ่ายจัดซื้อ', label: 'ฝ่ายจัดซื้อ' },
-  { value: 'ฝ่ายขาย', label: 'ฝ่ายขาย' },
-  { value: 'ฝ่ายบัญชี', label: 'ฝ่ายบัญชี' },
-  { value: 'ฝ่ายบุคคล', label: 'ฝ่ายบุคคล' },
-  { value: 'ฝ่ายไอที', label: 'ฝ่ายไอที' },
-  { value: 'ฝ่ายบริหาร', label: 'ฝ่ายบริหาร' },
-];
+// Org Unit loaded from /api/hr/org-units — source of truth for department
+interface OrgUnit {
+  id: number;
+  name: string;
+  code?: string;
+}
 
 const getRoleConfig = (role: string): {
   variant: 'success' | 'info' | 'warning' | 'danger' | 'default';
@@ -109,9 +101,31 @@ const getRoleConfig = (role: string): {
   }
 };
 
-const formatRole = (role: string): string => {
-  const found = roleOptions.find(r => r.value === role);
-  return found ? found.label : role;
+// Legacy fallback labels for role codes predating the HR Roles system.
+// When an existing user has role="admin"/"manager"/etc (hard-coded in the old
+// flow), we show a human-readable Thai label so the UI doesn't display raw
+// code. Any role coming from HR Roles uses its `name` field instead.
+const LEGACY_ROLE_LABELS: Record<string, string> = {
+  admin: 'ผู้ดูแลระบบ',
+  manager: 'ผู้จัดการ',
+  production: 'ฝ่ายผลิต',
+  qc: 'ฝ่าย QC',
+  warehouse: 'ฝ่ายคลัง',
+  purchasing: 'ฝ่ายจัดซื้อ',
+  sales: 'ฝ่ายขาย',
+  accounting: 'ฝ่ายบัญชี',
+  hr: 'ฝ่ายบุคคล',
+  user: 'ผู้ใช้ทั่วไป',
+};
+
+const formatRole = (role: string, hrRoles: HRRole[] = []): string => {
+  // 1. Try to find in HR Roles (source of truth)
+  const hrMatch = hrRoles.find(r => r.code === role);
+  if (hrMatch) return hrMatch.name || hrMatch.code;
+  // 2. Fall back to legacy label
+  if (LEGACY_ROLE_LABELS[role]) return LEGACY_ROLE_LABELS[role];
+  // 3. Return raw code
+  return role;
 };
 
 const formatDate = (dateStr: string) => {
@@ -160,6 +174,12 @@ export default function UserDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // HR Roles and Org Units — fetched from /api/hr/roles and /api/hr/org-units
+  // so the dropdowns reflect real data managed in the HR module.
+  const [hrRoles, setHrRoles] = useState<HRRole[]>([]);
+  const [orgUnits, setOrgUnits] = useState<OrgUnit[]>([]);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(true);
 
   // Edit mode
   const [isEditing, setIsEditing] = useState(false);
@@ -213,6 +233,34 @@ export default function UserDetailPage() {
       fetchUser();
     }
   }, [userId, fetchUser]);
+
+  // Fetch HR Roles and Org Units for dropdowns — matches /users/new flow so
+  // the role list stays in sync with what HR admins configure in /hr/roles.
+  useEffect(() => {
+    const fetchLookupData = async () => {
+      try {
+        setIsLoadingOptions(true);
+        const [rolesRes, orgUnitsRes] = await Promise.all([
+          fetch('/api/hr/roles'),
+          fetch('/api/hr/org-units'),
+        ]);
+        const rolesData = await rolesRes.json();
+        const orgUnitsData = await orgUnitsRes.json();
+
+        if (rolesData.success && Array.isArray(rolesData.data)) {
+          setHrRoles(rolesData.data);
+        }
+        if (orgUnitsData.success && Array.isArray(orgUnitsData.data)) {
+          setOrgUnits(orgUnitsData.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch HR lookup data:', err);
+      } finally {
+        setIsLoadingOptions(false);
+      }
+    };
+    fetchLookupData();
+  }, []);
 
   const handleSave = async () => {
     if (!user) return;
@@ -515,32 +563,100 @@ export default function UserDetailPage() {
                     )}
                   </div>
 
-                  {/* Role */}
+                  {/* Role — dropdown is populated from /api/hr/roles
+                       (HR Roles module). Legacy roles (admin, manager, etc.)
+                       are included as a fallback group so existing users
+                       can still be represented while their codes get migrated
+                       to proper HR Roles. */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
                       <Shield className="h-4 w-4" />
                       บทบาท
+                      {isEditing && (
+                        <a
+                          href="/hr/roles"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-auto text-xs text-blue-600 hover:text-blue-800 hover:underline font-normal"
+                        >
+                          จัดการ Role ใน HR →
+                        </a>
+                      )}
                     </label>
                     {isEditing ? (
-                      <DxSelectBox
-                        items={roleOptions}
-                        value={editForm.role}
-                        onValueChange={(value) => setEditForm({ ...editForm, role: value })}
-                        valueExpr="value"
-                        displayExpr="label"
-                        data-testid="user-edit-role-select"
-                      />
+                      <>
+                        <DxSelectBox
+                          items={[
+                            // HR Roles group (live data)
+                            ...hrRoles.map((r) => ({
+                              value: r.code,
+                              label: `${r.name || r.code} (${r.code})`,
+                              group: 'HR Roles',
+                            })),
+                            // Legacy roles fallback — only show those not already
+                            // defined in HR Roles (avoid duplicate codes)
+                            ...Object.entries(LEGACY_ROLE_LABELS)
+                              .filter(([code]) => !hrRoles.some((r) => r.code === code))
+                              .map(([code, label]) => ({
+                                value: code,
+                                label: `${label} (${code}) · legacy`,
+                                group: 'Legacy',
+                              })),
+                          ]}
+                          value={editForm.role}
+                          onValueChange={(value) => setEditForm({ ...editForm, role: value as string })}
+                          valueExpr="value"
+                          displayExpr="label"
+                          searchEnabled
+                          disabled={isLoadingOptions}
+                          data-testid="user-edit-role-select"
+                        />
+                        {isLoadingOptions && (
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                            <Clock className="h-3 w-3" /> กำลังโหลดรายการ Role จาก HR...
+                          </p>
+                        )}
+                        {/* Show description of currently selected HR role, if any */}
+                        {(() => {
+                          const selected = hrRoles.find((r) => r.code === editForm.role);
+                          if (selected) {
+                            return (
+                              <div className="mt-1 text-xs text-gray-500 bg-blue-50 border-l-2 border-blue-300 px-2 py-1 rounded">
+                                <Shield className="h-3 w-3 inline mr-1 text-blue-600" />
+                                {selected.description || 'Role จาก HR'}
+                                {typeof selected.permissionCount === 'number' && (
+                                  <span className="ml-2 text-blue-700 font-semibold">
+                                    · {selected.permissionCount} permissions
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          }
+                          if (editForm.role && LEGACY_ROLE_LABELS[editForm.role]) {
+                            return (
+                              <div className="mt-1 text-xs text-amber-700 bg-amber-50 border-l-2 border-amber-300 px-2 py-1 rounded">
+                                ⚠️ Legacy role code — แนะนำให้สร้าง Role ใน HR
+                                แล้วเปลี่ยนเป็น Role ใหม่
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </>
                     ) : (
                       <div className="flex items-center gap-2">
                         <div className={`p-1.5 rounded ${roleConfig.bgColor}`}>
                           {roleConfig.icon}
                         </div>
-                        <span className="text-gray-900">{formatRole(user.role)}</span>
+                        <span className="text-gray-900">{formatRole(user.role, hrRoles)}</span>
+                        {hrRoles.some((r) => r.code === user.role) && (
+                          <Badge variant="info">HR Role</Badge>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* Department */}
+                  {/* Department — populated from /api/hr/org-units */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
@@ -548,12 +664,16 @@ export default function UserDetailPage() {
                     </label>
                     {isEditing ? (
                       <DxSelectBox
-                        items={departmentOptions}
+                        items={[
+                          { value: '', label: 'ไม่ระบุ' },
+                          ...orgUnits.map((u) => ({ value: u.name, label: u.name })),
+                        ]}
                         value={editForm.department}
-                        onValueChange={(value) => setEditForm({ ...editForm, department: value })}
+                        onValueChange={(value) => setEditForm({ ...editForm, department: value as string })}
                         valueExpr="value"
                         displayExpr="label"
                         searchEnabled
+                        disabled={isLoadingOptions}
                         data-testid="user-edit-department-select"
                       />
                     ) : (

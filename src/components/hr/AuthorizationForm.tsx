@@ -16,6 +16,7 @@ import { ChevronLeft, ShieldCheck, Edit3 } from 'lucide-react';
 import { createHrNavigator } from '@/lib/hr/navigation';
 import { handleApiError, showSuccess, showWarning } from '@/lib/hr/error-handler';
 import type { AuthorizationWithDetails, AuthorizationType, EmployeeWithDetails } from '@/types/hr';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 // Authorization type configuration
 const AUTH_TYPE_CONFIG: Record<
@@ -55,7 +56,7 @@ const defaultFormData: AuthorizationFormData = {
   employeeId: undefined,
   authType: undefined,
   scopeProductLines: [],
-  effectiveFrom: new Date().toISOString().split('T')[0],
+  effectiveFrom: toLocalDateStr(new Date()),
   effectiveTo: '',
 };
 

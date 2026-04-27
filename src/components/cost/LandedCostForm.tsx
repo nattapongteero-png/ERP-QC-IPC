@@ -9,16 +9,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from 'devextreme-react/button';
-import { TextBox } from 'devextreme-react/text-box';
-import { NumberBox } from 'devextreme-react/number-box';
-import { SelectBox } from 'devextreme-react/select-box';
-import DataGrid, { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResponsivePageHeader } from '@/components/shared';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Receipt, Truck, Calculator, FileCheck } from 'lucide-react';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import type {
   LandedCostHeader,
   LandedCostHeaderCreate,
@@ -353,7 +354,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
         actions={
           <div className="flex gap-2">
             {canAllocate && (
-              <Button
+              <DxButton
                 text="Allocate"
                 icon="chart"
                 type="default"
@@ -363,7 +364,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
               />
             )}
             {canPost && (
-              <Button
+              <DxButton
                 text="Post"
                 icon="check"
                 type="success"
@@ -373,13 +374,13 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             )}
             {isEditable && (
               <>
-                <Button
+                <DxButton
                   text="Cancel"
                   type="normal"
                   stylingMode="outlined"
                   onClick={() => router.push('/cost/landed-costs')}
                 />
-                <Button
+                <DxButton
                   text={mode === 'create' ? 'Create' : 'Save'}
                   type="default"
                   icon="save"
@@ -389,7 +390,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
               </>
             )}
             {mode === 'edit' && landedCost?.status === 'draft' && (
-              <Button
+              <DxButton
                 text="Delete"
                 type="danger"
                 stylingMode="outlined"
@@ -432,24 +433,22 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Purchase Order *
             </label>
-            <SelectBox
-              dataSource={purchaseOrders}
+            <DxSelectBox
+              items={purchaseOrders as any[]}
               displayExpr="poNumber"
               valueExpr="id"
               value={formData.referenceId}
-              onValueChanged={(e) => {
-                const po = purchaseOrders.find((p) => p.id === e.value);
+              onValueChange={(val: any) => {
+                const po = purchaseOrders.find((p) => p.id === val);
                 setFormData((prev) => ({
                   ...prev,
-                  referenceId: e.value,
+                  referenceId: val,
                   vendorId: po?.vendorId || null,
                 }));
               }}
               disabled={!isEditable}
               searchEnabled
-              showClearButton
               placeholder="Select PO..."
-              data-testid="po-select"
             />
           </div>
 
@@ -457,17 +456,15 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Vendor
             </label>
-            <SelectBox
-              dataSource={vendors}
+            <DxSelectBox
+              items={vendors as any[]}
               displayExpr="name"
               valueExpr="id"
               value={formData.vendorId}
-              onValueChanged={(e) => setFormData((prev) => ({ ...prev, vendorId: e.value }))}
+              onValueChange={(val: any) => setFormData((prev) => ({ ...prev, vendorId: val }))}
               disabled={!isEditable}
               searchEnabled
-              showClearButton
               placeholder="Select vendor..."
-              data-testid="vendor-select"
             />
           </div>
 
@@ -475,12 +472,11 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Invoice Number
             </label>
-            <TextBox
+            <DxTextBox
               value={formData.invoiceNumber}
-              onValueChanged={(e) => setFormData((prev) => ({ ...prev, invoiceNumber: e.value }))}
+              onValueChange={(val) => setFormData((prev) => ({ ...prev, invoiceNumber: val }))}
               disabled={!isEditable}
               placeholder="Enter invoice number"
-              data-testid="invoice-number-input"
             />
           </div>
 
@@ -490,18 +486,16 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             </label>
             <DxDateBox
               value={formData.invoiceDate || undefined}
-              onValueChanged={(e) => {
-                const val = e.value;
+              onValueChange={(val: any) => {
                 let formatted: string | null = null;
-                if (val instanceof Date) {
-                  formatted = val.toISOString().split('T')[0]; // YYYY-MM-DD
+                if (val && typeof val === 'object' && 'toISOString' in val) {
+                  formatted = toLocalDateStr(val as Date);
                 } else if (typeof val === 'string' && val) {
                   formatted = val.includes('T') ? val.split('T')[0] : val;
                 }
                 setFormData((prev) => ({ ...prev, invoiceDate: formatted }));
               }}
               disabled={!isEditable}
-              data-testid="invoice-date-input"
             />
           </div>
 
@@ -509,12 +503,13 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Currency
             </label>
-            <SelectBox
-              items={currencies}
+            <DxSelectBox
+              items={currencies.map(c => ({ value: c, label: c }))}
               value={formData.currency}
-              onValueChanged={(e) => setFormData((prev) => ({ ...prev, currency: e.value }))}
+              valueExpr="value"
+              displayExpr="label"
+              onValueChange={(val) => setFormData((prev) => ({ ...prev, currency: val }))}
               disabled={!isEditable}
-              data-testid="currency-select"
             />
           </div>
 
@@ -522,13 +517,12 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Exchange Rate
             </label>
-            <NumberBox
+            <DxNumberBox
               value={formData.exchangeRate}
-              onValueChanged={(e) => setFormData((prev) => ({ ...prev, exchangeRate: e.value }))}
+              onValueChange={(val) => setFormData((prev) => ({ ...prev, exchangeRate: val ?? 1 }))}
               disabled={!isEditable}
               min={0.0001}
               format="#,##0.####"
-              data-testid="exchange-rate-input"
             />
           </div>
         </CardContent>
@@ -542,13 +536,12 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             Cost Lines
           </CardTitle>
           {isEditable && (
-            <Button
+            <DxButton
               text="Add Line"
               icon="plus"
               type="default"
               stylingMode="outlined"
               onClick={addLine}
-              data-testid="add-line-button"
             />
           )}
         </CardHeader>
@@ -562,29 +555,29 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
               >
                 <div className="md:col-span-2">
                   <label className="block text-xs text-gray-500 mb-1">Cost Type</label>
-                  <SelectBox
-                    dataSource={costTypes}
+                  <DxSelectBox
+                    items={costTypes}
                     displayExpr="label"
                     valueExpr="value"
                     value={line.costType}
-                    onValueChanged={(e) => updateLine(index, 'costType', e.value)}
+                    onValueChange={(val) => updateLine(index, 'costType', val)}
                     disabled={!isEditable}
                   />
                 </div>
                 <div className="md:col-span-3">
                   <label className="block text-xs text-gray-500 mb-1">Description</label>
-                  <TextBox
+                  <DxTextBox
                     value={line.description || ''}
-                    onValueChanged={(e) => updateLine(index, 'description', e.value)}
+                    onValueChange={(val) => updateLine(index, 'description', val)}
                     disabled={!isEditable}
                     placeholder="Description"
                   />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs text-gray-500 mb-1">Amount</label>
-                  <NumberBox
+                  <DxNumberBox
                     value={line.amount}
-                    onValueChanged={(e) => updateLine(index, 'amount', e.value)}
+                    onValueChange={(val) => updateLine(index, 'amount', val)}
                     disabled={!isEditable}
                     min={0}
                     format="#,##0.00"
@@ -592,23 +585,22 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
                 </div>
                 <div className="md:col-span-3">
                   <label className="block text-xs text-gray-500 mb-1">Allocation Basis</label>
-                  <SelectBox
-                    dataSource={allocationBases}
+                  <DxSelectBox
+                    items={allocationBases}
                     displayExpr="label"
                     valueExpr="value"
                     value={line.allocationBasis}
-                    onValueChanged={(e) => updateLine(index, 'allocationBasis', e.value)}
+                    onValueChange={(val) => updateLine(index, 'allocationBasis', val)}
                     disabled={!isEditable}
                   />
                 </div>
                 <div className="md:col-span-2 flex items-end">
                   {isEditable && formData.lines.length > 1 && (
-                    <Button
+                    <DxButton
                       icon="trash"
                       type="danger"
                       stylingMode="text"
                       onClick={() => removeLine(index)}
-                      hint="Remove line"
                     />
                   )}
                 </div>
@@ -639,20 +631,17 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <DataGrid
+            <DxDataGrid
               dataSource={landedCost.allocations}
               showBorders
-              columnAutoWidth
               rowAlternationEnabled
-            >
-              <Column dataField="itemCode" caption="Item Code" width={120} />
-              <Column dataField="itemName" caption="Item Name" />
-              <Column dataField="basisValue" caption="Basis Value" format="#,##0.00" width={120} />
-              <Column dataField="allocatedAmount" caption="Allocated Amount" format="#,##0.0000" width={140} />
-              <Summary>
-                <TotalItem column="allocatedAmount" summaryType="sum" valueFormat="#,##0.0000" />
-              </Summary>
-            </DataGrid>
+              columns={[
+                { dataField: 'itemCode', caption: 'Item Code', width: 120 },
+                { dataField: 'itemName', caption: 'Item Name' },
+                { dataField: 'basisValue', caption: 'Basis Value', format: '#,##0.00', width: 120 },
+                { dataField: 'allocatedAmount', caption: 'Allocated Amount', format: '#,##0.0000', width: 140 },
+              ] as DxDataGridColumn[]}
+            />
           </CardContent>
         </Card>
       )}
@@ -666,13 +655,13 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
               Are you sure you want to delete this landed cost? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
-              <Button
+              <DxButton
                 text="Cancel"
                 type="normal"
                 stylingMode="outlined"
                 onClick={() => setShowDeleteConfirm(false)}
               />
-              <Button
+              <DxButton
                 text="Delete"
                 type="danger"
                 onClick={() => {

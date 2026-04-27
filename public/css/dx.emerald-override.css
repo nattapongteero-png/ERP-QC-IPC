@@ -170,3 +170,22 @@ a:hover {
 .dx-treeview-item.dx-state-selected > .dx-treeview-item-content {
   color: #059669 !important;
 }
+
+/* Language switcher in sidebar - white text on dark background */
+.sidebar-language-switcher .dx-texteditor-input,
+.sidebar-language-switcher .dx-placeholder::before,
+.sidebar-language-switcher .dx-texteditor-input-container input {
+  color: #ffffff !important;
+}
+
+.sidebar-language-switcher .dx-selectbox .dx-texteditor-container {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.sidebar-language-switcher .dx-selectbox .dx-dropdowneditor-icon::before {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.sidebar-language-switcher .dx-selectbox:hover .dx-texteditor-container {
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}

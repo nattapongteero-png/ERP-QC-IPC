@@ -392,12 +392,16 @@ function NewQualityTestContent() {
         </div>
       </div>
 
-      {/* Lot Search Dialog */}
+      {/* Lot Search Dialog.
+          Per GMP workflow, QC tests are only created for lots that are
+          still in Quarantine (waiting for release). Released lots are
+          already approved and shouldn't be retested from this screen. */}
       <LotSearchDialog
         open={lotDialogOpen}
         onOpenChange={setLotDialogOpen}
         onSelect={handleSelectLot}
         title="Select Lot for QC Test"
+        filterStatus="quarantine"
       />
     </>
   );

@@ -12,8 +12,9 @@ import {
   deleteWOEnvironmentalLog,
   validateEnvironmentalReading,
 } from '@/lib/services/wo-execution.service';
+import { getActivePhase } from '@/lib/services/phase-state.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, desc } from 'drizzle-orm';
 
 // Valid phases for environmental monitoring
 const VALID_PHASES = ['pre_production', 'production', 'packaging'];
@@ -155,38 +156,99 @@ export async function POST(request: NextRequest) {
           return successResponse({ logged: 0 }, `Room ${roomId} not in any active WO`);
         }
 
-        // Log for each matching WO + phase
-        const results: { workOrderId: number; phase: string; isNormal: boolean }[] = [];
+        // Log for each matching WO + phase (enforce monitoringIntervalMinutes)
+        const envLogsTable = getTableRef('wOEnvironmentalLogs');
+        const results: { workOrderId: number; phase: string; isNormal: boolean; skipped?: boolean; reason?: string }[] = [];
+
         for (const bomRoom of matchingBomRooms) {
-          const wo = activeWOs.find((w: { bomId: number }) => w.bomId === bomRoom.bomId);
-          if (!wo) continue;
-
-          const validation = await validateEnvironmentalReading(
-            bomRoom.bomId as number, bomRoom.phase as string, temperature, humidity
+          // Multiple active WOs can share the same BOM — log the reading for
+          // EACH of them (previously .find() only picked the first match, so
+          // other WOs on the same BOM never got IoT data).
+          const matchingWOs = activeWOs.filter(
+            (w: { bomId: number }) => w.bomId === bomRoom.bomId,
           );
+          if (matchingWOs.length === 0) continue;
 
-          const now = new Date();
-          const bangkokDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); // YYYY-MM-DD
-          const bangkokTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false }); // HH:mm
-          await createWOEnvironmentalLog({
-            workOrderId: wo.id as number,
-            bomConditionId: validation.bomConditionId,
-            roomId,
-            phase: bomRoom.phase as string,
-            recordedDate: bangkokDate,
-            recordedTime: bangkokTime,
-            temperature, humidity,
-            isNormal: validation.isNormal,
-            operatorId: operatorUserId,
-            notes: data.notes || 'Auto-recorded by IoT sensor',
-          });
+          for (const wo of matchingWOs) {
+            // ─── Phase gate ──────────────────────────────────────────
+            // Only log when the room's BOM-configured phase matches this WO's
+            // currently-active phase (computed from activity checklist).
+            // Prevents data bleeding between phases.
+            const activePhase = await getActivePhase(wo.id as number);
+            if (activePhase !== bomRoom.phase) {
+              results.push({
+                workOrderId: wo.id as number,
+                phase: bomRoom.phase as string,
+                isNormal: false,
+                skipped: true,
+                reason: activePhase === null
+                  ? 'No active phase (all phases complete or WO inactive)'
+                  : `Active phase is '${activePhase}', not '${bomRoom.phase}'`,
+              });
+              continue;
+            }
 
-          results.push({ workOrderId: wo.id as number, phase: bomRoom.phase as string, isNormal: validation.isNormal });
+            const validation = await validateEnvironmentalReading(
+              bomRoom.bomId as number, bomRoom.phase as string, temperature, humidity
+            );
+
+            // Strict-interval enforcement: if a log exists within the last N minutes, skip.
+            // First reading in a phase is always logged (no previous log → not skipped).
+            const intervalMinutes = validation.monitoringIntervalMinutes;
+            if (intervalMinutes && intervalMinutes > 0) {
+              const [lastLog] = await executeDbOperation(async (db) => {
+                return db
+                  .select({ createdAt: envLogsTable.createdAt })
+                  .from(envLogsTable)
+                  .where(and(
+                    eq(envLogsTable.workOrderId, wo.id as number),
+                    eq(envLogsTable.phase, bomRoom.phase as string)
+                  ))
+                  .orderBy(desc(envLogsTable.createdAt))
+                  .limit(1);
+              });
+
+              if (lastLog?.createdAt) {
+                const lastTime = new Date(lastLog.createdAt as string).getTime();
+                const ageMinutes = (Date.now() - lastTime) / 60000;
+                if (ageMinutes < intervalMinutes) {
+                  results.push({
+                    workOrderId: wo.id as number,
+                    phase: bomRoom.phase as string,
+                    isNormal: validation.isNormal,
+                    skipped: true,
+                    reason: `Within ${intervalMinutes}-minute interval (last log ${Math.round(ageMinutes)} min ago)`,
+                  });
+                  continue;
+                }
+              }
+            }
+
+            const now = new Date();
+            const bangkokDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); // YYYY-MM-DD
+            const bangkokTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false }); // HH:mm
+            await createWOEnvironmentalLog({
+              workOrderId: wo.id as number,
+              bomConditionId: validation.bomConditionId,
+              roomId,
+              phase: bomRoom.phase as string,
+              recordedDate: bangkokDate,
+              recordedTime: bangkokTime,
+              temperature, humidity,
+              isNormal: validation.isNormal,
+              operatorId: operatorUserId,
+              notes: data.notes || 'Auto-recorded by IoT sensor',
+            });
+
+            results.push({ workOrderId: wo.id as number, phase: bomRoom.phase as string, isNormal: validation.isNormal });
+          }
         }
 
+        const loggedCount = results.filter((r) => !r.skipped).length;
+        const skippedCount = results.filter((r) => r.skipped).length;
         return successResponse(
-          { logged: results.length, details: results },
-          `Logged ${results.length} reading(s) for room ${roomId}`
+          { logged: loggedCount, skipped: skippedCount, details: results },
+          `Logged ${loggedCount} reading(s), skipped ${skippedCount} for room ${roomId}`
         );
       }
 

@@ -1,0 +1,196 @@
+{
+  "dashboard": {
+    "title": "แดชบอร์ดเทมเพลต",
+    "subtitle": "การแสดงผลกราฟ DevExtreme - ตัวอย่างโมดูล ERP",
+    "newItem": "สร้างรายการใหม่",
+    "quickAccess": "เข้าถึงด่วน",
+    "chartsReference": "คู่มืออ้างอิงกราฟ DevExtreme",
+    "chartsReferenceDescription": "แดชบอร์ดนี้แสดงตัวอย่างประเภทของกราฟที่มีให้ใช้งานใน DevExtreme React",
+    "loading": "กำลังโหลด...",
+    "noData": "ไม่มีข้อมูล",
+    "noCategories": "ไม่พบหมวดหมู่",
+    "noItemsFound": "ไม่พบรายการ",
+    "createFirstItem": "สร้างรายการแรกของคุณ",
+    "viewAll": "ดูทั้งหมด",
+    "kpi": {
+      "totalItems": "จำนวนรายการทั้งหมด",
+      "totalItemsDescription": "รายการทั้งหมดในระบบ",
+      "activeItems": "รายการที่ใช้งาน",
+      "activeItemsPercent": "{percent}% ของทั้งหมด",
+      "draftItems": "รายการฉบับร่าง",
+      "draftItemsDescription": "รอการตรวจสอบ",
+      "totalValue": "มูลค่ารวม",
+      "totalValueDescription": "มูลค่ารวมของพอร์ต"
+    },
+    "cards": {
+      "activeRate": "อัตราการใช้งานของรายการ",
+      "activeRateDescription": "เปอร์เซ็นต์ของรายการที่ใช้งาน",
+      "monthlyTarget": "เป้าหมายประจำเดือน",
+      "monthlyTargetDescription": "ความคืบหน้าสู่เป้าหมาย 100 รายการ",
+      "statusDistribution": "การกระจายของสถานะ",
+      "statusDistributionDescription": "ใช้งาน / ฉบับร่าง / เก็บถาวร",
+      "itemsByStatus": "รายการตามสถานะ",
+      "itemsByStatusDescription": "กราฟโดนัทแสดงผล",
+      "itemsByPriority": "รายการตามความสำคัญ",
+      "itemsByPriorityDescription": "กราฟแท่งแนวนอน",
+      "monthlyTrend": "แนวโน้มรายเดือน",
+      "monthlyTrendDescription": "กราฟพื้นที่แบบสไปลน์พร้อมการไล่ระดับสี",
+      "workflowPipeline": "ช่องทางของเวิร์กโฟลว์",
+      "workflowPipelineDescription": "กราฟกรวยแสดงขั้นตอนวงจรชีวิตของรายการ",
+      "performanceMetrics": "ตัวชี้วัดประสิทธิภาพ",
+      "performanceMetricsDescription": "กราฟเรดาร์/โพลาร์สำหรับการวิเคราะห์หลายมิติ",
+      "categoryAnalysis": "การวิเคราะห์หมวดหมู่",
+      "categoryAnalysisDescription": "กราฟแท่งซ้อนแสดงรายการและมูลค่าตามหมวดหมู่",
+      "recentItems": "รายการล่าสุด",
+      "recentItemsDescription": "รายการล่าสุดที่เพิ่มเข้าระบบ"
+    },
+    "chartSeries": {
+      "items": "รายการ",
+      "valueScaled": "มูลค่า (x1000)",
+      "itemsCount": "จำนวนรายการ",
+      "valueThb": "มูลค่า (บาท)",
+      "score": "คะแนน",
+      "count": "จำนวน",
+      "conversion": "การแปลง",
+      "itemsAxis": "รายการ",
+      "valueAxis": "มูลค่า"
+    },
+    "statuses": {
+      "active": "ใช้งาน",
+      "draft": "ฉบับร่าง",
+      "archived": "เก็บถาวร"
+    },
+    "workflowStages": {
+      "created": "สร้างแล้ว",
+      "inReview": "อยู่ระหว่างตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "active": "ใช้งาน",
+      "completed": "เสร็จสิ้น"
+    },
+    "performance": {
+      "quality": "คุณภาพ",
+      "speed": "ความเร็ว",
+      "accuracy": "ความแม่นยำ",
+      "efficiency": "ประสิทธิภาพ",
+      "cost": "ต้นทุน",
+      "safety": "ความปลอดภัย"
+    },
+    "quickLinks": {
+      "allItems": "รายการทั้งหมด",
+      "allItemsDescription": "ดูและจัดการรายการทั้งหมด",
+      "newItem": "สร้างรายการใหม่",
+      "newItemDescription": "สร้างรายการใหม่",
+      "categories": "หมวดหมู่",
+      "categoriesDescription": "จัดการหมวดหมู่",
+      "reports": "รายงาน",
+      "reportsDescription": "ดูการวิเคราะห์"
+    },
+    "chartTypes": {
+      "sparkline": "สปาร์กไลน์",
+      "sparklineDescription": "พื้นที่, แท่ง, เส้น, แพ้ชนะ",
+      "circularGauge": "มาตรวัดวงกลม",
+      "circularGaugeDescription": "พร้อมตัวบ่งชี้ช่วง",
+      "linearGauge": "มาตรวัดแบบเส้น",
+      "linearGaugeDescription": "ความคืบหน้าแนวนอน",
+      "barGauge": "มาตรวัดแบบแท่ง",
+      "barGaugeDescription": "วงกลมหลายค่า",
+      "pieDoughnut": "วงกลม/โดนัท",
+      "pieDoughnutDescription": "พร้อมป้ายกำกับและคำอธิบาย",
+      "barChart": "กราฟแท่ง",
+      "barChartDescription": "แท่งแนวนอน",
+      "splineArea": "พื้นที่สไปลน์",
+      "splineAreaDescription": "หลายชุดข้อมูล, แกนคู่",
+      "funnel": "กรวย",
+      "funnelDescription": "การแสดงผลช่องทาง",
+      "polarRadar": "โพลาร์/เรดาร์",
+      "polarRadarDescription": "ตัวชี้วัดประสิทธิภาพ",
+      "stackedBar": "แท่งซ้อน",
+      "stackedBarDescription": "การเปรียบเทียบหมวดหมู่"
+    }
+  },
+  "categories": {
+    "title": "หมวดหมู่เทมเพลต",
+    "subtitle": "จัดการหมวดหมู่สำหรับการจัดระเบียบรายการ",
+    "newCategory": "หมวดหมู่ใหม่",
+    "searchPlaceholder": "ค้นหาหมวดหมู่...",
+    "statusPlaceholder": "สถานะ",
+    "filters": "ตัวกรอง:",
+    "stats": {
+      "total": "ทั้งหมด:",
+      "active": "ใช้งาน:",
+      "inactive": "ไม่ใช้งาน:"
+    },
+    "statusOptions": {
+      "all": "สถานะทั้งหมด",
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน"
+    },
+    "columns": {
+      "code": "รหัส",
+      "nameTh": "ชื่อ (ไทย)",
+      "nameEn": "ชื่อ (อังกฤษ)",
+      "color": "สี",
+      "sortOrder": "ลำดับ",
+      "status": "สถานะ",
+      "actions": "การดำเนินการ"
+    },
+    "deleteConfirm": {
+      "title": "ยืนยันการลบ",
+      "message": "คุณแน่ใจหรือไม่ว่าต้องการลบ \"{name}\"? ไม่สามารถลบหมวดหมู่ที่มีรายการอยู่ได้"
+    },
+    "toast": {
+      "deleteSuccess": "ลบหมวดหมู่เรียบร้อยแล้ว"
+    }
+  },
+  "items": {
+    "title": "รายการเทมเพลต",
+    "subtitle": "จัดการรายการทั้งหมดในระบบ",
+    "newItem": "สร้างรายการใหม่",
+    "searchPlaceholder": "ค้นหารายการ...",
+    "statusPlaceholder": "สถานะ",
+    "categoryPlaceholder": "หมวดหมู่",
+    "filters": "ตัวกรอง:",
+    "stats": {
+      "total": "ทั้งหมด:",
+      "active": "ใช้งาน:",
+      "draft": "ฉบับร่าง:",
+      "value": "มูลค่า:"
+    },
+    "statusOptions": {
+      "all": "สถานะทั้งหมด",
+      "draft": "ฉบับร่าง",
+      "active": "ใช้งาน",
+      "archived": "เก็บถาวร"
+    },
+    "categoryOptions": {
+      "all": "หมวดหมู่ทั้งหมด"
+    },
+    "columns": {
+      "code": "รหัส",
+      "nameTh": "ชื่อ (ไทย)",
+      "nameEn": "ชื่อ (อังกฤษ)",
+      "category": "หมวดหมู่",
+      "status": "สถานะ",
+      "priority": "ความสำคัญ",
+      "quantity": "จำนวน",
+      "unitPrice": "ราคาต่อหน่วย",
+      "totalValue": "มูลค่ารวม",
+      "actions": "การดำเนินการ"
+    },
+    "deleteConfirm": {
+      "title": "ยืนยันการลบ",
+      "message": "คุณแน่ใจหรือไม่ว่าต้องการลบ \"{name}\"? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+    },
+    "toast": {
+      "deleteSuccess": "ลบรายการเรียบร้อยแล้ว"
+    }
+  },
+  "actions": {
+    "cancel": "ยกเลิก",
+    "delete": "ลบ",
+    "deleting": "กำลังลบ...",
+    "clear": "ล้าง",
+    "view": "ดู",
+    "edit": "แก้ไข"
+  }
+}

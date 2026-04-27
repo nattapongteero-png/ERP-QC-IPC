@@ -95,11 +95,13 @@ export default function IPCCriteriaPage() {
             return <span className="text-sm">{d.minValue ?? '?'} - {d.maxValue ?? '?'} {d.unit || ''}</span>;
           }} />
           <DxColumn dataField="sampleSize" caption="Samples" width={80} alignment="center" />
-          <DxColumn dataField="isCritical" caption="Critical" width={80} cellRender={(cell) => (
-            cell.value ? <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Critical</span> : <span className="text-gray-400">-</span>
+          <DxColumn dataField="isCritical" caption="Critical" minWidth={100} cellRender={(cell) => (
+            cell.value
+              ? <span className="dx-cell-tag inline-flex text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Critical</span>
+              : <span className="text-gray-400">-</span>
           )} />
-          <DxColumn dataField="isActive" caption="Status" width={90} cellRender={(cell) => (
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+          <DxColumn dataField="isActive" caption="Status" minWidth={110} cellRender={(cell) => (
+            <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />

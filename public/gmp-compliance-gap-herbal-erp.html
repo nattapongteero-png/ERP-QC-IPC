@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GMP Compliance Gap Analysis - Herbal Medicine ERP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Sarabun','Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b;line-height:1.6;font-size:15px;}
+
+    .header{background:linear-gradient(135deg,#7c2d12 0%,#c2410c 50%,#ea580c 100%);color:white;padding:28px 0;text-align:center;position:relative;overflow:hidden;}
+    .header::before{content:'';position:absolute;top:-50%;right:-20%;width:500px;height:500px;background:rgba(255,255,255,0.04);border-radius:50%;}
+    .header .logo{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:16px;font-size:28px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.2);}
+    .header h1{font-size:24px;font-weight:700;margin:0;}
+    .header .subtitle{font-size:15px;opacity:0.9;margin-top:6px;}
+    .header .date{font-size:13px;opacity:0.75;margin-top:8px;}
+
+    .container{max-width:1400px;margin:0 auto;padding:0 20px;}
+    .content{padding:24px 0 60px;}
+
+    .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;}
+    .stat-card{background:white;border-radius:12px;border:1px solid #e2e8f0;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+    .stat-card .lbl{font-size:13px;color:#64748b;font-weight:500;}
+    .stat-card .val{font-size:28px;font-weight:700;margin-top:4px;}
+    .stat-card.orange .val{color:#ea580c;}
+    .stat-card.red .val{color:#dc2626;}
+    .stat-card.blue .val{color:#2563eb;}
+    .stat-card.green .val{color:#059669;}
+
+    .intro{background:#fef3c7;border:1px solid #fbbf24;border-left:4px solid #d97706;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:14px;color:#78350f;}
+    .intro b{color:#7c2d12;}
+
+    .section-title{font-size:18px;font-weight:700;color:#1e293b;margin:28px 0 14px;padding-left:12px;border-left:4px solid #ea580c;}
+
+    .issue-card{background:white;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:20px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+    .issue-head{padding:16px 22px;background:linear-gradient(135deg,#fff7ed,#ffedd5);border-bottom:1px solid #fed7aa;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+    .issue-head h3{font-size:17px;font-weight:700;color:#7c2d12;display:flex;align-items:center;gap:10px;}
+    .issue-head h3 .num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:#ea580c;color:white;border-radius:50%;font-size:15px;font-weight:700;}
+    .badge-gmp{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;}
+    .badge-gmp.fail{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+    .badge-gmp.partial{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
+
+    .tbl-wrap{padding:0;overflow-x:auto;}
+    table.gap{width:100%;border-collapse:collapse;font-size:13.5px;}
+    table.gap th{background:#fef3c7;padding:12px 14px;text-align:left;font-weight:700;color:#78350f;border-bottom:2px solid #fbbf24;white-space:nowrap;font-size:13px;}
+    table.gap td{padding:12px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;}
+    table.gap tr:last-child td{border-bottom:none;}
+    table.gap td.col-label{font-weight:600;color:#475569;width:180px;background:#f8fafc;}
+    table.gap td ul{list-style:none;padding-left:0;margin:0;}
+    table.gap td ul li{padding:3px 0 3px 18px;position:relative;font-size:13.5px;}
+    table.gap td ul li::before{content:'';position:absolute;left:2px;top:11px;width:6px;height:6px;border-radius:50%;}
+    table.gap td ul li.has::before{background:#22c55e;}
+    table.gap td ul li.miss::before{background:#ef4444;}
+    table.gap td ul li.todo::before{background:#f59e0b;}
+    table.gap td code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12.5px;color:#1e40af;font-family:ui-monospace,'Fira Code',monospace;}
+
+    .hr-estimate{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;background:#f0f9ff;border-top:1px solid #bae6fd;}
+    .hr-estimate .label{font-size:14px;color:#0c4a6e;font-weight:600;}
+    .hr-estimate .value{font-size:22px;color:#0369a1;font-weight:700;}
+    .hr-estimate .value small{font-size:14px;color:#0284c7;font-weight:500;margin-left:6px;}
+
+    .summary-card{background:white;border-radius:12px;border:2px solid #ea580c;padding:24px;margin-top:24px;box-shadow:0 4px 12px rgba(234,88,12,0.12);}
+    .summary-card h2{font-size:20px;color:#7c2d12;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+    .summary-tbl{width:100%;border-collapse:collapse;font-size:14px;}
+    .summary-tbl th{background:#fff7ed;padding:12px 14px;text-align:left;font-weight:700;color:#7c2d12;border-bottom:2px solid #fed7aa;}
+    .summary-tbl td{padding:12px 14px;border-bottom:1px solid #fed7aa;}
+    .summary-tbl tr:last-child td{border-bottom:none;}
+    .summary-tbl td.hr-val{text-align:right;font-weight:700;color:#ea580c;}
+    .summary-tbl tr.total{background:#fff7ed;}
+    .summary-tbl tr.total td{font-weight:700;color:#7c2d12;font-size:15px;}
+    .summary-tbl tr.total td.hr-val{font-size:18px;color:#c2410c;}
+
+    .footer{text-align:center;padding:24px;color:#64748b;font-size:13px;}
+    .footer b{color:#475569;}
+
+    @media (max-width:768px){
+      table.gap td.col-label{width:auto;}
+      .issue-head{flex-direction:column;align-items:flex-start;}
+      .hr-estimate{flex-direction:column;align-items:flex-start;gap:8px;}
+    }
+
+    @media print{
+      body{background:white;}
+      .header{break-inside:avoid;}
+      .issue-card{break-inside:avoid;page-break-inside:avoid;box-shadow:none;border:1px solid #ccc;}
+      .summary-card{break-inside:avoid;}
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <div class="logo">🏭</div>
+      <h1>GMP Compliance Gap Analysis</h1>
+      <div class="subtitle">สรุปประเด็นการชั่งวัตถุดิบ &amp; SOP Step - Herbal Medicine ERP</div>
+      <div class="date">วันที่จัดทำ: 20 เมษายน 2569 (2026-04-20)</div>
+    </div>
+  </div>
+
+  <div class="container content">
+    <div class="intro">
+      <b>📌 สรุปประเด็นที่ตรวจสอบวันนี้ (11 ประเด็น):</b>
+      (1) การคืนวัตถุดิบ, (2) Variance ชั่งไม่ตรงแผน, (3) SOP Step ↔ IPC,
+      (4) IPC Criteria Type + Bulk Action,
+      (5) FG Packaging Images, (6) FG Release Workflow,
+      (7) นำเข้าผล Lab ภายนอก,
+      (8) eBMR Gowning Inspection (เครื่องแต่งกาย),
+      (9) Document Mapping (กระดาษ+ดิจิทัล),
+      (10) การตอกเม็ดยา (Tablet Press),
+      (11) GMP Module Coverage (ขาด 6 หมวด) —
+      ทั้งหมดเกี่ยวข้องกับมาตรฐาน GMP (Good Manufacturing Practice) สำหรับการผลิตยาสมุนไพร
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card orange">
+        <div class="lbl">ประเด็นที่ตรวจสอบ</div>
+        <div class="val">11</div>
+      </div>
+      <div class="stat-card red">
+        <div class="lbl">สถานะ GMP Compliance</div>
+        <div class="val">ไม่ผ่าน</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="lbl">รวมเวลาพัฒนา (ประมาณ)</div>
+        <div class="val">175 ชม.</div>
+      </div>
+      <div class="stat-card green">
+        <div class="lbl">เทียบเป็นวันทำงาน</div>
+        <div class="val">~22 วัน</div>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 1 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">1</span> การคืนวัตถุดิบ (Material Return) หลังชั่งไม่หมด</h3>
+        <span class="badge-gmp partial">⚠ บางส่วน</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                เมื่อ Operator เบิกวัตถุดิบจากคลัง 100g แต่ชั่งใช้จริงเพียง 95g ต้องมีกระบวนการคืน 5g กลับคลัง
+                พร้อม audit trail เพื่อให้ระบบ stock ตรงความจริงและตรวจสอบย้อนหลังได้ตาม GMP
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has"><code>inventory_transactions</code> รองรับ type <code>'RETURN'</code> แล้ว</li>
+                  <li class="has">ระบบตัด stock ตาม <code>weighedQty</code> (ไม่ใช่จำนวนที่เบิก)</li>
+                  <li class="has">Audit trail framework พร้อมใช้ (<code>audited-wrapper.ts</code>)</li>
+                  <li class="has">Dual-control pattern ในการ verify</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">ฟิลด์ <code>returnedQty</code>, <code>returnedAt</code>, <code>returnedBy</code>, <code>returnReason</code> ใน <code>work_order_materials</code></li>
+                  <li class="miss">Status enum value <code>'returned'</code></li>
+                  <li class="miss">หน้า UI <code>/production/work-orders/[id]/material-return</code></li>
+                  <li class="miss">API orchestration เชื่อมการคืนกับ Work Order</li>
+                  <li class="miss">Dual control enforcement (Operator คืน, Warehouse Staff รับคืน)</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema migration (SQLite + MySQL) — เพิ่ม 4 ฟิลด์</li>
+                  <li class="todo">API: <code>POST /api/production/work-orders/[id]/materials/[mid]/return</code></li>
+                  <li class="todo">Modal UI "🔄 คืน X g กลับคลัง" ในหน้า material-weighing</li>
+                  <li class="todo">Dual control signing + audit log integration</li>
+                  <li class="todo">Unit test + E2E test</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">12 ชั่วโมง <small>(1.5 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 2 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">2</span> การตรวจจับ Variance (ชั่งไม่ตรงแผน)</h3>
+        <span class="badge-gmp fail">✗ ไม่ผ่าน GMP</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                เมื่อ Operator ชั่งวัตถุดิบเกิน/ต่ำกว่าจำนวนที่ plan ระบบต้องแจ้งเตือน บังคับกรอกเหตุผล (deviation reason)
+                และส่ง QA อนุมัติก่อนใช้งาน ตามมาตรฐาน GMP สำหรับ active ingredients
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has">UI แสดงกรอบสีเหลืองเมื่อ |variance| &gt; 5% (ข้อความ "ส่วนต่างสูง - กรุณาตรวจสอบ")</li>
+                  <li class="has">คำนวณ variance ในรายงาน WO detail (<code>variance = actualQty - plannedQty</code>)</li>
+                  <li class="has">โมดูล Deviation Management มีอยู่แล้ว (<code>/quality/deviations/</code>) แต่ไม่ถูกเชื่อม</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">Backend validation - API รับค่าชั่งใดๆ ก็ได้ ไม่บล็อก</li>
+                  <li class="miss">Modal บังคับกรอกเหตุผลเมื่อเกิน tolerance</li>
+                  <li class="miss">Verify button ไม่บล็อก - ชั่งเกิน 20% ก็กด Verify ผ่านได้</li>
+                  <li class="miss">ฟิลด์ <code>toleranceLow</code>, <code>toleranceHigh</code>, <code>deviationReason</code>, <code>deviationId</code>, <code>qaApprovedBy</code> ใน <code>work_order_materials</code></li>
+                  <li class="miss">Link ไปยัง Deviation module สำหรับ QA approval</li>
+                  <li class="miss">Audit log action marker <code>WEIGHING_VARIANCE_EXCEED</code></li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema migration - เพิ่ม 5 ฟิลด์ + tolerance master data ที่ BOM line</li>
+                  <li class="todo">Backend validation service reject หากเกิน ±10% (ค่าตั้งต้น ปรับได้)</li>
+                  <li class="todo">Deviation reason modal + QA notification</li>
+                  <li class="todo">Auto-create Deviation record เชื่อมกับ <code>/quality/deviations/</code></li>
+                  <li class="todo">Disable Verify button จนกว่า QA จะ approve</li>
+                  <li class="todo">รายงาน Variance Summary per WO + Dashboard KPI</li>
+                  <li class="todo">Unit test + E2E test</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">16 ชั่วโมง <small>(2 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 3 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">3</span> SOP Step ↔ IPC Integration</h3>
+        <span class="badge-gmp fail">✗ ไม่ผ่าน GMP</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                ใน SOP Template ต้องกำหนดได้ว่าขั้นตอนใดต้องทำ IPC (In-Process Control)
+                และในหน้าบันทึก SOP Step ต้องมี link ไปยังหน้าบันทึก IPC สำหรับ step นั้นๆ โดยตรง
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has">ตาราง <code>bom_sop_steps</code> เก็บ SOP steps ต่อ BOM</li>
+                  <li class="has">ตาราง <code>bom_in_process_qc</code> เก็บ IPC criteria ต่อ BOM (ระดับ BOM)</li>
+                  <li class="has">หน้าบันทึก SOP Execution (<code>/work-orders/[id]/sop-execution</code>)</li>
+                  <li class="has">หน้าบันทึก IPC (<code>/work-orders/[id]/ipc</code>)</li>
+                  <li class="has">Master data IPC Criteria (<code>/master-data/ipc-criteria/</code>)</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">ฟิลด์ <code>ipcCriteriaIds</code> (JSON array) ใน <code>bom_sop_steps</code></li>
+                  <li class="miss">UI เลือก IPC criteria ต่อ SOP Step ในหน้า BOM Configuration</li>
+                  <li class="miss">Badge "🔬 IPC Required" บน SOP step card</li>
+                  <li class="miss">ปุ่ม "บันทึก IPC" บน step card เชื่อมไปหน้า IPC พร้อม pre-select step</li>
+                  <li class="miss">Deep-link <code>/ipc?stepId=X</code> พร้อม filter IPC tests</li>
+                  <li class="miss">Logic บล็อก step verify ถ้า IPC ที่ required ยังไม่ผ่าน</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema migration - เพิ่ม <code>ipcCriteriaIds</code> ใน <code>bom_sop_steps</code> (SQLite + MySQL)</li>
+                  <li class="todo">Multi-select IPC criteria ใน SOP Step form (BOM Configuration)</li>
+                  <li class="todo">Badge + ปุ่ม "บันทึก IPC" ในหน้า SOP Execution</li>
+                  <li class="todo">Deep-link + pre-filter ในหน้า IPC</li>
+                  <li class="todo">API auto-create <code>wo_ipc_tests</code> records จาก step → ipcCriteriaIds</li>
+                  <li class="todo">Gate step verify ตาม IPC pass/fail status</li>
+                  <li class="todo">Unit test + E2E test</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">14 ชั่วโมง <small>(1.5-2 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 4 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">4</span> IPC — Criteria Type ใหม่ + Bulk Pass/Fail + UI Redesign</h3>
+        <span class="badge-gmp fail">✗ ไม่มีในระบบ</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                <b>4.1</b> เพิ่ม Criteria Type ใหม่ "ผ่าน/ไม่ผ่าน แบบระบุจำนวน" — กำหนด sample size เช่น 20 เม็ด, ระบุผ่าน 17 เม็ด ไม่ผ่าน 3 เม็ด (ช่อง auto-calc ซึ่งกันและกัน ห้ามระบุเกิน sample size)<br>
+                <b>4.2</b> เปลี่ยนชื่อ Criteria Type เดิม "ผ่าน/ไม่ผ่าน (checkbox)" → "ผ่าน/ไม่ผ่าน checkbox (ตรวจสอบแต่ละ sample)" เพื่อแยกความหมายจาก type ใหม่<br>
+                <b>4.3</b> ในหน้าบันทึก IPC (ตรวจลักษณะภายนอก) ต้องมีปุ่ม "All Pass" / "All Fail" bulk action เลือกได้พร้อมกันทุกตัวอย่าง + ปรับ design หน้าจอการบันทึกให้กระชับ
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has">Criteria Type ปัจจุบัน 2 แบบ: <code>numeric</code> (กรอกค่าตัวเลข) และ <code>checkbox</code> (Pass/Fail ต่อ sample)</li>
+                  <li class="has">ฟิลด์ <code>sampleSize</code>, <code>tolerancePercent</code> ใน <code>ipc_criteria</code></li>
+                  <li class="has">หน้าบันทึก checkbox IPC แสดง grid 5 columns + sequential fill (ต้องกดทีละ sample)</li>
+                  <li class="has">สรุป "ผ่าน X/Y ตัวอย่าง (pass%)" และ tolerance check</li>
+                  <li class="has">Master Data IPC Criteria form + ipc_test_samples table ครบ</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">Criteria Type "<b>count_based</b>" (ระบุจำนวนผ่าน/ไม่ผ่านแบบรวม ไม่ต้องเช็คทีละ sample)</li>
+                  <li class="miss">ฟิลด์ <code>passCount</code>, <code>failCount</code> ใน <code>ipc_criteria</code> table</li>
+                  <li class="miss">Logic auto-calc ใน Form: ระบุ pass = 17 ให้ fail auto = 3 (sample_size - pass)</li>
+                  <li class="miss">Validation: pass + fail ห้ามเกิน <code>sampleSize</code></li>
+                  <li class="miss">ปุ่ม "All Pass" / "All Fail" ในหน้า IPC Recording (บังคับกดทีละ sample)</li>
+                  <li class="miss">Section "ตรวจลักษณะภายนอก" (visual/appearance) แยกออกมาเฉพาะ — ปัจจุบันใช้ checkbox grid ร่วมกับ IPC อื่น</li>
+                  <li class="miss">UI redesign หน้าบันทึก IPC (header sticky, compact summary bar, group by criteria type)</li>
+                  <li class="miss">การเปลี่ยนชื่อ label "checkbox" → "checkbox (ตรวจสอบแต่ละ sample)" ใน UI + master data</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema migration — เพิ่ม <code>passCount</code>, <code>failCount</code> ใน <code>ipc_criteria</code> + enum value <code>count_based</code> (SQLite + MySQL)</li>
+                  <li class="todo">IPCCriteriaForm: เพิ่ม section "ผ่าน/ไม่ผ่าน แบบระบุจำนวน" + 2 input fields with bi-directional auto-calc</li>
+                  <li class="todo">Validation rules + Zod schema update สำหรับ count_based type</li>
+                  <li class="todo">IPC Recording page: เพิ่มปุ่ม "✅ ผ่านทั้งหมด" / "❌ ไม่ผ่านทั้งหมด" เหนือ checkbox grid</li>
+                  <li class="todo">เพิ่ม criteria type branch ใหม่ <code>count_based</code> รองรับใน recording UI (ช่องกรอกจำนวน 2 ช่อง + auto-calc)</li>
+                  <li class="todo">ปรับ design หน้าบันทึก IPC — sticky header, compact summary, bulk actions, criteria-type indicator badge</li>
+                  <li class="todo">อัปเดต label/translation keys (th/en) — "ผ่าน/ไม่ผ่าน checkbox (ตรวจสอบแต่ละ sample)" + "ผ่าน/ไม่ผ่าน แบบระบุจำนวน"</li>
+                  <li class="todo">Service <code>wo-execution.service.ts</code>: เพิ่ม aggregation logic สำหรับ count_based (ไม่ต้อง save ต่อ sample)</li>
+                  <li class="todo">Unit test + E2E test ครอบคลุม 3 criteria types</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">10 ชั่วโมง <small>(1-1.5 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 5 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">5</span> Finished Product — รูป Packaging (สติ๊กเกอร์/กล่อง/รูปยาในแพ็ค)</h3>
+        <span class="badge-gmp partial">⚠ บางส่วน</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                หน้า Master Data สินค้าสำเร็จรูป (Finished Product) ต้องมีช่องอัปโหลดรูปภาพ packaging แยกประเภท เช่น:
+                <ul style="margin-top:6px;padding-left:20px;">
+                  <li>สติ๊กเกอร์ติดขวด (Bottle Sticker)</li>
+                  <li>กล่องบรรจุภัณฑ์ (Packaging Box)</li>
+                  <li>รูปยาที่อยู่ใน package (Product Photo Inside Package)</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has">ตาราง <code>item_images</code> รองรับอัปโหลดรูปภาพ + thumbnail + sort order + description</li>
+                  <li class="has">API: <code>GET/POST/DELETE /api/items/[id]/images</code> ครบ (max 5MB, PNG/JPEG/GIF/WebP)</li>
+                  <li class="has">Component <code>ItemImagesSection</code> + integrated ใน <code>ItemEditForm</code> แล้ว</li>
+                  <li class="has">รองรับ primary image flag</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">ฟิลด์ <code>imageType</code> (enum: 'general', 'sticker', 'box_front', 'box_back', 'product_photo')</li>
+                  <li class="miss">UI แยกหมวดรูปภาพตามประเภท (Tabs / Category Filter)</li>
+                  <li class="miss">Slot อัปโหลดเฉพาะ packaging type สำหรับ FG items</li>
+                  <li class="miss">Label ภาษาไทย/อังกฤษต่อประเภท image</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema migration — เพิ่ม <code>imageType</code> enum ใน <code>item_images</code> (SQLite + MySQL)</li>
+                  <li class="todo">ขยาย <code>ItemImagesSection</code> — แยก Tabs ตามประเภท + สลอตเฉพาะสำหรับ FG</li>
+                  <li class="todo">API เพิ่ม filter <code>?imageType=sticker</code> + validation enum value</li>
+                  <li class="todo">Preview layout แสดงรูปทุกมุมใน item detail page</li>
+                  <li class="todo">Translation keys + i18n th/en</li>
+                  <li class="todo">Unit test + E2E test</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">7 ชั่วโมง <small>(~1 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 6 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">6</span> FG Release Workflow — ฝ่ายผลิต → Quarantine → QA/QC ปล่อยผ่าน/Reject</h3>
+        <span class="badge-gmp fail">✗ ไม่ผ่าน GMP</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                ต้องมี workflow การปล่อยสินค้าสำเร็จรูปตามมาตรฐาน GMP:<br>
+                <b>1.</b> ฝ่ายผลิตผลิตเสร็จ → FG เข้าสถานะ "รอตรวจ/กักกัน" (Quarantine)<br>
+                <b>2.</b> QA/QC ตรวจ → <b>Release</b> (ผ่าน) เข้าคลัง FG ขายได้ หรือ <b>Reject</b> (ไม่ผ่าน)<br>
+                <b>3.</b> หาก Reject → เลือกห้องเก็บ (ห้อง Reject / ห้องกักกัน / ห้อง Hold / ห้อง Disposal)<br>
+                <b>4.</b> บันทึก audit trail ว่าใครอนุมัติ/ปฏิเสธเมื่อไหร่
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has">ตาราง <code>inventory_lots</code> มี status field: <code>'quarantine'</code>, <code>'under_test'</code>, <code>'released'</code>, <code>'rejected'</code>, <code>'blocked'</code></li>
+                  <li class="has">API: <code>PUT /api/inventory/lots/[id]/status</code> เปลี่ยน status ได้</li>
+                  <li class="has">Lot เริ่มต้นที่ status <code>'quarantine'</code> อัตโนมัติหลังผลิต</li>
+                  <li class="has">Production Output page สร้าง FG lot หลังจบ WO</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">Workflow การอนุมัติเฉพาะสำหรับ FG (ตอนนี้ใช้ lot status ทั่วไปร่วมกับ RM)</li>
+                  <li class="miss">หน้า <code>/quality/fg-release</code> สำหรับ QA review &amp; approve</li>
+                  <li class="miss">ตาราง master data <code>quarantine_rooms</code> (ห้องกักกัน/ห้อง Reject/ห้อง Disposal)</li>
+                  <li class="miss">ฟิลด์ <code>qaReviewedBy</code>, <code>qaReviewedAt</code>, <code>quarantineRoomId</code>, <code>rejectionReason</code> ใน <code>inventory_lots</code></li>
+                  <li class="miss">Status ใหม่ <code>'pending_qa'</code> (แยกจาก <code>'quarantine'</code> ทั่วไป)</li>
+                  <li class="miss">การบังคับเลือกห้อง Reject ตอน Reject (required validation)</li>
+                  <li class="miss">FG Release Dashboard แสดงรายการรอ QA review</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema: ตาราง <code>quarantine_rooms</code> + 4 ฟิลด์ใหม่ใน <code>inventory_lots</code> (SQLite + MySQL)</li>
+                  <li class="todo">Master Data UI: <code>/master-data/quarantine-rooms</code> (CRUD)</li>
+                  <li class="todo">API: <code>POST /api/quality/fg-release/[lotId]</code> รับ action (release/reject) + roomId + reason</li>
+                  <li class="todo">หน้า <code>/quality/fg-release</code> — list FG pending QA + ปุ่ม Release / Reject (modal เลือกห้อง)</li>
+                  <li class="todo">Auto-trigger: WO complete → FG lot status = <code>'pending_qa'</code></li>
+                  <li class="todo">Dashboard KPI: "รอ QA Review X ชิ้น" + Notification</li>
+                  <li class="todo">Role permission: เฉพาะ QA/QC ทำ release ได้</li>
+                  <li class="todo">Audit log + Electronic Signature (GMP Part 11)</li>
+                  <li class="todo">Unit test + E2E test (happy path + reject flow)</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">18 ชั่วโมง <small>(2-2.5 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 7 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">7</span> QC — นำเข้าผล Lab ภายนอก (External Lab Test Import)</h3>
+        <span class="badge-gmp fail">✗ ไม่มีในระบบ</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                QC บางรายการต้องส่งตัวอย่างไปตรวจที่ Lab ภายนอก (เช่น ตรวจ Microbial, Heavy Metals, Pesticide Residues)
+                ต้องสามารถ import ผลการทดสอบจากภายนอกเข้าระบบได้ พร้อม:
+                <ul style="margin-top:6px;padding-left:20px;">
+                  <li>อัปโหลดไฟล์ PDF รายงาน Lab</li>
+                  <li>บันทึกเลข Certificate</li>
+                  <li>ระบุ Lab ผู้ตรวจ (จาก master data หรือ free text)</li>
+                  <li>กรอกค่าผลการทดสอบลงในระบบเพื่อใช้ตัดสิน pass/fail</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has">ตาราง <code>quality_tests</code> รองรับ test ภายใน ครบ (result, status, testedBy, approvedBy)</li>
+                  <li class="has">Test types: <code>'incoming'</code>, <code>'in_process'</code>, <code>'final'</code></li>
+                  <li class="has">หน้า <code>/quality/tests/new</code> + detail page</li>
+                  <li class="has">Document storage / file upload infrastructure พร้อมใช้</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">ตาราง master data <code>quality_labs</code> (Lab ภายนอกที่ทำสัญญาไว้)</li>
+                  <li class="miss">ฟิลด์ <code>testSource</code> ('internal'/'external') ใน <code>quality_tests</code></li>
+                  <li class="miss">ฟิลด์ <code>externalLabId</code>, <code>externalLabName</code>, <code>externalCertificateNumber</code>, <code>externalReportReceivedDate</code></li>
+                  <li class="miss">ตาราง <code>quality_test_attachments</code> เก็บ PDF report + reference</li>
+                  <li class="miss">UI Toggle "Internal / External" ในหน้ากรอกผล QC</li>
+                  <li class="miss">Section แนบไฟล์ PDF lab report (drag-drop)</li>
+                  <li class="miss">หน้า Master Data <code>/master-data/quality-labs</code></li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema: ตาราง <code>quality_labs</code> + <code>quality_test_attachments</code> + 5 ฟิลด์ใน <code>quality_tests</code> (SQLite + MySQL)</li>
+                  <li class="todo">Master Data UI: <code>/master-data/quality-labs</code> (CRUD + contact info)</li>
+                  <li class="todo">API: <code>POST /api/quality/tests/[id]/attachments</code> (upload PDF)</li>
+                  <li class="todo">Quality Test Form: เพิ่ม Toggle "Internal/External" + Section กรอกข้อมูล Lab ภายนอก</li>
+                  <li class="todo">Validation: External test ต้องมี cert number + lab + attachment</li>
+                  <li class="todo">Detail page: แสดง PDF preview + Download button</li>
+                  <li class="todo">Audit log: ใครนำเข้าผล external + เมื่อไหร่</li>
+                  <li class="todo">Translation keys + i18n th/en</li>
+                  <li class="todo">Unit test + E2E test (upload PDF scenarios)</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">20 ชั่วโมง <small>(2.5-3 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 8 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">8</span> eBMR — การตรวจสอบเครื่องแต่งกาย / PPE (Gowning Inspection)</h3>
+        <span class="badge-gmp fail">✗ ไม่มีในระบบ</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                eBMR ต้องมี section บันทึกการตรวจสอบเครื่องแต่งกายพนักงาน (Gowning Inspection) ก่อนเข้าพื้นที่ผลิต เช่น
+                ชุดคลุม (Lab Coat), หมวกคลุมผม (Hair Cap), หน้ากาก (Mask), ถุงมือ (Gloves), ที่ครอบรองเท้า (Shoe Covers) —
+                ตามมาตรฐาน GMP ต้องมี supervisor / QA เซ็นรับรองก่อนเริ่มผลิต
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has">Line clearance มี (equipment/room clearance) — <code>wo_cleaning_logs</code></li>
+                  <li class="has">Environmental monitoring มี (temp, humidity) — <code>wo_environmental_logs</code></li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">ตาราง <code>gowning_logs</code> (ไม่มีเลย)</li>
+                  <li class="miss">ฟิลด์ checklist: labCoat, hairCap, mask, gloves, shoeCovers, beard cover</li>
+                  <li class="miss">Supervisor/QA sign-off field</li>
+                  <li class="miss">Tab "Gowning Inspection" ใน WO execution</li>
+                  <li class="miss">API <code>/api/production/work-orders/[id]/gowning-logs</code></li>
+                  <li class="miss">Pre-production gate: ต้องผ่าน gowning ก่อนเริ่มชั่ง/ผลิต</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema: <code>gowning_logs</code> (workOrderId, operatorId, checkedBy, checkedAt, ppe checklist, status, notes, photo) — SQLite + MySQL</li>
+                  <li class="todo">API: POST/GET <code>/api/production/work-orders/[id]/gowning-logs</code></li>
+                  <li class="todo">UI: Tab "Gowning Inspection" + checklist form + photo upload</li>
+                  <li class="todo">Dual control: Operator self-check + QA/Supervisor verify</li>
+                  <li class="todo">Gate: บล็อก material weighing ถ้ายังไม่ pass gowning</li>
+                  <li class="todo">แสดง section ใน eBMR print/export</li>
+                  <li class="todo">Audit log + Electronic signature</li>
+                  <li class="todo">Translation keys + test</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">13 ชั่วโมง <small>(1.5-2 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 9 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">9</span> Document Mapping — รวมเอกสารกระดาษ + ดิจิทัล สำหรับ eBMR Export</h3>
+        <span class="badge-gmp partial">⚠ บางส่วน</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                ออกแบบหน้าจอ Document Mapping ให้ผู้ใช้ map/รวมเอกสาร paper-based (scan PDF เช่น ลายเซ็น supervisor, รายงาน lab ภายนอก)
+                เข้ากับข้อมูลที่บันทึกผ่านระบบ เพื่อ export เป็น eBMR ชุดเดียวที่ครบทั้งกระดาษและดิจิทัล
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has">Document Management module (<code>/gmp/documents/</code>) มี version control</li>
+                  <li class="has">ตาราง <code>attachments</code>, <code>documents</code>, <code>documentVersions</code>, <code>documentApprovals</code></li>
+                  <li class="has">CAPA มี attachment upload (<code>/api/capa/[id]/attachments</code>) — ใช้เป็น pattern ได้</li>
+                  <li class="has">Batch Records มี field <code>attachments: string[]</code> (แต่แค่ชื่อไฟล์)</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">ตาราง <code>wo_attachments</code> หรือ <code>wo_document_mapping</code></li>
+                  <li class="miss">ฟิลด์ <code>sourceType</code> ('paper_scan' / 'digital' / 'external_lab' / 'signature')</li>
+                  <li class="miss">ฟิลด์ <code>category</code> (เช่น 'gowning_photo', 'supervisor_signoff', 'external_qc_cert')</li>
+                  <li class="miss">UI Mapping Page — drag-drop / checkbox เลือกเอกสารที่จะรวมใน eBMR</li>
+                  <li class="miss">PDF Merge function สำหรับ export เอกสารรวมเป็น 1 ไฟล์</li>
+                  <li class="miss">Preview ลำดับเอกสารก่อน export</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema: <code>wo_attachments</code> (workOrderId, documentId/fileUrl, sourceType, category, sortOrder, mappedAt, mappedBy, isIncludedInExport)</li>
+                  <li class="todo">API: POST/GET/DELETE <code>/api/production/work-orders/[id]/attachments</code></li>
+                  <li class="todo">หน้า <code>/work-orders/[id]/document-mapping</code> — list + drag-drop order + checkbox include</li>
+                  <li class="todo">Section แยกตาม category: Gowning, Material Weighing, IPC, External Lab, Signatures, Other</li>
+                  <li class="todo">PDF Merge library (pdf-lib / pdf-merger-js) รวมเอกสาร digital + scanned paper</li>
+                  <li class="todo">Export action: Generate eBMR รวม + watermark "Certified Copy"</li>
+                  <li class="todo">Audit log: ใคร map เอกสารอะไรเข้า eBMR</li>
+                  <li class="todo">Unit test + E2E test</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">20 ชั่วโมง <small>(2.5-3 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 10 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">10</span> การบันทึกการตอกเม็ดยา / หัวเข็ม (Tablet Press / Compression Log)</h3>
+        <span class="badge-gmp fail">✗ ไม่มีในระบบ</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                บันทึกกระบวนการตอกเม็ดยา (Tablet Compression) — ขั้นตอนสำคัญในการผลิตยาเม็ด ต้องมี:
+                <ul style="margin-top:6px;padding-left:20px;">
+                  <li>ข้อมูล Punch Tool (รูปทรง ขนาด Embossing)</li>
+                  <li>Machine Parameters (แรงกด, ความเร็ว, ความแข็ง Hardness)</li>
+                  <li>Weight Variation Check (ค่าเฉลี่ย ±% ต่อเม็ด — ทุก 30 นาที)</li>
+                  <li>จำนวน Reject / Defect</li>
+                  <li>IPC ระหว่างตอก</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว</td>
+              <td>
+                <ul>
+                  <li class="has">SOP Execution (generic) — รองรับบันทึก step ทั่วไป</li>
+                  <li class="has">Material Weighing — ก่อนตอกใช้ได้</li>
+                  <li class="has">Production Output — หลังตอกบันทึก qty ได้</li>
+                  <li class="has">IPC — ใช้บันทึก weight variation ได้</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี</td>
+              <td>
+                <ul>
+                  <li class="miss">ตาราง <code>tablet_pressing_logs</code> (ไม่มีเลย)</li>
+                  <li class="miss">ตาราง <code>punch_tools</code> master data (รหัสเครื่องมือตอก)</li>
+                  <li class="miss">ฟิลด์ compressionForce, speed, hardness, thickness</li>
+                  <li class="miss">ฟิลด์ weightVarianceMin/Max + actualWeights array</li>
+                  <li class="miss">ฟิลด์ rejectCount, defectType, defectReason</li>
+                  <li class="miss">หน้า <code>/production/work-orders/[id]/tablet-pressing</code></li>
+                  <li class="miss">หน้า Master Data <code>/master-data/punch-tools</code></li>
+                  <li class="miss">Trend chart ของ weight variation ระหว่างกะผลิต</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Schema: <code>tablet_pressing_logs</code> + <code>punch_tools</code> (SQLite + MySQL)</li>
+                  <li class="todo">Master Data UI: <code>/master-data/punch-tools</code> (CRUD + shape, size, embossing, condition)</li>
+                  <li class="todo">Recording UI: <code>/work-orders/[id]/tablet-pressing</code> — parameter form + weight samples input + reject log</li>
+                  <li class="todo">Auto weight variation check: alert ถ้าเกิน ±5% (configurable)</li>
+                  <li class="todo">Integration: link กับ IPC test + SOP Execution</li>
+                  <li class="todo">Trend chart: weight variation ตลอด batch</li>
+                  <li class="todo">API: POST/GET/PUT <code>/api/production/work-orders/[id]/tablet-pressing</code></li>
+                  <li class="todo">Audit log + Electronic signature</li>
+                  <li class="todo">Export เข้า eBMR section "Tablet Compression Record"</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">18 ชั่วโมง <small>(2-2.5 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ ISSUE 11 ============ -->
+    <div class="issue-card">
+      <div class="issue-head">
+        <h3><span class="num">11</span> GMP Module Coverage — ครอบคลุมมาตรฐาน GMP 70% (ขาด 6 หมวด)</h3>
+        <span class="badge-gmp partial">⚠ 70% Coverage</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="gap">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-label">ประเด็น / ความต้องการ</td>
+              <td>
+                ตรวจสอบว่าหน้าจอทะเบียนและการบันทึกใน GMP Module ครอบคลุมมาตรฐาน GMP ครบหรือไม่
+                (SOPs, Qualification, Calibration, Maintenance, Environmental, Training, Change Control,
+                Deviation, CAPA, Complaint, Recall, Internal Audit, Validation, Stability, etc.)
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบมีแล้ว (15 หมวด ✓)</td>
+              <td>
+                <ul>
+                  <li class="has">SOPs / Procedures (<code>/gmp/documents</code>)</li>
+                  <li class="has">Preventive Maintenance (<code>maintenance_records</code>)</li>
+                  <li class="has">Cleaning Records (<code>wo_cleaning_logs</code>, <code>sanitation_logs</code>)</li>
+                  <li class="has">Environmental Monitoring (<code>wo_environmental_logs</code>)</li>
+                  <li class="has">Training Records (<code>hr_training_*</code>)</li>
+                  <li class="has">Change Control (<code>/gmp/changes</code>)</li>
+                  <li class="has">Deviations (<code>/quality/deviations</code>)</li>
+                  <li class="has">CAPA (<code>/gmp/capa</code>)</li>
+                  <li class="has">Complaints (<code>/gmp/complaints</code>)</li>
+                  <li class="has">Recalls (<code>/gmp/recalls</code>)</li>
+                  <li class="has">Internal Audit (<code>/gmp/internal-audit</code>)</li>
+                  <li class="has">Stability Studies (<code>/gmp/stability</code>)</li>
+                  <li class="has">Pest Control (<code>/gmp/sanitation/pest-control</code>)</li>
+                  <li class="has">Sanitation (<code>/gmp/sanitation</code>)</li>
+                  <li class="has">Document version control + approvals</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ระบบยังไม่มี (6 หมวด ✗)</td>
+              <td>
+                <ul>
+                  <li class="miss"><b>Equipment Qualification (IQ/OQ/PQ)</b> — ไม่มี qualification protocol แยก (มีแค่ calibration date)</li>
+                  <li class="miss"><b>Calibration Records (ครบ)</b> — มีแค่ <code>lastCalibrationDate</code> ไม่มี cert/frequency/history</li>
+                  <li class="miss"><b>Management Review</b> — ไม่มีเลย</li>
+                  <li class="miss"><b>Self-Inspection</b> — ไม่มี (internal audit มี แต่ไม่ใช่ self-inspection checklist)</li>
+                  <li class="miss"><b>Supplier Qualification</b> — มี approved vendor list แต่ไม่มี qualification record/audit/สัญญา</li>
+                  <li class="miss"><b>Water / HVAC System Monitoring</b> — environmental log มี แต่แค่ T/H ไม่มี water purity/HVAC pressure</li>
+                  <li class="miss"><b>Annual Product Review (APR/APQR)</b> — ไม่มีเลย (PQR บางส่วน แต่ไม่ครบ APR template)</li>
+                  <li class="miss"><b>Validation Protocols (IQ/OQ/PQ)</b> — ไม่มี template แยก (PQR มีบางส่วน)</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td class="col-label">สิ่งที่ต้องพัฒนา</td>
+              <td>
+                <ul>
+                  <li class="todo">Equipment Qualification — ตาราง <code>equipment_qualifications</code> + IQ/OQ/PQ templates + UI</li>
+                  <li class="todo">Calibration Records (ครบ) — ตาราง <code>calibration_records</code> + cert upload + schedule + reminder</li>
+                  <li class="todo">Management Review — ตาราง <code>management_reviews</code> + meeting minutes + action items</li>
+                  <li class="todo">Self-Inspection — ตาราง <code>self_inspections</code> + checklist master + findings</li>
+                  <li class="todo">Supplier Qualification — extend <code>approved_vendors</code> + qualification cycles + audits + contracts</li>
+                  <li class="todo">Water/HVAC Monitoring — extend environmental log schema + water purity, HVAC pressure differential</li>
+                  <li class="todo">Annual Product Review — ตาราง <code>annual_product_reviews</code> + APR report template + auto data aggregation</li>
+                  <li class="todo">Validation Protocols (IQ/OQ/PQ) — ตาราง <code>validation_protocols</code> แยก + execution records</li>
+                  <li class="todo">Update Sidebar navigation เพิ่ม 6 เมนูใหม่ใน GMP module</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hr-estimate">
+        <span class="label">⏱ ประมาณการเวลาพัฒนา</span>
+        <span class="value">27 ชั่วโมง <small>(3.5-4 วัน)</small></span>
+      </div>
+    </div>
+
+    <!-- ============ SUMMARY ============ -->
+    <div class="summary-card">
+      <h2>📊 สรุปรวมทั้งหมด</h2>
+      <table class="summary-tbl">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>ประเด็น</th>
+            <th style="text-align:center;">สถานะ GMP</th>
+            <th style="text-align:right;">เวลาพัฒนา (ชม.)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>การคืนวัตถุดิบ (Material Return)</td>
+            <td style="text-align:center;">⚠ บางส่วน</td>
+            <td class="hr-val">12</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>การตรวจจับ Variance ชั่งไม่ตรงแผน</td>
+            <td style="text-align:center;">✗ ไม่ผ่าน</td>
+            <td class="hr-val">16</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>SOP Step ↔ IPC Integration</td>
+            <td style="text-align:center;">✗ ไม่ผ่าน</td>
+            <td class="hr-val">14</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>IPC — Criteria Type ใหม่ + Bulk Pass/Fail + UI Redesign</td>
+            <td style="text-align:center;">✗ ไม่มีในระบบ</td>
+            <td class="hr-val">10</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>FG — รูป Packaging (สติ๊กเกอร์/กล่อง/รูปยา)</td>
+            <td style="text-align:center;">⚠ บางส่วน</td>
+            <td class="hr-val">7</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>FG Release Workflow (QA ปล่อย/Reject + ห้องเก็บ)</td>
+            <td style="text-align:center;">✗ ไม่ผ่าน</td>
+            <td class="hr-val">18</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>QC — นำเข้าผล Lab ภายนอก (PDF + Certificate)</td>
+            <td style="text-align:center;">✗ ไม่มีในระบบ</td>
+            <td class="hr-val">20</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>eBMR Gowning Inspection (การตรวจสอบเครื่องแต่งกาย)</td>
+            <td style="text-align:center;">✗ ไม่มีในระบบ</td>
+            <td class="hr-val">13</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>Document Mapping (รวมกระดาษ + ดิจิทัล)</td>
+            <td style="text-align:center;">⚠ บางส่วน</td>
+            <td class="hr-val">20</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Tablet Press / การตอกเม็ดยา</td>
+            <td style="text-align:center;">✗ ไม่มีในระบบ</td>
+            <td class="hr-val">18</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>GMP Module Coverage (ขาด 6 หมวด)</td>
+            <td style="text-align:center;">⚠ 70%</td>
+            <td class="hr-val">27</td>
+          </tr>
+          <tr class="total">
+            <td colspan="3">รวมทั้งหมด (GMP Compliance Pack)</td>
+            <td class="hr-val">175 ชม.</td>
+          </tr>
+          <tr class="total">
+            <td colspan="3">เทียบเป็นวันทำงาน (8 ชม./วัน)</td>
+            <td class="hr-val">≈ 22 วัน</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:20px;padding:16px;background:#fff7ed;border-radius:8px;border:1px dashed #fb923c;font-size:14px;color:#7c2d12;">
+        <b>💡 คำแนะนำ:</b> แนะนำให้พัฒนาเป็น <b>GMP Compliance Pack</b> เดียวกัน เนื่องจาก:
+        <ul style="margin-top:8px;padding-left:24px;">
+          <li>ทั้ง 3 ประเด็นอยู่ใน flow เดียวกัน (Work Order → Material Weighing → SOP Execution → IPC)</li>
+          <li>ใช้ schema migration ครั้งเดียว (ลดความเสี่ยง downtime)</li>
+          <li>Test ร่วมกันเป็น end-to-end scenario ได้</li>
+          <li>Audit log integration ใช้ร่วมกัน</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">
+      <b>Herbal Medicine ERP</b> &middot; GMP Compliance Gap Analysis Report<br>
+      จัดทำเมื่อ 20 เมษายน 2569 (2026-04-20) &middot; อ้างอิงจากการตรวจสอบ source code ในวันเดียวกัน
+    </div>
+  </div>
+</body>
+</html>

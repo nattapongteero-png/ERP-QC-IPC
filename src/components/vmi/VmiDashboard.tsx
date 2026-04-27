@@ -23,6 +23,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 // ============================================
 // Types
@@ -81,7 +82,7 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
   const pendingOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'pending').length;
   const confirmedOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'confirmed').length;
   const processingOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'processing').length;
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr(new Date());
   const shippedToday = orders.filter((o: { localStatus: string; shippedAt?: string }) =>
     o.localStatus === 'shipped' && o.shippedAt?.startsWith(today)
   ).length;

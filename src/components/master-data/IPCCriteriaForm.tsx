@@ -13,6 +13,7 @@ import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
 import { FlaskConical } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 
 // Standard IPC criteria catalog by dosage form
 interface StandardCriteria {
@@ -58,12 +59,38 @@ interface IPCCriteria {
   isActive: boolean;
   dosageForm: string | null;
   criteriaType: string;
-  tolerancePercent: number;
+  tolerancePercent: number; // sample-failure tolerance
+  specTarget: number | null;
+  specTolerancePercent: number; // Min/Max deviation tolerance
 }
 
 interface Props {
   mode: 'create' | 'edit';
   id?: number;
+}
+
+/**
+ * Coerce MySQL decimal strings to numbers so DxNumberBox renders them correctly.
+ * MySQL decimal columns come back over JSON as strings like "300.0000" — DxNumberBox
+ * expects numbers. Booleans are normalized too (MySQL tinyint(1) arrives as 0/1).
+ */
+function normalizeRecord(raw: IPCCriteria | undefined): IPCCriteria | undefined {
+  if (!raw) return raw;
+  const toNum = (v: unknown): number | null => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  return {
+    ...raw,
+    minValue: toNum(raw.minValue),
+    maxValue: toNum(raw.maxValue),
+    tolerancePercent: toNum(raw.tolerancePercent) ?? 0,
+    specTarget: toNum(raw.specTarget),
+    specTolerancePercent: toNum(raw.specTolerancePercent) ?? 0,
+    isCritical: !!raw.isCritical,
+    isActive: raw.isActive !== false,
+  };
 }
 
 export function IPCCriteriaForm({ mode, id }: Props) {
@@ -82,11 +109,13 @@ export function IPCCriteriaForm({ mode, id }: Props) {
     return <div className="flex items-center justify-center h-64"><div className="text-gray-500">Loading...</div></div>;
   }
 
-  const initialData: Partial<IPCCriteria> = existing || {
+  const normalized = normalizeRecord(existing);
+  const initialData: Partial<IPCCriteria> = normalized || {
     code: '', name: '', nameTh: '', testMethod: '', specification: '',
     minValue: null, maxValue: null, unit: '', sampleSize: 5,
     checkIntervalMinutes: 30, isCritical: false, isActive: true,
     dosageForm: null, criteriaType: 'numeric', tolerancePercent: 0,
+    specTarget: null, specTolerancePercent: 0,
   };
 
   return <IPCCriteriaFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} />;
@@ -113,35 +142,31 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     return items;
   }, [formData.dosageForm]);
 
-  /**
-   * Parse specification string and auto-calculate Min/Max
-   * Supports: "300 ± 5%", "300 +/- 5%", "300±5%", "300 ± 10"
-   */
-  const parseSpecification = (spec: string): { center: number; deviation: number; isPercent: boolean } | null => {
-    if (!spec) return null;
-    // Match: [center] ± [deviation]% or [center] +/- [deviation]%
-    const match = spec.match(/^\s*([\d.]+)\s*(?:±|\+\/?-)\s*([\d.]+)\s*(%?)\s*/);
-    if (!match) return null;
-    const center = parseFloat(match[1]);
-    const deviation = parseFloat(match[2]);
-    const isPercent = match[3] === '%';
-    if (isNaN(center) || isNaN(deviation)) return null;
-    return { center, deviation, isPercent };
-  };
+  // Real-time Min/Max calculation from Target + Tolerance
+  const calculatedMinMax = React.useMemo(() => {
+    if (formData.specTarget === null || formData.specTarget === undefined) return null;
+    return calculateMinMax(
+      Number(formData.specTarget),
+      Number(formData.specTolerancePercent ?? 0),
+    );
+  }, [formData.specTarget, formData.specTolerancePercent]);
 
-  const handleSpecChange = (spec: string) => {
-    const parsed = parseSpecification(spec);
-    if (parsed) {
-      const delta = parsed.isPercent ? (parsed.center * parsed.deviation / 100) : parsed.deviation;
-      const minVal = Math.round((parsed.center - delta) * 10000) / 10000;
-      const maxVal = Math.round((parsed.center + delta) * 10000) / 10000;
-      setFormData({ ...formData, specification: spec, minValue: minVal, maxValue: maxVal });
-    } else {
-      setFormData({ ...formData, specification: spec });
+  // Track whether user has manually edited Min/Max
+  const [manualMinMax, setManualMinMax] = React.useState(false);
+
+  // When Target or Tolerance changes, auto-fill minValue/maxValue ONLY if user hasn't manually edited
+  React.useEffect(() => {
+    if (calculatedMinMax && !manualMinMax) {
+      setFormData((prev) => ({
+        ...prev,
+        minValue: calculatedMinMax.min,
+        maxValue: calculatedMinMax.max,
+      }));
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calculatedMinMax?.min, calculatedMinMax?.max, manualMinMax]);
 
-  const specParsed = parseSpecification(formData.specification || '');
+  const hasTarget = formData.specTarget !== null && formData.specTarget !== undefined;
 
   // Handle standard criteria selection
   const handleSelectStandard = (nameEn: string) => {
@@ -187,6 +212,17 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     if (!formData.code || !formData.name) {
       toast.error('Validation', 'Code and Name are required.');
       return;
+    }
+    // Validate Target + Tolerance if Target is provided (numeric criteria only)
+    if (formData.criteriaType !== 'checkbox' && hasTarget) {
+      const err = validateSpecInputs(
+        Number(formData.specTarget),
+        Number(formData.specTolerancePercent ?? 0),
+      );
+      if (err) {
+        toast.error('Validation', err);
+        return;
+      }
     }
     saveMutation.mutate(formData);
   };
@@ -269,21 +305,6 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
           </div>
 
-          {/* Tolerance Percent */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tolerance ±%</label>
-              <DxNumberBox
-                value={formData.tolerancePercent ?? 0}
-                onValueChanged={(e) => setFormData({ ...formData, tolerancePercent: e.value })}
-                min={0}
-                max={100}
-                format="#0.##'%'"
-              />
-              <p className="text-xs text-gray-500 mt-1">0% = ทุก sample ต้องผ่าน, 10% = ยอมให้ไม่ผ่านได้ 10%</p>
-            </div>
-          </div>
-
           {/* Standard criteria selector or custom input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">หัวข้อการทดสอบ (Test Name) *</label>
@@ -323,50 +344,120 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
 
           {formData.criteriaType !== 'checkbox' && (
           <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Specification</label>
-            <DxTextBox
-              value={formData.specification || ''}
-              onValueChanged={(e) => handleSpecChange(e.value)}
-              placeholder="เช่น 300 ± 5% หรือ 200 ± 10"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              รูปแบบ: [ค่ากลาง] ± [ค่าเบี่ยงเบน]% — ระบบคำนวณ Min/Max ให้อัตโนมัติ
-            </p>
-            {specParsed && (
-              <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm">
+          {/* Target + Tolerance → auto-calculated Min/Max */}
+          <div className="bg-emerald-50/40 border border-emerald-200 rounded-lg p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="h-4 w-4 text-emerald-600" />
+              <h3 className="text-sm font-semibold text-emerald-900">
+                Specification Target & Tolerance
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Target (Specification) *
+                </label>
+                <DxNumberBox
+                  value={formData.specTarget ?? undefined}
+                  onValueChanged={(e) => setFormData({ ...formData, specTarget: e.value ?? null })}
+                  placeholder="เช่น 300"
+                  min={0}
+                  showClearButton
+                />
+                <p className="text-xs text-gray-500 mt-1">ค่าเป้าหมาย (ต้องมากกว่า 0)</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ±% Tolerance (Spec Range)
+                </label>
+                <DxNumberBox
+                  value={formData.specTolerancePercent ?? 0}
+                  onValueChanged={(e) => setFormData({ ...formData, specTolerancePercent: e.value ?? 0 })}
+                  min={0}
+                  max={100}
+                  format="#0.##'%'"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  ช่วงยอมรับ ± % รอบค่าเป้าหมาย (0% = Min=Max=Target)
+                </p>
+              </div>
+            </div>
+
+            {hasTarget && calculatedMinMax && (
+              <div className="bg-white border border-emerald-300 rounded-lg px-3 py-2 text-sm">
                 <span className="text-emerald-800 font-medium">
-                  ค่ากลาง: {specParsed.center} | เบี่ยงเบน: {specParsed.deviation}{specParsed.isPercent ? '%' : ''} →{' '}
-                  Min = <strong>{formData.minValue}</strong>, Max = <strong>{formData.maxValue}</strong>
+                  ✓ Auto-calculated: Min = <strong>{calculatedMinMax.min}</strong>, Max = <strong>{calculatedMinMax.max}</strong>
                   {formData.unit ? ` ${formData.unit}` : ''}
                 </span>
               </div>
             )}
+            {hasTarget && !calculatedMinMax && (
+              <div className="bg-red-50 border border-red-300 rounded-lg px-3 py-2 text-sm text-red-700">
+                ⚠ Target ต้องมากกว่า 0 และ Tolerance ต้องอยู่ระหว่าง 0–100
+              </div>
+            )}
           </div>
 
+          {/* Min/Max — auto-filled from Target±Tolerance when not manually edited */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Min Value {specParsed && <span className="text-xs text-emerald-600">(คำนวณอัตโนมัติ)</span>}
+                Min Value {hasTarget && !manualMinMax && <span className="text-xs text-emerald-600">(คำนวณอัตโนมัติ)</span>}
+                {manualMinMax && <span className="text-xs text-blue-600">(กรอกเอง)</span>}
               </label>
               <DxNumberBox
-                value={formData.minValue ?? undefined}
-                onValueChanged={(e) => setFormData({ ...formData, minValue: e.value })}
+                value={formData.minValue ?? null}
+                onValueChanged={(e) => {
+                  setManualMinMax(true);
+                  setFormData((prev) => ({ ...prev, minValue: e.value }));
+                }}
                 placeholder="e.g., 190"
-                readOnly={!!specParsed}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Max Value {specParsed && <span className="text-xs text-emerald-600">(คำนวณอัตโนมัติ)</span>}
+                Max Value {hasTarget && !manualMinMax && <span className="text-xs text-emerald-600">(คำนวณอัตโนมัติ)</span>}
+                {manualMinMax && <span className="text-xs text-blue-600">(กรอกเอง)</span>}
               </label>
               <DxNumberBox
-                value={formData.maxValue ?? undefined}
-                onValueChanged={(e) => setFormData({ ...formData, maxValue: e.value })}
+                value={formData.maxValue ?? null}
+                onValueChanged={(e) => {
+                  setManualMinMax(true);
+                  setFormData((prev) => ({ ...prev, maxValue: e.value }));
+                }}
                 placeholder="e.g., 210"
-                readOnly={!!specParsed}
               />
             </div>
+          </div>
+          {hasTarget && manualMinMax && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="text-xs text-emerald-600 hover:text-emerald-800 underline"
+                onClick={() => {
+                  setManualMinMax(false);
+                  if (calculatedMinMax) {
+                    setFormData(prev => ({ ...prev, minValue: calculatedMinMax.min, maxValue: calculatedMinMax.max }));
+                  }
+                }}
+              >
+                ↺ กลับใช้ค่าคำนวณอัตโนมัติ (Target ± Tolerance)
+              </button>
+            </div>
+          )}
+
+          {/* Specification description (free text — optional notes) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Specification Description (Optional)
+            </label>
+            <DxTextBox
+              value={formData.specification || ''}
+              onValueChanged={(e) => setFormData({ ...formData, specification: e.value })}
+              placeholder="เช่น Weight = 300 ± 5% mg (USP)"
+            />
+            <p className="text-xs text-gray-500 mt-1">รายละเอียด / หมายเหตุของ specification</p>
           </div>
           </>
           )}
@@ -376,11 +467,22 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <DxTextBox value={formData.testMethod || ''} onValueChanged={(e) => setFormData({ ...formData, testMethod: e.value })} placeholder="e.g., USP Weight Variation" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sample Size</label>
               <DxNumberBox value={formData.sampleSize ?? 5} onValueChanged={(e) => setFormData({ ...formData, sampleSize: e.value })} min={1} />
               <p className="text-xs text-gray-500 mt-1">Number of samples per test</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sample Failure Tolerance ±%</label>
+              <DxNumberBox
+                value={formData.tolerancePercent ?? 0}
+                onValueChanged={(e) => setFormData({ ...formData, tolerancePercent: e.value })}
+                min={0}
+                max={100}
+                format="#0.##'%'"
+              />
+              <p className="text-xs text-gray-500 mt-1">0% = ทุก sample ต้องผ่าน, 10% = ยอมไม่ผ่าน 10%</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Check Interval (min)</label>

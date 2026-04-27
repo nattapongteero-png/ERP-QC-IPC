@@ -174,6 +174,9 @@ export async function PATCH(
       return successResponse(execution, 'Step verified');
     } catch (error) {
       console.error('Error verifying WO SOP step:', error);
+      if (error instanceof Error && error.message) {
+        return errorResponse(error.message);
+      }
       return serverErrorResponse(error);
     }
   });

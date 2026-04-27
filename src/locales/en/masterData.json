@@ -3,6 +3,10 @@
     "title": "Master Data",
     "description": "Manage master data for GMP-compliant production"
   },
+  "actions": {
+    "downloadTemplate": "Download Template",
+    "importExcel": "Import Excel"
+  },
   "modules": {
     "productionRooms": {
       "title": "Production Rooms",

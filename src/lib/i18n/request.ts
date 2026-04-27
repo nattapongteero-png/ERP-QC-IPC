@@ -70,6 +70,7 @@ const NAMESPACE_FILES: Record<string, string> = {
   reports: 'reports',
   sales: 'sales',
   settings: 'settings',
+  template: 'template',
   users: 'users',
   vmi: 'vmi',
 };

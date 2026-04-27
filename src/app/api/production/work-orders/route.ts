@@ -41,13 +41,15 @@ export async function GET(request: NextRequest) {
 
       const workOrdersTable = getTableRef('workOrders');
       const itemsTable = getTableRef('items');
+      const bomTable = getTableRef('bOM');
 
       const conditions: (SQL | undefined)[] = [];
       if (search) {
         conditions.push(
           or(
             like(workOrdersTable.woNumber, `%${search}%`),
-            like(workOrdersTable.batchNumber, `%${search}%`)
+            like(workOrdersTable.batchNumber, `%${search}%`),
+            like(bomTable.code, `%${search}%`)
           )
         );
       }
@@ -55,9 +57,12 @@ export async function GET(request: NextRequest) {
         conditions.push(eq(workOrdersTable.status, status));
       }
 
-      // Count query
+      // Count query (must join bom if search references it)
       const total = await executeDbOperation(async (db) => {
-        let countQuery = db.select({ count: sql`count(*)` }).from(workOrdersTable);
+        let countQuery = db
+          .select({ count: sql`count(*)` })
+          .from(workOrdersTable)
+          .leftJoin(bomTable, eq(workOrdersTable.bomId, bomTable.id));
         if (conditions.length > 0) {
           countQuery = countQuery.where(and(...conditions));
         }
@@ -65,7 +70,7 @@ export async function GET(request: NextRequest) {
         return Number(countResult[0]?.count || 0);
       });
 
-      // Data query with product join
+      // Data query with product + BOM join
       const offset = (pagination.page - 1) * pagination.limit;
       const workOrders = await executeDbOperation(async (db) => {
         let query = db
@@ -87,11 +92,16 @@ export async function GET(request: NextRequest) {
             productId: workOrdersTable.productId,
             productCode: itemsTable.code,
             productName: itemsTable.nameTh,
+            bomId: workOrdersTable.bomId,
+            bomCode: bomTable.code,
+            bomName: bomTable.name,
+            bomVersion: bomTable.version,
             notes: workOrdersTable.notes,
             createdAt: workOrdersTable.createdAt,
           })
           .from(workOrdersTable)
-          .leftJoin(itemsTable, eq(workOrdersTable.productId, itemsTable.id));
+          .leftJoin(itemsTable, eq(workOrdersTable.productId, itemsTable.id))
+          .leftJoin(bomTable, eq(workOrdersTable.bomId, bomTable.id));
 
         if (conditions.length > 0) {
           query = query.where(and(...conditions));

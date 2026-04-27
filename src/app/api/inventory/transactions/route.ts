@@ -146,27 +146,7 @@ export async function POST(request: NextRequest) {
       const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
       const transactionNumber = `${prefix}-${dateStr}-${random}`;
 
-      // Create transaction
-      const insertResult = await executeDbOperation(async (db) => {
-        return db.insert(transactions).values({
-          referenceNumber: transactionNumber,
-          transactionType: type,
-          lotId,
-          quantity,
-          unit: lot.unit || 'unit',
-          fromWarehouseId: fromWarehouseId || null,
-          toWarehouseId: toWarehouseId || null,
-          referenceType: referenceType || null,
-          referenceId: null,
-          reason: notes || null,
-          performedBy: user.userId,
-          createdAt: dbDate(),
-        }).returning();
-      });
-
-      const newTransaction = insertResult[0];
-
-      // Update lot quantity based on transaction type
+      // Update lot quantity based on transaction type (BEFORE creating transaction to get correct snapshot)
       let newQuantity = lot.quantity;
       let newWarehouseId = lot.warehouseId;
 
@@ -184,8 +164,7 @@ export async function POST(request: NextRequest) {
           if (toWarehouseId) newWarehouseId = toWarehouseId;
           break;
         case 'ADJUST':
-          // Adjustment can be positive or negative
-          newQuantity = quantity; // Direct set to new quantity
+          newQuantity = quantity;
           break;
       }
 
@@ -197,6 +176,37 @@ export async function POST(request: NextRequest) {
           updatedAt: dbDate(),
         }).where(eq(lots.id, lotId));
       });
+
+      // Snapshot balance after lot update
+      const balanceAfter = newQuantity;
+      const [itemBalanceRow] = await executeDbOperation(async (db) => {
+        return db.select({ total: sql`COALESCE(SUM(${lots.quantity}), 0)` })
+          .from(lots)
+          .where(eq(lots.itemId, lot.itemId));
+      });
+      const itemBalanceAfter = Number(itemBalanceRow?.total) || 0;
+
+      // Create transaction with balance snapshot
+      const insertResult = await executeDbOperation(async (db) => {
+        return db.insert(transactions).values({
+          referenceNumber: transactionNumber,
+          transactionType: type,
+          lotId,
+          quantity,
+          unit: lot.unit || 'unit',
+          fromWarehouseId: fromWarehouseId || null,
+          toWarehouseId: toWarehouseId || null,
+          referenceType: referenceType || null,
+          referenceId: null,
+          reason: notes || null,
+          performedBy: user.userId,
+          balanceAfter,
+          itemBalanceAfter,
+          createdAt: dbDate(),
+        }).returning();
+      });
+
+      const newTransaction = insertResult[0];
 
       // Log audit
       await createAuditLog({

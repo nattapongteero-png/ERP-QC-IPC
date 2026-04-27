@@ -165,6 +165,19 @@ async function deleteRole(id: number): Promise<void> {
   }
 }
 
+async function activateRole(id: number): Promise<AppRoleWithPermissions> {
+  const res = await fetch(`/api/hr/roles/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive: true }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to activate role');
+  }
+  return res.json();
+}
+
 export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -278,6 +291,18 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
     },
   });
 
+  const activateMutation = useMutation({
+    mutationFn: activateRole,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
+      queryClient.invalidateQueries({ queryKey: ['hr', 'role', roleId] });
+      notify('เปิดใช้งานบทบาทสำเร็จ', 'success', 3000);
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถเปิดใช้งานบทบาทได้', 'error', 5000);
+    },
+  });
+
   const handleSubmit = () => {
     if (!formData.code || !formData.name) {
       notify('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning', 3000);
@@ -375,7 +400,18 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isEditMode && !isSystemRole && (
+            {isEditMode && !isSystemRole && role?.isActive === false && (
+              <Button
+                text="เปิดใช้งาน"
+                icon="check"
+                type="success"
+                stylingMode="outlined"
+                onClick={() => roleId && activateMutation.mutate(roleId)}
+                disabled={activateMutation.isPending}
+                elementAttr={{ 'data-testid': 'role-activate-btn' }}
+              />
+            )}
+            {isEditMode && !isSystemRole && role?.isActive !== false && (
               <Button
                 text="ปิดใช้งาน"
                 icon="trash"

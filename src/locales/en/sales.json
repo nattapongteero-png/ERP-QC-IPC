@@ -9,7 +9,141 @@
   "vmiOrders": {
     "noData": "No VMI orders found",
     "pollDescription": "Poll for new orders from VMI Portal",
-    "pollOrders": "Poll Orders"
+    "pollOrders": "Poll Orders",
+    "pageTitle": "VMI Orders",
+    "pageSubtitle": "Manage orders from VMI Portals",
+    "breadcrumbSales": "Sales",
+    "breadcrumbVmiOrders": "VMI Orders",
+    "detailTitle": "VMI Order Details",
+    "detailSubtitle": "View and manage orders from VMI Portal",
+    "polling": "Polling...",
+    "refresh": "Refresh",
+    "views": {
+      "grid": "Grid View",
+      "cards": "Cards View",
+      "analytics": "Analytics View"
+    },
+    "stats": {
+      "totalOrders": "Total Orders",
+      "pending": "Pending",
+      "delivered": "Delivered",
+      "overdue": "Overdue"
+    },
+    "status": {
+      "all": "All",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "all": "All Priorities",
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "placeholders": {
+      "allStatus": "All Statuses",
+      "allPriority": "All Priorities",
+      "search": "Search by order ID, hospital, or Portal..."
+    },
+    "columns": {
+      "orderId": "Order ID",
+      "portal": "Portal",
+      "customer": "Hospital/Customer",
+      "orderDate": "Order Date",
+      "deliveryDate": "Delivery Date",
+      "matchItems": "Match Items",
+      "priority": "Priority",
+      "totalAmount": "Amount",
+      "status": "Status"
+    },
+    "list": {
+      "title": "Order List",
+      "showingOf": "Showing {shown} of {total} items",
+      "noMatching": "No orders match criteria",
+      "viewDetails": "View Details"
+    },
+    "dates": {
+      "overdueDays": "Overdue by {days} days",
+      "today": "Today",
+      "daysRemaining": "{days} days remaining",
+      "overdueShort": "{days}d over",
+      "daysShort": "{days}d",
+      "overdueLabel": "Overdue"
+    },
+    "card": {
+      "urgent": "Urgent",
+      "matched": "Matched {matched}/{total}",
+      "overdueMessage": "Overdue for delivery"
+    },
+    "alerts": {
+      "overdueTitle": "{count} orders are overdue",
+      "overdueMessage": "Please review and take immediate action",
+      "unmatchedTitle": "{count} orders have unmatched items",
+      "unmatchedMessage": "Please match items before confirming orders",
+      "urgentTitle": "{count} urgent orders",
+      "urgentMessage": "Action needed urgently",
+      "viewList": "View List"
+    },
+    "charts": {
+      "statusDistribution": "Status Distribution",
+      "priorityDistribution": "Priority Distribution",
+      "noData": "No data",
+      "itemsSuffix": "items"
+    },
+    "sections": {
+      "urgentAction": "Urgent Action Required",
+      "unmatchedItems": "Unmatched Items",
+      "allOrders": "All Orders ({count})",
+      "noMatchingSearch": "No orders match criteria",
+      "viewMore": "View {count} more",
+      "portalStats": "VMI Portals",
+      "summary": "Summary",
+      "totalValue": "Total Value",
+      "deliveredValue": "Delivered",
+      "matchRate": "Match Rate",
+      "fulfillmentRate": "Fulfillment Rate",
+      "recent": "Recent",
+      "noData": "No data",
+      "workflowTitle": "How It Works",
+      "workflow1": "Poll fetches orders from Portals",
+      "workflow2": "Match items (Match)",
+      "workflow3": "Confirm orders (Confirm)",
+      "workflow4": "Ship (Ship)",
+      "pending": "pending",
+      "orders": "orders"
+    },
+    "analytics": {
+      "statusBreakdown": "Status Breakdown",
+      "valueSummary": "Value Summary",
+      "totalValue": "Total Value",
+      "pending": "Pending",
+      "delivered": "Delivered",
+      "fulfillmentRate": "Fulfillment Rate",
+      "portalStats": "Statistics by Portal",
+      "portalOrders": "Orders",
+      "portalValue": "Value",
+      "portalOrdersCount": "{count} orders",
+      "portalPending": "{count} pending",
+      "noPortalData": "No Portal data",
+      "matchRateAnalysis": "Item Match Rate Analysis",
+      "matchRate": "Match Rate",
+      "matchedItems": "Matched Items",
+      "unmatchedItems": "Unmatched Items"
+    },
+    "empty": {
+      "title": "No VMI orders yet",
+      "description": "Fetch the latest orders from connected VMI Portals"
+    },
+    "noResults": {
+      "title": "No orders match criteria",
+      "description": "Try changing your search or filters",
+      "clearFilters": "Clear Filters"
+    }
   },
   "webhooks": {
     "totalWebhooks": "Total Webhooks"
@@ -121,7 +255,9 @@
       "today": "Today",
       "daysRemaining": "{days} days remaining",
       "overdueAlert": "{count} sales orders are overdue",
-      "urgentAction": "Please review and take action"
+      "urgentAction": "Please review and take action",
+      "overdueShort": "{days}d over",
+      "daysShort": "{days}d"
     },
     "searchPlaceholder": "Search by SO number or customer name...",
     "detail": {
@@ -399,7 +535,9 @@
     },
     "actions": {
       "addCustomer": "Add Customer",
-      "viewMore": "View {count} more"
+      "viewMore": "View {count} more",
+      "refresh": "Refresh",
+      "clearFilters": "Clear Filters"
     },
     "stats": {
       "total": "Total",
@@ -417,7 +555,8 @@
       "recent": "Recent",
       "filteredCustomers": "Filtered Customers",
       "noMatchingCustomers": "No customers match criteria",
-      "count": "{count} customers"
+      "count": "{count} customers",
+      "viewCustomer": "View"
     },
     "charts": {
       "typeDistribution": "Type Distribution",

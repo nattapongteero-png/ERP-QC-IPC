@@ -56,6 +56,16 @@ vi.mock('@/lib/services/accounting.service', () => ({
     message: 'AR Invoice created',
   }),
   THAI_VAT_RATE: 0.07,
+  calculateVAT: vi.fn((amount: number, isInclusive: boolean) => {
+    const rate = 0.07;
+    if (isInclusive) {
+      const baseAmount = Math.round((amount / (1 + rate)) * 100) / 100;
+      const vatAmount = Math.round((amount - baseAmount) * 100) / 100;
+      return { baseAmount, vatAmount, totalAmount: amount };
+    }
+    const vatAmount = Math.round(amount * rate * 100) / 100;
+    return { baseAmount: amount, vatAmount, totalAmount: Math.round((amount + vatAmount) * 100) / 100 };
+  }),
 }));
 
 // Mock unit-cost service functions

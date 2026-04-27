@@ -5,6 +5,7 @@
 
 import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import {
   Package,
@@ -78,16 +79,20 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-const statusOptions = [
-  { value: '', label: 'All Status' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'active', label: 'Active' },
-  { value: 'archived', label: 'Archived' },
-];
-
 export default function TemplateItemsPage() {
+  const t = useTranslations('template.items');
+  const tActions = useTranslations('template.actions');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const statusOptions = React.useMemo(() => [
+    { value: '', label: t('statusOptions.all') },
+    { value: 'draft', label: t('statusOptions.draft') },
+    { value: 'active', label: t('statusOptions.active') },
+    { value: 'archived', label: t('statusOptions.archived') },
+  ], [t]);
+
   const [searchText, setSearchText] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState<number | null>(null);
@@ -112,7 +117,7 @@ export default function TemplateItemsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['template-items'] });
       queryClient.invalidateQueries({ queryKey: ['template-dashboard'] });
-      notify('Item deleted successfully', 'success', 3000);
+      notify(t('toast.deleteSuccess'), 'success', 3000);
       setShowDeleteConfirm(false);
       setSelectedItem(null);
     },
@@ -175,7 +180,7 @@ export default function TemplateItemsPage() {
             router.push(`/template/items/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="View"
+          title={tActions('view')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -185,7 +190,7 @@ export default function TemplateItemsPage() {
             router.push(`/template/items/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="Edit"
+          title={tActions('edit')}
         >
           <Edit className="h-4 w-4" />
         </button>
@@ -195,7 +200,7 @@ export default function TemplateItemsPage() {
             handleDelete(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Delete"
+          title={tActions('delete')}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -203,24 +208,24 @@ export default function TemplateItemsPage() {
     );
   };
 
-  const categoryOptions = [
-    { id: null, nameTh: 'All Categories' },
+  const categoryOptions = React.useMemo(() => [
+    { id: null, nameTh: t('categoryOptions.all') },
     ...categories,
-  ];
+  ], [categories, t]);
 
   return (
     <div className="space-y-6 p-1">
       {/* Header */}
       <TemplatePageHeader
-        title="Template Items"
-        subtitle="Manage all items in the system"
+        title={t('title')}
+        subtitle={t('subtitle')}
         icon={Package}
         iconClassName="from-indigo-500 to-purple-600"
         onRefresh={() => refetch()}
         isRefreshing={isFetching}
         actions={
           <Button
-            text="New Item"
+            text={t('newItem')}
             icon="add"
             type="success"
             onClick={() => router.push('/template/items/new')}
@@ -234,14 +239,14 @@ export default function TemplateItemsPage() {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">{t('deleteConfirm.title')}</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete &quot;{selectedItem.nameTh}&quot;? This action cannot be undone.
+                  {t('deleteConfirm.message', { name: selectedItem.nameTh })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text={tActions('cancel')}
                   stylingMode="outlined"
                   onClick={() => {
                     setShowDeleteConfirm(false);
@@ -249,7 +254,7 @@ export default function TemplateItemsPage() {
                   }}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  text={deleteMutation.isPending ? tActions('deleting') : tActions('delete')}
                   icon={deleteMutation.isPending ? 'spindown' : 'trash'}
                   type="danger"
                   onClick={confirmDelete}
@@ -269,14 +274,14 @@ export default function TemplateItemsPage() {
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Filters:</span>
+                <span className="text-sm font-medium text-gray-700">{t('filters')}</span>
               </div>
               <div className="w-56">
                 <TextBox
                   value={searchText}
                   onValueChanged={(e) => setSearchText(e.value || '')}
                   valueChangeEvent="keyup"
-                  placeholder="Search items..."
+                  placeholder={t('searchPlaceholder')}
                   showClearButton
                   mode="search"
                 />
@@ -288,7 +293,7 @@ export default function TemplateItemsPage() {
                   valueExpr="value"
                   value={statusFilter}
                   onValueChanged={(e) => setStatusFilter(e.value)}
-                  placeholder="Status"
+                  placeholder={t('statusPlaceholder')}
                 />
               </div>
               <div className="w-44">
@@ -298,12 +303,12 @@ export default function TemplateItemsPage() {
                   valueExpr="id"
                   value={categoryFilter}
                   onValueChanged={(e) => setCategoryFilter(e.value)}
-                  placeholder="Category"
+                  placeholder={t('categoryPlaceholder')}
                 />
               </div>
               {(searchText || statusFilter || categoryFilter) && (
                 <Button
-                  text="Clear"
+                  text={tActions('clear')}
                   stylingMode="text"
                   onClick={() => {
                     setSearchText('');
@@ -317,19 +322,19 @@ export default function TemplateItemsPage() {
             {/* Compact Statistics */}
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-md">
-                <span className="text-gray-500">Total:</span>
+                <span className="text-gray-500">{t('stats.total')}</span>
                 <span className="font-semibold text-gray-900">{itemsData?.total || 0}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 rounded-md">
-                <span className="text-blue-600">Active:</span>
+                <span className="text-blue-600">{t('stats.active')}</span>
                 <span className="font-semibold text-blue-700">{items.filter((i) => i.status === 'active').length}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-md">
-                <span className="text-gray-500">Draft:</span>
+                <span className="text-gray-500">{t('stats.draft')}</span>
                 <span className="font-semibold text-gray-700">{items.filter((i) => i.status === 'draft').length}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-md">
-                <span className="text-emerald-600">Value:</span>
+                <span className="text-emerald-600">{t('stats.value')}</span>
                 <span className="font-semibold text-emerald-700">{formatCurrency(items.reduce((sum, i) => sum + (i.totalValue || 0), 0))}</span>
               </div>
             </div>
@@ -341,6 +346,7 @@ export default function TemplateItemsPage() {
       <Card>
         <CardContent className="p-0">
           <DataGrid
+            key={locale}
             dataSource={items}
             showBorders={false}
             showRowLines
@@ -363,33 +369,33 @@ export default function TemplateItemsPage() {
               showNavigationButtons
             />
 
-            <Column dataField="code" caption="Code" width={120} />
-            <Column dataField="nameTh" caption="Name (Thai)" minWidth={200} />
-            <Column dataField="nameEn" caption="Name (English)" minWidth={180} />
+            <Column dataField="code" caption={t('columns.code')} width={120} />
+            <Column dataField="nameTh" caption={t('columns.nameTh')} minWidth={200} />
+            <Column dataField="nameEn" caption={t('columns.nameEn')} minWidth={180} />
             <Column
               dataField="category"
-              caption="Category"
+              caption={t('columns.category')}
               width={150}
               cellRender={renderCategoryCell}
               allowFiltering={false}
             />
             <Column
               dataField="status"
-              caption="Status"
+              caption={t('columns.status')}
               width={120}
               cellRender={renderStatusCell}
               alignment="center"
             />
             <Column
               dataField="priority"
-              caption="Priority"
+              caption={t('columns.priority')}
               width={120}
               cellRender={renderPriorityCell}
               alignment="center"
             />
             <Column
               dataField="quantity"
-              caption="Qty"
+              caption={t('columns.quantity')}
               width={100}
               dataType="number"
               format="#,##0.##"
@@ -397,20 +403,20 @@ export default function TemplateItemsPage() {
             />
             <Column
               dataField="unitPrice"
-              caption="Unit Price"
+              caption={t('columns.unitPrice')}
               width={130}
               cellRender={renderValueCell}
               alignment="right"
             />
             <Column
               dataField="totalValue"
-              caption="Total Value"
+              caption={t('columns.totalValue')}
               width={140}
               cellRender={renderValueCell}
               alignment="right"
             />
             <Column
-              caption="Actions"
+              caption={t('columns.actions')}
               width={120}
               cellRender={renderActionsCell}
               allowFiltering={false}

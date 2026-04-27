@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -146,7 +147,7 @@ function NewCreditNoteContent() {
         body: JSON.stringify({
           noteType,
           referenceInvoiceId: invoiceId,
-          noteDate: noteDate.toISOString().split('T')[0],
+          noteDate: toLocalDateStr(noteDate),
           reasonCode,
           reasonDescription,
           notes,

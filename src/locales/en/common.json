@@ -29,7 +29,8 @@
     "add": "Add",
     "remove": "Remove",
     "select": "Select",
-    "selectAll": "Select All"
+    "selectAll": "Select All",
+    "cannotUndo": "This action cannot be undone"
   },
   "status": {
     "active": "Active",

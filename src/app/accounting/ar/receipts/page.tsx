@@ -6,9 +6,10 @@
  * Track and manage customer payment receipts
  */
 
-import { useState, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import DataGrid, {
   Column,
   Paging,
@@ -20,10 +21,13 @@ import DataGrid, {
   Toolbar,
   Item as ToolbarItem,
 } from 'devextreme-react/data-grid';
+import { Popup } from 'devextreme-react/popup';
+import Form, { SimpleItem, GroupItem, RequiredRule } from 'devextreme-react/form';
 import { DateBox } from 'devextreme-react/date-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import { Button } from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
+import { confirm } from 'devextreme/ui/dialog';
 import {
   Banknote,
   CreditCard,
@@ -78,6 +82,32 @@ const paymentMethodOptions = [
   { value: 'credit_card', text: 'Credit Card' },
 ];
 
+interface ARInvoice {
+  id: number;
+  invoiceNumber: string;
+  customerId: number;
+  customerName?: string;
+  totalAmount: number;
+  paidAmount: number;
+  status: string;
+}
+
+interface GLAccount {
+  id: number;
+  code: string;
+  nameTh: string;
+}
+
+interface ReceiptFormData {
+  arInvoiceId: number | null;
+  paymentDate: string;
+  bankAccountId: number | null;
+  paymentMethod: 'cash' | 'check' | 'transfer' | 'other';
+  referenceNumber: string;
+  amount: number;
+  description: string;
+}
+
 const statusOptions = [
   { value: '', text: 'All Status' },
   { value: 'pending', text: 'Pending' },
@@ -94,7 +124,7 @@ async function fetchReceipts(params: {
   customerId?: number;
 }): Promise<Receipt[]> {
   const searchParams = new URLSearchParams();
-  searchParams.set('paymentType', 'receipt');
+  searchParams.set('paymentType', 'ar');
 
   if (params.paymentMethod) searchParams.set('paymentMethod', params.paymentMethod);
   if (params.status) searchParams.set('status', params.status);
@@ -107,8 +137,64 @@ async function fetchReceipts(params: {
     const error = await res.json();
     throw new Error(error.error || 'Failed to fetch receipts');
   }
-  const data = await res.json();
-  return data.data || [];
+  const json = await res.json();
+  const items: any[] = json.data || [];
+  // Map API payment fields → Receipt interface fields
+  return items.map((p) => ({
+    id: p.id,
+    receiptNumber: p.paymentNumber,
+    customerId: p.customerId,
+    customerName: p.customerName,
+    receiptDate: p.paymentDate,
+    paymentMethod: p.paymentMethod,
+    amount: Number(p.amount),
+    currency: 'THB',
+    reference: p.referenceNumber,
+    description: p.description,
+    bankAccountId: p.bankAccountId,
+    bankAccountName: p.bankAccountName,
+    chequeNumber: null,
+    chequeDate: null,
+    status: p.status,
+    createdAt: '',
+  }));
+}
+
+async function fetchARInvoicesPayable(): Promise<ARInvoice[]> {
+  const res = await fetch('/api/accounting/ar-invoices?status=posted&status=partial');
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data || [];
+}
+
+async function fetchBankAccounts(): Promise<GLAccount[]> {
+  const res = await fetch('/api/accounting/gl-accounts?isActive=true&accountType=asset');
+  if (!res.ok) return [];
+  const json = await res.json();
+  return (json.data || []).filter((acc: GLAccount) => acc.code.startsWith('11'));
+}
+
+async function receivePayment(
+  invoiceId: number,
+  data: {
+    paymentDate: string;
+    bankAccountId: number;
+    paymentMethod: 'cash' | 'check' | 'transfer' | 'other';
+    referenceNumber?: string;
+    amount: number;
+    description?: string;
+  }
+): Promise<{ payment: { paymentNumber: string } }> {
+  const res = await fetch(`/api/accounting/ar-invoices/${invoiceId}/receive-payment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to record receipt');
+  }
+  return (await res.json()).data;
 }
 
 async function fetchReceiptSummary(): Promise<ReceiptSummary> {
@@ -167,14 +253,26 @@ export default function ARReceiptsPage() {
   const [status, setStatus] = useState('');
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingReceiptId, setEditingReceiptId] = useState<number | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<ARInvoice | null>(null);
+  const [formData, setFormData] = useState<ReceiptFormData>({
+    arInvoiceId: null,
+    paymentDate: toLocalDateStr(new Date()),
+    bankAccountId: null,
+    paymentMethod: 'transfer',
+    referenceNumber: '',
+    amount: 0,
+    description: '',
+  });
 
   const { data: receipts = [], isLoading } = useQuery({
     queryKey: ['ar-receipts', paymentMethod, status, dateFrom?.toISOString(), dateTo?.toISOString()],
     queryFn: () => fetchReceipts({
       paymentMethod: paymentMethod || undefined,
       status: status || undefined,
-      dateFrom: dateFrom?.toISOString().split('T')[0],
-      dateTo: dateTo?.toISOString().split('T')[0],
+      dateFrom: dateFrom ? toLocalDateStr(dateFrom) : undefined,
+      dateTo: dateTo ? toLocalDateStr(dateTo) : undefined,
     }),
   });
 
@@ -188,13 +286,193 @@ export default function ARReceiptsPage() {
     queryClient.invalidateQueries({ queryKey: ['ar-receipts-summary'] });
   }, [queryClient]);
 
+  const { data: arInvoices = [] } = useQuery({
+    queryKey: ['ar-invoices-payable'],
+    queryFn: fetchARInvoicesPayable,
+    enabled: isDialogOpen,
+  });
+
+  const { data: bankAccounts = [] } = useQuery({
+    queryKey: ['bank-accounts'],
+    queryFn: fetchBankAccounts,
+    enabled: isDialogOpen,
+  });
+
+  const receiptMutation = useMutation({
+    mutationFn: ({ invoiceId, data }: { invoiceId: number; data: Parameters<typeof receivePayment>[1] }) =>
+      receivePayment(invoiceId, data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['ar-receipts'] });
+      queryClient.invalidateQueries({ queryKey: ['ar-receipts-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
+      notify(`บันทึกการรับชำระเงินสำเร็จ (${result.payment.paymentNumber})`, 'success', 3000);
+      setIsDialogOpen(false);
+      setSelectedInvoice(null);
+      resetReceiptForm();
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถบันทึกการรับชำระเงินได้', 'error', 4000);
+    },
+  });
+
+  const resetReceiptForm = useCallback(() => {
+    setFormData({
+      arInvoiceId: null,
+      paymentDate: toLocalDateStr(new Date()),
+      bankAccountId: null,
+      paymentMethod: 'transfer',
+      referenceNumber: '',
+      amount: 0,
+      description: '',
+    });
+    setSelectedInvoice(null);
+  }, []);
+
+  const handleOpenReceiptDialog = useCallback(() => {
+    resetReceiptForm();
+    setEditingReceiptId(null);
+    setIsDialogOpen(true);
+  }, [resetReceiptForm]);
+
+  const handleCloseReceiptDialog = useCallback(() => {
+    setIsDialogOpen(false);
+    setEditingReceiptId(null);
+    setEditingReceipt(null);
+    resetReceiptForm();
+  }, [resetReceiptForm]);
+
+  const handleInvoiceChange = useCallback((invoiceId: number | null) => {
+    const invoice = arInvoices.find((inv) => inv.id === invoiceId);
+    setSelectedInvoice(invoice || null);
+    if (invoice) {
+      const outstanding = invoice.totalAmount - invoice.paidAmount;
+      setFormData((prev) => ({
+        ...prev,
+        arInvoiceId: invoiceId,
+        amount: outstanding,
+        description: `Receipt for ${invoice.invoiceNumber}`,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, arInvoiceId: null, amount: 0, description: '' }));
+    }
+  }, [arInvoices]);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/accounting/payments/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to delete receipt');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ar-receipts'] });
+      queryClient.invalidateQueries({ queryKey: ['ar-receipts-summary'] });
+      notify('ลบรายการรับชำระสำเร็จ', 'success', 3000);
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถลบรายการรับชำระได้', 'error', 4000);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await fetch(`/api/accounting/payments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to update receipt');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ar-receipts'] });
+      queryClient.invalidateQueries({ queryKey: ['ar-receipts-summary'] });
+      notify('แก้ไขรายการรับชำระสำเร็จ', 'success', 3000);
+      setIsDialogOpen(false);
+      setEditingReceiptId(null);
+      resetReceiptForm();
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถแก้ไขรายการรับชำระได้', 'error', 4000);
+    },
+  });
+
+  const handleDelete = useCallback(
+    async (receipt: Receipt) => {
+      const result = await confirm(
+        `คุณต้องการลบรายการรับชำระ ${receipt.receiptNumber || receipt.id} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้`,
+        'ยืนยันการลบ'
+      );
+      if (result) {
+        deleteMutation.mutate(receipt.id);
+      }
+    },
+    [deleteMutation]
+  );
+
+  const [editingReceipt, setEditingReceipt] = useState<Receipt | null>(null);
+
+  const handleEdit = useCallback((receipt: Receipt) => {
+    setFormData({
+      arInvoiceId: null,
+      paymentDate: receipt.receiptDate ? receipt.receiptDate.split('T')[0] : '',
+      bankAccountId: receipt.bankAccountId,
+      paymentMethod: (receipt.paymentMethod === 'bank_transfer' ? 'transfer' : receipt.paymentMethod) as ReceiptFormData['paymentMethod'],
+      referenceNumber: receipt.reference || '',
+      amount: receipt.amount,
+      description: receipt.description || '',
+    });
+    setEditingReceipt(receipt);
+    setEditingReceiptId(receipt.id);
+    setIsDialogOpen(true);
+  }, []);
+
+  const handleRecordReceipt = useCallback(() => {
+    if (editingReceiptId) {
+      updateMutation.mutate({
+        id: editingReceiptId,
+        data: {
+          paymentDate: formData.paymentDate,
+          paymentMethod: formData.paymentMethod,
+          bankAccountId: formData.bankAccountId,
+          referenceNumber: formData.referenceNumber || null,
+          description: formData.description || null,
+        },
+      });
+      return;
+    }
+
+    if (!formData.arInvoiceId || !formData.bankAccountId) {
+      notify('กรุณาเลือกใบแจ้งหนี้และบัญชีรับชำระ', 'warning', 3000);
+      return;
+    }
+    if (formData.amount <= 0) {
+      notify('จำนวนเงินต้องมากกว่า 0', 'warning', 3000);
+      return;
+    }
+    receiptMutation.mutate({
+      invoiceId: formData.arInvoiceId,
+      data: {
+        paymentDate: formData.paymentDate,
+        bankAccountId: formData.bankAccountId,
+        paymentMethod: formData.paymentMethod,
+        referenceNumber: formData.referenceNumber || undefined,
+        amount: formData.amount,
+        description: formData.description || undefined,
+      },
+    });
+  }, [formData, receiptMutation, updateMutation, editingReceiptId]);
+
   const handleExportJSON = useCallback(() => {
     if (!receipts || receipts.length === 0) return;
     const blob = new Blob([JSON.stringify(receipts, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ar-receipts-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `ar-receipts-${toLocalDateStr(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
     notify('Receipts exported successfully', 'success', 3000);
@@ -227,13 +505,18 @@ export default function ARReceiptsPage() {
         title={t('accountsReceivable.receipts.title')}
         subtitle={t('accountsReceivable.description')}
         icon="file-text"
+        onBack={() => window.location.href = '/accounting/ar'}
+        breadcrumbs={[
+          { label: 'Accounts Receivable', href: '/accounting/ar' },
+          { label: t('accountsReceivable.receipts.title') },
+        ]}
         onRefresh={handleRefresh}
         actions={
           <Button
             text="Record Receipt"
             icon="plus"
             type="success"
-            onClick={() => notify('Record Receipt dialog - coming soon', 'info', 3000)}
+            onClick={handleOpenReceiptDialog}
           />
         }
       />
@@ -432,6 +715,22 @@ export default function ARReceiptsPage() {
                   width={120}
                   cellRender={statusCellRender}
                 />
+                <Column
+                  caption="การดำเนินการ"
+                  width={120}
+                  allowFiltering={false}
+                  allowSorting={false}
+                  cellRender={(cellData: { data: Receipt }) => {
+                    const receipt = cellData.data;
+                    if (receipt.status === 'cancelled') return null;
+                    return (
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <Button icon="edit" hint="แก้ไข" stylingMode="text" height={28} onClick={() => handleEdit(receipt)} />
+                        <Button icon="trash" hint="ลบ" stylingMode="text" height={28} onClick={() => handleDelete(receipt)} />
+                      </div>
+                    );
+                  }}
+                />
 
                 <Summary>
                   <TotalItem
@@ -450,6 +749,154 @@ export default function ARReceiptsPage() {
             )}
           </div>
         </div>
+
+        {/* Record Receipt Dialog */}
+        <Popup
+          visible={isDialogOpen}
+          onHiding={handleCloseReceiptDialog}
+          title={editingReceiptId ? 'แก้ไขรายการรับชำระ' : 'บันทึกการรับชำระเงิน'}
+          width={600}
+          height="auto"
+          showCloseButton={true}
+          dragEnabled={true}
+        >
+          <div className="p-4">
+            {selectedInvoice && (
+              <div className="mb-4 p-3 bg-green-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>Invoice Number:</div>
+                  <div className="font-semibold">{selectedInvoice.invoiceNumber}</div>
+                  <div>Customer:</div>
+                  <div className="font-semibold">{selectedInvoice.customerName || '-'}</div>
+                  <div>Total Amount:</div>
+                  <div className="font-semibold">{selectedInvoice.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB</div>
+                  <div>Paid Amount:</div>
+                  <div className="font-semibold">{selectedInvoice.paidAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB</div>
+                  <div>Outstanding:</div>
+                  <div className="font-bold text-orange-600">
+                    {(selectedInvoice.totalAmount - selectedInvoice.paidAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit mode: show read-only receipt info */}
+            {editingReceipt && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-gray-600">Receipt Number:</div>
+                  <div className="font-semibold">{editingReceipt.receiptNumber || '-'}</div>
+                  <div className="text-gray-600">Customer:</div>
+                  <div className="font-semibold">{editingReceipt.customerName || '-'}</div>
+                  <div className="text-gray-600">Amount (THB):</div>
+                  <div className="font-semibold">{Number(editingReceipt.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB</div>
+                </div>
+              </div>
+            )}
+
+            <Form key={editingReceiptId || 'new'} formData={formData} labelLocation="top" showColonAfterLabel={true}>
+              {!editingReceiptId && (
+                <SimpleItem
+                  dataField="arInvoiceId"
+                  editorType="dxSelectBox"
+                  label={{ text: 'ใบแจ้งหนี้ (AR Invoice)' }}
+                  editorOptions={{
+                    dataSource: arInvoices,
+                    displayExpr: (item: ARInvoice) =>
+                      item ? `${item.invoiceNumber} - ${item.customerName || 'Unknown'} (ค้าง: ${(item.totalAmount - item.paidAmount).toFixed(2)})` : '',
+                    valueExpr: 'id',
+                    searchEnabled: true,
+                    onValueChanged: (e: { value: number | null }) => handleInvoiceChange(e.value),
+                  }}
+                >
+                  <RequiredRule message="กรุณาเลือกใบแจ้งหนี้" />
+                </SimpleItem>
+              )}
+              <GroupItem colCount={2}>
+                <SimpleItem
+                  dataField="paymentDate"
+                  editorType="dxDateBox"
+                  label={{ text: 'วันที่รับชำระ' }}
+                  editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
+                >
+                  <RequiredRule message="กรุณาเลือกวันที่" />
+                </SimpleItem>
+                <SimpleItem
+                  dataField="paymentMethod"
+                  editorType="dxSelectBox"
+                  label={{ text: 'วิธีชำระ' }}
+                  editorOptions={{
+                    dataSource: [
+                      { value: 'transfer', label: 'โอนเงิน' },
+                      { value: 'cash', label: 'เงินสด' },
+                      { value: 'check', label: 'เช็ค' },
+                      { value: 'other', label: 'อื่นๆ' },
+                    ],
+                    displayExpr: 'label',
+                    valueExpr: 'value',
+                  }}
+                />
+              </GroupItem>
+              <SimpleItem
+                dataField="bankAccountId"
+                editorType="dxSelectBox"
+                label={{ text: 'บัญชีรับเงิน' }}
+                editorOptions={{
+                  dataSource: bankAccounts,
+                  displayExpr: (item: GLAccount) => item ? `${item.code} - ${item.nameTh}` : '',
+                  valueExpr: 'id',
+                  searchEnabled: true,
+                }}
+              >
+                <RequiredRule message="กรุณาเลือกบัญชีรับเงิน" />
+              </SimpleItem>
+              {!editingReceiptId && (
+                <GroupItem colCount={2}>
+                  <SimpleItem
+                    dataField="amount"
+                    editorType="dxNumberBox"
+                    label={{ text: 'จำนวนเงิน (THB)' }}
+                    editorOptions={{
+                      format: '#,##0.00',
+                      min: 0.01,
+                      max: selectedInvoice ? selectedInvoice.totalAmount - selectedInvoice.paidAmount : undefined,
+                    }}
+                  >
+                    <RequiredRule message="กรุณาระบุจำนวนเงิน" />
+                  </SimpleItem>
+                  <SimpleItem
+                    dataField="referenceNumber"
+                    label={{ text: 'เลขอ้างอิง' }}
+                    editorOptions={{ placeholder: 'เลขที่เช็ค / Ref.' }}
+                  />
+                </GroupItem>
+              )}
+              {editingReceiptId && (
+                <SimpleItem
+                  dataField="referenceNumber"
+                  label={{ text: 'เลขอ้างอิง' }}
+                  editorOptions={{ placeholder: 'เลขที่เช็ค / Ref.' }}
+                />
+              )}
+              <SimpleItem
+                dataField="description"
+                editorType="dxTextArea"
+                label={{ text: 'รายละเอียด' }}
+                editorOptions={{ height: 60 }}
+              />
+            </Form>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseReceiptDialog} />
+              <Button
+                text={editingReceiptId ? 'บันทึกการแก้ไข' : 'บันทึกการรับชำระ'}
+                type="success"
+                onClick={handleRecordReceipt}
+                disabled={receiptMutation.isPending || updateMutation.isPending}
+              />
+            </div>
+          </div>
+        </Popup>
       </div>
     </div>
   );

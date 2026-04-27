@@ -4,18 +4,20 @@
  * CAPA Management Dashboard
  * Feature: 009-gmp-compliance-gap-analysis (หมวด 1)
  *
- * Professional dashboard for viewing and managing CAPAs with:
- * - KPI cards with trends
+ * Professional responsive dashboard for viewing and managing CAPAs with:
+ * - ResponsivePageHeader with icon
+ * - 4 StatCard KPI row
  * - Status and Priority distribution charts
  * - Risk matrix visualization
- * - Tabbed data views
- * - Enhanced data grid with advanced filtering
+ * - Scroll-snap tabbed data views
+ * - Mobile card view (< md) / DataGrid (>= md)
+ * - Empty / No-results / Loading skeletons
  */
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslations, useLocale } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import DataGrid, {
   Column,
   Paging,
@@ -33,34 +35,30 @@ import DataGrid, {
   MasterDetail,
   StateStoring,
 } from 'devextreme-react/data-grid';
-import { Tabs, Item as TabItem } from 'devextreme-react/tabs';
 import { PieChart, Series, Label, Legend, Tooltip, Connector } from 'devextreme-react/pie-chart';
 import { Chart, CommonSeriesSettings, Series as ChartSeries, ArgumentAxis, ValueAxis, Legend as ChartLegend, Tooltip as ChartTooltip } from 'devextreme-react/chart';
-import Button from 'devextreme-react/button';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { CapaDataEntryDialog } from '@/components/capa/CapaDataEntryDialog';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { useMobile } from '@/hooks/use-mobile';
 import {
   FileCheck,
   Clock,
   AlertTriangle,
   CheckCircle,
-  XCircle,
-  TrendingUp,
-  TrendingDown,
   Shield,
   ClipboardList,
+  ClipboardCheck,
   Users,
-  Calendar,
   Target,
-  Activity,
   BarChart3,
   PieChartIcon,
-  RefreshCw,
-  Plus,
-  Filter,
   FileText,
+  SearchX,
+  ChevronRight,
+  Calendar,
+  Eye,
 } from 'lucide-react';
 import type { Capa, CapaStatus, CapaPriority, CapaDashboard, RiskSeverity, RiskProbability } from '@/types/capa';
 
@@ -75,12 +73,7 @@ interface ApiError extends Error {
 
 type TabKey = 'all' | 'active' | 'overdue' | 'pending_approval' | 'closed';
 
-interface TabConfig {
-  id: TabKey;
-  text: string;
-  icon: string;
-  badge?: number;
-}
+type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
 
 // ============================================
 // API Functions
@@ -124,73 +117,57 @@ async function fetchCapas(params: {
 // Helper Functions
 // ============================================
 
-function getRiskLevel(score: number | null): { level: string; color: string } {
-  if (!score) return { level: 'N/A', color: 'gray' };
-  if (score <= 4) return { level: 'Low', color: 'green' };
-  if (score <= 9) return { level: 'Medium', color: 'yellow' };
-  if (score <= 16) return { level: 'High', color: 'orange' };
-  return { level: 'Critical', color: 'red' };
+type RiskLevelKey = 'na' | 'low' | 'medium' | 'high' | 'critical';
+
+function getRiskLevelKey(score: number | null): { key: RiskLevelKey; color: string } {
+  if (!score) return { key: 'na', color: 'gray' };
+  if (score <= 4) return { key: 'low', color: 'green' };
+  if (score <= 9) return { key: 'medium', color: 'yellow' };
+  if (score <= 16) return { key: 'high', color: 'orange' };
+  return { key: 'critical', color: 'red' };
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDateShort(dateStr: string | null | undefined): string {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('th-TH', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return '-';
+  }
 }
+
+// Style-only priority config; labels come from translations via priorityLabels.*
+const PRIORITY_CONFIG: Record<CapaPriority, { bg: string }> = {
+  low: { bg: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' },
+  medium: { bg: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' },
+  high: { bg: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300' },
+  critical: { bg: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' },
+};
+
+// Icon-only source type config; labels come from translations via sourceTypes.*
+const SOURCE_TYPE_CONFIG: Record<string, { icon: React.ReactNode }> = {
+  deviation: { icon: <AlertTriangle className="w-3.5 h-3.5" /> },
+  complaint: { icon: <Users className="w-3.5 h-3.5" /> },
+  audit_finding: { icon: <ClipboardList className="w-3.5 h-3.5" /> },
+  other: { icon: <FileText className="w-3.5 h-3.5" /> },
+};
 
 // ============================================
 // Sub-Components
 // ============================================
 
-interface KpiCardProps {
-  title: string;
-  value: number | string;
-  subtitle?: string;
-  icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-  trend?: { value: number; isPositive: boolean };
-  onClick?: () => void;
-}
-
-function KpiCard({ title, value, subtitle, icon: Icon, iconBg, iconColor, trend, onClick }: KpiCardProps) {
-  return (
-    <div
-      className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 transition-all duration-200 ${
-        onClick ? 'cursor-pointer hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800' : ''
-      }`}
-      onClick={onClick}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{subtitle}</p>
-          )}
-          {trend && (
-            <div className={`flex items-center gap-1 mt-2 text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-              {trend.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              <span>{trend.value}% vs last month</span>
-            </div>
-          )}
-        </div>
-        <div className={`p-3 rounded-xl ${iconBg}`}>
-          <Icon className={`w-6 h-6 ${iconColor}`} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 interface RiskMatrixProps {
   capas: Capa[];
+  t: TranslateFn;
 }
 
-function RiskMatrix({ capas }: RiskMatrixProps) {
+function RiskMatrix({ capas, t }: RiskMatrixProps) {
   const severityLevels: RiskSeverity[] = ['negligible', 'minor', 'moderate', 'major', 'critical'];
   const probabilityLevels: RiskProbability[] = ['rare', 'unlikely', 'possible', 'likely', 'certain'];
 
@@ -217,7 +194,7 @@ function RiskMatrix({ capas }: RiskMatrixProps) {
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
         <Shield className="w-4 h-4" />
-        Risk Matrix (ICH Q9)
+        {t('capa.charts.riskMatrixTitle')}
       </h3>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -225,8 +202,8 @@ function RiskMatrix({ capas }: RiskMatrixProps) {
             <tr>
               <th className="p-1"></th>
               {probabilityLevels.map(p => (
-                <th key={p} className="p-1 text-center capitalize font-medium text-gray-500 dark:text-gray-400 min-w-[60px]">
-                  {p}
+                <th key={p} className="p-1 text-center font-medium text-gray-500 dark:text-gray-400 min-w-[60px]">
+                  {t(`capa.riskMatrix.probability.${p}`)}
                 </th>
               ))}
             </tr>
@@ -234,8 +211,8 @@ function RiskMatrix({ capas }: RiskMatrixProps) {
           <tbody>
             {[...severityLevels].reverse().map((severity, sIdx) => (
               <tr key={severity}>
-                <td className="p-1 text-right capitalize font-medium text-gray-500 dark:text-gray-400 pr-2">
-                  {severity}
+                <td className="p-1 text-right font-medium text-gray-500 dark:text-gray-400 pr-2">
+                  {t(`capa.riskMatrix.severity.${severity}`)}
                 </td>
                 {probabilityLevels.map((probability, pIdx) => {
                   const count = matrixData[`${severity}-${probability}`] || 0;
@@ -255,22 +232,22 @@ function RiskMatrix({ capas }: RiskMatrixProps) {
             ))}
           </tbody>
         </table>
-        <div className="flex items-center justify-center gap-4 mt-4 text-xs">
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-4 text-xs">
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 rounded bg-green-100 dark:bg-green-900/30"></div>
-            <span className="text-gray-500">Low (1-4)</span>
+            <span className="text-gray-500">{t('capa.riskMatrix.low')}</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 rounded bg-yellow-100 dark:bg-yellow-900/30"></div>
-            <span className="text-gray-500">Medium (5-9)</span>
+            <span className="text-gray-500">{t('capa.riskMatrix.medium')}</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 rounded bg-orange-100 dark:bg-orange-900/30"></div>
-            <span className="text-gray-500">High (10-16)</span>
+            <span className="text-gray-500">{t('capa.riskMatrix.high')}</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 rounded bg-red-100 dark:bg-red-900/30"></div>
-            <span className="text-gray-500">Critical (17-25)</span>
+            <span className="text-gray-500">{t('capa.riskMatrix.critical')}</span>
           </div>
         </div>
       </div>
@@ -284,11 +261,12 @@ function RiskMatrix({ capas }: RiskMatrixProps) {
 
 export default function CapaDashboardPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const t = useTranslations('gmp');
+  // Force DataGrid remount on locale switch so column captions refresh.
+  const locale = useLocale();
+  const { isMobile } = useMobile();
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [showNewCapaDialog, setShowNewCapaDialog] = useState(false);
-  const [selectedCapaId, setSelectedCapaId] = useState<number | null>(null);
 
   // Fetch dashboard data
   const { data: dashboard, isLoading: dashboardLoading, refetch: refetchDashboard } = useQuery({
@@ -325,15 +303,6 @@ export default function CapaDashboardPage() {
   // Chart data
   const statusChartData = useMemo(() => {
     if (!dashboard?.byStatus) return [];
-    const statusLabels: Record<string, string> = {
-      open: 'Open',
-      investigation: 'Investigation',
-      action_pending: 'Action Pending',
-      verification: 'Verification',
-      pending_approval: 'Pending Approval',
-      closed: 'Closed',
-      cancelled: 'Cancelled',
-    };
     const statusColors: Record<string, string> = {
       open: '#3b82f6',
       investigation: '#8b5cf6',
@@ -345,12 +314,16 @@ export default function CapaDashboardPage() {
     };
     return Object.entries(dashboard.byStatus)
       .filter(([, count]) => count > 0)
-      .map(([status, count]) => ({
-        status: statusLabels[status] || status,
-        count,
-        color: statusColors[status] || '#6b7280',
-      }));
-  }, [dashboard?.byStatus]);
+      .map(([status, count]) => {
+        const key = `capa.charts.statusLabels.${status}`;
+        const translated = t(key);
+        return {
+          status: translated === key ? status : translated,
+          count,
+          color: statusColors[status] || '#6b7280',
+        };
+      });
+  }, [dashboard?.byStatus, t]);
 
   const priorityChartData = useMemo(() => {
     if (!dashboard?.byPriority) return [];
@@ -361,21 +334,25 @@ export default function CapaDashboardPage() {
       critical: '#ef4444',
     };
     return Object.entries(dashboard.byPriority)
-      .map(([priority, count]) => ({
-        priority: priority.charAt(0).toUpperCase() + priority.slice(1),
-        count,
-        color: priorityColors[priority] || '#6b7280',
-      }));
-  }, [dashboard?.byPriority]);
+      .map(([priority, count]) => {
+        const key = `capa.priority.${priority}`;
+        const translated = t(key);
+        return {
+          priority: translated === key ? priority.charAt(0).toUpperCase() + priority.slice(1) : translated,
+          count,
+          color: priorityColors[priority] || '#6b7280',
+        };
+      });
+  }, [dashboard?.byPriority, t]);
 
-  // Tab configuration
-  const tabs: TabConfig[] = useMemo(() => [
-    { id: 'all', text: 'All CAPAs', icon: 'folder' },
-    { id: 'active', text: 'Active', icon: 'clock', badge: dashboard?.totalOpen },
-    { id: 'overdue', text: 'Overdue', icon: 'warning', badge: dashboard?.overdue },
-    { id: 'pending_approval', text: 'Pending Approval', icon: 'check', badge: dashboard?.byStatus?.pending_approval },
-    { id: 'closed', text: 'Closed', icon: 'check', badge: dashboard?.closedThisMonth },
-  ], [dashboard]);
+  // Tab configuration (scroll-snap responsive)
+  const tabs: Array<{ id: TabKey; label: string; count: number; accent?: 'danger' | 'warn' | 'success' }> = useMemo(() => [
+    { id: 'all', label: t('capa.tabs.all'), count: capaData?.total || 0 },
+    { id: 'active', label: t('capa.tabs.active'), count: dashboard?.totalOpen || 0 },
+    { id: 'overdue', label: t('capa.tabs.overdue'), count: dashboard?.overdue || 0, accent: 'danger' },
+    { id: 'pending_approval', label: t('capa.tabs.pendingApproval'), count: dashboard?.byStatus?.pending_approval || 0, accent: 'warn' },
+    { id: 'closed', label: t('capa.tabs.closed'), count: dashboard?.closedThisMonth || 0, accent: 'success' },
+  ], [dashboard, capaData?.total, t]);
 
   // Handlers
   const handleRefresh = useCallback(() => {
@@ -387,14 +364,16 @@ export default function CapaDashboardPage() {
     router.push(`/gmp/capa/${e.data.id}`);
   }, [router]);
 
+  const handleViewCapa = useCallback((capa: Capa) => {
+    router.push(`/gmp/capa/${capa.id}`);
+  }, [router]);
+
   const handleNewCapa = useCallback(() => {
-    setSelectedCapaId(null);
     setShowNewCapaDialog(true);
   }, []);
 
   const handleDialogClose = useCallback(() => {
     setShowNewCapaDialog(false);
-    setSelectedCapaId(null);
   }, []);
 
   const handleDialogSuccess = useCallback((capa?: Capa) => {
@@ -405,27 +384,27 @@ export default function CapaDashboardPage() {
     }
   }, [handleDialogClose, handleRefresh, router]);
 
+  const handleClearFilters = useCallback(() => {
+    setActiveTab('all');
+  }, []);
+
   // Cell renderers
   const renderPriority = useCallback((cellData: { value: CapaPriority }) => {
-    const colors: Record<CapaPriority, string> = {
-      low: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-      medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
-      high: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
-      critical: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
-    };
+    const config = PRIORITY_CONFIG[cellData.value];
+    if (!config) return null;
     return (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${colors[cellData.value]}`}>
-        {cellData.value?.toUpperCase()}
+      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${config.bg}`}>
+        {t(`capa.priorityLabels.${cellData.value}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderStatus = useCallback((cellData: { value: CapaStatus }) => {
     return <WorkflowStatusBadge status={cellData.value} />;
   }, []);
 
   const renderRiskScore = useCallback((cellData: { data: Capa }) => {
-    const { level, color } = getRiskLevel(cellData.data.riskScore);
+    const { key, color } = getRiskLevelKey(cellData.data.riskScore);
     const colorClasses: Record<string, string> = {
       green: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
       yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
@@ -439,11 +418,12 @@ export default function CapaDashboardPage() {
           <span className="text-sm font-mono">{cellData.data.riskScore}</span>
         )}
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${colorClasses[color]}`}>
-          {level}
+          {t(`capa.riskLevels.${key}`)}
         </span>
       </div>
     );
-  }, []);
+    // t re-evaluates every render; include to silence exhaustive-deps
+  }, [t]);
 
   const renderOverdue = useCallback((cellData: { data: Capa }) => {
     if (cellData.data.isOverdue) {
@@ -479,25 +459,20 @@ export default function CapaDashboardPage() {
   }, []);
 
   const renderSourceType = useCallback((cellData: { value: string }) => {
-    const icons: Record<string, React.ReactNode> = {
-      deviation: <AlertTriangle className="w-3.5 h-3.5" />,
-      complaint: <Users className="w-3.5 h-3.5" />,
-      audit_finding: <ClipboardList className="w-3.5 h-3.5" />,
-      other: <FileText className="w-3.5 h-3.5" />,
+    const config = SOURCE_TYPE_CONFIG[cellData.value] || {
+      icon: <FileText className="w-3.5 h-3.5" />,
     };
-    const labels: Record<string, string> = {
-      deviation: 'Deviation',
-      complaint: 'Complaint',
-      audit_finding: 'Audit Finding',
-      other: 'Other',
-    };
+    const translationKey = `capa.sourceTypes.${cellData.value}`;
+    const translated = t(translationKey);
     return (
       <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-        {icons[cellData.value]}
-        <span className="text-xs">{labels[cellData.value] || cellData.value}</span>
+        {config.icon}
+        <span className="text-xs">
+          {translated === translationKey ? cellData.value : translated}
+        </span>
       </div>
     );
-  }, []);
+  }, [t]);
 
   // Master detail template
   const masterDetailTemplate = useCallback((e: { data: Capa }) => {
@@ -505,320 +480,359 @@ export default function CapaDashboardPage() {
     return (
       <div className="p-4 bg-gray-50 dark:bg-gray-900/50 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Root Cause</h4>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">{t('capa.masterDetail.rootCause')}</h4>
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            {capa.rootCauseAnalysis || 'Not analyzed yet'}
+            {capa.rootCauseAnalysis || t('capa.masterDetail.notAnalyzed')}
           </p>
         </div>
         <div>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Impact Assessment</h4>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">{t('capa.masterDetail.impactAssessment')}</h4>
           <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
-            <p>Scope: <span className="font-medium">{capa.impactScope || 'N/A'}</span></p>
-            <p>Patient Impact: <span className={capa.patientImpact ? 'text-red-600 font-medium' : ''}>{capa.patientImpact ? 'Yes' : 'No'}</span></p>
-            <p>Regulatory Required: <span className={capa.regulatoryNotificationRequired ? 'text-orange-600 font-medium' : ''}>{capa.regulatoryNotificationRequired ? 'Yes' : 'No'}</span></p>
+            <p>{t('capa.masterDetail.scope')}: <span className="font-medium">{capa.impactScope || t('capa.masterDetail.notAvailable')}</span></p>
+            <p>{t('capa.masterDetail.patientImpact')}: <span className={capa.patientImpact ? 'text-red-600 font-medium' : ''}>{capa.patientImpact ? t('capa.masterDetail.yes') : t('capa.masterDetail.no')}</span></p>
+            <p>{t('capa.masterDetail.regulatoryRequired')}: <span className={capa.regulatoryNotificationRequired ? 'text-orange-600 font-medium' : ''}>{capa.regulatoryNotificationRequired ? t('capa.masterDetail.yes') : t('capa.masterDetail.no')}</span></p>
           </div>
         </div>
         <div>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Approval Status</h4>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">{t('capa.masterDetail.approvalStatus')}</h4>
           <p className="text-sm text-gray-700 dark:text-gray-300">
             {capa.approvalStatus ? (
               <span className={`font-medium ${capa.approvalStatus === 'approved' ? 'text-green-600' : capa.approvalStatus === 'rejected' ? 'text-red-600' : 'text-yellow-600'}`}>
                 {capa.approvalStatus.replace('_', ' ').toUpperCase()}
               </span>
-            ) : 'Not submitted'}
+            ) : t('capa.masterDetail.notSubmitted')}
           </p>
         </div>
       </div>
     );
-  }, []);
+  }, [t]);
 
   const isLoading = dashboardLoading || capasLoading;
+  const totalCapas = capaData?.capas.length || 0;
+  const showEmptyState = !isLoading && totalCapas === 0;
+  const showNoResultsState = !isLoading && totalCapas > 0 && filteredCapas.length === 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-[1920px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                  <Target className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                {t('capa.pageTitle')}
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {t('capa.description')} • GMP Chapter 1 Compliance
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                icon="refresh"
-                text={t('capa.actions.refresh')}
-                stylingMode="outlined"
-                onClick={handleRefresh}
-              />
-              <Button
-                icon="plus"
-                text={t('capa.actions.newCapa')}
-                type="success"
-                onClick={handleNewCapa}
-              />
-            </div>
+    <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
+      {/* Responsive Page Header */}
+      <ResponsivePageHeader
+        title={t('capa.pageTitle')}
+        subtitle={`${t('capa.description')} • GMP Chapter 1 Compliance`}
+        icon={ClipboardCheck}
+        iconBgColor="bg-orange-100"
+        iconColor="text-orange-600"
+        breadcrumbs={[
+          { label: 'GMP', href: '/gmp' },
+          { label: t('capa.title') },
+        ]}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <DxButton
+              icon="refresh"
+              text={t('capa.actions.refresh')}
+              type="default"
+              stylingMode="outlined"
+              onClick={handleRefresh}
+              className="hidden sm:inline-flex"
+            />
+            <DxButton
+              icon="plus"
+              text={t('capa.actions.newCapa')}
+              type="success"
+              onClick={handleNewCapa}
+            />
           </div>
-        </div>
+        }
+      />
+
+      {/* KPI Stat Cards - 4 primary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          label={t('capa.stats.openCapas')}
+          value={dashboard?.totalOpen || 0}
+          icon={FileCheck}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
+          isLoading={isLoading}
+          onClick={() => setActiveTab('active')}
+        />
+        <StatCard
+          label={t('capa.stats.overdue')}
+          value={dashboard?.overdue || 0}
+          icon={AlertTriangle}
+          iconColor={dashboard?.overdue ? 'text-red-500' : 'text-gray-400'}
+          accentColor={dashboard?.overdue ? 'border-red-500' : 'border-gray-300'}
+          isLoading={isLoading}
+          onClick={() => setActiveTab('overdue')}
+        />
+        <StatCard
+          label={t('capa.stats.pendingApproval')}
+          value={dashboard?.byStatus?.pending_approval || 0}
+          icon={Clock}
+          iconColor="text-purple-500"
+          accentColor="border-purple-500"
+          isLoading={isLoading}
+          onClick={() => setActiveTab('pending_approval')}
+        />
+        <StatCard
+          label={t('capa.stats.closedThisMonth')}
+          value={dashboard?.closedThisMonth || 0}
+          icon={CheckCircle}
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
+          isLoading={isLoading}
+          onClick={() => setActiveTab('closed')}
+        />
       </div>
 
-      <div className="max-w-[1920px] mx-auto px-6 py-6 space-y-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          <KpiCard
-            title="Open CAPAs"
-            value={dashboard?.totalOpen || 0}
-            subtitle="Active cases requiring attention"
-            icon={FileCheck}
-            iconBg="bg-blue-100 dark:bg-blue-900/30"
-            iconColor="text-blue-600 dark:text-blue-400"
-            onClick={() => setActiveTab('active')}
-          />
-          <KpiCard
-            title="Overdue"
-            value={dashboard?.overdue || 0}
-            subtitle="Past due date"
-            icon={AlertTriangle}
-            iconBg={dashboard?.overdue ? "bg-red-100 dark:bg-red-900/30" : "bg-gray-100 dark:bg-gray-800"}
-            iconColor={dashboard?.overdue ? "text-red-600 dark:text-red-400" : "text-gray-400"}
-            onClick={() => setActiveTab('overdue')}
-          />
-          <KpiCard
-            title="Pending Approval"
-            value={dashboard?.byStatus?.pending_approval || 0}
-            subtitle="Awaiting QA review"
-            icon={Clock}
-            iconBg="bg-purple-100 dark:bg-purple-900/30"
-            iconColor="text-purple-600 dark:text-purple-400"
-            onClick={() => setActiveTab('pending_approval')}
-          />
-          <KpiCard
-            title="Closed This Month"
-            value={dashboard?.closedThisMonth || 0}
-            subtitle="Successfully resolved"
-            icon={CheckCircle}
-            iconBg="bg-green-100 dark:bg-green-900/30"
-            iconColor="text-green-600 dark:text-green-400"
-            onClick={() => setActiveTab('closed')}
-          />
-          <KpiCard
-            title="Effectiveness Rate"
-            value={`${dashboard?.effectivenessRate || 0}%`}
-            subtitle="Of closed CAPAs effective"
-            icon={Activity}
-            iconBg="bg-emerald-100 dark:bg-emerald-900/30"
-            iconColor="text-emerald-600 dark:text-emerald-400"
-          />
+      {/* Charts Row - hidden on small screens to prioritize the list */}
+      <div className="hidden lg:grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
+        {/* Status Distribution */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+            <PieChartIcon className="w-4 h-4" />
+            {t('capa.charts.statusDistribution')}
+          </h3>
+          {statusChartData.length > 0 ? (
+            <PieChart
+              key={locale}
+              id="status-pie"
+              dataSource={statusChartData}
+              type="doughnut"
+              innerRadius={0.65}
+              palette={statusChartData.map(d => d.color)}
+              size={{ height: 200 }}
+            >
+              <Series argumentField="status" valueField="count">
+                <Label visible={true} position="inside" customizeText={(e: { valueText: string }) => e.valueText}>
+                  <Connector visible={false} />
+                </Label>
+              </Series>
+              <Legend
+                visible={true}
+                horizontalAlignment="right"
+                verticalAlignment="top"
+                itemTextPosition="right"
+                font={{ size: 11 }}
+              />
+              <Tooltip enabled={true} />
+            </PieChart>
+          ) : (
+            <div className="h-[200px] flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <PieChartIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">{t('capa.charts.noDataAvailable')}</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Status Distribution */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-              <PieChartIcon className="w-4 h-4" />
-              Status Distribution
-            </h3>
-            {statusChartData.length > 0 ? (
-              <PieChart
-                id="status-pie"
-                dataSource={statusChartData}
-                type="doughnut"
-                innerRadius={0.65}
-                palette={statusChartData.map(d => d.color)}
-              >
-                <Series argumentField="status" valueField="count">
-                  <Label visible={true} position="inside" customizeText={(e: { valueText: string }) => e.valueText}>
-                    <Connector visible={false} />
-                  </Label>
-                </Series>
-                <Legend
-                  visible={true}
-                  horizontalAlignment="right"
-                  verticalAlignment="top"
-                  itemTextPosition="right"
-                />
-                <Tooltip enabled={true} />
-              </PieChart>
-            ) : (
-              <div className="h-[200px] flex items-center justify-center text-gray-400">
-                No data available
+        {/* Priority Distribution */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            {t('capa.charts.priorityDistribution')}
+          </h3>
+          {priorityChartData.length > 0 ? (
+            <Chart
+              key={locale}
+              id="priority-chart"
+              dataSource={priorityChartData}
+              rotated={true}
+              size={{ height: 200 }}
+            >
+              <CommonSeriesSettings type="bar" argumentField="priority" valueField="count" />
+              <ChartSeries
+                name="Count"
+                color="#10b981"
+                barWidth={30}
+              />
+              <ArgumentAxis />
+              <ValueAxis />
+              <ChartLegend visible={false} />
+              <ChartTooltip enabled={true} />
+            </Chart>
+          ) : (
+            <div className="h-[200px] flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">{t('capa.charts.noDataAvailable')}</p>
               </div>
-            )}
-          </div>
-
-          {/* Priority Distribution */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Priority Distribution
-            </h3>
-            {priorityChartData.length > 0 ? (
-              <Chart
-                id="priority-chart"
-                dataSource={priorityChartData}
-                rotated={true}
-              >
-                <CommonSeriesSettings type="bar" argumentField="priority" valueField="count" />
-                <ChartSeries
-                  name="Count"
-                  color="#10b981"
-                  barWidth={30}
-                />
-                <ArgumentAxis />
-                <ValueAxis />
-                <ChartLegend visible={false} />
-                <ChartTooltip enabled={true} />
-              </Chart>
-            ) : (
-              <div className="h-[200px] flex items-center justify-center text-gray-400">
-                No data available
-              </div>
-            )}
-          </div>
-
-          {/* Risk Matrix */}
-          <RiskMatrix capas={capaData?.capas || []} />
+            </div>
+          )}
         </div>
 
-        {/* Tabs and Data Grid */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-          {/* Custom Tabs */}
-          <div className="border-b border-gray-200 dark:border-gray-700 px-4">
-            <div className="flex items-center gap-1 overflow-x-auto py-2">
-              {tabs.map((tab) => (
+        {/* Risk Matrix */}
+        <RiskMatrix capas={capaData?.capas || []} t={t} />
+      </div>
+
+      {/* Main Content - Tabs + Content */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        {/* Tabs Header - scroll-snap responsive */}
+        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-gray-50/50 to-white dark:from-gray-900/40 dark:to-gray-800">
+          <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-x-auto scrollbar-thin snap-x w-full">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const badgeColorClass =
+                isActive
+                  ? 'bg-white/25 text-inherit'
+                  : tab.accent === 'danger'
+                  ? 'bg-red-500 text-white'
+                  : tab.accent === 'warn'
+                  ? 'bg-amber-500 text-white'
+                  : tab.accent === 'success'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-gray-200 text-gray-700';
+              return (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 snap-start min-h-[36px] ${
+                    isActive
+                      ? 'bg-orange-600 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  {tab.text}
-                  {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                      activeTab === tab.id
-                        ? 'bg-emerald-600 text-white'
-                        : tab.id === 'overdue'
-                        ? 'bg-red-500 text-white'
-                        : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200'
-                    }`}>
-                      {tab.badge}
-                    </span>
-                  )}
+                  <span>{tab.label}</span>
+                  <span className={`ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold ${badgeColorClass}`}>
+                    {tab.count}
+                  </span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-
-          {/* Data Grid */}
-          <DataGrid
-            dataSource={filteredCapas}
-            showBorders={false}
-            showRowLines={true}
-            showColumnLines={false}
-            rowAlternationEnabled={true}
-            hoverStateEnabled={true}
-            onRowClick={handleRowClick}
-            wordWrapEnabled={false}
-            columnAutoWidth={true}
-            height="calc(100vh - 550px)"
-            className="dx-card-grid"
-          >
-            <LoadPanel enabled={true} />
-            <StateStoring enabled={true} type="localStorage" storageKey="capaGridState" />
-            <SearchPanel visible={true} width={250} placeholder="Search CAPAs..." />
-            <FilterRow visible={true} />
-            <HeaderFilter visible={true} />
-            <Sorting mode="multiple" />
-            <ColumnChooser enabled={true} mode="select" />
-            <Export enabled={true} allowExportSelectedData={true} />
-            <Selection mode="multiple" showCheckBoxesMode="onClick" />
-            <Paging defaultPageSize={20} />
-            <Pager
-              showPageSizeSelector={true}
-              allowedPageSizes={[10, 20, 50, 100]}
-              showInfo={true}
-              showNavigationButtons={true}
-            />
-            <MasterDetail enabled={true} component={masterDetailTemplate} />
-
-            <Column dataField="capaNumber" caption="CAPA #" width={130} fixed={true} />
-            <Column dataField="title" caption="Title" minWidth={200} />
-            <Column
-              dataField="sourceType"
-              caption="Source"
-              width={130}
-              cellRender={renderSourceType}
-            />
-            <Column dataField="type" caption="Type" width={100} cellRender={(e: { value: string }) => (
-              <span className="capitalize text-sm">{e.value}</span>
-            )} />
-            <Column
-              dataField="priority"
-              caption="Priority"
-              width={110}
-              cellRender={renderPriority}
-            />
-            <Column
-              dataField="status"
-              caption="Status"
-              width={140}
-              cellRender={renderStatus}
-            />
-            <Column
-              dataField="riskScore"
-              caption="Risk"
-              width={110}
-              cellRender={renderRiskScore}
-            />
-            <Column
-              dataField="isOverdue"
-              caption=""
-              width={40}
-              cellRender={renderOverdue}
-              allowFiltering={false}
-              allowSorting={false}
-            />
-            <Column
-              dataField="actionCount"
-              caption="Actions"
-              width={120}
-              cellRender={renderActionProgress}
-            />
-            <Column dataField="ownerName" caption="Owner" width={150} />
-            <Column
-              dataField="dueDate"
-              caption="Due Date"
-              width={110}
-              dataType="date"
-              format="dd MMM yyyy"
-            />
-            <Column
-              dataField="createdAt"
-              caption="Created"
-              width={110}
-              dataType="date"
-              format="dd MMM yyyy"
-              visible={false}
-            />
-
-            <Toolbar>
-              <Item name="searchPanel" />
-              <Item name="columnChooserButton" />
-              <Item name="exportButton" />
-            </Toolbar>
-          </DataGrid>
         </div>
+
+        {/* Result count row */}
+        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+            <ClipboardCheck className="w-4 h-4 text-gray-400" />
+            <span>
+              {t(
+                filteredCapas.length === 1 ? 'capa.resultCountSingular' : 'capa.resultCount',
+                { count: filteredCapas.length }
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Content: Loading / Empty / No Results / Mobile Cards / Desktop Grid */}
+        {isLoading ? (
+          isMobile ? (
+            <CapaCardSkeletonList count={4} />
+          ) : (
+            <DataGridLoadingSkeleton />
+          )
+        ) : showEmptyState ? (
+          <EmptyState onCreate={handleNewCapa} t={t} />
+        ) : showNoResultsState ? (
+          <NoResultsState onClear={handleClearFilters} t={t} />
+        ) : isMobile ? (
+          <CapaCardList capas={filteredCapas} onView={handleViewCapa} t={t} />
+        ) : (
+          <div className="overflow-x-auto">
+            <DataGrid
+              key={locale}
+              dataSource={filteredCapas}
+              showBorders={false}
+              showRowLines={true}
+              showColumnLines={false}
+              rowAlternationEnabled={true}
+              hoverStateEnabled={true}
+              onRowClick={handleRowClick}
+              wordWrapEnabled={false}
+              columnAutoWidth={true}
+              height={500}
+              className="dx-card-grid"
+              style={{ minWidth: 1000 }}
+            >
+              <LoadPanel enabled={true} />
+              <StateStoring enabled={true} type="localStorage" storageKey="capaGridState" />
+              <SearchPanel visible={true} width={250} placeholder={t('capa.search.placeholder')} />
+              <FilterRow visible={true} />
+              <HeaderFilter visible={true} />
+              <Sorting mode="multiple" />
+              <ColumnChooser enabled={true} mode="select" />
+              <Export enabled={true} allowExportSelectedData={true} />
+              <Selection mode="multiple" showCheckBoxesMode="onClick" />
+              <Paging defaultPageSize={20} />
+              <Pager
+                showPageSizeSelector={true}
+                allowedPageSizes={[10, 20, 50, 100]}
+                showInfo={true}
+                showNavigationButtons={true}
+              />
+              <MasterDetail enabled={true} component={masterDetailTemplate} />
+
+              <Column dataField="capaNumber" caption={t('capa.table.columns.capaNumber')} width={130} fixed={true} />
+              <Column dataField="title" caption={t('capa.table.columns.title')} minWidth={200} />
+              <Column
+                dataField="sourceType"
+                caption={t('capa.table.columns.source')}
+                width={130}
+                cellRender={renderSourceType}
+              />
+              <Column dataField="type" caption={t('capa.table.columns.type')} width={100} cellRender={(e: { value: string }) => (
+                <span className="capitalize text-sm">{e.value}</span>
+              )} />
+              <Column
+                dataField="priority"
+                caption={t('capa.table.columns.priority')}
+                width={110}
+                cellRender={renderPriority}
+              />
+              <Column
+                dataField="status"
+                caption={t('capa.table.columns.status')}
+                width={140}
+                cellRender={renderStatus}
+              />
+              <Column
+                dataField="riskScore"
+                caption={t('capa.table.columns.risk')}
+                width={110}
+                cellRender={renderRiskScore}
+              />
+              <Column
+                dataField="isOverdue"
+                caption=""
+                width={40}
+                cellRender={renderOverdue}
+                allowFiltering={false}
+                allowSorting={false}
+              />
+              <Column
+                dataField="actionCount"
+                caption={t('capa.table.columns.actions')}
+                width={120}
+                cellRender={renderActionProgress}
+              />
+              <Column dataField="ownerName" caption={t('capa.table.columns.owner')} width={150} />
+              <Column
+                dataField="dueDate"
+                caption={t('capa.table.columns.dueDate')}
+                width={110}
+                dataType="date"
+                format="dd MMM yyyy"
+              />
+              <Column
+                dataField="createdAt"
+                caption={t('capa.table.columns.created')}
+                width={110}
+                dataType="date"
+                format="dd MMM yyyy"
+                visible={false}
+              />
+
+              <Toolbar>
+                <Item name="searchPanel" />
+                <Item name="columnChooserButton" />
+                <Item name="exportButton" />
+              </Toolbar>
+            </DataGrid>
+          </div>
+        )}
       </div>
 
       {/* New CAPA Dialog */}
@@ -826,6 +840,222 @@ export default function CapaDashboardPage() {
         visible={showNewCapaDialog}
         onClose={handleDialogClose}
         onSaved={handleDialogSuccess}
+      />
+    </div>
+  );
+}
+
+// ============================================
+// Helper Components
+// ============================================
+
+/**
+ * Mobile Card List — replaces DataGrid on mobile viewports.
+ * Each card prioritizes: CAPA # → Title → Type (Corrective/Preventive) → Status + Priority + Due Date.
+ * Tap card to view; footer "View Details" action with min-h-[44px].
+ */
+function CapaCardList({
+  capas,
+  onView,
+  t,
+}: {
+  capas: Capa[];
+  onView: (capa: Capa) => void;
+  t: TranslateFn;
+}) {
+  const statusBadge = (status: CapaStatus) => <WorkflowStatusBadge status={status} />;
+
+  const priorityBadge = (priority: CapaPriority | null | undefined) => {
+    if (!priority) return null;
+    const config = PRIORITY_CONFIG[priority];
+    if (!config) return null;
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${config.bg}`}>
+        {t(`capa.priorityLabels.${priority}`)}
+      </span>
+    );
+  };
+
+  const typeBadge = (type: string | null | undefined) => {
+    if (!type) return null;
+    return (
+      <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded">
+        <Target className="h-3 w-3" />
+        <span className="capitalize">{type}</span>
+      </span>
+    );
+  };
+
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30 dark:bg-gray-900/30">
+      {capas.map((capa) => {
+        const isOverdue = capa.isOverdue;
+        return (
+          <div
+            key={capa.id}
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md active:bg-gray-50 dark:active:bg-gray-700/50 transition-all"
+          >
+            {/* Card body: tap to view */}
+            <button
+              type="button"
+              onClick={() => onView(capa)}
+              className="w-full text-left p-4 flex items-start gap-3"
+            >
+              <div className={`h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                isOverdue ? 'bg-red-100 dark:bg-red-900/40' : 'bg-orange-100 dark:bg-orange-900/40'
+              }`}>
+                <ClipboardCheck className={`h-5 w-5 ${
+                  isOverdue ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'
+                }`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="min-w-0">
+                    <p className="font-mono font-semibold text-blue-700 dark:text-blue-400 text-base truncate">
+                      {capa.capaNumber || '-'}
+                    </p>
+                  </div>
+                  {statusBadge(capa.status)}
+                </div>
+
+                {/* Title */}
+                {capa.title && (
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2 mt-1" title={capa.title}>
+                    {capa.title}
+                  </p>
+                )}
+
+                {/* Tags row: type, priority, due date */}
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  {typeBadge(capa.type)}
+                  {priorityBadge(capa.priority)}
+                  {capa.dueDate && (
+                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded ${
+                      isOverdue
+                        ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-semibold'
+                        : 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                    }`}>
+                      <Calendar className="h-3 w-3" />
+                      {formatDateShort(capa.dueDate)}
+                      {isOverdue && (
+                        <AlertTriangle className="h-3 w-3 ml-0.5" />
+                      )}
+                    </span>
+                  )}
+                </div>
+
+                {/* Owner */}
+                {capa.ownerName && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1.5">
+                    <Users className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{capa.ownerName}</span>
+                  </p>
+                )}
+              </div>
+              <ChevronRight className="h-4 w-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mt-2" />
+            </button>
+
+            {/* Card footer: view action (touch-friendly 44px) */}
+            <div className="flex items-center border-t border-gray-100 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => onView(capa)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:text-orange-700 dark:hover:text-orange-300 active:bg-orange-100 transition-colors min-h-[44px]"
+              >
+                <Eye className="h-4 w-4" />
+                <span>{t('capa.mobile.viewDetails')}</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Loading skeleton for mobile card list */
+function CapaCardSkeletonList({ count = 3 }: { count?: number }) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30 dark:bg-gray-900/30" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="h-11 w-11 rounded-xl bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-3 w-3/4 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="flex gap-2 pt-1">
+                <div className="h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                <div className="h-5 w-20 bg-gray-200 dark:bg-gray-700 rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading skeleton for desktop DataGrid area */
+function DataGridLoadingSkeleton() {
+  return (
+    <div className="p-4 space-y-2" aria-busy="true" aria-live="polite">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 p-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg animate-pulse">
+          <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-1/4 bg-gray-200 dark:bg-gray-700 rounded" />
+            <div className="h-2 w-1/6 bg-gray-200 dark:bg-gray-700 rounded" />
+          </div>
+          <div className="h-6 w-20 bg-gray-200 dark:bg-gray-700 rounded-full" />
+          <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Empty State — shown when there are zero CAPAs at all */
+function EmptyState({ onCreate, t }: { onCreate: () => void; t: TranslateFn }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <div className="h-20 w-20 rounded-2xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mb-5">
+        <ClipboardCheck className="h-10 w-10 text-orange-600 dark:text-orange-400" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        {t('capa.empty.title')}
+      </h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-6">
+        {t('capa.empty.description')}
+      </p>
+      <DxButton
+        text={t('capa.buttons.newCapa')}
+        icon="plus"
+        type="success"
+        onClick={onCreate}
+      />
+    </div>
+  );
+}
+
+/** No Results State — shown when filter yields zero results but data exists */
+function NoResultsState({ onClear, t }: { onClear: () => void; t: TranslateFn }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+      <div className="h-16 w-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+        <SearchX className="h-8 w-8 text-gray-400" />
+      </div>
+      <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+        {t('capa.noResults.title')}
+      </h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-4">
+        {t('capa.noResults.description')}
+      </p>
+      <DxButton
+        text={t('capa.buttons.showAll')}
+        icon="clear"
+        stylingMode="outlined"
+        onClick={onClear}
       />
     </div>
   );

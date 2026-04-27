@@ -85,8 +85,8 @@ export default function ProductionEquipmentPage() {
   const renderTypeBadge = (type: string) => {
     const typeInfo = equipmentTypes.find((t) => t.value === type);
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-        <Wrench className="h-3 w-3" />
+      <span className="dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+        <Wrench className="h-3 w-3 flex-shrink-0" />
         {typeInfo?.label || type}
       </span>
     );
@@ -136,14 +136,16 @@ export default function ProductionEquipmentPage() {
           )} />
           <DxColumn dataField="name" caption="Name (EN)" minWidth={150} />
           <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />
-          <DxColumn dataField="equipmentType" caption="Type" width={120} cellRender={(cell) => renderTypeBadge(cell.value)} />
-          <DxColumn dataField="capacity" caption="Capacity" width={120} />
+          <DxColumn dataField="equipmentType" caption="Type" minWidth={160} cellRender={(cell) => renderTypeBadge(cell.value)} />
+          <DxColumn dataField="capacity" caption="Capacity" minWidth={140} cellRender={(cell) => (
+            <span className="whitespace-nowrap">{cell.value || '-'}</span>
+          )} />
           <DxColumn caption="Default Room" minWidth={150} cellRender={(cell) => {
             const data = cell.data as ProductionEquipment;
             return data.room?.name || data.roomName || '-';
           }} />
           <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />

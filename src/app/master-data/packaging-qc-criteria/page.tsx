@@ -71,8 +71,8 @@ export default function PackagingQCCriteriaPage() {
 
   const renderWeightRange = (data: PackagingQCCriteria) => {
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-        <Scale className="h-3 w-3" />
+      <span className="dx-cell-tag inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <Scale className="h-3 w-3 flex-shrink-0" />
         {data.weightMin}-{data.weightMax}g
       </span>
     );
@@ -80,7 +80,7 @@ export default function PackagingQCCriteriaPage() {
 
   const renderSampleCriteria = (data: PackagingQCCriteria) => {
     return (
-      <span className="text-gray-600">
+      <span className="text-gray-600 whitespace-nowrap">
         {data.maxFailures}/{data.sampleSize} fail
       </span>
     );
@@ -138,14 +138,14 @@ export default function PackagingQCCriteriaPage() {
             <span className="font-mono font-medium text-indigo-700">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Criteria Name" minWidth={200} />
-          <DxColumn caption="Weight Range" width={140} cellRender={(cell) => renderWeightRange(cell.data)} />
+          <DxColumn caption="Weight Range" minWidth={160} cellRender={(cell) => renderWeightRange(cell.data)} />
           <DxColumn caption="Sample Criteria" width={140} cellRender={(cell) => renderSampleCriteria(cell.data)} />
           <DxColumn dataField="checkIntervalMinutes" caption="Check Interval" width={130} cellRender={(cell) => (
             <span className="text-gray-600">Every {cell.value} min</span>
           )} />
           <DxColumn caption="Units/Pack" width={120} cellRender={(cell) => renderPackInfo(cell.data)} />
           <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />

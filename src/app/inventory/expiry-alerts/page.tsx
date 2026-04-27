@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
-import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { ApiError } from '@/components/ui/api-error';
-import { AlertTriangle, Clock, XCircle } from 'lucide-react';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { useMobile } from '@/hooks/use-mobile';
+import { AlertTriangle, Clock, XCircle, CheckCircle } from 'lucide-react';
 
 interface ExpiryItem {
   lotNumber: string;
@@ -46,15 +46,20 @@ interface ApiErrorState {
   };
 }
 
-const daysOptions = [
-  { value: '30', label: 'Next 30 days' },
-  { value: '60', label: 'Next 60 days' },
-  { value: '90', label: 'Next 90 days' },
-  { value: '180', label: 'Next 180 days' },
+// next-intl's Translator expects specific value types; use a superset-compatible shape.
+type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
+
+// Day-threshold options; labels translated at render time.
+const DAYS_OPTIONS_CONFIG: Array<{ value: string; translationKey: string }> = [
+  { value: '30', translationKey: 'next30' },
+  { value: '60', translationKey: 'next60' },
+  { value: '90', translationKey: 'next90' },
+  { value: '180', translationKey: 'next180' },
 ];
 
 export default function ExpiryAlertsPage() {
   const t = useTranslations('inventory');
+  const { isMobile } = useMobile();
   const [report, setReport] = useState<ExpiryReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<ApiErrorState | null>(null);
@@ -94,76 +99,110 @@ export default function ExpiryAlertsPage() {
     fetchExpiryAlerts();
   }, [daysThreshold]);
 
+  // Rebuild day-threshold option labels when locale changes.
+  const daysOptions = useMemo(
+    () =>
+      DAYS_OPTIONS_CONFIG.map(({ value, translationKey }) => ({
+        value,
+        label: t(`expiryAlerts.daysOptions.${translationKey}`),
+      })),
+    [t],
+  );
+
   const expiredColumns: DxDataGridColumn[] = [
-    { dataField: 'lotNumber', caption: 'Lot Number', width: 150 },
-    { dataField: 'itemCode', caption: 'Item Code', width: 120, hideOnMobile: true },
-    { dataField: 'itemName', caption: 'Item Name' },
+    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 150 },
+    { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 120, hideOnMobile: true },
+    { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: t('expiryAlerts.columns.quantity'),
       width: 120,
-      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString()
+      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString(),
     },
-    { dataField: 'expiryDate', caption: 'Expiry Date', width: 120, hideOnMobile: true },
+    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 120, hideOnMobile: true },
     {
       dataField: 'daysExpired',
-      caption: 'Days Expired',
-      width: 120,
+      caption: t('expiryAlerts.columns.daysExpired'),
+      width: 130,
       cellRender: (cellInfo) => (
-        <Badge variant="danger">{cellInfo.data.daysExpired} days ago</Badge>
-      )
+        <Badge variant="danger">
+          {t('expiryAlerts.badge.daysAgo', { days: cellInfo.data.daysExpired ?? 0 })}
+        </Badge>
+      ),
     },
   ];
 
   const nearExpiryColumns: DxDataGridColumn[] = [
-    { dataField: 'lotNumber', caption: 'Lot Number', width: 150 },
-    { dataField: 'itemCode', caption: 'Item Code', width: 120, hideOnMobile: true },
-    { dataField: 'itemName', caption: 'Item Name' },
+    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 150 },
+    { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 120, hideOnMobile: true },
+    { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: t('expiryAlerts.columns.quantity'),
       width: 120,
-      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString()
+      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString(),
     },
-    { dataField: 'expiryDate', caption: 'Expiry Date', width: 120, hideOnMobile: true },
+    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 120, hideOnMobile: true },
     {
       dataField: 'daysToExpiry',
-      caption: 'Days to Expiry',
-      width: 120,
+      caption: t('expiryAlerts.columns.daysToExpiry'),
+      width: 140,
       cellRender: (cellInfo) => {
         const days = cellInfo.data.daysToExpiry || 0;
         const variant = days <= 30 ? 'danger' : days <= 60 ? 'secondary' : 'default';
-        return <Badge variant={variant}>{days} days</Badge>;
-      }
+        return <Badge variant={variant}>{t('expiryAlerts.badge.daysLeft', { days })}</Badge>;
+      },
     },
   ];
 
+  const expired = report?.expired || [];
+  const nearExpiry = report?.nearExpiry || [];
+  const expiredCount = report?.summary.expiredCount || 0;
+  const expiredValue = report?.summary.expiredValue || 0;
+  const nearExpiryCount = report?.summary.nearExpiryCount || 0;
+  const nearExpiryValue = report?.summary.nearExpiryValue || 0;
+
+  const showAllClearEmpty =
+    !isLoading && !apiError && expired.length === 0 && nearExpiry.length === 0;
+
   return (
     <MainLayout>
-      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('expiryAlerts.pageTitle')}</h1>
-            <p className="text-gray-600">Monitor expired and near-expiry inventory</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <DxSelectBox
-              items={daysOptions}
-              value={daysThreshold}
-              onValueChange={setDaysThreshold}
-              valueExpr="value"
-              displayExpr="label"
-              width={150}
-            />
-            <DxButton
-              text="Refresh"
-              icon="refresh"
-              type="normal"
-              stylingMode="outlined"
-              onClick={fetchExpiryAlerts}
-            />
-          </div>
-        </div>
+      <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
+        {/* Responsive Page Header */}
+        <ResponsivePageHeader
+          title={t('expiryAlerts.pageTitle')}
+          subtitle={t('expiryAlerts.description')}
+          icon={AlertTriangle}
+          iconBgColor="bg-amber-100"
+          iconColor="text-amber-600"
+          actions={
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+              <DxSelectBox
+                items={daysOptions}
+                value={daysThreshold}
+                onValueChange={setDaysThreshold}
+                valueExpr="value"
+                displayExpr="label"
+                width={isMobile ? undefined : 170}
+              />
+              <DxButton
+                text={t('expiryAlerts.refresh')}
+                icon="refresh"
+                type="normal"
+                stylingMode="outlined"
+                onClick={fetchExpiryAlerts}
+                className="hidden sm:inline-flex"
+              />
+              {/* Mobile-only icon-only refresh */}
+              <DxButton
+                icon="refresh"
+                stylingMode="outlined"
+                onClick={fetchExpiryAlerts}
+                className="sm:hidden"
+              />
+            </div>
+          }
+        />
 
         {/* Error Display */}
         {apiError && (
@@ -174,113 +213,284 @@ export default function ExpiryAlertsPage() {
           />
         )}
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center h-64">
-            <DxLoadIndicator />
+        {/* KPI Stat Cards */}
+        {!apiError && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <StatCard
+              label={t('expiryAlerts.stats.expiredLots')}
+              value={expiredCount}
+              icon={XCircle}
+              iconColor="text-red-500"
+              accentColor="border-red-500"
+              isLoading={isLoading}
+            />
+            <StatCard
+              label={t('expiryAlerts.stats.expiredValue')}
+              value={`฿${expiredValue.toLocaleString()}`}
+              icon={AlertTriangle}
+              iconColor="text-red-500"
+              accentColor="border-red-500"
+              isLoading={isLoading}
+            />
+            <StatCard
+              label={t('expiryAlerts.stats.nearExpiryLots')}
+              value={nearExpiryCount}
+              icon={Clock}
+              iconColor="text-amber-500"
+              accentColor="border-amber-500"
+              isLoading={isLoading}
+            />
+            <StatCard
+              label={t('expiryAlerts.stats.nearExpiryValue')}
+              value={`฿${nearExpiryValue.toLocaleString()}`}
+              icon={AlertTriangle}
+              iconColor="text-amber-500"
+              accentColor="border-amber-500"
+              isLoading={isLoading}
+            />
           </div>
         )}
 
-        {/* Summary Cards */}
-        {!apiError && !isLoading && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <Card className="!p-3 sm:!p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
-                  <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-500">Expired Lots</p>
-                  <p className="text-lg sm:text-xl font-bold text-red-600">{report?.summary.expiredCount || 0}</p>
-                </div>
-              </div>
-            </Card>
-            <Card className="!p-3 sm:!p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
-                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-500">Expired Value</p>
-                  <p className="text-lg sm:text-xl font-bold text-red-600">
-                    ฿{(report?.summary.expiredValue || 0).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Card className="!p-3 sm:!p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
-                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-500">Near Expiry Lots</p>
-                  <p className="text-lg sm:text-xl font-bold text-yellow-600">{report?.summary.nearExpiryCount || 0}</p>
-                </div>
-              </div>
-            </Card>
-            <Card className="!p-3 sm:!p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
-                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-500">Near Expiry Value</p>
-                  <p className="text-lg sm:text-xl font-bold text-yellow-600">
-                    ฿{(report?.summary.nearExpiryValue || 0).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
+        {/* Loading skeletons */}
+        {isLoading && !apiError && (
+          isMobile ? (
+            <ExpiryCardSkeletonList count={4} />
+          ) : (
+            <DataGridLoadingSkeleton />
+          )
         )}
 
-        {/* Expired Lots */}
-        {!apiError && !isLoading && (report?.expired?.length || 0) > 0 && (
-          <Card className="overflow-hidden flex-1 min-h-0 flex flex-col md:overflow-hidden">
-            <div className="p-4 sm:p-6 bg-red-50 border-b border-red-100 md:py-1">
+        {/* Empty state — all clear */}
+        {showAllClearEmpty && <AllClearEmptyState t={t} />}
+
+        {/* Expired Lots Section */}
+        {!apiError && !isLoading && expired.length > 0 && (
+          <div className="bg-white border border-red-100 rounded-xl shadow-sm overflow-hidden flex flex-col">
+            <div className="p-3 sm:p-4 bg-gradient-to-r from-red-50 to-red-100/30 border-b border-red-100">
               <h2 className="text-base sm:text-lg font-semibold text-red-800 flex items-center gap-2">
                 <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-                Expired Lots ({report?.expired.length})
+                {t('expiryAlerts.sections.expiredTitle', { count: expired.length })}
               </h2>
-              <p className="text-xs sm:text-sm text-red-600 mt-1">These lots have passed their expiry date and should be quarantined or disposed</p>
+              <p className="text-xs sm:text-sm text-red-600 mt-1">
+                {t('expiryAlerts.sections.expiredDescription')}
+              </p>
             </div>
-            <div className="p-4 sm:p-6 flex-1 min-h-0 flex flex-col">
-              <DxDataGrid
-                dataSource={report?.expired || []}
-                keyExpr="lotNumber"
-                columns={expiredColumns}
-                showBorders
-                fillHeight
-                noDataText="No expired lots"
-              />
-            </div>
-          </Card>
+            {isMobile ? (
+              <ExpiredLotsMobileList items={expired} t={t} />
+            ) : (
+              <div className="p-3 sm:p-4">
+                <DxDataGrid
+                  dataSource={expired}
+                  keyExpr="lotNumber"
+                  columns={expiredColumns}
+                  showBorders
+                  height={420}
+                  noDataText={t('expiryAlerts.noExpired')}
+                />
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Near Expiry Lots */}
-        {!apiError && !isLoading && (
-          <Card className="overflow-hidden flex-1 min-h-0 flex flex-col md:overflow-hidden">
-            <div className="p-4 sm:p-6 bg-yellow-50 border-b border-yellow-100 md:py-1">
-              <h2 className="text-base sm:text-lg font-semibold text-yellow-800 flex items-center gap-2">
+        {/* Near Expiry Lots Section */}
+        {!apiError && !isLoading && nearExpiry.length > 0 && (
+          <div className="bg-white border border-amber-100 rounded-xl shadow-sm overflow-hidden flex flex-col">
+            <div className="p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-amber-100/30 border-b border-amber-100">
+              <h2 className="text-base sm:text-lg font-semibold text-amber-800 flex items-center gap-2">
                 <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
-                Near Expiry Lots ({report?.nearExpiry?.length || 0})
+                {t('expiryAlerts.sections.nearExpiryTitle', { count: nearExpiry.length })}
               </h2>
-              <p className="text-xs sm:text-sm text-yellow-600 mt-1">These lots will expire within {daysThreshold} days - prioritize for FEFO picking</p>
+              <p className="text-xs sm:text-sm text-amber-600 mt-1">
+                {t('expiryAlerts.sections.nearExpiryDescription', { days: daysThreshold })}
+              </p>
             </div>
-            <div className="p-4 sm:p-6 flex-1 min-h-0 flex flex-col">
-              <DxDataGrid
-                dataSource={report?.nearExpiry || []}
-                keyExpr="lotNumber"
-                columns={nearExpiryColumns}
-                showBorders
-                fillHeight
-                noDataText="No near-expiry lots"
-              />
-            </div>
-          </Card>
+            {isMobile ? (
+              <NearExpiryLotsMobileList items={nearExpiry} t={t} />
+            ) : (
+              <div className="p-3 sm:p-4">
+                <DxDataGrid
+                  dataSource={nearExpiry}
+                  keyExpr="lotNumber"
+                  columns={nearExpiryColumns}
+                  showBorders
+                  height={420}
+                  noDataText={t('expiryAlerts.noNearExpiry')}
+                />
+              </div>
+            )}
+          </div>
         )}
       </div>
     </MainLayout>
+  );
+}
+
+// ============================================
+// Helper Components
+// ============================================
+
+/** Mobile card list — Expired lots */
+function ExpiredLotsMobileList({ items, t }: { items: ExpiryItem[]; t: TranslateFn }) {
+  return (
+    <div className="p-3 space-y-3 bg-red-50/30">
+      {items.map((item) => (
+        <div
+          key={item.lotNumber}
+          className="bg-white border border-red-200 rounded-xl shadow-sm p-4 active:bg-red-50/40 transition-colors"
+        >
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-gray-900 text-base truncate">
+                {item.lotNumber}
+              </p>
+              <p className="text-xs text-gray-500 font-mono mt-0.5">
+                {item.itemCode}
+              </p>
+            </div>
+            <Badge variant="danger">
+              {t('expiryAlerts.badge.daysAgo', { days: item.daysExpired ?? 0 })}
+            </Badge>
+          </div>
+          <p className="text-sm text-gray-700 truncate mb-2">{item.itemName}</p>
+          <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-100">
+            <span className="inline-flex items-center gap-1">
+              <span className="text-gray-400">{t('expiryAlerts.mobile.qty')}</span>
+              <span className="font-medium text-gray-800">
+                {item.quantity.toLocaleString()}
+              </span>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-gray-400">{t('expiryAlerts.mobile.expired')}</span>
+              <span className="font-medium text-red-700">{item.expiryDate}</span>
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Mobile card list — Near-expiry lots */
+function NearExpiryLotsMobileList({
+  items,
+  t,
+}: {
+  items: ExpiryItem[];
+  t: TranslateFn;
+}) {
+  return (
+    <div className="p-3 space-y-3 bg-amber-50/30">
+      {items.map((item) => {
+        const days = item.daysToExpiry ?? 0;
+        const variant: 'danger' | 'secondary' | 'default' =
+          days <= 30 ? 'danger' : days <= 60 ? 'secondary' : 'default';
+        const accentBorder =
+          days <= 30 ? 'border-red-200' :
+          days <= 60 ? 'border-amber-200' : 'border-gray-200';
+        return (
+          <div
+            key={item.lotNumber}
+            className={`bg-white border ${accentBorder} rounded-xl shadow-sm p-4 active:bg-amber-50/40 transition-colors`}
+          >
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-gray-900 text-base truncate">
+                  {item.lotNumber}
+                </p>
+                <p className="text-xs text-gray-500 font-mono mt-0.5">
+                  {item.itemCode}
+                </p>
+              </div>
+              <Badge variant={variant}>
+                {t('expiryAlerts.badge.daysLeft', { days })}
+              </Badge>
+            </div>
+            <p className="text-sm text-gray-700 truncate mb-2">{item.itemName}</p>
+            <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-100">
+              <span className="inline-flex items-center gap-1">
+                <span className="text-gray-400">{t('expiryAlerts.mobile.qty')}</span>
+                <span className="font-medium text-gray-800">
+                  {item.quantity.toLocaleString()}
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="text-gray-400">{t('expiryAlerts.mobile.expires')}</span>
+                <span className="font-medium text-amber-700">
+                  {item.expiryDate}
+                </span>
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Skeleton — mobile card list */
+function ExpiryCardSkeletonList({ count = 4 }: { count?: number }) {
+  return (
+    <div className="p-3 space-y-3" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse"
+        >
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="space-y-2 flex-1">
+              <div className="h-4 w-1/2 bg-gray-200 rounded" />
+              <div className="h-3 w-1/4 bg-gray-200 rounded" />
+            </div>
+            <div className="h-5 w-20 bg-gray-200 rounded-full" />
+          </div>
+          <div className="h-3 w-3/4 bg-gray-200 rounded mb-3" />
+          <div className="flex justify-between pt-2 border-t border-gray-100">
+            <div className="h-3 w-16 bg-gray-200 rounded" />
+            <div className="h-3 w-20 bg-gray-200 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Skeleton — desktop DataGrid */
+function DataGridLoadingSkeleton() {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2" aria-busy="true" aria-live="polite">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-lg animate-pulse"
+        >
+          <div className="h-8 w-32 bg-gray-200 rounded" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-1/3 bg-gray-200 rounded" />
+            <div className="h-2 w-1/5 bg-gray-200 rounded" />
+          </div>
+          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-24 bg-gray-200 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** All-clear empty state — no expired or near-expiry lots */
+function AllClearEmptyState({ t }: { t: TranslateFn }) {
+  return (
+    <div className="bg-white border border-emerald-100 rounded-xl shadow-sm">
+      <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+        <div className="h-20 w-20 rounded-2xl bg-emerald-100 flex items-center justify-center mb-5">
+          <CheckCircle className="h-10 w-10 text-emerald-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          {t('expiryAlerts.allClear.title')}
+        </h3>
+        <p className="text-sm text-gray-500 max-w-sm">
+          {t('expiryAlerts.allClear.description')}
+        </p>
+      </div>
+    </div>
   );
 }

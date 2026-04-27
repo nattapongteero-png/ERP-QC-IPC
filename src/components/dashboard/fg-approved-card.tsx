@@ -6,6 +6,7 @@
  * FR-054: FG Approved YTD
  */
 
+import { useTranslations } from 'next-intl';
 import { KpiCard } from './kpi-card';
 import { CheckCircle2 } from 'lucide-react';
 import type { FgApproved } from '@/lib/services/audit-dashboard-service';
@@ -16,17 +17,18 @@ interface FgApprovedCardProps {
 }
 
 export function FgApprovedCard({ data, onClick }: FgApprovedCardProps) {
+  const t = useTranslations('dashboard.auditCards.fgApproved');
   return (
     <KpiCard
-      title="FG Approved YTD"
+      title={t('title')}
       value={data.totalBatches}
-      subtitle="batches"
+      subtitle={t('subtitle')}
       icon={<CheckCircle2 className="w-5 h-5 text-emerald-600" />}
       status="normal"
       onClick={onClick}
     >
       <div className="text-sm text-gray-500">
-        {data.totalQuantity.toLocaleString()} units total
+        {t('unitsTotal', { count: data.totalQuantity.toLocaleString() })}
       </div>
     </KpiCard>
   );

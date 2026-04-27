@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import { cn } from '@/lib/utils/cn';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import {
   Package,
   Building2,
@@ -506,7 +507,7 @@ export default function NewPurchaseOrderPage() {
                         <DxDateBox
                           value={formData.expectedDate}
                           onValueChange={(value) => setFormData({ ...formData, expectedDate: value || '' })}
-                          min={new Date().toISOString().split('T')[0]}
+                          min={toLocalDateStr(new Date())}
                           placeholder="เลือกวันที่"
                         />
                         {errors.expectedDate && (

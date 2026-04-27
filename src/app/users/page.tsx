@@ -12,7 +12,7 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTabs } from '@/components/ui/dx-tabs';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/components/ui/page-header';
+import { ResponsivePageHeader } from '@/components/shared';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   Users,
@@ -124,30 +124,53 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [activeTab, setActiveTab] = useState<TabId>('all');
 
-  // Role options built with translations
-  const roleOptions = useMemo(() => [
-    { value: '', label: t('roles.all') },
-    { value: 'admin', label: t('roles.admin') },
-    { value: 'manager', label: t('roles.manager') },
-    { value: 'production', label: t('roles.production') },
-    { value: 'qc', label: t('roles.qc') },
-    { value: 'warehouse', label: t('roles.warehouse') },
-    { value: 'purchasing', label: t('roles.purchasing') },
-    { value: 'sales', label: t('roles.sales') },
-    { value: 'accounting', label: t('roles.accounting') },
-    { value: 'hr', label: t('roles.hr') },
-    { value: 'user', label: t('roles.user') },
-  ], [t]);
+  // HR Roles fetched from /api/hr/roles — primary source for filter dropdown
+  const [hrRoles, setHrRoles] = useState<{ code: string; name: string }[]>([]);
 
-  // Format role label using translations
+  useEffect(() => {
+    fetch('/api/hr/roles')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.data)) {
+          setHrRoles(d.data.map((r: { code: string; name: string }) => ({
+            code: r.code,
+            name: r.name,
+          })));
+        }
+      })
+      .catch(() => {/* silently ignore — fallback to legacy list */});
+  }, []);
+
+  // Role options for filter: HR Roles (live) + legacy codes as fallback so
+  // old users (role="admin", etc.) can still be filtered while codes migrate.
+  const LEGACY_ROLE_CODES = ['admin', 'manager', 'production', 'qc', 'warehouse', 'purchasing', 'sales', 'accounting', 'hr', 'user'] as const;
+
+  const roleOptions = useMemo(() => {
+    const hrItems = hrRoles.map((r) => ({ value: r.code, label: r.name || r.code }));
+    const legacyItems = LEGACY_ROLE_CODES
+      .filter((code) => !hrRoles.some((r) => r.code === code))
+      .map((code) => {
+        let label: string;
+        try { label = t(`roles.${code}`); } catch { label = code; }
+        return { value: code, label };
+      });
+    return [
+      { value: '', label: t('roles.all') },
+      ...hrItems,
+      ...legacyItems,
+    ];
+  }, [t, hrRoles]);
+
+  // Format role label — prefer HR Roles name, fall back to translation, then code
   const formatRole = useCallback((role: string): string => {
-    const roleKey = role as 'admin' | 'manager' | 'production' | 'qc' | 'warehouse' | 'purchasing' | 'sales' | 'accounting' | 'hr' | 'user';
+    const hr = hrRoles.find((r) => r.code === role);
+    if (hr) return hr.name || hr.code;
     try {
-      return t(`roles.${roleKey}`);
+      return t(`roles.${role}`);
     } catch {
       return role;
     }
-  }, [t]);
+  }, [t, hrRoles]);
 
   const fetchSummary = useCallback(async () => {
     setIsSummaryLoading(true);
@@ -393,9 +416,12 @@ export default function UsersPage() {
     <MainLayout>
       <div className="flex flex-col h-full gap-4 lg:gap-6">
         {/* Header */}
-        <PageHeader
+        <ResponsivePageHeader
           title={t('page.title')}
-          description={t('page.description')}
+          subtitle={t('page.description')}
+          icon={Users}
+          iconBgColor="bg-blue-100"
+          iconColor="text-blue-600"
           actions={
             <DxButton
               text={t('actions.addUser')}

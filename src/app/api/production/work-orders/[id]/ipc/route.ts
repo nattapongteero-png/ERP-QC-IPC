@@ -101,6 +101,25 @@ export async function POST(
           return errorResponse('Missing qualityTestId');
         }
 
+        // Backend validation: prevent skipping samples
+        if (data.samples && Array.isArray(data.samples) && data.samples.length > 0) {
+          // Sort by sampleNumber
+          const sorted = [...data.samples].sort((a: { sampleNumber: number }, b: { sampleNumber: number }) => a.sampleNumber - b.sampleNumber);
+          // Check sequential: all samples from 1..N must be present
+          for (let i = 0; i < sorted.length; i++) {
+            if (sorted[i].sampleNumber !== i + 1) {
+              return errorResponse(`ข้อมูลตัวอย่างไม่ครบลำดับ — ต้องกรอกเรียงตั้งแต่ #1 ถึง #${sorted.length} (Sample sequence must be sequential starting from #1)`);
+            }
+          }
+          // Check all have a value (numeric or result)
+          for (const s of sorted) {
+            const hasValue = s.numericValue != null || (s.result && s.result !== '');
+            if (!hasValue) {
+              return errorResponse(`ตัวอย่าง #${s.sampleNumber} ไม่มีค่าผลตรวจ — ต้องกรอกครบทุกตัวอย่าง (Sample #${s.sampleNumber} is missing a value)`);
+            }
+          }
+        }
+
         const result = await recordIPCTestResult({
           qualityTestId: data.qualityTestId,
           numericResult: data.numericResult,

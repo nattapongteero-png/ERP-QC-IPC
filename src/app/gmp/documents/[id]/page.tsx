@@ -8,11 +8,10 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
-import { DocumentAttachment } from '@/components/ui/document-attachment';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ApprovalChain } from '@/components/shared/ApprovalChain';
 import { DxButton } from '@/components/ui/dx-button';
@@ -57,7 +56,15 @@ async function fetchDocument(id: number): Promise<DocumentDetails> {
 
 async function createVersion(
   documentId: number,
-  data: { content?: string; changeDescription?: string; isMajorRevision?: boolean }
+  data: {
+    content?: string;
+    changeDescription?: string;
+    isMajorRevision?: boolean;
+    fileData?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+  }
 ): Promise<DocumentVersion> {
   const response = await fetch(`/api/documents/${documentId}/versions`, {
     method: 'POST',
@@ -354,10 +361,11 @@ export default function DocumentDetailPage() {
   const router = useRouter();
   const t = useTranslations('gmp');
   const params = useParams();
+  const searchParams = useSearchParams();
   const documentId = Number(params.id);
 
   // State
-  const [showEditForm, setShowEditForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(searchParams.get('edit') === '1');
   const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [newVersionContent, setNewVersionContent] = useState('');
@@ -384,7 +392,7 @@ export default function DocumentDetailPage() {
 
   // Create version mutation
   const createVersionMutation = useMutation({
-    mutationFn: (data: { content?: string; changeDescription?: string; isMajorRevision?: boolean; filePath?: string }) =>
+    mutationFn: (data: { content?: string; changeDescription?: string; isMajorRevision?: boolean; fileData?: string; fileName?: string; fileSize?: number; mimeType?: string }) =>
       createVersion(documentId, data),
     onSuccess: () => {
       setShowNewVersionDialog(false);
@@ -436,7 +444,10 @@ export default function DocumentDetailPage() {
 
   // Handle new version creation
   const handleCreateVersion = async () => {
-    let filePath: string | undefined;
+    let fileData: string | undefined;
+    let fileName: string | undefined;
+    let fileSize: number | undefined;
+    let mimeType: string | undefined;
 
     if (selectedFile) {
       setIsUploading(true);
@@ -454,7 +465,10 @@ export default function DocumentDetailPage() {
         if (!result.success) {
           throw new Error(result.error || 'Failed to upload file');
         }
-        filePath = result.data.filePath;
+        fileData = result.data.fileData;
+        fileName = result.data.fileName;
+        fileSize = result.data.fileSize;
+        mimeType = result.data.mimeType;
       } catch (error) {
         console.error('File upload failed:', error);
         setIsUploading(false);
@@ -467,7 +481,10 @@ export default function DocumentDetailPage() {
       content: newVersionContent || undefined,
       changeDescription: newVersionDescription || undefined,
       isMajorRevision,
-      filePath,
+      fileData,
+      fileName,
+      fileSize,
+      mimeType,
     });
   };
 
@@ -738,15 +755,7 @@ export default function DocumentDetailPage() {
             />
           </div>
 
-          {/* Attachments (Upload/Preview/Download like CAPA) */}
-          <div className="p-4">
-            <DocumentAttachment
-              moduleName="gmp_document"
-              entityId={documentId}
-              title="เอกสารแนบ (Attachments)"
-              readOnly={document.status === 'obsolete' || document.status === 'archived'}
-            />
-          </div>
+          {/* Attachments removed - file upload is handled via Create/Edit document and New Version */}
         </aside>
       </div>
 

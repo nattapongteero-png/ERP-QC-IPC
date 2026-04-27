@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คู่มืออบรมผู้ใช้งาน – ระบบ Herbal Medicine ERP</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-50:  #f0fdfa;
+    --brand-100: #ccfbf1;
+    --brand-200: #99f6e4;
+    --brand-300: #5eead4;
+    --brand-400: #2dd4bf;
+    --brand-500: #14b8a6;
+    --brand-600: #0d9488;
+    --brand-700: #0f766e;
+    --brand-800: #115e59;
+    --brand-900: #134e4a;
+
+    --gold-400: #fbbf24;
+    --gold-500: #f59e0b;
+    --gold-600: #d97706;
+
+    --rose-500: #f43f5e;
+    --rose-600: #e11d48;
+
+    --ink-50:  #f8fafc;
+    --ink-100: #f1f5f9;
+    --ink-200: #e2e8f0;
+    --ink-300: #cbd5e1;
+    --ink-400: #94a3b8;
+    --ink-500: #64748b;
+    --ink-600: #475569;
+    --ink-700: #334155;
+    --ink-800: #1e293b;
+    --ink-900: #0f172a;
+
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.1), 0 4px 8px rgba(15, 23, 42, 0.05);
+    --shadow-xl: 0 20px 50px rgba(15, 23, 42, 0.12), 0 8px 16px rgba(15, 23, 42, 0.06);
+  }
+
+  html, body { background: #fafcff; }
+  .reveal {
+    font-family: 'Sarabun', 'IBM Plex Sans Thai', sans-serif;
+    color: var(--ink-900);
+    font-size: 22px;
+  }
+  .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 800;
+    text-transform: none;
+    letter-spacing: -0.01em;
+    color: var(--ink-900);
+    line-height: 1.15;
+    margin: 0 0 0.3em 0;
+  }
+  .reveal h1 { font-size: 2.3em; }
+  .reveal h2 {
+    font-size: 1.45em;
+    color: var(--ink-900);
+    position: relative;
+    padding-bottom: 0.2em;
+    margin-bottom: 0.3em;
+  }
+  .reveal h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 60px;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--brand-600), var(--brand-400));
+  }
+  .reveal h3 { font-size: 1.1em; color: var(--brand-700); }
+
+  .reveal .slides section {
+    text-align: left;
+    padding: 24px 40px;
+    background: white;
+    border-radius: 0;
+  }
+
+  .reveal section img { border: none; box-shadow: none; }
+  .reveal code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--brand-50);
+    color: var(--brand-800);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.82em;
+    font-weight: 500;
+    border: 1px solid var(--brand-100);
+  }
+  .reveal p { font-size: 0.82em; line-height: 1.45; color: var(--ink-700); margin: 0 0 0.3em 0; }
+  .reveal strong { color: var(--ink-900); font-weight: 700; }
+
+  .slides section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--brand-700) 0%, var(--brand-400) 50%, var(--gold-500) 100%);
+    z-index: 1;
+  }
+  .slides section.cover::before,
+  .slides section.section-divider::before { display: none; }
+
+  .cover {
+    height: 100%;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center !important;
+    background:
+      radial-gradient(1200px 800px at 80% -10%, rgba(253, 224, 71, 0.22), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(20, 184, 166, 0.25), transparent 55%),
+      linear-gradient(135deg, #0f766e 0%, #0891b2 55%, #1e40af 100%) !important;
+    color: white !important;
+    padding: 60px !important;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+  }
+  .cover > * { position: relative; z-index: 1; }
+  .cover .eyebrow {
+    font-size: 0.7em;
+    letter-spacing: 0.35em;
+    font-weight: 500;
+    opacity: 0.85;
+    margin-bottom: 1.2em;
+    text-transform: uppercase;
+  }
+  .cover h1 {
+    color: white !important;
+    font-size: 2.8em;
+    margin-bottom: 0.1em;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.2);
+  }
+  .cover h1::after { display: none; }
+  .cover .subtitle {
+    font-size: 1.2em;
+    opacity: 0.92;
+    margin-bottom: 0.5em;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+  .cover .subtitle .en {
+    display: block;
+    margin-top: 0.3em;
+    font-size: 0.75em;
+    opacity: 0.7;
+    letter-spacing: 0.1em;
+  }
+  .cover .sub-subtitle {
+    font-size: 0.72em;
+    opacity: 0.8;
+    margin-bottom: 2em;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+  .cover .meta { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 0.4em; }
+  .cover .tag {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 7px 20px;
+    border-radius: 999px;
+    font-size: 0.7em;
+    font-weight: 500;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .cover .system {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6em;
+    opacity: 0.55;
+    letter-spacing: 0.2em;
+    z-index: 2;
+  }
+  .cover .corner-deco {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    border: 2px solid rgba(255,255,255,0.18);
+    border-radius: 50%;
+    z-index: 0;
+  }
+  .cover .corner-deco.tl { top: -100px; left: -100px; }
+  .cover .corner-deco.br { bottom: -110px; right: -110px; width: 340px; height: 340px; }
+
+  .section-divider {
+    height: 100%;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start !important;
+    color: white !important;
+    padding: 80px !important;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(800px 500px at 100% 0%, rgba(251, 191, 36, 0.18), transparent 55%),
+      linear-gradient(135deg, var(--brand-800) 0%, var(--brand-700) 45%, #0891b2 100%) !important;
+  }
+  .section-divider::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+  }
+  .section-divider > * { position: relative; z-index: 1; }
+  .section-divider .section-num {
+    font-size: 0.7em;
+    opacity: 0.75;
+    letter-spacing: 0.35em;
+    margin-bottom: 0.6em;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-divider .section-num::before {
+    content: '';
+    width: 40px;
+    height: 2px;
+    background: var(--gold-400);
+    display: inline-block;
+  }
+  .section-divider h1 {
+    color: white !important;
+    font-size: 3em;
+    margin-bottom: 0.4em;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+  }
+  .section-divider h1::after { display: none; }
+  .section-divider .section-en {
+    font-size: 1.1em;
+    opacity: 0.85;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+  }
+  .section-divider .section-chip {
+    margin-top: 2em;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.22);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    font-size: 0.72em;
+    letter-spacing: 0.08em;
+  }
+
+  .content-slide { padding-top: 32px !important; }
+  .slide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 14px;
+    background: var(--brand-50);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid var(--brand-100);
+  }
+  .slide-header .module-label {
+    font-size: 0.68em;
+    color: var(--brand-700);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slide-header .module-label::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--brand-500);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.22);
+  }
+  .slide-header .slide-num {
+    font-size: 0.65em;
+    color: var(--ink-500);
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+
+  .box {
+    border-radius: 10px;
+    padding: 8px 14px;
+    margin: 6px 0;
+    font-size: 0.72em;
+    line-height: 1.6;
+    border: 1px solid;
+    background-clip: padding-box;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+  }
+  .box-info {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #bfdbfe;
+    color: #1e3a8a;
+  }
+  .box-tip {
+    background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+    border-color: #fde68a;
+    color: #713f12;
+  }
+  .box-warn {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-color: #fca5a5;
+    color: #7f1d1d;
+  }
+  .box-success {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-color: #86efac;
+    color: #14532d;
+  }
+  .box-brand {
+    background: linear-gradient(135deg, var(--brand-50) 0%, var(--brand-100) 100%);
+    border-color: var(--brand-200);
+    color: var(--brand-900);
+  }
+
+  .box-title {
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 0.95em;
+  }
+  .box-title .badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 800;
+    font-size: 0.82em;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  .box-info .badge { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+  .box-tip .badge { background: linear-gradient(135deg, var(--gold-500), var(--gold-600)); }
+  .box-warn .badge { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+  .box-success .badge { background: linear-gradient(135deg, #22c55e, #15803d); }
+  .box-brand .badge { background: linear-gradient(135deg, var(--brand-500), var(--brand-700)); }
+
+  .path-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1.5px solid var(--brand-200);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7em;
+    color: var(--brand-800);
+    margin: 3px 6px 3px 0;
+    box-shadow: var(--shadow-sm);
+    font-weight: 500;
+  }
+  .path-chip::before {
+    content: '\25B8';
+    color: var(--brand-500);
+    font-weight: 700;
+    font-size: 1em;
+  }
+
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 6px 0;
+  }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 6px 10px 6px 38px;
+    margin-bottom: 4px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--ink-200);
+    font-size: 0.75em;
+    line-height: 1.4;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+  }
+  .steps li:hover {
+    transform: translateX(4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--brand-300);
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--brand-600), var(--brand-400));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.82em;
+    box-shadow: 0 2px 6px rgba(13, 148, 136, 0.32);
+  }
+
+  .fields {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 4px 0;
+    font-size: 0.68em;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--ink-200);
+    box-shadow: var(--shadow-sm);
+  }
+  .fields th {
+    background: linear-gradient(135deg, var(--brand-800), var(--brand-700));
+    color: white;
+    text-align: left;
+    padding: 6px 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-size: 0.9em;
+  }
+  .fields td {
+    padding: 5px 10px;
+    border-top: 1px solid var(--ink-200);
+    background: white;
+    vertical-align: top;
+    line-height: 1.4;
+  }
+  .fields tr:nth-child(even) td { background: var(--ink-50); }
+  .fields tr:hover td { background: var(--brand-50); }
+  .fields .required {
+    display: inline-block;
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #b91c1c;
+    padding: 2px 9px;
+    border-radius: 6px;
+    font-size: 0.78em;
+    font-weight: 700;
+    margin-left: 6px;
+    border: 1px solid #fca5a5;
+  }
+  .fields .optional {
+    display: inline-block;
+    background: var(--ink-100);
+    color: var(--ink-600);
+    padding: 2px 9px;
+    border-radius: 6px;
+    font-size: 0.78em;
+    margin-left: 6px;
+    border: 1px solid var(--ink-200);
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: start; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: stretch; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; align-items: stretch; }
+
+  .topic-card {
+    background: white;
+    border: 1px solid var(--ink-200);
+    border-radius: 18px;
+    padding: 22px 22px 20px;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .topic-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--brand-500), var(--brand-300));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+  .topic-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--brand-200);
+  }
+  .topic-card:hover::before { transform: scaleX(1); }
+
+  .topic-card h3 {
+    font-size: 1.05em;
+    margin: 10px 0 8px 0;
+    color: var(--ink-900);
+    font-weight: 800;
+  }
+  .topic-card .topic-en {
+    font-size: 0.68em;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-500);
+    font-weight: 600;
+  }
+  .topic-card .topic-icon {
+    font-size: 2em;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .topic-card p {
+    font-size: 0.76em;
+    line-height: 1.55;
+    color: var(--ink-600);
+    margin: 0;
+  }
+  .topic-card .topic-num {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: linear-gradient(135deg, var(--brand-600), var(--brand-400));
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    text-align: center;
+    line-height: 30px;
+    font-size: 0.78em;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);
+  }
+
+  .example {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #e2e8f0;
+    padding: 18px 22px;
+    border-radius: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72em;
+    line-height: 1.75;
+    margin: 14px 0;
+    border-left: 4px solid var(--brand-400);
+    box-shadow: var(--shadow-md);
+    position: relative;
+  }
+  .example::before {
+    content: '\25C9\25C9\25C9';
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    color: var(--ink-600);
+    font-size: 0.8em;
+    letter-spacing: 3px;
+  }
+  .example .lbl {
+    color: var(--brand-300);
+    display: inline-block;
+    min-width: 120px;
+    font-weight: 500;
+  }
+  .example .val { color: var(--gold-400); }
+
+  .compact-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+  }
+  .compact-list li {
+    padding: 7px 0 7px 30px;
+    position: relative;
+    font-size: 0.8em;
+    line-height: 1.5;
+    color: var(--ink-700);
+  }
+  .compact-list li::before {
+    content: '\2713';
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-400));
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    font-weight: 800;
+  }
+  .compact-list.x li::before {
+    content: '\00D7';
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    font-size: 0.9em;
+  }
+
+  .highlight {
+    background: linear-gradient(120deg, rgba(253, 224, 71, 0.3) 0%, rgba(250, 204, 21, 0.3) 100%);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    color: var(--ink-900);
+  }
+
+  .text-sm { font-size: 0.82em; line-height: 1.55; }
+  .text-xs { font-size: 0.7em; line-height: 1.5; }
+  .center { text-align: center; }
+  .mb-1 { margin-bottom: 10px; }
+  .mb-2 { margin-bottom: 18px; }
+
+  .reveal .footer {
+    position: fixed;
+    bottom: 14px;
+    left: 24px;
+    font-size: 0.58em;
+    color: var(--ink-500);
+    z-index: 10;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+  .reveal .footer strong { color: var(--brand-700); font-weight: 700; }
+
+  .dl-toolbar {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 500;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    color: var(--brand-800) !important;
+    border: 1.5px solid var(--ink-200);
+    padding: 9px 16px;
+    border-radius: 999px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .dl-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--brand-400);
+    color: var(--brand-700) !important;
+  }
+  .dl-btn:active { transform: translateY(0); }
+  .dl-btn.primary {
+    background: linear-gradient(135deg, var(--brand-700) 0%, var(--brand-500) 100%);
+    color: white !important;
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35);
+  }
+  .dl-btn.primary:hover {
+    color: white !important;
+    box-shadow: 0 8px 22px rgba(15, 118, 110, 0.45);
+  }
+  .dl-btn.accent {
+    background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+    color: white !important;
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+  }
+  .dl-btn.accent:hover {
+    color: white !important;
+    box-shadow: 0 8px 22px rgba(220, 38, 38, 0.45);
+  }
+  .dl-btn svg { width: 16px; height: 16px; }
+  .dl-btn.loading { opacity: 0.7; pointer-events: none; }
+  .dl-btn.loading .ico { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media print {
+    .dl-toolbar { display: none !important; }
+    .reveal .footer { display: none !important; }
+  }
+  @media (max-width: 900px) {
+    .dl-toolbar { top: 10px; right: 10px; }
+    .dl-btn { padding: 7px 12px; font-size: 11px; }
+    .dl-btn .label { display: none; }
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink-900);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    box-shadow: var(--shadow-xl);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Sarabun', sans-serif;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { background: linear-gradient(135deg, var(--brand-700), var(--brand-500)); }
+  .toast.error { background: linear-gradient(135deg, #dc2626, #f97316); }
+
+  .workflow {
+    background: linear-gradient(135deg, var(--brand-50) 0%, #dbeafe 100%);
+    border-radius: 12px;
+    padding: 12px;
+    margin: 6px 0;
+    border: 1px solid var(--brand-100);
+  }
+  .workflow-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+    justify-content: center;
+    margin-bottom: 6px;
+  }
+  .workflow-row:last-child { margin-bottom: 0; }
+  .workflow-step {
+    background: white;
+    border-radius: 10px;
+    padding: 8px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--ink-200);
+    flex: 1;
+    min-width: 100px;
+  }
+  .workflow-step .ws-icon { font-size: 1.5em; margin-bottom: 4px; }
+  .workflow-step .ws-label {
+    font-size: 0.65em;
+    color: var(--brand-700);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .workflow-step h3 {
+    font-size: 0.85em;
+    margin: 3px 0;
+    color: var(--ink-900);
+  }
+  .workflow-step p {
+    font-size: 0.62em;
+    color: var(--ink-500);
+    margin: 0;
+  }
+  .workflow-arrow {
+    font-size: 1.6em;
+    color: var(--brand-500);
+    align-self: center;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .summary-card {
+    background: linear-gradient(135deg, var(--brand-700) 0%, #0891b2 100%);
+    color: white;
+    padding: 22px 26px;
+    border-radius: 16px;
+    margin-top: 18px;
+    box-shadow: var(--shadow-lg);
+  }
+  .summary-card h3 { color: white; margin-bottom: 8px; }
+  .summary-card p { color: rgba(255,255,255,0.92); font-size: 0.8em; }
+
+  .screenshot-frame {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--ink-200);
+    margin: 4px 0;
+  }
+  .screenshot-frame img {
+    width: 100%;
+    display: block;
+    border-radius: 0;
+    max-height: 280px;
+    object-fit: cover;
+    object-position: top left;
+  }
+
+  .thank-you {
+    height: 100%;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center !important;
+    background:
+      radial-gradient(1200px 800px at 80% -10%, rgba(253, 224, 71, 0.22), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(20, 184, 166, 0.25), transparent 55%),
+      linear-gradient(135deg, #0f766e 0%, #0891b2 55%, #1e40af 100%) !important;
+    color: white !important;
+    padding: 60px !important;
+    position: relative;
+    overflow: hidden;
+  }
+  .thank-you::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+  }
+  .thank-you > * { position: relative; z-index: 1; }
+  .thank-you h1 {
+    color: white !important;
+    font-size: 3.5em;
+    margin-bottom: 0.3em;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.2);
+  }
+  .thank-you h1::after { display: none; }
+  .thank-you .subtitle {
+    font-size: 1.1em;
+    opacity: 0.9;
+    font-weight: 300;
+    margin-bottom: 2em;
+  }
+</style>
+</head>
+<body>
+
+<div class="dl-toolbar" aria-label="Download options">
+  <button
+    type="button"
+    onclick="exportPPTX()"
+    class="dl-btn accent"
+    id="btn-pptx"
+    title="Download PowerPoint (.pptx)"
+  >
+    <svg class="ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    <span class="label">Download PPTX</span>
+  </button>
+  <a
+    href="./master-data-training.html"
+    download="master-data-training.html"
+    class="dl-btn primary"
+    title="Download HTML"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <path d="M7 9h10M7 13h10M7 17h6"/>
+    </svg>
+    <span class="label">Download HTML</span>
+  </a>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div class="reveal">
+  <div class="footer">HERBAL MEDICINE ERP &middot; <strong>Full Training Course</strong></div>
+  <div class="slides">
+
+  <!-- ============================================================ -->
+  <!-- SLIDE 1: COVER                                               -->
+  <!-- ============================================================ -->
+  <section class="cover">
+    <div class="corner-deco tl"></div>
+    <div class="corner-deco br"></div>
+    <div class="eyebrow">TRAINING MATERIAL &middot; 2026</div>
+    <h1>คู่มืออบรมผู้ใช้งาน</h1>
+    <div class="subtitle">
+      ระบบ Herbal Medicine ERP
+      <span class="en">HERBAL MEDICINE ERP SYSTEM</span>
+    </div>
+    <div class="sub-subtitle">
+      ครอบคลุมกระบวนการทำงานตั้งแต่ Master Data, จัดซื้อ, ผลิต, รับเข้า จนถึงขาย
+    </div>
+    <div class="meta">
+      <span class="tag">Master Data</span>
+      <span class="tag">Purchasing</span>
+      <span class="tag">Production</span>
+      <span class="tag">Quality</span>
+      <span class="tag">Sales</span>
+      <span class="tag">Quality Control</span>
+      <span class="tag">User Mgmt</span>
+    </div>
+    <div class="system">HERBAL MEDICINE ERP SYSTEM</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SLIDE 2: AGENDA                                              -->
+  <!-- ============================================================ -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">ภาพรวมการอบรม</span>
+      <span class="slide-num">02 / 36</span>
+    </div>
+    <h2>หัวข้อการอบรม</h2>
+    <p class="text-sm" style="margin-bottom: 22px;">
+      การอบรมแบ่งเป็น <strong>7 โมดูลหลัก</strong> ครอบคลุมกระบวนการทำงานทั้งหมดในระบบ ERP
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:stretch;">
+      <div class="topic-card" style="padding: 14px;">
+        <span class="topic-num">1</span>
+        <div class="topic-icon">&#128193;</div>
+        <div class="topic-en">Master Data</div>
+        <h3>ข้อมูลพื้นฐาน</h3>
+        <p>4 หัวข้อ</p>
+      </div>
+      <div class="topic-card" style="padding: 14px;">
+        <span class="topic-num">2</span>
+        <div class="topic-icon">&#128666;</div>
+        <div class="topic-en">Purchasing</div>
+        <h3>จัดซื้อและรับเข้า</h3>
+        <p>3 หัวข้อ</p>
+      </div>
+      <div class="topic-card" style="padding: 14px;">
+        <span class="topic-num">3</span>
+        <div class="topic-icon">&#9879;&#65039;</div>
+        <div class="topic-en">Production</div>
+        <h3>การผลิตสมุนไพร</h3>
+        <p>3 หัวข้อ</p>
+      </div>
+      <div class="topic-card" style="padding: 14px;">
+        <span class="topic-num">4</span>
+        <div class="topic-icon">&#9989;</div>
+        <div class="topic-en">FG Receipt</div>
+        <h3>รับเข้าสำเร็จรูป</h3>
+        <p>2 หัวข้อ</p>
+      </div>
+      <div class="topic-card" style="padding: 14px;">
+        <span class="topic-num">5</span>
+        <div class="topic-icon">&#128202;</div>
+        <div class="topic-en">Sales &amp; Report</div>
+        <h3>การขายและส่งออก</h3>
+        <p>3 หัวข้อ</p>
+      </div>
+      <div class="topic-card" style="padding: 14px;">
+        <span class="topic-num">6</span>
+        <div class="topic-icon">&#128300;</div>
+        <div class="topic-en">Quality Control</div>
+        <h3>การควบคุมคุณภาพ</h3>
+        <p>3 หัวข้อ</p>
+      </div>
+      <div class="topic-card" style="padding: 14px;">
+        <span class="topic-num">7</span>
+        <div class="topic-icon">&#128101;</div>
+        <div class="topic-en">User Management</div>
+        <h3>การกำหนดสิทธิ</h3>
+        <p>2 หัวข้อ</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SLIDE 3: END-TO-END FLOW                                     -->
+  <!-- ============================================================ -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">ภาพรวมกระบวนการ</span>
+      <span class="slide-num">03 / 36</span>
+    </div>
+    <h2>End-to-End Flow</h2>
+    <p class="text-sm mb-2">กระบวนการทำงานทั้งหมดตั้งแต่ต้นน้ำจนถึงปลายน้ำ</p>
+    <div class="workflow">
+      <div class="workflow-row">
+        <div class="workflow-step">
+          <div class="ws-icon">&#128193;</div>
+          <span class="ws-label">STEP 1</span>
+          <h3>Master Data</h3>
+          <p>สร้างข้อมูลพื้นฐาน</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128666;</div>
+          <span class="ws-label">STEP 2</span>
+          <h3>จัดซื้อ</h3>
+          <p>สั่งซื้อวัตถุดิบ</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128230;</div>
+          <span class="ws-label">STEP 3</span>
+          <h3>รับเข้าวัตถุดิบ</h3>
+          <p>รับของ + สร้าง Lot</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#9879;&#65039;</div>
+          <span class="ws-label">STEP 4</span>
+          <h3>ผลิต</h3>
+          <p>Work Order + ชั่ง</p>
+        </div>
+      </div>
+      <div class="workflow-row">
+        <div class="workflow-step">
+          <div class="ws-icon">&#128300;</div>
+          <span class="ws-label">STEP 5</span>
+          <h3>IPC / QC</h3>
+          <p>ตรวจคุณภาพ</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#9989;</div>
+          <span class="ws-label">STEP 6</span>
+          <h3>รับเข้า FG</h3>
+          <p>รับสินค้าสำเร็จรูป</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128202;</div>
+          <span class="ws-label">STEP 7</span>
+          <h3>ขาย / ส่งออก</h3>
+          <p>ใบกำกับภาษี + Report</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- MODULE 1: MASTER DATA                                        -->
+  <!-- ============================================================ -->
+
+  <!-- SLIDE 4: Section Divider -->
+  <section class="section-divider">
+    <div class="section-num">MODULE 01</div>
+    <h1>ข้อมูลพื้นฐาน</h1>
+    <div class="section-en">Master Data Management</div>
+    <div class="section-chip">4 หัวข้อ &middot; วัตถุดิบ &middot; บรรจุภัณฑ์ &middot; สินค้าสำเร็จรูป &middot; BOM</div>
+  </section>
+
+  <!-- SLIDE 5: วัตถุดิบ (Raw Materials) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 1 &middot; วัตถุดิบ</span>
+      <span class="slide-num">05 / 36</span>
+    </div>
+    <h2>วัตถุดิบ (Raw Materials)</h2>
+    <div class="path-chip">Inventory &rarr; Items &rarr; วัตถุดิบ &rarr; + สร้างใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Inventory</strong> &gt; <strong>Items</strong></li>
+          <li>เลือกแถบ <strong>"วัตถุดิบ"</strong> (Raw Materials)</li>
+          <li>คลิกปุ่ม <strong>"+ สร้างรายการใหม่"</strong></li>
+          <li>กรอกข้อมูล: รหัส, ชื่อไทย, ชื่ออังกฤษ, หมวดหมู่, หน่วยหลัก</li>
+          <li>กด <strong>"บันทึก"</strong></li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>รหัสวัตถุดิบ (Code)</td><td><span class="required">จำเป็น</span></td><td>ระบบสร้างอัตโนมัติ เช่น RM-0001</td></tr>
+            <tr><td>ชื่อ (ไทย)</td><td><span class="required">จำเป็น</span></td><td>ชื่อสมุนไพร เช่น ขมิ้นชัน</td></tr>
+            <tr><td>ชื่อ (อังกฤษ)</td><td><span class="required">จำเป็น</span></td><td>เช่น Turmeric</td></tr>
+            <tr><td>หมวดหมู่ (Category)</td><td><span class="required">จำเป็น</span></td><td>สมุนไพรสด / แห้ง / สารเสริม</td></tr>
+            <tr><td>หน่วยหลัก (Primary Unit)</td><td><span class="required">จำเป็น</span></td><td>kg / g / l / ml</td></tr>
+            <tr><td>หน่วยรอง (Secondary Unit)</td><td><span class="optional">ทางเลือก</span></td><td>หน่วยแปลง</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/01-items-list.png" alt="Items List">
+        </div>
+        <div class="box box-tip">
+          <div class="box-title"><span class="badge">&#9733;</span>เคล็ดลับ</div>
+          ระบบสร้างรหัสอัตโนมัติ (Auto-code) RM-XXXX สำหรับวัตถุดิบ
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: บรรจุภัณฑ์ (Packaging) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 1 &middot; บรรจุภัณฑ์</span>
+      <span class="slide-num">06 / 36</span>
+    </div>
+    <h2>บรรจุภัณฑ์ (Packaging)</h2>
+    <div class="path-chip">Inventory &rarr; Items &rarr; บรรจุภัณฑ์ &rarr; + สร้างใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Inventory</strong> &gt; <strong>Items</strong></li>
+          <li>เลือกแถบ <strong>"บรรจุภัณฑ์"</strong> (Packaging)</li>
+          <li>คลิก <strong>"+ สร้างรายการใหม่"</strong></li>
+          <li>กรอกข้อมูล: รหัส, ชื่อ, ประเภทบรรจุภัณฑ์, หน่วย</li>
+          <li>กด <strong>"บันทึก"</strong></li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>รหัสบรรจุภัณฑ์ (Code)</td><td><span class="required">จำเป็น</span></td><td>Auto: PK-XXXX</td></tr>
+            <tr><td>ชื่อบรรจุภัณฑ์</td><td><span class="required">จำเป็น</span></td><td>เช่น ขวด PET 100 ml</td></tr>
+            <tr><td>ประเภท (Type)</td><td><span class="required">จำเป็น</span></td><td>ขวด / กล่อง / ซอง / ฉลาก</td></tr>
+            <tr><td>หน่วยนับ</td><td><span class="required">จำเป็น</span></td><td>ชิ้น / ใบ / ม้วน</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/01-items-list.png" alt="Items List - Packaging">
+        </div>
+        <div class="box box-tip">
+          <div class="box-title"><span class="badge">&#9733;</span>เคล็ดลับ</div>
+          บรรจุภัณฑ์รวมถึงวัสดุสิ้นเปลือง เช่น ฉลาก, กล่องชั้นนอก, seal
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: สินค้าสำเร็จรูป (Finished Goods) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 1 &middot; สินค้าสำเร็จรูป</span>
+      <span class="slide-num">07 / 36</span>
+    </div>
+    <h2>สินค้าสำเร็จรูป (Finished Goods)</h2>
+    <div class="path-chip">Inventory &rarr; Items &rarr; สินค้าสำเร็จรูป &rarr; + สร้างใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Inventory</strong> &gt; <strong>Items</strong></li>
+          <li>เลือกแถบ <strong>"สินค้าสำเร็จรูป"</strong> (Finished Goods)</li>
+          <li>คลิก <strong>"+ สร้างรายการใหม่"</strong></li>
+          <li>กรอกข้อมูล: รหัส, ชื่อผลิตภัณฑ์, รูปแบบยา, ขนาด, หน่วย</li>
+          <li>กด <strong>"บันทึก"</strong></li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>รหัสสินค้า (Code)</td><td><span class="required">จำเป็น</span></td><td>Auto: FG-XXXX</td></tr>
+            <tr><td>ชื่อผลิตภัณฑ์ (ไทย)</td><td><span class="required">จำเป็น</span></td><td>เช่น แคปซูลขมิ้นชัน 500 มก.</td></tr>
+            <tr><td>ชื่อผลิตภัณฑ์ (อังกฤษ)</td><td><span class="required">จำเป็น</span></td><td></td></tr>
+            <tr><td>รูปแบบยา (Dosage Form)</td><td><span class="required">จำเป็น</span></td><td>แคปซูล / เม็ด / ผง / น้ำ</td></tr>
+            <tr><td>ขนาดบรรจุ</td><td><span class="required">จำเป็น</span></td><td>เช่น 60 แคปซูล/ขวด</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/01-items-list.png" alt="Items List - FG">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: สูตรการผลิต (BOM) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 1 &middot; สูตรการผลิต</span>
+      <span class="slide-num">08 / 36</span>
+    </div>
+    <h2>สูตรการผลิต (BOM)</h2>
+    <div class="path-chip">Production &rarr; BOM &rarr; + สร้าง BOM ใหม่</div>
+    <div class="workflow" style="margin: 10px 0;">
+      <div class="workflow-row">
+        <div class="workflow-step">
+          <h3>สร้าง BOM</h3>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <h3>เพิ่มวัตถุดิบ</h3>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <h3>กำหนดปริมาณ</h3>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <h3>เพิ่ม Packaging</h3>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <h3>บันทึก</h3>
+        </div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Production</strong> &gt; <strong>BOM</strong></li>
+          <li>คลิก <strong>"+ สร้าง BOM ใหม่"</strong></li>
+          <li>เลือกสินค้าสำเร็จรูป (FG)</li>
+          <li>ระบุ Batch Size (ปริมาณต่อ Lot)</li>
+          <li>เพิ่มวัตถุดิบ &mdash; เลือก Item + ระบุปริมาณต่อ Batch</li>
+          <li>เพิ่มบรรจุภัณฑ์ (ถ้ามี)</li>
+          <li>กด <strong>"บันทึก"</strong></li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>BOM Code</td><td><span class="required">จำเป็น</span></td><td>Auto: BOM-FG-XXXX</td></tr>
+            <tr><td>สินค้า (Product)</td><td><span class="required">จำเป็น</span></td><td>เลือกจาก FG</td></tr>
+            <tr><td>Version</td><td><span class="required">จำเป็น</span></td><td>เลขรุ่นสูตร</td></tr>
+            <tr><td>Batch Size</td><td><span class="required">จำเป็น</span></td><td>ปริมาณผลิตต่อ Lot</td></tr>
+            <tr><td>วัตถุดิบ (Material Lines)</td><td><span class="required">จำเป็น</span></td><td>Item + จำนวน + หน่วย</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/03-bom-list.png" alt="BOM List">
+        </div>
+        <div class="box box-tip">
+          <div class="box-title"><span class="badge">&#9733;</span>เคล็ดลับ</div>
+          BOM 1 รายการ ผูกกับ FG 1 ตัว &mdash; เปลี่ยนสูตรได้โดยสร้าง Version ใหม่
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- MODULE 2: PURCHASING                                         -->
+  <!-- ============================================================ -->
+
+  <!-- SLIDE 9: Section Divider -->
+  <section class="section-divider">
+    <div class="section-num">MODULE 02</div>
+    <h1>จัดซื้อและรับเข้า</h1>
+    <div class="section-en">Purchasing &amp; Goods Receipt</div>
+    <div class="section-chip">3 หัวข้อ &middot; ใบสั่งซื้อ &middot; บันทึกรับเข้า &middot; Lot &amp; QC</div>
+  </section>
+
+  <!-- SLIDE 10: Flow - Purchase to Stock -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 2 &middot; กระบวนการจัดซื้อ</span>
+      <span class="slide-num">10 / 36</span>
+    </div>
+    <h2>Flow: จัดซื้อ &rarr; รับเข้า &rarr; พร้อมใช้</h2>
+    <div class="workflow">
+      <div class="workflow-row">
+        <div class="workflow-step">
+          <div class="ws-icon">&#128196;</div>
+          <span class="ws-label">STEP 1</span>
+          <h3>สร้าง PO</h3>
+          <p>ใบสั่งซื้อ</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#9989;</div>
+          <span class="ws-label">STEP 2</span>
+          <h3>อนุมัติ PO</h3>
+          <p>Approval</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128230;</div>
+          <span class="ws-label">STEP 3</span>
+          <h3>รับเข้าสินค้า</h3>
+          <p>Goods Receipt</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#127991;&#65039;</div>
+          <span class="ws-label">STEP 4</span>
+          <h3>สร้าง Lot</h3>
+          <p>Auto-generate</p>
+        </div>
+      </div>
+      <div class="workflow-row">
+        <div class="workflow-step">
+          <div class="ws-icon">&#128683;</div>
+          <span class="ws-label">STEP 5</span>
+          <h3>กักกัน</h3>
+          <p>Quarantine</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128300;</div>
+          <span class="ws-label">STEP 6</span>
+          <h3>ส่งตรวจ QC</h3>
+          <p>Quality Check</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#9989;</div>
+          <span class="ws-label">STEP 7</span>
+          <h3>QC ผ่าน</h3>
+          <p>Pass / Fail</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128994;</div>
+          <span class="ws-label">STEP 8</span>
+          <h3>ปล่อยใช้</h3>
+          <p>Released</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 11: ใบสั่งซื้อ (Purchase Order) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 2 &middot; ใบสั่งซื้อ</span>
+      <span class="slide-num">11 / 36</span>
+    </div>
+    <h2>ใบสั่งซื้อ (Purchase Order)</h2>
+    <div class="path-chip">Purchasing &rarr; Orders &rarr; + สร้างใบสั่งซื้อ</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Purchasing</strong> &gt; <strong>Orders</strong></li>
+          <li>คลิก <strong>"+ สร้างใบสั่งซื้อใหม่"</strong></li>
+          <li>เลือก <strong>Supplier</strong></li>
+          <li>เพิ่มรายการวัตถุดิบ: Item + จำนวน + ราคาต่อหน่วย</li>
+          <li>ตรวจสอบยอดรวม</li>
+          <li>กด <strong>"บันทึก"</strong> &rarr; สถานะ Draft</li>
+          <li>กด <strong>"ส่งอนุมัติ"</strong> &rarr; สถานะ Pending Approval</li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>เลข PO</td><td><span class="required">จำเป็น</span></td><td>Auto: PO2026-XXXX</td></tr>
+            <tr><td>Supplier</td><td><span class="required">จำเป็น</span></td><td>เลือกจากรายการ</td></tr>
+            <tr><td>วันที่สั่งซื้อ</td><td><span class="required">จำเป็น</span></td><td></td></tr>
+            <tr><td>วันที่ต้องการ</td><td><span class="optional">ทางเลือก</span></td><td>Expected delivery</td></tr>
+            <tr><td>รายการสินค้า</td><td><span class="required">จำเป็น</span></td><td>Item + Qty + Price</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/04-po-list.png" alt="PO List">
+        </div>
+        <div class="screenshot-frame">
+          <img src="screenshots/05-po-new.png" alt="New PO Form">
+        </div>
+        <div class="box box-tip">
+          <div class="box-title"><span class="badge">&#9733;</span>เคล็ดลับ</div>
+          PO ต้องได้รับอนุมัติก่อนจึงจะรับเข้าสินค้าได้
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 12: บันทึกรับเข้า (Goods Receipt) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 2 &middot; บันทึกรับเข้า</span>
+      <span class="slide-num">12 / 36</span>
+    </div>
+    <h2>บันทึกรับเข้า (Goods Receipt)</h2>
+    <div class="path-chip">Purchasing &rarr; Orders &rarr; เลือก PO &rarr; Receive</div>
+    <ol class="steps">
+      <li>เข้าเมนู <strong>Purchasing</strong> &gt; <strong>Orders</strong></li>
+      <li>เลือก PO ที่สถานะ <strong>"Approved"</strong></li>
+      <li>คลิกปุ่ม <strong>"Receive"</strong> (รับเข้า)</li>
+      <li>ระบุ: จำนวนที่รับจริง, เลข Lot/Batch จาก Supplier</li>
+      <li>เลือกคลังที่จะรับเข้า (Warehouse)</li>
+      <li>ยืนยันรับเข้า</li>
+      <li>ระบบสร้าง Lot อัตโนมัติ &rarr; สถานะ <strong>"Quarantine"</strong></li>
+    </ol>
+    <div class="box box-warn">
+      <div class="box-title"><span class="badge">!</span>ข้อควรระวัง</div>
+      สินค้าที่รับเข้าจะถูก <span class="highlight">กักกัน (Quarantine)</span> อัตโนมัติ &mdash; ต้องผ่าน QC ก่อนนำไปใช้ผลิต
+    </div>
+  </section>
+
+  <!-- SLIDE 13: Lot & QC Pass -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 2 &middot; Lot &amp; QC</span>
+      <span class="slide-num">13 / 36</span>
+    </div>
+    <h2>Lot &amp; QC Pass</h2>
+    <div class="path-chip">Quality &rarr; Tests &rarr; + สร้าง QC Test</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Quality</strong> &gt; <strong>Tests</strong></li>
+          <li>คลิก <strong>"+ สร้าง QC Test ใหม่"</strong></li>
+          <li>เลือก Lot ที่ต้องการตรวจ (สถานะ Quarantine)</li>
+          <li>ระบุผลตรวจตาม Specification</li>
+          <li>กด <strong>"บันทึกผลตรวจ"</strong></li>
+          <li>ถ้า <strong>ผ่าน</strong> &rarr; กด "Release" &rarr; Lot เปลี่ยนเป็น <strong>"Released"</strong> (พร้อมใช้)</li>
+          <li>ถ้า <strong>ไม่ผ่าน</strong> &rarr; กด "Reject" &rarr; Lot เปลี่ยนเป็น <strong>"Rejected"</strong></li>
+        </ol>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/08-qc-tests.png" alt="QC Tests">
+        </div>
+        <div class="box box-success">
+          <div class="box-title"><span class="badge">&#10003;</span>สำคัญ</div>
+          Lot ที่ Released แล้วเท่านั้นที่จะดึงไปใช้ในกระบวนการผลิตได้
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- MODULE 3: PRODUCTION                                         -->
+  <!-- ============================================================ -->
+
+  <!-- SLIDE 14: Section Divider -->
+  <section class="section-divider">
+    <div class="section-num">MODULE 03</div>
+    <h1>การผลิตสมุนไพร</h1>
+    <div class="section-en">Herbal Production Process</div>
+    <div class="section-chip">3 หัวข้อ &middot; ใบสั่งผลิต &middot; ตัดจ่ายวัตถุดิบ &middot; บันทึกการผลิต</div>
+  </section>
+
+  <!-- SLIDE 15: Flow - Production Process -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 3 &middot; กระบวนการผลิต</span>
+      <span class="slide-num">15 / 36</span>
+    </div>
+    <h2>Flow: กระบวนการผลิต</h2>
+    <div class="workflow">
+      <div class="workflow-row">
+        <div class="workflow-step">
+          <div class="ws-icon">&#128196;</div>
+          <span class="ws-label">STEP 1</span>
+          <h3>เปิด Work Order</h3>
+          <p>ใบสั่งผลิต</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128203;</div>
+          <span class="ws-label">STEP 2</span>
+          <h3>สร้างใบเบิก</h3>
+          <p>Requisition</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#9878;&#65039;</div>
+          <span class="ws-label">STEP 3</span>
+          <h3>ชั่งวัตถุดิบ</h3>
+          <p>Weighing</p>
+        </div>
+      </div>
+      <div class="workflow-row">
+        <div class="workflow-step">
+          <div class="ws-icon">&#128300;</div>
+          <span class="ws-label">STEP 4</span>
+          <h3>ตรวจสอบ IPC</h3>
+          <p>In-Process Control</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128230;</div>
+          <span class="ws-label">STEP 5</span>
+          <h3>บรรจุ</h3>
+          <p>Packaging</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#9989;</div>
+          <span class="ws-label">STEP 6</span>
+          <h3>บันทึกผลผลิต</h3>
+          <p>Output Record</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 16: ใบสั่งผลิต (Work Order) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 3 &middot; ใบสั่งผลิต</span>
+      <span class="slide-num">16 / 36</span>
+    </div>
+    <h2>ใบสั่งผลิต (Work Order)</h2>
+    <div class="path-chip">Production &rarr; Work Orders &rarr; + สร้างใบสั่งผลิต</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Production</strong> &gt; <strong>Work Orders</strong></li>
+          <li>คลิก <strong>"+ สร้างใบสั่งผลิตใหม่"</strong></li>
+          <li>เลือกสินค้า (FG) และ BOM</li>
+          <li>ระบุจำนวนที่ต้องการผลิต (Batch Qty)</li>
+          <li>กำหนดวันเริ่ม-สิ้นสุด</li>
+          <li>กด <strong>"บันทึก"</strong> &rarr; สถานะ Planned</li>
+          <li>กด <strong>"Start"</strong> &rarr; สถานะ In Progress</li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>เลข WO</td><td><span class="required">จำเป็น</span></td><td>Auto-generated</td></tr>
+            <tr><td>สินค้า (Product)</td><td><span class="required">จำเป็น</span></td><td>เลือก FG</td></tr>
+            <tr><td>BOM</td><td><span class="required">จำเป็น</span></td><td>เลือกสูตรการผลิต</td></tr>
+            <tr><td>Batch Size</td><td><span class="required">จำเป็น</span></td><td>ปริมาณผลิต</td></tr>
+            <tr><td>วันเริ่ม/สิ้นสุด</td><td><span class="required">จำเป็น</span></td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/06-wo-list.png" alt="Work Orders List">
+        </div>
+        <div class="screenshot-frame">
+          <img src="screenshots/10-wo-detail.png" alt="Work Order Detail">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 17: การตัดจ่ายวัตถุดิบ (Material Issue) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 3 &middot; ตัดจ่ายวัตถุดิบ</span>
+      <span class="slide-num">17 / 36</span>
+    </div>
+    <h2>การตัดจ่ายวัตถุดิบ (Material Issue)</h2>
+    <div class="path-chip">Production &rarr; Work Orders &rarr; [WO] &rarr; Material Weighing</div>
+    <ol class="steps">
+      <li>เปิด Work Order ที่สถานะ <strong>"In Progress"</strong></li>
+      <li>ไปที่แถบ <strong>"Material Weighing"</strong> (การชั่งวัตถุดิบ)</li>
+      <li>ระบบแสดงรายการวัตถุดิบจาก BOM</li>
+      <li>เลือก Lot ที่ต้องการใช้ (เฉพาะ <strong>Released</strong>)</li>
+      <li>กรอกน้ำหนักที่ชั่งจริง</li>
+      <li>ผู้ชั่งบันทึก &rarr; ผู้ตรวจสอบ (Verifier) ยืนยัน</li>
+      <li>ระบบตัดสต็อกจาก Lot ที่เลือกอัตโนมัติ</li>
+    </ol>
+    <div class="grid-2">
+      <div class="box box-warn">
+        <div class="box-title"><span class="badge">!</span>Dual Control</div>
+        ผู้ชั่ง (Operator) และผู้ตรวจสอบ (Verifier) ต้องเป็น<span class="highlight">คนละคน</span>
+      </div>
+      <div class="box box-info">
+        <div class="box-title"><span class="badge">i</span>FEFO</div>
+        ระบบตัดจ่ายตาม <strong>FEFO &mdash; First Expired, First Out</strong> อัตโนมัติ
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 18: บันทึกขั้นตอนการผลิต (Production Log) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 3 &middot; บันทึกการผลิต</span>
+      <span class="slide-num">18 / 36</span>
+    </div>
+    <h2>บันทึกขั้นตอนการผลิต</h2>
+    <div class="path-chip">Production &rarr; Work Orders &rarr; [WO] &rarr; SOP Execution / IPC</div>
+    <ol class="steps">
+      <li>เปิด Work Order ที่กำลังผลิต</li>
+      <li>ไปที่แถบ <strong>"SOP Execution"</strong> &mdash; ทำเครื่องหมายขั้นตอนที่ทำเสร็จ</li>
+      <li>ไปที่แถบ <strong>"IPC"</strong> &mdash; บันทึกค่าตรวจระหว่างผลิต (In-Process Control)</li>
+      <li>ไปที่แถบ <strong>"Environmental Monitoring"</strong> &mdash; ดูอุณหภูมิ/ความชื้น</li>
+      <li>บันทึกปริมาณผลผลิต (<strong>Actual Output</strong>)</li>
+      <li>บันทึกของเสีย (<strong>Waste/Reject</strong>) ถ้ามี</li>
+    </ol>
+    <div class="box box-info">
+      <div class="box-title"><span class="badge">i</span>IPC คืออะไร?</div>
+      IPC บันทึกค่าเช่น ความแข็งเม็ดยา, น้ำหนักเม็ด, ความชื้น &mdash; เทียบกับ Spec อัตโนมัติ
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- MODULE 4: FG RECEIPT                                         -->
+  <!-- ============================================================ -->
+
+  <!-- SLIDE 19: Section Divider -->
+  <section class="section-divider">
+    <div class="section-num">MODULE 04</div>
+    <h1>รับเข้าสำเร็จรูป</h1>
+    <div class="section-en">Finished Goods Receipt &amp; QC</div>
+    <div class="section-chip">2 หัวข้อ &middot; รับ FG &middot; ตรวจคุณภาพ</div>
+  </section>
+
+  <!-- SLIDE 20: Flow - FG Receipt to Release -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 4 &middot; กระบวนการรับ FG</span>
+      <span class="slide-num">20 / 36</span>
+    </div>
+    <h2>Flow: รับสินค้าสำเร็จรูป</h2>
+    <div class="workflow">
+      <div class="workflow-row">
+        <div class="workflow-step">
+          <div class="ws-icon">&#9879;&#65039;</div>
+          <span class="ws-label">STEP 1</span>
+          <h3>ผลิตเสร็จ</h3>
+          <p>WO Completed</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128230;</div>
+          <span class="ws-label">STEP 2</span>
+          <h3>รับ FG เข้าคลัง</h3>
+          <p>Goods Receipt</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#127991;&#65039;</div>
+          <span class="ws-label">STEP 3</span>
+          <h3>สร้าง Lot</h3>
+          <p>Quarantine</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128300;</div>
+          <span class="ws-label">STEP 4</span>
+          <h3>Final QC</h3>
+          <p>ตรวจคุณภาพ</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128994;</div>
+          <span class="ws-label">STEP 5</span>
+          <h3>Release</h3>
+          <p>พร้อมขาย</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 21: รับสินค้าสำเร็จรูป (FG Receipt) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 4 &middot; รับ FG</span>
+      <span class="slide-num">21 / 36</span>
+    </div>
+    <h2>รับสินค้าสำเร็จรูป (FG Receipt)</h2>
+    <div class="path-chip">Inventory &rarr; Lots &rarr; + สร้าง Lot ใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>Work Order ผลิตเสร็จ &mdash; สถานะ <strong>"Completed"</strong></li>
+          <li>เข้าเมนู <strong>Inventory</strong> &gt; <strong>Lots</strong></li>
+          <li>สร้าง Lot ใหม่ สำหรับ FG</li>
+          <li>ระบุ: สินค้า, จำนวนที่รับ, คลังปลายทาง</li>
+          <li>Lot สร้างขึ้นสถานะ <strong>"Quarantine"</strong> อัตโนมัติ</li>
+          <li>รอ Final QC ก่อน Release</li>
+        </ol>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/07-lots-list.png" alt="Lots List">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 22: Final QC & Release -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 4 &middot; Final QC</span>
+      <span class="slide-num">22 / 36</span>
+    </div>
+    <h2>Final QC &amp; Release</h2>
+    <div class="path-chip">Quality &rarr; Tests &rarr; + สร้าง QC Test &rarr; Release</div>
+    <ol class="steps">
+      <li>เข้าเมนู <strong>Quality</strong> &gt; <strong>Tests</strong></li>
+      <li>สร้าง QC Test สำหรับ FG Lot</li>
+      <li>ตรวจสอบตาม Specification (physical, chemical, micro)</li>
+      <li>ถ้า <strong>ผ่าน</strong> &rarr; กด Release &rarr; Lot พร้อมขาย</li>
+      <li>ถ้า <strong>ไม่ผ่าน</strong> &rarr; กด Reject &rarr; แยกเก็บ/ทำลาย</li>
+    </ol>
+    <div class="box box-info">
+      <div class="box-title"><span class="badge">i</span>สำคัญ</div>
+      FG ที่ Release แล้ว จะเข้าสู่คลังสินค้า<span class="highlight">พร้อมขาย (Available for Sale)</span>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- MODULE 5: SALES & REPORTING                                  -->
+  <!-- ============================================================ -->
+
+  <!-- SLIDE 23: Section Divider -->
+  <section class="section-divider">
+    <div class="section-num">MODULE 05</div>
+    <h1>การขายและส่งออก</h1>
+    <div class="section-en">Sales &amp; Reporting</div>
+    <div class="section-chip">3 หัวข้อ &middot; ใบกำกับภาษี &middot; Stock Balance &middot; Production Report</div>
+  </section>
+
+  <!-- SLIDE 24: ใบกำกับภาษี / ใบส่งสินค้า -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 5 &middot; ใบกำกับภาษี</span>
+      <span class="slide-num">24 / 36</span>
+    </div>
+    <h2>ใบกำกับภาษี / ใบส่งสินค้า</h2>
+    <div class="path-chip">Sales &rarr; Orders &rarr; + สร้าง Order ใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Sales</strong> &gt; <strong>Orders</strong></li>
+          <li>คลิก <strong>"+ สร้าง Order ใหม่"</strong></li>
+          <li>เลือก<strong>ลูกค้า (Customer)</strong></li>
+          <li>เพิ่มรายการสินค้า: FG + จำนวน + ราคา</li>
+          <li>ระบุข้อมูลภาษี / ส่วนลด</li>
+          <li>กด <strong>"บันทึก"</strong></li>
+          <li>พิมพ์ใบกำกับภาษี / ใบส่งสินค้า</li>
+        </ol>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/09-sales-orders.png" alt="Sales Orders">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 25: Stock Balance -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 5 &middot; Stock Balance</span>
+      <span class="slide-num">25 / 36</span>
+    </div>
+    <h2>Stock Balance (รายงานสต็อก)</h2>
+    <div class="path-chip">Inventory &rarr; Lots (ใช้ Filter ดูยอดคงเหลือ)</div>
+    <ol class="steps">
+      <li>เข้าเมนู <strong>Inventory</strong> &gt; <strong>Lots</strong></li>
+      <li>ใช้ Filter: เลือกคลัง, ประเภทสินค้า, สถานะ</li>
+      <li>ดูยอดคงเหลือแยกตาม Lot</li>
+      <li>ตรวจสอบ: จำนวนคงเหลือ, วันหมดอายุ, สถานะ</li>
+      <li>Export รายงานเป็น Excel (ถ้าต้องการ)</li>
+    </ol>
+    <div class="box box-info">
+      <div class="box-title"><span class="badge">i</span>การแจ้งเตือน</div>
+      ระบบแจ้งเตือนอัตโนมัติเมื่อสต็อกต่ำ หรือ สินค้าใกล้หมดอายุ
+    </div>
+  </section>
+
+  <!-- SLIDE 26: Production Report -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 5 &middot; Production Report</span>
+      <span class="slide-num">26 / 36</span>
+    </div>
+    <h2>Production Report (รายงานการผลิต)</h2>
+    <div class="path-chip">Production &rarr; Work Orders (ดูสรุปภาพรวม)</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Production</strong> &gt; <strong>Work Orders</strong></li>
+          <li>ดู KPI Cards: จำนวน WO, สถานะ, Yield</li>
+          <li>ดู Chart: แนวโน้มการผลิต, ประสิทธิภาพ</li>
+          <li>กรองตามช่วงเวลา / สินค้า / สถานะ</li>
+          <li>วิเคราะห์ Variance (ส่วนต่างวัตถุดิบ)</li>
+        </ol>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/06-wo-list.png" alt="Work Orders Dashboard">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- MODULE 6: QUALITY CONTROL                                    -->
+  <!-- ============================================================ -->
+
+  <!-- SLIDE 27: Section Divider -->
+  <section class="section-divider">
+    <div class="section-num">MODULE 06</div>
+    <h1>การควบคุมคุณภาพ</h1>
+    <div class="section-en">Quality Control</div>
+    <div class="section-chip">3 หัวข้อ &middot; QC Test &middot; Specification &middot; Deviation</div>
+  </section>
+
+  <!-- SLIDE 28: Flow - Quality Control Process -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 6 &middot; กระบวนการ QC</span>
+      <span class="slide-num">28 / 36</span>
+    </div>
+    <h2>Flow: กระบวนการควบคุมคุณภาพ</h2>
+    <div class="workflow">
+      <div class="workflow-row">
+        <div class="workflow-step">
+          <div class="ws-icon">&#128203;</div>
+          <span class="ws-label">STEP 1</span>
+          <h3>กำหนด Spec</h3>
+          <p>Specification</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128300;</div>
+          <span class="ws-label">STEP 2</span>
+          <h3>สร้าง QC Test</h3>
+          <p>Quality Test</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#128221;</div>
+          <span class="ws-label">STEP 3</span>
+          <h3>บันทึกผลตรวจ</h3>
+          <p>Record Results</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#9989;</div>
+          <span class="ws-label">STEP 4</span>
+          <h3>Pass/Fail</h3>
+          <p>เทียบกับ Spec</p>
+        </div>
+        <div class="workflow-arrow">&#10132;</div>
+        <div class="workflow-step">
+          <div class="ws-icon">&#9888;&#65039;</div>
+          <span class="ws-label">STEP 5</span>
+          <h3>Deviation</h3>
+          <p>ถ้าไม่ผ่าน</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 29: การทดสอบ (QC Test) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 6 &middot; QC Test</span>
+      <span class="slide-num">29 / 36</span>
+    </div>
+    <h2>การทดสอบ (QC Test)</h2>
+    <div class="path-chip">Quality &rarr; Tests &rarr; + สร้าง QC Test ใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Quality</strong> &gt; <strong>Tests</strong></li>
+          <li>คลิก <strong>"+ สร้าง QC Test ใหม่"</strong></li>
+          <li>เลือก Lot ที่ต้องการตรวจ (สถานะ Quarantine)</li>
+          <li>เลือกประเภท: <strong>Incoming / In-Process / Final</strong></li>
+          <li>บันทึกผลตรวจตาม Specification</li>
+          <li>กด <strong>"บันทึก"</strong> &rarr; ระบบเทียบผลกับ Spec อัตโนมัติ</li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>Test Name</td><td><span class="required">จำเป็น</span></td><td>ชื่อการทดสอบ (เลือกจาก IPC Criteria)</td></tr>
+            <tr><td>Type</td><td><span class="required">จำเป็น</span></td><td>Incoming / In-Process / Final</td></tr>
+            <tr><td>Lot</td><td><span class="required">จำเป็น</span></td><td>เลือก Lot ที่ต้องการตรวจ</td></tr>
+            <tr><td>Result</td><td><span class="required">จำเป็น</span></td><td>ค่าผลตรวจ (ตัวเลข/ข้อความ)</td></tr>
+            <tr><td>Status</td><td><span class="optional">Auto</span></td><td>Pass / Fail (เทียบกับ Spec)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/quality-tests.png" alt="QC Tests">
+        </div>
+        <div class="box box-tip">
+          <div class="box-title"><span class="badge">&#9733;</span>เคล็ดลับ</div>
+          ระบบเทียบผลตรวจกับ Specification อัตโนมัติ &mdash; ถ้าไม่ผ่าน สถานะจะเป็น Fail ทันที
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 30: ข้อกำหนดการทดสอบ (Specification) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 6 &middot; Specification</span>
+      <span class="slide-num">30 / 36</span>
+    </div>
+    <h2>ข้อกำหนดการทดสอบ (Specification)</h2>
+    <div class="path-chip">Quality &rarr; Specifications &rarr; + สร้างข้อกำหนดใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Quality</strong> &gt; <strong>Specifications</strong></li>
+          <li>คลิก <strong>"+ สร้างข้อกำหนดใหม่"</strong></li>
+          <li>เลือก Item (วัตถุดิบ/FG)</li>
+          <li>ระบุ Test Name, Min-Max Range, Unit</li>
+          <li>กำหนด Critical / Non-Critical</li>
+          <li>กด <strong>"บันทึก"</strong></li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>Item</td><td><span class="required">จำเป็น</span></td><td>เลือกสินค้าที่ต้องกำหนด Spec</td></tr>
+            <tr><td>Test Name</td><td><span class="required">จำเป็น</span></td><td>เช่น Moisture, Hardness</td></tr>
+            <tr><td>Min Value</td><td><span class="required">จำเป็น</span></td><td>ค่าต่ำสุดที่ยอมรับ</td></tr>
+            <tr><td>Max Value</td><td><span class="required">จำเป็น</span></td><td>ค่าสูงสุดที่ยอมรับ</td></tr>
+            <tr><td>Unit</td><td><span class="required">จำเป็น</span></td><td>หน่วย เช่น %, mg, CFU</td></tr>
+            <tr><td>Is Critical</td><td><span class="optional">ทางเลือก</span></td><td>ระบุเป็น Critical Parameter</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/quality-specs.png" alt="Quality Specifications">
+        </div>
+        <div class="box box-tip">
+          <div class="box-title"><span class="badge">&#9733;</span>เคล็ดลับ</div>
+          Spec ที่กำหนดเป็น Critical จะถูกเน้นในรายงาน QC &mdash; ห้ามปล่อยผ่านถ้า Critical ไม่ผ่าน
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 31: ความเบี่ยงเบน (Deviation) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 6 &middot; Deviation</span>
+      <span class="slide-num">31 / 36</span>
+    </div>
+    <h2>ความเบี่ยงเบน (Deviation)</h2>
+    <div class="path-chip">Quality &rarr; Deviations &rarr; + รายงาน Deviation ใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Quality</strong> &gt; <strong>Deviations</strong></li>
+          <li>คลิก <strong>"+ รายงาน Deviation ใหม่"</strong></li>
+          <li>กรอก: หัวข้อ, แหล่งที่มา (Production/Quality/Warehouse)</li>
+          <li>ระบุระดับความรุนแรง: <strong>Minor / Major / Critical</strong></li>
+          <li>บันทึก Root Cause Analysis</li>
+          <li>กำหนด Corrective Action + Preventive Action</li>
+          <li>กด <strong>"บันทึก"</strong> &rarr; สถานะ Open</li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>Deviation No.</td><td><span class="optional">Auto</span></td><td>ระบบสร้างอัตโนมัติ</td></tr>
+            <tr><td>Title</td><td><span class="required">จำเป็น</span></td><td>หัวข้อความเบี่ยงเบน</td></tr>
+            <tr><td>Source</td><td><span class="required">จำเป็น</span></td><td>Production / Quality / Warehouse</td></tr>
+            <tr><td>Severity</td><td><span class="required">จำเป็น</span></td><td>Minor / Major / Critical</td></tr>
+            <tr><td>Root Cause</td><td><span class="required">จำเป็น</span></td><td>สาเหตุที่แท้จริง</td></tr>
+            <tr><td>CAPA</td><td><span class="optional">ทางเลือก</span></td><td>การแก้ไข + ป้องกัน</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/quality-deviations.png" alt="Quality Deviations">
+        </div>
+        <div class="box box-warn">
+          <div class="box-title"><span class="badge">!</span>ข้อควรระวัง</div>
+          Deviation ระดับ Critical ต้องได้รับการแก้ไขภายใน 24 ชม. ตามข้อกำหนด GMP
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- MODULE 7: USER & ROLE MANAGEMENT                             -->
+  <!-- ============================================================ -->
+
+  <!-- SLIDE 32: Section Divider -->
+  <section class="section-divider">
+    <div class="section-num">MODULE 07</div>
+    <h1>การกำหนดสิทธิ</h1>
+    <div class="section-en">User &amp; Role Management</div>
+    <div class="section-chip">2 หัวข้อ &middot; Role &middot; User Management</div>
+  </section>
+
+  <!-- SLIDE 33: การจัดการ Role -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 7 &middot; Role</span>
+      <span class="slide-num">33 / 36</span>
+    </div>
+    <h2>การจัดการ Role (สิทธิการใช้งาน)</h2>
+    <div class="path-chip">HR &rarr; Roles &rarr; + สร้าง Role ใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>HR</strong> &gt; <strong>Roles</strong></li>
+          <li>คลิก <strong>"+ สร้าง Role ใหม่"</strong></li>
+          <li>กรอก: Code, ชื่อ Role, คำอธิบาย</li>
+          <li>เลือก Permissions ที่ต้องการ</li>
+          <li>กด <strong>"บันทึก"</strong></li>
+          <li>Role ที่สร้างจะแสดงในรายการพร้อมจำนวน Permission</li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>Code</td><td><span class="required">จำเป็น</span></td><td>รหัส Role เช่น PROD_OPERATOR</td></tr>
+            <tr><td>Name</td><td><span class="required">จำเป็น</span></td><td>ชื่อ เช่น Production Operator</td></tr>
+            <tr><td>Description</td><td><span class="optional">ทางเลือก</span></td><td>คำอธิบาย</td></tr>
+            <tr><td>Permissions</td><td><span class="required">จำเป็น</span></td><td>สิทธิการเข้าถึงแต่ละเมนู</td></tr>
+            <tr><td>Status</td><td><span class="optional">Auto</span></td><td>Active / Inactive</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/hr-roles.png" alt="HR Roles">
+        </div>
+        <div class="box box-info">
+          <div class="box-title"><span class="badge">i</span>หมายเหตุ</div>
+          Role ประเภท System (สีม่วง) ไม่สามารถแก้ไขหรือลบได้ &mdash; เป็น Role พื้นฐานของระบบ
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 34: การจัดการผู้ใช้งาน (User Management) -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">MODULE 7 &middot; User</span>
+      <span class="slide-num">34 / 36</span>
+    </div>
+    <h2>การจัดการผู้ใช้งาน (User Management)</h2>
+    <div class="path-chip">Users &rarr; + เพิ่มผู้ใช้งานใหม่</div>
+    <div class="grid-2">
+      <div>
+        <ol class="steps">
+          <li>เข้าเมนู <strong>Users</strong> (จาก sidebar)</li>
+          <li>คลิก <strong>"+ เพิ่มผู้ใช้งานใหม่"</strong></li>
+          <li>กรอก: ชื่อ, Email, Password</li>
+          <li>เลือก Role (จาก HR Roles)</li>
+          <li>เลือก Department</li>
+          <li>กด <strong>"บันทึก"</strong></li>
+          <li>ผู้ใช้สามารถ login ได้ทันที</li>
+        </ol>
+        <table class="fields">
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น</th><th>คำอธิบาย</th></tr></thead>
+          <tbody>
+            <tr><td>Name</td><td><span class="required">จำเป็น</span></td><td>ชื่อผู้ใช้งาน</td></tr>
+            <tr><td>Email</td><td><span class="required">จำเป็น</span></td><td>ใช้เป็น username สำหรับ login</td></tr>
+            <tr><td>Password</td><td><span class="required">จำเป็น</span></td><td>กำหนดรหัสผ่านเริ่มต้น</td></tr>
+            <tr><td>Role</td><td><span class="required">จำเป็น</span></td><td>เลือกจาก HR Roles</td></tr>
+            <tr><td>Department</td><td><span class="optional">ทางเลือก</span></td><td>แผนกที่สังกัด</td></tr>
+            <tr><td>Status</td><td><span class="optional">Auto</span></td><td>Active / Inactive</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <img src="screenshots/users.png" alt="User Management">
+        </div>
+        <div class="box box-warn">
+          <div class="box-title"><span class="badge">!</span>ข้อควรระวัง</div>
+          ทุกการเปลี่ยนแปลงถูกบันทึกใน Audit Log &mdash; ห้ามแชร์ Password กับผู้อื่น
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SLIDE 35: SUMMARY                                            -->
+  <!-- ============================================================ -->
+  <section class="content-slide">
+    <div class="slide-header">
+      <span class="module-label">สรุป</span>
+      <span class="slide-num">35 / 36</span>
+    </div>
+    <h2>สรุปกระบวนการ</h2>
+    <ul class="compact-list">
+      <li>สร้างข้อมูลพื้นฐาน (RM, PK, FG, BOM)</li>
+      <li>สั่งซื้อ + รับเข้าวัตถุดิบ + QC</li>
+      <li>เปิด Work Order + ชั่ง/ตัดจ่าย + บันทึกผลิต</li>
+      <li>รับ FG เข้าคลัง + Final QC + Release</li>
+      <li>ขาย + ติดตาม Stock + Report</li>
+      <li>ควบคุมคุณภาพ: QC Test + Specification + Deviation</li>
+      <li>จัดการสิทธิผู้ใช้งาน: Role + User Management</li>
+    </ul>
+    <div class="summary-card">
+      <h3>ติดต่อสอบถาม</h3>
+      <p>หากมีข้อสงสัย ติดต่อฝ่าย IT หรือ System Admin</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SLIDE 36: THANK YOU                                          -->
+  <!-- ============================================================ -->
+  <section class="thank-you">
+    <div class="corner-deco tl" style="position:absolute;width:260px;height:260px;border:2px solid rgba(255,255,255,0.18);border-radius:50%;top:-100px;left:-100px;"></div>
+    <div class="corner-deco br" style="position:absolute;width:340px;height:340px;border:2px solid rgba(255,255,255,0.18);border-radius:50%;bottom:-110px;right:-110px;"></div>
+    <h1>ขอบคุณ</h1>
+    <div class="subtitle">Herbal Medicine ERP System</div>
+    <div class="meta" style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+      <span class="tag" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);padding:7px 20px;border-radius:999px;font-size:0.7em;font-weight:500;">Master Data</span>
+      <span class="tag" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);padding:7px 20px;border-radius:999px;font-size:0.7em;font-weight:500;">Purchasing</span>
+      <span class="tag" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);padding:7px 20px;border-radius:999px;font-size:0.7em;font-weight:500;">Production</span>
+      <span class="tag" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);padding:7px 20px;border-radius:999px;font-size:0.7em;font-weight:500;">Quality</span>
+      <span class="tag" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);padding:7px 20px;border-radius:999px;font-size:0.7em;font-weight:500;">Sales</span>
+      <span class="tag" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);padding:7px 20px;border-radius:999px;font-size:0.7em;font-weight:500;">Quality Control</span>
+      <span class="tag" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);padding:7px 20px;border-radius:999px;font-size:0.7em;font-weight:500;">User Mgmt</span>
+    </div>
+  </section>
+
+  </div><!-- .slides -->
+</div><!-- .reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js"></script>
+<script src="./pptx-export.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    width: 1280,
+    height: 720,
+    margin: 0,
+    transition: 'slide',
+    center: false
+  });
+
+  function showToast(msg, type) {
+    var t = document.getElementById('toast');
+    t.className = 'toast ' + (type || '');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 3000);
+  }
+</script>
+</body>
+</html>

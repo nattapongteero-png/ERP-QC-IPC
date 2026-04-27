@@ -5,7 +5,11 @@
   },
   "actions": {
     "viewAll": "View All Issues",
-    "reportIssue": "Report Issue"
+    "reportIssue": "Report Issue",
+    "viewDetails": "View Details",
+    "edit": "Edit",
+    "backToIssues": "Back to Issues",
+    "loading": "Loading..."
   },
   "kpi": {
     "openIssues": "Open Issues",
@@ -22,7 +26,8 @@
   "charts": {
     "byStatus": "Issues by Status",
     "bySeverity": "Issues by Severity",
-    "byCategory": "Issues by Category"
+    "byCategory": "Issues by Category",
+    "seriesName": "Issues"
   },
   "recent": {
     "title": "Recent Issues",
@@ -44,6 +49,165 @@
   },
   "error": {
     "loadFailed": "Failed to Load Dashboard",
-    "genericError": "An error occurred while loading the dashboard"
+    "genericError": "An error occurred while loading the dashboard",
+    "notFound": "Issue Not Found",
+    "unableToLoad": "Unable to Load Issue",
+    "notExistsOrDeleted": "The issue you are looking for does not exist or has been deleted."
+  },
+  "list": {
+    "title": "Issues",
+    "subtitle": "Browse, filter, and manage all reported issues",
+    "filters": {
+      "searchPlaceholder": "Search issues...",
+      "statusPlaceholder": "Status",
+      "severityPlaceholder": "Severity",
+      "categoryPlaceholder": "Category",
+      "allStatus": "All Status",
+      "allSeverity": "All Severity",
+      "allCategories": "All Categories",
+      "assignedToMe": "Assigned to Me",
+      "allIssues": "All Issues"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "triaged": "Triaged",
+      "inProgress": "In Progress",
+      "resolved": "Resolved",
+      "verified": "Verified",
+      "closed": "Closed"
+    },
+    "severity": {
+      "critical": "Critical",
+      "major": "Major",
+      "minor": "Minor"
+    },
+    "columns": {
+      "issueNumber": "Issue #",
+      "title": "Title",
+      "status": "Status",
+      "severity": "Severity",
+      "priority": "Priority",
+      "category": "Category",
+      "assignee": "Assignee",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "summary": "Showing {shown} of {total} issues"
+  },
+  "new": {
+    "title": "Report New Issue",
+    "subtitle": "Submit a new issue for tracking and resolution",
+    "guidelines": {
+      "title": "Issue Reporting Guidelines",
+      "clearTitle": "Clear Title:",
+      "clearTitleText": "Use a descriptive title that summarizes the issue.",
+      "detailedSummary": "Detailed Summary:",
+      "detailedSummaryText": "Explain what happened, when, and where.",
+      "impactAssessment": "Impact Assessment:",
+      "impactAssessmentText": "Describe who or what is affected.",
+      "forBugs": "For Bugs:",
+      "forBugsText": "Include steps to reproduce, expected vs actual behavior.",
+      "aiValidation": "AI validation will check your issue for completeness before submission."
+    },
+    "tips": {
+      "title": "Tips for Fast Resolution",
+      "includeErrorMessages": "Include error messages or codes",
+      "attachScreenshots": "Attach screenshots when relevant",
+      "mentionRecentChanges": "Mention any recent changes",
+      "noteReproducible": "Note if issue is reproducible",
+      "specifyEnvironment": "Specify environment details"
+    },
+    "categoryHelp": {
+      "title": "Choosing a Category",
+      "bug": "Bug:",
+      "bugText": "Something isn't working as expected",
+      "featureRequest": "Feature Request:",
+      "featureRequestText": "New functionality suggestion",
+      "documentation": "Documentation:",
+      "documentationText": "Docs updates or corrections",
+      "support": "Support:",
+      "supportText": "Help with using the system"
+    }
+  },
+  "form": {
+    "sections": {
+      "basic": "Basic Information",
+      "description": "Description",
+      "bugDetails": "Bug Details (Optional)"
+    },
+    "fields": {
+      "title": "Title",
+      "category": "Category",
+      "severity": "Severity",
+      "summary": "Summary",
+      "impact": "Impact",
+      "environment": "Environment",
+      "expectedBehavior": "Expected Behavior",
+      "actualBehavior": "Actual Behavior",
+      "stepsToReproduce": "Steps to Reproduce"
+    },
+    "placeholders": {
+      "title": "Enter a clear, descriptive title",
+      "category": "Select category",
+      "severity": "Select severity",
+      "summary": "Describe the issue clearly and concisely",
+      "impact": "What is the impact of this issue? Who/what is affected?",
+      "environment": "Production, Staging, etc. Include versions if relevant",
+      "expectedBehavior": "What should happen?",
+      "actualBehavior": "What actually happens?",
+      "stepsToReproduce": "1. Go to...\n2. Click on...\n3. Observe..."
+    },
+    "severity": {
+      "critical": "Critical",
+      "criticalDesc": "Immediate action required",
+      "major": "Major",
+      "majorDesc": "Significant impact, urgent attention needed",
+      "minor": "Minor",
+      "minorDesc": "Low impact, can be scheduled"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "validate": "Validate with AI",
+      "validating": "Validating...",
+      "create": "Create Issue",
+      "update": "Update Issue",
+      "saving": "Saving..."
+    },
+    "validation": {
+      "passed": "Validation Passed",
+      "needsAttention": "Validation Needs Attention",
+      "aiUnavailable": "(AI unavailable)",
+      "missingItems": "Missing Items:",
+      "followUpQuestions": "Follow-up Questions:"
+    }
+  },
+  "detail": {
+    "reportedBy": "Reported by",
+    "unknown": "Unknown",
+    "description": "Description",
+    "summary": "Summary",
+    "impact": "Impact",
+    "environment": "Environment",
+    "expectedBehavior": "Expected Behavior",
+    "actualBehavior": "Actual Behavior",
+    "stepsToReproduce": "Steps to Reproduce",
+    "details": "Details",
+    "category": "Category",
+    "assignee": "Assignee",
+    "reporter": "Reporter",
+    "created": "Created",
+    "updated": "Updated",
+    "tags": "Tags",
+    "uncategorized": "Uncategorized",
+    "unassigned": "Unassigned",
+    "activity": "Activity",
+    "addComment": "Add Comment",
+    "relative": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "daysAgo": "{days} days ago",
+      "weeksAgo": "{weeks} weeks ago"
+    }
   }
 }

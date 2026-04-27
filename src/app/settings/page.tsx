@@ -6,8 +6,8 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
-import { PageHeader } from '@/components/ui/page-header';
-import { Check, AlertCircle, Wifi, Shield, ChevronRight, Loader2 } from 'lucide-react';
+import { ResponsivePageHeader } from '@/components/shared';
+import { Settings as SettingsIcon, Check, AlertCircle, Wifi, Shield, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import Link from 'next/link';
 
@@ -92,10 +92,13 @@ export default function SettingsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <PageHeader
+      <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+        <ResponsivePageHeader
           title={t('page.title')}
-          description={t('page.description')}
+          subtitle={t('page.description')}
+          icon={SettingsIcon}
+          iconBgColor="bg-slate-100"
+          iconColor="text-slate-600"
           actions={
             <DxButton
               text={isSaving ? t('settingsPage.saving') : t('settingsPage.saveSettings')}

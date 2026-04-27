@@ -16,9 +16,14 @@
     "units": "หน่วย",
     "confirmDelete": "ยืนยันการลบ",
     "deleteMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบ \"{name}\"?",
-    "delete": "ลบ"
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "clearFilters": "ล้างตัวกรอง",
+    "downloadTemplate": "เทมเพลต",
+    "importExcel": "นำเข้า Excel"
   },
   "stats": {
+    "total": "ทั้งหมด",
     "lowStock": "สต็อกต่ำ",
     "inQuarantine": "กักกัน",
     "nearExpiry": "ใกล้หมดอายุ",
@@ -29,11 +34,135 @@
   },
   "expiryAlerts": {
     "pageTitle": "แจ้งเตือนหมดอายุ",
-    "description": "ตรวจสอบสินค้าที่หมดอายุและใกล้หมดอายุ"
+    "description": "ตรวจสอบสินค้าที่หมดอายุและใกล้หมดอายุ",
+    "daysOptions": {
+      "next30": "ภายใน 30 วัน",
+      "next60": "ภายใน 60 วัน",
+      "next90": "ภายใน 90 วัน",
+      "next180": "ภายใน 180 วัน"
+    },
+    "stats": {
+      "expiredLots": "ล็อตที่หมดอายุ",
+      "expiredValue": "มูลค่าที่หมดอายุ",
+      "nearExpiryLots": "ล็อตใกล้หมดอายุ",
+      "nearExpiryValue": "มูลค่าใกล้หมดอายุ"
+    },
+    "columns": {
+      "lotNumber": "เลขที่ล็อต",
+      "itemCode": "รหัสสินค้า",
+      "itemName": "ชื่อสินค้า",
+      "quantity": "จำนวน",
+      "expiryDate": "วันหมดอายุ",
+      "daysExpired": "จำนวนวันที่หมดอายุ",
+      "daysToExpiry": "วันเหลือถึงวันหมดอายุ"
+    },
+    "sections": {
+      "expiredTitle": "ล็อตที่หมดอายุ ({count})",
+      "expiredDescription": "ล็อตเหล่านี้หมดอายุแล้วและควรกักกันหรือกำจัด",
+      "nearExpiryTitle": "ล็อตใกล้หมดอายุ ({count})",
+      "nearExpiryDescription": "ล็อตเหล่านี้จะหมดอายุภายใน {days} วัน - ควรเบิกก่อน (FEFO)"
+    },
+    "noExpired": "ไม่มีล็อตที่หมดอายุ",
+    "noNearExpiry": "ไม่มีล็อตใกล้หมดอายุ",
+    "badge": {
+      "daysAgo": "หมดอายุ {days} วัน",
+      "daysLeft": "{days} วัน"
+    },
+    "mobile": {
+      "qty": "จำนวน:",
+      "expired": "หมดอายุ:",
+      "expires": "หมดอายุ:"
+    },
+    "allClear": {
+      "title": "ไม่มีล็อตใกล้หมดอายุ",
+      "description": "สินค้าคงคลังของคุณทั้งหมดอยู่ในสถานะปกติ"
+    },
+    "refresh": "รีเฟรช"
   },
   "transactions": {
     "pageTitle": "รายการเคลื่อนไหว",
-    "description": "รายการเคลื่อนไหวสินค้าคงคลัง"
+    "description": "รายการเคลื่อนไหวสินค้าคงคลัง",
+    "types": {
+      "all": "ทั้งหมด",
+      "receive": "รับเข้า",
+      "issue": "เบิกออก",
+      "transfer": "โอนย้าย",
+      "adjust": "ปรับปรุง",
+      "scrap": "ตัดทิ้ง",
+      "return": "คืน"
+    },
+    "refTypes": {
+      "none": "ไม่มี",
+      "purchaseOrder": "ใบสั่งซื้อ",
+      "salesOrder": "ใบสั่งขาย",
+      "workOrder": "ใบสั่งผลิต",
+      "qcRelease": "ปล่อย QC",
+      "adjustment": "การปรับปรุง"
+    },
+    "table": {
+      "columns": {
+        "transactionNumber": "เลขที่รายการ",
+        "type": "ประเภท",
+        "lotItem": "ล็อต / สินค้า",
+        "quantity": "จำนวน",
+        "warehouse": "คลัง",
+        "reference": "อ้างอิง",
+        "dateBy": "วันที่ / ผู้บันทึก"
+      }
+    },
+    "stats": {
+      "total": "รายการทั้งหมด",
+      "incoming": "รับเข้า",
+      "outgoing": "เบิกออก",
+      "today": "วันนี้"
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "viewLots": "ดูล็อต",
+      "newTransaction": "บันทึกรายการใหม่",
+      "apply": "ใช้ตัวกรอง",
+      "cancel": "ยกเลิก",
+      "create": "สร้างรายการ"
+    },
+    "search": {
+      "placeholder": "ค้นหาด้วยเลขที่รายการ, ล็อต หรือสินค้า...",
+      "fromDate": "ตั้งแต่วันที่",
+      "toDate": "ถึงวันที่"
+    },
+    "form": {
+      "title": "บันทึกรายการใหม่",
+      "transactionType": "ประเภทรายการ",
+      "selectLot": "เลือกล็อต",
+      "selectLotPlaceholder": "เลือกล็อต...",
+      "selectWarehousePlaceholder": "เลือกคลัง...",
+      "quantity": "จำนวน",
+      "toWarehouse": "ไปคลัง",
+      "maxAvailable": "จำนวนสูงสุด: {qty} {unit}",
+      "referenceSection": "อ้างอิง (ไม่บังคับ)",
+      "referenceType": "ประเภทอ้างอิง",
+      "referenceNumber": "เลขที่อ้างอิง",
+      "referencePlaceholder": "PO-2024-001",
+      "notes": "หมายเหตุ",
+      "notesPlaceholder": "หมายเหตุเพิ่มเติม...",
+      "lotInfo": {
+        "item": "สินค้า:",
+        "available": "คงเหลือ:",
+        "warehouse": "คลัง:"
+      },
+      "alertSelectLotAndQty": "กรุณาเลือกล็อตและป้อนจำนวน"
+    },
+    "mobile": {
+      "lotPrefix": "ล็อต:"
+    },
+    "empty": {
+      "title": "ยังไม่มีรายการเคลื่อนไหว",
+      "description": "เริ่มต้นบันทึกการเคลื่อนไหวสินค้าคงคลัง"
+    },
+    "noResults": {
+      "title": "ไม่พบรายการที่ตรงกับเงื่อนไข",
+      "description": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองอื่น"
+    },
+    "noDataText": "ไม่พบรายการเคลื่อนไหว"
   },
   "items": {
     "title": "รายการสินค้า",
@@ -119,6 +248,9 @@
         "type": "ประเภท",
         "category": "หมวดหมู่",
         "onHand": "คงเหลือ",
+        "onHandQty": "คงเหลือ (ปริมาณ)",
+        "totalValue": "มูลค่ารวม (฿)",
+        "avgCost": "ราคาทุน/หน่วย",
         "quarantine": "กักกัน",
         "unit": "หน่วย",
         "shelfLife": "อายุการเก็บ",
@@ -160,6 +292,7 @@
     "title": "ล็อต",
     "pageTitle": "Inventory Lots",
     "description": "จัดการ Lot/Batch สินค้าคงคลัง",
+    "days": "วัน",
     "detail": {
       "pageTitle": "Lot"
     },
@@ -176,6 +309,8 @@
       "columns": {
         "lotNumber": "เลขที่ Lot",
         "vendorLotNumber": "Vendor Lot No.",
+        "receivedDate": "วันที่รับเข้า",
+        "aging": "อายุในคลัง",
         "item": "สินค้า",
         "quantity": "จำนวน",
         "value": "มูลค่า",
@@ -185,6 +320,16 @@
         "retest": "Retest",
         "status": "สถานะ"
       }
+    },
+    "validation": {
+      "lotNumberRequired": "กรุณาระบุเลขที่ล็อต",
+      "selectItem": "กรุณาเลือกสินค้า",
+      "selectWarehouse": "กรุณาเลือกคลังสินค้า",
+      "quantityMin": "จำนวนต้องมากกว่า 0",
+      "expiryDateRequired": "กรุณาระบุวันหมดอายุ",
+      "expiryDateFuture": "วันหมดอายุต้องเป็นอนาคต",
+      "mfgBeforeExpiry": "วันผลิตต้องอยู่ก่อนวันหมดอายุ",
+      "costRequired": "กรุณาระบุต้นทุนต่อหน่วย (มากกว่า 0)"
     },
     "form": {
       "title": "รับ Lot ใหม่",
@@ -280,6 +425,10 @@
     "searchPlaceholder": "ค้นหาด้วยรหัส ชื่อ หรือที่ตั้ง...",
     "noWarehouses": "ไม่พบคลังสินค้า",
     "viewDetails": "ดูรายละเอียด",
+    "emptyTitle": "ยังไม่มีคลังสินค้า",
+    "emptyDescription": "เริ่มต้นจัดการสินค้าคงคลังของคุณโดยเพิ่มคลังสินค้าแรก",
+    "noResultsTitle": "ไม่พบคลังสินค้าที่ตรงกับเงื่อนไข",
+    "noResultsDescription": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองอื่น",
     "table": {
       "columns": {
         "code": "รหัส",
@@ -360,5 +509,179 @@
       "loss": "สูญหาย",
       "other": "อื่นๆ"
     }
+  },
+  "itemForm": {
+    "editTitle": "แก้ไขสินค้า",
+    "createTitle": "สร้างสินค้าใหม่",
+    "editSubtitle": "แก้ไข {code} - {name}",
+    "createSubtitle": "เพิ่มสินค้าใหม่ในระบบคลังสินค้า",
+    "updateBtn": "อัปเดตสินค้า",
+    "createBtn": "สร้างสินค้า",
+    "saving": "กำลังบันทึก...",
+    "cancel": "ยกเลิก",
+    "delete": "ลบ",
+    "back": "ย้อนกลับ",
+    "generate": "สร้างรหัส",
+    "active": "ใช้งาน",
+    "inactive": "ไม่ใช้งาน",
+    "creatingNew": "กำลังสร้าง{type}ใหม่",
+    "lastUpdated": "อัปเดตล่าสุด: {date}",
+    "sections": {
+      "type": "ประเภทสินค้า",
+      "typeDesc": "เลือกประเภทสินค้าที่ต้องการสร้าง",
+      "basicInfo": "ข้อมูลพื้นฐาน",
+      "basicInfoDesc": "ข้อมูลระบุตัวตนและชื่อสินค้า",
+      "units": "หน่วยวัด",
+      "unitsDesc": "หน่วยหลักและหน่วยรอง พร้อมอัตราแปลง",
+      "stock": "การจัดการสต็อก",
+      "stockDesc": "ค่าเกณฑ์สต็อกและการสั่งซื้อซ้ำ",
+      "storage": "ข้อกำหนดการจัดเก็บ",
+      "storageDesc": "อายุการเก็บและสภาพการจัดเก็บ",
+      "vmi": "รหัสมาตรฐาน VMI",
+      "vmiDesc": "รหัสผลิตภัณฑ์ยาและแพทย์แผนไทยสำหรับเชื่อมต่อ VMI Portal",
+      "confidentiality": "การรักษาความลับ",
+      "confidentialityDesc": "ควบคุมการเข้าถึงข้อมูลต้นทุนและ BOM สำหรับสินค้านี้",
+      "images": "รูปภาพ",
+      "priceOffers": "ข้อเสนอราคา",
+      "itemStatus": "สถานะสินค้า",
+      "itemStatusDesc": "สถานะใช้งาน/ไม่ใช้งาน",
+      "stockStatus": "สถานะสต็อกปัจจุบัน",
+      "stockStatusDesc": "ระดับสินค้าคงคลังแบบเรียลไทม์",
+      "quickSummary": "สรุปรายการ",
+      "quickSummaryDesc": "ภาพรวมการตั้งค่าสินค้า"
+    },
+    "fields": {
+      "code": "รหัสสินค้า",
+      "nameTh": "ชื่อ (ไทย)",
+      "nameEn": "ชื่อ (อังกฤษ)",
+      "category": "หมวดหมู่",
+      "primaryUnit": "หน่วยหลัก",
+      "secondaryUnit": "หน่วยรอง",
+      "conversionFactor": "อัตราแปลง",
+      "minStock": "สต็อกต่ำสุด",
+      "maxStock": "สต็อกสูงสุด",
+      "reorderPoint": "จุดสั่งซื้อซ้ำ",
+      "shelfLifeDays": "อายุการเก็บ (วัน)",
+      "shelfLifeYears": "อายุการเก็บรักษา",
+      "shelfLife": "อายุการเก็บ",
+      "storageConditions": "สภาพการจัดเก็บ",
+      "strength": "ความแรง/ขนาดยา",
+      "gRegNumber": "เลขที่ทะเบียน G",
+      "drugCode24": "รหัสยา 24 หลัก (Drug Code 24)",
+      "tppCode": "รหัส TPP",
+      "tppName": "ชื่อ TPP",
+      "ttmtCode": "รหัส TTMT",
+      "ttmtName": "ชื่อ TTMT",
+      "active": "ใช้งาน",
+      "vmiSyncEnabled": "เปิดใช้งาน VMI Sync",
+      "confidentialityLevel": "ระดับความลับ",
+      "defaultConfidential": "ค่าเริ่มต้นเป็นความลับใน BOM",
+      "type": "ประเภท",
+      "shelfLife": "อายุการเก็บ",
+      "vmiStatus": "สถานะ VMI"
+    },
+    "placeholders": {
+      "code": "RM-0001",
+      "nameTh": "ชื่อสินค้าภาษาไทย",
+      "nameEn": "English name (optional)",
+      "category": "เลือกหมวดหมู่",
+      "unit": "เลือกหน่วย",
+      "strength": "เช่น 500mg, 250mg/5ml",
+      "gRegNumber": "เช่น G 123/45",
+      "storageConditions": "เช่น 15-25°C, แห้ง, หลีกเลี่ยงแสง",
+      "conversionFactor": "เช่น 1000",
+      "shelfLifeDays": "เช่น 365",
+      "years": "ปี",
+      "months": "เดือน",
+      "tppCode": "รหัส 13 หลัก",
+      "ttmtCode": "A + 8 หลัก",
+      "drugCode24": "เลขทะเบียนยา 24 หลัก",
+      "confidentialityLevel": "เลือกระดับความลับ"
+    },
+    "types": {
+      "raw_material": "วัตถุดิบ",
+      "packaging": "บรรจุภัณฑ์",
+      "wip": "งานระหว่างทำ",
+      "finished_goods": "สินค้าสำเร็จรูป",
+      "consumable": "วัสดุสิ้นเปลือง"
+    },
+    "confidentialityLevels": {
+      "public": "สาธารณะ",
+      "publicDesc": "ผู้ใช้ทุกคนเห็นได้",
+      "internal": "ภายใน",
+      "internalDesc": "เฉพาะพนักงานภายในเท่านั้น",
+      "confidential": "ความลับ",
+      "confidentialDesc": "จำกัดเฉพาะผู้มีสิทธิ์"
+    },
+    "stock": {
+      "currentLevel": "ระดับสต็อกปัจจุบัน",
+      "low": "สต็อกต่ำ",
+      "nearReorder": "ใกล้จุดสั่งซื้อ",
+      "overstock": "สต็อกเกิน",
+      "healthy": "ปกติ",
+      "onHand": "คงเหลือ",
+      "quarantine": "กักกัน",
+      "belowMinimum": "ต่ำกว่าสต็อกขั้นต่ำ",
+      "approachingReorder": "ใกล้ถึงจุดสั่งซื้อซ้ำ",
+      "stockHealthy": "ระดับสต็อกปกติ",
+      "min": "ต่ำสุด: {value}",
+      "reorder": "สั่งซื้อ: {value}",
+      "max": "สูงสุด: {value}"
+    },
+    "hints": {
+      "secondaryUnit": "หน่วยทางเลือก (ไม่บังคับ)",
+      "conversionFactor": "1 หน่วยหลัก = X หน่วยรอง",
+      "minStock": "แจ้งเตือนเมื่อสต็อกต่ำกว่ากำหนด",
+      "maxStock": "ความจุในการจัดเก็บสูงสุด",
+      "reorderPoint": "สั่งซื้อเมื่อถึงระดับนี้",
+      "shelfLifeDays": "จำนวนวันก่อนหมดอายุ",
+      "storageConditions": "อุณหภูมิ ความชื้น ข้อกำหนดพิเศษ",
+      "strength": "ความแรงยาสำหรับ GMP compliance",
+      "gRegNumber": "เลขที่ทะเบียนตำรับยา (G number)",
+      "tppCode": "รหัสผลิตภัณฑ์ยาไทย (13 หลัก)",
+      "ttmtCode": "รหัสศัพท์การแพทย์แผนไทย",
+      "drugCode24": "เลขรหัสยามาตรฐาน 24 หลัก สำหรับการระบุตัวยาในระบบ VMI",
+      "defaultConfidential": "เมื่อใช้เป็นส่วนประกอบ จะถูกกำหนดเป็นความลับโดยอัตโนมัติ"
+    },
+    "vmi": {
+      "enableSync": "เปิดใช้งาน VMI Sync",
+      "enableSyncDesc": "รวมสินค้านี้ในการซิงค์ VMI Portal",
+      "ready": "VMI พร้อม:",
+      "readyDesc": "สินค้านี้จะถูกซิงค์ไปยัง VMI Portal",
+      "addCodes": "เพิ่มรหัสมาตรฐาน:",
+      "addCodesDesc": "แนะนำให้เพิ่มรหัส TPP หรือ TTMT เพื่อระบุตัวตนใน VMI Portal",
+      "searchTpp": "ค้นหารหัส TPP จาก VMI Portal",
+      "searchTtmt": "ค้นหารหัส TTMT จาก VMI Portal",
+      "vmiReady": "พร้อม",
+      "noVmiCodes": "ไม่มีรหัส VMI"
+    },
+    "quickFill": {
+      "title": "กรอกข้อมูลอัตโนมัติจากฐานข้อมูล TTMT",
+      "description": "ค้นหาผลิตภัณฑ์ยาแผนไทยและกรอกข้อมูลแบบฟอร์มอัตโนมัติ",
+      "searchBtn": "ค้นหาผลิตภัณฑ์ TTMT",
+      "dialogTitle": "กรอกข้อมูลจากผลิตภัณฑ์ TTMT"
+    },
+    "conversion": {
+      "label": "การแปลง:",
+      "format": "1 {primary} = {factor} {secondary}"
+    },
+    "activeItem": {
+      "label": "สินค้าที่ใช้งาน",
+      "description": "สินค้าสามารถใช้ในการทำรายการได้"
+    },
+    "confidentialWarning": {
+      "title": "การเข้าถึงถูกจำกัด:",
+      "description": "เฉพาะผู้ใช้ที่มีสิทธิ์เข้าถึงข้อมูลลับเท่านั้นจะเห็นข้อมูลต้นทุนและ BOM"
+    },
+    "validation": {
+      "readyToSave": "พร้อมบันทึก",
+      "allFieldsFilled": "กรอกข้อมูลที่จำเป็นครบแล้ว",
+      "requiredFields": "ข้อมูลที่จำเป็น",
+      "codeRequired": "ต้องระบุรหัสสินค้า",
+      "nameThRequired": "ต้องระบุชื่อภาษาไทย"
+    },
+    "days": "วัน",
+    "years": "ปี",
+    "months": "เดือน"
   }
 }

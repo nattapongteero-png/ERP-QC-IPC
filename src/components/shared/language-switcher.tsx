@@ -148,3 +148,56 @@ export function CompactLanguageSwitcher({
     </button>
   );
 }
+
+/**
+ * Sidebar Language Toggle — native HTML toggle button
+ *
+ * Replacement for DevExtreme SelectBox-based `LanguageSwitcher` in the
+ * sidebar. Reason: DevExtreme's dropdown portal has positioning issues
+ * on Chrome 147 (dropdown doesn't appear or gets clipped). Native
+ * HTML button is reliable across all browsers and always visible since
+ * there are only 2 languages — a toggle is the right UX anyway.
+ */
+export function SidebarLanguageToggle({
+  className,
+  onLanguageChange,
+}: Pick<LanguageSwitcherProps, 'className' | 'onLanguageChange'>) {
+  const currentLocale = useLocale() as Locale;
+  const router = useRouter();
+
+  const handleToggle = useCallback(async () => {
+    const newLocale: Locale = currentLocale === 'th' ? 'en' : 'th';
+    setStoredLocale(newLocale);
+    await initDevExtremeLocale(newLocale);
+    if (onLanguageChange) onLanguageChange(newLocale);
+    router.refresh();
+  }, [currentLocale, onLanguageChange, router]);
+
+  const nextLocale: Locale = currentLocale === 'th' ? 'en' : 'th';
+
+  return (
+    <button
+      type="button"
+      onClick={handleToggle}
+      aria-label={`Switch to ${localeNames[nextLocale]}`}
+      title={`Switch to ${localeNames[nextLocale]}`}
+      data-testid="sidebar-language-toggle"
+      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium text-slate-200 bg-slate-700/40 hover:bg-slate-600/60 border border-slate-600/40 transition-colors ${className || ''}`}
+    >
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="text-base">{localeFlags[currentLocale]}</span>
+        <span className="truncate">{localeNames[currentLocale]}</span>
+      </span>
+      <span className="flex items-center gap-1 text-xs text-slate-400">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M7 10l5 5 5-5" style={{ display: 'none' }} />
+          <path d="M17 1l4 4-4 4" />
+          <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+          <path d="M7 23l-4-4 4-4" />
+          <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+        </svg>
+        <span>{localeFlags[nextLocale]}</span>
+      </span>
+    </button>
+  );
+}

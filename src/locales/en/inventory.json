@@ -16,9 +16,14 @@
     "units": "units",
     "confirmDelete": "Confirm Delete",
     "deleteMessage": "Are you sure you want to delete \"{name}\"?",
-    "delete": "Delete"
+    "delete": "Delete",
+    "edit": "Edit",
+    "clearFilters": "Clear filters",
+    "downloadTemplate": "Template",
+    "importExcel": "Import Excel"
   },
   "stats": {
+    "total": "Total",
     "lowStock": "Low Stock",
     "inQuarantine": "In Quarantine",
     "nearExpiry": "Near Expiry",
@@ -29,11 +34,135 @@
   },
   "expiryAlerts": {
     "pageTitle": "Expiry Alerts",
-    "description": "Monitor expired and near-expiry inventory"
+    "description": "Monitor expired and near-expiry inventory",
+    "daysOptions": {
+      "next30": "Next 30 days",
+      "next60": "Next 60 days",
+      "next90": "Next 90 days",
+      "next180": "Next 180 days"
+    },
+    "stats": {
+      "expiredLots": "Expired Lots",
+      "expiredValue": "Expired Value",
+      "nearExpiryLots": "Near Expiry Lots",
+      "nearExpiryValue": "Near Expiry Value"
+    },
+    "columns": {
+      "lotNumber": "Lot Number",
+      "itemCode": "Item Code",
+      "itemName": "Item Name",
+      "quantity": "Quantity",
+      "expiryDate": "Expiry Date",
+      "daysExpired": "Days Expired",
+      "daysToExpiry": "Days to Expiry"
+    },
+    "sections": {
+      "expiredTitle": "Expired Lots ({count})",
+      "expiredDescription": "These lots have passed their expiry date and should be quarantined or disposed",
+      "nearExpiryTitle": "Near Expiry Lots ({count})",
+      "nearExpiryDescription": "These lots will expire within {days} days - prioritize for FEFO picking"
+    },
+    "noExpired": "No expired lots",
+    "noNearExpiry": "No near-expiry lots",
+    "badge": {
+      "daysAgo": "{days} days ago",
+      "daysLeft": "{days} days"
+    },
+    "mobile": {
+      "qty": "Qty:",
+      "expired": "Expired:",
+      "expires": "Expires:"
+    },
+    "allClear": {
+      "title": "No lots near expiry",
+      "description": "All your inventory is in good standing"
+    },
+    "refresh": "Refresh"
   },
   "transactions": {
     "pageTitle": "Inventory Transactions",
-    "description": "Track inventory movements"
+    "description": "Track inventory movements",
+    "types": {
+      "all": "All",
+      "receive": "Receive",
+      "issue": "Issue",
+      "transfer": "Transfer",
+      "adjust": "Adjust",
+      "scrap": "Scrap",
+      "return": "Return"
+    },
+    "refTypes": {
+      "none": "None",
+      "purchaseOrder": "Purchase Order",
+      "salesOrder": "Sales Order",
+      "workOrder": "Work Order",
+      "qcRelease": "QC Release",
+      "adjustment": "Adjustment"
+    },
+    "table": {
+      "columns": {
+        "transactionNumber": "Transaction #",
+        "type": "Type",
+        "lotItem": "Lot / Item",
+        "quantity": "Quantity",
+        "warehouse": "Warehouse",
+        "reference": "Reference",
+        "dateBy": "Date / By"
+      }
+    },
+    "stats": {
+      "total": "Total Transactions",
+      "incoming": "Incoming",
+      "outgoing": "Outgoing",
+      "today": "Today"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "viewLots": "View Lots",
+      "newTransaction": "New Transaction",
+      "apply": "Apply",
+      "cancel": "Cancel",
+      "create": "Create Transaction"
+    },
+    "search": {
+      "placeholder": "Search by transaction #, lot, or item...",
+      "fromDate": "From Date",
+      "toDate": "To Date"
+    },
+    "form": {
+      "title": "New Transaction",
+      "transactionType": "Transaction Type",
+      "selectLot": "Select Lot",
+      "selectLotPlaceholder": "Select a lot...",
+      "selectWarehousePlaceholder": "Select warehouse...",
+      "quantity": "Quantity",
+      "toWarehouse": "To Warehouse",
+      "maxAvailable": "Max available: {qty} {unit}",
+      "referenceSection": "Reference (Optional)",
+      "referenceType": "Reference Type",
+      "referenceNumber": "Reference Number",
+      "referencePlaceholder": "PO-2024-001",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes...",
+      "lotInfo": {
+        "item": "Item:",
+        "available": "Available:",
+        "warehouse": "Warehouse:"
+      },
+      "alertSelectLotAndQty": "Please select a lot and enter quantity"
+    },
+    "mobile": {
+      "lotPrefix": "Lot:"
+    },
+    "empty": {
+      "title": "No transactions yet",
+      "description": "Start recording inventory movements"
+    },
+    "noResults": {
+      "title": "No transactions match your filters",
+      "description": "Try a different search term or filter"
+    },
+    "noDataText": "No transactions found"
   },
   "items": {
     "title": "Items",
@@ -119,6 +248,9 @@
         "type": "Type",
         "category": "Category",
         "onHand": "On Hand",
+        "onHandQty": "On Hand (Qty)",
+        "totalValue": "Total Value (฿)",
+        "avgCost": "Avg Cost/Unit",
         "quarantine": "Quarantine",
         "unit": "Unit",
         "shelfLife": "Shelf Life",
@@ -160,6 +292,7 @@
     "title": "Lots",
     "pageTitle": "Inventory Lots",
     "description": "Manage Lot/Batch inventory",
+    "days": "days",
     "detail": {
       "pageTitle": "Lot"
     },
@@ -176,6 +309,8 @@
       "columns": {
         "lotNumber": "Lot Number",
         "vendorLotNumber": "Vendor Lot No.",
+        "receivedDate": "Received Date",
+        "aging": "Aging",
         "item": "Item",
         "quantity": "Quantity",
         "value": "Value",
@@ -185,6 +320,16 @@
         "retest": "Retest",
         "status": "Status"
       }
+    },
+    "validation": {
+      "lotNumberRequired": "Lot number is required",
+      "selectItem": "Please select an item",
+      "selectWarehouse": "Please select a warehouse",
+      "quantityMin": "Quantity must be greater than 0",
+      "expiryDateRequired": "Expiry date is required",
+      "expiryDateFuture": "Expiry date must be in the future",
+      "mfgBeforeExpiry": "Manufacturing date must be before expiry date",
+      "costRequired": "Cost per unit is required and must be greater than 0"
     },
     "form": {
       "title": "Receive New Lot",
@@ -280,6 +425,10 @@
     "searchPlaceholder": "Search by code, name, or location...",
     "noWarehouses": "No warehouses found",
     "viewDetails": "View Details",
+    "emptyTitle": "No warehouses yet",
+    "emptyDescription": "Start managing your inventory by adding your first warehouse",
+    "noResultsTitle": "No warehouses match your filters",
+    "noResultsDescription": "Try a different search term or filter",
     "table": {
       "columns": {
         "code": "Code",
@@ -360,5 +509,178 @@
       "loss": "Loss",
       "other": "Other"
     }
+  },
+  "itemForm": {
+    "editTitle": "Edit Item",
+    "createTitle": "Create New Item",
+    "editSubtitle": "Editing {code} - {name}",
+    "createSubtitle": "Add a new item to your inventory system",
+    "updateBtn": "Update Item",
+    "createBtn": "Create Item",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "back": "Back",
+    "generate": "Generate",
+    "active": "Active",
+    "inactive": "Inactive",
+    "creatingNew": "Creating new {type}",
+    "lastUpdated": "Last updated: {date}",
+    "sections": {
+      "type": "Item Type",
+      "typeDesc": "Select the type of item you are creating",
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Item identification and naming",
+      "units": "Units of Measurement",
+      "unitsDesc": "Primary and secondary units with conversion factor",
+      "stock": "Inventory Management",
+      "stockDesc": "Stock thresholds and reorder settings",
+      "storage": "Storage Requirements",
+      "storageDesc": "Shelf life and storage conditions",
+      "vmi": "VMI Standard Codes",
+      "vmiDesc": "Thai pharmaceutical and traditional medicine codes for VMI Portal integration",
+      "confidentiality": "Confidentiality",
+      "confidentialityDesc": "Control access to cost and BOM information for this item",
+      "images": "Images",
+      "priceOffers": "Price Offers",
+      "itemStatus": "Item Status",
+      "itemStatusDesc": "Active/Inactive status",
+      "stockStatus": "Current Stock Status",
+      "stockStatusDesc": "Real-time inventory level",
+      "quickSummary": "Quick Summary",
+      "quickSummaryDesc": "Overview of item configuration"
+    },
+    "fields": {
+      "code": "Item Code",
+      "nameTh": "Name (Thai)",
+      "nameEn": "Name (English)",
+      "category": "Category",
+      "primaryUnit": "Primary Unit",
+      "secondaryUnit": "Secondary Unit",
+      "conversionFactor": "Conversion Factor",
+      "minStock": "Minimum Stock",
+      "maxStock": "Maximum Stock",
+      "reorderPoint": "Reorder Point",
+      "shelfLifeDays": "Shelf Life (Days)",
+      "shelfLifeYears": "Shelf Life",
+      "storageConditions": "Storage Conditions",
+      "strength": "Strength/Dosage",
+      "gRegNumber": "G-Registration Number",
+      "drugCode24": "Drug Code 24 Digits",
+      "tppCode": "TPP Code",
+      "tppName": "TPP Name",
+      "ttmtCode": "TTMT Code",
+      "ttmtName": "TTMT Name",
+      "active": "Active",
+      "vmiSyncEnabled": "VMI Sync Enabled",
+      "confidentialityLevel": "Confidentiality Level",
+      "defaultConfidential": "Default Confidential in BOM",
+      "type": "Type",
+      "shelfLife": "Shelf Life",
+      "vmiStatus": "VMI Status"
+    },
+    "placeholders": {
+      "code": "RM-0001",
+      "nameTh": "ชื่อสินค้าภาษาไทย",
+      "nameEn": "English name (optional)",
+      "category": "Select category",
+      "unit": "Select unit",
+      "strength": "e.g., 500mg, 250mg/5ml",
+      "gRegNumber": "e.g., G 123/45",
+      "storageConditions": "e.g., 15-25°C, Dry, Away from light",
+      "conversionFactor": "e.g., 1000",
+      "shelfLifeDays": "e.g., 365",
+      "years": "Years",
+      "months": "Months",
+      "tppCode": "13-digit code",
+      "ttmtCode": "A + 8 digits",
+      "drugCode24": "24-digit drug registration code",
+      "confidentialityLevel": "Select confidentiality level"
+    },
+    "types": {
+      "raw_material": "Raw Material",
+      "packaging": "Packaging",
+      "wip": "Work in Progress",
+      "finished_goods": "Finished Goods",
+      "consumable": "Consumable"
+    },
+    "confidentialityLevels": {
+      "public": "Public",
+      "publicDesc": "Visible to all users",
+      "internal": "Internal",
+      "internalDesc": "Visible to internal staff only",
+      "confidential": "Confidential",
+      "confidentialDesc": "Restricted access only"
+    },
+    "stock": {
+      "currentLevel": "Current Stock Level",
+      "low": "Low Stock",
+      "nearReorder": "Near Reorder",
+      "overstock": "Overstock",
+      "healthy": "Healthy",
+      "onHand": "On Hand",
+      "quarantine": "Quarantine",
+      "belowMinimum": "Below minimum stock",
+      "approachingReorder": "Approaching reorder point",
+      "stockHealthy": "Stock level is healthy",
+      "min": "Min: {value}",
+      "reorder": "Reorder: {value}",
+      "max": "Max: {value}"
+    },
+    "hints": {
+      "secondaryUnit": "Optional alternative unit",
+      "conversionFactor": "1 primary = X secondary",
+      "minStock": "Alert when stock falls below",
+      "maxStock": "Maximum storage capacity",
+      "reorderPoint": "Trigger reorder when reached",
+      "shelfLifeDays": "Days until expiration",
+      "storageConditions": "Temperature, humidity, special requirements",
+      "strength": "Dosage strength for GMP compliance",
+      "gRegNumber": "Drug registration number (G number)",
+      "tppCode": "Thai Pharmaceutical Product code (13 digits)",
+      "ttmtCode": "Thai Traditional Medicine Terminology code",
+      "drugCode24": "24-digit standard drug code for VMI identification",
+      "defaultConfidential": "When used as a component, mark as confidential by default"
+    },
+    "vmi": {
+      "enableSync": "Enable VMI Sync",
+      "enableSyncDesc": "Include this item in VMI Portal synchronization",
+      "ready": "VMI Ready:",
+      "readyDesc": "This item will be synced to VMI Portal",
+      "addCodes": "Add Standard Codes:",
+      "addCodesDesc": "TPP or TTMT code recommended for proper VMI Portal identification",
+      "searchTpp": "Search TPP codes from VMI Portal",
+      "searchTtmt": "Search TTMT codes from VMI Portal",
+      "vmiReady": "Ready",
+      "noVmiCodes": "No VMI codes"
+    },
+    "quickFill": {
+      "title": "Quick Fill from TTMT Database",
+      "description": "Search well-known Thai Traditional Medicine products and auto-fill the form",
+      "searchBtn": "Search TTMT Products",
+      "dialogTitle": "Quick Fill from TTMT Products"
+    },
+    "conversion": {
+      "label": "Conversion:",
+      "format": "1 {primary} = {factor} {secondary}"
+    },
+    "activeItem": {
+      "label": "Active Item",
+      "description": "Item can be used in transactions"
+    },
+    "confidentialWarning": {
+      "title": "Restricted Access:",
+      "description": "Only users with confidential access will see cost and BOM details"
+    },
+    "validation": {
+      "readyToSave": "Ready to Save",
+      "allFieldsFilled": "All required fields are filled",
+      "requiredFields": "Required Fields",
+      "codeRequired": "Item Code is required",
+      "nameThRequired": "Thai Name is required"
+    },
+    "days": "days",
+    "years": "years",
+    "months": "months"
   }
 }

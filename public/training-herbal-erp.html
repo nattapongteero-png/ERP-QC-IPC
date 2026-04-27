@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>หลักสูตรอบรมผู้ใช้งาน - Herbal Medicine ERP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Sarabun','Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b;line-height:1.6;font-size:15px;}
+
+    .header{background:linear-gradient(135deg,#065f46 0%,#047857 30%,#059669 60%,#0d9488 100%);color:white;padding:32px 0 24px;text-align:center;position:relative;overflow:hidden;}
+    .header::before{content:'';position:absolute;top:-50%;right:-20%;width:500px;height:500px;background:rgba(255,255,255,0.04);border-radius:50%;}
+    .header::after{content:'';position:absolute;bottom:-40%;left:-10%;width:400px;height:400px;background:rgba(255,255,255,0.04);border-radius:50%;}
+    .header .logo{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;background:rgba(255,255,255,0.15);border-radius:18px;font-size:32px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.2);position:relative;z-index:1;}
+    .header h1{font-size:26px;font-weight:700;margin:0;position:relative;z-index:1;}
+    .header .subtitle{font-size:16px;opacity:0.9;margin-top:6px;position:relative;z-index:1;}
+    .header .meta{display:inline-block;margin-top:12px;padding:6px 20px;background:rgba(255,255,255,0.15);border-radius:22px;font-size:13px;font-weight:500;border:1px solid rgba(255,255,255,0.2);position:relative;z-index:1;}
+
+    .top-bar{position:sticky;top:0;z-index:100;background:white;border-bottom:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;}
+    .stats-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:8px;font-size:14px;font-weight:600;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;}
+    .stats-pill .num{font-size:18px;font-weight:700;}
+
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;border:1px solid transparent;font-family:inherit;}
+    .btn-primary{background:#059669;color:white;border-color:#059669;}
+    .btn-primary:hover{background:#047857;transform:translateY(-1px);box-shadow:0 2px 8px rgba(5,150,105,0.3);}
+    .btn-outline{background:white;color:#059669;border-color:#059669;}
+    .btn-outline:hover{background:#ecfdf5;}
+    .btn svg{width:16px;height:16px;}
+
+    .container{max-width:1100px;margin:0 auto;padding:24px 16px 80px;}
+
+    .summary-card{background:white;border-radius:14px;padding:22px 26px;margin-bottom:24px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+    .summary-card h2{font-size:18px;font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+    .summary-card p{color:#475569;font-size:14px;}
+
+    .session-grid{display:grid;grid-template-columns:1fr;gap:18px;}
+
+    .session-card{background:white;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;transition:all 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+    .session-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08);transform:translateY(-1px);}
+
+    .session-head{background:linear-gradient(135deg,#047857 0%,#059669 100%);color:white;padding:16px 22px;display:flex;align-items:center;gap:14px;}
+    .session-head .num-badge{width:42px;height:42px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;border:1px solid rgba(255,255,255,0.3);flex-shrink:0;}
+    .session-head .title{flex:1;min-width:0;}
+    .session-head .title h3{font-size:17px;font-weight:700;margin:0;}
+    .session-head .title .kicker{font-size:12px;opacity:0.85;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;}
+
+    .session-body{padding:20px 22px;}
+    .detail-title{font-size:13px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+    .detail-list{list-style:none;padding:0;margin:0;}
+    .detail-list li{padding:10px 12px;margin-bottom:6px;background:#f8fafc;border-left:3px solid #10b981;border-radius:6px;font-size:14px;color:#1e293b;display:flex;gap:10px;align-items:flex-start;}
+    .detail-list li:last-child{margin-bottom:0;}
+    .detail-list li .bullet{color:#10b981;font-weight:700;flex-shrink:0;margin-top:1px;}
+    .detail-list li strong{color:#047857;}
+
+    .module-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+    .mod-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;}
+
+    .footer{text-align:center;color:#64748b;font-size:13px;padding:20px;border-top:1px solid #e2e8f0;margin-top:40px;}
+
+    .back-to-top{position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:12px;background:#059669;color:white;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(5,150,105,0.3);z-index:50;font-size:20px;}
+    .back-to-top.visible{display:flex;}
+
+    .session-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+    .session-actions .btn-slide{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;border:none;font-family:inherit;text-decoration:none;}
+    .session-actions .btn-slide.view{background:linear-gradient(135deg,#047857,#059669);color:white;box-shadow:0 2px 8px rgba(5,150,105,0.25);}
+    .session-actions .btn-slide.view:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(5,150,105,0.35);}
+    .session-actions .btn-slide.pptx{background:linear-gradient(135deg,#dc6b20,#f59e0b);color:white;box-shadow:0 2px 8px rgba(220,107,32,0.25);}
+    .session-actions .btn-slide.pptx:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(220,107,32,0.35);}
+    .session-actions .btn-slide.pptx:disabled{opacity:0.6;cursor:wait;transform:none;}
+    .session-actions .btn-slide svg{width:15px;height:15px;}
+
+    /* ═══════ INTRO SECTION (Before Training) ═══════ */
+    .intro-wrap{margin-bottom:28px;}
+    .intro-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+    .intro-head h2{font-size:20px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;margin:0;}
+    .btn-intro-pptx{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;border:none;font-family:inherit;background:linear-gradient(135deg,#dc6b20,#f59e0b);color:white;box-shadow:0 2px 8px rgba(220,107,32,0.25);}
+    .btn-intro-pptx:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(220,107,32,0.35);}
+    .btn-intro-pptx:disabled{opacity:0.6;cursor:wait;transform:none;}
+    .btn-intro-pptx svg{width:15px;height:15px;}
+
+    .intro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:20px;}
+
+    .intro-card{background:white;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:all 0.2s;display:flex;flex-direction:column;}
+    .intro-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08);transform:translateY(-1px);}
+    .intro-card .ic-head{padding:14px 18px;display:flex;align-items:center;gap:10px;color:white;}
+    .intro-card.pain .ic-head{background:linear-gradient(135deg,#b91c1c 0%,#dc2626 100%);}
+    .intro-card.obj .ic-head{background:linear-gradient(135deg,#1d4ed8 0%,#2563eb 100%);}
+    .intro-card.func .ic-head{background:linear-gradient(135deg,#7c3aed 0%,#8b5cf6 100%);}
+    .intro-card.benefit .ic-head{background:linear-gradient(135deg,#047857 0%,#059669 100%);}
+    .intro-card .ic-head .ic-icon{width:34px;height:34px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;border:1px solid rgba(255,255,255,0.3);flex-shrink:0;}
+    .intro-card .ic-head h3{font-size:15px;font-weight:700;margin:0;}
+    .intro-card .ic-body{padding:14px 18px;flex:1;}
+    .intro-card ul{list-style:none;padding:0;margin:0;}
+    .intro-card ul li{padding:8px 10px;margin-bottom:5px;background:#f8fafc;border-radius:6px;font-size:13.5px;color:#1e293b;display:flex;gap:8px;align-items:flex-start;line-height:1.5;}
+    .intro-card ul li:last-child{margin-bottom:0;}
+    .intro-card ul li .dot{flex-shrink:0;font-weight:700;margin-top:1px;}
+    .intro-card.pain ul li .dot{color:#dc2626;}
+    .intro-card.obj ul li .dot{color:#2563eb;}
+    .intro-card.func ul li .dot{color:#8b5cf6;}
+    .intro-card.benefit ul li .dot{color:#059669;}
+    .intro-card ul li strong{color:inherit;}
+    .intro-card.pain ul li strong{color:#b91c1c;}
+    .intro-card.obj ul li strong{color:#1d4ed8;}
+    .intro-card.func ul li strong{color:#6d28d9;}
+    .intro-card.benefit ul li strong{color:#047857;}
+
+    /* ═══════ SYSTEM FLOW ═══════ */
+    .flow-card{background:white;border-radius:14px;border:1px solid #e2e8f0;padding:22px;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:28px;overflow:hidden;}
+    .flow-card h3{font-size:16px;font-weight:700;color:#0f172a;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .flow-card .flow-desc{color:#64748b;font-size:13px;margin-bottom:18px;}
+    .flow-diagram{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;align-items:stretch;}
+    .flow-step{flex:1;min-width:120px;max-width:180px;background:linear-gradient(135deg,#047857 0%,#059669 100%);color:white;padding:14px 10px;border-radius:10px;text-align:center;position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:0 4px 12px rgba(5,150,105,0.15);}
+    .flow-step::after{content:'→';position:absolute;right:-14px;top:50%;transform:translateY(-50%);color:#059669;font-size:22px;font-weight:700;z-index:1;}
+    .flow-step:last-child::after{display:none;}
+    .flow-step .fs-icon{font-size:22px;}
+    .flow-step .fs-num{font-size:10px;opacity:0.85;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;}
+    .flow-step .fs-label{font-size:13px;font-weight:700;line-height:1.3;}
+    .flow-step .fs-sub{font-size:11px;opacity:0.85;margin-top:2px;line-height:1.3;}
+
+    @media(max-width:640px){
+      .intro-grid{grid-template-columns:1fr;gap:12px;}
+      .flow-diagram{flex-direction:column;gap:24px;}
+      .flow-step{max-width:none;}
+      .flow-step::after{content:'↓';right:50%;top:auto;bottom:-22px;transform:translateX(50%);}
+    }
+
+    @media print{
+      .top-bar,.back-to-top{display:none !important;}
+      .session-card{break-inside:avoid;}
+    }
+
+    @media(max-width:640px){
+      .header{padding:24px 0 18px;}
+      .header h1{font-size:20px;}
+      .header .subtitle{font-size:14px;}
+      .container{padding:16px 12px 60px;}
+      .session-head{padding:14px 16px;}
+      .session-body{padding:16px;}
+      .top-bar{flex-direction:column;padding:12px;}
+      .btn{width:100%;justify-content:center;}
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🌿</div>
+    <h1>หลักสูตรอบรมผู้ใช้งาน</h1>
+    <div class="subtitle">Herbal Medicine ERP – User Training Program</div>
+    <div class="meta">📚 7 หัวข้ออบรม · ครอบคลุมกระบวนการ End-to-End</div>
+  </div>
+
+  <div class="top-bar">
+    <div class="stats-pill">
+      <span class="num">7</span><span>หัวข้ออบรม</span>
+    </div>
+    <div class="stats-pill">
+      <span class="num">20</span><span>รายการเรียนรู้</span>
+    </div>
+    <button class="btn btn-primary" type="button" onclick="exportToExcel()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      ดาวน์โหลด Excel
+    </button>
+    <button class="btn btn-outline" type="button" onclick="window.print()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      พิมพ์
+    </button>
+  </div>
+
+  <div class="container">
+    <div class="summary-card">
+      <h2>📋 ภาพรวมหลักสูตร</h2>
+      <p>โปรแกรมอบรมผู้ใช้งานระบบ Herbal Medicine ERP ครอบคลุมการทำงานตั้งแต่การเตรียมข้อมูลพื้นฐาน การจัดซื้อ การผลิต การรับสินค้าสำเร็จรูป ไปจนถึงการขายและการรายงาน เพื่อให้ผู้ใช้งานสามารถใช้ระบบได้อย่างมีประสิทธิภาพและเป็นไปตามมาตรฐาน GMP</p>
+    </div>
+
+    <!-- ═══════ INTRO SECTION ═══════ -->
+    <div class="intro-wrap">
+      <div class="intro-head">
+        <h2>🎯 เกริ่นนำก่อนเริ่มอบรม</h2>
+        <button class="btn-intro-pptx" type="button" onclick="downloadIntroPPTX()" id="introPptxBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          ดาวน์โหลด PowerPoint (เกริ่นนำ)
+        </button>
+      </div>
+
+      <div class="intro-grid">
+        <!-- Pain Points -->
+        <div class="intro-card pain">
+          <div class="ic-head">
+            <div class="ic-icon">⚠️</div>
+            <h3>Pain Points · ปัญหาที่องค์กรเจอ</h3>
+          </div>
+          <div class="ic-body">
+            <ul>
+              <li><span class="dot">●</span><div><strong>ข้อมูลกระจัดกระจาย</strong> — วัตถุดิบ สูตร Lot/Batch เก็บใน Excel หลายไฟล์ ค้นหายาก</div></li>
+              <li><span class="dot">●</span><div><strong>Traceability ไม่ครบ</strong> — ตามรอย Lot ย้อนกลับจากสินค้าสำเร็จรูปไปจนถึงวัตถุดิบได้ยาก</div></li>
+              <li><span class="dot">●</span><div><strong>เอกสาร eBMR ทำมือ</strong> — ใช้เวลาเยอะ เสี่ยงข้อผิดพลาด และหาเอกสารเดิมยาก</div></li>
+              <li><span class="dot">●</span><div><strong>Audit GMP ไม่พร้อม</strong> — ต้องเตรียมเอกสารตอนตรวจ ใช้เวลาและแรงงานสูง</div></li>
+              <li><span class="dot">●</span><div><strong>สต๊อก-บัญชีไม่ sync</strong> — ข้อมูลสต๊อก ยอดขาย ต้นทุน ไม่เชื่อมต่อกัน</div></li>
+              <li><span class="dot">●</span><div><strong>ไม่มี QC Digital</strong> — ผล QC test บันทึกบนกระดาษ disposition ช้า</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Objectives -->
+        <div class="intro-card obj">
+          <div class="ic-head">
+            <div class="ic-icon">🎯</div>
+            <h3>วัตถุประสงค์</h3>
+          </div>
+          <div class="ic-body">
+            <ul>
+              <li><span class="dot">●</span><div><strong>Digitize End-to-End</strong> — ทดแทนกระดาษด้วยระบบดิจิทัลตลอดกระบวนการ GMP</div></li>
+              <li><span class="dot">●</span><div><strong>Single Source of Truth</strong> — ข้อมูลทั้งองค์กรอยู่ในระบบเดียว ไม่ซ้ำซ้อน</div></li>
+              <li><span class="dot">●</span><div><strong>Traceability 100%</strong> — ตามรอยทุก Lot ได้ทั้ง forward และ backward</div></li>
+              <li><span class="dot">●</span><div><strong>GMP-Ready Audit</strong> — Audit Trail ครบถ้วน พร้อมให้ตรวจทันที</div></li>
+              <li><span class="dot">●</span><div><strong>ลด Human Error</strong> — Auto-calculate ปริมาณ สูตร หลีกเลี่ยงการคำนวณผิด</div></li>
+              <li><span class="dot">●</span><div><strong>Real-time Dashboard</strong> — ผู้บริหารเห็นภาพรวมทุกแผนกได้ทันที</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Functions -->
+        <div class="intro-card func">
+          <div class="ic-head">
+            <div class="ic-icon">⚙️</div>
+            <h3>ฟังก์ชั่นการใช้งานหลัก</h3>
+          </div>
+          <div class="ic-body">
+            <ul>
+              <li><span class="dot">●</span><div><strong>Master Data</strong> — จัดการวัตถุดิบ บรรจุภัณฑ์ สินค้า BOM Vendors Customers</div></li>
+              <li><span class="dot">●</span><div><strong>Purchasing</strong> — ใบขอซื้อ/ใบสั่งซื้อ รับสินค้า ตรวจสอบ Lot พร้อม auto-generate</div></li>
+              <li><span class="dot">●</span><div><strong>Inventory</strong> — คลังสินค้า Lot management สต๊อก Aging Expiry Alerts</div></li>
+              <li><span class="dot">●</span><div><strong>Production</strong> — Work Order, SOP Execution, IPC, Cleaning, eBMR อัตโนมัติ</div></li>
+              <li><span class="dot">●</span><div><strong>Quality Control</strong> — QC Tests, Specifications, Disposition dual-control</div></li>
+              <li><span class="dot">●</span><div><strong>Sales &amp; VMI</strong> — ใบสั่งขาย VMI Portal customer management</div></li>
+              <li><span class="dot">●</span><div><strong>Accounting</strong> — AP/AR, Journal, Fixed Assets, Period Close</div></li>
+              <li><span class="dot">●</span><div><strong>HR &amp; GMP Compliance</strong> — Users, Roles, CAPA, Recall, Complaint, Audit</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Benefits -->
+        <div class="intro-card benefit">
+          <div class="ic-head">
+            <div class="ic-icon">🌟</div>
+            <h3>ประโยชน์ที่ได้รับ</h3>
+          </div>
+          <div class="ic-body">
+            <ul>
+              <li><span class="dot">●</span><div><strong>ลดเวลา eBMR 70%</strong> — จากทำมือหลายชั่วโมง เหลือไม่กี่นาที</div></li>
+              <li><span class="dot">●</span><div><strong>Audit ทันที</strong> — ไม่ต้องเตรียมเอกสารล่วงหน้า ระบบดึงให้</div></li>
+              <li><span class="dot">●</span><div><strong>ลด Waste วัตถุดิบ</strong> — ควบคุมปริมาณ ลด over/short issue</div></li>
+              <li><span class="dot">●</span><div><strong>ลูกค้าเชื่อถือมากขึ้น</strong> — มีข้อมูล traceability ครบถ้วน</div></li>
+              <li><span class="dot">●</span><div><strong>ผู้บริหารตัดสินใจได้ไว</strong> — Dashboard real-time ไม่ต้องรอรายงาน</div></li>
+              <li><span class="dot">●</span><div><strong>รองรับการเติบโต</strong> — เพิ่ม user/สาขา/ผลิตภัณฑ์ ไม่ต้องเปลี่ยนระบบ</div></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Flow -->
+      <div class="flow-card">
+        <h3>🔄 Flow ภาพรวมการทำงานของระบบ</h3>
+        <p class="flow-desc">กระบวนการหลัก End-to-End จาก Master Data → ขายสินค้าสำเร็จรูป</p>
+        <div class="flow-diagram">
+          <div class="flow-step">
+            <div class="fs-icon">📁</div>
+            <div class="fs-num">STEP 1</div>
+            <div class="fs-label">Master Data</div>
+            <div class="fs-sub">Items · BOM · Vendors</div>
+          </div>
+          <div class="flow-step">
+            <div class="fs-icon">🛒</div>
+            <div class="fs-num">STEP 2</div>
+            <div class="fs-label">Purchasing</div>
+            <div class="fs-sub">PO · รับสินค้า</div>
+          </div>
+          <div class="flow-step">
+            <div class="fs-icon">🏷️</div>
+            <div class="fs-num">STEP 3</div>
+            <div class="fs-label">Inventory</div>
+            <div class="fs-sub">Lot · QC Incoming</div>
+          </div>
+          <div class="flow-step">
+            <div class="fs-icon">🏭</div>
+            <div class="fs-num">STEP 4</div>
+            <div class="fs-label">Production</div>
+            <div class="fs-sub">WO · eBMR · IPC</div>
+          </div>
+          <div class="flow-step">
+            <div class="fs-icon">✅</div>
+            <div class="fs-num">STEP 5</div>
+            <div class="fs-label">QC &amp; Release</div>
+            <div class="fs-sub">Test · Disposition</div>
+          </div>
+          <div class="flow-step">
+            <div class="fs-icon">💰</div>
+            <div class="fs-num">STEP 6</div>
+            <div class="fs-label">Sales</div>
+            <div class="fs-sub">SO · Invoice · VMI</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="session-grid">
+      <!-- Session 1 -->
+      <div class="session-card">
+        <div class="session-head">
+          <div class="num-badge">1</div>
+          <div class="title">
+            <div class="kicker">Master Data Management</div>
+            <h3>📁 อบรมผู้ใช้งาน – การเพิ่มและจัดการข้อมูลพื้นฐาน</h3>
+          </div>
+        </div>
+        <div class="session-body">
+          <div class="detail-title">📝 รายละเอียด (4 รายการ)</div>
+          <ul class="detail-list">
+            <li><span class="bullet">▸</span><div><strong>วัตถุดิบ (Raw Materials)</strong> — การสร้างรหัสวัตถุดิบ เช่น สมุนไพรสด / สมุนไพรแห้ง รวมถึงการกำหนดคุณสมบัติพื้นฐานของวัตถุดิบ</div></li>
+            <li><span class="bullet">▸</span><div><strong>บรรจุภัณฑ์ (Packaging)</strong> — การสร้างรหัสบรรจุภัณฑ์ และวัสดุสิ้นเปลืองต่าง ๆ ที่ใช้ในกระบวนการผลิต</div></li>
+            <li><span class="bullet">▸</span><div><strong>สินค้าสำเร็จรูป (Finished Goods)</strong> — การสร้างรหัสสินค้าสำเร็จรูป พร้อมข้อมูลพื้นฐานที่จำเป็น</div></li>
+            <li><span class="bullet">▸</span><div><strong>สูตรการผลิต (BOM)</strong> — การผูกสูตรการผลิตว่ายา 1 Lot ต้องใช้สมุนไพรอะไรบ้าง และในปริมาณเท่าไหร่</div></li>
+          </ul>
+          <div class="module-badges">
+            <span class="mod-badge">🔹 Master Data</span>
+            <span class="mod-badge">🔹 Inventory</span>
+            <span class="mod-badge">🔹 Production</span>
+          </div>
+          <div class="session-actions">
+            <a class="btn-slide view" href="training/master-data-training.html#/3" target="_blank">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              เปิดสไลด์อบรม
+            </a>
+            <button class="btn-slide pptx" type="button" onclick="downloadModulePPTX(1)" id="pptxBtn1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PowerPoint
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session 2 -->
+      <div class="session-card">
+        <div class="session-head">
+          <div class="num-badge">2</div>
+          <div class="title">
+            <div class="kicker">Purchasing &amp; Goods Receipt</div>
+            <h3>🚚 อบรมผู้ใช้งาน – ระบบการจัดซื้อและรับเข้าวัตถุดิบ</h3>
+          </div>
+        </div>
+        <div class="session-body">
+          <div class="detail-title">📝 รายละเอียด (3 รายการ)</div>
+          <ul class="detail-list">
+            <li><span class="bullet">▸</span><div><strong>ใบสั่งซื้อ (Purchase Order)</strong> — การสร้างใบสั่งซื้อจาก Supplier พร้อมระบุรายการวัตถุดิบและราคา</div></li>
+            <li><span class="bullet">▸</span><div><strong>บันทึกรับเข้า (Goods Receipt)</strong> — การบันทึกรับเข้าวัตถุดิบเข้าสู่คลัง พร้อมการยืนยันปริมาณและคุณภาพ</div></li>
+            <li><span class="bullet">▸</span><div><strong>การจัดการ Lot &amp; QC Pass</strong> — การบันทึกเลข Batch / Lot จากผู้ผลิต และการกักสินค้า (Quarantine) เพื่อรอผลตรวจจาก LAB ก่อนนำไปใช้ผลิต</div></li>
+          </ul>
+          <div class="module-badges">
+            <span class="mod-badge">🔹 Purchasing</span>
+            <span class="mod-badge">🔹 Inventory</span>
+            <span class="mod-badge">🔹 Quality</span>
+          </div>
+          <div class="session-actions">
+            <a class="btn-slide view" href="training/master-data-training.html#/8" target="_blank">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              เปิดสไลด์อบรม
+            </a>
+            <button class="btn-slide pptx" type="button" onclick="downloadModulePPTX(2)" id="pptxBtn2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PowerPoint
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session 3 -->
+      <div class="session-card">
+        <div class="session-head">
+          <div class="num-badge">3</div>
+          <div class="title">
+            <div class="kicker">Herbal Production Management</div>
+            <h3>⚗️ อบรมผู้ใช้งาน – ระบบการผลิตสมุนไพร</h3>
+          </div>
+        </div>
+        <div class="session-body">
+          <div class="detail-title">📝 รายละเอียด (3 รายการ)</div>
+          <ul class="detail-list">
+            <li><span class="bullet">▸</span><div><strong>ใบสั่งผลิต (Work Order)</strong> — การเปิดใบสั่งผลิตตามยอดสั่งผลิต พร้อมกำหนดวันที่และปริมาณที่ต้องผลิต</div></li>
+            <li><span class="bullet">▸</span><div><strong>การตัดจ่ายวัตถุดิบ (Material Issue)</strong> — การตัดจ่ายวัตถุดิบจากคลังเข้าสู่ไลน์ผลิต ระบบจะตัดตาม BOM ที่ตั้งไว้อัตโนมัติ</div></li>
+            <li><span class="bullet">▸</span><div><strong>บันทึกขั้นตอนการผลิต (Production Log)</strong> — การบันทึกขั้นตอนการผลิต และการบันทึกของเสีย (Waste) ในกระบวนการแต่ละขั้น</div></li>
+          </ul>
+          <div class="module-badges">
+            <span class="mod-badge">🔹 Production</span>
+            <span class="mod-badge">🔹 Inventory</span>
+            <span class="mod-badge">🔹 GMP</span>
+          </div>
+          <div class="session-actions">
+            <a class="btn-slide view" href="training/master-data-training.html#/13" target="_blank">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              เปิดสไลด์อบรม
+            </a>
+            <button class="btn-slide pptx" type="button" onclick="downloadModulePPTX(3)" id="pptxBtn3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PowerPoint
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session 4 -->
+      <div class="session-card">
+        <div class="session-head">
+          <div class="num-badge">4</div>
+          <div class="title">
+            <div class="kicker">Finished Goods Receipt &amp; QC</div>
+            <h3>✅ อบรมผู้ใช้งาน – การรับเข้าสินค้าสำเร็จรูป</h3>
+          </div>
+        </div>
+        <div class="session-body">
+          <div class="detail-title">📝 รายละเอียด (2 รายการ)</div>
+          <ul class="detail-list">
+            <li><span class="bullet">▸</span><div><strong>รับสินค้าสำเร็จรูป (FG Receipt)</strong> — การบันทึกรับสินค้าสำเร็จรูปเข้าคลังหลัก หลังผ่านขั้นตอนการผลิต</div></li>
+            <li><span class="bullet">▸</span><div><strong>ตรวจสอบคุณภาพสุดท้าย (Final QC)</strong> — การตรวจสอบและยืนยันคุณภาพก่อนปล่อยสินค้าไปขาย / จ่ายออก (Release to Market)</div></li>
+          </ul>
+          <div class="module-badges">
+            <span class="mod-badge">🔹 Production</span>
+            <span class="mod-badge">🔹 Quality</span>
+            <span class="mod-badge">🔹 Inventory</span>
+          </div>
+          <div class="session-actions">
+            <a class="btn-slide view" href="training/master-data-training.html#/18" target="_blank">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              เปิดสไลด์อบรม
+            </a>
+            <button class="btn-slide pptx" type="button" onclick="downloadModulePPTX(4)" id="pptxBtn4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PowerPoint
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session 5 -->
+      <div class="session-card">
+        <div class="session-head">
+          <div class="num-badge">5</div>
+          <div class="title">
+            <div class="kicker">Sales &amp; Reporting</div>
+            <h3>📊 อบรมผู้ใช้งาน – ระบบการขายและส่งออก</h3>
+          </div>
+        </div>
+        <div class="session-body">
+          <div class="detail-title">📝 รายละเอียด (3 รายการ)</div>
+          <ul class="detail-list">
+            <li><span class="bullet">▸</span><div><strong>ใบกำกับภาษี / ใบส่งสินค้า</strong> — การสร้าง Invoice และ Delivery Order สำหรับลูกค้า พร้อมข้อมูลภาษีและการจัดส่ง</div></li>
+            <li><span class="bullet">▸</span><div><strong>รายงานสต๊อก (Stock Balance)</strong> — การเรียกดูรายงานสรุปยอดคงเหลือในคลัง แบ่งตามสถานะ / Lot / สถานที่</div></li>
+            <li><span class="bullet">▸</span><div><strong>รายงานการผลิต (Production Report)</strong> — การเรียกดูรายงานสรุปการผลิต พร้อมข้อมูล Yield / Variance / Waste</div></li>
+          </ul>
+          <div class="module-badges">
+            <span class="mod-badge">🔹 Sales</span>
+            <span class="mod-badge">🔹 Accounting</span>
+            <span class="mod-badge">🔹 Reports</span>
+          </div>
+          <div class="session-actions">
+            <a class="btn-slide view" href="training/master-data-training.html#/22" target="_blank">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              เปิดสไลด์อบรม
+            </a>
+            <button class="btn-slide pptx" type="button" onclick="downloadModulePPTX(5)" id="pptxBtn5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PowerPoint
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Session 6 -->
+      <div class="session-card">
+        <div class="session-head">
+          <div class="num-badge">6</div>
+          <div class="title">
+            <div class="kicker">Quality Control</div>
+            <h3>🔬 อบรมผู้ใช้งาน – การควบคุมคุณภาพ</h3>
+          </div>
+        </div>
+        <div class="session-body">
+          <div class="detail-title">📝 รายละเอียด (3 รายการ)</div>
+          <ul class="detail-list">
+            <li><span class="bullet">▸</span><div><strong>การทดสอบ (QC Test)</strong> — การสร้าง QC Test สำหรับตรวจวัตถุดิบ (Incoming), ระหว่างผลิต (In-Process) และสินค้าสำเร็จรูป (Final) พร้อมเทียบผลกับ Specification อัตโนมัติ</div></li>
+            <li><span class="bullet">▸</span><div><strong>ข้อกำหนดการทดสอบ (Specification)</strong> — การกำหนดเกณฑ์ Min-Max สำหรับแต่ละ Test Name ของแต่ละ Item เพื่อใช้ตัดสิน Pass/Fail</div></li>
+            <li><span class="bullet">▸</span><div><strong>ความเบี่ยงเบน (Deviation)</strong> — การบันทึกเหตุการณ์ที่ไม่เป็นไปตามมาตรฐาน พร้อมวิเคราะห์สาเหตุ (Root Cause) และกำหนด CAPA</div></li>
+          </ul>
+          <div class="module-badges">
+            <span class="mod-badge">🔹 Quality</span>
+            <span class="mod-badge">🔹 GMP</span>
+            <span class="mod-badge">🔹 Production</span>
+          </div>
+          <div class="session-actions">
+            <a class="btn-slide view" href="training/master-data-training.html#/26" target="_blank">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              เปิดสไลด์อบรม
+            </a>
+            <button class="btn-slide pptx" type="button" onclick="downloadModulePPTX(6)" id="pptxBtn6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PowerPoint
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session 7 -->
+      <div class="session-card">
+        <div class="session-head">
+          <div class="num-badge">7</div>
+          <div class="title">
+            <div class="kicker">User &amp; Role Management</div>
+            <h3>👥 อบรมผู้ใช้งาน – การกำหนดสิทธิผู้ใช้งาน</h3>
+          </div>
+        </div>
+        <div class="session-body">
+          <div class="detail-title">📝 รายละเอียด (2 รายการ)</div>
+          <ul class="detail-list">
+            <li><span class="bullet">▸</span><div><strong>การจัดการ Role</strong> — การสร้างและกำหนดสิทธิ์ (Permissions) เพื่อควบคุมการเข้าถึงเมนูและฟีเจอร์ต่าง ๆ ในระบบ</div></li>
+            <li><span class="bullet">▸</span><div><strong>User Management</strong> — การสร้างบัญชีผู้ใช้งาน กำหนด Role และ Department เพื่อให้ผู้ใช้ Login เข้าระบบตามสิทธิ์ที่กำหนด</div></li>
+          </ul>
+          <div class="module-badges">
+            <span class="mod-badge">🔹 HR</span>
+            <span class="mod-badge">🔹 Admin</span>
+            <span class="mod-badge">🔹 Security</span>
+          </div>
+          <div class="session-actions">
+            <a class="btn-slide view" href="training/master-data-training.html#/31" target="_blank">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              เปิดสไลด์อบรม
+            </a>
+            <button class="btn-slide pptx" type="button" onclick="downloadModulePPTX(7)" id="pptxBtn7">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PowerPoint
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>© 2026 Herbal Medicine ERP – Training Program</p>
+    <p style="margin-top:6px;">สำหรับข้อมูลเพิ่มเติม ติดต่อทีม Implementation</p>
+  </div>
+
+  <button class="back-to-top" type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="backToTop">↑</button>
+
+  <script>
+    // Training data — used only for Excel export (the HTML is pre-rendered above)
+    const TRAINING_DATA = [
+      {
+        no: 1,
+        title: 'การเพิ่มและจัดการข้อมูลพื้นฐาน',
+        titleEn: 'Master Data Management',
+        modules: ['Master Data', 'Inventory', 'Production'],
+        details: [
+          { topic: 'วัตถุดิบ (Raw Materials)', desc: 'การสร้างรหัสวัตถุดิบ เช่น สมุนไพรสด / สมุนไพรแห้ง รวมถึงการกำหนดคุณสมบัติพื้นฐานของวัตถุดิบ' },
+          { topic: 'บรรจุภัณฑ์ (Packaging)', desc: 'การสร้างรหัสบรรจุภัณฑ์ และวัสดุสิ้นเปลืองต่าง ๆ ที่ใช้ในกระบวนการผลิต' },
+          { topic: 'สินค้าสำเร็จรูป (Finished Goods)', desc: 'การสร้างรหัสสินค้าสำเร็จรูป พร้อมข้อมูลพื้นฐานที่จำเป็น' },
+          { topic: 'สูตรการผลิต (BOM)', desc: 'การผูกสูตรการผลิตว่ายา 1 Lot ต้องใช้สมุนไพรอะไรบ้าง และในปริมาณเท่าไหร่' },
+        ],
+      },
+      {
+        no: 2,
+        title: 'ระบบการจัดซื้อและรับเข้าวัตถุดิบ',
+        titleEn: 'Purchasing & Goods Receipt',
+        modules: ['Purchasing', 'Inventory', 'Quality'],
+        details: [
+          { topic: 'ใบสั่งซื้อ (Purchase Order)', desc: 'การสร้างใบสั่งซื้อจาก Supplier พร้อมระบุรายการวัตถุดิบและราคา' },
+          { topic: 'บันทึกรับเข้า (Goods Receipt)', desc: 'การบันทึกรับเข้าวัตถุดิบเข้าสู่คลัง พร้อมการยืนยันปริมาณและคุณภาพ' },
+          { topic: 'การจัดการ Lot & QC Pass', desc: 'การบันทึกเลข Batch / Lot จากผู้ผลิต และการกักสินค้า (Quarantine) เพื่อรอผลตรวจจาก LAB ก่อนนำไปใช้ผลิต' },
+        ],
+      },
+      {
+        no: 3,
+        title: 'ระบบการผลิตสมุนไพร',
+        titleEn: 'Herbal Production Management',
+        modules: ['Production', 'Inventory', 'GMP'],
+        details: [
+          { topic: 'ใบสั่งผลิต (Work Order)', desc: 'การเปิดใบสั่งผลิตตามยอดสั่งผลิต พร้อมกำหนดวันที่และปริมาณที่ต้องผลิต' },
+          { topic: 'การตัดจ่ายวัตถุดิบ (Material Issue)', desc: 'การตัดจ่ายวัตถุดิบจากคลังเข้าสู่ไลน์ผลิต ระบบจะตัดตาม BOM ที่ตั้งไว้อัตโนมัติ' },
+          { topic: 'บันทึกขั้นตอนการผลิต (Production Log)', desc: 'การบันทึกขั้นตอนการผลิต และการบันทึกของเสีย (Waste) ในกระบวนการแต่ละขั้น' },
+        ],
+      },
+      {
+        no: 4,
+        title: 'การรับเข้าสินค้าสำเร็จรูป',
+        titleEn: 'Finished Goods Receipt & QC',
+        modules: ['Production', 'Quality', 'Inventory'],
+        details: [
+          { topic: 'รับสินค้าสำเร็จรูป (FG Receipt)', desc: 'การบันทึกรับสินค้าสำเร็จรูปเข้าคลังหลัก หลังผ่านขั้นตอนการผลิต' },
+          { topic: 'ตรวจสอบคุณภาพสุดท้าย (Final QC)', desc: 'การตรวจสอบและยืนยันคุณภาพก่อนปล่อยสินค้าไปขาย / จ่ายออก (Release to Market)' },
+        ],
+      },
+      {
+        no: 5,
+        title: 'ระบบการขายและส่งออก',
+        titleEn: 'Sales & Reporting',
+        modules: ['Sales', 'Accounting', 'Reports'],
+        details: [
+          { topic: 'ใบกำกับภาษี / ใบส่งสินค้า', desc: 'การสร้าง Invoice และ Delivery Order สำหรับลูกค้า พร้อมข้อมูลภาษีและการจัดส่ง' },
+          { topic: 'รายงานสต๊อก (Stock Balance)', desc: 'การเรียกดูรายงานสรุปยอดคงเหลือในคลัง แบ่งตามสถานะ / Lot / สถานที่' },
+          { topic: 'รายงานการผลิต (Production Report)', desc: 'การเรียกดูรายงานสรุปการผลิต พร้อมข้อมูล Yield / Variance / Waste' },
+        ],
+      },
+      {
+        no: 6,
+        title: 'การควบคุมคุณภาพ',
+        titleEn: 'Quality Control',
+        modules: ['Quality', 'GMP', 'Production'],
+        details: [
+          { topic: 'การทดสอบ (QC Test)', desc: 'การสร้าง QC Test สำหรับตรวจวัตถุดิบ ระหว่างผลิต และสินค้าสำเร็จรูป พร้อมเทียบผลกับ Specification อัตโนมัติ' },
+          { topic: 'ข้อกำหนดการทดสอบ (Specification)', desc: 'การกำหนดเกณฑ์ Min-Max สำหรับแต่ละ Test Name ของแต่ละ Item เพื่อใช้ตัดสิน Pass/Fail' },
+          { topic: 'ความเบี่ยงเบน (Deviation)', desc: 'การบันทึกเหตุการณ์ที่ไม่เป็นไปตามมาตรฐาน พร้อมวิเคราะห์สาเหตุ (Root Cause) และกำหนด CAPA' },
+        ],
+      },
+      {
+        no: 7,
+        title: 'การกำหนดสิทธิผู้ใช้งาน',
+        titleEn: 'User & Role Management',
+        modules: ['HR', 'Admin', 'Security'],
+        details: [
+          { topic: 'การจัดการ Role', desc: 'การสร้างและกำหนดสิทธิ์ (Permissions) เพื่อควบคุมการเข้าถึงเมนูและฟีเจอร์ต่าง ๆ ในระบบ' },
+          { topic: 'User Management', desc: 'การสร้างบัญชีผู้ใช้งาน กำหนด Role และ Department เพื่อให้ผู้ใช้ Login เข้าระบบตามสิทธิ์ที่กำหนด' },
+        ],
+      },
+    ];
+
+    function exportToExcel() {
+      const rows = [[
+        'ลำดับ',
+        'หัวข้ออบรม (ไทย)',
+        'หัวข้ออบรม (อังกฤษ)',
+        'Module ที่เกี่ยวข้อง',
+        'ลำดับย่อย',
+        'หัวข้อย่อย',
+        'รายละเอียด',
+      ]];
+
+      TRAINING_DATA.forEach((s) => {
+        s.details.forEach((d, idx) => {
+          rows.push([
+            s.no,
+            s.title,
+            s.titleEn,
+            s.modules.join(', '),
+            s.no + '.' + (idx + 1),
+            d.topic,
+            d.desc,
+          ]);
+        });
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 8 }, { wch: 40 }, { wch: 30 }, { wch: 25 },
+        { wch: 10 }, { wch: 30 }, { wch: 70 },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'หลักสูตรอบรม');
+
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, 'training-herbal-erp-' + today + '.xlsx');
+    }
+
+    // Back to top toggle
+    const btt = document.getElementById('backToTop');
+    window.addEventListener('scroll', function () {
+      btt.classList.toggle('visible', window.scrollY > 300);
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js"></script>
+  <script>
+  function downloadModulePPTX(moduleNum) {
+    var btn = document.getElementById('pptxBtn' + moduleNum);
+    var origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'กำลังสร้าง...';
+
+    var BRAND = '0F766E';
+    var BRAND2 = '0D9488';
+    var INK = '0F172A';
+    var FONT = 'Sarabun';
+
+    var modules = {
+      1: {
+        icon: '\ud83d\udcc1', title: '\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e1e\u0e37\u0e49\u0e19\u0e10\u0e32\u0e19', titleEn: 'Master Data Management',
+        file: 'training-master-data',
+        screenshots: ['training/screenshots/01-items-list.png', 'training/screenshots/03-bom-list.png'],
+        flow: [
+          {icon:'\ud83c\udf3f',label:'STEP 1',name:'\u0e27\u0e31\u0e15\u0e16\u0e38\u0e14\u0e34\u0e1a',desc:'RM-XXXX'},
+          {icon:'\ud83d\udce6',label:'STEP 2',name:'\u0e1a\u0e23\u0e23\u0e08\u0e38\u0e20\u0e31\u0e13\u0e11\u0e4c',desc:'PK-XXXX'},
+          {icon:'\ud83d\udc8a',label:'STEP 3',name:'\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08\u0e23\u0e39\u0e1b',desc:'FG-XXXX'},
+          {icon:'\ud83d\udccb',label:'STEP 4',name:'BOM',desc:'\u0e1c\u0e39\u0e01 RM+PK \u2192 FG'}
+        ],
+        topics: [
+          {title:'\u0e27\u0e31\u0e15\u0e16\u0e38\u0e14\u0e34\u0e1a (Raw Materials)', path:'Inventory \u2192 Items \u2192 \u0e27\u0e31\u0e15\u0e16\u0e38\u0e14\u0e34\u0e1a', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Inventory > Items','\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e41\u0e16\u0e1a "\u0e27\u0e31\u0e15\u0e16\u0e38\u0e14\u0e34\u0e1a" (Raw Materials)','\u0e04\u0e25\u0e34\u0e01 "+ \u0e2a\u0e23\u0e49\u0e32\u0e07\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e43\u0e2b\u0e21\u0e48"','\u0e01\u0e23\u0e2d\u0e01: Code, \u0e0a\u0e37\u0e48\u0e2d\u0e44\u0e17\u0e22, \u0e0a\u0e37\u0e48\u0e2d\u0e2d\u0e31\u0e07\u0e01\u0e24\u0e29, \u0e2b\u0e21\u0e27\u0e14\u0e2b\u0e21\u0e39\u0e48, \u0e2b\u0e19\u0e48\u0e27\u0e22\u0e2b\u0e25\u0e31\u0e01','\u0e01\u0e14 "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01" \u2192 \u0e23\u0e30\u0e1a\u0e1a\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e23\u0e2b\u0e31\u0e2a RM-XXXX \u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34'], fields:[['Code','Auto: RM-XXXX'],['Name (TH/EN)','\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e21\u0e38\u0e19\u0e44\u0e1e\u0e23'],['Category','\u0e2a\u0e21\u0e38\u0e19\u0e44\u0e1e\u0e23\u0e2a\u0e14/\u0e41\u0e2b\u0e49\u0e07/\u0e2a\u0e32\u0e23\u0e40\u0e2a\u0e23\u0e34\u0e21'],['Primary Unit','kg / g / l / ml']]},
+          {title:'\u0e1a\u0e23\u0e23\u0e08\u0e38\u0e20\u0e31\u0e13\u0e11\u0e4c (Packaging)', path:'Inventory \u2192 Items \u2192 \u0e1a\u0e23\u0e23\u0e08\u0e38\u0e20\u0e31\u0e13\u0e11\u0e4c', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Inventory > Items','\u0e40\u0e25\u0e37\u0e2d\u0e01 Item Type = Packaging','\u0e01\u0e23\u0e2d\u0e01: Code, \u0e0a\u0e37\u0e48\u0e2d, \u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17, \u0e2b\u0e19\u0e48\u0e27\u0e22\u0e19\u0e31\u0e1a','\u0e23\u0e27\u0e21\u0e27\u0e31\u0e2a\u0e14\u0e38\u0e2a\u0e34\u0e49\u0e19\u0e40\u0e1b\u0e25\u0e37\u0e2d\u0e07 (Consumable)'], fields:[['Code','Auto: PK-XXXX'],['\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17','\u0e02\u0e27\u0e14/\u0e01\u0e25\u0e48\u0e2d\u0e07/\u0e0b\u0e2d\u0e07/\u0e09\u0e25\u0e32\u0e01'],['\u0e2b\u0e19\u0e48\u0e27\u0e22\u0e19\u0e31\u0e1a','\u0e0a\u0e34\u0e49\u0e19/\u0e43\u0e1a/\u0e21\u0e49\u0e27\u0e19']]},
+          {title:'\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08\u0e23\u0e39\u0e1b (Finished Goods)', path:'Inventory \u2192 Items \u2192 FG', steps:['\u0e40\u0e25\u0e37\u0e2d\u0e01 Item Type = Finished Goods','\u0e01\u0e23\u0e2d\u0e01\u0e40\u0e1e\u0e34\u0e48\u0e21: FDA No., Shelf Life, Storage Condition','\u0e01\u0e33\u0e2b\u0e19\u0e14\u0e23\u0e39\u0e1b\u0e41\u0e1a\u0e1a\u0e22\u0e32 (Dosage Form)','\u0e01\u0e33\u0e2b\u0e19\u0e14\u0e02\u0e19\u0e32\u0e14\u0e1a\u0e23\u0e23\u0e08\u0e38'], fields:[['Code','Auto: FG-XXXX'],['Dosage Form','\u0e41\u0e04\u0e1b\u0e0b\u0e39\u0e25/\u0e40\u0e21\u0e47\u0e14/\u0e1c\u0e07/\u0e19\u0e49\u0e33'],['Shelf Life','\u0e2d\u0e32\u0e22\u0e38\u0e40\u0e01\u0e47\u0e1a\u0e23\u0e31\u0e01\u0e29\u0e32']]},
+          {title:'\u0e2a\u0e39\u0e15\u0e23\u0e01\u0e32\u0e23\u0e1c\u0e25\u0e34\u0e15 (BOM)', path:'Production \u2192 BOM \u2192 + \u0e2a\u0e23\u0e49\u0e32\u0e07 BOM \u0e43\u0e2b\u0e21\u0e48', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Production > BOM','\u0e04\u0e25\u0e34\u0e01 "+ \u0e2a\u0e23\u0e49\u0e32\u0e07 BOM \u0e43\u0e2b\u0e21\u0e48"','\u0e40\u0e25\u0e37\u0e2d\u0e01 FG + \u0e23\u0e30\u0e1a\u0e38 Batch Size','\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e27\u0e31\u0e15\u0e16\u0e38\u0e14\u0e34\u0e1a: Item + \u0e1b\u0e23\u0e34\u0e21\u0e32\u0e13\u0e15\u0e48\u0e2d Batch','\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e1a\u0e23\u0e23\u0e08\u0e38\u0e20\u0e31\u0e13\u0e11\u0e4c (\u0e16\u0e49\u0e32\u0e21\u0e35)','\u0e01\u0e14 "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01"'], fields:[['BOM Code','Auto: BOM-FG-XXXX'],['Product','FG \u0e17\u0e35\u0e48\u0e40\u0e25\u0e37\u0e2d\u0e01'],['Batch Size','\u0e1b\u0e23\u0e34\u0e21\u0e32\u0e13\u0e15\u0e48\u0e2d Lot'],['Materials','Item + Qty + Unit']]}
+        ]
+      },
+      2: {
+        icon: '\ud83d\ude9a', title: '\u0e08\u0e31\u0e14\u0e0b\u0e37\u0e49\u0e2d\u0e41\u0e25\u0e30\u0e23\u0e31\u0e1a\u0e40\u0e02\u0e49\u0e32\u0e27\u0e31\u0e15\u0e16\u0e38\u0e14\u0e34\u0e1a', titleEn: 'Purchasing & Goods Receipt',
+        file: 'training-purchasing',
+        screenshots: ['training/screenshots/04-po-list.png', 'training/screenshots/05-po-new.png', 'training/screenshots/07-lots-list.png'],
+        flow: [
+          {icon:'\ud83d\udcdd',label:'STEP 1',name:'\u0e2a\u0e23\u0e49\u0e32\u0e07 PO',desc:'Draft'},
+          {icon:'\u2705',label:'STEP 2',name:'\u0e2d\u0e19\u0e38\u0e21\u0e31\u0e15\u0e34',desc:'Approved'},
+          {icon:'\ud83d\udce5',label:'STEP 3',name:'\u0e23\u0e31\u0e1a\u0e40\u0e02\u0e49\u0e32',desc:'GR'},
+          {icon:'\ud83c\udff7\ufe0f',label:'STEP 4',name:'\u0e2a\u0e23\u0e49\u0e32\u0e07 Lot',desc:'Quarantine'},
+          {icon:'\ud83d\udd2c',label:'STEP 5',name:'QC',desc:'Pass/Fail'},
+          {icon:'\ud83d\udfe2',label:'STEP 6',name:'Released',desc:'\u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e43\u0e0a\u0e49'}
+        ],
+        topics: [
+          {title:'\u0e43\u0e1a\u0e2a\u0e31\u0e48\u0e07\u0e0b\u0e37\u0e49\u0e2d (Purchase Order)', path:'Purchasing \u2192 Orders \u2192 + \u0e2a\u0e23\u0e49\u0e32\u0e07\u0e43\u0e2b\u0e21\u0e48', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Purchasing > Orders','\u0e04\u0e25\u0e34\u0e01 "+ \u0e2a\u0e23\u0e49\u0e32\u0e07 PO \u0e43\u0e2b\u0e21\u0e48"','\u0e40\u0e25\u0e37\u0e2d\u0e01 Supplier + \u0e01\u0e33\u0e2b\u0e19\u0e14\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48','\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23: Item + Qty + \u0e23\u0e32\u0e04\u0e32','\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e22\u0e2d\u0e14\u0e23\u0e27\u0e21','\u0e01\u0e14 "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01" \u2192 Draft','\u0e01\u0e14 "Submit" \u2192 Pending Approval'], fields:[['PO Number','Auto: PO2026-XXXX'],['Supplier','\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23'],['\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23','Item + Qty + Price']]},
+          {title:'\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e23\u0e31\u0e1a\u0e40\u0e02\u0e49\u0e32 (Goods Receipt)', path:'Purchasing \u2192 Orders \u2192 PO \u2192 Receive', steps:['\u0e40\u0e1b\u0e34\u0e14 PO \u0e2a\u0e16\u0e32\u0e19\u0e30 Approved','\u0e01\u0e14\u0e1b\u0e38\u0e48\u0e21 "Receive"','\u0e23\u0e30\u0e1a\u0e38: Lot Number, \u0e27\u0e31\u0e19\u0e2b\u0e21\u0e14\u0e2d\u0e32\u0e22\u0e38, Qty \u0e17\u0e35\u0e48\u0e23\u0e31\u0e1a\u0e08\u0e23\u0e34\u0e07','\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e04\u0e25\u0e31\u0e07\u0e1b\u0e25\u0e32\u0e22\u0e17\u0e32\u0e07','\u0e22\u0e37\u0e19\u0e22\u0e31\u0e19 \u2192 \u0e23\u0e30\u0e1a\u0e1a\u0e2a\u0e23\u0e49\u0e32\u0e07 Lot (Quarantine)'], fields:[]},
+          {title:'Lot & QC Pass', path:'Quality \u2192 Tests \u2192 + \u0e2a\u0e23\u0e49\u0e32\u0e07 QC Test', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Quality > Tests','\u0e2a\u0e23\u0e49\u0e32\u0e07 QC Test \u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a Lot (Quarantine)','\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e1c\u0e25\u0e15\u0e23\u0e27\u0e08\u0e15\u0e32\u0e21 Specification','\u0e1c\u0e48\u0e32\u0e19 \u2192 Release (\u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e43\u0e0a\u0e49)','\u0e44\u0e21\u0e48\u0e1c\u0e48\u0e32\u0e19 \u2192 Reject'], fields:[]}
+        ]
+      },
+      3: {
+        icon: '\u2697\ufe0f', title: '\u0e01\u0e32\u0e23\u0e1c\u0e25\u0e34\u0e15\u0e2a\u0e21\u0e38\u0e19\u0e44\u0e1e\u0e23', titleEn: 'Herbal Production Process',
+        file: 'training-production',
+        screenshots: ['training/screenshots/06-wo-list.png', 'training/screenshots/10-wo-detail.png'],
+        flow: [
+          {icon:'\ud83d\udccb',label:'STEP 1',name:'Work Order',desc:'Planned'},
+          {icon:'\ud83d\udce4',label:'STEP 2',name:'\u0e43\u0e1a\u0e40\u0e1a\u0e34\u0e01',desc:'Requisition'},
+          {icon:'\u2696\ufe0f',label:'STEP 3',name:'\u0e0a\u0e31\u0e48\u0e07\u0e27\u0e31\u0e15\u0e16\u0e38\u0e14\u0e34\u0e1a',desc:'Weighing'},
+          {icon:'\ud83d\udd2c',label:'STEP 4',name:'\u0e15\u0e23\u0e27\u0e08 IPC',desc:'In-Process'},
+          {icon:'\ud83d\udce6',label:'STEP 5',name:'\u0e1a\u0e23\u0e23\u0e08\u0e38',desc:'Packaging'},
+          {icon:'\u2705',label:'STEP 6',name:'\u0e40\u0e2a\u0e23\u0e47\u0e08',desc:'Completed'}
+        ],
+        topics: [
+          {title:'\u0e43\u0e1a\u0e2a\u0e31\u0e48\u0e07\u0e1c\u0e25\u0e34\u0e15 (Work Order)', path:'Production \u2192 Work Orders', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Production > Work Orders','\u0e04\u0e25\u0e34\u0e01 "+ \u0e2a\u0e23\u0e49\u0e32\u0e07\u0e43\u0e1a\u0e2a\u0e31\u0e48\u0e07\u0e1c\u0e25\u0e34\u0e15\u0e43\u0e2b\u0e21\u0e48"','\u0e40\u0e25\u0e37\u0e2d\u0e01 FG + BOM','\u0e23\u0e30\u0e1a\u0e38 Batch Qty + \u0e27\u0e31\u0e19\u0e17\u0e35\u0e48','\u0e01\u0e14 "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01" \u2192 Planned','\u0e01\u0e14 "Start" \u2192 In Progress'], fields:[['WO Number','Auto'],['Product','FG'],['BOM','\u0e2a\u0e39\u0e15\u0e23\u0e1c\u0e25\u0e34\u0e15'],['Batch Qty','\u0e1b\u0e23\u0e34\u0e21\u0e32\u0e13\u0e1c\u0e25\u0e34\u0e15']]},
+          {title:'\u0e15\u0e31\u0e14\u0e08\u0e48\u0e32\u0e22\u0e27\u0e31\u0e15\u0e16\u0e38\u0e14\u0e34\u0e1a (Material Issue)', path:'WO \u2192 Material Weighing', steps:['\u0e40\u0e1b\u0e34\u0e14 WO \u2192 Material Weighing tab','\u0e23\u0e30\u0e1a\u0e1a\u0e41\u0e2a\u0e14\u0e07\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e08\u0e32\u0e01 BOM','\u0e40\u0e25\u0e37\u0e2d\u0e01 Lot (Released)','\u0e01\u0e23\u0e2d\u0e01\u0e19\u0e49\u0e33\u0e2b\u0e19\u0e31\u0e01\u0e17\u0e35\u0e48\u0e0a\u0e31\u0e48\u0e07\u0e08\u0e23\u0e34\u0e07','\u0e1c\u0e39\u0e49\u0e0a\u0e31\u0e48\u0e07\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01 \u2192 \u0e1c\u0e39\u0e49\u0e15\u0e23\u0e27\u0e08 Verify (Dual Control)'], fields:[]},
+          {title:'\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e01\u0e32\u0e23\u0e1c\u0e25\u0e34\u0e15 (Production Log)', path:'WO \u2192 SOP / IPC / Environmental', steps:['SOP Execution \u2014 \u0e17\u0e33\u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e2b\u0e21\u0e32\u0e22\u0e02\u0e31\u0e49\u0e19\u0e15\u0e2d\u0e19','IPC \u2014 \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e04\u0e48\u0e32\u0e15\u0e23\u0e27\u0e08\u0e23\u0e30\u0e2b\u0e27\u0e48\u0e32\u0e07\u0e1c\u0e25\u0e34\u0e15','Environmental Monitoring \u2014 \u0e2d\u0e38\u0e13\u0e2b\u0e20\u0e39\u0e21\u0e34/\u0e04\u0e27\u0e32\u0e21\u0e0a\u0e37\u0e49\u0e19','\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01 Actual Output + Waste'], fields:[]}
+        ]
+      },
+      4: {
+        icon: '\u2705', title: '\u0e23\u0e31\u0e1a\u0e40\u0e02\u0e49\u0e32\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08\u0e23\u0e39\u0e1b', titleEn: 'FG Receipt & Final QC',
+        file: 'training-fg-receipt',
+        screenshots: ['training/screenshots/07-lots-list.png', 'training/screenshots/08-qc-tests.png'],
+        flow: [
+          {icon:'\ud83c\udfed',label:'STEP 1',name:'\u0e1c\u0e25\u0e34\u0e15\u0e40\u0e2a\u0e23\u0e47\u0e08',desc:'WO Done'},
+          {icon:'\ud83d\udce5',label:'STEP 2',name:'\u0e23\u0e31\u0e1a FG',desc:'\u0e2a\u0e23\u0e49\u0e32\u0e07 Lot'},
+          {icon:'\ud83d\udd12',label:'STEP 3',name:'Quarantine',desc:'\u0e23\u0e2d QC'},
+          {icon:'\ud83d\udd2c',label:'STEP 4',name:'Final QC',desc:'\u0e15\u0e23\u0e27\u0e08'},
+          {icon:'\ud83d\udfe2',label:'STEP 5',name:'Release',desc:'\u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e02\u0e32\u0e22'}
+        ],
+        topics: [
+          {title:'\u0e23\u0e31\u0e1a FG \u0e40\u0e02\u0e49\u0e32\u0e04\u0e25\u0e31\u0e07', path:'Inventory \u2192 Lots', steps:['\u0e1c\u0e25\u0e34\u0e15\u0e40\u0e2a\u0e23\u0e47\u0e08 (WO Completed)','\u0e2a\u0e23\u0e49\u0e32\u0e07 Lot \u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a FG','\u0e23\u0e30\u0e1a\u0e38: \u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32, \u0e08\u0e33\u0e19\u0e27\u0e19, \u0e04\u0e25\u0e31\u0e07','Lot = Quarantine \u0e23\u0e2d Final QC'], fields:[]},
+          {title:'Final QC & Release', path:'Quality \u2192 Tests \u2192 Release', steps:['\u0e2a\u0e23\u0e49\u0e32\u0e07 QC Test \u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a FG Lot','\u0e15\u0e23\u0e27\u0e08: physical, chemical, micro','\u0e1c\u0e48\u0e32\u0e19 \u2192 Release (\u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e02\u0e32\u0e22)','\u0e44\u0e21\u0e48\u0e1c\u0e48\u0e32\u0e19 \u2192 Reject'], fields:[]}
+        ]
+      },
+      5: {
+        icon: '\ud83d\udcca', title: '\u0e01\u0e32\u0e23\u0e02\u0e32\u0e22\u0e41\u0e25\u0e30\u0e2a\u0e48\u0e07\u0e2d\u0e2d\u0e01', titleEn: 'Sales & Reporting',
+        file: 'training-sales',
+        screenshots: ['training/screenshots/09-sales-orders.png'],
+        flow: [
+          {icon:'\ud83d\uded2',label:'STEP 1',name:'\u0e2a\u0e23\u0e49\u0e32\u0e07 Order',desc:'Sales'},
+          {icon:'\ud83e\uddfe',label:'STEP 2',name:'Invoice/DO',desc:'\u0e2d\u0e2d\u0e01\u0e40\u0e2d\u0e01\u0e2a\u0e32\u0e23'},
+          {icon:'\ud83d\udce4',label:'STEP 3',name:'\u0e08\u0e31\u0e14\u0e2a\u0e48\u0e07',desc:'Delivery'},
+          {icon:'\ud83d\udcca',label:'STEP 4',name:'\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19',desc:'Report'}
+        ],
+        topics: [
+          {title:'\u0e43\u0e1a\u0e01\u0e33\u0e01\u0e31\u0e1a\u0e20\u0e32\u0e29\u0e35 / \u0e43\u0e1a\u0e2a\u0e48\u0e07\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32', path:'Sales \u2192 Orders', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Sales > Orders','\u0e04\u0e25\u0e34\u0e01 "+ \u0e2a\u0e23\u0e49\u0e32\u0e07 Order \u0e43\u0e2b\u0e21\u0e48"','\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32 + \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23 FG','\u0e23\u0e30\u0e1a\u0e38\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e20\u0e32\u0e29\u0e35/\u0e2a\u0e48\u0e27\u0e19\u0e25\u0e14','\u0e1e\u0e34\u0e21\u0e1e\u0e4c Invoice / DO'], fields:[]},
+          {title:'\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19\u0e2a\u0e15\u0e47\u0e2d\u0e01 (Stock Balance)', path:'Inventory \u2192 Lots', steps:['Inventory > Lots \u2014 \u0e14\u0e39\u0e22\u0e2d\u0e14\u0e04\u0e07\u0e40\u0e2b\u0e25\u0e37\u0e2d','\u0e43\u0e0a\u0e49 Filter: \u0e04\u0e25\u0e31\u0e07/\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17/\u0e2a\u0e16\u0e32\u0e19\u0e30','\u0e14\u0e39: \u0e08\u0e33\u0e19\u0e27\u0e19, \u0e27\u0e31\u0e19\u0e2b\u0e21\u0e14\u0e2d\u0e32\u0e22\u0e38, \u0e2a\u0e16\u0e32\u0e19\u0e30','Export Excel \u0e44\u0e14\u0e49'], fields:[]},
+          {title:'\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19\u0e01\u0e32\u0e23\u0e1c\u0e25\u0e34\u0e15 (Production Report)', path:'Production \u2192 Work Orders', steps:['Production > WO \u2014 KPI Cards + Chart','Yield / Variance / Waste','\u0e01\u0e23\u0e2d\u0e07\u0e15\u0e32\u0e21\u0e0a\u0e48\u0e27\u0e07\u0e40\u0e27\u0e25\u0e32/\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32/\u0e2a\u0e16\u0e32\u0e19\u0e30'], fields:[]}
+        ]
+      },
+      6: {
+        icon: '\ud83d\udd2c', title: '\u0e01\u0e32\u0e23\u0e04\u0e27\u0e1a\u0e04\u0e38\u0e21\u0e04\u0e38\u0e13\u0e20\u0e32\u0e1e', titleEn: 'Quality Control',
+        file: 'training-quality-control',
+        screenshots: ['training/screenshots/quality-tests.png', 'training/screenshots/quality-specs.png', 'training/screenshots/quality-deviations.png'],
+        flow: [
+          {icon:'\ud83d\udccb',label:'STEP 1',name:'\u0e01\u0e33\u0e2b\u0e19\u0e14 Spec',desc:'\u0e40\u0e01\u0e13\u0e11\u0e4c'},
+          {icon:'\ud83d\udd2c',label:'STEP 2',name:'QC Test',desc:'\u0e40\u0e25\u0e37\u0e2d\u0e01 Lot'},
+          {icon:'\ud83d\udcdd',label:'STEP 3',name:'\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e1c\u0e25',desc:'\u0e40\u0e17\u0e35\u0e22\u0e1a Spec'},
+          {icon:'\u2705',label:'STEP 4',name:'Pass/Fail',desc:'Release/Reject'},
+          {icon:'\u26a0\ufe0f',label:'STEP 5',name:'Deviation',desc:'\u0e16\u0e49\u0e32\u0e44\u0e21\u0e48\u0e1c\u0e48\u0e32\u0e19'}
+        ],
+        topics: [
+          {title:'\u0e01\u0e32\u0e23\u0e17\u0e14\u0e2a\u0e2d\u0e1a (QC Test)', path:'Quality \u2192 Tests', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Quality > Tests','\u0e04\u0e25\u0e34\u0e01 "+ \u0e2a\u0e23\u0e49\u0e32\u0e07 QC Test \u0e43\u0e2b\u0e21\u0e48"','\u0e40\u0e25\u0e37\u0e2d\u0e01 Lot (\u0e2a\u0e16\u0e32\u0e19\u0e30 Quarantine)','\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17: Incoming / In-Process / Final','\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e1c\u0e25\u0e15\u0e23\u0e27\u0e08 \u2192 \u0e23\u0e30\u0e1a\u0e1a\u0e40\u0e17\u0e35\u0e22\u0e1a Spec \u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34','\u0e1c\u0e48\u0e32\u0e19 \u2192 Release / \u0e44\u0e21\u0e48\u0e1c\u0e48\u0e32\u0e19 \u2192 Reject'], fields:[['Test Name','\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e08\u0e32\u0e01 IPC Criteria'],['Type','Incoming/In-Process/Final'],['Lot','\u0e40\u0e25\u0e37\u0e2d\u0e01 Lot (Quarantine)'],['Result','\u0e04\u0e48\u0e32\u0e1c\u0e25\u0e15\u0e23\u0e27\u0e08'],['Status','Auto: Pass/Fail']]},
+          {title:'\u0e02\u0e49\u0e2d\u0e01\u0e33\u0e2b\u0e19\u0e14 (Specification)', path:'Quality \u2192 Specifications', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Quality > Specifications','\u0e04\u0e25\u0e34\u0e01 "+ \u0e2a\u0e23\u0e49\u0e32\u0e07\u0e02\u0e49\u0e2d\u0e01\u0e33\u0e2b\u0e19\u0e14\u0e43\u0e2b\u0e21\u0e48"','\u0e40\u0e25\u0e37\u0e2d\u0e01 Item + Test Name','\u0e23\u0e30\u0e1a\u0e38 Min-Max + Unit','\u0e01\u0e33\u0e2b\u0e19\u0e14 Critical / Non-Critical','\u0e01\u0e14 "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01"'], fields:[['Item','\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32'],['Test Name','\u0e40\u0e0a\u0e48\u0e19 Moisture, Hardness'],['Min/Max','\u0e04\u0e48\u0e32\u0e15\u0e48\u0e33\u0e2a\u0e38\u0e14-\u0e2a\u0e39\u0e07\u0e2a\u0e38\u0e14'],['Unit','%, mg, CFU/g'],['Is Critical','\u0e04\u0e48\u0e32\u0e2a\u0e33\u0e04\u0e31\u0e0d\u0e2b\u0e49\u0e32\u0e21\u0e40\u0e01\u0e34\u0e19']]},
+          {title:'\u0e04\u0e27\u0e32\u0e21\u0e40\u0e1a\u0e35\u0e48\u0e22\u0e07\u0e40\u0e1a\u0e19 (Deviation)', path:'Quality \u2192 Deviations', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Quality > Deviations','\u0e04\u0e25\u0e34\u0e01 "+ \u0e23\u0e32\u0e22\u0e07\u0e32\u0e19 Deviation \u0e43\u0e2b\u0e21\u0e48"','\u0e01\u0e23\u0e2d\u0e01: \u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d, Source, Severity','\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01 Root Cause + CAPA','\u0e2a\u0e16\u0e32\u0e19\u0e30: Open \u2192 Investigating \u2192 Resolved \u2192 Closed'], fields:[['Deviation No.','Auto'],['Title','\u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d'],['Source','Production/Quality/Warehouse'],['Severity','Minor/Major/Critical'],['Root Cause','\u0e2a\u0e32\u0e40\u0e2b\u0e15\u0e38']]}
+        ]
+      },
+      7: {
+        icon: '\ud83d\udc65', title: '\u0e01\u0e32\u0e23\u0e01\u0e33\u0e2b\u0e19\u0e14\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19', titleEn: 'User & Role Management',
+        file: 'training-user-management',
+        screenshots: ['training/screenshots/hr-roles.png', 'training/screenshots/users.png'],
+        flow: [
+          {icon:'\ud83d\udee1\ufe0f',label:'STEP 1',name:'\u0e2a\u0e23\u0e49\u0e32\u0e07 Role',desc:'Permissions'},
+          {icon:'\ud83d\udc64',label:'STEP 2',name:'\u0e2a\u0e23\u0e49\u0e32\u0e07 User',desc:'Email+Password'},
+          {icon:'\ud83d\udd17',label:'STEP 3',name:'\u0e1c\u0e39\u0e01 Role',desc:'User \u2190 Role'},
+          {icon:'\u2705',label:'STEP 4',name:'Login \u0e44\u0e14\u0e49',desc:'\u0e15\u0e32\u0e21\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c'}
+        ],
+        topics: [
+          {title:'\u0e01\u0e32\u0e23\u0e08\u0e31\u0e14\u0e01\u0e32\u0e23 Role', path:'HR \u2192 Roles', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 HR > Roles','\u0e04\u0e25\u0e34\u0e01 "+ \u0e2a\u0e23\u0e49\u0e32\u0e07 Role \u0e43\u0e2b\u0e21\u0e48"','\u0e01\u0e23\u0e2d\u0e01: Code, \u0e0a\u0e37\u0e48\u0e2d Role, \u0e04\u0e33\u0e2d\u0e18\u0e34\u0e1a\u0e32\u0e22','\u0e40\u0e25\u0e37\u0e2d\u0e01 Permissions \u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23','\u0e01\u0e14 "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01"'], fields:[['Code','\u0e40\u0e0a\u0e48\u0e19 PROD_OPERATOR'],['Name','\u0e0a\u0e37\u0e48\u0e2d Role'],['Permissions','\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\u0e41\u0e15\u0e48\u0e25\u0e30\u0e40\u0e21\u0e19\u0e39'],['Status','Active/Inactive/System']]},
+          {title:'\u0e01\u0e32\u0e23\u0e08\u0e31\u0e14\u0e01\u0e32\u0e23\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19 (Users)', path:'Users \u2192 + \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49\u0e43\u0e2b\u0e21\u0e48', steps:['\u0e40\u0e02\u0e49\u0e32\u0e40\u0e21\u0e19\u0e39 Users','\u0e04\u0e25\u0e34\u0e01 "+ \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e43\u0e2b\u0e21\u0e48"','\u0e01\u0e23\u0e2d\u0e01: \u0e0a\u0e37\u0e48\u0e2d, Email, Password','\u0e40\u0e25\u0e37\u0e2d\u0e01 Role \u0e08\u0e32\u0e01 HR Roles','\u0e40\u0e25\u0e37\u0e2d\u0e01 Department','\u0e01\u0e14 "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01" \u2192 Login \u0e44\u0e14\u0e49\u0e17\u0e31\u0e19\u0e17\u0e35'], fields:[['Name','\u0e0a\u0e37\u0e48\u0e2d\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19'],['Email','Username \u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a Login'],['Password','\u0e23\u0e2b\u0e31\u0e2a\u0e1c\u0e48\u0e32\u0e19\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19'],['Role','\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e08\u0e32\u0e01 HR Roles'],['Department','\u0e41\u0e1c\u0e19\u0e01\u0e17\u0e35\u0e48\u0e2a\u0e31\u0e07\u0e01\u0e31\u0e14']]}
+        ]
+      }
+    };
+
+    var pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+
+    var m = modules[moduleNum];
+    if (!m) { btn.disabled = false; btn.textContent = origText; return; }
+
+    // Cover slide
+    var cover = pptx.addSlide();
+    cover.addShape('rect', {x:0,y:0,w:'100%',h:'100%',fill:{type:'solid',color:BRAND}});
+    cover.addShape('rect', {x:0,y:0,w:'100%',h:'100%',fill:{type:'solid',color:'0891B2',alpha:35}});
+    cover.addText('HERBAL MEDICINE ERP \u00b7 TRAINING', {x:0,y:1.2,w:'100%',h:0.5,fontSize:14,color:'FFFFFF',alpha:70,align:'center',fontFace:FONT,letterSpacing:4});
+    cover.addText(m.icon + ' ' + m.title, {x:0,y:2.3,w:'100%',h:1.2,fontSize:38,bold:true,color:'FFFFFF',align:'center',fontFace:FONT});
+    cover.addText(m.titleEn, {x:0,y:3.6,w:'100%',h:0.6,fontSize:18,color:'FFFFFF',alpha:80,align:'center',fontFace:FONT});
+    cover.addText('MODULE ' + moduleNum + ' / 5', {x:0,y:5.0,w:'100%',h:0.5,fontSize:12,color:'FFFFFF',alpha:55,align:'center',fontFace:FONT,letterSpacing:3});
+
+    // Flow slide
+    var flowSlide = pptx.addSlide();
+    flowSlide.addShape('rect', {x:0,y:0,w:'100%',h:0.06,fill:{type:'solid',color:BRAND}});
+    flowSlide.addText('Flow: ' + m.title, {x:0.5,y:0.4,w:12,h:0.7,fontSize:22,bold:true,color:INK,fontFace:FONT});
+    var totalSteps = m.flow.length;
+    var stepW = Math.min(1.8, (12 - (totalSteps-1)*0.3) / totalSteps);
+    var arrowW = 0.3;
+    var startX = (13.333 - (totalSteps*stepW + (totalSteps-1)*arrowW)) / 2;
+    m.flow.forEach(function(s, i) {
+      var x = startX + i*(stepW+arrowW);
+      flowSlide.addShape('roundRect', {x:x,y:2.0,w:stepW,h:1.8,fill:{type:'solid',color:'FFFFFF'},line:{color:'E2E8F0',width:1},rectRadius:0.15,shadow:{type:'outer',blur:4,offset:2,color:'000000',opacity:0.08}});
+      flowSlide.addText(s.icon, {x:x,y:2.1,w:stepW,h:0.5,fontSize:20,align:'center',fontFace:FONT});
+      flowSlide.addText(s.label, {x:x,y:2.55,w:stepW,h:0.3,fontSize:8,align:'center',color:BRAND,bold:true,fontFace:FONT});
+      flowSlide.addText(s.name, {x:x,y:2.8,w:stepW,h:0.4,fontSize:12,align:'center',color:INK,bold:true,fontFace:FONT});
+      if (s.desc) flowSlide.addText(s.desc, {x:x,y:3.15,w:stepW,h:0.3,fontSize:9,align:'center',color:'64748B',fontFace:FONT});
+      if (i < totalSteps-1) flowSlide.addText('\u2192', {x:x+stepW,y:2.6,w:arrowW,h:0.5,fontSize:18,align:'center',color:'10B981',bold:true,fontFace:FONT});
+    });
+
+    // Topic slides
+    m.topics.forEach(function(topic, idx) {
+      var slide = pptx.addSlide();
+      slide.addShape('rect', {x:0,y:0,w:'100%',h:0.06,fill:{type:'solid',color:BRAND}});
+      slide.addText('MODULE ' + moduleNum + ' \u00b7 ' + m.titleEn.toUpperCase(), {x:0.5,y:0.25,w:8,h:0.3,fontSize:10,color:BRAND,bold:true,fontFace:FONT});
+      slide.addText(topic.title, {x:0.5,y:0.6,w:12,h:0.6,fontSize:22,bold:true,color:INK,fontFace:FONT});
+      slide.addShape('rect', {x:0.5,y:1.15,w:1,h:0.04,fill:{type:'solid',color:BRAND2}});
+      // Path
+      slide.addShape('roundRect', {x:0.5,y:1.4,w:7,h:0.35,fill:{type:'solid',color:'F0FDF4'},line:{color:'A7F3D0',width:1},rectRadius:0.08});
+      slide.addText('\u25b8 ' + topic.path, {x:0.7,y:1.4,w:6.6,h:0.35,fontSize:10,color:BRAND,fontFace:'Courier New',bold:true});
+      // Steps
+      var stepRows = topic.steps.map(function(s,si) {
+        return {text: (si+1) + '. ' + s, options:{fontSize:13,color:'334155',fontFace:FONT,paraSpaceAfter:5,bullet:false}};
+      });
+      var stepsX = 0.5, stepsW = topic.fields.length > 0 ? 7.5 : 12;
+      slide.addText(stepRows, {x:stepsX,y:1.95,w:stepsW,h:4.5,valign:'top'});
+      // Fields table (right side)
+      if (topic.fields.length > 0) {
+        var tableRows = [[{text:'Field',options:{bold:true,color:'FFFFFF',fill:{color:BRAND},fontSize:10,fontFace:FONT}},{text:'Description',options:{bold:true,color:'FFFFFF',fill:{color:BRAND},fontSize:10,fontFace:FONT}}]];
+        topic.fields.forEach(function(f) {
+          tableRows.push([{text:f[0],options:{fontSize:10,fontFace:FONT,bold:true,color:INK}},{text:f[1],options:{fontSize:10,fontFace:FONT,color:'475569'}}]);
+        });
+        slide.addTable(tableRows, {x:8.3,y:1.95,w:4.5,colW:[1.8,2.7],border:{type:'solid',color:'E2E8F0',pt:0.5},rowH:0.35});
+      }
+    });
+
+    // Screenshot slides (try to embed images)
+    var imagePromises = m.screenshots.map(function(url) {
+      return fetch(url).then(function(r){return r.blob();}).then(function(blob) {
+        return new Promise(function(resolve) {
+          var reader = new FileReader();
+          reader.onloadend = function() { resolve({url:url,data:reader.result}); };
+          reader.readAsDataURL(blob);
+        });
+      }).catch(function() { return null; });
+    });
+
+    Promise.all(imagePromises).then(function(images) {
+      images.forEach(function(img) {
+        if (!img) return;
+        var slide = pptx.addSlide();
+        slide.addShape('rect', {x:0,y:0,w:'100%',h:0.06,fill:{type:'solid',color:BRAND}});
+        var label = img.url.split('/').pop().replace('.png','').replace(/-/g,' ');
+        slide.addText('\ud83d\udcf8 ' + label, {x:0.5,y:0.3,w:12,h:0.5,fontSize:16,bold:true,color:INK,fontFace:FONT});
+        slide.addImage({data:img.data,x:0.8,y:1.0,w:11.7,h:6.0,sizing:{type:'contain',w:11.7,h:6.0}});
+      });
+
+      // End slide
+      var end = pptx.addSlide();
+      end.addShape('rect', {x:0,y:0,w:'100%',h:'100%',fill:{type:'solid',color:BRAND}});
+      end.addShape('rect', {x:0,y:0,w:'100%',h:'100%',fill:{type:'solid',color:'1E40AF',alpha:30}});
+      end.addText(m.icon, {x:0,y:1.8,w:'100%',h:1,fontSize:48,align:'center',fontFace:FONT});
+      end.addText(m.title, {x:0,y:2.8,w:'100%',h:1,fontSize:32,bold:true,color:'FFFFFF',align:'center',fontFace:FONT});
+      end.addText('\u0e02\u0e2d\u0e1a\u0e04\u0e38\u0e13', {x:0,y:4.5,w:'100%',h:0.8,fontSize:24,color:'FFFFFF',alpha:80,align:'center',fontFace:FONT});
+
+      pptx.writeFile({fileName: m.file + '.pptx'}).then(function() {
+        btn.disabled = false;
+        btn.textContent = origText;
+      });
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Download Intro PPTX — เกริ่นนำก่อนอบรม 7 สไลด์
+  //   Slide 1: Cover
+  //   Slide 2: Pain Points
+  //   Slide 3: Objectives
+  //   Slide 4: Functions (8 modules)
+  //   Slide 5: Benefits
+  //   Slide 6: System Flow Diagram
+  //   Slide 7: Thank You / Let's Start
+  // ═══════════════════════════════════════════════════════════════════
+  function downloadIntroPPTX() {
+    var btn = document.getElementById('introPptxBtn');
+    var origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'กำลังสร้าง...';
+
+    var BRAND = '0F766E';
+    var BRAND2 = '059669';
+    var INK = '0F172A';
+    var MUTED = '64748B';
+    var FONT = 'Sarabun';
+
+    var pptx = new PptxGenJS();
+    pptx.author = 'Herbal Medicine ERP';
+    pptx.company = 'Herbal Medicine ERP Training';
+    pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5 inches
+    pptx.title = 'เกริ่นนำก่อนเริ่มอบรม - Herbal ERP';
+
+    // ───── Slide 1: Cover ─────
+    var cover = pptx.addSlide();
+    cover.background = { color: BRAND };
+    cover.addShape('rect', { x: 0, y: 6.5, w: 13.33, h: 1, fill: { color: BRAND2 } });
+    cover.addText('🎯 เกริ่นนำก่อนเริ่มอบรม', { x: 0.5, y: 2.2, w: 12.3, h: 1, fontSize: 44, color: 'FFFFFF', bold: true, align: 'center', fontFace: FONT });
+    cover.addText('Herbal Medicine ERP', { x: 0.5, y: 3.3, w: 12.3, h: 0.7, fontSize: 28, color: 'FFFFFF', align: 'center', fontFace: FONT });
+    cover.addText('ภาพรวม · ปัญหา · วัตถุประสงค์ · ประโยชน์ · Flow การทำงาน', { x: 0.5, y: 4.1, w: 12.3, h: 0.5, fontSize: 16, color: 'E0F2F1', align: 'center', fontFace: FONT });
+    cover.addText('© 2026 Herbal Medicine ERP', { x: 0.5, y: 6.8, w: 12.3, h: 0.4, fontSize: 12, color: 'FFFFFF', align: 'center', fontFace: FONT });
+
+    // ───── Helper: list slide with header + bullet points ─────
+    function addListSlide(titleIcon, titleText, headerColor, items) {
+      var s = pptx.addSlide();
+      s.background = { color: 'FFFFFF' };
+      // Header band
+      s.addShape('rect', { x: 0, y: 0, w: 13.33, h: 1.1, fill: { color: headerColor } });
+      s.addText(titleIcon + '  ' + titleText, { x: 0.5, y: 0.2, w: 12.3, h: 0.7, fontSize: 28, color: 'FFFFFF', bold: true, align: 'left', fontFace: FONT });
+      // Bullet items
+      var bulletObjs = items.map(function(txt) {
+        return { text: txt, options: { bullet: { code: '25CF' }, fontSize: 16, color: INK, fontFace: FONT, paraSpaceAfter: 8 } };
+      });
+      s.addText(bulletObjs, { x: 0.7, y: 1.6, w: 12, h: 5.5, valign: 'top', fontFace: FONT });
+      // Footer
+      s.addText('Herbal Medicine ERP · เกริ่นนำก่อนอบรม', { x: 0.5, y: 7, w: 12.3, h: 0.3, fontSize: 10, color: MUTED, align: 'center', fontFace: FONT });
+      return s;
+    }
+
+    // ───── Slide 2: Pain Points ─────
+    addListSlide('⚠️', 'Pain Points · ปัญหาที่องค์กรเจอ', 'DC2626', [
+      'ข้อมูลกระจัดกระจาย — วัตถุดิบ สูตร Lot/Batch เก็บใน Excel หลายไฟล์ ค้นหายาก',
+      'Traceability ไม่ครบ — ตามรอย Lot ย้อนกลับจากสินค้าสำเร็จรูปไปจนถึงวัตถุดิบได้ยาก',
+      'เอกสาร eBMR ทำมือ — ใช้เวลาเยอะ เสี่ยงข้อผิดพลาด และหาเอกสารเดิมยาก',
+      'Audit GMP ไม่พร้อม — ต้องเตรียมเอกสารตอนตรวจ ใช้เวลาและแรงงานสูง',
+      'สต๊อก-บัญชีไม่ sync — ข้อมูลสต๊อก ยอดขาย ต้นทุน ไม่เชื่อมต่อกัน',
+      'ไม่มี QC Digital — ผล QC test บันทึกบนกระดาษ disposition ช้า',
+    ]);
+
+    // ───── Slide 3: Objectives ─────
+    addListSlide('🎯', 'วัตถุประสงค์', '2563EB', [
+      'Digitize End-to-End — ทดแทนกระดาษด้วยระบบดิจิทัลตลอดกระบวนการ GMP',
+      'Single Source of Truth — ข้อมูลทั้งองค์กรอยู่ในระบบเดียว ไม่ซ้ำซ้อน',
+      'Traceability 100% — ตามรอยทุก Lot ได้ทั้ง forward และ backward',
+      'GMP-Ready Audit — Audit Trail ครบถ้วน พร้อมให้ตรวจทันที',
+      'ลด Human Error — Auto-calculate ปริมาณ สูตร หลีกเลี่ยงการคำนวณผิด',
+      'Real-time Dashboard — ผู้บริหารเห็นภาพรวมทุกแผนกได้ทันที',
+    ]);
+
+    // ───── Slide 4: Functions ─────
+    addListSlide('⚙️', 'ฟังก์ชั่นการใช้งานหลัก', '7C3AED', [
+      'Master Data — จัดการวัตถุดิบ บรรจุภัณฑ์ สินค้า BOM Vendors Customers',
+      'Purchasing — ใบขอซื้อ/ใบสั่งซื้อ รับสินค้า ตรวจสอบ Lot พร้อม auto-generate',
+      'Inventory — คลังสินค้า Lot management สต๊อก Aging Expiry Alerts',
+      'Production — Work Order, SOP Execution, IPC, Cleaning, eBMR อัตโนมัติ',
+      'Quality Control — QC Tests, Specifications, Disposition dual-control',
+      'Sales & VMI — ใบสั่งขาย VMI Portal customer management',
+      'Accounting — AP/AR, Journal, Fixed Assets, Period Close',
+      'HR & GMP Compliance — Users, Roles, CAPA, Recall, Complaint, Audit',
+    ]);
+
+    // ───── Slide 5: Benefits ─────
+    addListSlide('🌟', 'ประโยชน์ที่ได้รับ', '059669', [
+      'ลดเวลา eBMR 70% — จากทำมือหลายชั่วโมง เหลือไม่กี่นาที',
+      'Audit ทันที — ไม่ต้องเตรียมเอกสารล่วงหน้า ระบบดึงให้',
+      'ลด Waste วัตถุดิบ — ควบคุมปริมาณ ลด over/short issue',
+      'ลูกค้าเชื่อถือมากขึ้น — มีข้อมูล traceability ครบถ้วน',
+      'ผู้บริหารตัดสินใจได้ไว — Dashboard real-time ไม่ต้องรอรายงาน',
+      'รองรับการเติบโต — เพิ่ม user/สาขา/ผลิตภัณฑ์ ไม่ต้องเปลี่ยนระบบ',
+    ]);
+
+    // ───── Slide 6: System Flow Diagram ─────
+    var flow = pptx.addSlide();
+    flow.background = { color: 'FFFFFF' };
+    flow.addShape('rect', { x: 0, y: 0, w: 13.33, h: 1.1, fill: { color: BRAND } });
+    flow.addText('🔄  Flow ภาพรวมการทำงานของระบบ', { x: 0.5, y: 0.2, w: 12.3, h: 0.7, fontSize: 28, color: 'FFFFFF', bold: true, align: 'left', fontFace: FONT });
+    flow.addText('กระบวนการหลัก End-to-End จาก Master Data → ขายสินค้าสำเร็จรูป', { x: 0.5, y: 1.3, w: 12.3, h: 0.4, fontSize: 14, color: MUTED, italic: true, align: 'left', fontFace: FONT });
+
+    var steps = [
+      { icon: '📁', num: 'STEP 1', title: 'Master Data', sub: 'Items · BOM · Vendors' },
+      { icon: '🛒', num: 'STEP 2', title: 'Purchasing', sub: 'PO · รับสินค้า' },
+      { icon: '🏷️', num: 'STEP 3', title: 'Inventory', sub: 'Lot · QC Incoming' },
+      { icon: '🏭', num: 'STEP 4', title: 'Production', sub: 'WO · eBMR · IPC' },
+      { icon: '✅', num: 'STEP 5', title: 'QC & Release', sub: 'Test · Disposition' },
+      { icon: '💰', num: 'STEP 6', title: 'Sales', sub: 'SO · Invoice · VMI' },
+    ];
+    var stepW = 1.9, stepH = 2.2, gapX = 0.15;
+    var totalW = steps.length * stepW + (steps.length - 1) * gapX;
+    var startX = (13.33 - totalW) / 2;
+    var stepY = 2.5;
+    for (var i = 0; i < steps.length; i++) {
+      var x = startX + i * (stepW + gapX);
+      // Step box with gradient-ish fill
+      flow.addShape('roundRect', { x: x, y: stepY, w: stepW, h: stepH, fill: { color: BRAND2 }, line: { color: BRAND, width: 0.5 }, rectRadius: 0.15 });
+      flow.addText(steps[i].icon, { x: x, y: stepY + 0.15, w: stepW, h: 0.6, fontSize: 28, color: 'FFFFFF', align: 'center', fontFace: FONT });
+      flow.addText(steps[i].num, { x: x, y: stepY + 0.85, w: stepW, h: 0.3, fontSize: 10, color: 'E6FFFA', bold: true, align: 'center', fontFace: FONT });
+      flow.addText(steps[i].title, { x: x, y: stepY + 1.15, w: stepW, h: 0.4, fontSize: 14, color: 'FFFFFF', bold: true, align: 'center', fontFace: FONT });
+      flow.addText(steps[i].sub, { x: x, y: stepY + 1.55, w: stepW, h: 0.5, fontSize: 10, color: 'D1FAE5', align: 'center', fontFace: FONT });
+      // Arrow between boxes (except last)
+      if (i < steps.length - 1) {
+        flow.addText('→', { x: x + stepW - 0.05, y: stepY + (stepH / 2) - 0.25, w: 0.25, h: 0.5, fontSize: 24, color: BRAND, bold: true, align: 'center', fontFace: FONT });
+      }
+    }
+    flow.addText('Herbal Medicine ERP · เกริ่นนำก่อนอบรม', { x: 0.5, y: 7, w: 12.3, h: 0.3, fontSize: 10, color: MUTED, align: 'center', fontFace: FONT });
+
+    // ───── Slide 7: Let's Start ─────
+    var end = pptx.addSlide();
+    end.background = { color: BRAND };
+    end.addText('🚀', { x: 0.5, y: 1.8, w: 12.3, h: 1.5, fontSize: 96, color: 'FFFFFF', align: 'center', fontFace: FONT });
+    end.addText('พร้อมเริ่มอบรมแล้ว!', { x: 0.5, y: 3.5, w: 12.3, h: 0.9, fontSize: 48, color: 'FFFFFF', bold: true, align: 'center', fontFace: FONT });
+    end.addText('Ready to Start Training', { x: 0.5, y: 4.4, w: 12.3, h: 0.5, fontSize: 20, color: 'E6FFFA', align: 'center', fontFace: FONT });
+    end.addText('ไปดูเนื้อหาอบรม 7 หัวข้อกันต่อ →', { x: 0.5, y: 5.3, w: 12.3, h: 0.5, fontSize: 18, color: 'D1FAE5', italic: true, align: 'center', fontFace: FONT });
+
+    pptx.writeFile({ fileName: 'intro-herbal-erp-training.pptx' }).then(function () {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = origText;
+      alert('เกิดข้อผิดพลาดในการสร้าง PowerPoint กรุณาลองอีกครั้ง');
+    });
+  }
+  </script>
+</body>
+</html>

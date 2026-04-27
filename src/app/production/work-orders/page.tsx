@@ -12,6 +12,7 @@ import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { useMobile } from '@/hooks/use-mobile';
 import DataGrid, {
   Column,
   Paging,
@@ -95,6 +96,10 @@ interface WorkOrder {
   productId: number;
   productCode: string;
   productName: string;
+  bomId: number | null;
+  bomCode: string | null;
+  bomName: string | null;
+  bomVersion: string | null;
   createdAt: string;
   notes: string | null;
 }
@@ -202,6 +207,7 @@ export default function WorkOrdersPage() {
   const router = useRouter();
   const t = useTranslations('production');
   const tCommon = useTranslations('common');
+  const { isMobile } = useMobile();
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const queryClient = useQueryClient();
   const [editDialogVisible, setEditDialogVisible] = useState(false);
@@ -428,6 +434,19 @@ export default function WorkOrdersPage() {
     </div>
   ), []);
 
+  const renderBomCell = useCallback((data: { data: WorkOrder }) => {
+    const wo = data.data;
+    if (!wo.bomCode) return <span className="text-gray-400 text-xs">-</span>;
+    return (
+      <div className="dx-cell-wrap">
+        <p className="font-mono font-semibold text-indigo-700 text-sm break-words">{wo.bomCode}</p>
+        {wo.bomVersion && (
+          <p className="text-xs text-gray-500">v{wo.bomVersion}</p>
+        )}
+      </div>
+    );
+  }, []);
+
   const renderQuantityCell = useCallback((data: { data: WorkOrder }) => {
     const wo = data.data;
     const progress = wo.plannedQuantity > 0 ? ((wo.actualQuantity || 0) / wo.plannedQuantity) * 100 : 0;
@@ -531,7 +550,7 @@ export default function WorkOrdersPage() {
   }, [router, t, handleEditClick, handleDeleteClick]);
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
+    <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
       {/* Page Header */}
       <ResponsivePageHeader
         title={t('workOrders.pageTitle')}
@@ -544,13 +563,14 @@ export default function WorkOrdersPage() {
           { label: t('workOrders.breadcrumbs.workOrders') },
         ]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <DxButton
               icon="refresh"
               type="default"
               stylingMode="outlined"
               hint={tCommon('actions.refresh')}
               onClick={() => refetch()}
+              className="hidden sm:inline-flex"
             />
             <DxButton
               icon="chart"
@@ -558,6 +578,7 @@ export default function WorkOrdersPage() {
               type="default"
               stylingMode="outlined"
               onClick={() => router.push('/production/analytics')}
+              className="hidden md:inline-flex"
             />
             <DxButton
               icon="plus"
@@ -569,8 +590,8 @@ export default function WorkOrdersPage() {
         }
       />
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
+      {/* Stats Row — progressive breakpoints: 2 cols mobile, 4 tablet, 4 desktop, 8 wide */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 gap-3 md:gap-4">
         <StatCard
           label={t('workOrders.stats.totalOrders')}
           value={stats.total}
@@ -638,7 +659,7 @@ export default function WorkOrdersPage() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         {/* Status Distribution */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 min-h-0">
           <div className="flex items-center justify-between mb-4">
@@ -699,7 +720,7 @@ export default function WorkOrdersPage() {
         </div>
 
         {/* Priority Distribution */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 lg:col-span-2">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:col-span-2 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-amber-500" />
@@ -796,7 +817,7 @@ export default function WorkOrdersPage() {
       </div>
 
       {/* Status Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
         {(Object.keys(STATUS_CONFIG) as Array<keyof typeof STATUS_CONFIG>).map(status => {
           const config = STATUS_CONFIG[status];
           const count = workOrders.filter(wo => wo.status === status).length;
@@ -827,31 +848,56 @@ export default function WorkOrdersPage() {
 
       {/* Main Content - Tabs + DataGrid */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* Tabs Header */}
-        <div className="border-b border-gray-200 px-4 py-3 bg-gray-50">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <DxTabs
-              items={statusTabs}
-              selectedIndex={
-                statusFilter === undefined ? 0 :
-                statusFilter === 'planned' ? 1 :
-                statusFilter === 'released' ? 2 :
-                statusFilter === 'in_progress' ? 3 :
-                statusFilter === 'completed' ? 4 : 5
-              }
-              onSelectedIndexChange={handleTabChange}
-              stylingMode="secondary"
-            />
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <Factory className="w-4 h-4" />
-                {t('workOrders.grid.orders', { count: filteredWorkOrders.length })}
-              </span>
+        {/* Tabs Header — scroll horizontally on mobile if overflowing */}
+        <div className="border-b border-gray-200 px-3 sm:px-4 py-3 bg-gradient-to-r from-gray-50/50 to-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+              <DxTabs
+                items={statusTabs}
+                selectedIndex={
+                  statusFilter === undefined ? 0 :
+                  statusFilter === 'planned' ? 1 :
+                  statusFilter === 'released' ? 2 :
+                  statusFilter === 'in_progress' ? 3 :
+                  statusFilter === 'completed' ? 4 : 5
+                }
+                onSelectedIndexChange={handleTabChange}
+                stylingMode="secondary"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+              <Factory className="w-4 h-4 text-gray-400" />
+              <span>{t('workOrders.grid.orders', { count: filteredWorkOrders.length })}</span>
             </div>
           </div>
         </div>
 
-        {/* DataGrid */}
+        {/* Mobile Card List (shown on < md) */}
+        {isMobile ? (
+          <WorkOrderMobileList
+            workOrders={filteredWorkOrders}
+            t={t}
+            onView={(id: number) => router.push(`/production/work-orders/${id}`)}
+            onEdit={(wo: WorkOrder) => {
+              setSelectedWO(wo);
+              setEditForm({
+                batchNumber: wo.batchNumber || '',
+                plannedQuantity: wo.plannedQuantity || 0,
+                priority: wo.priority || 5,
+                plannedStartDate: wo.plannedStartDate ? new Date(wo.plannedStartDate) : null,
+                plannedEndDate: wo.plannedEndDate ? new Date(wo.plannedEndDate) : null,
+                deliveryDate: wo.deliveryDate ? new Date(wo.deliveryDate) : null,
+                notes: wo.notes || '',
+              });
+              setEditDialogVisible(true);
+            }}
+            onDelete={(wo: WorkOrder) => {
+              setSelectedWO(wo);
+              setDeleteDialogVisible(true);
+            }}
+          />
+        ) : (
+        /* Desktop DataGrid (shown on >= md) */
         <DataGrid
           dataSource={filteredWorkOrders}
           showBorders={false}
@@ -893,6 +939,13 @@ export default function WorkOrdersPage() {
             minWidth={200}
             cellRender={renderProductCell}
             calculateCellValue={(data: WorkOrder) => data.productName}
+          />
+          <Column
+            dataField="bomCode"
+            caption="BOM"
+            minWidth={180}
+            allowResizing={true}
+            cellRender={renderBomCell}
           />
           <Column
             caption={t('workOrders.grid.columns.quantity')}
@@ -946,6 +999,7 @@ export default function WorkOrdersPage() {
             allowSorting={false}
           />
         </DataGrid>
+        )}
       </div>
 
       {/* Edit Work Order Dialog */}
@@ -1127,6 +1181,148 @@ export default function WorkOrdersPage() {
           </div>
         </div>
       </DxConfirmDialog>
+    </div>
+  );
+}
+
+// ============================================
+// Mobile Card List — replaces DataGrid on < md
+// ============================================
+
+type WorkOrderTranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
+
+function WorkOrderMobileList({
+  workOrders,
+  t,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  workOrders: WorkOrder[];
+  t: WorkOrderTranslateFn;
+  onView: (id: number) => void;
+  onEdit: (wo: WorkOrder) => void;
+  onDelete: (wo: WorkOrder) => void;
+}) {
+  if (workOrders.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+        <div className="h-20 w-20 rounded-2xl bg-gray-100 flex items-center justify-center mb-5">
+          <Factory className="h-10 w-10 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          {t('workOrders.grid.noOrders') || 'ไม่มี Work Orders'}
+        </h3>
+        <p className="text-sm text-gray-500 max-w-sm">
+          {t('workOrders.grid.noOrdersDescription') || 'ยังไม่มีรายการตามเงื่อนไขที่เลือก'}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 space-y-3 bg-gray-50/30">
+      {workOrders.map((wo) => {
+        const statusConfig = STATUS_CONFIG[wo.status] || STATUS_CONFIG.planned;
+        const StatusIcon = statusConfig.icon;
+        const progress =
+          wo.plannedQuantity > 0 ? ((wo.actualQuantity || 0) / wo.plannedQuantity) * 100 : 0;
+
+        return (
+          <div
+            key={wo.id}
+            className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md active:bg-gray-50 transition-all"
+          >
+            {/* Tap card to view */}
+            <button
+              type="button"
+              onClick={() => onView(wo.id)}
+              className="w-full text-left p-4"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono font-semibold text-blue-600 text-base truncate">
+                    {wo.woNumber}
+                  </p>
+                  <p className="text-xs text-gray-500 font-mono">{wo.batchNumber || '-'}</p>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${statusConfig.bgClass}`}
+                >
+                  <StatusIcon className="h-3 w-3" />
+                  {t(`workOrders.status.${statusConfig.translationKey}`)}
+                </span>
+              </div>
+
+              <p className="font-medium text-gray-900 text-sm truncate">{wo.productName || '-'}</p>
+              <p className="text-xs text-gray-500 font-mono mb-2">{wo.productCode || '-'}</p>
+
+              {wo.bomCode && (
+                <p className="text-xs mb-2">
+                  <span className="text-gray-500">BOM: </span>
+                  <span className="font-mono font-semibold text-indigo-700">{wo.bomCode}</span>
+                  {wo.bomVersion && (
+                    <span className="text-gray-500 ml-1">v{wo.bomVersion}</span>
+                  )}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between text-xs mt-2">
+                <span className="text-gray-600">
+                  <span className="font-semibold">
+                    {wo.actualQuantity?.toLocaleString() || '0'}
+                  </span>
+                  {' / '}
+                  {wo.plannedQuantity?.toLocaleString() || '-'} {wo.unit}
+                </span>
+                {wo.priority && (
+                  <span className="inline-flex items-center gap-1 text-gray-500">
+                    <Activity className="h-3 w-3" />
+                    P{wo.priority}
+                  </span>
+                )}
+              </div>
+
+              {wo.status === 'in_progress' && (
+                <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                  <div
+                    className="bg-amber-500 h-1.5 rounded-full transition-all"
+                    style={{ width: `${Math.min(progress, 100)}%` }}
+                  />
+                </div>
+              )}
+            </button>
+
+            {/* Action buttons — touch-friendly (44px min-height) */}
+            <div className="flex items-center border-t border-gray-100 divide-x divide-gray-100">
+              <button
+                type="button"
+                onClick={() => onView(wo.id)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 transition-colors min-h-[44px]"
+              >
+                <Eye className="h-4 w-4" />
+                <span>ดู</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onEdit(wo)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 transition-colors min-h-[44px]"
+              >
+                <Pencil className="h-4 w-4" />
+                <span>แก้ไข</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(wo)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700 active:bg-red-100 transition-colors min-h-[44px]"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>ลบ</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

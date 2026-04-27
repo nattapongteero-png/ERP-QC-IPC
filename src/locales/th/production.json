@@ -290,7 +290,95 @@
   },
   "batchRecords": {
     "title": "บันทึกการผลิตอิเล็กทรอนิกส์ (eBMR)",
-    "subtitle": "เอกสารกระบวนการผลิตและการติดตามความสอดคล้อง"
+    "subtitle": "เอกสารกระบวนการผลิตและการติดตามความสอดคล้อง",
+    "actions": {
+      "refresh": "รีเฟรช",
+      "workOrders": "ใบสั่งผลิต"
+    },
+    "status": {
+      "pending": "รอดำเนินการ",
+      "in_progress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "deviation": "ความเบี่ยงเบน"
+    },
+    "stats": {
+      "total": "eBMR ทั้งหมด",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "deviations": "ความเบี่ยงเบน",
+      "completedToday": "เสร็จวันนี้",
+      "pending": "รอดำเนินการ",
+      "avgCompletionTime": "เวลาเฉลี่ย",
+      "minSuffix": " นาที"
+    },
+    "charts": {
+      "statusDistribution": "สัดส่วนสถานะ eBMR",
+      "noRecords": "ไม่พบข้อมูล",
+      "weeklyActivity": "กิจกรรมรายสัปดาห์",
+      "noActivity": "ยังไม่มีข้อมูลกิจกรรม",
+      "topProducts": "สินค้าที่มี eBMR มากที่สุด",
+      "woCount": "{count} ใบสั่งผลิต",
+      "completionRate": "เสร็จ {rate}%",
+      "noProductData": "ไม่มีข้อมูลสินค้า",
+      "recentRecords": "eBMR ล่าสุด",
+      "noRecentRecords": "ไม่มีรายการล่าสุด",
+      "completed": "เสร็จสิ้น",
+      "deviations": "ความเบี่ยงเบน"
+    },
+    "alerts": {
+      "deviationsTitle": "พบความเบี่ยงเบน",
+      "deviationsDescription": "มี {count} รายการบันทึกการผลิตที่มีความเบี่ยงเบน ต้องได้รับการตรวจสอบ",
+      "activeTitle": "กำลังผลิตอยู่",
+      "activeDescription": "มี {count} ใบสั่งผลิต{suffix}กำลังดำเนินการและมีข้อมูลการทำงาน",
+      "viewInProgress": "ดูที่กำลังดำเนินการ"
+    },
+    "registry": {
+      "title": "รายการ eBMR",
+      "filterByStatus": "กรองตามสถานะ",
+      "searchPlaceholder": "ค้นหา WO, แบตช์, หรือสินค้า...",
+      "dataGridSearch": "ค้นหารายการ..."
+    },
+    "statusFilters": {
+      "all": "ทุกสถานะ",
+      "pending": "รอดำเนินการ",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น"
+    },
+    "tabs": {
+      "all": "ทั้งหมด",
+      "inProgress": "กำลังดำเนินการ",
+      "pending": "รอดำเนินการ",
+      "completed": "เสร็จสิ้น"
+    },
+    "columns": {
+      "workOrder": "ใบสั่งผลิต",
+      "product": "สินค้า",
+      "executionRecords": "บันทึกการทำงาน",
+      "startDate": "วันเริ่มต้น",
+      "endDate": "วันสิ้นสุด",
+      "status": "สถานะ"
+    },
+    "execution": {
+      "sopPrefix": "SOP:",
+      "cleanPrefix": "ทำความสะอาด:",
+      "envPrefix": "สภาพแวดล้อม:",
+      "fiPrefix": "ตรวจปลาย:",
+      "totalSuffix": " รวม"
+    },
+    "mobile": {
+      "startPrefix": "เริ่ม:",
+      "endPrefix": "สิ้นสุด:",
+      "viewDetails": "ดูรายละเอียด"
+    },
+    "empty": {
+      "title": "ไม่มี Batch Records",
+      "description": "Batch records จะปรากฏที่นี่เมื่อใบสั่งผลิตมีบันทึกการทำงาน (SOP, ทำความสะอาด, สภาพแวดล้อม, หรือตรวจปลาย)"
+    },
+    "noResults": {
+      "title": "ไม่พบรายการที่ตรงกับเงื่อนไข",
+      "description": "ลองเปลี่ยนคำค้นหาหรือตัวกรอง",
+      "clearFilters": "ล้างตัวกรอง"
+    }
   },
   "execution": {
     "title": "การดำเนินการใบสั่งผลิต",
@@ -384,7 +472,7 @@
       },
       "form": {
         "actualQuantity": "จำนวนผลิตจริง (Good)",
-        "rejectQuantity": "จำนวนเสียหาย (Reject)",
+        "rejectQuantity": "Finished Goods Loss",
         "warehouse": "คลังสินค้าปลายทาง",
         "warehousePlaceholder": "เลือกคลังสินค้า",
         "notes": "หมายเหตุ",
@@ -395,11 +483,11 @@
       "yield": {
         "title": "ผลการคำนวณ Yield",
         "yieldPercent": "Yield %",
-        "rejectPercent": "Reject %",
+        "rejectPercent": "FG Loss %",
         "lossPercent": "Loss %",
         "theoretical": "จำนวนตามทฤษฎี",
         "actualGood": "จำนวนดี",
-        "actualReject": "จำนวนเสียหาย",
+        "actualReject": "Finished Goods Loss",
         "statusNormal": "ปกติ",
         "statusLowYield": "Yield ต่ำกว่าเป้า",
         "statusHighYield": "Yield สูงผิดปกติ"
@@ -454,5 +542,49 @@
   },
   "workOrderDetail": {
     "title": "รายละเอียดใบสั่งผลิต"
+  },
+  "analytics": {
+    "pageTitle": "วิเคราะห์การผลิต",
+    "description": "สรุปภาพรวมและวิเคราะห์ข้อมูลการผลิต",
+    "breadcrumbs": {
+      "analytics": "วิเคราะห์"
+    },
+    "stats": {
+      "totalOrders": "ใบสั่งทั้งหมด",
+      "completedOrders": "ผลิตเสร็จ",
+      "completionRate": "อัตราสำเร็จ",
+      "avgYield": "ผลผลิตเฉลี่ย",
+      "onTimeRate": "ตรงเวลา",
+      "totalProducts": "ผลิตภัณฑ์ที่ผลิต",
+      "avgLeadTime": "ระยะเวลาเฉลี่ย",
+      "days": "วัน"
+    },
+    "charts": {
+      "monthlyVolume": "ปริมาณการผลิตรายเดือน",
+      "planned": "แผน",
+      "actual": "จริง",
+      "completed": "เสร็จ",
+      "yieldByProduct": "ผลผลิต (Yield) ตามผลิตภัณฑ์",
+      "yieldPercent": "ผลผลิต (%)",
+      "productionByProduct": "จำนวนการผลิตตามผลิตภัณฑ์",
+      "count": "จำนวน (ครั้ง)",
+      "statusOverview": "ภาพรวมสถานะ",
+      "leadTimeByProduct": "ระยะเวลาผลิตตามผลิตภัณฑ์",
+      "averageDays": "เฉลี่ย (วัน)",
+      "onTimeDelivery": "การส่งมอบตรงเวลา",
+      "onTime": "ตรงเวลา",
+      "late": "ล่าช้า",
+      "noDeliveryDate": "ไม่มีกำหนด",
+      "priorityCompletion": "อัตราสำเร็จตามความสำคัญ",
+      "rate": "อัตรา (%)",
+      "noData": "ไม่มีข้อมูล",
+      "orders": "ใบสั่ง",
+      "month": "เดือน",
+      "product": "ผลิตภัณฑ์"
+    },
+    "actions": {
+      "backToWorkOrders": "กลับไปหน้าใบสั่งผลิต",
+      "exportExcel": "ส่งออก Excel"
+    }
   }
 }

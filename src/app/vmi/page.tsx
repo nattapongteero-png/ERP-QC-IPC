@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -98,7 +99,7 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
   const confirmedOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'confirmed').length;
   const processingOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'processing').length;
   const deliveredOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'delivered').length;
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr(new Date());
   const shippedToday = orders.filter((o: { localStatus: string; shippedAt?: string }) =>
     o.localStatus === 'shipped' && o.shippedAt?.startsWith(today)
   ).length;

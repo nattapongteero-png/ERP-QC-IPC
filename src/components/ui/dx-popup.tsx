@@ -208,10 +208,12 @@ export interface DxConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   title?: string;
-  message: string;
+  message?: string;
   confirmText?: string;
   cancelText?: string;
   confirmType?: 'success' | 'danger';
+  children?: React.ReactNode;
+  width?: number;
 }
 
 export function DxConfirmDialog({
@@ -223,13 +225,15 @@ export function DxConfirmDialog({
   confirmText = 'ยืนยัน',
   cancelText = 'ยกเลิก',
   confirmType = 'success',
+  children,
+  width = 400,
 }: DxConfirmDialogProps) {
   return (
     <DxPopup
       visible={visible}
       onVisibleChange={(v) => !v && onCancel()}
       title={title}
-      width={400}
+      width={width}
       height="auto"
       toolbarItems={[
         {
@@ -254,9 +258,11 @@ export function DxConfirmDialog({
         },
       ]}
     >
-      <div style={{ padding: 16 }}>
-        <p>{message}</p>
-      </div>
+      {children ? children : (
+        <div style={{ padding: 16 }}>
+          <p>{message}</p>
+        </div>
+      )}
     </DxPopup>
   );
 }

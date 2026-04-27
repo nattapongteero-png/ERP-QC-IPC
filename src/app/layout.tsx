@@ -48,7 +48,7 @@ export default async function RootLayout({
         `}</Script>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
       >
         <I18nProvider locale={locale} messages={messages}>
           <Providers>

@@ -118,9 +118,12 @@
       "inactive": "Inactive"
     },
     "stats": {
-      "approved": "approved",
+      "approved": "Approved",
       "vmi": "VMI",
-      "avgDays": "avg days"
+      "avgDays": "avg days",
+      "total": "Total Vendors",
+      "active": "Active",
+      "inactive": "Inactive"
     },
     "actions": {
       "refresh": "Refresh",
@@ -140,7 +143,14 @@
       "noData": "No vendors found",
       "days": "{days} days"
     },
-    "searchPlaceholder": "Search by code, name, or contact..."
+    "searchPlaceholder": "Search by code, name, or contact...",
+    "emptyTitle": "No vendors yet",
+    "emptyDescription": "Start managing your suppliers by adding your first vendor",
+    "noResultsTitle": "No vendors match your criteria",
+    "noResultsDescription": "Try changing the search term or selecting a different filter",
+    "clearFilters": "Clear filters",
+    "viewDetails": "View details",
+    "vendorsShown": "{count} vendors shown"
   },
   "requisitions": {
     "pageTitle": "Purchase Requisitions",

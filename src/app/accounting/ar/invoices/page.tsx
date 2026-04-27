@@ -203,6 +203,7 @@ export default function ARInvoicesPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<number | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<ARInvoice | null>(null);
   const [formData, setFormData] = useState<FormData>({
@@ -284,6 +285,48 @@ export default function ARInvoicesPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/accounting/ar-invoices/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to delete invoice');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
+      notify('ลบใบแจ้งหนี้สำเร็จ', 'success', 3000);
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถลบใบแจ้งหนี้ได้', 'error', 4000);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await fetch(`/api/accounting/ar-invoices/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to update invoice');
+      }
+      return (await res.json()).data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
+      notify('แก้ไขใบแจ้งหนี้สำเร็จ', 'success', 3000);
+      setIsDialogOpen(false);
+      setEditingInvoiceId(null);
+      resetForm();
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถแก้ไขใบแจ้งหนี้ได้', 'error', 4000);
+    },
+  });
+
   // Handlers
   const resetForm = useCallback(() => {
     setFormData({
@@ -300,11 +343,13 @@ export default function ARInvoicesPage() {
 
   const handleOpenDialog = useCallback(() => {
     resetForm();
+    setEditingInvoiceId(null);
     setIsDialogOpen(true);
   }, [resetForm]);
 
   const handleCloseDialog = useCallback(() => {
     setIsDialogOpen(false);
+    setEditingInvoiceId(null);
   }, []);
 
   const handleSave = useCallback(() => {
@@ -322,7 +367,7 @@ export default function ARInvoicesPage() {
       return;
     }
 
-    createMutation.mutate({
+    const payload = {
       invoiceNumber: formData.invoiceNumber,
       customerId: formData.customerId,
       invoiceDate: formData.invoiceDate,
@@ -336,8 +381,14 @@ export default function ARInvoicesPage() {
         quantity: l.quantity,
         unitPrice: l.unitPrice,
       })),
-    });
-  }, [formData, createMutation]);
+    };
+
+    if (editingInvoiceId) {
+      updateMutation.mutate({ id: editingInvoiceId, data: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
+  }, [formData, createMutation, updateMutation, editingInvoiceId]);
 
   const handleConfirm = useCallback(
     async (invoice: ARInvoice) => {
@@ -352,6 +403,47 @@ export default function ARInvoicesPage() {
       }
     },
     [confirmMutation]
+  );
+
+  const handleEdit = useCallback(async (invoice: ARInvoice) => {
+    try {
+      const res = await fetch(`/api/accounting/ar-invoices/${invoice.id}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      const detail = json.data;
+      setFormData({
+        invoiceNumber: detail.invoiceNumber || '',
+        customerId: detail.customerId || null,
+        invoiceDate: detail.invoiceDate ? detail.invoiceDate.split('T')[0] : '',
+        dueDate: detail.dueDate ? detail.dueDate.split('T')[0] : '',
+        description: detail.description || '',
+        vatRate: detail.vatAmount > 0 ? 7 : 0,
+        vatAmountOverride: null,
+        lines: (detail.lines || []).map((l: any) => ({
+          description: l.description || '',
+          glAccountId: l.glAccountId || null,
+          quantity: l.quantity || 1,
+          unitPrice: l.unitPrice || 0,
+        })),
+      });
+      setEditingInvoiceId(invoice.id);
+      setIsDialogOpen(true);
+    } catch (err: any) {
+      notify(err.message || 'ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้', 'error', 4000);
+    }
+  }, []);
+
+  const handleDelete = useCallback(
+    async (invoice: ARInvoice) => {
+      const result = await confirm(
+        `คุณต้องการลบใบแจ้งหนี้ ${invoice.invoiceNumber} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้`,
+        'ยืนยันการลบ'
+      );
+      if (result) {
+        deleteMutation.mutate(invoice.id);
+      }
+    },
+    [deleteMutation]
   );
 
   const handleOpenPaymentDialog = useCallback((invoice: ARInvoice) => {
@@ -453,13 +545,29 @@ export default function ARInvoicesPage() {
       return (
         <div style={{ display: 'flex', gap: '4px' }}>
           {invoice.status === 'draft' && (
-            <Button
-              text="ยืนยัน"
-              type="success"
-              stylingMode="outlined"
-              height={24}
-              onClick={() => handleConfirm(invoice)}
-            />
+            <>
+              <Button
+                icon="edit"
+                hint="แก้ไข"
+                stylingMode="text"
+                height={28}
+                onClick={() => handleEdit(invoice)}
+              />
+              <Button
+                icon="trash"
+                hint="ลบ"
+                stylingMode="text"
+                height={28}
+                onClick={() => handleDelete(invoice)}
+              />
+              <Button
+                text="ยืนยัน"
+                type="success"
+                stylingMode="outlined"
+                height={24}
+                onClick={() => handleConfirm(invoice)}
+              />
+            </>
           )}
           {['posted', 'partial'].includes(invoice.status) && (
             <Button
@@ -473,7 +581,7 @@ export default function ARInvoicesPage() {
         </div>
       );
     },
-    [handleConfirm, handleOpenPaymentDialog]
+    [handleConfirm, handleEdit, handleDelete, handleOpenPaymentDialog]
   );
 
   // Calculate stats
@@ -497,6 +605,11 @@ export default function ARInvoicesPage() {
         title={t('accountsReceivable.invoices.title')}
         subtitle={t('accountsReceivable.title')}
         icon="dollar-sign"
+        onBack={() => window.location.href = '/accounting/ar'}
+        breadcrumbs={[
+          { label: 'Accounts Receivable', href: '/accounting/ar' },
+          { label: t('accountsReceivable.invoices.title') },
+        ]}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['ar-invoices'] })}
         actions={
           <Button
@@ -635,7 +748,7 @@ export default function ARInvoicesPage() {
           />
           <Column
             caption="การดำเนินการ"
-            width={150}
+            width={200}
             cellRender={actionsCellRender}
             allowFiltering={false}
             allowSorting={false}
@@ -653,7 +766,7 @@ export default function ARInvoicesPage() {
         <Popup
           visible={isDialogOpen}
           onHiding={handleCloseDialog}
-          title="สร้างใบแจ้งหนี้ขาย"
+          title={editingInvoiceId ? 'แก้ไขใบแจ้งหนี้ขาย' : 'สร้างใบแจ้งหนี้ขาย'}
           width={800}
           height="auto"
           showCloseButton={true}
@@ -853,10 +966,10 @@ export default function ARInvoicesPage() {
             <div className="mt-6 flex justify-end gap-2">
               <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} elementAttr={{ 'data-testid': 'ar-cancel-btn' }} />
               <Button
-                text="บันทึก"
+                text={editingInvoiceId ? 'บันทึกการแก้ไข' : 'บันทึก'}
                 type="success"
                 onClick={handleSave}
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || updateMutation.isPending}
                 elementAttr={{ 'data-testid': 'ar-save-btn' }}
               />
             </div>

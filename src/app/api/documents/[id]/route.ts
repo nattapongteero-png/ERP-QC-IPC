@@ -13,7 +13,7 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { getDocumentById, updateDocument, updateDocumentStatus } from '@/lib/services/document-service';
+import { getDocumentById, updateDocument, updateDocumentStatus, deleteDocument } from '@/lib/services/document-service';
 import { documentUpdateSchema } from '@/lib/validation/documents';
 
 interface RouteParams {
@@ -98,6 +98,37 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             return errorResponse(error.message, 404);
           }
           if (error.message.includes('Cannot') || error.message.includes('already')) {
+            return errorResponse(error.message, 400);
+          }
+        }
+        return serverErrorResponse(error);
+      }
+    },
+    ['documents:write']
+  );
+}
+
+// DELETE /api/documents/[id] - Delete draft document
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  return withAuth(
+    request,
+    async (session) => {
+      try {
+        const { id } = await params;
+        const documentId = parseInt(id, 10);
+
+        if (isNaN(documentId) || documentId <= 0) {
+          return errorResponse('Invalid document ID', 400);
+        }
+
+        await deleteDocument(documentId, session.userId);
+        return successResponse({ success: true }, 'Document deleted successfully');
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('not found')) {
+            return errorResponse(error.message, 404);
+          }
+          if (error.message.includes('Only draft')) {
             return errorResponse(error.message, 400);
           }
         }

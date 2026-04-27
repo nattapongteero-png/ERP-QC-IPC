@@ -11,6 +11,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -383,7 +384,7 @@ export default function PqrDashboardPage() {
       workbook.xlsx.writeBuffer().then((buffer) => {
         saveAs(
           new Blob([buffer], { type: 'application/octet-stream' }),
-          `PQR_Reports_${new Date().toISOString().split('T')[0]}.xlsx`
+          `PQR_Reports_${toLocalDateStr(new Date())}.xlsx`
         );
       });
     });

@@ -123,11 +123,31 @@ export async function PATCH(
     } catch (error) {
       console.error('Error verifying material weight:', error);
       if (error instanceof Error) {
-        if (error.message.includes('not found') ||
-            error.message.includes('not been weighed') ||
-            error.message.includes('Cannot verify') ||
-            error.message.includes('Insufficient quantity')) {
-          return errorResponse(error.message, 400);
+        // Detect business-rule errors thrown intentionally by the service.
+        // These are expected outcomes (dual control violation, not-yet-weighed,
+        // out-of-stock, etc.) — surface them to the client as 422 with the
+        // full message so the UI can show a proper toast. Only unmatched
+        // errors fall through to 500 Internal Server Error.
+        const msg = error.message;
+        const isDualControlViolation =
+          msg.includes('ตรวจสอบรายการของตนเอง') ||
+          msg.includes('ผู้ปฏิบัติและผู้ตรวจสอบ') ||
+          msg.toLowerCase().includes('dual control') ||
+          msg.toLowerCase().includes('cannot verify own');
+        const isKnownBusinessError =
+          isDualControlViolation ||
+          msg.includes('not found') ||
+          msg.includes('not been weighed') ||
+          msg.includes('Cannot verify') ||
+          msg.includes('Insufficient quantity') ||
+          msg.includes('no available inventory') ||
+          msg.includes('inventory issue failed');
+
+        if (isKnownBusinessError) {
+          // 422 Unprocessable Entity — server understood the request but
+          // the business rule forbids completing it. Dual-control gets its
+          // own status code context so frontend can style differently.
+          return errorResponse(msg, isDualControlViolation ? 422 : 400);
         }
       }
       return serverErrorResponse(error);

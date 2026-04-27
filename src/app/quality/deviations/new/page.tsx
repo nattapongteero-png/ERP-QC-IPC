@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -113,7 +114,7 @@ export default function NewDeviationPage() {
       default:
         date.setDate(date.getDate() + 30); // 30 days for minor
     }
-    return date.toISOString().split('T')[0];
+    return toLocalDateStr(date);
   };
 
   return (
@@ -260,7 +261,7 @@ export default function NewDeviationPage() {
                       onValueChange={(value) =>
                         setFormData((prev) => ({ ...prev, dueDate: value || '' }))
                       }
-                      min={new Date().toISOString().split('T')[0]}
+                      min={toLocalDateStr(new Date())}
                       placeholder="เลือกวันครบกำหนด"
                     />
                   </div>

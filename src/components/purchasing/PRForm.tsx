@@ -13,6 +13,7 @@ import { TextArea } from 'devextreme-react/text-area';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { PRLineGrid } from './PRLineGrid';
 import type { PRWithLines, PRLineInput, PRPriority } from '@/types/purchase-requisition';
 
@@ -82,7 +83,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
           body: JSON.stringify({
             requesterId: 1, // TODO: Get from session
             priority,
-            requiredDate: requiredDate?.toISOString().split('T')[0],
+            requiredDate: requiredDate ? toLocalDateStr(requiredDate) : undefined,
             description,
             justification,
           }),
@@ -117,7 +118,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             priority,
-            requiredDate: requiredDate?.toISOString().split('T')[0] || null,
+            requiredDate: requiredDate ? toLocalDateStr(requiredDate) : null,
             description,
             justification,
           }),

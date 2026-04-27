@@ -165,6 +165,11 @@ export default function ARAgingPage() {
         title={t('reports.agingReport')}
         subtitle={t('accountsReceivable.description')}
         icon="clock"
+        onBack={() => window.location.href = '/accounting/ar'}
+        breadcrumbs={[
+          { label: 'Accounts Receivable', href: '/accounting/ar' },
+          { label: t('reports.agingReport') },
+        ]}
         onRefresh={handleRefresh}
         actions={
           report && (

@@ -3,11 +3,169 @@
     "title": "Human Resources",
     "description": "Manage employees and organization structure"
   },
+  "common": {
+    "all": "All",
+    "loading": "Loading...",
+    "noData": "No data",
+    "search": "Search...",
+    "searchEmployee": "Search employee...",
+    "filter": "Filter",
+    "filters": "Filters",
+    "hideFilters": "Hide filters",
+    "showFilters": "Filters",
+    "clearFilters": "Clear filters",
+    "refresh": "Refresh",
+    "refreshHint": "Refresh data",
+    "refreshData": "Refresh data",
+    "actions": "Actions",
+    "manage": "Manage",
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "deleting": "Deleting...",
+    "view": "View",
+    "viewDetails": "View details",
+    "viewMode": "View",
+    "viewGrid": "Grid view",
+    "viewCards": "Card view",
+    "viewAnalytics": "Analytics view",
+    "gridView": "Grid",
+    "cardsView": "Cards",
+    "analyticsView": "Analytics",
+    "show": "Show",
+    "dataFilters": "Data filters",
+    "deleteConfirm": "Confirm deletion",
+    "deactivateConfirm": "Confirm deactivation",
+    "noEmployeeData": "No employee data found",
+    "selectDepartment": "Select department",
+    "allDepartments": "All departments",
+    "department": "Department",
+    "status": "Status",
+    "type": "Type",
+    "email": "Email",
+    "phone": "Phone",
+    "person": "person",
+    "people": "people",
+    "items": "items",
+    "person_counter": "person(s)",
+    "quickActions": "Quick actions",
+    "newBadge": "New",
+    "month": "months",
+    "year": "year",
+    "years": "years",
+    "yearsMonths": "{years} year(s) {months} month(s)",
+    "selectBox": "Select..."
+  },
+  "dashboard": {
+    "statCards": {
+      "pendingNotifications": "Pending",
+      "expiringTraining": "Training expiring",
+      "todayActivities": "Today's activities",
+      "actionRequired": "Action required"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "addEmployee": "Add new employee",
+      "createCourse": "Create course",
+      "viewMatrix": "View Competency Matrix",
+      "checkNotifications": "Check notifications"
+    },
+    "modules": {
+      "title": "HR Modules",
+      "organization": {
+        "title": "Organization",
+        "titleEn": "Organization",
+        "description": "Manage departments and org chart"
+      },
+      "employees": {
+        "title": "Employees",
+        "titleEn": "Employees",
+        "description": "Employee register and work history"
+      },
+      "positions": {
+        "title": "Positions",
+        "titleEn": "Positions",
+        "description": "Manage positions and Job Descriptions"
+      },
+      "training": {
+        "title": "Training",
+        "titleEn": "Training",
+        "description": "Courses, sessions and Competency Matrix"
+      },
+      "authorizations": {
+        "title": "Authorizations",
+        "titleEn": "Authorizations",
+        "description": "Grant and delegate authorities"
+      },
+      "healthRecords": {
+        "title": "Health Records",
+        "titleEn": "Health Records",
+        "description": "Health check results and follow-up"
+      },
+      "roles": {
+        "title": "Roles/Permissions",
+        "titleEn": "Roles",
+        "description": "Manage system roles and permissions"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "titleEn": "Notifications",
+        "description": "Training and health alerts"
+      },
+      "audit": {
+        "title": "Audit Trail",
+        "titleEn": "Audit Log",
+        "description": "HR data change history"
+      }
+    }
+  },
   "employees": {
     "title": "Employees",
     "description": "Manage employee information",
     "notFound": "Employee Not Found",
     "notFoundDescription": "The requested employee could not be found",
+    "breadcrumb": "Employees",
+    "addEmployee": "Add employee",
+    "searchPlaceholder": "Search employee...",
+    "noEmployees": "No employees found",
+    "tenure": "Tenure",
+    "tenureLabel": "Tenure",
+    "hireDateLabel": "Hire date / Tenure",
+    "employeeCol": "Employee",
+    "orgUnitPosition": "Org unit / Position",
+    "phoneCol": "Phone",
+    "statusCol": "Status",
+    "viewMode": {
+      "grid": "Grid view",
+      "cards": "Card view",
+      "analytics": "Analytics view"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "On leave",
+      "terminated": "Terminated"
+    },
+    "stats": {
+      "total": "Total employees",
+      "active": "Active",
+      "inactive": "On leave",
+      "newThisMonth": "New this month",
+      "avgTenure": "Average tenure",
+      "increasing": "Increasing"
+    },
+    "analytics": {
+      "statusTitle": "Employee status",
+      "byDepartment": "Employees by department"
+    },
+    "filters": {
+      "orgUnit": "Department",
+      "orgUnitPlaceholder": "All departments",
+      "status": "Status",
+      "allStatus": "All"
+    },
     "table": {
       "columns": {
         "employeeId": "Employee ID",
@@ -15,7 +173,8 @@
         "department": "Department",
         "position": "Position",
         "joinDate": "Join Date",
-        "status": "Status"
+        "status": "Status",
+        "employeeCount": "{0} people"
       }
     },
     "form": {
@@ -52,6 +211,97 @@
   "positions": {
     "title": "Positions",
     "description": "Manage job positions",
+    "breadcrumb": "Positions",
+    "addPosition": "Add position",
+    "refresh": "Refresh",
+    "stats": {
+      "total": "Total positions",
+      "active": "Active",
+      "gmpCritical": "GMP Critical",
+      "orgUnits": "Org units"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "jdStatus": {
+      "draft": "Draft",
+      "pendingApproval": "Pending review",
+      "approved": "Approved",
+      "obsolete": "Obsolete"
+    },
+    "filters": {
+      "title": "Data filters",
+      "orgUnit": "Org unit",
+      "status": "Status",
+      "all": "All",
+      "gmpOnly": "GMP Critical only"
+    },
+    "columns": {
+      "code": "Code",
+      "title": "Position title",
+      "titleEn": "English title",
+      "orgUnit": "Org unit",
+      "grade": "Grade",
+      "gmp": "GMP",
+      "status": "Status"
+    },
+    "form": {
+      "code": "Position code",
+      "codePlaceholder": "e.g. QC-001",
+      "grade": "Job grade",
+      "gradePlaceholder": "e.g. Manager, Supervisor",
+      "titleTh": "Position title (Thai)",
+      "titleThPlaceholder": "Position title in Thai",
+      "titleEn": "Position title (English)",
+      "titleEnPlaceholder": "Position title in English",
+      "orgUnit": "Org unit",
+      "orgUnitPlaceholder": "Select org unit...",
+      "isGmpCritical": "GMP Critical position"
+    },
+    "popups": {
+      "createTitle": "Add new position",
+      "editTitle": "Edit position: {0}",
+      "createJdTitle": "Create job description - {0}"
+    },
+    "jd": {
+      "title": "Job description",
+      "add": "Add",
+      "empty": "No job description yet",
+      "effective": "Effective",
+      "approved": "Approved",
+      "version": "v",
+      "responsibilities": "Responsibilities",
+      "responsibilitiesPlaceholder": "Specify responsibilities...",
+      "authorities": "Authorities",
+      "authoritiesPlaceholder": "Specify authorities...",
+      "qualifications": "Qualifications",
+      "qualificationsPlaceholder": "Specify qualifications..."
+    },
+    "detailsEmpty": "Select a position to view details",
+    "details": {
+      "titleEn": "English title",
+      "orgUnit": "Org unit"
+    },
+    "analytics": {
+      "gmpTitle": "GMP position distribution",
+      "statusTitle": "Position status",
+      "byOrgUnit": "Positions by org unit",
+      "byGrade": "Positions by grade",
+      "noOrgUnitData": "No org unit data",
+      "positionSuffix": "positions"
+    },
+    "toast": {
+      "createSuccess": "Position created successfully",
+      "createError": "Failed to create position",
+      "updateSuccess": "Position updated successfully",
+      "updateError": "Failed to update position",
+      "jdCreateSuccess": "Job description created successfully",
+      "jdCreateError": "Failed to create job description"
+    },
+    "noPositions": "No positions found",
+    "gmpCritical": "GMP Critical",
+    "editHint": "Edit",
     "actions": {
       "addPosition": "Add Position",
       "viewPosition": "View Position"
@@ -61,6 +311,51 @@
     "title": "Roles",
     "description": "Manage roles and permissions",
     "invalidId": "Invalid role ID",
+    "breadcrumb": "Roles and permissions",
+    "createRole": "Create role",
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive",
+      "system": "System roles",
+      "placeholder": "Search role...",
+      "statusPlaceholder": "Status"
+    },
+    "stats": {
+      "total": "Total roles",
+      "active": "Active",
+      "system": "System roles",
+      "totalPermissions": "Total permissions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "system": "System"
+    },
+    "columns": {
+      "code": "Code",
+      "name": "Role name",
+      "description": "Description",
+      "permissionCount": "Permissions",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "permissions": "permissions",
+    "deleteConfirm": {
+      "title": "Confirm deactivation",
+      "message": "Are you sure you want to deactivate role \"{0}\"?",
+      "deactivate": "Deactivate",
+      "deactivating": "Deactivating..."
+    },
+    "toast": {
+      "deactivateSuccess": "Role deactivated successfully",
+      "deactivateError": "Failed to deactivate role"
+    },
+    "actionsHint": {
+      "view": "View details",
+      "edit": "Edit",
+      "deactivate": "Deactivate"
+    },
     "actions": {
       "addRole": "Add Role",
       "viewRole": "View Role"
@@ -69,6 +364,108 @@
   "authorizations": {
     "title": "Authorizations",
     "description": "Manage authorizations and access rights",
+    "breadcrumb": "Authorizations",
+    "grantNew": "Grant new authorization",
+    "types": {
+      "batchRelease": "Batch Release",
+      "sopApproval": "SOP Approval",
+      "deviationApproval": "Deviation Approval",
+      "changeControlApproval": "Change Control",
+      "capaApproval": "CAPA Approval"
+    },
+    "typesEn": {
+      "batchRelease": "Batch Release",
+      "sopApproval": "SOP Approval",
+      "deviationApproval": "Deviation Approval",
+      "changeControlApproval": "Change Control",
+      "capaApproval": "CAPA Approval"
+    },
+    "status": {
+      "active": "Effective",
+      "expired": "Expired",
+      "pending": "Pending",
+      "revoked": "Revoked"
+    },
+    "stats": {
+      "total": "Total authorizations",
+      "active": "Effective",
+      "pending": "Pending",
+      "expiringSoon": "Expiring soon",
+      "expiringSoonTrend": "Within 30 days",
+      "delegations": "Delegations",
+      "employeesWithAuth": "Employees with rights"
+    },
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Employee name, authorization type...",
+      "authType": "Authorization type",
+      "authTypePlaceholder": "All types",
+      "status": "Status",
+      "statusPlaceholder": "All statuses"
+    },
+    "columns": {
+      "employee": "Employee",
+      "authType": "Authorization type",
+      "effectiveFrom": "Effective from",
+      "effectiveTo": "Effective to",
+      "status": "Status",
+      "delegations": "Delegations",
+      "grantedBy": "Granted by",
+      "actions": "Actions"
+    },
+    "delegationsCount": "{0} delegations",
+    "delegate": "Delegate",
+    "revoke": "Revoke",
+    "revokeHint": "Revoke authorization",
+    "revokeConfirm": "Do you want to revoke this authorization?",
+    "grantedBy": "By",
+    "unknown": "Unknown",
+    "noMatch": "No authorizations match the criteria",
+    "noActiveAuth": "No active authorizations",
+    "noData": "No data",
+    "analytics": {
+      "byTypeTitle": "Authorization type distribution",
+      "byStatusTitle": "Authorization status",
+      "summaryByStatus": "Summary by status",
+      "summaryByType": "Summary by type",
+      "delegationsTitle": "Delegations",
+      "totalDelegations": "Total delegations",
+      "delegatedRights": "Authorizations with delegation",
+      "quickActions": "Quick actions",
+      "viewExpiring": "View expiring authorizations",
+      "countByType": "Authorization count by type",
+      "authSuffix": "authorizations",
+      "itemSuffix": "items"
+    },
+    "summary": {
+      "active": "Effective",
+      "pending": "Pending",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "delegatePopup": {
+      "title": "Delegate authorization",
+      "delegateFrom": "Delegate from",
+      "authority": "Authority",
+      "delegateTo": "Delegate to",
+      "selectEmployee": "Select employee...",
+      "reason": "Reason (optional)",
+      "effectiveFrom": "Effective from",
+      "effectiveTo": "Effective to",
+      "submit": "Delegate",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "revokeSuccess": "Authorization revoked successfully",
+      "revokeError": "Failed to revoke authorization",
+      "delegateSuccess": "Delegation created successfully",
+      "delegateError": "Failed to create delegation"
+    },
+    "viewMode": {
+      "grid": "Grid view",
+      "cards": "Card view",
+      "analytics": "Analytics view"
+    },
     "actions": {
       "addAuthorization": "Add Authorization",
       "viewAuthorization": "View Authorization"
@@ -77,6 +474,66 @@
   "healthRecords": {
     "title": "Health Records",
     "description": "Manage employee health records",
+    "breadcrumb": "Health Records",
+    "addRecord": "Record health check",
+    "examinationType": {
+      "preEmployment": "Pre-employment",
+      "periodic": "Periodic",
+      "special": "Special"
+    },
+    "fitnessStatus": {
+      "fit": "Fit for work",
+      "unfit": "Unfit for work",
+      "restricted": "Restricted"
+    },
+    "stats": {
+      "total": "Total records",
+      "dueIn30": "Due in 30 days",
+      "overdue": "Overdue",
+      "restricted": "Restricted"
+    },
+    "tabs": {
+      "records": "Health check history",
+      "due": "Due soon",
+      "overdue": "Overdue"
+    },
+    "columns": {
+      "employee": "Employee",
+      "examType": "Exam type",
+      "examDate": "Exam date",
+      "status": "Status",
+      "restrictions": "Restrictions",
+      "nextDue": "Next due",
+      "examiner": "Examiner",
+      "actions": "Actions",
+      "email": "Email",
+      "lastExamDate": "Last exam date",
+      "dueDate": "Due date",
+      "daysRemaining": "Days remaining",
+      "examDue": "Exam due",
+      "lastStatus": "Last status"
+    },
+    "daysStatus": {
+      "overdueBy": "Overdue by {0} days",
+      "inDays": "{0} days",
+      "inDaysLeft": "{0} days left"
+    },
+    "deleteConfirm": {
+      "title": "Confirm deletion",
+      "message": "Are you sure you want to delete the health record of \"{0}\"? This action cannot be undone.",
+      "deleting": "Deleting...",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "defaultEmployee": "employee"
+    },
+    "toast": {
+      "deleteSuccess": "Health record deleted successfully"
+    },
+    "actionsHint": {
+      "view": "View details",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
     "actions": {
       "addRecord": "Add Record",
       "viewRecord": "View Record"
@@ -84,7 +541,77 @@
   },
   "notifications": {
     "title": "Notifications",
-    "description": "Manage notifications"
+    "description": "Manage notifications",
+    "breadcrumb": "Notifications",
+    "checkTraining": "Check training",
+    "checkHealth": "Check health",
+    "refreshHint": "Refresh",
+    "types": {
+      "all": "All",
+      "trainingExpiring": "Training expiring",
+      "trainingExpired": "Training expired",
+      "healthCheckDue": "Health check due",
+      "healthCheckOverdue": "Health check overdue",
+      "authorizationExpiring": "Authorization expiring"
+    },
+    "typeLabels": {
+      "trainingExpiring": "Training expiring",
+      "trainingExpired": "Training expired",
+      "healthCheckDue": "Health check",
+      "healthCheckOverdue": "Health overdue",
+      "authorizationExpiring": "Authorization expiring"
+    },
+    "stats": {
+      "total": "Total items",
+      "trainingExpiring": "Training expiring",
+      "trainingExpired": "Training expired",
+      "healthDue": "Health check due",
+      "healthOverdue": "Health overdue"
+    },
+    "filters": {
+      "label": "Filters:",
+      "searchPlaceholder": "Search...",
+      "typePlaceholder": "Type",
+      "clear": "Clear"
+    },
+    "columns": {
+      "type": "Type",
+      "employeeCode": "Employee ID",
+      "employeeName": "Employee name",
+      "title": "Title",
+      "createdAt": "Created at",
+      "actions": "Actions"
+    },
+    "showing": "Showing:",
+    "deleteConfirm": {
+      "title": "Confirm deletion",
+      "message": "Do you want to delete notification \"{0}\"?",
+      "deleting": "Deleting...",
+      "delete": "Delete",
+      "cancel": "Cancel"
+    },
+    "detailPopup": {
+      "title": "Notification details",
+      "employee": "Employee",
+      "titleLabel": "Title",
+      "message": "Message",
+      "createdAt": "Created at",
+      "markAsRead": "Mark as read",
+      "delete": "Delete",
+      "close": "Close"
+    },
+    "actionsHint": {
+      "view": "View details",
+      "markAsRead": "Mark as read",
+      "delete": "Delete"
+    },
+    "toast": {
+      "checkSuccess": "Created {0} notifications",
+      "checkError": "Error during check",
+      "markReadSuccess": "Marked as read",
+      "error": "An error occurred",
+      "deleteSuccess": "Notification deleted successfully"
+    }
   },
   "orgChart": {
     "title": "Organization Chart",
@@ -92,15 +619,154 @@
   },
   "org": {
     "title": "Organization",
-    "description": "Manage organization structure"
+    "description": "Manage organization structure",
+    "breadcrumb": "Organization",
+    "subtitle": "Organization Structure",
+    "tabs": {
+      "tree": "Tree View",
+      "diagram": "Diagram View"
+    }
+  },
+  "orgRedirect": {
+    "redirecting": "Redirecting..."
   },
   "audit": {
     "title": "Audit",
-    "description": "Audit history"
+    "description": "Audit history",
+    "breadcrumb": "Audit log",
+    "stats": {
+      "total": "Total entries",
+      "activityTypes": "Activity types",
+      "users": "Users with access",
+      "totalActivities": "Total activities"
+    },
+    "tabs": {
+      "logs": "Activity log",
+      "summary": "Summary by type",
+      "accessReview": "Access review"
+    },
+    "filters": {
+      "fromDate": "From date",
+      "toDate": "To date",
+      "clear": "Clear filter"
+    },
+    "columns": {
+      "dateTime": "Date/Time",
+      "activity": "Activity",
+      "user": "User",
+      "table": "Table",
+      "recordId": "Record ID",
+      "employee": "Employee",
+      "roles": "Roles",
+      "authorizations": "Authorizations",
+      "activeRoles": "Active roles",
+      "activeAuth": "Active rights"
+    },
+    "summaryTitle": "Activity summary by type",
+    "noSummary": "No summary data found",
+    "detailPopup": {
+      "title": "Record details",
+      "dateTime": "Date/Time",
+      "user": "User",
+      "activity": "Activity",
+      "tableRecord": "Table / Record ID",
+      "oldValue": "Old value",
+      "newValue": "New value",
+      "noChanges": "No change details"
+    },
+    "viewDetailsHint": "View details"
   },
   "training": {
     "title": "Training",
     "description": "Manage training programs",
+    "breadcrumb": "Training",
+    "stats": {
+      "totalCourses": "Total courses",
+      "mandatoryCourses": "Mandatory courses",
+      "totalSessions": "Total sessions",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "upcoming": "Next 7 days",
+      "sessionsTrend": "{0} sessions"
+    },
+    "quickAccess": {
+      "manageCourses": "Manage courses",
+      "coursesSummary": "{0} courses ({1} active)",
+      "manageSessions": "Manage sessions",
+      "sessionsSummary": "{0} in progress, {1} pending",
+      "matrix": "Competency Matrix",
+      "matrixDesc": "Skills and competency table"
+    },
+    "viewMode": {
+      "grid": "Grid view (sessions)",
+      "cards": "Card view (courses)",
+      "analytics": "Analytics view"
+    },
+    "addSession": "Add session",
+    "addCourse": "Add course",
+    "filters": {
+      "title": "Data filters",
+      "clear": "Clear filters",
+      "search": "Search",
+      "searchPlaceholder": "Course name, code...",
+      "sessionStatus": "Session status",
+      "allStatus": "All statuses",
+      "category": "Category",
+      "allCategories": "All categories",
+      "mandatoryOnly": "Show mandatory courses only"
+    },
+    "sessionStatus": {
+      "scheduled": "Scheduled",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "mandatory": "Mandatory",
+    "optional": "Optional",
+    "active": "Active",
+    "inactive": "Inactive",
+    "columns": {
+      "courseCode": "Course code",
+      "courseName": "Course name",
+      "sessionDate": "Session date",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "location": "Location",
+      "capacity": "Capacity",
+      "status": "Status"
+    },
+    "sessionSearch": "Search sessions...",
+    "noCourses": "No courses match the criteria",
+    "noSessionData": "No session data",
+    "noCategoryData": "No category data",
+    "hours": "hours",
+    "validDays": "Valid {0} days",
+    "analytics": {
+      "sessionStatusTitle": "Session status",
+      "courseCategoryTitle": "Course categories",
+      "sessionsSummary": "Sessions summary",
+      "coursesSummary": "Courses summary",
+      "thisMonth": "This month",
+      "next7Days": "Next 7 days",
+      "thisMonthSessions": "Total sessions this month",
+      "quickActions": "Quick actions",
+      "addCourse": "Add new course",
+      "addSession": "Add session",
+      "viewMatrix": "View Competency Matrix",
+      "coursesByCategory": "Courses by category",
+      "sessionSuffix": "sessions",
+      "courseSuffix": "courses",
+      "summary": {
+        "scheduled": "Scheduled",
+        "inProgress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "total": "Total",
+        "active": "Active",
+        "mandatory": "Mandatory",
+        "categories": "Categories"
+      }
+    },
     "matrix": {
       "title": "Training Matrix",
       "description": "View employee training matrix"

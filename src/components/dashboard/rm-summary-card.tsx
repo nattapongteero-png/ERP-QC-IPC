@@ -6,6 +6,7 @@
  * FR-047: RM Received YTD
  */
 
+import { useTranslations } from 'next-intl';
 import { KpiCard } from './kpi-card';
 import { Package } from 'lucide-react';
 import type { RmReceivedYtd } from '@/lib/services/audit-dashboard-service';
@@ -16,17 +17,18 @@ interface RmSummaryCardProps {
 }
 
 export function RmSummaryCard({ data, onClick }: RmSummaryCardProps) {
+  const t = useTranslations('dashboard.auditCards.rmSummary');
   return (
     <KpiCard
-      title="RM Received YTD"
+      title={t('title')}
       value={data.totalLots}
-      subtitle="lots"
+      subtitle={t('subtitle')}
       icon={<Package className="w-5 h-5 text-green-600" />}
       status="normal"
       onClick={onClick}
     >
       <div className="text-sm text-gray-500">
-        {data.totalQuantity.toLocaleString()} units total
+        {t('unitsTotal', { count: data.totalQuantity.toLocaleString() })}
       </div>
     </KpiCard>
   );

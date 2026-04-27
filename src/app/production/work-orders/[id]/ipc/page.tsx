@@ -10,7 +10,8 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 // DxPopup removed — inline recording used instead
@@ -127,6 +128,9 @@ export default function IPCPage() {
   const tc = useTranslations('common');
 
   const workOrderId = Number(params.id);
+
+  // GMP dual-control: the test's performer can't approve their own work
+  const { data: currentUser } = useCurrentUser();
 
   // Inline record state
   const [selectedTest, setSelectedTest] = useState<IPCTest | null>(null);
@@ -567,16 +571,20 @@ export default function IPCPage() {
                                     </button>
                                   )}
                                   {!round.isApproved && (
-                                    <DxButton
-                                      text="Approve"
-                                      type="success"
-                                      stylingMode="outlined"
-                                      onClick={() => approveMutation.mutate({
-                                        qualityTestId: test.id,
-                                        testRound: round.round,
-                                      })}
-                                      disabled={approveMutation.isPending}
-                                    />
+                                    currentUser?.id && test.testedBy === currentUser.id ? (
+                                      <AwaitingOtherVerifierBadge label="รอ QA ตรวจสอบ" />
+                                    ) : (
+                                      <DxButton
+                                        text="Approve"
+                                        type="success"
+                                        stylingMode="outlined"
+                                        onClick={() => approveMutation.mutate({
+                                          qualityTestId: test.id,
+                                          testRound: round.round,
+                                        })}
+                                        disabled={approveMutation.isPending}
+                                      />
+                                    )
                                   )}
                                 </div>
                               </div>
@@ -681,20 +689,24 @@ export default function IPCPage() {
                             {t('execution.sampleValues')} ({test.sampleSize} {t('execution.samples')})
                           </label>
                           <div className="grid grid-cols-5 gap-2">
-                            {sampleValues.map((val, idx) => (
-                              <div key={idx}>
-                                <label className="block text-xs text-gray-500 mb-0.5">#{idx + 1}</label>
-                                <DxNumberBox
-                                  value={val}
-                                  onValueChanged={(e) => {
-                                    const next = [...sampleValues];
-                                    next[idx] = e.value;
-                                    setSampleValues(next);
-                                  }}
-                                  placeholder="0.00"
-                                />
-                              </div>
-                            ))}
+                            {sampleValues.map((val, idx) => {
+                              const prevFilled = idx === 0 || sampleValues[idx - 1] != null;
+                              return (
+                                <div key={idx} className={!prevFilled ? 'opacity-40' : ''}>
+                                  <label className="block text-xs text-gray-500 mb-0.5">#{idx + 1}</label>
+                                  <DxNumberBox
+                                    value={val}
+                                    onValueChanged={(e) => {
+                                      const next = [...sampleValues];
+                                      next[idx] = e.value;
+                                      setSampleValues(next);
+                                    }}
+                                    placeholder="0.00"
+                                    disabled={!prevFilled}
+                                  />
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -702,47 +714,94 @@ export default function IPCPage() {
                       {/* Checkbox mode inputs */}
                       {(test.criteriaType === 'checkbox') && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            ผลการตรวจ ({test.sampleSize} ตัวอย่าง)
-                          </label>
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <label className="block text-sm font-medium text-gray-700">
+                              ผลการตรวจ ({test.sampleSize} ตัวอย่าง)
+                            </label>
+                            <div className="flex gap-2" data-testid="ipc-bulk-actions">
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"
+                                onClick={() => {
+                                  setCheckboxResults(Array(test.sampleSize || 1).fill('pass'));
+                                }}
+                                title="ทำเครื่องหมายผ่านทั้งหมด"
+                                data-testid="ipc-pass-all"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                ผ่านทั้งหมด
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm"
+                                onClick={() => {
+                                  setCheckboxResults(Array(test.sampleSize || 1).fill('fail'));
+                                }}
+                                title="ทำเครื่องหมายไม่ผ่านทั้งหมด"
+                                data-testid="ipc-fail-all"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                ไม่ผ่านทั้งหมด
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors border border-gray-300"
+                                onClick={() => {
+                                  setCheckboxResults(Array(test.sampleSize || 1).fill(null));
+                                }}
+                                title="ล้างค่าทั้งหมด"
+                                data-testid="ipc-clear-all"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                ล้างค่า
+                              </button>
+                            </div>
+                          </div>
                           <div className="grid grid-cols-5 gap-2">
-                            {checkboxResults.map((val, idx) => (
-                              <div key={idx} className="text-center">
-                                <label className="block text-xs text-gray-500 mb-0.5">#{idx + 1}</label>
-                                <div className="flex gap-1">
-                                  <button
-                                    type="button"
-                                    className={`flex-1 px-1 py-1.5 rounded text-xs font-medium transition-colors ${
-                                      val === 'pass'
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-gray-100 text-gray-500 hover:bg-green-100'
-                                    }`}
-                                    onClick={() => {
-                                      const next = [...checkboxResults];
-                                      next[idx] = 'pass';
-                                      setCheckboxResults(next);
-                                    }}
-                                  >
-                                    Pass
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={`flex-1 px-1 py-1.5 rounded text-xs font-medium transition-colors ${
-                                      val === 'fail'
-                                        ? 'bg-red-500 text-white'
-                                        : 'bg-gray-100 text-gray-500 hover:bg-red-100'
-                                    }`}
-                                    onClick={() => {
-                                      const next = [...checkboxResults];
-                                      next[idx] = 'fail';
-                                      setCheckboxResults(next);
-                                    }}
-                                  >
-                                    Fail
-                                  </button>
+                            {checkboxResults.map((val, idx) => {
+                              // Bulk-fill removes sequential requirement; allow editing any sample once bulk action applied
+                              const anyFilled = checkboxResults.some((r) => r != null);
+                              const prevFilled = idx === 0 || checkboxResults[idx - 1] != null || anyFilled;
+                              return (
+                                <div key={idx} className={`text-center ${!prevFilled ? 'opacity-40 pointer-events-none' : ''}`}>
+                                  <label className="block text-xs text-gray-500 mb-0.5">#{idx + 1}</label>
+                                  <div className="flex gap-1">
+                                    <button
+                                      type="button"
+                                      disabled={!prevFilled}
+                                      className={`flex-1 px-1 py-1.5 rounded text-xs font-medium transition-colors ${
+                                        val === 'pass'
+                                          ? 'bg-green-500 text-white'
+                                          : 'bg-gray-100 text-gray-500 hover:bg-green-100'
+                                      } disabled:cursor-not-allowed`}
+                                      onClick={() => {
+                                        const next = [...checkboxResults];
+                                        next[idx] = 'pass';
+                                        setCheckboxResults(next);
+                                      }}
+                                    >
+                                      Pass
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={!prevFilled}
+                                      className={`flex-1 px-1 py-1.5 rounded text-xs font-medium transition-colors ${
+                                        val === 'fail'
+                                          ? 'bg-red-500 text-white'
+                                          : 'bg-gray-100 text-gray-500 hover:bg-red-100'
+                                      } disabled:cursor-not-allowed`}
+                                      onClick={() => {
+                                        const next = [...checkboxResults];
+                                        next[idx] = 'fail';
+                                        setCheckboxResults(next);
+                                      }}
+                                    >
+                                      Fail
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -799,16 +858,43 @@ export default function IPCPage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex justify-end gap-2">
-                        <DxButton text={tc('actions.cancel')} stylingMode="text" onClick={resetForm} />
-                        <DxButton
-                          text={recordMutation.isPending ? tc('actions.saving') : tc('actions.save')}
-                          type="default"
-                          stylingMode="text"
-                          onClick={handleSaveRecord}
-                          disabled={recordMutation.isPending}
-                        />
-                      </div>
+                      {(() => {
+                        const criteriaType = test.criteriaType || 'numeric';
+                        const ss = test.sampleSize || 1;
+                        let allFilled = false;
+                        if (criteriaType === 'checkbox') {
+                          allFilled = checkboxResults.length === ss && checkboxResults.every(r => r != null);
+                        } else if (ss > 1) {
+                          allFilled = sampleValues.length === ss && sampleValues.every(v => v != null);
+                        } else {
+                          allFilled = numericResult != null;
+                        }
+                        const filledCount = criteriaType === 'checkbox'
+                          ? checkboxResults.filter(r => r != null).length
+                          : ss > 1 ? sampleValues.filter(v => v != null).length
+                          : numericResult != null ? 1 : 0;
+                        return (
+                          <div className="flex items-center justify-between gap-2">
+                            {!allFilled && ss > 1 && (
+                              <span className="text-xs text-amber-600">
+                                <AlertTriangle className="h-3 w-3 inline mr-1" />
+                                กรอกผลแล้ว {filledCount}/{ss} ตัวอย่าง — ต้องกรอกครบทุกตัวอย่างจึงจะบันทึกได้
+                              </span>
+                            )}
+                            {allFilled && <span />}
+                            <div className="flex gap-2">
+                              <DxButton text={tc('actions.cancel')} stylingMode="text" onClick={resetForm} />
+                              <DxButton
+                                text={recordMutation.isPending ? tc('actions.saving') : tc('actions.save')}
+                                type="default"
+                                stylingMode="text"
+                                onClick={handleSaveRecord}
+                                disabled={recordMutation.isPending || !allFilled}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </CardContent>

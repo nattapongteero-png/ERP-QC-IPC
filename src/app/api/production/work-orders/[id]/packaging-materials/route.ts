@@ -141,6 +141,22 @@ export async function PATCH(
       return successResponse(material, 'Packaging material verified');
     } catch (error) {
       console.error('Error verifying WO packaging material:', error);
+      if (error instanceof Error) {
+        const msg = error.message;
+        const isDualControlViolation =
+          msg.includes('ตรวจสอบรายการของตนเอง') ||
+          msg.includes('ผู้ปฏิบัติและผู้ตรวจสอบ') ||
+          msg.toLowerCase().includes('dual control') ||
+          msg.toLowerCase().includes('cannot verify own');
+        const isKnownBusinessError =
+          isDualControlViolation ||
+          msg.includes('not found') ||
+          msg.includes('not been');
+
+        if (isKnownBusinessError) {
+          return errorResponse(msg, isDualControlViolation ? 422 : 400);
+        }
+      }
       return serverErrorResponse(error);
     }
   });

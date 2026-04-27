@@ -257,6 +257,15 @@
     "edit": "Edit",
     "delete": "Delete"
   },
+  "workflowTest": {
+    "title": "Workflow Test",
+    "subtitle": "End-to-end ERP process testing with real-time visualization",
+    "configure": "Configure",
+    "clear": "Clear",
+    "cancel": "Cancel",
+    "running": "Running...",
+    "runBasicTest": "Run Basic Workflow Test"
+  },
   "matchingTolerances": {
     "title": "Matching Tolerances",
     "description": "Configure tolerance thresholds for 3-way matching validation",

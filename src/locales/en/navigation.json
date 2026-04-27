@@ -39,6 +39,7 @@
   },
   "gmp": {
     "documents": "Documents",
+    "changes": "Changes",
     "capa": "CAPA",
     "complaints": "Complaints",
     "recalls": "Recalls",
@@ -61,6 +62,7 @@
   "accounting": {
     "dashboard": "Dashboard",
     "chartOfAccounts": "Chart of Accounts",
+    "accountTypes": "Account Types",
     "journalEntries": "Journal Entries",
     "apInvoices": "AP Invoices",
     "arInvoices": "AR Invoices",
@@ -108,6 +110,12 @@
   },
   "admin": {
     "confidentialGroups": "Confidential Groups"
+  },
+  "settings": {
+    "general": "General",
+    "approvalWorkflows": "Approval Workflows",
+    "matchingTolerances": "Matching Tolerances",
+    "workflowTest": "Workflow Test"
   },
   "workflow": {
     "runner": "Workflow Runner"

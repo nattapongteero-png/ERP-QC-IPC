@@ -26,6 +26,7 @@ import type {
   FitnessStatus,
   EmployeeSummary,
 } from '@/types/hr';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 export interface HealthRecordFormProps {
   mode: 'create' | 'edit';
@@ -70,7 +71,7 @@ const AFFECTED_AREAS_OPTIONS = [
 const defaultFormData: FormData = {
   employeeId: undefined,
   examinationType: undefined,
-  examinationDate: new Date().toISOString().split('T')[0],
+  examinationDate: toLocalDateStr(new Date()),
   nextExamDue: '',
   fitnessStatus: undefined,
   restrictions: '',

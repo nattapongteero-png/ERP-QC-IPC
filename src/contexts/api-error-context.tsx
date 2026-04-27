@@ -19,6 +19,13 @@ interface ApiError {
   url?: string;
   method?: string;
   dismissedAt?: number;
+  // Permission-denial context (populated when backend returns 403 with
+  // missing permission info). See buildMissingPermissionResponse() in
+  // src/lib/api-utils.ts — these fields let the toast highlight exactly
+  // which permission is missing so admins can fix role assignments quickly.
+  missingPermissions?: string[];
+  userRole?: string;
+  actionHint?: string;
 }
 
 interface ApiErrorContextType {

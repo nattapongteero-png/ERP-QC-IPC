@@ -563,6 +563,56 @@ export async function updateDocument(
 }
 
 /**
+ * Delete a draft document and all its versions/approvals
+ * Only documents with status 'draft' can be deleted.
+ */
+export async function deleteDocument(
+  id: number,
+  userId: number
+): Promise<void> {
+  const { documents, versions, approvals } = getTables();
+  const database = (await getDb()) as any;
+
+  const [doc] = await database
+    .select({ id: documents.id, status: documents.status, documentNumber: documents.documentNumber, title: documents.title })
+    .from(documents)
+    .where(eq(documents.id, id));
+
+  if (!doc) {
+    throw new Error(`Document ${id} not found`);
+  }
+
+  if (doc.status !== 'draft') {
+    throw new Error('Only draft documents can be deleted');
+  }
+
+  // Get all version IDs for this document
+  const docVersions = await database
+    .select({ id: versions.id })
+    .from(versions)
+    .where(eq(versions.documentId, id));
+
+  // Delete approvals for all versions
+  for (const v of docVersions) {
+    await database.delete(approvals).where(eq(approvals.versionId, v.id));
+  }
+
+  // Delete all versions
+  await database.delete(versions).where(eq(versions.documentId, id));
+
+  // Delete the document
+  await database.delete(documents).where(eq(documents.id, id));
+
+  await createAuditLog({
+    userId,
+    action: 'DELETE',
+    tableName: 'documents',
+    recordId: id,
+    oldValue: { documentNumber: doc.documentNumber, title: doc.title },
+  });
+}
+
+/**
  * Create a new version of a document
  */
 export async function createVersion(
@@ -1296,6 +1346,47 @@ export async function getVersionFileData(
 /**
  * Update file data for an existing version
  */
+/**
+ * Delete file data from a document version (draft versions only)
+ */
+export async function deleteVersionFile(
+  versionId: number,
+  userId: number
+): Promise<boolean> {
+  const { versions } = getTables();
+  const database = (await getDb()) as any;
+
+  const [ver] = await database
+    .select({ id: versions.id, status: versions.status, fileName: versions.fileName })
+    .from(versions)
+    .where(eq(versions.id, versionId));
+
+  if (!ver) throw new Error('Version not found');
+  if (ver.status !== 'draft') throw new Error('Can only delete files from draft versions');
+
+  await database
+    .update(versions)
+    .set({
+      fileData: null,
+      fileName: null,
+      fileSize: null,
+      mimeType: null,
+      filePath: null,
+    })
+    .where(eq(versions.id, versionId));
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'document_versions',
+    recordId: versionId,
+    oldValue: { fileName: ver.fileName },
+    newValue: { action: 'file_deleted' },
+  });
+
+  return true;
+}
+
 export async function updateVersionFileData(
   versionId: number,
   fileData: Buffer | Uint8Array,

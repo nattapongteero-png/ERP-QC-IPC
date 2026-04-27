@@ -120,7 +120,10 @@
     "stats": {
       "approved": "อนุมัติแล้ว",
       "vmi": "VMI",
-      "avgDays": "วันเฉลี่ย"
+      "avgDays": "วันเฉลี่ย",
+      "total": "ผู้ขายทั้งหมด",
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน"
     },
     "actions": {
       "refresh": "รีเฟรช",
@@ -140,7 +143,14 @@
       "noData": "ไม่พบผู้ขาย",
       "days": "{days} วัน"
     },
-    "searchPlaceholder": "ค้นหาด้วยรหัส ชื่อ หรือผู้ติดต่อ..."
+    "searchPlaceholder": "ค้นหาด้วยรหัส ชื่อ หรือผู้ติดต่อ...",
+    "emptyTitle": "ยังไม่มีผู้ขาย",
+    "emptyDescription": "เริ่มต้นจัดการผู้ขายของคุณโดยเพิ่มผู้ขายรายแรก",
+    "noResultsTitle": "ไม่พบผู้ขายที่ตรงกับเงื่อนไข",
+    "noResultsDescription": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองอื่น",
+    "clearFilters": "ล้างตัวกรอง",
+    "viewDetails": "ดูรายละเอียด",
+    "vendorsShown": "{count} ผู้ขายที่แสดง"
   },
   "requisitions": {
     "pageTitle": "ใบขอซื้อ",

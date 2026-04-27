@@ -6,7 +6,7 @@
 // Updated Task 4: Template Pattern Alignment - Page-based navigation
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -90,10 +90,10 @@ const emptyFormData: PositionFormData = {
 };
 
 const JD_STATUS_CONFIG = {
-  draft: { label: 'ร่าง', variant: 'secondary' as const, icon: FileText },
-  pending_approval: { label: 'รอตรวจสอบ', variant: 'warning' as const, icon: Clock },
-  approved: { label: 'อนุมัติ', variant: 'success' as const, icon: Check },
-  obsolete: { label: 'ยกเลิก', variant: 'danger' as const, icon: X },
+  draft: { translationKey: 'draft', variant: 'secondary' as const, icon: FileText },
+  pending_approval: { translationKey: 'pendingApproval', variant: 'warning' as const, icon: Clock },
+  approved: { translationKey: 'approved', variant: 'success' as const, icon: Check },
+  obsolete: { translationKey: 'obsolete', variant: 'danger' as const, icon: X },
 };
 
 // Color palette for charts
@@ -177,6 +177,7 @@ async function createJobDescription(positionId: number, data: Partial<JobDescrip
 
 export default function PositionsPage() {
   const t = useTranslations('hr');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -274,7 +275,7 @@ export default function PositionsPage() {
     // Group by job grade
     const byGrade = new Map<string, number>();
     positions.forEach((pos) => {
-      const grade = pos.jobGrade || 'ไม่ระบุ';
+      const grade = pos.jobGrade || t('authorizations.unknown');
       byGrade.set(grade, (byGrade.get(grade) || 0) + 1);
     });
 
@@ -289,8 +290,8 @@ export default function PositionsPage() {
         { label: 'Non-GMP', value: nonGmpCritical, color: CHART_COLORS.nonGmp },
       ],
       statusDistribution: [
-        { label: 'ใช้งาน', value: active, color: CHART_COLORS.active },
-        { label: 'ปิดใช้งาน', value: inactive, color: CHART_COLORS.inactive },
+        { label: t('positions.status.active'), value: active, color: CHART_COLORS.active },
+        { label: t('positions.status.inactive'), value: inactive, color: CHART_COLORS.inactive },
       ],
       orgUnitDistribution: Array.from(byOrgUnit.values())
         .sort((a, b) => b.count - a.count)
@@ -299,7 +300,7 @@ export default function PositionsPage() {
         .map(([grade, count]) => ({ grade, count }))
         .sort((a, b) => b.count - a.count),
     };
-  }, [positions, orgUnitMap]);
+  }, [positions, orgUnitMap, t]);
 
   const createMutation = useMutation({
     mutationFn: createPosition,
@@ -307,10 +308,10 @@ export default function PositionsPage() {
       queryClient.invalidateQueries({ queryKey: ['hr', 'positions'] });
       setShowCreatePopup(false);
       setFormData(emptyFormData);
-      toast.success('สร้างตำแหน่งสำเร็จ');
+      toast.success(t('positions.toast.createSuccess'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถสร้างตำแหน่งได้');
+      toast.error(error.message || t('positions.toast.createError'));
     },
   });
 
@@ -322,10 +323,10 @@ export default function PositionsPage() {
       setShowEditPopup(false);
       setSelectedPosition(null);
       setFormData(emptyFormData);
-      toast.success('อัปเดตตำแหน่งสำเร็จ');
+      toast.success(t('positions.toast.updateSuccess'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถอัปเดตตำแหน่งได้');
+      toast.error(error.message || t('positions.toast.updateError'));
     },
   });
 
@@ -336,10 +337,10 @@ export default function PositionsPage() {
       queryClient.invalidateQueries({ queryKey: ['hr', 'job-descriptions', selectedPosition?.id] });
       setShowJDPopup(false);
       setNewJD({ responsibilities: '', authorities: '', qualifications: '' });
-      toast.success('สร้างรายละเอียดงานสำเร็จ');
+      toast.success(t('positions.toast.jdCreateSuccess'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถสร้างรายละเอียดงานได้');
+      toast.error(error.message || t('positions.toast.jdCreateError'));
     },
   });
 
@@ -419,12 +420,12 @@ export default function PositionsPage() {
         {cellData.value ? (
           <>
             <CheckCircle className="h-4 w-4 text-green-500" />
-            <Badge variant="success" className="text-xs">ใช้งาน</Badge>
+            <Badge variant="success" className="text-xs">{t('positions.status.active')}</Badge>
           </>
         ) : (
           <>
             <AlertTriangle className="h-4 w-4 text-gray-400" />
-            <Badge variant="secondary" className="text-xs">ปิดใช้งาน</Badge>
+            <Badge variant="secondary" className="text-xs">{t('positions.status.inactive')}</Badge>
           </>
         )}
       </div>
@@ -444,7 +445,7 @@ export default function PositionsPage() {
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('th-TH', {
+    return new Date(dateString).toLocaleDateString(locale === 'th' ? 'th-TH' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -476,51 +477,51 @@ export default function PositionsPage() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            รหัสตำแหน่ง <span className="text-red-500">*</span>
+            {t('positions.form.code')} <span className="text-red-500">*</span>
           </label>
           <TextBox
             value={formData.code}
             onValueChanged={(e) => setFormData((prev) => ({ ...prev, code: e.value || '' }))}
-            placeholder="เช่น QC-001"
+            placeholder={t('positions.form.codePlaceholder')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            ระดับตำแหน่ง
+            {t('positions.form.grade')}
           </label>
           <TextBox
             value={formData.jobGrade}
             onValueChanged={(e) => setFormData((prev) => ({ ...prev, jobGrade: e.value || '' }))}
-            placeholder="เช่น Manager, Supervisor"
+            placeholder={t('positions.form.gradePlaceholder')}
           />
         </div>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          ชื่อตำแหน่ง (ภาษาไทย) <span className="text-red-500">*</span>
+          {t('positions.form.titleTh')} <span className="text-red-500">*</span>
         </label>
         <TextBox
           value={formData.title}
           onValueChanged={(e) => setFormData((prev) => ({ ...prev, title: e.value || '' }))}
-          placeholder="ชื่อตำแหน่งภาษาไทย"
+          placeholder={t('positions.form.titleThPlaceholder')}
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          ชื่อตำแหน่ง (ภาษาอังกฤษ)
+          {t('positions.form.titleEn')}
         </label>
         <TextBox
           value={formData.titleEn}
           onValueChanged={(e) => setFormData((prev) => ({ ...prev, titleEn: e.value || '' }))}
-          placeholder="Position title in English"
+          placeholder={t('positions.form.titleEnPlaceholder')}
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          หน่วยงาน
+          {t('positions.form.orgUnit')}
         </label>
         <SelectBox
           dataSource={orgUnits}
@@ -528,7 +529,7 @@ export default function PositionsPage() {
           displayExpr="name"
           value={formData.orgUnitId}
           onValueChanged={(e) => setFormData((prev) => ({ ...prev, orgUnitId: e.value }))}
-          placeholder="เลือกหน่วยงาน..."
+          placeholder={t('positions.form.orgUnitPlaceholder')}
           searchEnabled
           showClearButton
         />
@@ -540,7 +541,7 @@ export default function PositionsPage() {
           onValueChanged={(e) => setFormData((prev) => ({ ...prev, isGmpCritical: e.value || false }))}
         />
         <label className="text-sm font-medium text-gray-700">
-          ตำแหน่ง GMP Critical
+          {t('positions.form.isGmpCritical')}
         </label>
       </div>
     </div>
@@ -568,7 +569,7 @@ export default function PositionsPage() {
                 <p className="text-sm text-gray-500">{position.code}</p>
               </div>
               <Badge variant={position.isActive ? 'success' : 'secondary'} className="text-xs flex-shrink-0">
-                {position.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                {position.isActive ? t('positions.status.active') : t('positions.status.inactive')}
               </Badge>
             </div>
 
@@ -613,18 +614,18 @@ export default function PositionsPage() {
         iconColor="text-blue-600"
         breadcrumbs={[
           { label: 'HR', href: '/hr' },
-          { label: 'ตำแหน่งงาน' },
+          { label: t('positions.breadcrumb') },
         ]}
         actions={
           <div className="flex items-center gap-2">
             <DxButton
-              text="รีเฟรช"
+              text={t('positions.refresh')}
               icon="refresh"
               stylingMode="text"
               onClick={() => refetch()}
             />
             <DxButton
-              text="เพิ่มตำแหน่ง"
+              text={t('positions.addPosition')}
               icon="add"
               type="default"
               onClick={() => router.push('/hr/positions/new')}
@@ -637,7 +638,7 @@ export default function PositionsPage() {
       {/* KPI Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="hr-positions-stats">
         <StatCard
-          label="ตำแหน่งทั้งหมด"
+          label={t('positions.stats.total')}
           value={analytics.total}
           icon={Briefcase}
           iconColor="text-blue-600"
@@ -645,7 +646,7 @@ export default function PositionsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ใช้งาน"
+          label={t('positions.stats.active')}
           value={analytics.active}
           icon={CheckCircle}
           iconColor="text-green-600"
@@ -654,7 +655,7 @@ export default function PositionsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="GMP Critical"
+          label={t('positions.stats.gmpCritical')}
           value={analytics.gmpCritical}
           icon={Shield}
           iconColor="text-red-600"
@@ -663,7 +664,7 @@ export default function PositionsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="หน่วยงาน"
+          label={t('positions.stats.orgUnits')}
           value={analytics.orgUnitDistribution.length}
           icon={Building2}
           iconColor="text-purple-600"
@@ -681,36 +682,36 @@ export default function PositionsPage() {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}
-            title="มุมมองตาราง"
+            title={t('common.viewGrid')}
           >
             <List className="h-4 w-4" />
-            <span className="hidden sm:inline">ตาราง</span>
+            <span className="hidden sm:inline">{t('common.gridView')}</span>
           </button>
           <button
             onClick={() => setViewMode('cards')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               viewMode === 'cards' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}
-            title="มุมมองการ์ด"
+            title={t('common.viewCards')}
           >
             <Grid3X3 className="h-4 w-4" />
-            <span className="hidden sm:inline">การ์ด</span>
+            <span className="hidden sm:inline">{t('common.cardsView')}</span>
           </button>
           <button
             onClick={() => setViewMode('analytics')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               viewMode === 'analytics' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}
-            title="มุมมองวิเคราะห์"
+            title={t('common.viewAnalytics')}
           >
             <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">วิเคราะห์</span>
+            <span className="hidden sm:inline">{t('common.analyticsView')}</span>
           </button>
         </div>
 
         {/* Filter Button */}
         <DxButton
-          text={showFilters ? 'ซ่อนตัวกรอง' : 'ตัวกรอง'}
+          text={showFilters ? t('common.hideFilters') : t('common.showFilters')}
           icon="filter"
           stylingMode="outlined"
           onClick={() => setShowFilters(!showFilters)}
@@ -722,11 +723,11 @@ export default function PositionsPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="h-4 w-4 text-gray-500" />
-            <h3 className="font-medium text-gray-900">ตัวกรองข้อมูล</h3>
+            <h3 className="font-medium text-gray-900">{t('positions.filters.title')}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">หน่วยงาน</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('positions.filters.orgUnit')}</label>
               <OrgUnitPicker
                 value={filters.orgUnitId}
                 onValueChange={(val) => setFilters((prev) => ({ ...prev, orgUnitId: val }))}
@@ -734,15 +735,15 @@ export default function PositionsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('positions.filters.status')}</label>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value as StatusFilter }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="all">ทั้งหมด</option>
-                <option value="active">ใช้งาน</option>
-                <option value="inactive">ปิดใช้งาน</option>
+                <option value="all">{t('positions.filters.all')}</option>
+                <option value="active">{t('positions.status.active')}</option>
+                <option value="inactive">{t('positions.status.inactive')}</option>
               </select>
             </div>
             <div className="flex items-center gap-2 pt-6">
@@ -750,7 +751,7 @@ export default function PositionsPage() {
                 value={filters.gmpOnly}
                 onValueChanged={(e) => setFilters((prev) => ({ ...prev, gmpOnly: e.value || false }))}
               />
-              <label className="text-sm text-gray-700">เฉพาะ GMP Critical</label>
+              <label className="text-sm text-gray-700">{t('positions.filters.gmpOnly')}</label>
             </div>
           </div>
         </div>
@@ -762,6 +763,7 @@ export default function PositionsPage() {
         {viewMode === 'grid' && (
           <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden" data-testid="hr-positions-grid">
             <DataGrid
+              key={locale}
               dataSource={filteredPositions}
               keyExpr="id"
               showBorders={false}
@@ -778,7 +780,7 @@ export default function PositionsPage() {
               loadPanel={{ enabled: isLoading }}
               selectedRowKeys={selectedPosition ? [selectedPosition.id] : []}
             >
-              <SearchPanel visible placeholder="ค้นหา..." width={200} />
+              <SearchPanel visible placeholder={t('common.search')} width={200} />
               <HeaderFilter visible />
               <FilterRow visible />
               <Scrolling mode="virtual" />
@@ -803,12 +805,12 @@ export default function PositionsPage() {
                 <Item name="exportButton" />
               </Toolbar>
 
-              <Column dataField="code" caption="รหัส" width={100} hidingPriority={1} />
-              <Column dataField="title" caption="ชื่อตำแหน่ง" minWidth={150} hidingPriority={0} />
-              <Column dataField="titleEn" caption="ชื่อภาษาอังกฤษ" width={150} hidingPriority={4} />
+              <Column dataField="code" caption={t('positions.columns.code')} width={100} hidingPriority={1} />
+              <Column dataField="title" caption={t('positions.columns.title')} minWidth={150} hidingPriority={0} />
+              <Column dataField="titleEn" caption={t('positions.columns.titleEn')} width={150} hidingPriority={4} />
               <Column
                 dataField="orgUnitId"
-                caption="หน่วยงาน"
+                caption={t('positions.columns.orgUnit')}
                 width={150}
                 hidingPriority={3}
                 cellRender={renderOrgUnitCell}
@@ -819,10 +821,10 @@ export default function PositionsPage() {
                   displayExpr="name"
                 />
               </Column>
-              <Column dataField="jobGrade" caption="ระดับ" width={100} hidingPriority={5} />
+              <Column dataField="jobGrade" caption={t('positions.columns.grade')} width={100} hidingPriority={5} />
               <Column
                 dataField="isGmpCritical"
-                caption="GMP"
+                caption={t('positions.columns.gmp')}
                 width={100}
                 cellRender={renderGmpCriticalCell}
                 alignment="center"
@@ -830,7 +832,7 @@ export default function PositionsPage() {
               />
               <Column
                 dataField="isActive"
-                caption="สถานะ"
+                caption={t('positions.columns.status')}
                 width={120}
                 cellRender={renderActiveCell}
                 alignment="center"
@@ -848,7 +850,7 @@ export default function PositionsPage() {
             </div>
             {filteredPositions.length === 0 && (
               <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <p className="text-gray-500">ไม่พบข้อมูลตำแหน่ง</p>
+                <p className="text-gray-500">{t('positions.noPositions')}</p>
               </div>
             )}
           </div>
@@ -862,9 +864,10 @@ export default function PositionsPage() {
               <div className="bg-white rounded-xl border border-gray-200 p-4">
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <Shield className="h-5 w-5 text-red-500" />
-                  การกระจายตำแหน่ง GMP
+                  {t('positions.analytics.gmpTitle')}
                 </h3>
                 <PieChart
+                  key={locale}
                   id="gmp-distribution"
                   dataSource={analytics.gmpDistribution}
                   type="doughnut"
@@ -885,7 +888,7 @@ export default function PositionsPage() {
                   />
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Tooltip enabled customizeTooltip={(point: any) => ({
-                    text: `${point.argumentText}: ${point.valueText} ตำแหน่ง`,
+                    text: `${point.argumentText}: ${point.valueText} ${t('positions.analytics.positionSuffix')}`,
                   })} />
                 </PieChart>
               </div>
@@ -894,9 +897,10 @@ export default function PositionsPage() {
               <div className="bg-white rounded-xl border border-gray-200 p-4">
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                  สถานะตำแหน่ง
+                  {t('positions.analytics.statusTitle')}
                 </h3>
                 <PieChart
+                  key={locale}
                   id="status-distribution"
                   dataSource={analytics.statusDistribution}
                   type="doughnut"
@@ -917,7 +921,7 @@ export default function PositionsPage() {
                   />
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Tooltip enabled customizeTooltip={(point: any) => ({
-                    text: `${point.argumentText}: ${point.valueText} ตำแหน่ง`,
+                    text: `${point.argumentText}: ${point.valueText} ${t('positions.analytics.positionSuffix')}`,
                   })} />
                 </PieChart>
               </div>
@@ -927,7 +931,7 @@ export default function PositionsPage() {
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-blue-500" />
-                จำนวนตำแหน่งตามหน่วยงาน
+                {t('positions.analytics.byOrgUnit')}
               </h3>
               <div className="space-y-3">
                 {analytics.orgUnitDistribution.map((dept, idx) => (
@@ -952,7 +956,7 @@ export default function PositionsPage() {
                   </div>
                 ))}
                 {analytics.orgUnitDistribution.length === 0 && (
-                  <p className="text-gray-500 text-center py-4">ไม่มีข้อมูลหน่วยงาน</p>
+                  <p className="text-gray-500 text-center py-4">{t('positions.analytics.noOrgUnitData')}</p>
                 )}
               </div>
             </div>
@@ -961,7 +965,7 @@ export default function PositionsPage() {
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Users className="h-5 w-5 text-purple-500" />
-                จำนวนตำแหน่งตามระดับ
+                {t('positions.analytics.byGrade')}
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {analytics.gradeDistribution.map((item) => (
@@ -994,7 +998,7 @@ export default function PositionsPage() {
                   <div className="flex items-center gap-2">
                     <DxButton
                       icon="edit"
-                      hint="แก้ไข"
+                      hint={t('positions.editHint')}
                       type="default"
                       stylingMode="text"
                       onClick={() => openEditPopup(selectedPosition)}
@@ -1019,7 +1023,7 @@ export default function PositionsPage() {
                     <Badge variant="info" className="text-xs">{selectedPosition.jobGrade}</Badge>
                   )}
                   <Badge variant={selectedPosition.isActive ? 'success' : 'secondary'} className="text-xs">
-                    {selectedPosition.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                    {selectedPosition.isActive ? t('positions.status.active') : t('positions.status.inactive')}
                   </Badge>
                 </div>
               </div>
@@ -1028,13 +1032,13 @@ export default function PositionsPage() {
               <div className="p-4 border-b border-gray-200 space-y-3">
                 {selectedPosition.titleEn && (
                   <div>
-                    <p className="text-xs text-gray-500">ชื่อภาษาอังกฤษ</p>
+                    <p className="text-xs text-gray-500">{t('positions.details.titleEn')}</p>
                     <p className="text-sm text-gray-900">{selectedPosition.titleEn}</p>
                   </div>
                 )}
                 {selectedPosition.orgUnitId && (
                   <div>
-                    <p className="text-xs text-gray-500">หน่วยงาน</p>
+                    <p className="text-xs text-gray-500">{t('positions.details.orgUnit')}</p>
                     <div className="flex items-center gap-1 text-sm text-gray-900">
                       <Building2 className="h-4 w-4 text-blue-500" />
                       {orgUnitMap.get(selectedPosition.orgUnitId)?.name || '-'}
@@ -1048,11 +1052,11 @@ export default function PositionsPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium text-gray-900 flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    รายละเอียดงาน
+                    {t('positions.jd.title')}
                   </h4>
                   <DxButton
                     icon="add"
-                    text="เพิ่ม"
+                    text={t('positions.jd.add')}
                     type="default"
                     stylingMode="text"
                     onClick={() => setShowJDPopup(true)}
@@ -1061,7 +1065,7 @@ export default function PositionsPage() {
 
                 {jobDescriptions.length === 0 ? (
                   <p className="text-gray-400 text-center py-8">
-                    ยังไม่มีรายละเอียดงาน
+                    {t('positions.jd.empty')}
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -1074,18 +1078,18 @@ export default function PositionsPage() {
                         >
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-medium text-gray-900">
-                              v{jd.version}
+                              {t('positions.jd.version')}{jd.version}
                             </span>
                             <Badge variant={statusConfig.variant} className="text-xs">
-                              {statusConfig.label}
+                              {t(`positions.jdStatus.${statusConfig.translationKey}`)}
                             </Badge>
                           </div>
                           <div className="text-xs text-gray-500 space-y-1">
                             {jd.effectiveFrom && (
-                              <p>มีผล: {formatDate(jd.effectiveFrom)}</p>
+                              <p>{t('positions.jd.effective')}: {formatDate(jd.effectiveFrom)}</p>
                             )}
                             {jd.approvedAt && (
-                              <p>อนุมัติ: {formatDate(jd.approvedAt)}</p>
+                              <p>{t('positions.jd.approved')}: {formatDate(jd.approvedAt)}</p>
                             )}
                           </div>
                         </div>
@@ -1100,7 +1104,7 @@ export default function PositionsPage() {
               <div className="text-center">
                 <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-400">
-                  เลือกตำแหน่งเพื่อดูรายละเอียด
+                  {t('positions.detailsEmpty')}
                 </p>
               </div>
             </div>
@@ -1115,7 +1119,7 @@ export default function PositionsPage() {
           setShowCreatePopup(false);
           setFormData(emptyFormData);
         }}
-        title="เพิ่มตำแหน่งงานใหม่"
+        title={t('positions.popups.createTitle')}
         width={600}
         height="auto"
         showCloseButton
@@ -1126,7 +1130,7 @@ export default function PositionsPage() {
           widget="dxButton"
           location="after"
           options={{
-            text: 'ยกเลิก',
+            text: t('common.cancel'),
             onClick: () => {
               setShowCreatePopup(false);
               setFormData(emptyFormData);
@@ -1137,7 +1141,7 @@ export default function PositionsPage() {
           widget="dxButton"
           location="after"
           options={{
-            text: 'สร้าง',
+            text: t('common.create'),
             type: 'default',
             disabled: !formData.code || !formData.title || createMutation.isPending,
             onClick: handleCreatePosition,
@@ -1153,7 +1157,7 @@ export default function PositionsPage() {
           setSelectedPosition(null);
           setFormData(emptyFormData);
         }}
-        title={`แก้ไขตำแหน่ง: ${selectedPosition?.code || ''}`}
+        title={t('positions.popups.editTitle', { 0: selectedPosition?.code || '' })}
         width={600}
         height="auto"
         showCloseButton
@@ -1164,7 +1168,7 @@ export default function PositionsPage() {
           widget="dxButton"
           location="after"
           options={{
-            text: 'ยกเลิก',
+            text: t('common.cancel'),
             onClick: () => {
               setShowEditPopup(false);
               setSelectedPosition(null);
@@ -1176,7 +1180,7 @@ export default function PositionsPage() {
           widget="dxButton"
           location="after"
           options={{
-            text: 'บันทึก',
+            text: t('common.save'),
             type: 'default',
             disabled: !formData.title || updateMutation.isPending,
             onClick: handleUpdatePosition,
@@ -1188,7 +1192,7 @@ export default function PositionsPage() {
       <Popup
         visible={showJDPopup}
         onHiding={() => setShowJDPopup(false)}
-        title={`สร้างรายละเอียดงาน - ${selectedPosition?.title || ''}`}
+        title={t('positions.popups.createJdTitle', { 0: selectedPosition?.title || '' })}
         width={600}
         height="auto"
         showCloseButton
@@ -1196,35 +1200,35 @@ export default function PositionsPage() {
         <div className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              หน้าที่ความรับผิดชอบ
+              {t('positions.jd.responsibilities')}
             </label>
             <TextArea
               value={newJD.responsibilities}
               onValueChanged={(e) => setNewJD((prev) => ({ ...prev, responsibilities: e.value || '' }))}
               height={100}
-              placeholder="ระบุหน้าที่ความรับผิดชอบ..."
+              placeholder={t('positions.jd.responsibilitiesPlaceholder')}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              อำนาจหน้าที่
+              {t('positions.jd.authorities')}
             </label>
             <TextArea
               value={newJD.authorities}
               onValueChanged={(e) => setNewJD((prev) => ({ ...prev, authorities: e.value || '' }))}
               height={100}
-              placeholder="ระบุอำนาจหน้าที่..."
+              placeholder={t('positions.jd.authoritiesPlaceholder')}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              คุณสมบัติ
+              {t('positions.jd.qualifications')}
             </label>
             <TextArea
               value={newJD.qualifications}
               onValueChanged={(e) => setNewJD((prev) => ({ ...prev, qualifications: e.value || '' }))}
               height={100}
-              placeholder="ระบุคุณสมบัติ..."
+              placeholder={t('positions.jd.qualificationsPlaceholder')}
             />
           </div>
         </div>
@@ -1232,7 +1236,7 @@ export default function PositionsPage() {
           widget="dxButton"
           location="after"
           options={{
-            text: 'ยกเลิก',
+            text: t('common.cancel'),
             onClick: () => setShowJDPopup(false),
           }}
         />
@@ -1240,7 +1244,7 @@ export default function PositionsPage() {
           widget="dxButton"
           location="after"
           options={{
-            text: 'บันทึก',
+            text: t('common.save'),
             type: 'default',
             disabled: createJDMutation.isPending,
             onClick: handleCreateJD,

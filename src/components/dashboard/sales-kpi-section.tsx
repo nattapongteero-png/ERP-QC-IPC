@@ -1,6 +1,7 @@
 // src/components/dashboard/sales-kpi-section.tsx
 'use client';
 
+import { useTranslations, useLocale } from 'next-intl';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatCard } from '@/components/ui/stat-card';
 import {
@@ -24,8 +25,12 @@ interface SalesKpiSectionProps {
 }
 
 export function SalesKpiSection({ data }: SalesKpiSectionProps) {
+  const t = useTranslations('dashboard.moduleKpis.sales');
+  const locale = useLocale();
+
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('th-TH', {
+    const formatLocale = locale === 'th' ? 'th-TH' : 'en-US';
+    return new Intl.NumberFormat(formatLocale, {
       style: 'currency',
       currency: 'THB',
       minimumFractionDigits: 0,
@@ -38,45 +43,49 @@ export function SalesKpiSection({ data }: SalesKpiSectionProps) {
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          label="Pending Orders"
+          label={t('pendingOrders.label')}
           value={data.pendingSOs}
-          subtitle="Awaiting processing"
+          subtitle={t('pendingOrders.subtitle')}
           icon={<ShoppingBag className="h-6 w-6" />}
           iconBgColor="bg-orange-100"
           iconColor="text-orange-600"
         />
         <KPICard
-          label="Sales Value (MTD)"
+          label={t('salesValueMtd.label')}
           value={formatCurrency(data.soValueMtd)}
-          subtitle="Month-to-date"
+          subtitle={t('salesValueMtd.subtitle')}
           icon={<TrendingUp className="h-6 w-6" />}
           iconBgColor="bg-green-100"
           iconColor="text-green-600"
         />
         <KPICard
-          label="Orders Fulfilled"
+          label={t('ordersFulfilled.label')}
           value={data.ordersFulfilledMtd}
-          subtitle="This month"
+          subtitle={t('ordersFulfilled.subtitle')}
           icon={<CheckCircle className="h-6 w-6" />}
           iconBgColor="bg-blue-100"
           iconColor="text-blue-600"
         />
         <KPICard
-          label="Fulfillment Rate"
+          label={t('fulfillmentRate.label')}
           value={`${data.fulfillmentRate}%`}
-          subtitle="On-time delivery"
+          subtitle={t('fulfillmentRate.subtitle')}
           icon={<Truck className="h-6 w-6" />}
           iconBgColor="bg-purple-100"
           iconColor="text-purple-600"
           trend={data.fulfillmentRate >= 90 ? 'up' : 'down'}
-          trendValue={data.fulfillmentRate >= 90 ? 'On track' : 'Below target'}
+          trendValue={
+            data.fulfillmentRate >= 90
+              ? t('fulfillmentRate.onTrack')
+              : t('fulfillmentRate.belowTarget')
+          }
         />
       </div>
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="ATP Shortages"
+          label={t('atpShortages.label')}
           value={data.atpShortages}
           icon={<AlertTriangle className="h-5 w-5" />}
           variant={data.atpShortages > 0 ? 'danger' : 'success'}

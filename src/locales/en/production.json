@@ -290,7 +290,95 @@
   },
   "batchRecords": {
     "title": "Electronic Batch Records (eBMR)",
-    "subtitle": "Manufacturing process documentation and compliance tracking"
+    "subtitle": "Manufacturing process documentation and compliance tracking",
+    "actions": {
+      "refresh": "Refresh",
+      "workOrders": "Work Orders"
+    },
+    "status": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "deviation": "Deviation"
+    },
+    "stats": {
+      "total": "Total eBMR",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "deviations": "Deviations",
+      "completedToday": "Completed Today",
+      "pending": "Pending",
+      "avgCompletionTime": "Avg Completion Time",
+      "minSuffix": " min"
+    },
+    "charts": {
+      "statusDistribution": "eBMR Status Distribution",
+      "noRecords": "No records found",
+      "weeklyActivity": "Weekly Activity",
+      "noActivity": "No activity data yet",
+      "topProducts": "Top Products by eBMR",
+      "woCount": "{count} WO",
+      "completionRate": "{rate}% complete",
+      "noProductData": "No product data",
+      "recentRecords": "Recent eBMR Records",
+      "noRecentRecords": "No recent records",
+      "completed": "Completed",
+      "deviations": "Deviations"
+    },
+    "alerts": {
+      "deviationsTitle": "Deviations Detected",
+      "deviationsDescription": "There are {count} batch record{plural} with deviations that require attention.",
+      "activeTitle": "Active Production",
+      "activeDescription": "{count} Work Order{suffix} currently in progress with execution data.",
+      "viewInProgress": "View in progress"
+    },
+    "registry": {
+      "title": "eBMR Registry",
+      "filterByStatus": "Filter by status",
+      "searchPlaceholder": "Search WO, batch, or product...",
+      "dataGridSearch": "Search records..."
+    },
+    "statusFilters": {
+      "all": "All Statuses",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed"
+    },
+    "tabs": {
+      "all": "All",
+      "inProgress": "In Progress",
+      "pending": "Pending",
+      "completed": "Completed"
+    },
+    "columns": {
+      "workOrder": "Work Order",
+      "product": "Product",
+      "executionRecords": "Execution Records",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "status": "Status"
+    },
+    "execution": {
+      "sopPrefix": "SOP:",
+      "cleanPrefix": "Clean:",
+      "envPrefix": "Env:",
+      "fiPrefix": "FI:",
+      "totalSuffix": " total"
+    },
+    "mobile": {
+      "startPrefix": "Start:",
+      "endPrefix": "End:",
+      "viewDetails": "View Details"
+    },
+    "empty": {
+      "title": "No Batch Records",
+      "description": "Batch records appear here when work orders have execution data recorded (SOP, cleaning, environmental, or finished inspection)."
+    },
+    "noResults": {
+      "title": "No matching records",
+      "description": "Try changing your search or filter selection.",
+      "clearFilters": "Clear Filters"
+    }
   },
   "execution": {
     "title": "Work Order Execution",
@@ -384,7 +472,7 @@
       },
       "form": {
         "actualQuantity": "Actual Quantity (Good)",
-        "rejectQuantity": "Reject Quantity",
+        "rejectQuantity": "Finished Goods Loss",
         "warehouse": "Destination Warehouse",
         "warehousePlaceholder": "Select warehouse",
         "notes": "Notes",
@@ -395,11 +483,11 @@
       "yield": {
         "title": "Yield Calculation",
         "yieldPercent": "Yield %",
-        "rejectPercent": "Reject %",
+        "rejectPercent": "FG Loss %",
         "lossPercent": "Loss %",
         "theoretical": "Theoretical",
         "actualGood": "Good Quantity",
-        "actualReject": "Reject Quantity",
+        "actualReject": "Finished Goods Loss",
         "statusNormal": "Normal",
         "statusLowYield": "Below Target",
         "statusHighYield": "Abnormally High"
@@ -454,5 +542,49 @@
   },
   "workOrderDetail": {
     "title": "Work Order Detail"
+  },
+  "analytics": {
+    "pageTitle": "Production Analytics",
+    "description": "Overview and analysis of production data",
+    "breadcrumbs": {
+      "analytics": "Analytics"
+    },
+    "stats": {
+      "totalOrders": "Total Orders",
+      "completedOrders": "Completed",
+      "completionRate": "Completion Rate",
+      "avgYield": "Avg Yield",
+      "onTimeRate": "On-Time",
+      "totalProducts": "Products Produced",
+      "avgLeadTime": "Avg Lead Time",
+      "days": "days"
+    },
+    "charts": {
+      "monthlyVolume": "Monthly Production Volume",
+      "planned": "Planned",
+      "actual": "Actual",
+      "completed": "Completed",
+      "yieldByProduct": "Yield by Product",
+      "yieldPercent": "Yield (%)",
+      "productionByProduct": "Production Count by Product",
+      "count": "Count",
+      "statusOverview": "Status Overview",
+      "leadTimeByProduct": "Lead Time by Product",
+      "averageDays": "Average (days)",
+      "onTimeDelivery": "On-Time Delivery",
+      "onTime": "On-Time",
+      "late": "Late",
+      "noDeliveryDate": "No Due Date",
+      "priorityCompletion": "Completion Rate by Priority",
+      "rate": "Rate (%)",
+      "noData": "No data",
+      "orders": "orders",
+      "month": "Month",
+      "product": "Product"
+    },
+    "actions": {
+      "backToWorkOrders": "Back to Work Orders",
+      "exportExcel": "Export Excel"
+    }
   }
 }

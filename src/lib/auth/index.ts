@@ -117,6 +117,9 @@ export const PERMISSIONS = {
   'quality:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION, ROLES.QC],
   'quality:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'quality:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'quality:test_catalog:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION, ROLES.QC],
+  'quality:test_catalog:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'quality:test_catalog:delete': [ROLES.ADMIN, ROLES.QC],
   
   // Purchasing
   // `purchasing:read` is also used as a permission gate for master-data

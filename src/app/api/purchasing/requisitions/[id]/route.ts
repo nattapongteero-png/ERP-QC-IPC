@@ -2,10 +2,11 @@
  * Purchase Requisition Detail API Route (T038)
  * GET /api/purchasing/requisitions/[id] - Get PR by ID
  * PUT /api/purchasing/requisitions/[id] - Update PR
+ * DELETE /api/purchasing/requisitions/[id] - Delete PR (draft only)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPRById, updatePR } from '@/lib/services/purchase-requisition.service';
+import { getPRById, updatePR, deletePR } from '@/lib/services/purchase-requisition.service';
 import { prUpdateSchema } from '@/lib/validation/purchase-requisition';
 import { getSession } from '@/lib/auth';
 
@@ -92,6 +93,41 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to update PR' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const prId = parseInt(id, 10);
+
+    if (isNaN(prId)) {
+      return NextResponse.json({ success: false, error: 'Invalid PR ID' }, { status: 400 });
+    }
+
+    await deletePR(prId);
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting PR:', error);
+    if (error.message === 'PR_NOT_FOUND') {
+      return NextResponse.json({ success: false, error: 'PR not found' }, { status: 404 });
+    }
+    if (error.message === 'PR_NOT_DELETABLE') {
+      return NextResponse.json(
+        { success: false, error: 'Only draft PRs can be deleted' },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to delete PR' },
       { status: 500 }
     );
   }

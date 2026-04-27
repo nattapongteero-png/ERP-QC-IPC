@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
@@ -43,7 +44,7 @@ export default function VarianceReportsPage() {
 
   const formatDate = (date: Date | null): string => {
     if (!date) return '';
-    return date.toISOString().split('T')[0];
+    return toLocalDateStr(date);
   };
 
   const fetchSummaryReport = useCallback(async () => {

@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
@@ -37,7 +38,7 @@ interface CreateFormData {
 
 const defaultFormData: CreateFormData = {
   itemId: null,
-  effectiveDate: new Date().toISOString().split('T')[0],
+  effectiveDate: toLocalDateStr(new Date()),
   materialCost: 0,
   laborCost: 0,
   overheadCost: 0,

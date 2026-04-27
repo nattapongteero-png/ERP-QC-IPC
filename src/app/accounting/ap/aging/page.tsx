@@ -100,6 +100,11 @@ export default function APAgingReportPage() {
         title={t('reports.agingReport')}
         subtitle={t('accountsPayable.description')}
         icon="clock"
+        onBack={() => window.location.href = '/accounting/ap'}
+        breadcrumbs={[
+          { label: 'Accounts Payable', href: '/accounting/ap' },
+          { label: t('reports.agingReport') },
+        ]}
       />
 
       <div className="p-6 space-y-6">

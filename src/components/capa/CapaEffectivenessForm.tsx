@@ -25,6 +25,7 @@ import {
   FileText,
 } from 'lucide-react';
 import type { CapaEffectiveness, CapaEffectivenessCreate, CapaEffectivenessResult } from '@/types/capa';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 // ============================================
 // Types
@@ -76,7 +77,7 @@ export function CapaEffectivenessForm({
     followUpRequired: boolean;
     notes: string;
   }>({
-    checkDate: new Date().toISOString().split('T')[0],
+    checkDate: toLocalDateStr(new Date()),
     criteria: '',
     result: 'effective',
     evidence: '',
@@ -98,7 +99,7 @@ export function CapaEffectivenessForm({
     onSuccess: () => {
       setShowAddDialog(false);
       setFormData({
-        checkDate: new Date().toISOString().split('T')[0],
+        checkDate: toLocalDateStr(new Date()),
         criteria: '',
         result: 'effective',
         evidence: '',
@@ -259,7 +260,7 @@ export function CapaEffectivenessForm({
               onValueChange={(value) =>
                 setFormData((prev) => ({
                   ...prev,
-                  checkDate: value ? new Date(value).toISOString().split('T')[0] : '',
+                  checkDate: value ? toLocalDateStr(new Date(value)) : '',
                 }))
               }
               type="date"

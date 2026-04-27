@@ -8,7 +8,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -40,6 +40,7 @@ import { KPICard, KPICardSkeleton } from '@/components/ui/kpi-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
 import { StatusBadge, SeverityBadge, PriorityBadge } from '@/components/issues';
+import { ResponsivePageHeader } from '@/components/shared';
 import type { IssueDashboardMetrics, Issue } from '@/types/issues';
 
 // ============================================
@@ -87,32 +88,35 @@ const SEVERITY_COLORS: Record<string, string> = {
 function IssuesPageHeader() {
   const t = useTranslations('issues');
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t('page.title')}</h1>
-        <p className="text-gray-600 mt-1">
-          {t('page.description')}
-        </p>
-      </div>
-      <div className="flex items-center gap-3">
-        <Link href="/issues/list">
-          <Button
-            text={t('actions.viewAll')}
-            type="normal"
-            stylingMode="outlined"
-            icon="search"
-          />
-        </Link>
-        <Link href="/issues/new">
-          <Button
-            text={t('actions.reportIssue')}
-            type="default"
-            stylingMode="contained"
-            icon="add"
-            data-testid="new-issue-btn"
-          />
-        </Link>
-      </div>
+    <div className="mb-4 md:mb-6">
+      <ResponsivePageHeader
+        title={t('page.title')}
+        subtitle={t('page.description')}
+        icon={Bug}
+        iconBgColor="bg-rose-100"
+        iconColor="text-rose-600"
+        actions={
+          <>
+            <Link href="/issues/list">
+              <Button
+                text={t('actions.viewAll')}
+                type="normal"
+                stylingMode="outlined"
+                icon="search"
+              />
+            </Link>
+            <Link href="/issues/new">
+              <Button
+                text={t('actions.reportIssue')}
+                type="default"
+                stylingMode="contained"
+                icon="add"
+                data-testid="new-issue-btn"
+              />
+            </Link>
+          </>
+        }
+      />
     </div>
   );
 }
@@ -169,6 +173,7 @@ function KPICardsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
 
 function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
   const t = useTranslations('issues');
+  const locale = useLocale();
   // Transform data for pie charts
   const statusData = metrics.issuesByStatus.map((item) => ({
     status: item.status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -199,22 +204,35 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
         </CardHeader>
         <CardContent>
           <PieChart
+            key={locale}
             dataSource={statusData}
             palette={statusData.map((d) => d.color)}
             resolveLabelOverlapping="shift"
+            diameter={0.65}
+            sizeGroup="issues-pie"
           >
             <Series argumentField="status" valueField="count">
-              <Label visible={true} position="outside">
-                <Connector visible={true} />
+              <Label
+                visible={true}
+                position="columns"
+                backgroundColor="none"
+                customizeText={(arg: { argumentText: string; valueText: string; percentText: string }) =>
+                  `${arg.argumentText}: ${arg.valueText} (${arg.percentText})`
+                }
+                font={{ size: 11 }}
+              >
+                <Connector visible={true} width={1} />
               </Label>
             </Series>
             <Legend
               orientation="horizontal"
               horizontalAlignment="center"
               verticalAlignment="bottom"
+              font={{ size: 11 }}
+              rowCount={1}
             />
             <Tooltip enabled={true} />
-            <Size height={250} />
+            <Size height={300} />
           </PieChart>
         </CardContent>
       </Card>
@@ -229,23 +247,37 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
         </CardHeader>
         <CardContent>
           <PieChart
+            key={locale}
             dataSource={severityData}
             palette={severityData.map((d) => d.color)}
             type="doughnut"
             innerRadius={0.5}
+            resolveLabelOverlapping="shift"
+            diameter={0.65}
+            sizeGroup="issues-pie"
           >
             <Series argumentField="severity" valueField="count">
-              <Label visible={true} format="fixedPoint">
-                <Connector visible={true} />
+              <Label
+                visible={true}
+                position="columns"
+                backgroundColor="none"
+                customizeText={(arg: { argumentText: string; valueText: string; percentText: string }) =>
+                  `${arg.argumentText}: ${arg.valueText} (${arg.percentText})`
+                }
+                font={{ size: 11 }}
+              >
+                <Connector visible={true} width={1} />
               </Label>
             </Series>
             <Legend
               orientation="horizontal"
               horizontalAlignment="center"
               verticalAlignment="bottom"
+              font={{ size: 11 }}
+              rowCount={1}
             />
             <Tooltip enabled={true} />
-            <Size height={250} />
+            <Size height={300} />
           </PieChart>
         </CardContent>
       </Card>
@@ -259,9 +291,9 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Chart dataSource={categoryData}>
+          <Chart key={locale} dataSource={categoryData}>
             <CommonSeriesSettings type="bar" argumentField="category" />
-            <ChartSeries valueField="count" name="Issues" color="#3B82F6" />
+            <ChartSeries valueField="count" name={t('charts.seriesName')} color="#3B82F6" />
             <ArgumentAxis>
               <AxisLabel rotationAngle={-45} />
             </ArgumentAxis>
@@ -494,11 +526,11 @@ export default function IssuesDashboardPage() {
   }
 
   return (
-    <div className="p-6" data-testid="issues-dashboard">
+    <div className="p-4 md:p-6" data-testid="issues-dashboard">
       <IssuesPageHeader />
       <KPICardsSection metrics={metrics} />
       <ChartsSection metrics={metrics} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <RecentIssuesSection issues={recentIssues || []} />
         <QuickActionsSection />
       </div>

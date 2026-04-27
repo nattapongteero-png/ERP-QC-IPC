@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module Status Report - Herbal Medicine ERP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Sarabun','Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b;line-height:1.6;font-size:15px;}
+
+    .header{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 50%,#3b82f6 100%);color:white;padding:20px 0;text-align:center;position:relative;overflow:hidden;}
+    .header::before{content:'';position:absolute;top:-50%;right:-20%;width:500px;height:500px;background:rgba(255,255,255,0.04);border-radius:50%;}
+    .header .logo{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:16px;font-size:28px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.2);}
+    .header h1{font-size:22px;font-weight:700;margin:0;}
+    .header .subtitle{font-size:16px;opacity:0.85;margin-top:4px;}
+
+    .top-bar{position:sticky;top:0;z-index:100;background:white;border-bottom:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+
+    .stats-row{display:flex;justify-content:center;align-items:center;gap:8px;padding:10px 16px;flex-wrap:wrap;}
+    .stat-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:8px;font-size:14px;font-weight:600;background:#f8fafc;border:1px solid #e2e8f0;}
+    .stat-chip .num{font-size:16px;font-weight:700;}
+    .stat-chip .lbl{color:#64748b;font-weight:400;font-size:13px;}
+    .stat-chip.green{background:#ecfdf5;border-color:#a7f3d0;}
+    .stat-chip.green .num{color:#059669;}
+    .stat-chip.yellow{background:#fffbeb;border-color:#fde68a;}
+    .stat-chip.yellow .num{color:#d97706;}
+    .stat-chip.red{background:#fef2f2;border-color:#fecaca;}
+    .stat-chip.red .num{color:#dc2626;}
+    .stat-chip.blue{background:#eff6ff;border-color:#bfdbfe;}
+    .stat-chip.blue .num{color:#2563eb;}
+
+    .btn-export{display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:8px;font-size:14px;font-weight:600;border:1px solid #2563eb;background:#2563eb;color:white;cursor:pointer;transition:all 0.2s;margin-left:8px;}
+    .btn-export:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 2px 8px rgba(37,99,235,0.3);}
+
+    .container{max-width:100%;margin:0 auto;padding:0 16px;}
+    .content{padding:20px 0 60px;}
+
+    .overall-card{background:white;border-radius:12px;border:1px solid #e2e8f0;padding:24px;margin-bottom:20px;text-align:center;}
+    .overall-card h2{font-size:18px;color:#1e293b;margin-bottom:16px;}
+    .overall-bar-wrap{max-width:600px;margin:0 auto;position:relative;}
+    .overall-bar-bg{height:32px;background:#e2e8f0;border-radius:16px;overflow:hidden;}
+    .overall-bar-fill{height:100%;border-radius:16px;background:linear-gradient(90deg,#ef4444 0%,#f59e0b 40%,#22c55e 75%,#059669 100%);transition:width 0.8s ease;}
+    .overall-pct{font-size:32px;font-weight:700;color:#1e293b;margin-top:12px;}
+    .overall-pct span{font-size:16px;color:#64748b;font-weight:400;}
+
+    .section-title{font-size:17px;font-weight:700;color:#1e293b;margin:24px 0 12px;padding-left:12px;border-left:4px solid #2563eb;}
+
+    .module-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(340px,1fr));gap:16px;margin-bottom:24px;}
+    .mod-card{background:white;border-radius:12px;border:1px solid #e2e8f0;padding:20px;transition:box-shadow 0.2s;}
+    .mod-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08);}
+    .mod-card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+    .mod-name{font-size:16px;font-weight:700;color:#0f172a;}
+    .mod-name-en{font-size:12px;color:#94a3b8;font-weight:400;}
+    .mod-pct{font-size:24px;font-weight:700;min-width:56px;text-align:right;}
+    .mod-pct.p-high{color:#059669;}
+    .mod-pct.p-mid{color:#d97706;}
+    .mod-pct.p-low{color:#dc2626;}
+    .mod-bar{height:8px;background:#e2e8f0;border-radius:4px;margin-bottom:12px;overflow:hidden;}
+    .mod-bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease;}
+    .mod-bar-fill.p-high{background:linear-gradient(90deg,#22c55e,#059669);}
+    .mod-bar-fill.p-mid{background:linear-gradient(90deg,#fbbf24,#f59e0b);}
+    .mod-bar-fill.p-low{background:linear-gradient(90deg,#f87171,#ef4444);}
+    .mod-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+    .mod-stat{font-size:12px;color:#64748b;}
+    .mod-stat b{color:#1e293b;}
+    .mod-detail{font-size:13px;color:#475569;border-top:1px solid #f1f5f9;padding-top:10px;}
+    .mod-detail ul{list-style:none;padding:0;margin:0;}
+    .mod-detail li{padding:2px 0;padding-left:14px;position:relative;}
+    .mod-detail li::before{content:'';position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;}
+    .mod-detail li.done::before{background:#22c55e;}
+    .mod-detail li.pending::before{background:#f59e0b;}
+    .mod-detail li.critical::before{background:#ef4444;}
+
+    .tbl-wrap{background:white;border-radius:12px;border:1px solid #e2e8f0;overflow-x:auto;}
+    table.pri{width:100%;border-collapse:collapse;font-size:14px;}
+    table.pri th{background:#f1f5f9;padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:2px solid #d1d5db;white-space:nowrap;position:sticky;top:0;z-index:10;}
+    table.pri td{padding:9px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;}
+    table.pri tr:hover td{background:#eff6ff;}
+
+    .badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:0.3px;}
+    .b-critical{background:#fef2f2;color:#dc2626;}
+    .b-medium{background:#fffbeb;color:#d97706;}
+    .b-low{background:#f0fdf4;color:#166534;}
+
+    .cross-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px;}
+    .cross-card{background:white;border-radius:12px;border:1px solid #e2e8f0;padding:20px;}
+    .cross-card h3{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px;}
+    .cross-card .cross-bar{height:8px;background:#e2e8f0;border-radius:4px;margin:8px 0;overflow:hidden;}
+    .cross-card .cross-fill{height:100%;border-radius:4px;}
+    .cross-card .cross-info{font-size:13px;color:#64748b;}
+
+    .back-to-top{position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:12px;background:#2563eb;color:white;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,0.3);z-index:50;font-size:20px;}
+    .back-to-top.visible{display:flex;}
+
+    .report-date{font-size:13px;color:rgba(255,255,255,0.7);margin-top:8px;}
+
+    @media(max-width:768px){
+      .module-grid{grid-template-columns:1fr;}
+      .cross-grid{grid-template-columns:1fr;}
+    }
+    @media print{
+      .top-bar,.back-to-top{display:none!important;}
+      .mod-card{break-inside:avoid;}
+      body{background:white;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">&#x1f3ed;</div>
+  <h1>Module Status Report</h1>
+  <div class="subtitle">Herbal Medicine ERP - สรุปสถานะการพัฒนาระบบ</div>
+  <div class="report-date" id="reportDate"></div>
+</div>
+
+<div class="top-bar">
+  <div class="stats-row" id="statsRow"></div>
+</div>
+
+<div class="container">
+  <div class="content">
+    <div class="overall-card">
+      <h2>ความสมบูรณ์ของระบบโดยรวม</h2>
+      <div class="overall-bar-wrap">
+        <div class="overall-bar-bg">
+          <div class="overall-bar-fill" id="overallBar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="overall-pct"><span id="overallPct">0</span>% <span>Average Completion</span></div>
+    </div>
+
+    <div class="section-title">ปัญหาที่กระทบทุก Module (Cross-Cutting Issues)</div>
+    <div class="cross-grid" id="crossGrid"></div>
+
+    <div class="section-title">สถานะแต่ละ Module</div>
+    <div class="module-grid" id="moduleGrid"></div>
+
+    <div class="section-title">รายการที่ต้องแก้ไข - เรียงตามความเร่งด่วน</div>
+    <div class="tbl-wrap">
+      <table class="pri" id="priorityTable">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>ระดับ</th>
+            <th>รายการ</th>
+            <th>Module</th>
+            <th>รายละเอียด</th>
+          </tr>
+        </thead>
+        <tbody id="priorityBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<button class="back-to-top" id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593;</button>
+
+<script>
+// ── DATA ──────────────────────────────────────────────
+var MODULES = [
+  {
+    name: 'GMP / ระบบเอกสาร',
+    nameEn: 'GMP Compliance',
+    pct: 85,
+    pages: '37+',
+    apis: '40+',
+    tests: 37,
+    services: 9,
+    tables: '30+',
+    validations: 8,
+    done: [
+      'CRUD เอกสาร, Document Versioning, Approval Workflow',
+      'Change Control ครบวงจร',
+      'CAPA (Corrective & Preventive Action) ครบวงจร',
+      'ข้อร้องเรียนลูกค้า + การสืบสวน',
+      'Recall Management + แจ้งเตือน',
+      'Sanitation Logs, Schedules, Pest Control, Trends',
+      'Stability Protocols, Studies, Samples, Trends',
+      'Internal Audit - Plans, Findings, Audits',
+      'PQR (Product Quality Review) + Generate',
+      'สัญญาผลิต (Manufacturing Contracts)'
+    ],
+    pending: [
+      { text: 'คำนวณ Document Review Period อัตโนมัติ', level: 'pending' },
+      { text: 'Auth/Session integration', level: 'pending' },
+      { text: 'i18n แปลภาษาบางหน้า', level: 'pending' }
+    ]
+  },
+  {
+    name: 'คลังสินค้า',
+    nameEn: 'Inventory',
+    pct: 85,
+    pages: 9,
+    apis: 11,
+    tests: 14,
+    services: 2,
+    tables: 11,
+    validations: 1,
+    done: [
+      'ทะเบียนสินค้า (Items) + หมวดหมู่ + หน่วยนับ',
+      'Lot Tracking + FEFO + Traceability',
+      'คลังสินค้า (Warehouses) + ตำแหน่งจัดเก็บ',
+      'ธุรกรรมคลัง (Issue, Receive, Adjust, Transfer)',
+      'แจ้งเตือนหมดอายุ + Min Stock Alert',
+      'ใบเบิกวัตถุดิบ (Material Requisition)',
+      'Stock Snapshot ณ วันอนุมัติ',
+      'การแสดงตัวเลขมี comma + ทศนิยม 2 หลัก',
+      'Excel Import/Export สำหรับ Items & Lots'
+    ],
+    pending: [
+      { text: 'Auth/Session integration', level: 'pending' },
+      { text: 'i18n แปลภาษาบางหน้า', level: 'pending' }
+    ]
+  },
+  {
+    name: 'การผลิต',
+    nameEn: 'Production',
+    pct: 80,
+    pages: '22+',
+    apis: '22+',
+    tests: 26,
+    services: 5,
+    tables: '20+',
+    validations: 0,
+    done: [
+      'BOM (Bill of Materials) + Configuration',
+      'Work Order Management ครบวงจร',
+      'Material Weighing + ชั่งน้ำหนักวัตถุดิบ',
+      'SOP Execution (ขั้นตอนการผลิต)',
+      'In-Process QC (IPC)',
+      'Cleaning Logs + Environmental Monitoring',
+      'Finished Product Inspection',
+      'Packaging QC + Weight Logs + Integrity',
+      'Production Output + Batch Records',
+      'Line Clearance + Label Verification',
+      'Production Analytics',
+      'Gate-style Workflow (Step-by-step)'
+    ],
+    pending: [
+      { text: 'IPC Criteria Enhancement (dosageForm, criteriaType, tolerancePercent) - มี Plan แล้ว', level: 'critical' },
+      { text: 'Material Weighing Improvements - มี Plan', level: 'pending' },
+      { text: 'BOM Config in Execution - มี Plan', level: 'pending' },
+      { text: 'ไม่มี Validation files', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'แจ้งปัญหา',
+    nameEn: 'Issues',
+    pct: 80,
+    pages: 4,
+    apis: '10+',
+    tests: 12,
+    services: 5,
+    tables: 5,
+    validations: 1,
+    done: [
+      'Dashboard สรุปสถานะ',
+      'CRUD Issues + Comments + Timeline',
+      'กรองตาม Status, Severity, Priority, Category',
+      'AI-assisted Issue Analysis'
+    ],
+    pending: [
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'Dashboard',
+    nameEn: 'Dashboard',
+    pct: 80,
+    pages: 2,
+    apis: 3,
+    tests: 0,
+    services: 4,
+    tables: '-',
+    validations: 0,
+    done: [
+      'Main Dashboard - KPI Overview',
+      'Audit Dashboard',
+      'Executive Dashboard Service',
+      'Compliance Dashboard Service'
+    ],
+    pending: [
+      { text: 'Auth/Session + i18n', level: 'pending' },
+      { text: 'ยังไม่มี Tests', level: 'pending' }
+    ]
+  },
+  {
+    name: 'ข้อมูลหลัก',
+    nameEn: 'Master Data',
+    pct: 80,
+    pages: '12+',
+    apis: '12+',
+    tests: 0,
+    services: 2,
+    tables: 7,
+    validations: 0,
+    done: [
+      'ห้องผลิต (Production Rooms)',
+      'อุปกรณ์ผลิต (Production Equipment)',
+      'เงื่อนไขสภาพแวดล้อม (Environmental Conditions)',
+      'IPC Criteria + Packaging QC Criteria',
+      'SOP Templates + Steps',
+      'Excel Import/Export + Auto-code Generation',
+      'Hard Delete + Blocking linked deletions'
+    ],
+    pending: [
+      { text: 'IPC Criteria Enhancement', level: 'critical' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'จัดซื้อ',
+    nameEn: 'Purchasing',
+    pct: 80,
+    pages: 11,
+    apis: '20+',
+    tests: 13,
+    services: 4,
+    tables: 7,
+    validations: 1,
+    done: [
+      'ใบขอซื้อ (Purchase Requisition) + Approval',
+      'ใบสั่งซื้อ (Purchase Order) + Receive',
+      'ทะเบียนผู้ขาย (Vendors) + AVL',
+      'VMI Orders Integration',
+      'Vendor API Key Management'
+    ],
+    pending: [
+      { text: 'คำนวณ Average Processing Days (TODO in service)', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'ตั้งค่า',
+    nameEn: 'Settings',
+    pct: 75,
+    pages: '8+',
+    apis: '10+',
+    tests: 0,
+    services: 3,
+    tables: 5,
+    validations: 2,
+    done: [
+      'Approval Workflow Configuration',
+      'Matching Tolerances',
+      'VMI Portal Settings',
+      'Workflow Testing Page'
+    ],
+    pending: [
+      { text: 'ยังไม่มี Tests', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'VMI Portal',
+    nameEn: 'VMI Portal',
+    pct: 75,
+    pages: 2,
+    apis: '15+',
+    tests: 14,
+    services: 7,
+    tables: 11,
+    validations: 2,
+    done: [
+      'VMI Dashboard Overview',
+      'Sync Operations + History',
+      'Webhook Management + Delivery Logs',
+      'Vendor Data Exchange (API Key auth)',
+      'Sales Order Integration',
+      'Portal Configuration'
+    ],
+    pending: [
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'คุณภาพ',
+    nameEn: 'Quality',
+    pct: 75,
+    pages: 10,
+    apis: '10+',
+    tests: 11,
+    services: 2,
+    tables: 6,
+    validations: 0,
+    done: [
+      'Quality Tests Management',
+      'Quality Specifications',
+      'Deviation Reports + Investigation',
+      'QC Disposition Service'
+    ],
+    pending: [
+      { text: 'ไม่มี Validation files', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'บัญชี',
+    nameEn: 'Accounting',
+    pct: 70,
+    pages: '40+',
+    apis: '130+',
+    tests: 31,
+    services: 10,
+    tables: '70+',
+    validations: 5,
+    done: [
+      'ผังบัญชี (Chart of Accounts) + Tree View',
+      'สมุดรายวัน (Journal Entries) + Post/Reverse',
+      'AP - ใบแจ้งหนี้, การจ่ายเงิน, Aging Report',
+      'AR - ใบแจ้งหนี้, การรับเงิน, Aging Report',
+      'Bank Reconciliation (Statement, Auto-match, Finalize)',
+      'สินทรัพย์ถาวร (Fixed Assets) + ค่าเสื่อมราคา',
+      'อุปกรณ์ + Maintenance Scheduling',
+      'ใบลดหนี้/ใบเพิ่มหนี้ (Credit/Debit Notes)',
+      '3-Way Matching (PO-GR-Invoice)',
+      'งบการเงิน (งบดุล, กำไรขาดทุน, งบทดลอง, กระแสเงินสด)',
+      'รายงานภาษี (VAT, WHT)',
+      'ปิดงวดบัญชี (Period Close)',
+      'Standard Costs + Variance Reports'
+    ],
+    pending: [
+      { text: 'Journal Entry สำหรับค่าเสื่อมราคาสินทรัพย์ (TODO in code)', level: 'critical' },
+      { text: 'Journal Entry สำหรับจำหน่ายสินทรัพย์ (TODO in code)', level: 'critical' },
+      { text: 'ข้อมูลบริษัทในรายงานการเงิน (TODO: settings)', level: 'pending' },
+      { text: 'Hardcoded Thai ในฟอร์ม Journal Entry', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'HR / บุคลากร',
+    nameEn: 'Human Resources',
+    pct: 70,
+    pages: '27+',
+    apis: '15+',
+    tests: 16,
+    services: 1,
+    tables: '15+',
+    validations: 1,
+    done: [
+      'โครงสร้างองค์กร + Org Chart',
+      'ทะเบียนพนักงาน + ตำแหน่ง',
+      'หลักสูตรอบรม + Sessions + Matrix',
+      'Authorization Management + Delegation',
+      'สมุดสุขภาพพนักงาน',
+      'Notification System',
+      'HR Audit Trail'
+    ],
+    pending: [
+      { text: 'Hardcoded Thai ในฟอร์มพนักงาน', level: 'pending' },
+      { text: 'Delegation canDelegate check (TODO)', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'ผู้ดูแลระบบ',
+    nameEn: 'Admin',
+    pct: 70,
+    pages: 3,
+    apis: '5+',
+    tests: 0,
+    services: 1,
+    tables: 3,
+    validations: 1,
+    done: [
+      'Confidential Groups Management',
+      'Group Members Management'
+    ],
+    pending: [
+      { text: 'ยังไม่มี Tests', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'ขาย',
+    nameEn: 'Sales',
+    pct: 65,
+    pages: 9,
+    apis: '15+',
+    tests: 19,
+    services: 1,
+    tables: 6,
+    validations: 0,
+    done: [
+      'ใบสั่งขาย (Sales Orders)',
+      'ทะเบียนลูกค้า (Customers)',
+      'VMI Orders / Webhook Config',
+      'Item Price Offers'
+    ],
+    pending: [
+      { text: 'ไม่มี Validation files', level: 'pending' },
+      { text: 'ระบบจัดส่ง (Delivery Management) ยังไม่สมบูรณ์', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'ผู้ใช้งาน',
+    nameEn: 'Users',
+    pct: 65,
+    pages: 3,
+    apis: '5+',
+    tests: 0,
+    services: 0,
+    tables: 1,
+    validations: 0,
+    done: [
+      'User CRUD (List, Detail, Create)',
+      'Role-based Access Control (RBAC)'
+    ],
+    pending: [
+      { text: 'ไม่มี Validation / Tests / Service layer', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'รายงาน',
+    nameEn: 'Reports',
+    pct: 55,
+    pages: 4,
+    apis: '10+',
+    tests: 0,
+    services: 5,
+    tables: 4,
+    validations: 0,
+    done: [
+      'Report Designer + Viewer',
+      'Report Template Management',
+      'Export Service (PDF, Excel)',
+      'Report Caching'
+    ],
+    pending: [
+      { text: 'สร้าง Report Category ยังไม่ได้ (TODO)', level: 'pending' },
+      { text: 'ไม่มี Validation / Tests', level: 'pending' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  },
+  {
+    name: 'ต้นทุน',
+    nameEn: 'Cost Management',
+    pct: 55,
+    pages: 7,
+    apis: 8,
+    tests: 0,
+    services: 2,
+    tables: 3,
+    validations: 2,
+    done: [
+      'Landed Cost Management',
+      'Work Center Configuration',
+      'Standard Cost Setup',
+      'Variance Report โครงสร้าง'
+    ],
+    pending: [
+      { text: 'Variance Analysis ต้องดึงข้อมูลจริงจาก WO (4 TODOs - material, labor, overhead)', level: 'critical' },
+      { text: 'ยังไม่มี Tests', level: 'critical' },
+      { text: 'Auth/Session + i18n', level: 'pending' }
+    ]
+  }
+];
+
+var CROSS_CUTTING = [
+  {
+    title: 'Authentication / Session Integration',
+    detail: '46 จุดที่ hardcode userId ในทุก Module',
+    pct: 20,
+    color: '#ef4444',
+    status: 'ยังใช้ hardcoded userId = 1 ใน API routes ทั้งหมด'
+  },
+  {
+    title: 'i18n - การแปลภาษา (Thai/English)',
+    detail: '186/236 หน้าใช้ useTranslations (79%)',
+    pct: 79,
+    color: '#f59e0b',
+    status: 'เหลือ 37 หน้ายังมี hardcoded Thai, กำลังดำเนินการ'
+  },
+  {
+    title: 'i18n - ภาษาจีน (Chinese)',
+    detail: 'แปลแล้ว 2/21 ไฟล์ (10%)',
+    pct: 10,
+    color: '#ef4444',
+    status: 'มีเฉพาะ common.json + navigation.json'
+  },
+  {
+    title: 'Test Coverage',
+    detail: '216 test files across modules',
+    pct: 65,
+    color: '#f59e0b',
+    status: 'Inventory, Production, GMP, Accounting ดี — Cost, Reports, Settings ยังไม่มี'
+  }
+];
+
+var PRIORITIES = [
+  { level: 'critical', label: 'เร่งด่วนสูง', item: 'IPC Criteria Enhancement', module: 'Production', detail: 'เพิ่ม dosageForm, criteriaType (numeric/checkbox), tolerancePercent — มี Spec + Plan พร้อมแล้ว' },
+  { level: 'critical', label: 'เร่งด่วนสูง', item: 'Depreciation Journal Entry', module: 'Accounting', detail: 'สินทรัพย์คำนวณค่าเสื่อมราคาได้แต่ไม่ได้บันทึก Journal Entry ลงบัญชี' },
+  { level: 'critical', label: 'เร่งด่วนสูง', item: 'Asset Disposal Journal Entry', module: 'Accounting', detail: 'จำหน่ายสินทรัพย์ไม่ได้สร้าง Journal Entry สำหรับกำไร/ขาดทุน' },
+  { level: 'critical', label: 'เร่งด่วนสูง', item: 'Variance Analysis ข้อมูลจริง', module: 'Cost', detail: 'ยังใช้ข้อมูล placeholder — ต้องดึง actual material/labor/overhead จาก Work Orders' },
+  { level: 'critical', label: 'เร่งด่วนสูง', item: 'Auth/Session Integration', module: 'ทุก Module', detail: '46 จุดที่ hardcode userId — ต้องเชื่อมต่อ session จริง' },
+  { level: 'medium', label: 'ปานกลาง', item: 'Material Weighing Improvements', module: 'Production', detail: 'ปรับปรุงระบบชั่งน้ำหนักวัตถุดิบ — มี Plan พร้อม' },
+  { level: 'medium', label: 'ปานกลาง', item: 'BOM Config in Execution', module: 'Production', detail: 'การใช้ BOM Configuration ใน Work Order Execution — มี Plan' },
+  { level: 'medium', label: 'ปานกลาง', item: 'i18n เหลือ 37 หน้า', module: 'ทุก Module', detail: '37 หน้ายังมี hardcoded Thai text — ต้องแปลงเป็น useTranslations' },
+  { level: 'medium', label: 'ปานกลาง', item: 'Sales Validation + Delivery', module: 'Sales', detail: 'ไม่มี Validation schema + Delivery Management ไม่สมบูรณ์' },
+  { level: 'medium', label: 'ปานกลาง', item: 'Document Review Period', module: 'GMP', detail: 'คำนวณเอกสารที่ครบกำหนด Review จาก effective date + review period' },
+  { level: 'medium', label: 'ปานกลาง', item: 'Financial Report Company Info', module: 'Accounting', detail: 'รายงานการเงินต้องดึงข้อมูลบริษัทจาก Settings' },
+  { level: 'low', label: 'ปกติ', item: 'Tests: Cost, Reports, Settings, HR', module: 'หลาย Module', detail: '4 Module ยังไม่มี Test files เลย' },
+  { level: 'low', label: 'ปกติ', item: 'ภาษาจีน (zh)', module: 'i18n', detail: 'แปลแล้ว 2/21 ไฟล์ — เหลืออีก 19 ไฟล์' },
+  { level: 'low', label: 'ปกติ', item: 'Report Category Creation', module: 'Reports', detail: 'ปุ่มสร้าง Category ยังเป็น TODO' },
+  { level: 'low', label: 'ปกติ', item: 'HR Delegation Check', module: 'HR', detail: 'ตรวจสอบ canDelegate จาก flow definition ยังเป็น TODO' }
+];
+
+// ── SAFE DOM HELPERS ──────────────────────────────────
+function el(tag, attrs, children) {
+  var e = document.createElement(tag);
+  if (attrs) Object.keys(attrs).forEach(function(k) {
+    if (k === 'className') e.className = attrs[k];
+    else if (k === 'textContent') e.textContent = attrs[k];
+    else if (k === 'onclick') e.onclick = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  });
+  if (children) {
+    if (typeof children === 'string') e.textContent = children;
+    else if (Array.isArray(children)) children.forEach(function(c) { if (c) e.appendChild(c); });
+    else e.appendChild(children);
+  }
+  return e;
+}
+
+function textEl(tag, text, cls) {
+  var e = document.createElement(tag);
+  e.textContent = text;
+  if (cls) e.className = cls;
+  return e;
+}
+
+// ── RENDER ─────────────────────────────────────────────
+function render() {
+  var now = new Date();
+  var thaiYear = now.getFullYear() + 543;
+  var months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  document.getElementById('reportDate').textContent =
+    'รายงาน ณ วันที่ ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + thaiYear;
+
+  var avg = Math.round(MODULES.reduce(function(s,m){ return s+m.pct; }, 0) / MODULES.length);
+  document.getElementById('overallPct').textContent = avg;
+  setTimeout(function() { document.getElementById('overallBar').style.width = avg + '%'; }, 100);
+
+  var ready = 0, partial = 0, dev = 0;
+  MODULES.forEach(function(m) { if(m.pct >= 80) ready++; else if(m.pct >= 65) partial++; else dev++; });
+
+  // Stats row
+  var statsRow = document.getElementById('statsRow');
+  var statsData = [
+    { cls: 'blue', num: '17', lbl: 'Modules' },
+    { cls: 'blue', num: '236', lbl: 'Pages' },
+    { cls: 'blue', num: '497', lbl: 'API Routes' },
+    { cls: 'blue', num: '170+', lbl: 'Tables' },
+    { cls: 'green', num: String(ready), lbl: 'พร้อมใช้งาน (\u226580%)' },
+    { cls: 'yellow', num: String(partial), lbl: 'ใช้ได้บางส่วน (65-79%)' },
+    { cls: 'red', num: String(dev), lbl: 'ต้องพัฒนาเพิ่ม (<65%)' }
+  ];
+  statsData.forEach(function(s) {
+    var chip = el('div', { className: 'stat-chip ' + s.cls }, [
+      textEl('span', s.num, 'num'),
+      textEl('span', s.lbl, 'lbl')
+    ]);
+    statsRow.appendChild(chip);
+  });
+  var exportBtn = el('button', { className: 'btn-export', onclick: exportExcel });
+  exportBtn.textContent = '\u{1f4e5} Export Excel';
+  statsRow.appendChild(exportBtn);
+
+  // Cross-cutting cards
+  var crossGrid = document.getElementById('crossGrid');
+  CROSS_CUTTING.forEach(function(c) {
+    var card = el('div', { className: 'cross-card' }, [
+      textEl('h3', c.title),
+      (function() {
+        var row = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;' }, [
+          textEl('span', c.detail, 'cross-info'),
+          (function() {
+            var pctSpan = textEl('span', c.pct + '%');
+            pctSpan.style.fontWeight = '700';
+            pctSpan.style.fontSize = '18px';
+            pctSpan.style.color = c.color;
+            return pctSpan;
+          })()
+        ]);
+        return row;
+      })(),
+      (function() {
+        var barWrap = el('div', { className: 'cross-bar' });
+        var fill = el('div', { className: 'cross-fill' });
+        fill.style.width = c.pct + '%';
+        fill.style.background = c.color;
+        barWrap.appendChild(fill);
+        return barWrap;
+      })(),
+      textEl('div', c.status, 'cross-info')
+    ]);
+    crossGrid.appendChild(card);
+  });
+
+  // Module cards
+  var sorted = MODULES.slice().sort(function(a,b) { return b.pct - a.pct; });
+  var moduleGrid = document.getElementById('moduleGrid');
+
+  sorted.forEach(function(m) {
+    var cls = m.pct >= 80 ? 'p-high' : m.pct >= 65 ? 'p-mid' : 'p-low';
+
+    var ul = el('ul');
+    m.done.forEach(function(d) {
+      ul.appendChild(el('li', { className: 'done', textContent: d }));
+    });
+    m.pending.forEach(function(p) {
+      ul.appendChild(el('li', { className: p.level, textContent: p.text }));
+    });
+
+    var statsDiv = el('div', { className: 'mod-stats' });
+    [
+      { v: m.pages, l: 'Pages' },
+      { v: m.apis, l: 'APIs' },
+      { v: m.tests, l: 'Tests' },
+      { v: m.services, l: 'Services' },
+      { v: m.tables, l: 'Tables' },
+      { v: m.validations, l: 'Validations' }
+    ].forEach(function(s) {
+      var stat = el('span', { className: 'mod-stat' }, [
+        textEl('b', String(s.v)),
+        document.createTextNode(' ' + s.l)
+      ]);
+      statsDiv.appendChild(stat);
+    });
+
+    var card = el('div', { className: 'mod-card' }, [
+      el('div', { className: 'mod-card-head' }, [
+        el('div', {}, [
+          textEl('div', m.name, 'mod-name'),
+          textEl('div', m.nameEn, 'mod-name-en')
+        ]),
+        textEl('div', m.pct + '%', 'mod-pct ' + cls)
+      ]),
+      (function() {
+        var bar = el('div', { className: 'mod-bar' });
+        var fill = el('div', { className: 'mod-bar-fill ' + cls });
+        fill.style.width = m.pct + '%';
+        bar.appendChild(fill);
+        return bar;
+      })(),
+      statsDiv,
+      el('div', { className: 'mod-detail' }, [ul])
+    ]);
+    moduleGrid.appendChild(card);
+  });
+
+  // Priority table
+  var tbody = document.getElementById('priorityBody');
+  PRIORITIES.forEach(function(p, i) {
+    var bcls = p.level === 'critical' ? 'b-critical' : p.level === 'medium' ? 'b-medium' : 'b-low';
+    var tr = el('tr', {}, [
+      (function() {
+        var td = el('td', { textContent: String(i+1) });
+        td.style.textAlign = 'center';
+        td.style.color = '#94a3b8';
+        td.style.fontWeight = '600';
+        return td;
+      })(),
+      el('td', {}, [ textEl('span', p.label, 'badge ' + bcls) ]),
+      (function() {
+        var td = el('td', { textContent: p.item });
+        td.style.fontWeight = '600';
+        td.style.color = '#0f172a';
+        return td;
+      })(),
+      (function() {
+        var td = el('td', { textContent: p.module });
+        td.style.color = '#475569';
+        return td;
+      })(),
+      (function() {
+        var td = el('td', { textContent: p.detail });
+        td.style.color = '#475569';
+        td.style.fontSize = '13px';
+        return td;
+      })()
+    ]);
+    tbody.appendChild(tr);
+  });
+}
+
+// ── EXPORT EXCEL ────────────────────────────────────────
+function exportExcel() {
+  var wb = XLSX.utils.book_new();
+
+  var summaryData = MODULES.map(function(m, i) {
+    return {
+      '#': i+1,
+      'Module (TH)': m.name,
+      'Module (EN)': m.nameEn,
+      'Completion %': m.pct,
+      'Pages': m.pages,
+      'API Routes': m.apis,
+      'Tests': m.tests,
+      'Services': m.services,
+      'Tables': m.tables,
+      'Validations': m.validations,
+      'Status': m.pct >= 80 ? 'Ready' : m.pct >= 65 ? 'Partial' : 'Needs Development'
+    };
+  });
+  var ws1 = XLSX.utils.json_to_sheet(summaryData);
+  ws1['!cols'] = [{wch:4},{wch:22},{wch:20},{wch:14},{wch:8},{wch:12},{wch:8},{wch:10},{wch:8},{wch:12},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Module Summary');
+
+  var pendingData = PRIORITIES.map(function(p, i) {
+    return { '#': i+1, 'Priority': p.label, 'Item': p.item, 'Module': p.module, 'Detail': p.detail };
+  });
+  var ws2 = XLSX.utils.json_to_sheet(pendingData);
+  ws2['!cols'] = [{wch:4},{wch:14},{wch:35},{wch:15},{wch:60}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Pending Items');
+
+  var detailRows = [];
+  MODULES.forEach(function(m) {
+    m.done.forEach(function(d) { detailRows.push({ Module: m.name, Status: 'Done', Item: d }); });
+    m.pending.forEach(function(p) { detailRows.push({ Module: m.name, Status: p.level === 'critical' ? 'Critical' : 'Pending', Item: p.text }); });
+  });
+  var ws3 = XLSX.utils.json_to_sheet(detailRows);
+  ws3['!cols'] = [{wch:22},{wch:10},{wch:80}];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Detail');
+
+  XLSX.writeFile(wb, 'ERP_Module_Status_Report.xlsx');
+}
+
+// ── BACK TO TOP ─────────────────────────────────────────
+window.addEventListener('scroll', function() {
+  document.getElementById('btt').classList.toggle('visible', window.scrollY > 300);
+});
+
+// ── INIT ────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>

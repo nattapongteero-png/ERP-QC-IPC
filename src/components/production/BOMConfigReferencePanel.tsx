@@ -37,14 +37,19 @@ export default function BOMConfigReferencePanel({
 
   if (!bomConfig) return null;
 
-  const rooms = phase
-    ? bomConfig.rooms.filter((r) => r.phase === phase)
+  // Normalize phase comparison (guards against trailing whitespace / casing drift in DB)
+  const normalizedPhase = phase?.trim().toLowerCase();
+  const phaseMatch = (p: string | undefined | null): boolean =>
+    !!normalizedPhase && (p || '').trim().toLowerCase() === normalizedPhase;
+
+  const rooms = normalizedPhase
+    ? bomConfig.rooms.filter((r) => phaseMatch(r.phase))
     : bomConfig.rooms;
-  const equipment = phase
-    ? bomConfig.equipment.filter((e) => e.phase === phase)
+  const equipment = normalizedPhase
+    ? bomConfig.equipment.filter((e) => phaseMatch(e.phase))
     : bomConfig.equipment;
-  const conditions = phase
-    ? bomConfig.environmentalConditions.filter((c) => c.phase === phase)
+  const conditions = normalizedPhase
+    ? bomConfig.environmentalConditions.filter((c) => phaseMatch(c.phase))
     : bomConfig.environmentalConditions;
   const sopSteps = bomConfig.sopSteps;
   const packagingQC = bomConfig.packagingQC;

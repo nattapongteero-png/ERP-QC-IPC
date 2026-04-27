@@ -12,6 +12,7 @@ import {
 import {
   getAPInvoiceById,
   updateAPInvoice,
+  deleteAPInvoice,
 } from '@/lib/services/accounting.service';
 import { apInvoiceUpdateSchema } from '@/lib/validation/accounting';
 
@@ -76,6 +77,37 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           session.userId
         );
         return successResponse(invoice, 'AP invoice updated successfully');
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('not found')) {
+            return notFoundResponse(error.message);
+          }
+          if (error.message.includes('draft')) {
+            return errorResponse(error.message, 400);
+          }
+        }
+        return serverErrorResponse(error);
+      }
+    },
+    ['accounting:ap_invoices:write']
+  );
+}
+
+// DELETE /api/accounting/ap-invoices/[id] - Delete draft AP invoice
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  return withAuth(
+    request,
+    async (session) => {
+      try {
+        const { id } = await params;
+        const invoiceId = Number(id);
+
+        if (isNaN(invoiceId)) {
+          return errorResponse('Invalid invoice ID', 400);
+        }
+
+        await deleteAPInvoice(invoiceId, session.userId);
+        return successResponse(null, 'AP invoice deleted successfully');
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {

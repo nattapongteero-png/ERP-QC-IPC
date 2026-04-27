@@ -31,6 +31,7 @@ import SelectBox from 'devextreme-react/select-box';
 import TextBox from 'devextreme-react/text-box';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent } from '@/components/ui/card';
+import { ResponsivePageHeader } from '@/components/shared';
 import type { ApprovalFlowWithDetails, DocumentType } from '@/types/approval-workflow';
 
 // Page header component similar to TemplatePageHeader
@@ -238,23 +239,32 @@ export default function ApprovalWorkflowsPage() {
   };
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       {/* Header */}
-      <PageHeader
+      <ResponsivePageHeader
         title={t('approvalWorkflows.title')}
         subtitle={t('approvalWorkflows.description')}
         icon={GitBranch}
-        iconClassName="from-purple-500 to-pink-600"
-        onRefresh={() => refetch()}
-        isRefreshing={isFetching}
+        iconBgColor="bg-purple-100"
+        iconColor="text-purple-600"
         actions={
-          <Button
-            text={t('approvalWorkflows.newWorkflow')}
-            icon="add"
-            type="success"
-            onClick={() => router.push('/settings/approval-workflows/new')}
-            data-testid="new-workflow-btn"
-          />
+          <>
+            <Button
+              icon={isFetching ? 'spindown' : 'refresh'}
+              stylingMode="outlined"
+              hint="Refresh"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              data-testid="refresh-btn"
+            />
+            <Button
+              text={t('approvalWorkflows.newWorkflow')}
+              icon="add"
+              type="success"
+              onClick={() => router.push('/settings/approval-workflows/new')}
+              data-testid="new-workflow-btn"
+            />
+          </>
         }
       />
 

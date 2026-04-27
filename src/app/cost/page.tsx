@@ -28,33 +28,38 @@ export default function CostManagementPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6" data-testid="cost-management-page">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="cost-management-page">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <ResponsivePageHeader
           title={t('dashboard.title')}
           icon={DollarSign}
+          iconBgColor="bg-cyan-100"
+          iconColor="text-cyan-600"
           subtitle={t('dashboard.subtitle')}
         />
 
         {/* Period Selector */}
-        <div className="flex items-center gap-2" data-testid="period-selector">
-          <Calendar className="h-5 w-5 text-gray-500" />
+        <div
+          className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm w-full md:w-auto"
+          data-testid="period-selector"
+        >
+          <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
           <SelectBox
             dataSource={periodOptions}
             valueExpr="value"
             displayExpr="label"
             value={periodType}
             onValueChanged={(e) => setPeriodType(e.value)}
-            width={180}
-            stylingMode="outlined"
+            stylingMode="underlined"
+            className="flex-1"
           />
         </div>
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all border-l-4 border-l-blue-500"
           onClick={() => router.push('/cost/landed-costs')}
           data-testid="quick-link-landed-costs"
         >
@@ -63,45 +68,45 @@ export default function CostManagementPage() {
               <div className="p-3 rounded-full bg-blue-100">
                 <Truck className="h-6 w-6 text-blue-600" />
               </div>
-              <div>
-                <p className="font-medium">{t('dashboard.quickLinks.landedCosts.title')}</p>
-                <p className="text-sm text-gray-500">{t('dashboard.quickLinks.landedCosts.description')}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900">{t('dashboard.quickLinks.landedCosts.title')}</p>
+                <p className="text-sm text-gray-500 truncate">{t('dashboard.quickLinks.landedCosts.description')}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all border-l-4 border-l-emerald-500"
           onClick={() => router.push('/cost/work-centers')}
           data-testid="quick-link-work-centers"
         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-green-100">
-                <Factory className="h-6 w-6 text-green-600" />
+              <div className="p-3 rounded-full bg-emerald-100">
+                <Factory className="h-6 w-6 text-emerald-600" />
               </div>
-              <div>
-                <p className="font-medium">{t('dashboard.quickLinks.workCenters.title')}</p>
-                <p className="text-sm text-gray-500">{t('dashboard.quickLinks.workCenters.description')}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900">{t('dashboard.quickLinks.workCenters.title')}</p>
+                <p className="text-sm text-gray-500 truncate">{t('dashboard.quickLinks.workCenters.description')}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all border-l-4 border-l-violet-500"
           onClick={() => router.push('/cost/reports/cost-summary')}
           data-testid="quick-link-reports"
         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-purple-100">
-                <FileText className="h-6 w-6 text-purple-600" />
+              <div className="p-3 rounded-full bg-violet-100">
+                <FileText className="h-6 w-6 text-violet-600" />
               </div>
-              <div>
-                <p className="font-medium">{t('dashboard.quickLinks.reports.title')}</p>
-                <p className="text-sm text-gray-500">{t('dashboard.quickLinks.reports.description')}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900">{t('dashboard.quickLinks.reports.title')}</p>
+                <p className="text-sm text-gray-500 truncate">{t('dashboard.quickLinks.reports.description')}</p>
               </div>
             </div>
           </CardContent>

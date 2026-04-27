@@ -11,6 +11,7 @@ import {
 import {
   getARInvoiceById,
   updateARInvoice,
+  deleteARInvoice,
 } from '@/lib/services/accounting.service';
 import { arInvoiceUpdateSchema } from '@/lib/validation/accounting';
 
@@ -82,6 +83,39 @@ export async function PUT(
             error.message.includes('Cannot update') ||
             error.message.includes('draft')
           ) {
+            return errorResponse(error.message, 400);
+          }
+        }
+        return serverErrorResponse(error);
+      }
+    },
+    ['accounting:ar_invoices:write']
+  );
+}
+
+// DELETE /api/accounting/ar-invoices/[id] - Delete draft AR invoice
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(
+    request,
+    async (session) => {
+      try {
+        const { id } = await params;
+        const invoiceId = Number(id);
+        if (isNaN(invoiceId) || invoiceId <= 0) {
+          return errorResponse('Invalid invoice ID', 400);
+        }
+
+        await deleteARInvoice(invoiceId, session.userId);
+        return successResponse(null, 'AR invoice deleted successfully');
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('not found')) {
+            return errorResponse(error.message, 404);
+          }
+          if (error.message.includes('draft')) {
             return errorResponse(error.message, 400);
           }
         }

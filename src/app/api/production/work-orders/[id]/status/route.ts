@@ -101,6 +101,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
       if (status === 'completed') {
         updateData.actualEndDate = dbDate();
+        // eBMR "Produced By" signature — capture on completion transition
+        updateData.completedBy = session.userId;
+        updateData.completedAt = dbDate();
         if (actualQuantity !== undefined) {
           updateData.actualQuantity = actualQuantity;
         }

@@ -20,17 +20,25 @@ interface ErrorItemProps {
   debug?: ErrorDetails;
   url?: string;
   method?: string;
+  missingPermissions?: string[];
+  userRole?: string;
+  actionHint?: string;
   onDismiss: () => void;
 }
 
-function ErrorItem({ id, error, debug, url, method, onDismiss }: ErrorItemProps) {
+function ErrorItem({ id, error, debug, url, method, missingPermissions, userRole, actionHint, onDismiss }: ErrorItemProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const isPermissionError = !!(missingPermissions && missingPermissions.length > 0);
+
   const copyToClipboard = async () => {
+    const permissionLines = isPermissionError
+      ? `\nRole: ${userRole}\nMissing Permissions: ${missingPermissions!.join(', ')}\nAction: ${actionHint || ''}`
+      : '';
     const text = debug
-      ? `Error: ${error}\nURL: ${url}\nMethod: ${method}\n\nDebug Details:\n${JSON.stringify(debug, null, 2)}`
-      : `Error: ${error}\nURL: ${url}\nMethod: ${method}`;
+      ? `Error: ${error}\nURL: ${url}\nMethod: ${method}${permissionLines}\n\nDebug Details:\n${JSON.stringify(debug, null, 2)}`
+      : `Error: ${error}\nURL: ${url}\nMethod: ${method}${permissionLines}`;
 
     await navigator.clipboard.writeText(text);
     setCopied(true);
@@ -38,18 +46,45 @@ function ErrorItem({ id, error, debug, url, method, onDismiss }: ErrorItemProps)
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-xl border border-red-200 overflow-hidden max-w-2xl w-full">
+    <div className={`bg-white rounded-lg shadow-xl border overflow-hidden max-w-2xl w-full ${isPermissionError ? 'border-amber-200' : 'border-red-200'}`}>
       {/* Header */}
-      <div className="bg-red-50 px-4 py-3 flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+      <div className={`px-4 py-3 flex items-start gap-3 ${isPermissionError ? 'bg-amber-50' : 'bg-red-50'}`}>
+        <AlertCircle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${isPermissionError ? 'text-amber-500' : 'text-red-500'}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono bg-red-100 text-red-700 px-2 py-0.5 rounded">
+            <span className={`text-xs font-mono px-2 py-0.5 rounded ${isPermissionError ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
               {method || 'GET'}
             </span>
-            <span className="text-xs text-red-600 truncate">{url}</span>
+            {isPermissionError && (
+              <span className="text-xs font-bold bg-amber-600 text-white px-2 py-0.5 rounded">
+                🔒 ขาดสิทธิ์
+              </span>
+            )}
+            <span className={`text-xs truncate ${isPermissionError ? 'text-amber-600' : 'text-red-600'}`}>{url}</span>
           </div>
-          <p className="text-red-800 font-medium">{error}</p>
+          <p className={`font-medium ${isPermissionError ? 'text-amber-900' : 'text-red-800'}`}>{error}</p>
+          {isPermissionError && (
+            <div className="mt-2 p-2 bg-white/60 rounded border border-amber-300 text-xs">
+              <div className="flex flex-wrap gap-1.5 mb-1.5">
+                <span className="text-amber-700 font-semibold">Role ปัจจุบัน:</span>
+                <code className="px-1.5 py-0.5 bg-amber-100 text-amber-900 rounded font-mono">{userRole}</code>
+              </div>
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-amber-700 font-semibold">Permission ที่ขาด:</span>
+                {missingPermissions!.map((perm) => (
+                  <code key={perm} className="px-1.5 py-0.5 bg-red-100 text-red-800 rounded font-mono text-[11px]">
+                    {perm}
+                  </code>
+                ))}
+              </div>
+              {actionHint && (
+                <p className="mt-2 text-amber-800 flex items-start gap-1">
+                  <span>💡</span>
+                  <span>{actionHint}</span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           <button
@@ -175,6 +210,9 @@ export function GlobalApiErrors() {
           debug={err.debug}
           url={err.url}
           method={err.method}
+          missingPermissions={err.missingPermissions}
+          userRole={err.userRole}
+          actionHint={err.actionHint}
           onDismiss={() => dismissError(err.id)}
         />
       ))}

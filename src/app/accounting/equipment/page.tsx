@@ -5,9 +5,9 @@
 // User Story 8: Track Equipment and Maintenance Costs
 // Pattern: Aligned with Template module
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -30,6 +30,8 @@ import {
 } from '@/components/accounting';
 import { Wrench, AlertTriangle, Clock, CheckCircle, Activity, Eye, Edit, Trash2 } from 'lucide-react';
 import type { AccountingEquipment } from '@/lib/db/schema';
+
+type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
 
 interface EquipmentWithAsset extends AccountingEquipment {
   assetCode?: string;
@@ -56,12 +58,6 @@ interface UpcomingMaintenance {
   };
   daysUntilDue: number;
 }
-
-const availabilityOptions = [
-  { value: '', text: 'All Equipment' },
-  { value: 'available', text: 'Available' },
-  { value: 'unavailable', text: 'Unavailable / In Use' },
-];
 
 function formatDate(dateStr: string | Date | null): string {
   if (!dateStr) return '-';
@@ -120,6 +116,7 @@ async function deleteEquipment(id: number): Promise<void> {
 }
 
 function MaintenanceDetailView({ data }: { data: { data: EquipmentWithAsset } }) {
+  const t = useTranslations('accounting');
   const equipmentId = data.data.id;
 
   const { data: schedules = [] } = useQuery({
@@ -136,11 +133,11 @@ function MaintenanceDetailView({ data }: { data: { data: EquipmentWithAsset } })
     <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50/30">
       <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <div className="w-1 h-4 bg-blue-500 rounded-full" />
-        Maintenance Schedules
+        {t('equipment.detail.title')}
       </h4>
       {schedules.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-gray-500 text-sm">No maintenance schedules configured.</p>
+          <p className="text-gray-500 text-sm">{t('equipment.detail.noSchedules')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -149,16 +146,16 @@ function MaintenanceDetailView({ data }: { data: { data: EquipmentWithAsset } })
               <div className="flex items-start justify-between mb-2">
                 <div className="text-sm font-semibold text-gray-900">{schedule.maintenanceType}</div>
                 <div className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                  Active
+                  {t('equipment.detail.active')}
                 </div>
               </div>
               <div className="text-xs text-gray-600 mb-3">{schedule.description}</div>
               <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                 <div className="text-xs text-gray-500">
-                  Every {schedule.intervalValue} {schedule.intervalType}
+                  {t('equipment.detail.every')} {schedule.intervalValue} {schedule.intervalType}
                 </div>
                 <div className="text-xs font-medium text-blue-600">
-                  Next: {formatDate(schedule.nextDue)}
+                  {t('equipment.detail.next')}: {formatDate(schedule.nextDue)}
                 </div>
               </div>
             </div>
@@ -173,11 +170,18 @@ MaintenanceDetailView.displayName = 'MaintenanceDetailView';
 
 export default function EquipmentPage() {
   const t = useTranslations('accounting');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('');
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentWithAsset | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const availabilityOptions = useMemo(() => [
+    { value: '', text: t('equipment.availability.all') },
+    { value: 'available', text: t('equipment.availability.available') },
+    { value: 'unavailable', text: t('equipment.availability.unavailable') },
+  ], [t]);
 
   const isAvailable = availabilityFilter === 'available'
     ? true
@@ -210,7 +214,7 @@ export default function EquipmentPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       queryClient.invalidateQueries({ queryKey: ['equipment-summary'] });
-      notify('Equipment deleted successfully', 'success', 3000);
+      notify(t('equipment.deleteSuccess'), 'success', 3000);
       setShowDeleteConfirm(false);
       setSelectedEquipment(null);
     },
@@ -228,8 +232,8 @@ export default function EquipmentPage() {
     a.download = `equipment-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    notify('Equipment data exported successfully', 'success', 3000);
-  }, [equipment]);
+    notify(t('equipment.exportSuccess'), 'success', 3000);
+  }, [equipment, t]);
 
   const handleRowClick = (e: { data: EquipmentWithAsset }) => {
     router.push(`/accounting/equipment/${e.data.id}`);
@@ -249,7 +253,7 @@ export default function EquipmentPage() {
             router.push(`/accounting/equipment/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="View"
+          title={t('equipment.rowActions.view')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -259,7 +263,7 @@ export default function EquipmentPage() {
             router.push(`/accounting/equipment/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="Edit"
+          title={t('equipment.rowActions.edit')}
         >
           <Edit className="h-4 w-4" />
         </button>
@@ -269,7 +273,7 @@ export default function EquipmentPage() {
             handleDelete(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Delete"
+          title={t('equipment.rowActions.delete')}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -281,28 +285,28 @@ export default function EquipmentPage() {
     <div className="space-y-6 p-1" data-testid="equipment-page">
       {/* Header */}
       <ResponsivePageHeader
-        title={t('page.title')}
-        subtitle="Track equipment, maintenance schedules, and MTBF analysis"
+        title={t('equipment.title')}
+        subtitle={t('equipment.subtitle')}
         icon={Wrench}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         breadcrumbs={[
-          { label: 'Home', href: '/' },
-          { label: 'Accounting', href: '/accounting' },
-          { label: 'Equipment' },
+          { label: t('equipment.breadcrumbHome'), href: '/' },
+          { label: t('equipment.breadcrumbAccounting'), href: '/accounting' },
+          { label: t('equipment.breadcrumbEquipment') },
         ]}
         actions={
           <div className="flex items-center gap-2">
             {equipment.length > 0 && (
               <Button
-                text="Export JSON"
+                text={t('equipment.exportJson')}
                 icon="export"
                 stylingMode="outlined"
                 onClick={handleExportJSON}
               />
             )}
             <Button
-              text="Add Equipment"
+              text={t('equipment.addEquipment')}
               icon="plus"
               type="success"
               onClick={() => router.push('/accounting/equipment/new')}
@@ -318,14 +322,16 @@ export default function EquipmentPage() {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">{t('equipment.delete.title')}</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete equipment &quot;{selectedEquipment.assetName || `ID: ${selectedEquipment.id}`}&quot;?
+                  {t('equipment.delete.message', {
+                    name: selectedEquipment.assetName || `ID: ${selectedEquipment.id}`,
+                  })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text={t('equipment.delete.cancel')}
                   stylingMode="outlined"
                   onClick={() => {
                     setShowDeleteConfirm(false);
@@ -333,7 +339,7 @@ export default function EquipmentPage() {
                   }}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  text={deleteMutation.isPending ? t('equipment.delete.deleting') : t('equipment.delete.confirm')}
                   icon="trash"
                   type="danger"
                   onClick={() => deleteMutation.mutate(selectedEquipment.id)}
@@ -348,35 +354,35 @@ export default function EquipmentPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4" data-testid="eq-stats">
         <StatCard
-          label="Total Equipment"
+          label={t('equipment.stats.totalEquipment')}
           value={summary?.totalEquipment || 0}
           icon={Wrench}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
         />
         <StatCard
-          label="Available"
+          label={t('equipment.stats.available')}
           value={summary?.availableEquipment || 0}
           icon={CheckCircle}
           iconColor="text-green-500"
           accentColor="border-green-500"
         />
         <StatCard
-          label="In Use"
+          label={t('equipment.stats.inUse')}
           value={summary?.unavailableEquipment || 0}
           icon={Activity}
           iconColor="text-yellow-500"
           accentColor="border-yellow-500"
         />
         <StatCard
-          label="Overdue"
+          label={t('equipment.stats.overdue')}
           value={overdue?.count || 0}
           icon={AlertTriangle}
           iconColor="text-red-500"
           accentColor="border-red-500"
         />
         <StatCard
-          label="Due (7 days)"
+          label={t('equipment.stats.due7Days')}
           value={upcoming?.length || 0}
           icon={Clock}
           iconColor="text-orange-500"
@@ -392,10 +398,10 @@ export default function EquipmentPage() {
               <div className="p-2 bg-red-100 rounded-lg">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
-              <span className="font-semibold text-lg">Overdue Maintenance Alert</span>
+              <span className="font-semibold text-lg">{t('equipment.overdueAlert.title')}</span>
             </div>
             <p className="text-sm text-red-700 ml-11">
-              There are <span className="font-bold">{overdue?.count}</span> maintenance tasks that are overdue. Please review and schedule immediately.
+              {t('equipment.overdueAlert.message', { count: overdue?.count || 0 })}
             </p>
           </CardContent>
         </Card>
@@ -406,8 +412,11 @@ export default function EquipmentPage() {
         <CardContent className="py-4">
           <div className="flex flex-wrap items-center gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('equipment.availability.label')}
+              </label>
               <SelectBox
+                key={locale}
                 items={availabilityOptions}
                 value={availabilityFilter}
                 onValueChanged={(e) => setAvailabilityFilter(e.value)}
@@ -418,7 +427,7 @@ export default function EquipmentPage() {
             </div>
             {availabilityFilter && (
               <Button
-                text="Clear"
+                text={t('equipment.availability.clear')}
                 stylingMode="text"
                 onClick={() => setAvailabilityFilter('')}
               />
@@ -431,6 +440,7 @@ export default function EquipmentPage() {
       <Card data-testid="eq-grid">
         <CardContent className="p-0">
           <DataGrid
+            key={locale}
             dataSource={equipment}
             keyExpr="id"
             showBorders={false}
@@ -454,14 +464,14 @@ export default function EquipmentPage() {
               showNavigationButtons
             />
 
-            <Column dataField="assetCode" caption="Asset Code" width={150} />
-            <Column dataField="assetName" caption="Asset Name" minWidth={200} />
-            <Column dataField="serialNumber" caption="Serial No." width={150} />
-            <Column dataField="manufacturer" caption="Manufacturer" width={150} />
-            <Column dataField="model" caption="Model" width={130} />
+            <Column dataField="assetCode" caption={t('equipment.table.columns.assetCode')} width={150} />
+            <Column dataField="assetName" caption={t('equipment.table.columns.assetName')} minWidth={200} />
+            <Column dataField="serialNumber" caption={t('equipment.table.columns.serialNumber')} width={150} />
+            <Column dataField="manufacturer" caption={t('equipment.table.columns.manufacturer')} width={150} />
+            <Column dataField="model" caption={t('equipment.table.columns.model')} width={130} />
             <Column
               dataField="operatingHours"
-              caption="Op. Hours"
+              caption={t('equipment.table.columns.operatingHours')}
               dataType="number"
               format="#,##0"
               width={100}
@@ -469,19 +479,19 @@ export default function EquipmentPage() {
             />
             <Column
               dataField="lastMaintenanceDate"
-              caption="Last Maintenance"
+              caption={t('equipment.table.columns.lastMaintenance')}
               calculateCellValue={(rowData: EquipmentWithAsset) => formatDate(rowData.lastMaintenanceDate)}
               width={140}
             />
             <Column
               dataField="nextMaintenanceDue"
-              caption="Next Due"
+              caption={t('equipment.table.columns.nextDue')}
               calculateCellValue={(rowData: EquipmentWithAsset) => formatDate(rowData.nextMaintenanceDue)}
               width={140}
             />
             <Column
               dataField="isAvailable"
-              caption="Status"
+              caption={t('equipment.table.columns.status')}
               width={110}
               cellRender={({ data }) => (
                 <AccountingStatusBadge
@@ -490,7 +500,7 @@ export default function EquipmentPage() {
               )}
             />
             <Column
-              caption="Actions"
+              caption={t('equipment.table.columns.actions')}
               width={120}
               cellRender={renderActionsCell}
               allowFiltering={false}
@@ -511,46 +521,49 @@ export default function EquipmentPage() {
             <div className="flex items-center gap-2 mb-5">
               <div className="w-1 h-6 bg-orange-500 rounded-full" />
               <h3 className="text-lg font-semibold text-gray-900">
-                Upcoming Maintenance (Next 7 Days)
+                {t('equipment.upcoming.title')}
               </h3>
             </div>
             <div className="space-y-3">
               {upcoming.slice(0, 5).map((item, index) => (
-                <div
-                  key={`upcoming-${index}`}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50/30 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Clock className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <span className="font-semibold text-gray-900">
-                        {item.schedule.maintenanceType}
-                      </span>
-                      <span className="text-gray-600 ml-2">
-                        - {item.schedule.description}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-600">
-                      Due: {formatDate(item.schedule.nextDue)}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                      item.daysUntilDue <= 2
-                        ? 'bg-orange-100 text-orange-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {item.daysUntilDue === 0 ? 'Today' : `${item.daysUntilDue} days`}
-                    </span>
-                  </div>
-                </div>
+                <UpcomingMaintenanceItem key={`upcoming-${index}`} item={item} t={t} />
               ))}
             </div>
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function UpcomingMaintenanceItem({ item, t }: { item: UpcomingMaintenance; t: TranslateFn }) {
+  return (
+    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50/30 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-blue-100 rounded-lg">
+          <Clock className="h-4 w-4 text-blue-600" />
+        </div>
+        <div>
+          <span className="font-semibold text-gray-900">
+            {item.schedule.maintenanceType}
+          </span>
+          <span className="text-gray-600 ml-2">
+            - {item.schedule.description}
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-4">
+        <span className="text-sm text-gray-600">
+          {t('equipment.upcoming.due')}: {formatDate(item.schedule.nextDue)}
+        </span>
+        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+          item.daysUntilDue <= 2
+            ? 'bg-orange-100 text-orange-700'
+            : 'bg-blue-100 text-blue-700'
+        }`}>
+          {item.daysUntilDue === 0 ? t('equipment.upcoming.today') : t('equipment.upcoming.days', { count: item.daysUntilDue })}
+        </span>
+      </div>
     </div>
   );
 }

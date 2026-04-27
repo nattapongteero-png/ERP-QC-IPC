@@ -83,12 +83,190 @@
   },
   "moduleKpis": {
     "title": "ตัวชี้วัดแยกตามโมดูล",
+    "cardTitle": "ตัวชี้วัดประสิทธิภาพตามโมดูล",
+    "cardDescription": "ตัวชี้วัดประสิทธิภาพแยกตามโมดูล",
     "tabs": {
+      "hr": "ทรัพยากรบุคคล",
+      "purchase": "จัดซื้อ",
+      "sales": "ขาย",
+      "vmi": "VMI",
+      "gmp": "GMP Compliance",
       "inventory": "คลังสินค้า",
       "production": "การผลิต",
       "quality": "คุณภาพ",
-      "purchasing": "จัดซื้อ",
-      "sales": "ขาย"
+      "purchasing": "จัดซื้อ"
+    },
+    "hr": {
+      "totalEmployees": {
+        "label": "พนักงานทั้งหมด",
+        "subtitleActive": "ใช้งานอยู่ {count} คน"
+      },
+      "trainingCompliance": {
+        "label": "การอบรมที่เป็นปัจจุบัน",
+        "subtitle": "อัตราการอบรมที่ยังไม่หมดอายุ",
+        "onTrack": "อยู่ในเกณฑ์",
+        "needsAttention": "ต้องติดตาม"
+      },
+      "healthRecordsDue": {
+        "label": "บันทึกสุขภาพครบกำหนด",
+        "subtitle": "การตรวจที่เกินกำหนด"
+      },
+      "gmpAuthorized": {
+        "label": "ผู้ได้รับอนุญาต GMP",
+        "subtitle": "การอนุญาตที่ยังใช้งาน"
+      },
+      "notifications": {
+        "label": "การแจ้งเตือน"
+      }
+    },
+    "purchase": {
+      "pendingPOs": {
+        "label": "ใบสั่งซื้อรออนุมัติ",
+        "subtitle": "รอการอนุมัติ"
+      },
+      "poValueMtd": {
+        "label": "มูลค่าใบสั่งซื้อ (MTD)",
+        "subtitle": "ตั้งแต่ต้นเดือน"
+      },
+      "activeVendors": {
+        "label": "ผู้ขายที่ใช้งาน",
+        "subtitle": "ผู้ขายที่ได้รับการอนุมัติ"
+      },
+      "avlCoverage": {
+        "label": "ความครอบคลุม AVL",
+        "subtitle": "รายการที่มีผู้ขายที่ได้รับอนุมัติ",
+        "goodCoverage": "ครอบคลุมดี",
+        "needsImprovement": "ควรปรับปรุง"
+      },
+      "approvedPOs": {
+        "label": "ใบสั่งซื้อที่อนุมัติแล้ว"
+      },
+      "onTimeDelivery": {
+        "label": "การส่งมอบตรงเวลา"
+      }
+    },
+    "sales": {
+      "pendingOrders": {
+        "label": "ใบสั่งขายรอดำเนินการ",
+        "subtitle": "รอการประมวลผล"
+      },
+      "salesValueMtd": {
+        "label": "มูลค่าการขาย (MTD)",
+        "subtitle": "ตั้งแต่ต้นเดือน"
+      },
+      "ordersFulfilled": {
+        "label": "ใบสั่งที่ส่งมอบแล้ว",
+        "subtitle": "ในเดือนนี้"
+      },
+      "fulfillmentRate": {
+        "label": "อัตราการส่งมอบ",
+        "subtitle": "การส่งมอบตรงเวลา",
+        "onTrack": "อยู่ในเกณฑ์",
+        "belowTarget": "ต่ำกว่าเป้าหมาย"
+      },
+      "atpShortages": {
+        "label": "ATP ขาดแคลน"
+      }
+    },
+    "vmi": {
+      "vmiItems": {
+        "label": "รายการ VMI",
+        "subtitle": "บริหารจัดการผ่าน VMI"
+      },
+      "belowReorder": {
+        "label": "ต่ำกว่าจุดสั่งซื้อ",
+        "subtitle": "ต้องการเติมสต็อก"
+      },
+      "pendingAsns": {
+        "label": "ASN รอรับเข้า",
+        "subtitle": "รอการรับเข้า"
+      },
+      "outstandingValue": {
+        "label": "มูลค่าคงค้าง",
+        "subtitle": "ใบสั่งซื้อ VMI"
+      },
+      "lastSync": {
+        "label": "ซิงค์ล่าสุด",
+        "never": "ยังไม่เคย"
+      }
+    },
+    "gmp": {
+      "complianceScore": {
+        "label": "คะแนนการปฏิบัติตาม",
+        "subtitle": "คะแนน GMP โดยรวม",
+        "excellent": "ยอดเยี่ยม",
+        "good": "ดี",
+        "needsAttention": "ต้องติดตาม"
+      },
+      "openDeviations": {
+        "label": "ความเบี่ยงเบนที่เปิดอยู่",
+        "subtitle": "รอการแก้ไข"
+      },
+      "openCapas": {
+        "label": "CAPA ที่เปิดอยู่",
+        "subtitle": "การแก้ไขป้องกัน"
+      },
+      "auditFindings": {
+        "label": "ข้อพบจากการตรวจสอบ",
+        "subtitle": "ข้อพบที่ยังเปิดอยู่"
+      },
+      "trainingGaps": {
+        "label": "ช่องว่างการอบรม"
+      }
+    }
+  },
+  "auditCards": {
+    "rmSummary": {
+      "title": "วัตถุดิบที่รับเข้า YTD",
+      "subtitle": "ล็อต",
+      "unitsTotal": "{count} หน่วยรวม"
+    },
+    "rmStatus": {
+      "title": "สถานะวัตถุดิบ",
+      "subtitle": "ล็อตรวม",
+      "quarantine": "กักกัน",
+      "underTest": "อยู่ระหว่างทดสอบ",
+      "released": "ปล่อยใช้งาน",
+      "rejected": "ถูกปฏิเสธ"
+    },
+    "expiryAlert": {
+      "title": "แจ้งเตือนหมดอายุ",
+      "subtitle": "ล็อต",
+      "expired": "หมดอายุ",
+      "expiringSoon": "30 วัน",
+      "expiringWarning": "90 วัน"
+    },
+    "minStockAlert": {
+      "title": "แจ้งเตือนสต็อกต่ำ",
+      "subtitle": "รายการ",
+      "belowMin": "ต่ำกว่าขั้นต่ำ",
+      "belowReorder": "ต่ำกว่าจุดสั่งซื้อ",
+      "allOk": "ปกติทั้งหมด"
+    },
+    "qcSummary": {
+      "title": "สรุปการทดสอบคุณภาพ YTD",
+      "subtitle": "อัตราผ่าน",
+      "pass": "ผ่าน",
+      "fail": "ไม่ผ่าน",
+      "pending": "รอดำเนินการ"
+    },
+    "productionStatus": {
+      "title": "การผลิต YTD",
+      "subtitle": "ความสำเร็จ",
+      "completed": "เสร็จแล้ว",
+      "inProgress": "กำลังดำเนินการ",
+      "planned": "ตามแผน"
+    },
+    "pendingQc": {
+      "title": "รอ QC ปล่อยใช้งาน",
+      "subtitle": "ล็อต",
+      "oldestDays": "เก่าสุด: {days} วัน",
+      "noItems": "ไม่มีรายการรอดำเนินการ"
+    },
+    "fgApproved": {
+      "title": "สินค้าสำเร็จรูปอนุมัติ YTD",
+      "subtitle": "แบตช์",
+      "unitsTotal": "{count} หน่วยรวม"
     }
   },
   "audit": {
