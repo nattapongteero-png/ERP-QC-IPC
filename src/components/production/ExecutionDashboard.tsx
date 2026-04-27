@@ -120,6 +120,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   const t = useTranslations('production');
   const queryClient = useQueryClient();
 
+  // staleTime:0 + refetchOnMount:'always' overrides the global 60s cache —
+  // the user typically clicks into a card, records data, then comes back; if
+  // we trusted the cache the dashboard would show pre-record state for up to
+  // a minute. refetchOnWindowFocus catches Alt-Tab back from another tab.
+  // Realtime events still cover the "two users open at once" case below.
   const { data: summary, isLoading } = useQuery<ExecutionSummary>({
     queryKey: ['wo-execution-summary', workOrderId],
     queryFn: async () => {
@@ -128,6 +133,9 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       if (!data.success) return defaultSummaryValue;
       return data.data;
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Auto-update when another user changes this requisition's status
