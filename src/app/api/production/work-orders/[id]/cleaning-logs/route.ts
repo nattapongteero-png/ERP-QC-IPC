@@ -14,8 +14,11 @@ import {
 } from '@/lib/services/wo-execution.service';
 import { publishWorkOrderChanged } from '@/lib/realtime';
 
-// Valid phases for cleaning
-const VALID_PHASES = ['pre_production', 'post_production', 'pre_packaging'];
+// Valid phases for cleaning — must match the 5 phases supported by BOM
+// rooms/equipment config (pre_production / production / post_production /
+// pre_packaging / packaging). Earlier this list only allowed 3 phases and
+// rejected GET ?phase=production / ?phase=packaging.
+const VALID_PHASES = ['pre_production', 'production', 'post_production', 'pre_packaging', 'packaging'];
 
 // Valid item types
 const VALID_ITEM_TYPES = ['room', 'equipment'];
