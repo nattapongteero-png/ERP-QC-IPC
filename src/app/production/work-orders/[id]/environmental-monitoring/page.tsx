@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader } from '@/components/shared';
 import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
@@ -153,6 +154,15 @@ export default function EnvironmentalMonitoringPage() {
     },
     refetchInterval: 10000,
     refetchIntervalInBackground: false,
+  });
+
+  // Auto-refresh when any user records / updates an environmental log on this WO
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    if (data.section !== 'environmental' && data.section !== 'status') return;
+    queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['wo-phase-status', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
   // Fetch computed phase status — drives per-tab badges + active-phase banner.

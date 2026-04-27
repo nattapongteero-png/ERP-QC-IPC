@@ -12,6 +12,7 @@ import {
   deleteWOEnvironmentalLog,
   validateEnvironmentalReading,
 } from '@/lib/services/wo-execution.service';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 import { getActivePhase } from '@/lib/services/phase-state.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 import { eq, and, inArray, desc } from 'drizzle-orm';
@@ -289,6 +290,8 @@ export async function POST(request: NextRequest) {
         notes: data.notes || (isExternal ? 'Auto-recorded by sensor' : undefined),
       });
 
+      publishWorkOrderChanged(workOrderId, 'environmental', operatorUserId, data.phase);
+
       return successResponse(
         { ...log, limits: validation.limits },
         validation.isNormal ? 'Within normal range' : 'OUTSIDE normal range'
@@ -308,7 +311,7 @@ export async function POST(request: NextRequest) {
  * Body: { logId, workOrderId, phase?, roomId?, temperature?, humidity?, notes? }
  */
 export async function PUT(request: NextRequest) {
-  return withAuth(request, async () => {
+  return withAuth(request, async (session) => {
     try {
       const data = await request.json();
       if (!data.logId) return errorResponse('Missing logId');
@@ -338,6 +341,9 @@ export async function PUT(request: NextRequest) {
         notes: data.notes,
       });
 
+      if (data.workOrderId) {
+        publishWorkOrderChanged(Number(data.workOrderId), 'environmental', session.userId, data.phase);
+      }
       return successResponse(log, 'Environmental log updated');
     } catch (error) {
       console.error('Error updating environmental log:', error);
