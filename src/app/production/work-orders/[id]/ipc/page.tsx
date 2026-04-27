@@ -239,6 +239,9 @@ export default function IPCPage() {
       const data = await res.json();
       return data.data || [];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Auto-refresh when another user records / approves IPC results on this WO

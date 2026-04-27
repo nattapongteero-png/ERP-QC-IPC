@@ -144,6 +144,9 @@ export default function MaterialWeighingPage() {
         requisitionStatus: rawData?.requisitionStatus || 'none',
       };
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   const materials = materialsResult?.materials || [];

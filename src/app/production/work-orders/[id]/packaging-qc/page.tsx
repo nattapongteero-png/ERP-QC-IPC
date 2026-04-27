@@ -143,6 +143,9 @@ export default function PackagingQCPage() {
       if (!data.success) return [];
       return data.data;
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Fetch integrity logs
@@ -154,6 +157,9 @@ export default function PackagingQCPage() {
       if (!data.success) return [];
       return data.data;
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Add weight log mutation

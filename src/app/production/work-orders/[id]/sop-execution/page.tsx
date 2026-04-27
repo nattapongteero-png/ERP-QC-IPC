@@ -126,6 +126,9 @@ export default function SOPExecutionPage() {
       if (!data.success) return [];
       return data.data;
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Auto-refresh when another user modifies SOP steps on this WO

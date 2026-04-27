@@ -144,6 +144,9 @@ export default function CleaningPage() {
       if (!data.success) return [];
       return data.data;
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Auto-refresh when another user mark-clean / verify cleaning on this WO

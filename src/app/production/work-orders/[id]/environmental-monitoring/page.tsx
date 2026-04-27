@@ -152,6 +152,9 @@ export default function EnvironmentalMonitoringPage() {
       if (!data.success) return [];
       return data.data;
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     refetchInterval: 10000,
     refetchIntervalInBackground: false,
   });
