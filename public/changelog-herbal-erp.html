@@ -110,12 +110,29 @@
     td.menu-col{color:var(--ink-800);font-weight:600;}
     td.sub-col{color:var(--ink-600);font-size:13px;}
 
-    /* ───── Description (full text, no truncation) ───── */
-    td.desc-col{color:var(--ink-800);font-size:14px;min-width:320px;max-width:560px;}
+    /* ───── Description (header + collapsible details) ───── */
+    td.desc-col{color:var(--ink-800);font-size:14px;min-width:380px;max-width:640px;width:34%;}
     .desc-summary{font-size:14px;line-height:1.6;color:var(--ink-800);font-weight:500;}
     .desc-details{margin-top:10px;}
-    .desc-full{padding:12px 14px;background:linear-gradient(135deg,#f0fdfa,#f8fafc);border-left:4px solid var(--teal-500);border-radius:0 10px 10px 0;font-size:13px;color:var(--ink-700);line-height:1.65;display:flex;flex-direction:column;gap:6px;}
-    .desc-item{display:flex;gap:8px;align-items:flex-start;padding:2px 0;}
+    .desc-expand{
+      cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+      padding:5px 12px;background:linear-gradient(135deg,var(--teal-50),white);
+      color:var(--teal-700);font-weight:700;font-size:12px;
+      border:1px solid var(--teal-200);border-radius:999px;
+      list-style:none;transition:all .15s ease;user-select:none;
+    }
+    .desc-expand::-webkit-details-marker{display:none;}
+    .desc-expand::marker{content:'';}
+    .desc-expand:hover{background:var(--teal-100);border-color:var(--teal-400);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+    .desc-expand .chev{display:inline-block;transition:transform .2s ease;font-size:11px;}
+    details[open] .desc-expand{background:linear-gradient(135deg,var(--teal-100),var(--teal-50));border-color:var(--teal-500);}
+    details[open] .desc-expand .chev{transform:rotate(180deg);}
+    details[open] .desc-expand .lbl-show{display:none;}
+    .desc-expand .lbl-hide{display:none;}
+    details[open] .desc-expand .lbl-hide{display:inline;}
+    .desc-full{margin-top:10px;padding:14px 16px;background:linear-gradient(135deg,#f0fdfa,#f8fafc);border-left:4px solid var(--teal-500);border-radius:0 12px 12px 0;font-size:13px;color:var(--ink-700);line-height:1.7;display:flex;flex-direction:column;gap:8px;animation:fadeSlide .25s ease;}
+    @keyframes fadeSlide{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+    .desc-item{display:flex;gap:10px;align-items:flex-start;padding:2px 0;}
     .desc-item::before{content:'';flex-shrink:0;width:6px;height:6px;border-radius:50%;background:var(--teal-500);margin-top:8px;}
 
     /* ───── Date filter ───── */
@@ -128,7 +145,7 @@
     .date-btn-clear:hover{color:#dc2626;background:#fef2f2;border-color:#fecaca;}
 
     td.date-col{white-space:nowrap;color:var(--ink-600);font-size:13px;font-weight:500;}
-    td.prompt-col{color:var(--ink-500);font-size:12.5px;min-width:240px;font-style:italic;line-height:1.55;}
+    td.prompt-col{color:var(--ink-500);font-size:12.5px;min-width:320px;max-width:480px;width:22%;font-style:italic;line-height:1.6;}
     td.duration-col{white-space:nowrap;color:var(--ink-900);font-size:13px;font-weight:700;text-align:center;}
     td.duration-col .dur-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:var(--ink-50);border:1px solid var(--ink-200);border-radius:999px;font-size:12px;color:var(--ink-700);}
 
@@ -138,21 +155,31 @@
 
     .footer{text-align:center;padding:28px 0;color:var(--ink-400);font-size:13px;border-top:1px solid var(--ink-200);background:white;margin-top:30px;}
 
-    @media print{.top-bar{position:static;box-shadow:none;}.nav-row,.btn-export,.back-to-top,.legend-box{display:none!important;}table.cl{font-size:11px;}table.cl th{font-size:11px;}}
+    @media print{.top-bar{position:static;box-shadow:none;}.nav-row,.btn-export,.back-to-top,.legend-box{display:none!important;}table.cl{font-size:11px;}table.cl th{font-size:11px;}details.desc-details[open]>.desc-expand{display:none;}details.desc-details>.desc-full{display:block!important;}}
+    @media(max-width:1024px){
+      td.desc-col{min-width:300px;max-width:480px;}
+      td.prompt-col{min-width:240px;max-width:360px;}
+    }
     @media(max-width:768px){
       .header h1{font-size:18px;}
       .header .date-badge{font-size:12px;padding:5px 14px;}
       table.cl{font-size:12px;}
       table.cl td{padding:10px 12px;}
-      td.prompt-col{max-width:200px;}
-      td.desc-col{min-width:240px;max-width:340px;}
+      td.prompt-col{min-width:200px;max-width:280px;}
+      td.desc-col{min-width:260px;max-width:380px;}
       .container{padding:0 8px;}
       .stats-row{padding:10px;gap:8px;}
       .stat-chip{padding:6px 12px;font-size:13px;}
       .stat-chip .num{font-size:16px;}
+      .desc-summary{font-size:13px;}
+      .desc-full{font-size:12.5px;padding:10px 12px;}
+    }
+    @media(max-width:480px){
+      td.desc-col{min-width:220px;max-width:300px;}
+      td.prompt-col{min-width:160px;max-width:220px;}
     }
     @media (prefers-reduced-motion: reduce) {
-      *{transition:none !important;}
+      *{transition:none !important;animation:none !important;}
       html{scroll-behavior:auto;}
     }
   </style>
@@ -212,7 +239,8 @@
 <script>
 var DATA=[
   // ==================== 28 เมษายน 2569 ====================
-  {module:'Docs',menu:'Workflow / Changelog / Training Pages',sub:'UI/UX Pro-Max — modernize 4 pages, glass-morphism, full-text desc',type:'feat',desc:'Redesign 4 หน้าหลัก — (1) /sop-execution-workflow.html: rebuild ใหม่หมด — sticky sidebar TOC, hero แบบ gradient + stats grid, workflow stages เป็น card numbered (01-05) มีลูกศรเชื่อม, phase cards มี gradient accent strip ซ้าย, field-list 2-column with check icons, pitfall grid 3-column with hover lift (2) /changelog-herbal-erp.html: glass-morphism top-bar (backdrop blur), gradient stat chips สีสันแยกตามประเภท, modern table with rounded badges + module pills + duration chip ⏱, description ไม่ truncate แล้ว (เห็นเต็มประโยค) + items (1)(2)(3) แสดง bullets ทันที ไม่ต้องคลิก expand (3) /training-herbal-erp.html: hero gradient 5-color + decorative circles, sticky glass top-bar, summary card มี accent strip 3-color, session cards hover lift + gradient header with bigger num badge, intro cards (pain/obj/func/benefit) gradient header 3-color + items hover effect, flow diagram steps มี gradient + decorative circles + arrow connectors (4) Inline PPTX ทุก module: cover slide ใหม่ — layered gradient + decorative ellipses + eyebrow pill + big icon + accent line; intro slides มี icon badge + framed body card; end slide motivational — separator line + brand footer (5) /training/master-data-training.html: cover gradient 5-color + violet accent, section dividers gradient richer (6) ทั้งหมด responsive ทุก breakpoint + reduced-motion safe',date:'28 เม.ย. 69',startTime:'09:00',endTime:'11:00',prompt:'ui-ux-pro-max — เนรมิตหน้าจอใหม่ให้สวย ทันสมัย มีสีสัน responsive informative user-friendly + description ครบประโยค ไม่ truncate + PPTX สวย + slide สวย'},
+  {module:'Docs',menu:'Changelog Page',sub:'Polish — collapsible details + wider desc/prompt columns',type:'feat',desc:'ปรับ /changelog-herbal-erp.html ตาม feedback — (1) คอลัมน์ "การแก้ไข/พัฒนา" แสดงหัวข้อ (full sentence ไม่ truncate) + ปุ่ม "ดูรายละเอียด (N ข้อ)" pill แบบ collapsible — คลิกแล้วขยายเห็น (1)(2)(3) ทีละบรรทัด มี chevron หมุน + animation slide-in (2) ปุ่ม expand/collapse เปลี่ยน label เป็น "ซ่อนรายละเอียด" ตอน open (3) ขยาย desc column min 380px max 640px (เดิม 320/560) + prompt column min 320px max 480px (เดิม 240/none) (4) Responsive 4-tier breakpoint: 1024px ลดเล็กน้อย, 768px tablet, 480px mobile — desc/prompt scale ตามจอ (5) Print mode: details auto-expand เห็นเต็ม',date:'28 เม.ย. 69',startTime:'11:30',endTime:'12:00',prompt:'changelog: ช่อง การแก้ไขพัฒนา ให้แสดงหัวข้อ จากนั้น ค่อยคลิกปุ่มดูรายละเอียด + ขยาย ช่อง prompt และ desc ให้กว้างขึ้น + responsive informative user-friendly'},
+  {module:'Docs',menu:'Workflow / Changelog / Training Pages',sub:'UI/UX Pro-Max — modernize 4 pages, glass-morphism',type:'feat',desc:'Redesign 4 หน้าหลัก — (1) /sop-execution-workflow.html: rebuild ใหม่หมด — sticky sidebar TOC, hero แบบ gradient + stats grid, workflow stages เป็น card numbered (01-05) มีลูกศรเชื่อม, phase cards มี gradient accent strip ซ้าย, field-list 2-column with check icons, pitfall grid 3-column with hover lift (2) /changelog-herbal-erp.html: glass-morphism top-bar (backdrop blur), gradient stat chips สีสันแยกตามประเภท, modern table with rounded badges + module pills + duration chip ⏱ (3) /training-herbal-erp.html: hero gradient 5-color + decorative circles, sticky glass top-bar, summary card มี accent strip 3-color, session cards hover lift + gradient header with bigger num badge, intro cards (pain/obj/func/benefit) gradient header 3-color + items hover effect, flow diagram steps มี gradient + decorative circles + arrow connectors (4) Inline PPTX ทุก module: cover slide ใหม่ — layered gradient + decorative ellipses + eyebrow pill + big icon + accent line; intro slides มี icon badge + framed body card; end slide motivational — separator line + brand footer (5) /training/master-data-training.html: cover gradient 5-color + violet accent, section dividers gradient richer (6) ทั้งหมด responsive ทุก breakpoint + reduced-motion safe',date:'28 เม.ย. 69',startTime:'09:00',endTime:'11:00',prompt:'ui-ux-pro-max — เนรมิตหน้าจอใหม่ให้สวย ทันสมัย มีสีสัน responsive informative user-friendly + PPTX สวย + slide สวย'},
   {module:'Docs',menu:'Changelog Page',sub:'Redesign UX — สรุป 2 บรรทัด + filter วันนี้ + รวมเวลาที่ใช้',type:'feat',desc:'ปรับ /changelog-herbal-erp.html — (1) คอลัมน์ข้อความ "การแก้ไข/พัฒนา" สรุป 2 บรรทัด clamp ellipsis + ปุ่ม "ดูรายละเอียด" expand เห็น (1)(2)(3) แต่ละข้อขึ้นบรรทัดใหม่ (2) Default filter = วันนี้ (ถ้ามี entry วันนี้) — ผู้ใช้กด × หรือเลือกวันอื่นได้ (3) ปุ่ม "วันนี้" + "×" ข้างช่องวันที่ — เลือกง่ายขึ้น (4) ลบคอลัมน์เวลาเริ่ม/สิ้นสุด รวมเป็น "เวลาที่ใช้" คอลัมน์เดียว (5) ประเภทเพิ่มภาษาไทย: FEATURE/ฟีเจอร์ใหม่, BUG FIX/แก้ Bug, REFACTOR/ปรับปรุง, DOCS/เอกสาร, TEST/ทดสอบ (6) Export ใช้ filtered items ตามที่แสดง + sheet headers ใหม่',date:'28 เม.ย. 69',startTime:'04:30',endTime:'05:00',prompt:'ปรับ ui-ux changelog: 2 บรรทัด + ขึ้นบรรทัดใหม่ที่ (1)(2)..., default วันนี้, date picker ดี, export ตาม filter, รวมเวลา, type ภาษาไทย'},
   {module:'Docs',menu:'SOP Workflow Page',sub:'Rewrite — ครอบคลุม WO lifecycle + SOP execution',type:'docs',desc:'Rewrite /sop-execution-workflow.html ให้ครอบคลุม workflow ของ Work Order + SOP — (1) ภาพรวม 2 ระดับ: WO 5 สถานะ (Planned→Released→In Progress→Completed→Closed) + SOP step 4 สถานะ (Pending→In Progress→Completed→Verified) (2) ตารางสถานะ WO + เปลี่ยนเมื่อบันทึกอะไร + gate validation (3) ขั้นตอนบันทึก WO 4 phases + ข้อมูลที่ต้องบันทึก (4) ขั้นตอนบันทึก SOP execution per phase (5) GMP dual-control + pitfalls',date:'28 เม.ย. 69',startTime:'04:00',endTime:'04:30',prompt:'ปรับ /sop-execution-workflow.html ให้ครอบคลุม WO + SOP workflow + status เปลี่ยนเมื่อบันทึกอะไร + ขั้นตอนบันทึกแต่ละ phase'},
   {module:'Production',menu:'Work Orders / Packaging QC',sub:'แก้ dialog ล้นจอ — sticky footer + scrollable body',type:'fix',desc:'ปุ่มเพิ่มแล้ว dialog ล้นจอ — แก้: ใส่ maxHeight 90vh + maxWidth 95vw, fullScreenOnTablet, layout เป็น flex column, body scroll ได้, action footer pin อยู่ด้านล่าง border-t bg-white ไม่หายตามเลื่อน, sample input grid ลบ inner scroll cap (เลื่อนที่ outer แทน)',date:'28 เม.ย. 69',startTime:'04:00',endTime:'04:10',prompt:'/packaging-qc?tab=weight ตอนกดเพิ่ม หน้าจอที่แสดงล้นหน้าจอ'},
@@ -759,19 +787,27 @@ function renderTableRows(items){
     var td4=document.createElement('td');var bg=document.createElement('span');bg.className='badge';
     var tm=typeMap[d.type]||['b-docs',d.type];bg.classList.add(tm[0]);bg.textContent=tm[1];td4.appendChild(bg);tr.appendChild(td4);
 
-    // Description: full summary always visible + (1)(2)(3) items as bullet list (always shown)
+    // Description: full summary visible + collapsible (1)(2)(3) details behind a button
     var td5=document.createElement('td');td5.className='desc-col';
     var fmt=formatDescription(d.desc);
     var summ=document.createElement('div');summ.className='desc-summary';summ.textContent=fmt.summary;
     td5.appendChild(summ);
     if(fmt.items&&fmt.items.length){
-      var fullEl=document.createElement('div');fullEl.className='desc-full';fullEl.style.marginTop='10px';
+      var details=document.createElement('details');details.className='desc-details';
+      var sumEl=document.createElement('summary');sumEl.className='desc-expand';
+      var chev=document.createElement('span');chev.className='chev';chev.textContent='\u25BC';
+      var lblShow=document.createElement('span');lblShow.className='lbl-show';lblShow.textContent='\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 ('+fmt.items.length+' \u0E02\u0E49\u0E2D)';
+      var lblHide=document.createElement('span');lblHide.className='lbl-hide';lblHide.textContent='\u0E0B\u0E48\u0E2D\u0E19\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14';
+      sumEl.appendChild(chev);sumEl.appendChild(lblShow);sumEl.appendChild(lblHide);
+      details.appendChild(sumEl);
+      var fullEl=document.createElement('div');fullEl.className='desc-full';
       fmt.items.forEach(function(it){
         var line=document.createElement('div');line.className='desc-item';
         var span=document.createElement('span');span.textContent=it;line.appendChild(span);
         fullEl.appendChild(line);
       });
-      td5.appendChild(fullEl);
+      details.appendChild(fullEl);
+      td5.appendChild(details);
     }
     tr.appendChild(td5);
 
