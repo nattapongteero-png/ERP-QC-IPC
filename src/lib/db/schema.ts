@@ -471,10 +471,13 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
   specMaxValue: real('spec_max_value'),
   specSpecification: text('spec_specification'),
   specUnit: text('spec_unit'),
-  criteriaType: text('criteria_type').default('numeric'), // numeric, checkbox — copied from ipc_criteria at init
+  criteriaType: text('criteria_type').default('numeric'), // numeric, pass_fail, visual, text, checkbox(legacy) — copied from ipc_criteria at init
   tolerancePercent: real('tolerance_percent').default(0), // sample-failure tolerance
   specTarget: real('spec_target'), // copied from ipc_criteria at init
   specTolerancePercent: real('spec_tolerance_percent').default(0), // Min/Max deviation tolerance
+  // Phase 3: Multi-stage acceptance plan snapshot (USP <711>, <905>)
+  // JSON array; null = single-stage (uses sampleSize + tolerancePercent above).
+  acceptanceStages: text('acceptance_stages'),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: integer('disposition_by').references(() => sqliteUsers.id),
@@ -1907,6 +1910,9 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).default('0'), // sample-failure tolerance
   specTarget: decimal('spec_target', { precision: 15, scale: 4 }), // copied from ipc_criteria at init
   specTolerancePercent: decimal('spec_tolerance_percent', { precision: 5, scale: 2 }).default('0'), // Min/Max deviation tolerance
+  // Phase 3: Multi-stage acceptance plan snapshot (USP <711>, <905>)
+  // JSON array; null = single-stage (uses sampleSize + tolerancePercent above).
+  acceptanceStages: mysqlText('acceptance_stages'),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: varchar('disposition', { length: 50 }), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: int('disposition_by').references(() => mysqlUsers.id),

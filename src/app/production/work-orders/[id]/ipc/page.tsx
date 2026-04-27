@@ -28,7 +28,51 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  Layers,
 } from 'lucide-react';
+import { parseAcceptanceStages, calcStageAcceptance, type AcceptanceStage } from '@/lib/master-data/ipc-stages';
+
+/** Resolve the stage that applies to a given round (1-indexed). Returns null
+ *  for single-stage tests or rounds beyond the configured plan. */
+function getStageForRound(test: IPCTest, round: number): AcceptanceStage | null {
+  const stages = parseAcceptanceStages(test.acceptanceStages);
+  if (stages.length === 0) return null;
+  return stages[round - 1] ?? null;
+}
+
+/** Effective sample size: stage's sampleSize when multi-stage, else test's. */
+function getEffectiveSampleSize(test: IPCTest, round: number): number {
+  const stage = getStageForRound(test, round);
+  return stage ? stage.sampleSize : (test.sampleSize || 1);
+}
+
+function StageInfoBanner({ test, round }: { test: IPCTest; round: number }) {
+  const stages = parseAcceptanceStages(test.acceptanceStages);
+  if (stages.length === 0) return null;
+  const stage = stages[round - 1];
+  if (!stage) return null;
+  const math = calcStageAcceptance(stage);
+  const isLast = round === stages.length;
+  const onFailLabel = stage.onFail === 'next_stage'
+    ? `→ ทดสอบ Stage ${round + 1} ถ้าไม่ผ่าน`
+    : stage.onFail === 'reject_batch'
+    ? '✕ Reject Batch ถ้าไม่ผ่าน'
+    : '⚠ บันทึก Deviation ถ้าไม่ผ่าน';
+  return (
+    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs">
+      <div className="flex items-center gap-2 mb-1.5">
+        <Layers className="h-3.5 w-3.5 text-emerald-700" />
+        <span className="font-semibold text-emerald-800">
+          Stage {round} of {stages.length} {isLast && '(ขั้นสุดท้าย)'}
+        </span>
+        <span className="ml-auto text-emerald-700">
+          ทดสอบ {math.sampleSize} · เสียได้ {math.allowedFail} · ผ่าน {math.mustPass}
+        </span>
+      </div>
+      <div className="text-emerald-700">{onFailLabel}</div>
+    </div>
+  );
+}
 
 interface IPCTest {
   id: number;
@@ -52,6 +96,8 @@ interface IPCTest {
   disposition: string | null;
   criteriaType: string | null;
   tolerancePercent: number | null;
+  /** Phase 3: snapshot of multi-stage acceptance plan (JSON). Null = single-stage. */
+  acceptanceStages: string | null;
   testName: string | null;
   testMethod: string | null;
   testedByName: string | null;
@@ -110,6 +156,7 @@ function StatusBadge({ status }: { status: string }) {
     pass: { bg: 'bg-green-100', text: 'text-green-700', icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Pass' },
     fail: { bg: 'bg-red-100', text: 'text-red-700', icon: <XCircle className="h-3.5 w-3.5" />, label: 'Fail' },
     retest: { bg: 'bg-amber-100', text: 'text-amber-700', icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Retest' },
+    deviation: { bg: 'bg-orange-100', text: 'text-orange-700', icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Deviation' },
   };
   const c = config[status] || config.pending;
   return (
@@ -256,7 +303,8 @@ export default function IPCPage() {
     const nextRound = round || (test.totalRounds || 0) + 1;
     setRecordRound(nextRound);
 
-    const sampleSize = test.sampleSize || 1;
+    // Phase 3: use stage-specific sample size when multi-stage; fall back to test-level
+    const sampleSize = getEffectiveSampleSize(test, nextRound);
     const criteriaType = test.criteriaType || 'numeric';
 
     const roundSamples = test.rounds?.find((r) => r.round === nextRound)?.samples || [];
@@ -289,7 +337,8 @@ export default function IPCPage() {
   function handleSaveRecord() {
     if (!selectedTest) return;
 
-    const sampleSize = selectedTest.sampleSize || 1;
+    // Phase 3: stage-specific sample size when multi-stage
+    const sampleSize = getEffectiveSampleSize(selectedTest, recordRound);
     const criteriaType = selectedTest.criteriaType || 'numeric';
 
     if (criteriaType === 'checkbox') {
@@ -467,6 +516,14 @@ export default function IPCPage() {
                               Round {test.totalRounds}
                             </span>
                           )}
+                          {(() => {
+                            const stages = parseAcceptanceStages(test.acceptanceStages);
+                            return stages.length > 0 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                <Layers className="h-3 w-3" /> Multi-Stage ({stages.length})
+                              </span>
+                            );
+                          })()}
                           {isApproved && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                               <ShieldCheck className="h-3 w-3" /> {t('execution.approved')}
@@ -658,6 +715,9 @@ export default function IPCPage() {
                         )}
                       </div>
 
+                      {/* Phase 3: stage info for current round */}
+                      <StageInfoBanner test={test} round={recordRound} />
+
                       {/* Spec info */}
                       {(test.specMinValue != null || test.specSpecification) && (
                         <div className="text-xs text-blue-700 bg-blue-50 rounded p-2">
@@ -669,7 +729,7 @@ export default function IPCPage() {
                       )}
 
                       {/* Single value input */}
-                      {test.criteriaType !== 'checkbox' && (test.sampleSize || 1) <= 1 && (
+                      {test.criteriaType !== 'checkbox' && getEffectiveSampleSize(test, recordRound) <= 1 && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('execution.measuredValue')} {test.specUnit ? `(${test.specUnit})` : ''}
@@ -683,10 +743,10 @@ export default function IPCPage() {
                       )}
 
                       {/* Multi-sample inputs */}
-                      {test.criteriaType !== 'checkbox' && (test.sampleSize || 1) > 1 && (
+                      {test.criteriaType !== 'checkbox' && getEffectiveSampleSize(test, recordRound) > 1 && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('execution.sampleValues')} ({test.sampleSize} {t('execution.samples')})
+                            {t('execution.sampleValues')} ({getEffectiveSampleSize(test, recordRound)} {t('execution.samples')})
                           </label>
                           <div className="grid grid-cols-5 gap-2">
                             {sampleValues.map((val, idx) => {

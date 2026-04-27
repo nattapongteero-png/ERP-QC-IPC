@@ -15,6 +15,7 @@
 import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 import { executeDbOperation, getInsertId, getTableRef } from '../db/db-helper';
 import { isSqlite } from '../db';
+import { parseAcceptanceStages, type AcceptanceStage } from '../master-data/ipc-stages';
 import {
   // SQLite tables
   sqliteWOEnvironmentalLogs,
@@ -1710,6 +1711,8 @@ export async function getBOMIPCConfig(bomId: number) {
         specTolerancePercent: ipcCriteria.specTolerancePercent,
         dosageForm: ipcCriteria.dosageForm,
         criteriaIsCritical: ipcCriteria.isCritical,
+        // Phase 3: multi-stage acceptance plan from criteria
+        acceptanceStages: ipcCriteria.acceptanceStages,
       })
       .from(tables.bomInProcessQC)
       .innerJoin(ipcCriteria, eq(tables.bomInProcessQC.criteriaId, ipcCriteria.id))
@@ -1791,6 +1794,8 @@ export async function getWOIPCTests(workOrderId: number) {
         specUnit: tables.qualityTests.specUnit,
         criteriaType: tables.qualityTests.criteriaType,
         tolerancePercent: tables.qualityTests.tolerancePercent,
+        // Phase 3: stage plan snapshot — null = single-stage
+        acceptanceStages: tables.qualityTests.acceptanceStages,
         disposition: tables.qualityTests.disposition,
         // Spec details
         testName: tables.qualitySpecs.testName,
@@ -1928,6 +1933,14 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
         ? 'pass' : 'fail';
     }
 
+    // Phase 3: stage-specific tolerance overrides single-stage tolerance.
+    // Stage index = testRound - 1. Falls back to test.tolerancePercent for
+    // single-stage tests or when stage data is missing/invalid.
+    const stages: AcceptanceStage[] = parseAcceptanceStages(test.acceptanceStages);
+    const currentStage: AcceptanceStage | null = stages[testRound - 1] ?? null;
+    const isLastStage = stages.length > 0 && testRound >= stages.length;
+    const stageOnFail = currentStage?.onFail ?? null;
+
     // If samples provided, calculate aggregate result
     if (input.samples && input.samples.length > 0) {
       // Delete existing samples for this round (in case of re-recording)
@@ -1939,7 +1952,8 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
       );
 
       const criteriaType = test.criteriaType || 'numeric';
-      const tolerancePct = Number(test.tolerancePercent) || 0;
+      // Use stage tolerance when multi-stage; fall back to test-level tolerance.
+      const tolerancePct = currentStage ? currentStage.tolerancePercent : (Number(test.tolerancePercent) || 0);
 
       // Insert samples with round number
       for (const sample of input.samples) {
@@ -2017,34 +2031,129 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
     const safeNumericResult = (input.numericResult != null && !isNaN(input.numericResult))
       ? input.numericResult : null;
 
+    // Phase 3: when this round failed and the stage's onFail is reject/deviation
+    // (and this is the terminal action — last stage or non-advancing action),
+    // mark the overall test status to match. 'next_stage' keeps status='fail' on
+    // the round but the test stays in flight so operator can run the next stage.
+    let testStatus = autoResult || 'pending';
+    if (autoResult === 'fail' && currentStage) {
+      if (stageOnFail === 'reject_batch') testStatus = 'fail';
+      else if (stageOnFail === 'deviation') testStatus = 'deviation';
+      else if (stageOnFail === 'next_stage' && !isLastStage) testStatus = 'retest';
+      else testStatus = 'fail'; // last stage falling through to next_stage = treat as fail
+    }
+
     const updateData: any = {
       numericResult: safeNumericResult,
       result: autoResult || input.result || null,
-      status: autoResult || 'pending',
+      status: testStatus,
       testedBy: input.testedBy,
       testDate: getNow(),
       notes: input.notes || null,
     };
 
     if (isSqlite()) {
-      const [updated] = await db
+      await db
         .update(tables.qualityTests)
         .set(updateData)
-        .where(eq(tables.qualityTests.id, input.qualityTestId))
-        .returning();
-      return { ...updated, testRound };
+        .where(eq(tables.qualityTests.id, input.qualityTestId));
     } else {
       await db
         .update(tables.qualityTests)
         .set(updateData)
         .where(eq(tables.qualityTests.id, input.qualityTestId));
-      const [updated] = await db
-        .select()
-        .from(tables.qualityTests)
-        .where(eq(tables.qualityTests.id, input.qualityTestId));
-      return { ...updated, testRound };
     }
+
+    // Auto-create deviation when a stage with onFail='deviation' actually failed
+    let deviationId: number | null = null;
+    if (autoResult === 'fail' && stageOnFail === 'deviation') {
+      deviationId = await createDeviationForFailedIPC(db, tables, {
+        qualityTestId: input.qualityTestId,
+        testRound,
+        stageIndex: testRound - 1,
+        operatorId: input.testedBy,
+      });
+    }
+
+    const [updated] = await db
+      .select()
+      .from(tables.qualityTests)
+      .where(eq(tables.qualityTests.id, input.qualityTestId));
+
+    return { ...updated, testRound, deviationId };
   });
+}
+
+/**
+ * Auto-create a deviation record when an IPC test fails its final stage.
+ *
+ * Returns the created deviation ID, or null if the underlying lot/work order
+ * cannot be resolved (we never block the test recording because of deviation
+ * bookkeeping — the failing test result is the source of truth).
+ */
+async function createDeviationForFailedIPC(
+  db: any,
+  tables: ReturnType<typeof getTables>,
+  params: {
+    qualityTestId: number;
+    testRound: number;
+    stageIndex: number;
+    operatorId: number;
+  },
+): Promise<number | null> {
+  try {
+    const [test] = await db
+      .select({
+        lotId: tables.qualityTests.lotId,
+        sampleNumber: tables.qualityTests.sampleNumber,
+        notes: tables.qualityTests.notes,
+        specSpecification: tables.qualityTests.specSpecification,
+      })
+      .from(tables.qualityTests)
+      .where(eq(tables.qualityTests.id, params.qualityTestId));
+    if (!test) return null;
+
+    // Find the work order this lot belongs to (best-effort — by batchNumber match)
+    let workOrderId: number | null = null;
+    const [lot] = await db
+      .select({ batchNumber: tables.inventoryLots.batchNumber })
+      .from(tables.inventoryLots)
+      .where(eq(tables.inventoryLots.id, test.lotId));
+    if (lot?.batchNumber) {
+      const [wo] = await db
+        .select({ id: tables.workOrders.id })
+        .from(tables.workOrders)
+        .where(eq(tables.workOrders.batchNumber, lot.batchNumber));
+      if (wo) workOrderId = wo.id;
+    }
+
+    const year = new Date().getFullYear();
+    const seq = String(Math.floor(Math.random() * 9000) + 1000);
+    const deviationNumber = `DEV-${year}-${seq}`;
+
+    const deviationsTable = getTableRef('deviations');
+    const result = await db.insert(deviationsTable).values({
+      deviationNumber,
+      title: `IPC Failure — ${test.notes || test.sampleNumber || 'Unknown test'}`,
+      description: `In-Process Control test failed at Stage ${params.stageIndex + 1} (Round ${params.testRound}). Spec: ${test.specSpecification || 'n/a'}. Auto-generated by stage onFail=deviation rule.`,
+      type: 'OOS',
+      sourceType: 'production',
+      sourceId: params.qualityTestId,
+      lotId: test.lotId,
+      workOrderId,
+      severity: 'minor',
+      status: 'open',
+      reportedBy: params.operatorId,
+      reportedAt: getNow(),
+      createdAt: getNow(),
+      updatedAt: getNow(),
+    });
+    return Number(getInsertId(result));
+  } catch (err) {
+    // Never let deviation bookkeeping break a test recording — log and swallow
+    console.error('[ipc] Failed to auto-create deviation:', err);
+    return null;
+  }
 }
 
 /**
@@ -2229,6 +2338,11 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
         tolerancePercent: Number(config.tolerancePercent) || 0,
         specTarget: specTargetNum,
         specTolerancePercent: specTolPctNum,
+        // Phase 3: snapshot multi-stage plan so subsequent edits to the criteria
+        // can't change the plan that's already in flight on this work order.
+        acceptanceStages: typeof config.acceptanceStages === 'string'
+          ? config.acceptanceStages
+          : (config.acceptanceStages ? JSON.stringify(config.acceptanceStages) : null),
         notes: config.testNameTh || config.testName,
         createdAt: getNow(),
         updatedAt: getNow(),
