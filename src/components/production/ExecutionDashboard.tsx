@@ -61,6 +61,25 @@ interface ExecutionSummary {
   };
 }
 
+/**
+ * Section status returned by getStatus(). The badge shows a different count
+ * depending on which milestone the section is at:
+ *   - in_progress:  X = completed (operator progress)
+ *   - completed:    X = verified  (verifier progress)
+ *   - verified:     X = verified  (= total)
+ * Sections with hasVerification=false skip the verified milestone — they jump
+ * straight to "completed" when all items are done and stay there.
+ */
+interface SectionStatus {
+  status: 'pending' | 'in_progress' | 'completed' | 'verified';
+  /** Items the operator has actioned (e.g., marked clean / weighed / recorded) */
+  completed: number;
+  /** Items a second party has verified. Equals completed when hasVerification=false */
+  verified: number;
+  total: number;
+  hasVerification: boolean;
+}
+
 interface ExecutionSection {
   id: string;
   title: string;
@@ -68,7 +87,31 @@ interface ExecutionSection {
   href: string;
   phase: 'pre_production' | 'production' | 'post_production' | 'pre_packaging' | 'packaging' | 'inspection';
   description: string;
-  getStatus: (summary: ExecutionSummary) => { completed: number; total: number; status: 'pending' | 'in_progress' | 'completed' | 'verified' };
+  getStatus: (summary: ExecutionSummary) => SectionStatus;
+}
+
+/** Compute the milestone-aware status from raw counts. */
+function computeStatus(
+  completed: number,
+  verified: number,
+  total: number,
+  hasVerification: boolean,
+): SectionStatus {
+  const base = { completed, verified, total, hasVerification };
+  if (total === 0 || completed === 0) {
+    return { ...base, status: 'pending' };
+  }
+  if (completed < total) {
+    return { ...base, status: 'in_progress' };
+  }
+  // completed === total
+  if (!hasVerification) {
+    return { ...base, status: 'completed' };
+  }
+  if (verified < total) {
+    return { ...base, status: 'completed' };
+  }
+  return { ...base, status: 'verified' };
 }
 
 const phaseColors = {
@@ -179,12 +222,14 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: '',
       phase: 'pre_production',
       description: 'ส่งใบเบิกวัตถุดิบให้คลังอนุมัติก่อนชั่ง',
-      getStatus: (s) => ({
-        completed: s.materialRequisition.status === 'approved' ? 1 : 0,
-        total: 1,
-        status: s.materialRequisition.status === 'approved' ? 'verified'
-          : s.materialRequisition.status === 'requested' ? 'in_progress' : 'pending',
-      }),
+      // Treats 'requested'=completed, 'approved'=verified to fit the
+      // 4-step badge model — same milestones as the other dual-control sections.
+      getStatus: (s) => computeStatus(
+        s.materialRequisition.status === 'requested' || s.materialRequisition.status === 'approved' ? 1 : 0,
+        s.materialRequisition.status === 'approved' ? 1 : 0,
+        1,
+        true,
+      ),
     },
     {
       id: 'pre-production-cleaning',
@@ -193,13 +238,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/cleaning?phase=pre_production`,
       phase: 'pre_production',
       description: 'Verify room and equipment cleanliness before production',
-      getStatus: (s) => ({
-        completed: s.preProductionCleaning.completed,
-        total: s.preProductionCleaning.total,
-        status: s.preProductionCleaning.verified === s.preProductionCleaning.total && s.preProductionCleaning.total > 0 ? 'verified'
-          : s.preProductionCleaning.completed === s.preProductionCleaning.total && s.preProductionCleaning.total > 0 ? 'completed'
-          : s.preProductionCleaning.completed > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.preProductionCleaning.completed,
+        s.preProductionCleaning.verified,
+        s.preProductionCleaning.total,
+        true,
+      ),
     },
     {
       id: 'pre-production-environmental',
@@ -208,12 +252,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/environmental-monitoring?phase=pre_production`,
       phase: 'pre_production',
       description: 'Record temperature and humidity before production',
-      getStatus: (s) => ({
-        completed: s.preProductionEnvironmental?.recorded ?? 0,
-        total: s.preProductionEnvironmental?.total ?? 0,
-        status: (s.preProductionEnvironmental?.recorded ?? 0) >= (s.preProductionEnvironmental?.total ?? 0) && (s.preProductionEnvironmental?.total ?? 0) > 0 ? 'completed'
-          : (s.preProductionEnvironmental?.recorded ?? 0) > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.preProductionEnvironmental?.recorded ?? 0,
+        s.preProductionEnvironmental?.recorded ?? 0,
+        s.preProductionEnvironmental?.total ?? 0,
+        false,
+      ),
     },
     {
       id: 'material-weighing',
@@ -222,13 +266,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/material-weighing`,
       phase: 'pre_production',
       description: 'Weigh and verify all raw materials according to BOM',
-      getStatus: (s) => ({
-        completed: s.materialWeighing.completed,
-        total: s.materialWeighing.total,
-        status: s.materialWeighing.verified === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'verified'
-          : s.materialWeighing.completed === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'completed'
-          : s.materialWeighing.completed > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.materialWeighing.completed,
+        s.materialWeighing.verified,
+        s.materialWeighing.total,
+        true,
+      ),
     },
     {
       id: 'sop-execution',
@@ -237,13 +280,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/sop-execution`,
       phase: 'production',
       description: 'Execute production steps with parameter recording',
-      getStatus: (s) => ({
-        completed: s.sopExecution.completed,
-        total: s.sopExecution.total,
-        status: s.sopExecution.verified === s.sopExecution.total && s.sopExecution.total > 0 ? 'verified'
-          : s.sopExecution.completed === s.sopExecution.total && s.sopExecution.total > 0 ? 'completed'
-          : s.sopExecution.completed > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.sopExecution.completed,
+        s.sopExecution.verified,
+        s.sopExecution.total,
+        true,
+      ),
     },
     {
       id: 'production-cleaning',
@@ -254,13 +296,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       description: 'Verify room and equipment cleanliness during production',
       getStatus: (s) => {
         const c = s.productionCleaning ?? { total: 0, completed: 0, verified: 0 };
-        return {
-          completed: c.completed,
-          total: c.total,
-          status: c.verified === c.total && c.total > 0 ? 'verified'
-            : c.completed === c.total && c.total > 0 ? 'completed'
-            : c.completed > 0 ? 'in_progress' : 'pending',
-        };
+        return computeStatus(c.completed, c.verified, c.total, true);
       },
     },
     {
@@ -270,13 +306,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/ipc`,
       phase: 'production',
       description: t('execution.ipcDescription'),
-      getStatus: (s) => ({
-        completed: s.ipc.completed,
-        total: s.ipc.total,
-        status: s.ipc.approved === s.ipc.total && s.ipc.total > 0 ? 'verified'
-          : s.ipc.completed === s.ipc.total && s.ipc.total > 0 ? 'completed'
-          : s.ipc.completed > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.ipc.completed,
+        s.ipc.approved,
+        s.ipc.total,
+        true,
+      ),
     },
     {
       id: 'production-environmental',
@@ -285,12 +320,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/environmental-monitoring?phase=production`,
       phase: 'production',
       description: 'Record temperature and humidity during production',
-      getStatus: (s) => ({
-        completed: s.productionEnvironmental.recorded,
-        total: s.productionEnvironmental.total,
-        status: s.productionEnvironmental.recorded >= s.productionEnvironmental.total && s.productionEnvironmental.total > 0 ? 'completed'
-          : s.productionEnvironmental.recorded > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.productionEnvironmental.recorded,
+        s.productionEnvironmental.recorded,
+        s.productionEnvironmental.total,
+        false,
+      ),
     },
     {
       id: 'post-production-cleaning',
@@ -299,13 +334,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/cleaning?phase=post_production`,
       phase: 'post_production',
       description: 'Clean room and equipment after production',
-      getStatus: (s) => ({
-        completed: s.postProductionCleaning.completed,
-        total: s.postProductionCleaning.total,
-        status: s.postProductionCleaning.verified === s.postProductionCleaning.total && s.postProductionCleaning.total > 0 ? 'verified'
-          : s.postProductionCleaning.completed === s.postProductionCleaning.total && s.postProductionCleaning.total > 0 ? 'completed'
-          : s.postProductionCleaning.completed > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.postProductionCleaning.completed,
+        s.postProductionCleaning.verified,
+        s.postProductionCleaning.total,
+        true,
+      ),
     },
     {
       id: 'bulk-product-yield',
@@ -314,11 +348,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/production-output?stage=bulk`,
       phase: 'post_production',
       description: 'บันทึกจำนวนผลิตภัณฑ์บัลก์หลังกระบวนการผลิต ก่อนเข้าสู่การบรรจุภัณฑ์',
-      getStatus: (s) => ({
-        completed: s.bulkOutput?.recorded ? 1 : 0,
-        total: 1,
-        status: s.bulkOutput?.recorded ? 'completed' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.bulkOutput?.recorded ? 1 : 0,
+        s.bulkOutput?.recorded ? 1 : 0,
+        1,
+        false,
+      ),
     },
     {
       id: 'pre-packaging-cleaning',
@@ -327,13 +362,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/cleaning?phase=pre_packaging`,
       phase: 'pre_packaging',
       description: 'Verify packaging area cleanliness',
-      getStatus: (s) => ({
-        completed: s.prePackagingCleaning.completed,
-        total: s.prePackagingCleaning.total,
-        status: s.prePackagingCleaning.verified === s.prePackagingCleaning.total && s.prePackagingCleaning.total > 0 ? 'verified'
-          : s.prePackagingCleaning.completed === s.prePackagingCleaning.total && s.prePackagingCleaning.total > 0 ? 'completed'
-          : s.prePackagingCleaning.completed > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.prePackagingCleaning.completed,
+        s.prePackagingCleaning.verified,
+        s.prePackagingCleaning.total,
+        true,
+      ),
     },
     {
       id: 'packaging-cleaning',
@@ -344,13 +378,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       description: 'Verify packaging area cleanliness during packaging',
       getStatus: (s) => {
         const c = s.packagingCleaning ?? { total: 0, completed: 0, verified: 0 };
-        return {
-          completed: c.completed,
-          total: c.total,
-          status: c.verified === c.total && c.total > 0 ? 'verified'
-            : c.completed === c.total && c.total > 0 ? 'completed'
-            : c.completed > 0 ? 'in_progress' : 'pending',
-        };
+        return computeStatus(c.completed, c.verified, c.total, true);
       },
     },
     {
@@ -360,12 +388,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/packaging-qc?tab=weight`,
       phase: 'packaging',
       description: 'Sample weight verification during packaging',
-      getStatus: (s) => ({
-        completed: s.packagingWeight.passed,
-        total: s.packagingWeight.total,
-        status: s.packagingWeight.passed === s.packagingWeight.total && s.packagingWeight.total > 0 ? 'completed'
-          : s.packagingWeight.passed > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.packagingWeight.passed,
+        s.packagingWeight.passed,
+        s.packagingWeight.total,
+        false,
+      ),
     },
     {
       id: 'packaging-integrity',
@@ -374,12 +402,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/packaging-qc?tab=integrity`,
       phase: 'packaging',
       description: 'Cap, label, and packing verification',
-      getStatus: (s) => ({
-        completed: s.packagingIntegrity.passed,
-        total: s.packagingIntegrity.total,
-        status: s.packagingIntegrity.passed === s.packagingIntegrity.total && s.packagingIntegrity.total > 0 ? 'completed'
-          : s.packagingIntegrity.passed > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.packagingIntegrity.passed,
+        s.packagingIntegrity.passed,
+        s.packagingIntegrity.total,
+        false,
+      ),
     },
     {
       id: 'packaging-environmental',
@@ -388,12 +416,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/environmental-monitoring?phase=packaging`,
       phase: 'packaging',
       description: 'Record temperature and humidity during packaging',
-      getStatus: (s) => ({
-        completed: s.packagingEnvironmental.recorded,
-        total: s.packagingEnvironmental.total,
-        status: s.packagingEnvironmental.recorded >= s.packagingEnvironmental.total && s.packagingEnvironmental.total > 0 ? 'completed'
-          : s.packagingEnvironmental.recorded > 0 ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.packagingEnvironmental.recorded,
+        s.packagingEnvironmental.recorded,
+        s.packagingEnvironmental.total,
+        false,
+      ),
     },
     {
       id: 'finished-inspection',
@@ -402,12 +430,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/finished-inspection`,
       phase: 'inspection',
       description: '15-point inspection checklist',
-      getStatus: (s) => ({
-        completed: s.finishedInspection.status === 'passed' ? 1 : 0,
-        total: 1,
-        status: s.finishedInspection.status === 'passed' ? 'completed'
-          : s.finishedInspection.status === 'in_progress' ? 'in_progress' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.finishedInspection.status === 'passed' || s.finishedInspection.status === 'in_progress' ? 1 : 0,
+        s.finishedInspection.status === 'passed' ? 1 : 0,
+        1,
+        false,
+      ),
     },
     {
       id: 'production-output',
@@ -416,15 +444,24 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       href: `/production/work-orders/${workOrderId}/production-output?stage=finished`,
       phase: 'inspection',
       description: 'บันทึกจำนวนผลิตภัณฑ์สำเร็จรูปหลัง Inspection เพื่อเข้าคลัง FG',
-      getStatus: (s) => ({
-        completed: s.finishedOutput?.recorded ? 1 : 0,
-        total: 1,
-        status: s.finishedOutput?.recorded ? 'completed' : 'pending',
-      }),
+      getStatus: (s) => computeStatus(
+        s.finishedOutput?.recorded ? 1 : 0,
+        s.finishedOutput?.recorded ? 1 : 0,
+        1,
+        false,
+      ),
     },
   ];
 
-  const renderStatusBadge = (status: 'pending' | 'in_progress' | 'completed' | 'verified') => {
+  /**
+   * Renders the section status badge with a milestone-aware count (X/Y).
+   * The X varies by status so users always see the metric that matters next:
+   *   - in_progress: completed/total (operator progress)
+   *   - completed:   verified/total when hasVerification, else completed/total
+   *   - verified:    verified/total (= total/total)
+   * Pending shows no count.
+   */
+  const renderStatusBadge = (info: SectionStatus) => {
     const styles = {
       pending: 'bg-gray-100 text-gray-600',
       in_progress: 'bg-amber-100 text-amber-700',
@@ -443,10 +480,20 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       completed: <CheckCircle2 className="h-3 w-3" />,
       verified: <CheckCircle2 className="h-3 w-3" />,
     };
+
+    let countSuffix = '';
+    if (info.total > 0 && info.status !== 'pending') {
+      let current = 0;
+      if (info.status === 'in_progress') current = info.completed;
+      else if (info.status === 'completed') current = info.hasVerification ? info.verified : info.completed;
+      else if (info.status === 'verified') current = info.verified;
+      countSuffix = ` (${current}/${info.total})`;
+    }
+
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${styles[status]}`}>
-        {icons[status]}
-        {labels[status]}
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${styles[info.status]}`}>
+        {icons[info.status]}
+        {labels[info.status]}{countSuffix}
       </span>
     );
   };
@@ -581,7 +628,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                         <div className="space-y-2">
                           {renderProgressBar(sectionStatus.completed, sectionStatus.total)}
                           <div className="flex justify-end">
-                            {renderStatusBadge(sectionStatus.status)}
+                            {renderStatusBadge(sectionStatus)}
                           </div>
                         </div>
                         <div className="mt-3 pt-3 border-t">
@@ -651,7 +698,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                         <div className="space-y-2">
                           {renderProgressBar(sectionStatus.completed, sectionStatus.total)}
                           <div className="flex justify-end">
-                            {renderStatusBadge(sectionStatus.status)}
+                            {renderStatusBadge(sectionStatus)}
                           </div>
                         </div>
                       )}
