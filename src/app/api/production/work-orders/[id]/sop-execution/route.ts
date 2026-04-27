@@ -13,6 +13,7 @@ import {
   verifyWOSOPStep,
   confirmWOSOPSubSteps,
 } from '@/lib/services/wo-execution.service';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 import { executeDbOperation } from '@/lib/db/db-helper';
 import { isSqlite } from '@/lib/db';
 import { sqliteWorkOrders, mysqlWorkOrders } from '@/lib/db/schema';
@@ -46,7 +47,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async () => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const workOrderId = Number(id);
@@ -74,6 +75,7 @@ export async function POST(
 
       // Initialize SOP execution from BOM
       const executions = await initializeWOSOPExecution(workOrderId, workOrder.bomId);
+      publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'init');
       return successResponse(executions, 'SOP execution initialized from BOM');
     } catch (error) {
       console.error('Error initializing WO SOP execution:', error);
@@ -116,9 +118,11 @@ export async function PUT(
           return errorResponse('confirmedSubStepIds array is required');
         }
         execution = await confirmWOSOPSubSteps(data.executionId, data.confirmedSubStepIds);
+        publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'confirm_substeps');
         return successResponse(execution, 'Sub-steps confirmed');
       } else if (data.action === 'start') {
         execution = await startWOSOPStep(data.executionId, operatorId);
+        publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'start');
         return successResponse(execution, 'Step started');
       } else {
         // Validate parameters JSON if provided
@@ -138,6 +142,7 @@ export async function PUT(
             : data.actualParameters;
 
         execution = await completeWOSOPStep(data.executionId, actualParams, data.notes);
+        publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'complete');
         return successResponse(execution, 'Step completed');
       }
     } catch (error) {
@@ -171,6 +176,7 @@ export async function PATCH(
       const verifierId = data.verifierId || session.userId;
 
       const execution = await verifyWOSOPStep(data.executionId, verifierId);
+      publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'verify');
       return successResponse(execution, 'Step verified');
     } catch (error) {
       console.error('Error verifying WO SOP step:', error);

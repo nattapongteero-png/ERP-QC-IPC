@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useMobile } from '@/hooks/use-mobile';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import DataGrid, {
   Column,
   Paging,
@@ -227,6 +228,16 @@ export default function WorkOrdersPage() {
   const { data: workOrders = [], isLoading, refetch } = useQuery({
     queryKey: ['work-orders'],
     queryFn: fetchWorkOrders,
+  });
+
+  // Auto-refresh list when any work order's execution data changes
+  // (cleaning, weighing, IPC, status, etc.) — keeps the dashboard live
+  // for everyone watching, not just the user who made the change.
+  useRealtimeTopic('work-order-changed', () => {
+    queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+  });
+  useRealtimeTopic('requisition-changed', () => {
+    queryClient.invalidateQueries({ queryKey: ['work-orders'] });
   });
 
   // Update mutation

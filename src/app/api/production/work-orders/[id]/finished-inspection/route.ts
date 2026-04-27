@@ -11,6 +11,7 @@ import {
   updateWOFinishedInspection,
   reInspectWOFinishedInspection,
 } from '@/lib/services/wo-execution.service';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 
 // GET /api/production/work-orders/[id]/finished-inspection - Get finished product inspection
 export async function GET(
@@ -81,6 +82,7 @@ export async function POST(
         checklistResults: checklistResultsStr,
       });
 
+      publishWorkOrderChanged(workOrderId, 'finished-inspection', session.userId, 'create');
       return successResponse(inspection, 'Finished product inspection created');
     } catch (error) {
       console.error('Error creating WO finished inspection:', error);
@@ -153,6 +155,7 @@ export async function PUT(
         data.notes
       );
 
+      publishWorkOrderChanged(workOrderId, 'finished-inspection', session.userId, 'update');
       return successResponse(inspection, `Inspection updated - status: ${status}`);
     } catch (error) {
       console.error('Error updating WO finished inspection:', error);
@@ -197,6 +200,7 @@ export async function PATCH(
       const reInspectorId = data.reInspectorId || session.userId;
 
       const inspection = await reInspectWOFinishedInspection(inspectionId!, reInspectorId);
+      publishWorkOrderChanged(workOrderId, 'finished-inspection', session.userId, 'reinspect');
       return successResponse(inspection, 'Re-inspection recorded');
     } catch (error) {
       console.error('Error re-inspecting WO finished inspection:', error);

@@ -12,6 +12,7 @@ import {
 } from '@/lib/services/wo-execution.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 import { eq } from 'drizzle-orm';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 
 // GET /api/production/work-orders/[id]/material-weighing - Get materials with weighing status
 export async function GET(
@@ -80,6 +81,8 @@ export async function PUT(
         waterTemperature: data.waterTemperature,
       });
 
+      publishWorkOrderChanged(workOrderId, 'material-weighing', session.userId);
+
       return successResponse(material, 'Material weight recorded');
     } catch (error) {
       console.error('Error recording material weight:', error);
@@ -119,6 +122,7 @@ export async function PATCH(
       const verifierId = data.verifierId || session.userId;
 
       const material = await verifyMaterialWeight(data.materialId, verifierId);
+      publishWorkOrderChanged(workOrderId, 'material-weighing', session.userId);
       return successResponse(material, 'Material weight verified');
     } catch (error) {
       console.error('Error verifying material weight:', error);

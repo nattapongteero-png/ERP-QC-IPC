@@ -10,7 +10,7 @@ import { getSession } from '@/lib/auth';
 import { realtimeBus } from '@/lib/realtime';
 import type { TopicName, RealtimeEvent } from '@/lib/realtime';
 
-const VALID_TOPICS: readonly TopicName[] = ['requisition-changed'] as const;
+const VALID_TOPICS: readonly TopicName[] = ['requisition-changed', 'work-order-changed'] as const;
 
 function isValidTopic(t: string): t is TopicName {
   return (VALID_TOPICS as readonly string[]).includes(t);

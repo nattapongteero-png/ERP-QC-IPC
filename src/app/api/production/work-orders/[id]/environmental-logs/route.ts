@@ -5,6 +5,7 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 import {
   getWOEnvironmentalLogs,
   createWOEnvironmentalLog,
@@ -126,6 +127,8 @@ export async function POST(
         notes: data.notes || (isExternal ? 'Auto-recorded by sensor' : undefined),
       });
 
+      publishWorkOrderChanged(workOrderId, 'environmental', operatorId, data.phase);
+
       return successResponse(
         { ...log, limits: validation.limits },
         validation.isNormal
@@ -155,7 +158,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async () => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const workOrderId = Number(id);
@@ -190,6 +193,7 @@ export async function PUT(
         notes: data.notes,
       });
 
+      publishWorkOrderChanged(workOrderId, 'environmental', session.userId);
       return successResponse(log, 'Environmental log updated');
     } catch (error) {
       console.error('Error updating environmental log:', error);
@@ -203,7 +207,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async () => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const workOrderId = Number(id);
@@ -214,6 +218,7 @@ export async function DELETE(
       if (!logId) return errorResponse('Missing logId parameter');
 
       await deleteWOEnvironmentalLog(Number(logId));
+      publishWorkOrderChanged(workOrderId, 'environmental', session.userId, 'delete');
       return successResponse(null, 'Environmental log deleted');
     } catch (error) {
       console.error('Error deleting environmental log:', error);

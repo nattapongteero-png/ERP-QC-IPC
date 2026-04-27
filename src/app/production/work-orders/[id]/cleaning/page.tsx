@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
@@ -143,6 +144,14 @@ export default function CleaningPage() {
       if (!data.success) return [];
       return data.data;
     },
+  });
+
+  // Auto-refresh when another user mark-clean / verify cleaning on this WO
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    if (data.section !== 'cleaning' && data.section !== 'status') return;
+    queryClient.invalidateQueries({ queryKey: ['wo-cleaning-requirements', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
   // Intentionally no per-phase stats/selector — this page renders exactly

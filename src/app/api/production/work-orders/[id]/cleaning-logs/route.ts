@@ -12,6 +12,7 @@ import {
   verifyWOCleaningLog,
   getWOCleaningStatus,
 } from '@/lib/services/wo-execution.service';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 
 // Valid phases for cleaning
 const VALID_PHASES = ['pre_production', 'post_production', 'pre_packaging'];
@@ -115,6 +116,8 @@ export async function POST(
         notes: data.notes,
       });
 
+      publishWorkOrderChanged(workOrderId, 'cleaning', session.userId, data.phase);
+
       return successResponse(log, 'Cleaning log recorded');
     } catch (error) {
       console.error('Error creating WO cleaning log:', error);
@@ -153,6 +156,7 @@ export async function PATCH(
       const verifierId = data.verifierId || session.userId;
 
       const log = await verifyWOCleaningLog(data.logId, verifierId, verifyResult);
+      publishWorkOrderChanged(workOrderId, 'cleaning', session.userId);
       const msg = verifyResult === 'pass' ? 'Cleaning verified — Pass' : 'Cleaning verified — Fail (requires re-cleaning)';
       return successResponse(log, msg);
     } catch (error) {

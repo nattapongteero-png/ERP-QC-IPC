@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import type { BOMConfigResponse } from '@/types/bom-config';
@@ -125,6 +126,14 @@ export default function SOPExecutionPage() {
       if (!data.success) return [];
       return data.data;
     },
+  });
+
+  // Auto-refresh when another user modifies SOP steps on this WO
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    if (data.section !== 'sop-execution' && data.section !== 'status') return;
+    queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
   // Fetch BOM config for equipment name resolution

@@ -1,2 +1,9 @@
 export { realtimeBus } from './event-bus';
-export type { TopicName, RealtimeEvent, RequisitionChangedPayload } from './types';
+export { publishWorkOrderChanged } from './wo-events';
+export type {
+  TopicName,
+  RealtimeEvent,
+  RequisitionChangedPayload,
+  WorkOrderSection,
+  WorkOrderChangedPayload,
+} from './types';

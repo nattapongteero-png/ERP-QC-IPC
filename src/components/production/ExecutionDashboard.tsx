@@ -141,6 +141,16 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
+  // Phase: any execution sub-section change re-fetches the dashboard summary
+  // so progress bars / status pills stay in sync across users.
+  useRealtimeTopic('work-order-changed', (data) => {
+    const eventWorkOrderId = data.workOrderId as number | undefined;
+    if (eventWorkOrderId !== workOrderId) return;
+    queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
+  });
+
   const requisitionMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/requisition`, {

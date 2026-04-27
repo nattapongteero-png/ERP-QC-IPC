@@ -11,6 +11,7 @@ import {
   updateWOPackagingMaterial,
   verifyWOPackagingMaterial,
 } from '@/lib/services/wo-execution.service';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 
 // GET /api/production/work-orders/[id]/packaging-materials - Get packaging materials
 export async function GET(
@@ -68,6 +69,7 @@ export async function POST(
         operatorId,
       });
 
+      publishWorkOrderChanged(workOrderId, 'packaging-materials', session.userId, 'add');
       return successResponse(material, 'Packaging material added');
     } catch (error) {
       console.error('Error creating WO packaging material:', error);
@@ -81,7 +83,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async () => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const workOrderId = Number(id);
@@ -106,6 +108,7 @@ export async function PUT(
         data.qtyReturned
       );
 
+      publishWorkOrderChanged(workOrderId, 'packaging-materials', session.userId, 'update');
       return successResponse(material, 'Packaging material updated');
     } catch (error) {
       console.error('Error updating WO packaging material:', error);
@@ -138,6 +141,7 @@ export async function PATCH(
       const verifierId = data.verifierId || session.userId;
 
       const material = await verifyWOPackagingMaterial(data.materialId, verifierId);
+      publishWorkOrderChanged(workOrderId, 'packaging-materials', session.userId, 'verify');
       return successResponse(material, 'Packaging material verified');
     } catch (error) {
       console.error('Error verifying WO packaging material:', error);

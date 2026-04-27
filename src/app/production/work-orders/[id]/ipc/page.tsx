@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { parseAcceptanceStages, calcStageAcceptance, type AcceptanceStage } from '@/lib/master-data/ipc-stages';
 import { parseSpecPayload, type SpecPayload } from '@/lib/master-data/ipc-spec-payload';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -238,6 +239,14 @@ export default function IPCPage() {
       const data = await res.json();
       return data.data || [];
     },
+  });
+
+  // Auto-refresh when another user records / approves IPC results on this WO
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    if (data.section !== 'ipc' && data.section !== 'requisition' && data.section !== 'status') return;
+    queryClient.invalidateQueries({ queryKey: ['wo-ipc-tests', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
   // Initialize IPC tests from BOM

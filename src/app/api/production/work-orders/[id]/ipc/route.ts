@@ -15,6 +15,7 @@ import {
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 import { eq } from 'drizzle-orm';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 
 // GET /api/production/work-orders/[id]/ipc - Get IPC tests for a work order
 export async function GET(
@@ -92,6 +93,7 @@ export async function POST(
           ipAddress: getClientIP(request),
         });
 
+        publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'init');
         return successResponse(created, `Initialized ${created.length} IPC tests from BOM`);
       }
 
@@ -139,6 +141,7 @@ export async function POST(
           ipAddress: getClientIP(request),
         });
 
+        publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'record');
         return successResponse(result, 'IPC test result recorded');
       }
 
@@ -164,6 +167,7 @@ export async function POST(
           ipAddress: getClientIP(request),
         });
 
+        publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'approve');
         return successResponse(result, 'IPC test approved');
       }
 

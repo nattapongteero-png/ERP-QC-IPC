@@ -9,6 +9,7 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 import {
   canRelease,
   canStartProduction,
@@ -134,6 +135,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ipAddress: getClientIP(request),
       });
 
+      publishWorkOrderChanged(workOrderId, 'status', session.userId, status);
       return successResponse({ id: workOrderId, status }, `Work order status updated to ${status}`);
     } catch (error) {
       return serverErrorResponse(error);

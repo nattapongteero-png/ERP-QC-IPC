@@ -158,6 +158,14 @@ export default function MaterialWeighingPage() {
     queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
+  // Auto-refresh when another user weighs/verifies a material on this WO
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    if (data.section !== 'material-weighing' && data.section !== 'status') return;
+    queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
+  });
+
   // Prefetch available lots for all materials so they're cached before Edit click
   useEffect(() => {
     const itemIds = [...new Set(materials.map(m => m.itemId))];
