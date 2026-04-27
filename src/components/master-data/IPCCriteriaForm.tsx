@@ -3,15 +3,10 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ResponsivePageHeader } from '@/components/shared';
-import { DxButton } from '@/components/ui/dx-button';
-import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxNumberBox } from '@/components/ui/dx-number-box';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { DxTextArea } from '@/components/ui/dx-text-area';
 import { useToast } from '@/hooks/use-toast';
-import { FlaskConical, Beaker, Eye, Sparkles, AlertTriangle, CheckCircle2, Activity } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ResponsivePageHeader } from '@/components/shared';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { FlaskConical, Shield, Eye, FileText, Layers, Dice5, Plus, Trash2, AlertTriangle, Sparkles, ArrowDown } from 'lucide-react';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -30,15 +25,36 @@ import {
   calcStageAcceptance,
   totalStageSamples,
   emptyStage,
-  getOnFailLabel,
   USP_DISSOLUTION_PLAN,
   USP_UNIFORMITY_PLAN,
   type AcceptanceStage,
-  type OnFailAction,
 } from '@/lib/master-data/ipc-stages';
+import {
+  parseSpecPayload,
+  serializeSpecPayload,
+  defaultPayload,
+  type SpecPayload,
+  type PassFailPayload,
+  type VisualPayload,
+  type TextPayload,
+} from '@/lib/master-data/ipc-spec-payload';
 
-const CUSTOM_OPTION_VALUE = '__custom__';
+// ────────────────────────────────────────────────────────────────────
+// Style constants — mirror the prototype's CSS classes via Tailwind
+// so the form looks identical to https://oommiemie.github.io/ipc-criteria-prototype/.
+// ────────────────────────────────────────────────────────────────────
+const FIELD_INPUT =
+  'w-full px-3 py-2.5 border border-slate-200 rounded-[10px] bg-white text-sm text-slate-900 transition outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15';
+const FIELD_LABEL = 'block text-[13px] font-semibold text-slate-700 mb-1.5';
+const FIELD_HELPER = 'text-xs text-slate-500 mt-1.5';
+const PANEL = 'bg-white border border-slate-200 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04),_0_8px_24px_rgba(15,23,42,0.04)]';
+const SUB_PANEL = 'bg-emerald-50 border border-emerald-200 rounded-[14px]';
+const CHIP_GREEN = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[12px] font-medium';
+const SECTION_BADGE = 'w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0';
 
+// ────────────────────────────────────────────────────────────────────
+// Types
+// ────────────────────────────────────────────────────────────────────
 interface IPCCriteria {
   id: number;
   code: string;
@@ -58,7 +74,6 @@ interface IPCCriteria {
   tolerancePercent: number;
   specTarget: number | null;
   specTolerancePercent: number;
-  /** JSON string from DB or array after parse — see ipc-stages module */
   acceptanceStages: string | AcceptanceStage[] | null;
 }
 
@@ -67,11 +82,6 @@ interface Props {
   id?: number;
 }
 
-/**
- * Coerce MySQL decimal strings to numbers so DxNumberBox renders them correctly.
- * MySQL decimal columns come back over JSON as strings like "300.0000" — DxNumberBox
- * expects numbers. Booleans are normalized too (MySQL tinyint(1) arrives as 0/1).
- */
 function normalizeRecord(raw: IPCCriteria | undefined): IPCCriteria | undefined {
   if (!raw) return raw;
   const toNum = (v: unknown): number | null => {
@@ -92,6 +102,9 @@ function normalizeRecord(raw: IPCCriteria | undefined): IPCCriteria | undefined 
   };
 }
 
+// ────────────────────────────────────────────────────────────────────
+// Outer wrapper — fetches existing record in edit mode
+// ────────────────────────────────────────────────────────────────────
 export function IPCCriteriaForm({ mode, id }: Props) {
   const { data: existing, isLoading } = useQuery<IPCCriteria>({
     queryKey: ['ipc-criteria', id],
@@ -114,16 +127,20 @@ export function IPCCriteriaForm({ mode, id }: Props) {
     minValue: null, maxValue: null, unit: '', sampleSize: 5,
     checkIntervalMinutes: 30, isCritical: false, isActive: true,
     dosageForm: null, criteriaType: 'numeric', tolerancePercent: 0,
-    specTarget: null, specTolerancePercent: 0,
+    specTarget: null, specTolerancePercent: 0, acceptanceStages: null,
   };
 
   return <IPCCriteriaFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} />;
 }
 
+// ────────────────────────────────────────────────────────────────────
+// Inner form
+// ────────────────────────────────────────────────────────────────────
 function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: Partial<IPCCriteria> }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+
   const [formData, setFormData] = React.useState<Partial<IPCCriteria>>(initialData);
   const [stages, setStages] = React.useState<AcceptanceStage[]>(() =>
     parseAcceptanceStages(initialData.acceptanceStages)
@@ -131,6 +148,13 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   const [multiStageEnabled, setMultiStageEnabled] = React.useState<boolean>(() =>
     parseAcceptanceStages(initialData.acceptanceStages).length > 0
   );
+
+  // Per-criteria-type structured payloads (pass_fail, visual, text).
+  // Numeric uses target/tolerance fields directly.
+  const [specPayload, setSpecPayload] = React.useState<SpecPayload | null>(() =>
+    parseSpecPayload(initialData.criteriaType ?? 'numeric', initialData.specification)
+  );
+
   const [autoFilled, setAutoFilled] = React.useState<Set<string>>(new Set());
   const [autoFillNote, setAutoFillNote] = React.useState<string>('');
   const [isCustomName, setIsCustomName] = React.useState(() => {
@@ -139,13 +163,21 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     }
     return false;
   });
-  const [showPreview, setShowPreview] = React.useState(true);
 
   const criteriaType = (formData.criteriaType || 'numeric') as CriteriaType;
   const typeMeta = CRITERIA_TYPE_META[criteriaType];
 
-  // Test catalog filtered by selected dosage form. When no dosage form is
-  // chosen, show all tests so users can browse the full catalog.
+  // When user switches criteria type, reset structured payload to defaults
+  // for that type so the relevant section renders empty fields.
+  const handleCriteriaTypeChange = (next: CriteriaType) => {
+    setFormData((prev) => ({ ...prev, criteriaType: next }));
+    if (next === 'numeric') {
+      setSpecPayload(null);
+    } else {
+      setSpecPayload((prev) => (prev && prev.type === next ? prev : defaultPayload(next)));
+    }
+  };
+
   const filteredTests = React.useMemo(() => {
     if (!formData.dosageForm) return IPC_TEST_CATALOG;
     return IPC_TEST_CATALOG.filter((t) => t.dosageForms.includes(formData.dosageForm!));
@@ -159,8 +191,6 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     );
   }, [formData.specTarget, formData.specTolerancePercent]);
 
-  // Sync calculated min/max into form fields as user adjusts target/tolerance.
-  // Only applies to numeric criteria — other types do not use min/max.
   React.useEffect(() => {
     if (criteriaType !== 'numeric') return;
     if (calculatedMinMax) {
@@ -172,8 +202,6 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     }
   }, [calculatedMinMax?.min, calculatedMinMax?.max, criteriaType]);
 
-  // Per-stage acceptance counts derived from sample size + tolerance.
-  // Floor matches USP recommendation: "round down to next whole unit failure".
   const acceptanceMath = React.useMemo(() => {
     const n = Number(formData.sampleSize) || 0;
     const tol = Number(formData.tolerancePercent) || 0;
@@ -184,10 +212,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
 
   const hasTarget = formData.specTarget !== null && formData.specTarget !== undefined;
 
-  const handleSelectTest = (nameEn: string) => {
-    if (nameEn === CUSTOM_OPTION_VALUE) {
+  const handleSelectTest = (nameEn: string | null | undefined) => {
+    if (!nameEn || nameEn === '__custom__') {
       setIsCustomName(true);
-      setFormData({ ...formData, name: '', nameTh: '' });
+      setFormData((p) => ({ ...p, name: '', nameTh: '' }));
       setAutoFilled(new Set());
       setAutoFillNote('');
       return;
@@ -196,53 +224,51 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     const test = findTestByName(nameEn);
     if (!test) return;
 
-    const next: Partial<IPCCriteria> = { ...formData };
-    const filled = new Set<string>();
-    const filledLabels: string[] = [];
+    setFormData((prev) => {
+      const next: Partial<IPCCriteria> = { ...prev };
+      next.name = test.nameEn;
+      next.nameTh = test.nameTh;
 
-    next.name = test.nameEn;
-    next.nameTh = test.nameTh;
+      const filled = new Set<string>();
+      const labels: string[] = [];
 
-    // Code — only auto-fill when blank, never overwrite user-typed code
-    if (!formData.code?.trim()) {
-      next.code = suggestCodeForTest(test);
-      filled.add('code');
-      filledLabels.push('Code');
-    }
+      if (!prev.code?.trim()) {
+        next.code = suggestCodeForTest(test);
+        filled.add('code');
+        labels.push('Code');
+      }
+      if (!prev.unit) {
+        next.unit = test.defaultUnit;
+        filled.add('unit');
+        if (test.defaultUnit) labels.push('Unit');
+      }
+      next.criteriaType = test.defaultCriteriaType;
+      filled.add('criteriaType');
 
-    if (!formData.unit) {
-      next.unit = test.defaultUnit;
-      filled.add('unit');
-      if (test.defaultUnit) filledLabels.push('Unit');
-    }
+      if (!prev.sampleSize || prev.sampleSize === 5) {
+        next.sampleSize = test.defaultSampleSize;
+        filled.add('sampleSize');
+        labels.push('Sample Size');
+      }
+      if (!prev.tolerancePercent) {
+        next.tolerancePercent = test.defaultTolerancePercent;
+        filled.add('tolerancePercent');
+        labels.push('Tolerance');
+      }
+      if (test.defaultCritical && !prev.isCritical) {
+        next.isCritical = true;
+        filled.add('isCritical');
+        labels.push('Critical');
+      }
 
-    next.criteriaType = test.defaultCriteriaType;
-    filled.add('criteriaType');
+      setAutoFilled(filled);
+      setAutoFillNote(labels.length > 0 ? `เติมให้อัตโนมัติ: ${labels.join(' · ')}` : '');
 
-    if (!formData.sampleSize || formData.sampleSize === 5) {
-      next.sampleSize = test.defaultSampleSize;
-      filled.add('sampleSize');
-      filledLabels.push('Sample Size');
-    }
+      // Reset spec payload to default for the new criteria type
+      setSpecPayload(test.defaultCriteriaType === 'numeric' ? null : defaultPayload(test.defaultCriteriaType));
 
-    if (!formData.tolerancePercent) {
-      next.tolerancePercent = test.defaultTolerancePercent;
-      filled.add('tolerancePercent');
-    }
-
-    if (test.defaultCritical && !formData.isCritical) {
-      next.isCritical = true;
-      filled.add('isCritical');
-      filledLabels.push('Critical');
-    }
-
-    setFormData(next);
-    setAutoFilled(filled);
-    setAutoFillNote(
-      filledLabels.length > 0
-        ? `เติมให้อัตโนมัติ: ${filledLabels.join(' · ')}`
-        : ''
-    );
+      return next;
+    });
   };
 
   const saveMutation = useMutation({
@@ -285,30 +311,58 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       toast.error('Validation', 'Multi-Stage โหมด ต้องมี Stage อย่างน้อย 1 ขั้น');
       return;
     }
-    // Send stages array (or null when single-stage mode) — API serializes
+
+    // Serialize per-type payload back into specification field
+    const specification = criteriaType === 'numeric' ? null : serializeSpecPayload(specPayload);
+
     saveMutation.mutate({
       ...formData,
+      specification,
       acceptanceStages: multiStageEnabled ? stages : null,
     });
   };
 
-  // ── Multi-Stage helpers ──────────────────────────────────────────────
-  const addStage = () => setStages((prev) => [...prev, emptyStage()]);
-  const removeStage = (idx: number) => setStages((prev) => prev.filter((_, i) => i !== idx));
+  // ── Stage helpers ────────────────────────────────────────────────
+  const addStage = () => setStages((prev) => {
+    const next = [...prev, { ...emptyStage() }];
+    // Last stage in chain should reject by default; previous stages advance
+    return next.map((s, i) => ({
+      ...s,
+      onFail: i === next.length - 1 ? 'reject_batch' : 'next_stage',
+    }));
+  });
+  const removeStage = (idx: number) => setStages((prev) => {
+    const next = prev.filter((_, i) => i !== idx);
+    return next.map((s, i) => ({
+      ...s,
+      onFail: i === next.length - 1 && next.length > 0 ? (s.onFail === 'next_stage' ? 'reject_batch' : s.onFail) : s.onFail,
+    }));
+  });
   const updateStage = (idx: number, patch: Partial<AcceptanceStage>) =>
     setStages((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
-  const loadUSPDissolutionPlan = () => setStages([...USP_DISSOLUTION_PLAN]);
-  const loadUSPUniformityPlan = () => setStages([...USP_UNIFORMITY_PLAN]);
+  const loadUSPDissolution = () => setStages([...USP_DISSOLUTION_PLAN]);
+  const loadUSPUniformity = () => setStages([...USP_UNIFORMITY_PLAN]);
 
-  const totalSamples = totalStageSamples(stages);
+  const cumulative = React.useMemo(() => {
+    const out: number[] = [];
+    let running = 0;
+    for (const s of stages) {
+      running += s.sampleSize;
+      out.push(running);
+    }
+    return out;
+  }, [stages]);
 
-  const isAutoFilled = (field: string) => autoFilled.has(field);
+  const isAutoFilled = (k: string) => autoFilled.has(k);
 
+  // ────────────────────────────────────────────────────────────────
+  // Render
+  // ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-7xl mx-auto">
+    <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-7xl mx-auto pb-24">
       <ResponsivePageHeader
         title={mode === 'edit' ? 'Edit IPC Criteria' : 'New IPC Criteria'}
-        subtitle={mode === 'edit' ? `Editing ${initialData.name || ''}` : 'สร้างเกณฑ์ควบคุมคุณภาพระหว่างการผลิต (In-Process Control)'}
+        subtitle={mode === 'edit' ? `Editing ${initialData.name || ''}` : 'สร้างเกณฑ์ควบคุมคุณภาพระหว่างการผลิต (In-Process Control) ตามมาตรฐาน GMP / USP'}
         icon={FlaskConical}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
@@ -317,456 +371,476 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           { label: 'IPC Criteria', href: '/master-data/ipc-criteria' },
           { label: mode === 'edit' ? 'Edit' : 'New' },
         ]}
-        actions={
-          <div className="flex gap-2">
-            <DxButton
-              text={showPreview ? 'Hide Preview' : 'Show Preview'}
-              icon="eyeopen"
-              stylingMode="outlined"
-              onClick={() => setShowPreview((v) => !v)}
-            />
-            <DxButton text="Cancel" icon="back" stylingMode="outlined" onClick={() => router.push('/master-data/ipc-criteria')} />
-            <DxButton text={saveMutation.isPending ? 'Saving...' : 'Save'} icon="save" type="success" onClick={handleSave} disabled={saveMutation.isPending} />
-          </div>
-        }
       />
 
-      <div className={cn('grid gap-5', showPreview ? 'grid-cols-1 xl:grid-cols-3' : 'grid-cols-1')}>
-        {/* ── Form Column ─────────────────────────────────────────────── */}
-        <div className={cn('flex flex-col gap-5', showPreview ? 'xl:col-span-2' : '')}>
-          {autoFillNote && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
-              <Sparkles className="h-4 w-4" />
-              <span>{autoFillNote}</span>
-            </div>
-          )}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {/* ─── Form column (2/3) ─────────────────────────────────── */}
+        <div className="xl:col-span-2">
+          <div className={cn(PANEL, 'p-5 sm:p-6')}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              {/* Section 1 — Basic */}
+              <SectionHeader number={1} thai="ข้อมูลพื้นฐาน" en="Basic Information" />
 
-          {/* ── Section 1: Basic Information ─────────────────────────── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">1</span>
-                Basic Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Test Name (searchable) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              {/* Test Name */}
+              <div className="sm:col-span-2">
+                <label className={cn(FIELD_LABEL, 'flex items-center gap-1.5')}>
                   หัวข้อการทดสอบ (Test Name) <span className="text-red-500">*</span>
+                  <span className="ml-auto text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">⚡ Smart auto-fill</span>
                 </label>
                 <DxSelectBox
-                  value={isCustomName ? CUSTOM_OPTION_VALUE : formData.name || ''}
+                  value={isCustomName ? '__custom__' : formData.name || ''}
                   onValueChanged={(e) => handleSelectTest(e.value)}
                   dataSource={[
                     ...filteredTests.map((t) => ({
                       value: t.nameEn,
                       display: `${t.nameEn} — ${t.nameTh}`,
-                      category: t.category,
                     })),
-                    { value: CUSTOM_OPTION_VALUE, display: '➕ เพิ่มหัวข้อใหม่ (Add Custom)', category: 'other' },
+                    { value: '__custom__', display: '➕ เพิ่มหัวข้อใหม่ (Add Custom)' },
                   ]}
                   valueExpr="value"
                   displayExpr="display"
-                  placeholder="พิมพ์เพื่อค้นหา หรือเลือกจากมาตรฐาน USP/Pharmacopoeia"
+                  placeholder="เริ่มจากเลือกหัวข้อทดสอบ — ระบบจะเติมช่องอื่นให้อัตโนมัติ"
                   searchEnabled
                   showClearButton
                 />
-                {formData.name && !isCustomName && formData.nameTh && (
-                  <p className="text-xs text-emerald-600 mt-1">
-                    TH: {formData.nameTh}
-                  </p>
+                {autoFillNote ? (
+                  <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span className="flex-1 font-medium">{autoFillNote}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setAutoFilled(new Set()); setAutoFillNote(''); }}
+                      className="text-emerald-600 hover:text-emerald-800 text-[11px] underline"
+                    >
+                      รับทราบ
+                    </button>
+                  </div>
+                ) : (
+                  <p className={FIELD_HELPER}>มี {IPC_TEST_CATALOG.length} หัวข้อมาตรฐานจาก USP/Pharmacopoeia — เลือกแล้วระบบจะเติม Code, Unit, Sample Plan ให้</p>
                 )}
               </div>
 
-              {/* Custom name inputs */}
+              {/* Custom name fields */}
               {isCustomName && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN) <span className="text-red-500">*</span></label>
-                    <DxTextBox value={formData.name || ''} onValueChanged={(e) => setFormData({ ...formData, name: e.value })} placeholder="e.g., Custom Test Name" />
+                    <label className={FIELD_LABEL}>Name (EN) <span className="text-red-500">*</span></label>
+                    <input
+                      className={FIELD_INPUT}
+                      placeholder="เช่น Tablet Friability"
+                      value={formData.name || ''}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (TH)</label>
-                    <DxTextBox value={formData.nameTh || ''} onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })} placeholder="เช่น หัวข้อทดสอบกำหนดเอง" />
+                    <label className={FIELD_LABEL}>ชื่อ (TH)</label>
+                    <input
+                      className={FIELD_INPUT}
+                      placeholder="เช่น ความเปราะของเม็ดยา"
+                      value={formData.nameTh || ''}
+                      onChange={(e) => setFormData({ ...formData, nameTh: e.target.value })}
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Code + Dosage Form */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Code <span className="text-red-500">*</span>
-                    {isAutoFilled('code') && <AutoBadge />}
-                  </label>
-                  <DxTextBox value={formData.code || ''} onValueChanged={(e) => setFormData({ ...formData, code: e.value })} placeholder="e.g., IPC-WV-001" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">รูปแบบยา (Dosage Form)</label>
-                  <DxSelectBox
-                    value={formData.dosageForm || ''}
-                    onValueChanged={(e) => setFormData({ ...formData, dosageForm: e.value || null })}
-                    items={DOSAGE_FORM_OPTIONS}
-                    valueExpr="value"
-                    displayExpr="label"
-                    placeholder="Select dosage form"
-                    searchEnabled
-                    showClearButton
-                  />
-                </div>
-              </div>
-
-              {/* Criteria Type — 4 buttons */}
+              {/* Code */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ประเภทเกณฑ์ (Criteria Type) <span className="text-red-500">*</span>
-                  {isAutoFilled('criteriaType') && <AutoBadge />}
+                <label className={cn(FIELD_LABEL, 'flex items-center')}>
+                  Code <span className="text-red-500 ml-0.5">*</span>
+                  {isAutoFilled('code') && <AutoBadge />}
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {(Object.keys(CRITERIA_TYPE_META) as CriteriaType[]).map((type) => {
-                    const meta = CRITERIA_TYPE_META[type];
-                    const active = criteriaType === type;
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, criteriaType: type })}
-                        className={cn(
-                          'text-left p-3 rounded-lg border-2 transition-all',
-                          active
-                            ? `${meta.bgColor} ${meta.textColor} border-current ring-2 ring-current/20`
-                            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
-                        )}
-                      >
-                        <div className="font-semibold text-sm">{meta.label}</div>
-                        <div className="text-xs mt-0.5 opacity-80">{meta.desc}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className={cn('mt-2 text-xs px-2 py-1 rounded inline-flex items-center gap-1', typeMeta.bgColor, typeMeta.textColor)}>
-                  <Activity className="h-3 w-3" />
-                  กำลังบันทึกประเภท: <strong>{typeMeta.label}</strong> — {typeMeta.desc}
+                <input
+                  className={cn(FIELD_INPUT, isAutoFilled('code') && 'bg-emerald-50/40 border-emerald-200')}
+                  placeholder="เช่น IPC-WV-001"
+                  value={formData.code || ''}
+                  onChange={(e) => {
+                    setFormData({ ...formData, code: e.target.value });
+                    if (autoFilled.has('code')) {
+                      const next = new Set(autoFilled); next.delete('code'); setAutoFilled(next);
+                    }
+                  }}
+                />
+                <p className={FIELD_HELPER}>{isAutoFilled('code') ? 'สร้างจาก Test Name — แก้ไขได้' : 'รหัสเฉพาะของ criteria นี้'}</p>
+              </div>
+
+              {/* Unit */}
+              <div>
+                <label className={cn(FIELD_LABEL, 'flex items-center')}>
+                  Unit
+                  {isAutoFilled('unit') && <AutoBadge />}
+                </label>
+                <DxSelectBox
+                  value={formData.unit || ''}
+                  onValueChanged={(e) => setFormData({ ...formData, unit: e.value || '' })}
+                  items={UNIT_OPTIONS}
+                  valueExpr="value"
+                  displayExpr="label"
+                  placeholder="เลือกหน่วยวัด"
+                  searchEnabled
+                  showClearButton
+                />
+                <p className={FIELD_HELPER}>{isAutoFilled('unit') ? 'แนะนำตาม Test Name — เปลี่ยนได้' : 'หน่วยวัดของค่าที่บันทึก'}</p>
+              </div>
+
+              {/* Dosage Form */}
+              <div>
+                <label className={FIELD_LABEL}>รูปแบบยา (Dosage Form)</label>
+                <DxSelectBox
+                  value={formData.dosageForm || ''}
+                  onValueChanged={(e) => setFormData({ ...formData, dosageForm: e.value || null })}
+                  items={DOSAGE_FORM_OPTIONS}
+                  valueExpr="value"
+                  displayExpr="label"
+                  placeholder="เลือกรูปแบบยา"
+                  searchEnabled
+                  showClearButton
+                />
+              </div>
+
+              {/* Criteria Type */}
+              <div>
+                <label className={FIELD_LABEL}>ประเภทเกณฑ์ (Criteria Type) <span className="text-red-500">*</span></label>
+                <DxSelectBox
+                  value={criteriaType}
+                  onValueChanged={(e) => handleCriteriaTypeChange(e.value as CriteriaType)}
+                  items={[
+                    { value: 'numeric', label: 'ตัวเลข (Numeric) — ใส่ค่าวัด + เทียบ Min/Max' },
+                    { value: 'pass_fail', label: 'Pass/Fail — ผ่าน/ไม่ผ่าน' },
+                    { value: 'visual', label: 'Visual — ตรวจด้วยสายตา' },
+                    { value: 'text', label: 'Text — บันทึกข้อความ' },
+                  ]}
+                  valueExpr="value"
+                  displayExpr="label"
+                />
+              </div>
+
+              {/* Section 2 — Specification */}
+              <SectionHeader number={2} thai="เกณฑ์มาตรฐาน" en="Specification" />
+
+              {/* Type indicator banner */}
+              <div className="sm:col-span-2">
+                <div className={cn('flex items-center gap-3 p-3 rounded-xl border', typeMeta.bgColor)}>
+                  <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', typeMeta.bgColor.replace('50', '100'))}>
+                    {criteriaType === 'numeric' && <FlaskConical className="w-4 h-4 text-emerald-700" />}
+                    {criteriaType === 'pass_fail' && <Shield className="w-4 h-4 text-blue-700" />}
+                    {criteriaType === 'visual' && <Eye className="w-4 h-4 text-amber-700" />}
+                    {criteriaType === 'text' && <FileText className="w-4 h-4 text-slate-700" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className={cn('text-xs font-semibold', typeMeta.textColor)}>รูปแบบการบันทึก: {typeMeta.label}</div>
+                    <div className={cn('text-[11px]', typeMeta.textColor, 'opacity-70')}>{typeMeta.desc}</div>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* ── Section 2: Specification (type-specific) ─────────────── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">2</span>
-                Specification
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              {/* Numeric */}
               {criteriaType === 'numeric' && (
-                <>
+                <div className={cn(SUB_PANEL, 'sm:col-span-2 p-5 mt-2')}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <FlaskConical className="w-4 h-4 text-emerald-700" />
+                    <h3 className="font-semibold text-emerald-800 text-sm">Specification Target & Tolerance</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                    <div>
+                      <label className={FIELD_LABEL}>Target (Specification) <span className="text-red-500">*</span></label>
+                      <input
+                        type="number"
+                        className={FIELD_INPUT}
+                        placeholder="เช่น 300"
+                        value={formData.specTarget ?? ''}
+                        onChange={(e) => setFormData({ ...formData, specTarget: e.target.value === '' ? null : Number(e.target.value) })}
+                      />
+                      <p className={FIELD_HELPER}>ค่าเป้าหมาย (ต้องมากกว่า 0)</p>
+                    </div>
+                    <div>
+                      <label className={FIELD_LABEL}>±% Tolerance (Spec Range)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          className={cn(FIELD_INPUT, 'pr-8')}
+                          placeholder="0"
+                          value={formData.specTolerancePercent ?? 0}
+                          onChange={(e) => setFormData({ ...formData, specTolerancePercent: Number(e.target.value) || 0 })}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                      </div>
+                      <p className={FIELD_HELPER}>ช่วงยอมรับ ± % รอบค่าเป้าหมาย</p>
+                    </div>
+                    <div>
+                      <label className={cn(FIELD_LABEL, 'flex items-center gap-1.5')}>
+                        Min Value <AutoBadge />
+                      </label>
+                      <input
+                        readOnly
+                        className={cn(FIELD_INPUT, 'bg-white cursor-not-allowed text-slate-800 font-semibold')}
+                        placeholder="—"
+                        value={calculatedMinMax?.min ?? ''}
+                      />
+                      <p className={FIELD_HELPER}>
+                        {calculatedMinMax
+                          ? `= ${formData.specTarget} − (${formData.specTarget} × ${formData.specTolerancePercent ?? 0}%)`
+                          : 'รอกรอก Target และ Tolerance'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className={cn(FIELD_LABEL, 'flex items-center gap-1.5')}>
+                        Max Value <AutoBadge />
+                      </label>
+                      <input
+                        readOnly
+                        className={cn(FIELD_INPUT, 'bg-white cursor-not-allowed text-slate-800 font-semibold')}
+                        placeholder="—"
+                        value={calculatedMinMax?.max ?? ''}
+                      />
+                      <p className={FIELD_HELPER}>
+                        {calculatedMinMax
+                          ? `= ${formData.specTarget} + (${formData.specTarget} × ${formData.specTolerancePercent ?? 0}%)`
+                          : 'รอกรอก Target และ Tolerance'}
+                      </p>
+                    </div>
+                    {calculatedMinMax && (
+                      <div className="sm:col-span-2 flex flex-wrap items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-white border border-emerald-300 text-sm text-emerald-800">
+                        <span className="font-semibold">ช่วงที่ยอมรับ:</span>
+                        <span className="font-mono font-bold text-emerald-700">{calculatedMinMax.min}</span>
+                        <span className="text-emerald-500">≤</span>
+                        <span className="font-mono text-slate-500">value</span>
+                        <span className="text-emerald-500">≤</span>
+                        <span className="font-mono font-bold text-emerald-700">{calculatedMinMax.max}</span>
+                        <span className="text-emerald-600 text-xs ml-1">({formData.specTarget} ± {formData.specTolerancePercent ?? 0}%)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Pass / Fail */}
+              {criteriaType === 'pass_fail' && specPayload?.type === 'pass_fail' && (
+                <PassFailSection payload={specPayload} onChange={setSpecPayload} />
+              )}
+
+              {/* Visual */}
+              {criteriaType === 'visual' && specPayload?.type === 'visual' && (
+                <VisualSection payload={specPayload} onChange={setSpecPayload} />
+              )}
+
+              {/* Text */}
+              {criteriaType === 'text' && specPayload?.type === 'text' && (
+                <TextSection payload={specPayload} onChange={setSpecPayload} />
+              )}
+
+              {/* Section 3 — Sampling & Acceptance */}
+              <SectionHeader number={3} thai="การสุ่มและเกณฑ์ยอมรับ" en="Sampling & Acceptance" />
+
+              {/* Sampling Plan sub-panel */}
+              <div className={cn(SUB_PANEL, 'sm:col-span-2 p-5')}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Dice5 className="w-4 h-4 text-emerald-700" />
+                    <h3 className="font-semibold text-emerald-800 text-sm">Sampling Plan</h3>
+                  </div>
+                  <span className={CHIP_GREEN}>GMP / USP Standard</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      หน่วย (Unit)
-                      {isAutoFilled('unit') && <AutoBadge />}
-                    </label>
+                    <label className={FIELD_LABEL}>Sampling Method</label>
                     <DxSelectBox
-                      value={formData.unit || ''}
-                      onValueChanged={(e) => setFormData({ ...formData, unit: e.value || '' })}
-                      items={UNIT_OPTIONS}
+                      value={formData.testMethod || ''}
+                      onValueChanged={(e) => setFormData({ ...formData, testMethod: e.value || null })}
+                      items={SAMPLING_METHOD_OPTIONS}
                       valueExpr="value"
                       displayExpr="label"
-                      placeholder="Select unit"
+                      placeholder="เลือกวิธีสุ่ม"
                       searchEnabled
                       showClearButton
                     />
-                    <p className="text-xs text-gray-500 mt-1">หากต้องการหน่วยอื่น สามารถพิมพ์ในช่องค้นหา และเลือก -- ไม่ระบุหน่วย -- แล้วใช้ Specification field</p>
+                    <p className={FIELD_HELPER}>วิธีการสุ่มตัวอย่างที่ operator ต้องใช้</p>
                   </div>
+                  <div>
+                    <label className={FIELD_LABEL}>Check Interval (min)</label>
+                    <input
+                      type="number"
+                      className={FIELD_INPUT}
+                      value={formData.checkIntervalMinutes ?? 30}
+                      onChange={(e) => setFormData({ ...formData, checkIntervalMinutes: Number(e.target.value) || 30 })}
+                    />
+                    <p className={FIELD_HELPER}>ความถี่ในการเก็บตัวอย่าง</p>
+                  </div>
+                </div>
+              </div>
 
-                  <div className="bg-emerald-50/40 border border-emerald-200 rounded-lg p-4 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Beaker className="h-4 w-4 text-emerald-600" />
-                      <h3 className="text-sm font-semibold text-emerald-900">
-                        Specification Target & Tolerance
-                      </h3>
+              {/* Multi-Stage Acceptance panel */}
+              <div className="sm:col-span-2 mt-2 rounded-2xl border-2 border-dashed border-emerald-200 bg-white p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-emerald-700" />
+                    <div>
+                      <h3 className="font-semibold text-slate-900 text-sm">Multi-Stage Acceptance Criteria</h3>
+                      <p className="text-xs text-slate-500">
+                        เกณฑ์การยอมรับแบบหลายขั้น (ตามหลัก GMP / USP &lt;711&gt;, &lt;905&gt;)
+                      </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Target *</label>
-                        <DxNumberBox
-                          value={formData.specTarget ?? undefined}
-                          onValueChanged={(e) => setFormData({ ...formData, specTarget: e.value ?? null })}
-                          placeholder="เช่น 300"
-                          showClearButton
-                        />
-                        <p className="text-xs text-gray-500 mt-1">ค่าเป้าหมาย</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">±% Tolerance (Spec Range)</label>
-                        <DxNumberBox
-                          value={formData.specTolerancePercent ?? 0}
-                          onValueChanged={(e) => setFormData({ ...formData, specTolerancePercent: e.value ?? 0 })}
-                          min={0}
-                          max={100}
-                          format="#0.##'%'"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">ช่วงยอมรับ ± % รอบค่าเป้าหมาย</p>
-                      </div>
-                    </div>
-                    {hasTarget && calculatedMinMax && (
-                      <div className="bg-white border border-emerald-300 rounded-lg px-3 py-2 text-sm">
-                        <span className="text-emerald-800 font-medium">
-                          ✓ Auto-calculated: <strong>{calculatedMinMax.min}</strong> ≤ value ≤ <strong>{calculatedMinMax.max}</strong>
-                          {formData.unit ? ` ${formData.unit}` : ''}
-                        </span>
-                      </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {multiStageEnabled && (
+                      <span className={CHIP_GREEN}>{stages.length} stage{stages.length > 1 ? 's' : ''}</span>
                     )}
-                    {hasTarget && !calculatedMinMax && (
-                      <div className="bg-red-50 border border-red-300 rounded-lg px-3 py-2 text-sm text-red-700 flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4" />
-                        Target ต้องมากกว่า 0 และ Tolerance อยู่ระหว่าง 0–100
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {criteriaType === 'pass_fail' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    <h3 className="text-sm font-semibold text-blue-900">Pass / Fail Criteria</h3>
-                  </div>
-                  <p className="text-sm text-blue-800">
-                    Operator จะเห็น 2 ปุ่ม: <strong>ผ่าน (Pass)</strong> หรือ <strong>ไม่ผ่าน (Fail)</strong>
-                  </p>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-900 mb-1">เงื่อนไขที่ถือว่าผ่าน (Pass Condition)</label>
-                    <DxTextArea
-                      value={formData.specification || ''}
-                      onValueChanged={(e) => setFormData({ ...formData, specification: e.value })}
-                      placeholder="เช่น ไม่พบเชื้อ E. coli ใน 1 g, จุดสารอ้างอิงปรากฏที่ตำแหน่งเดียวกัน"
-                      height={80}
-                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (multiStageEnabled) {
+                          setMultiStageEnabled(false);
+                        } else {
+                          setMultiStageEnabled(true);
+                          if (stages.length === 0) {
+                            setStages([
+                              { sampleSize: formData.sampleSize ?? 10, tolerancePercent: formData.tolerancePercent ?? 0, onFail: 'next_stage' },
+                              { sampleSize: 20, tolerancePercent: 10, onFail: 'reject_batch' },
+                            ]);
+                          }
+                        }
+                      }}
+                      className={cn(
+                        'text-xs font-medium px-3 py-1 rounded-full border transition-colors',
+                        multiStageEnabled
+                          ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200'
+                          : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                      )}
+                    >
+                      {multiStageEnabled ? '✓ Enabled' : '+ Enable Multi-Stage'}
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {criteriaType === 'visual' && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-4 w-4 text-amber-600" />
-                    <h3 className="text-sm font-semibold text-amber-900">Visual Inspection Checklist</h3>
-                  </div>
-                  <p className="text-sm text-amber-800">
-                    Operator จะตรวจด้วยสายตาตามรายการที่ระบุ
-                  </p>
-                  <div>
-                    <label className="block text-sm font-medium text-amber-900 mb-1">รายการที่ต้องตรวจ (1 รายการต่อบรรทัด)</label>
-                    <DxTextArea
-                      value={formData.specification || ''}
-                      onValueChanged={(e) => setFormData({ ...formData, specification: e.value })}
-                      placeholder="ตัวอย่าง:&#10;- ไม่มีรอยร้าว&#10;- สีสม่ำเสมอตามมาตรฐาน&#10;- ไม่มีจุดดำ/สิ่งแปลกปลอม"
-                      height={120}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {criteriaType === 'text' && (
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-slate-600" />
-                    <h3 className="text-sm font-semibold text-slate-900">Text Specification</h3>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-900 mb-1">รูปแบบหรือตัวอย่างที่คาดหวัง</label>
-                    <DxTextArea
-                      value={formData.specification || ''}
-                      onValueChanged={(e) => setFormData({ ...formData, specification: e.value })}
-                      placeholder="ระบุรูปแบบที่ operator ต้องบันทึก เช่น สี กลิ่น รสชาติ ฯลฯ"
-                      height={100}
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ── Section 3: Sampling Plan ────────────────────────────── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 justify-between">
-                <span className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">3</span>
-                  Sampling Plan
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (multiStageEnabled) {
-                      // Disable multi-stage but keep stage data in case user re-enables
-                      setMultiStageEnabled(false);
-                    } else {
-                      setMultiStageEnabled(true);
-                      // Seed with one stage if empty so UI has something to show
-                      if (stages.length === 0) {
-                        setStages([{
-                          sampleSize: formData.sampleSize ?? 6,
-                          tolerancePercent: formData.tolerancePercent ?? 0,
-                          onFail: 'next_stage',
-                        }]);
-                      }
-                    }
-                  }}
-                  className={cn(
-                    'text-xs font-medium px-3 py-1 rounded-full border transition-colors',
-                    multiStageEnabled
-                      ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
-                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                  )}
-                >
-                  {multiStageEnabled ? '✓ Multi-Stage Acceptance' : '+ Enable Multi-Stage (USP <711>/<905>)'}
-                </button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {!multiStageEnabled && (
+                {multiStageEnabled && (
                   <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Sample Size <span className="text-red-500">*</span>
-                        {isAutoFilled('sampleSize') && <AutoBadge />}
-                      </label>
-                      <DxNumberBox
-                        value={formData.sampleSize ?? 5}
-                        onValueChanged={(e) => setFormData({ ...formData, sampleSize: Number(e.value) || 1 })}
-                        min={1}
-                        max={1000}
-                        step={1}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">จำนวนหน่วยที่ต้องสุ่มทดสอบ</p>
+                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-xs text-amber-800">
+                      <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <strong>หลัก GMP:</strong> หากการทดสอบครั้งแรก (Stage 1) ไม่ผ่าน ให้สุ่มตัวอย่างเพิ่มเพื่อทดสอบครั้งที่ 2
+                        โดยใช้เกณฑ์ที่เข้มขึ้น (รวมจำนวนทั้งหมด) ก่อนตัดสิน Reject batch
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Failure Tolerance ±%
-                      </label>
-                      <DxNumberBox
-                        value={formData.tolerancePercent ?? 0}
-                        onValueChanged={(e) => setFormData({ ...formData, tolerancePercent: Number(e.value) || 0 })}
-                        min={0}
-                        max={100}
-                        format="#0.##'%'"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">ยอมให้ตัวอย่างเสียได้กี่ %</p>
+
+                    {/* USP quick-load */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <span className="text-xs text-slate-500">Preset:</span>
+                      <button type="button" onClick={loadUSPDissolution}
+                        className="text-xs font-medium px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+                        USP &lt;711&gt; Dissolution (6 → 6 → 12)
+                      </button>
+                      <button type="button" onClick={loadUSPUniformity}
+                        className="text-xs font-medium px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100">
+                        USP &lt;905&gt; Uniformity (10 → 20)
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {stages.map((stage, idx) => (
+                        <React.Fragment key={idx}>
+                          <StageCard
+                            idx={idx}
+                            isLast={idx === stages.length - 1}
+                            stage={stage}
+                            cumulativeBefore={cumulative[idx] ?? 0}
+                            onChange={(patch) => updateStage(idx, patch)}
+                            onRemove={() => removeStage(idx)}
+                          />
+                          {idx < stages.length - 1 && (
+                            <div className="flex justify-center">
+                              <div className="flex items-center gap-2 text-xs text-slate-400">
+                                <ArrowDown className="w-3 h-3" />
+                                <span>ถ้า Stage {idx + 1} ไม่ผ่าน</span>
+                                <ArrowDown className="w-3 h-3" />
+                              </div>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      ))}
+
+                      {stages.length < 5 && (
+                        <button
+                          type="button"
+                          onClick={addStage}
+                          className="w-full py-3 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 text-sm font-medium hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/30 transition-all flex items-center justify-center gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          เพิ่ม Stage {stages.length + 1} (Retest)
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-[11px] text-slate-500 uppercase tracking-wide">Total Stages</div>
+                        <div className="text-lg font-bold text-emerald-700">{stages.length}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-slate-500 uppercase tracking-wide">Max Samples</div>
+                        <div className="text-lg font-bold text-emerald-700">{totalStageSamples(stages)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-slate-500 uppercase tracking-wide">First Test</div>
+                        <div className="text-lg font-bold text-emerald-700">{stages[0]?.sampleSize ?? 0} units</div>
+                      </div>
                     </div>
                   </>
                 )}
-                <div className={cn(multiStageEnabled ? 'md:col-span-1' : '')}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Check Interval (min)
-                  </label>
-                  <DxNumberBox
-                    value={formData.checkIntervalMinutes ?? 30}
-                    onValueChanged={(e) => setFormData({ ...formData, checkIntervalMinutes: Number(e.value) || 30 })}
-                    min={1}
-                    max={1440}
-                    step={5}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">ระยะเวลาตรวจซ้ำ</p>
-                </div>
-              </div>
 
-              {!multiStageEnabled && acceptanceMath && (
-                <div className="grid grid-cols-3 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
-                  <StatTile label="ทดสอบ" value={acceptanceMath.sampleSize} unit="ชิ้น" tone="default" />
-                  <StatTile label="ยอมเสียได้" value={acceptanceMath.allowedFail} unit="ชิ้น" tone="warn" />
-                  <StatTile label="ต้องผ่าน" value={acceptanceMath.mustPass} unit="ชิ้น" tone="success" />
-                </div>
-              )}
-
-              {multiStageEnabled && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-gray-600">USP recommended plans:</span>
-                    <button
-                      type="button"
-                      onClick={loadUSPDissolutionPlan}
-                      className="text-xs font-medium px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
-                    >
-                      USP &lt;711&gt; Dissolution (6 → 6 → 12)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={loadUSPUniformityPlan}
-                      className="text-xs font-medium px-2 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100"
-                    >
-                      USP &lt;905&gt; Uniformity (10 → 20)
-                    </button>
-                  </div>
-
-                  {stages.map((stage, idx) => (
-                    <StageCard
-                      key={idx}
-                      idx={idx}
-                      stage={stage}
-                      isLast={idx === stages.length - 1}
-                      onChange={(patch) => updateStage(idx, patch)}
-                      onRemove={() => removeStage(idx)}
-                      canRemove={stages.length > 1}
-                    />
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={addStage}
-                    className="w-full py-2 rounded-lg border-2 border-dashed border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-emerald-400 hover:text-emerald-700 transition-colors text-sm font-medium"
-                  >
-                    + Add Stage {stages.length + 1}
-                  </button>
-
-                  {totalSamples > 0 && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-emerald-800">
-                      <strong>Total samples across all stages:</strong> {totalSamples} ชิ้น
-                      <span className="ml-2 text-emerald-600">
-                        (Stage 1 จะถูกสุ่มก่อน → ถ้า fail → Stage 2 → …)
-                      </span>
+                {!multiStageEnabled && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                      <div>
+                        <label className={cn(FIELD_LABEL, 'flex items-center')}>
+                          Sample Size <span className="text-red-500 ml-0.5">*</span>
+                          {isAutoFilled('sampleSize') && <AutoBadge />}
+                        </label>
+                        <input
+                          type="number"
+                          className={FIELD_INPUT}
+                          value={formData.sampleSize ?? 5}
+                          onChange={(e) => setFormData({ ...formData, sampleSize: Number(e.target.value) || 1 })}
+                        />
+                        <p className={FIELD_HELPER}>จำนวนหน่วยที่ต้องสุ่มทดสอบ</p>
+                      </div>
+                      <div>
+                        <label className={cn(FIELD_LABEL, 'flex items-center')}>
+                          Tolerance ±%
+                          {isAutoFilled('tolerancePercent') && <AutoBadge />}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            className={cn(FIELD_INPUT, 'pr-8')}
+                            value={formData.tolerancePercent ?? 0}
+                            onChange={(e) => setFormData({ ...formData, tolerancePercent: Number(e.target.value) || 0 })}
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                        </div>
+                        <p className={FIELD_HELPER}>ยอมให้ตัวอย่างเสียได้กี่ %</p>
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ── Section 4: Settings ──────────────────────────────────── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">4</span>
-                Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sampling Method</label>
-                <DxSelectBox
-                  value={formData.testMethod || ''}
-                  onValueChanged={(e) => setFormData({ ...formData, testMethod: e.value || null })}
-                  items={SAMPLING_METHOD_OPTIONS}
-                  valueExpr="value"
-                  displayExpr="label"
-                  placeholder="เลือกวิธีสุ่มตัวอย่าง"
-                  searchEnabled
-                  showClearButton
-                />
+                    {acceptanceMath && (
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        <StatTile label="ทดสอบ" value={acceptanceMath.sampleSize} unit="ชิ้น" tone="default" />
+                        <StatTile label="ยอมเสียได้" value={acceptanceMath.allowedFail} unit="ไม่เกินกี่ชิ้น" tone="warn" />
+                        <StatTile label="ต้องผ่าน" value={acceptanceMath.mustPass} unit="ขั้นต่ำ" tone="success" />
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Section 4 — Settings */}
+              <SectionHeader number={4} thai="การตั้งค่า" en="Settings" />
+
+              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <ToggleCard
                   active={!!formData.isCritical}
                   onToggle={() => setFormData({ ...formData, isCritical: !formData.isCritical })}
-                  title="Critical"
-                  desc="Critical Quality Attribute (CQA) — ถ้าไม่ผ่าน batch fail"
+                  title="Critical Test"
+                  desc="ถ้า fail จะ block batch ทันที"
                   activeColor="bg-red-50 border-red-300 text-red-700"
                   autoFilled={isAutoFilled('isCritical')}
                 />
@@ -774,163 +848,87 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   active={formData.isActive !== false}
                   onToggle={() => setFormData({ ...formData, isActive: !(formData.isActive !== false) })}
                   title="Active"
-                  desc="ใช้งานในระบบหรือไม่"
-                  activeColor="bg-green-50 border-green-300 text-green-700"
+                  desc="เปิดใช้กับ batch ใหม่"
+                  activeColor="bg-emerald-50 border-emerald-300 text-emerald-700"
                 />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ── Live Preview Panel ──────────────────────────────────────── */}
-        {showPreview && (
-          <div className="hidden xl:block">
-            <div className="sticky top-4">
-              <LivePreviewPanel
-                formData={formData}
-                acceptanceMath={acceptanceMath}
-                calculatedMinMax={calculatedMinMax}
-                multiStageEnabled={multiStageEnabled}
-                stages={stages}
-              />
             </div>
           </div>
-        )}
+        </div>
+
+        {/* ─── Live Preview column (1/3) ────────────────────────── */}
+        <aside className="xl:col-span-1">
+          <div className="xl:sticky xl:top-4 space-y-4">
+            <LivePreviewPanel
+              formData={formData}
+              criteriaType={criteriaType}
+              calculatedMinMax={calculatedMinMax}
+              acceptanceMath={acceptanceMath}
+              multiStageEnabled={multiStageEnabled}
+              stages={stages}
+              specPayload={specPayload}
+            />
+          </div>
+        </aside>
       </div>
 
-      {/* Mobile preview (below form) */}
-      {showPreview && (
-        <div className="xl:hidden">
-          <LivePreviewPanel
-            formData={formData}
-            acceptanceMath={acceptanceMath}
-            calculatedMinMax={calculatedMinMax}
-            multiStageEnabled={multiStageEnabled}
-            stages={stages}
-          />
+      {/* Sticky footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-slate-200 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="text-xs text-slate-500 truncate">
+            {formData.name ? (
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+                <span className="truncate">พร้อมบันทึก: <span className="font-semibold text-slate-700">{formData.code || '(ยังไม่มี Code)'}</span></span>
+              </span>
+            ) : (
+              <span className="text-amber-600">⚠ กรุณาเลือก Test Name ก่อน</span>
+            )}
+          </div>
+          <div className="flex gap-2 sm:gap-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => router.push('/master-data/ipc-criteria')}
+              className="px-5 py-2.5 rounded-[10px] border border-slate-200 bg-white text-slate-600 font-semibold text-sm hover:bg-slate-50 transition"
+            >
+              CANCEL
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saveMutation.isPending || !formData.name || !formData.code}
+              className="px-5 py-2.5 rounded-[10px] bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saveMutation.isPending ? 'SAVING...' : (mode === 'edit' ? 'UPDATE' : 'CREATE')}
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────
 // Sub-components
-// ────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────
+
+function SectionHeader({ number, thai, en }: { number: number; thai: string; en: string }) {
+  return (
+    <div className="sm:col-span-2 flex items-center gap-3 mt-2">
+      <span className={SECTION_BADGE}>{number}</span>
+      <h3 className="font-semibold text-slate-900 text-sm">
+        {thai} <span className="text-slate-400 font-normal">— {en}</span>
+      </h3>
+      <div className="flex-1 h-px bg-slate-100"></div>
+    </div>
+  );
+}
 
 function AutoBadge() {
   return (
-    <span className="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
-      <Sparkles className="h-2.5 w-2.5" /> Auto
+    <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+      <Sparkles className="w-2.5 h-2.5" /> Auto
     </span>
-  );
-}
-
-interface StatTileProps {
-  label: string;
-  value: number;
-  unit: string;
-  tone: 'default' | 'warn' | 'success';
-}
-
-interface StageCardProps {
-  idx: number;
-  stage: AcceptanceStage;
-  isLast: boolean;
-  onChange: (patch: Partial<AcceptanceStage>) => void;
-  onRemove: () => void;
-  canRemove: boolean;
-}
-
-function StageCard({ idx, stage, isLast, onChange, onRemove, canRemove }: StageCardProps) {
-  const math = calcStageAcceptance(stage);
-  const stageColors = ['border-emerald-300 bg-emerald-50/60', 'border-blue-300 bg-blue-50/60', 'border-purple-300 bg-purple-50/60'];
-  const colorClass = stageColors[idx] ?? 'border-slate-300 bg-slate-50/60';
-
-  return (
-    <div className={cn('rounded-lg border-2 p-3 space-y-3', colorClass)}>
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold text-sm text-gray-800">
-          Stage {idx + 1} {isLast && '(สุดท้าย)'}
-        </h4>
-        {canRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="text-xs text-red-600 hover:text-red-800 hover:underline"
-          >
-            ลบ Stage
-          </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Sample Size</label>
-          <DxNumberBox
-            value={stage.sampleSize}
-            onValueChanged={(e) => onChange({ sampleSize: Number(e.value) || 1 })}
-            min={1}
-            max={1000}
-            step={1}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Tolerance ±%</label>
-          <DxNumberBox
-            value={stage.tolerancePercent}
-            onValueChanged={(e) => onChange({ tolerancePercent: Number(e.value) || 0 })}
-            min={0}
-            max={100}
-            format="#0.##'%'"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">ถ้า fail</label>
-          <DxSelectBox
-            value={stage.onFail}
-            onValueChanged={(e) => onChange({ onFail: e.value as OnFailAction })}
-            items={[
-              { value: 'next_stage', label: '→ ไปยัง Stage ถัดไป' },
-              { value: 'reject_batch', label: '✗ Reject Batch' },
-              { value: 'deviation', label: '⚑ บันทึก Deviation' },
-            ]}
-            valueExpr="value"
-            displayExpr="label"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 bg-white rounded p-2 text-center">
-        <div>
-          <div className="text-[10px] text-gray-500">ทดสอบ</div>
-          <div className="text-base font-bold text-slate-700">{math.sampleSize}</div>
-        </div>
-        <div>
-          <div className="text-[10px] text-gray-500">ยอมเสียได้</div>
-          <div className="text-base font-bold text-amber-700">{math.allowedFail}</div>
-        </div>
-        <div>
-          <div className="text-[10px] text-gray-500">ต้องผ่าน</div>
-          <div className="text-base font-bold text-green-700">{math.mustPass}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatTile({ label, value, unit, tone }: StatTileProps) {
-  const colors = {
-    default: 'text-slate-700',
-    warn: 'text-amber-700',
-    success: 'text-green-700',
-  };
-  return (
-    <div className="text-center">
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className={cn('text-2xl font-bold', colors[tone])}>{value}</div>
-      <div className="text-xs text-slate-500">{unit}</div>
-    </div>
   );
 }
 
@@ -949,220 +947,589 @@ function ToggleCard({ active, onToggle, title, desc, activeColor, autoFilled }: 
       type="button"
       onClick={onToggle}
       className={cn(
-        'flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all',
-        active ? activeColor : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
+        'flex items-center gap-3 p-4 rounded-xl border text-left cursor-pointer transition-all',
+        active ? activeColor : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
       )}
     >
-      <div className={cn(
-        'mt-0.5 w-9 h-5 rounded-full transition-colors flex items-center px-0.5',
-        active ? 'bg-current' : 'bg-gray-300'
+      <span className={cn(
+        'relative w-10 h-6 rounded-full transition-colors flex-shrink-0',
+        active ? 'bg-current' : 'bg-slate-300'
       )}>
-        <div className={cn(
-          'h-4 w-4 rounded-full bg-white shadow transition-transform',
+        <span className={cn(
+          'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
           active ? 'translate-x-4' : 'translate-x-0'
         )} />
-      </div>
+      </span>
       <div className="flex-1">
-        <div className="font-semibold text-sm flex items-center">
+        <div className="text-sm font-semibold flex items-center gap-1.5">
           {title}
           {autoFilled && <AutoBadge />}
         </div>
-        <div className="text-xs opacity-80 mt-0.5">{desc}</div>
+        <div className="text-[11px] opacity-70 mt-0.5">{desc}</div>
       </div>
     </button>
   );
 }
 
-interface LivePreviewProps {
-  formData: Partial<IPCCriteria>;
-  acceptanceMath: { sampleSize: number; allowedFail: number; mustPass: number } | null;
-  calculatedMinMax: { min: number; max: number } | null;
-  multiStageEnabled: boolean;
-  stages: AcceptanceStage[];
+interface StatTileProps {
+  label: string;
+  value: number;
+  unit: string;
+  tone: 'default' | 'warn' | 'success';
 }
 
-function LivePreviewPanel({ formData, acceptanceMath, calculatedMinMax, multiStageEnabled, stages }: LivePreviewProps) {
-  const criteriaType = (formData.criteriaType || 'numeric') as CriteriaType;
-  const typeMeta = CRITERIA_TYPE_META[criteriaType];
+function StatTile({ label, value, unit, tone }: StatTileProps) {
+  const styles = {
+    default: 'bg-slate-50 border-slate-200 text-slate-700',
+    warn: 'bg-red-50 border-red-200 text-red-700',
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+  };
+  return (
+    <div className={cn('rounded-lg border p-2.5 text-center', styles[tone])}>
+      <div className="text-[10px] uppercase tracking-wide opacity-70">{label}</div>
+      <div className="text-base font-bold">{value}</div>
+      <div className="text-[10px] opacity-60">{unit}</div>
+    </div>
+  );
+}
+
+// ── Pass / Fail section ────────────────────────────────────────────
+function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onChange: (p: PassFailPayload) => void }) {
+  return (
+    <div className="sm:col-span-2 p-5 mt-2 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/40">
+      <div className="flex items-center gap-2 mb-4">
+        <Shield className="w-4 h-4 text-blue-700" />
+        <h3 className="font-semibold text-blue-800 text-sm">เกณฑ์การตัดสินใจ Pass / Fail</h3>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-emerald-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">✓</span>
+            <label className="text-sm font-semibold text-emerald-700">เกณฑ์ &quot;ผ่าน&quot; (PASS)</label>
+          </div>
+          <textarea
+            className={cn(FIELD_INPUT, 'min-h-[80px] resize-none')}
+            placeholder="เช่น ฉลากติดถูกต้อง ครบถ้วน ไม่บิดเบี้ยว"
+            value={payload.passDefinition}
+            onChange={(e) => onChange({ ...payload, passDefinition: e.target.value })}
+          />
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-red-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold">✕</span>
+            <label className="text-sm font-semibold text-red-700">เกณฑ์ &quot;ไม่ผ่าน&quot; (FAIL)</label>
+          </div>
+          <textarea
+            className={cn(FIELD_INPUT, 'min-h-[80px] resize-none')}
+            placeholder="เช่น ฉลากบิด ฉีกขาด หรือพิมพ์ไม่ชัด"
+            value={payload.failDefinition}
+            onChange={(e) => onChange({ ...payload, failDefinition: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="mt-3">
+        <label className={FIELD_LABEL}>ค่าที่คาดหวังโดยปริยาย (Default Expected)</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onChange({ ...payload, defaultExpected: 'pass' })}
+            className={cn(
+              'flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all',
+              payload.defaultExpected === 'pass'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+            )}
+          >
+            ✓ ปกติต้องผ่าน
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...payload, defaultExpected: 'fail' })}
+            className={cn(
+              'flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all',
+              payload.defaultExpected === 'fail'
+                ? 'bg-red-50 border-red-300 text-red-700'
+                : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+            )}
+          >
+            ✕ ปกติต้องไม่พบ
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Visual section ─────────────────────────────────────────────────
+function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange: (p: VisualPayload) => void }) {
+  return (
+    <div className="sm:col-span-2 p-5 mt-2 rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/40">
+      <div className="flex items-center gap-2 mb-4">
+        <Eye className="w-4 h-4 text-amber-700" />
+        <h3 className="font-semibold text-amber-800 text-sm">เกณฑ์การตรวจด้วยสายตา (Visual Inspection)</h3>
+      </div>
+      <div className="mb-4">
+        <label className={FIELD_LABEL}>คำอธิบายลักษณะที่ยอมรับ <span className="text-red-500">*</span></label>
+        <textarea
+          className={cn(FIELD_INPUT, 'min-h-[80px] resize-none')}
+          placeholder="เช่น เม็ดยาสีน้ำตาลอ่อน ผิวเรียบ ไม่มีรอยร้าว ไม่มีจุดดำ"
+          value={payload.description}
+          onChange={(e) => onChange({ ...payload, description: e.target.value })}
+        />
+      </div>
+      <div className="mb-4">
+        <label className={FIELD_LABEL}>Checklist รายการที่ต้องตรวจ</label>
+        <div className="space-y-2">
+          {payload.checklist.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                {idx + 1}
+              </span>
+              <input
+                className={cn(FIELD_INPUT, 'flex-1')}
+                placeholder="ระบุจุดที่ต้องตรวจ"
+                value={item}
+                onChange={(e) => {
+                  const next = [...payload.checklist];
+                  next[idx] = e.target.value;
+                  onChange({ ...payload, checklist: next });
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => onChange({ ...payload, checklist: payload.checklist.filter((_, i) => i !== idx) })}
+                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => onChange({ ...payload, checklist: [...payload.checklist, ''] })}
+            className="w-full py-2 rounded-lg border-2 border-dashed border-amber-300 text-amber-700 text-xs font-medium hover:bg-amber-50 transition-all flex items-center justify-center gap-1"
+          >
+            <Plus className="w-3 h-3" /> เพิ่มรายการตรวจ
+          </button>
+        </div>
+      </div>
+      <div>
+        <label className={FIELD_LABEL}>รูปอ้างอิง (Reference Image)</label>
+        <input
+          className={FIELD_INPUT}
+          placeholder="URL หรือ path รูปภาพมาตรฐาน"
+          value={payload.referenceImage}
+          onChange={(e) => onChange({ ...payload, referenceImage: e.target.value })}
+        />
+        <p className={FIELD_HELPER}>รูปตัวอย่างที่ operator ใช้เปรียบเทียบ</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Text section ───────────────────────────────────────────────────
+function TextSection({ payload, onChange }: { payload: TextPayload; onChange: (p: TextPayload) => void }) {
+  return (
+    <div className="sm:col-span-2 p-5 mt-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
+      <div className="flex items-center gap-2 mb-4">
+        <FileText className="w-4 h-4 text-slate-700" />
+        <h3 className="font-semibold text-slate-800 text-sm">รูปแบบการบันทึกข้อความ</h3>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+        <div>
+          <label className={FIELD_LABEL}>รูปแบบที่คาดหวัง (Format)</label>
+          <input
+            className={FIELD_INPUT}
+            placeholder="เช่น Lot YYYY-MM-DD-NNN"
+            value={payload.format}
+            onChange={(e) => onChange({ ...payload, format: e.target.value })}
+          />
+          <p className={FIELD_HELPER}>รูปแบบ / pattern ของข้อความที่ต้องบันทึก</p>
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>ตัวอย่าง (Example)</label>
+          <input
+            className={FIELD_INPUT}
+            placeholder="เช่น Lot 2025-11-25-001"
+            value={payload.example}
+            onChange={(e) => onChange({ ...payload, example: e.target.value })}
+          />
+          <p className={FIELD_HELPER}>ตัวอย่างค่าที่ถูกต้อง</p>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+            <span className={cn('relative w-10 h-6 rounded-full transition-colors', payload.required ? 'bg-emerald-500' : 'bg-slate-300')}>
+              <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform', payload.required ? 'translate-x-4' : 'translate-x-0')} />
+            </span>
+            <span className="text-sm font-medium text-slate-700">บังคับให้กรอก (Required)</span>
+            <input type="checkbox" className="sr-only" checked={payload.required} onChange={(e) => onChange({ ...payload, required: e.target.checked })} />
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Stage card (multi-stage) ───────────────────────────────────────
+interface StageCardProps {
+  idx: number;
+  isLast: boolean;
+  stage: AcceptanceStage;
+  cumulativeBefore: number;
+  onChange: (patch: Partial<AcceptanceStage>) => void;
+  onRemove: () => void;
+}
+
+function StageCard({ idx, isLast, stage, cumulativeBefore, onChange, onRemove }: StageCardProps) {
+  const math = calcStageAcceptance(stage);
+  const isFirst = idx === 0;
 
   return (
-    <Card>
-      <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+    <div className={cn(
+      'rounded-xl border p-4',
+      isFirst ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white'
+    )}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold',
+            isFirst ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-white'
+          )}>
+            S{idx + 1}
           </span>
-          Live Preview
-        </CardTitle>
-        <p className="text-xs text-gray-600 mt-1">
-          ตัวอย่างที่ Operator จะเห็นจริง — อัปเดต real-time
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3 pt-4">
-        {/* Header */}
-        <div className={cn('rounded-lg border-2 p-3', typeMeta.bgColor)}>
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <div className="text-xs opacity-70">{formData.code || 'IPC-???-???'}</div>
-              <div className="font-semibold truncate">{formData.name || '— Test Name —'}</div>
-              {formData.nameTh && (
-                <div className="text-xs opacity-80 truncate">{formData.nameTh}</div>
-              )}
+          <div>
+            <div className="font-semibold text-slate-900 text-sm">
+              Stage {idx + 1}
+              {isFirst && <span className="text-xs text-emerald-700 font-normal ml-1">— First Test</span>}
             </div>
-            <div className="ml-2 flex flex-col gap-1 items-end">
-              <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-semibold', typeMeta.bgColor, typeMeta.textColor)}>
-                {typeMeta.label}
-              </span>
-              {formData.isCritical && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">
-                  ⚠ Critical
-                </span>
-              )}
+            <div className="text-[11px] text-slate-500">
+              สุ่ม {stage.sampleSize} units · รวมทดสอบทั้งหมด {cumulativeBefore} units
             </div>
           </div>
         </div>
+        {idx > 0 && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
-        {/* Type-specific preview */}
-        {criteriaType === 'numeric' && (
-          <div className="bg-white border rounded-lg p-3 space-y-2">
-            <div className="text-xs font-medium text-gray-500">Specification</div>
-            {formData.specTarget !== null && formData.specTarget !== undefined && calculatedMinMax ? (
-              <div className="text-sm">
-                <div className="font-mono text-emerald-700">
-                  {calculatedMinMax.min} ≤ value ≤ {calculatedMinMax.max} {formData.unit}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className={FIELD_LABEL}>Sample Size</label>
+          <input
+            type="number"
+            className={FIELD_INPUT}
+            value={stage.sampleSize}
+            onChange={(e) => onChange({ sampleSize: Number(e.target.value) || 1 })}
+          />
+          <p className={FIELD_HELPER}>จำนวน units ที่สุ่มในขั้นนี้</p>
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Tolerance ±%</label>
+          <div className="relative">
+            <input
+              type="number"
+              className={cn(FIELD_INPUT, 'pr-8')}
+              value={stage.tolerancePercent}
+              onChange={(e) => onChange({ tolerancePercent: Number(e.target.value) || 0 })}
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+          </div>
+          <p className={FIELD_HELPER}>% ที่ยอมเสียได้ของขั้นนี้</p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <StatTile label="ทดสอบ" value={math.sampleSize} unit="ชิ้น" tone="default" />
+        <StatTile label="ยอมเสียได้" value={math.allowedFail} unit="ไม่เกินกี่ชิ้น" tone="warn" />
+        <StatTile label="ต้องผ่าน" value={math.mustPass} unit="ขั้นต่ำ" tone="success" />
+      </div>
+
+      <p className="mt-2 text-[11px] text-slate-500 text-center">
+        สูตร: <span className="font-mono">{stage.sampleSize} × {stage.tolerancePercent}% = {math.allowedFail}</span> (ปัดลง)
+      </p>
+
+      <div className="mt-3 pt-3 border-t border-slate-100">
+        <label className={FIELD_LABEL}>เมื่อ Stage นี้ไม่ผ่าน (On Fail)</label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <OnFailButton
+            active={stage.onFail === 'next_stage'}
+            disabled={isLast}
+            onClick={() => onChange({ onFail: 'next_stage' })}
+            label="→ ทดสอบ Stage ถัดไป"
+            activeStyle="bg-amber-50 border-amber-300 text-amber-800"
+          />
+          <OnFailButton
+            active={stage.onFail === 'reject_batch'}
+            onClick={() => onChange({ onFail: 'reject_batch' })}
+            label="✕ Reject Batch"
+            activeStyle="bg-red-50 border-red-300 text-red-700"
+          />
+          <OnFailButton
+            active={stage.onFail === 'deviation'}
+            onClick={() => onChange({ onFail: 'deviation' })}
+            label="⚠ บันทึก Deviation"
+            activeStyle="bg-orange-50 border-orange-300 text-orange-700"
+          />
+        </div>
+
+        {stage.onFail === 'deviation' && (
+          <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50/60 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-orange-600">⚠</span>
+                <span className="text-xs font-semibold text-orange-800">Deviation Record (Auto-generated)</span>
+              </div>
+              <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-orange-200 text-orange-700">
+                DEV-{new Date().getFullYear()}-XXXX
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] text-slate-600">
+              <DevField label="Type" value="Quality / IPC Failure" />
+              <DevField label="Severity" value="Minor → Investigate" />
+              <DevField label="Source" value={`Stage ${idx + 1}`} />
+              <DevField label="Status" value="Pending Investigation" valueColor="text-amber-600" />
+              <DevField label="Assignee" value="QA Manager" />
+              <DevField label="SLA" value="24 ชม." />
+            </div>
+            <div className="mt-2 pt-2 border-t border-orange-200/70 text-[11px] text-orange-800">
+              Batch จะถูก <strong>HOLD</strong> รอ QA ตัดสินใจ — Accept with justification, Rework, หรือ Reject
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OnFailButton({ active, disabled, onClick, label, activeStyle }: { active: boolean; disabled?: boolean; onClick: () => void; label: string; activeStyle: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-all',
+        active && !disabled ? activeStyle : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300',
+        disabled && 'opacity-40 cursor-not-allowed'
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function DevField({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-slate-400">{label}:</span>
+      <span className={cn('font-medium', valueColor || 'text-slate-700')}>{value}</span>
+    </div>
+  );
+}
+
+// ── Live Preview Panel ─────────────────────────────────────────────
+interface LivePreviewProps {
+  formData: Partial<IPCCriteria>;
+  criteriaType: CriteriaType;
+  calculatedMinMax: { min: number; max: number } | null;
+  acceptanceMath: { sampleSize: number; allowedFail: number; mustPass: number } | null;
+  multiStageEnabled: boolean;
+  stages: AcceptanceStage[];
+  specPayload: SpecPayload | null;
+}
+
+function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptanceMath, multiStageEnabled, stages, specPayload }: LivePreviewProps) {
+  const lastStage = stages[stages.length - 1];
+  const finalAction = multiStageEnabled && lastStage ? lastStage.onFail : 'reject_batch';
+
+  return (
+    <>
+      <div className={cn(PANEL, 'p-5')}>
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+          <span className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center shadow-sm">
+            <FlaskConical className="w-5 h-5" />
+          </span>
+          <div className="flex-1">
+            <h3 className="font-semibold text-slate-900 text-sm flex items-center gap-1.5">
+              Live Preview
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            </h3>
+            <p className="text-[11px] text-slate-500">ตัวอย่างที่ operator จะเห็น</p>
+          </div>
+        </div>
+
+        {/* Preview card */}
+        <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 mb-4">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex flex-wrap gap-1.5">
+              {formData.code && <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">{formData.code}</span>}
+              {formData.isCritical && <span className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded">⚠ CRITICAL</span>}
+              {formData.isActive === false && <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded">INACTIVE</span>}
+            </div>
+          </div>
+          <div className="text-sm font-semibold text-slate-900 mb-1">
+            {formData.name || <span className="text-slate-400 italic font-normal">— ยังไม่ได้เลือก Test —</span>}
+          </div>
+          {formData.dosageForm && (
+            <div className="text-[11px] text-slate-500 mb-3">
+              {DOSAGE_FORM_OPTIONS.find((d) => d.value === formData.dosageForm)?.label}
+            </div>
+          )}
+
+          {criteriaType === 'numeric' && calculatedMinMax && (
+            <div className="bg-emerald-50 rounded-lg p-2.5 text-center">
+              <div className="text-[10px] text-emerald-600 uppercase tracking-wide">Spec Range</div>
+              <div className="font-mono font-bold text-emerald-800 text-sm mt-1">
+                {calculatedMinMax.min} ≤ value ≤ {calculatedMinMax.max}
+              </div>
+              <div className="text-[10px] text-emerald-600 mt-0.5">
+                {formData.specTarget} ± {formData.specTolerancePercent ?? 0}%
+                {formData.unit && ` (${formData.unit})`}
+              </div>
+            </div>
+          )}
+
+          {criteriaType === 'pass_fail' && specPayload?.type === 'pass_fail' && (
+            <div className="grid grid-cols-2 gap-1.5 mt-2">
+              <div className="bg-emerald-50 rounded-lg p-2 text-[11px]">
+                <div className="font-semibold text-emerald-700 mb-0.5">✓ PASS</div>
+                <div className="text-emerald-900/80 line-clamp-2">
+                  {specPayload.passDefinition || <span className="italic text-emerald-600/50">—</span>}
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  Target: {formData.specTarget} ± {formData.specTolerancePercent || 0}%
+              </div>
+              <div className="bg-red-50 rounded-lg p-2 text-[11px]">
+                <div className="font-semibold text-red-700 mb-0.5">✕ FAIL</div>
+                <div className="text-red-900/80 line-clamp-2">
+                  {specPayload.failDefinition || <span className="italic text-red-600/50">—</span>}
                 </div>
               </div>
-            ) : (
-              <div className="text-sm text-gray-400">— ยังไม่ได้กำหนด target —</div>
-            )}
-          </div>
-        )}
-
-        {criteriaType === 'pass_fail' && (
-          <div className="bg-white border rounded-lg p-3 space-y-2">
-            <div className="text-xs font-medium text-gray-500">Pass Condition</div>
-            <div className="text-sm whitespace-pre-wrap">
-              {formData.specification || <span className="text-gray-400">— ยังไม่ได้ระบุเงื่อนไข —</span>}
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <button disabled className="bg-green-100 text-green-800 py-1.5 rounded text-sm font-medium opacity-70 cursor-not-allowed">
-                ✓ ผ่าน
-              </button>
-              <button disabled className="bg-red-100 text-red-800 py-1.5 rounded text-sm font-medium opacity-70 cursor-not-allowed">
-                ✗ ไม่ผ่าน
-              </button>
-            </div>
-          </div>
-        )}
+          )}
 
-        {criteriaType === 'visual' && (
-          <div className="bg-white border rounded-lg p-3 space-y-2">
-            <div className="text-xs font-medium text-gray-500">Checklist</div>
-            {formData.specification ? (
-              <ul className="space-y-1 text-sm">
-                {formData.specification.split('\n').filter(Boolean).map((line, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <input type="checkbox" disabled className="mt-1" />
-                    <span>{line.replace(/^[-•]\s*/, '')}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-sm text-gray-400">— ยังไม่ได้ระบุรายการ —</div>
-            )}
-          </div>
-        )}
-
-        {criteriaType === 'text' && (
-          <div className="bg-white border rounded-lg p-3 space-y-2">
-            <div className="text-xs font-medium text-gray-500">Expected Format</div>
-            <div className="text-sm whitespace-pre-wrap text-gray-700">
-              {formData.specification || <span className="text-gray-400">— ยังไม่ได้ระบุรูปแบบ —</span>}
-            </div>
-            <div className="bg-slate-50 rounded p-2 text-xs text-slate-500">
-              Operator จะกรอกข้อความได้อิสระ
-            </div>
-          </div>
-        )}
-
-        {/* Sampling — single-stage view */}
-        {!multiStageEnabled && acceptanceMath && (
-          <div className="bg-white border rounded-lg p-3">
-            <div className="text-xs font-medium text-gray-500 mb-1.5">Sampling Plan</div>
-            <div className="grid grid-cols-3 gap-1 text-center">
-              <div>
-                <div className="text-xs text-slate-500">ทดสอบ</div>
-                <div className="text-base font-bold text-slate-700">{acceptanceMath.sampleSize}</div>
+          {criteriaType === 'visual' && specPayload?.type === 'visual' && (
+            <div className="bg-amber-50 rounded-lg p-2.5 text-[11px]">
+              <div className="font-semibold text-amber-700 mb-1">👁 ตรวจด้วยสายตา</div>
+              <div className="text-amber-900/80 line-clamp-2">
+                {specPayload.description || <span className="italic">—</span>}
               </div>
-              <div>
-                <div className="text-xs text-slate-500">ยอมเสีย</div>
-                <div className="text-base font-bold text-amber-700">{acceptanceMath.allowedFail}</div>
-              </div>
-              <div>
-                <div className="text-xs text-slate-500">ต้องผ่าน</div>
-                <div className="text-base font-bold text-green-700">{acceptanceMath.mustPass}</div>
-              </div>
-            </div>
-            {formData.testMethod && (
-              <div className="mt-2 text-[11px] text-gray-500 truncate">
-                Method: {SAMPLING_METHOD_OPTIONS.find((s) => s.value === formData.testMethod)?.label.split(' — ')[0] || formData.testMethod}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Multi-stage acceptance flow diagram */}
-        {multiStageEnabled && stages.length > 0 && (
-          <div className="bg-white border rounded-lg p-3 space-y-2">
-            <div className="text-xs font-medium text-gray-500">Multi-Stage Acceptance Flow</div>
-            <div className="space-y-1.5">
-              {stages.map((stage, i) => {
-                const m = calcStageAcceptance(stage);
-                return (
-                  <div key={i}>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">
-                        {i + 1}
-                      </span>
-                      <span className="flex-1">
-                        <strong>{m.sampleSize}</strong> ตัวอย่าง · ยอมเสีย <strong>{m.allowedFail}</strong> · ผ่าน <strong>{m.mustPass}</strong>
-                      </span>
-                    </div>
-                    <div className="ml-7 text-[11px] text-gray-500">
-                      ถ้า fail: {getOnFailLabel(stage.onFail)}
-                      {i < stages.length - 1 && stage.onFail === 'next_stage' && ' ↓'}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="border-t pt-1.5 text-[11px] text-gray-500">
-              Total samples: <strong className="text-gray-700">{totalStageSamples(stages)}</strong> ชิ้น
-              {formData.testMethod && (
-                <span className="ml-2">
-                  · Method: {SAMPLING_METHOD_OPTIONS.find((s) => s.value === formData.testMethod)?.label.split(' — ')[0] || formData.testMethod}
-                </span>
+              {specPayload.checklist.filter(Boolean).length > 0 && (
+                <div className="mt-1.5 text-[10px] text-amber-700">
+                  {specPayload.checklist.filter(Boolean).length} จุดตรวจ
+                </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Footer status */}
-        <div className="text-xs text-gray-500 italic flex items-center gap-1">
-          <span className={cn('inline-block w-2 h-2 rounded-full', formData.isActive !== false ? 'bg-green-500' : 'bg-gray-400')} />
-          Status: {formData.isActive !== false ? 'Active' : 'Inactive'}
-          {formData.dosageForm && (
-            <>
-              <span className="mx-1">·</span>
-              {DOSAGE_FORM_OPTIONS.find((d) => d.value === formData.dosageForm)?.label.split(' — ')[0] || formData.dosageForm}
-            </>
+          {criteriaType === 'text' && specPayload?.type === 'text' && (
+            <div className="bg-slate-100 rounded-lg p-2.5 text-[11px]">
+              <div className="text-slate-500 mb-0.5">Format:</div>
+              <div className="font-mono text-slate-700">
+                {specPayload.format || <span className="italic text-slate-400">—</span>}
+              </div>
+              {specPayload.example && (
+                <div className="mt-1 text-slate-500 text-[10px]">
+                  e.g. <span className="font-mono">{specPayload.example}</span>
+                </div>
+              )}
+            </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Acceptance Flow */}
+        <div>
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Acceptance Flow</div>
+          <div className="space-y-1.5">
+            {multiStageEnabled && stages.length > 0 ? (
+              <>
+                {stages.map((s, i) => {
+                  const m = calcStageAcceptance(s);
+                  return (
+                    <React.Fragment key={i}>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className={cn(
+                          'w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] flex-shrink-0',
+                          i === 0 ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'
+                        )}>
+                          S{i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
+                          <div className="font-medium text-slate-700 truncate">
+                            สุ่ม {m.sampleSize} ชิ้น · เสียได้ {m.allowedFail}
+                          </div>
+                          <div className="text-[10px] text-slate-400">tolerance {s.tolerancePercent}%</div>
+                        </div>
+                      </div>
+                      {i < stages.length - 1 && (
+                        <div className="ml-3 text-[10px] text-slate-400 pl-2 border-l-2 border-dashed border-slate-200">
+                          ↓ ถ้าไม่ผ่าน
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+                <div className="flex items-center gap-2 text-xs mt-1">
+                  <span className={cn(
+                    'w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] flex-shrink-0',
+                    finalAction === 'reject_batch' && 'bg-red-500 text-white',
+                    finalAction === 'deviation' && 'bg-orange-500 text-white',
+                    finalAction === 'next_stage' && 'bg-slate-300 text-white',
+                  )}>!</span>
+                  <div className="text-[11px] font-semibold">
+                    {finalAction === 'reject_batch' && <span className="text-red-600">✕ Reject Batch</span>}
+                    {finalAction === 'deviation' && <span className="text-orange-600">⚠ บันทึก Deviation</span>}
+                    {finalAction === 'next_stage' && <span className="text-slate-500">→ ทดสอบต่อ</span>}
+                  </div>
+                </div>
+              </>
+            ) : acceptanceMath ? (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] flex-shrink-0 bg-emerald-600 text-white">S1</span>
+                <div className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
+                  <div className="font-medium text-slate-700">
+                    สุ่ม {acceptanceMath.sampleSize} ชิ้น · เสียได้ {acceptanceMath.allowedFail}
+                  </div>
+                  <div className="text-[10px] text-slate-400">tolerance {formData.tolerancePercent ?? 0}%</div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-slate-400 italic">— ยังไม่ได้กำหนด sampling plan —</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick stats */}
+      <div className={cn(PANEL, 'p-4')}>
+        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-3">Summary</div>
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between">
+            <span className="text-slate-500">Stages:</span>
+            <span className="font-bold text-slate-700">{multiStageEnabled ? stages.length : 1}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Max samples:</span>
+            <span className="font-bold text-slate-700">
+              {multiStageEnabled ? totalStageSamples(stages) : (formData.sampleSize ?? 0)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Check every:</span>
+            <span className="font-bold text-slate-700">{formData.checkIntervalMinutes ?? 30} min</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Sampling:</span>
+            <span className="font-medium text-slate-700 truncate ml-2">
+              {SAMPLING_METHOD_OPTIONS.find((m) => m.value === formData.testMethod)?.label.split(' —')[0] || '—'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
