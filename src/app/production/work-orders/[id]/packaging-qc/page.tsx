@@ -15,6 +15,7 @@
 import { useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
@@ -110,6 +111,7 @@ export default function PackagingQCPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const t = useTranslations('production.packagingQc');
 
   const workOrderId = Number(params.id);
   const mode: 'weight' | 'integrity' =
@@ -203,11 +205,11 @@ export default function PackagingQCPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-packaging-weight', workOrderId] });
-      toast.success('บันทึกการตรวจน้ำหนักแล้ว', 'Weight Control');
+      toast.success(t('weight.toastAdded'), t('weight.namespace'));
       setShowWeightDialog(false);
       setSampleWeights([]);
     },
-    onError: (error: Error) => toast.error(error.message, 'Error'),
+    onError: (error: Error) => toast.error(error.message, t('common.error')),
   });
 
   const editWeightMutation = useMutation({
@@ -223,13 +225,13 @@ export default function PackagingQCPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-packaging-weight', workOrderId] });
-      toast.success('แก้ไขข้อมูลสำเร็จ', 'Weight Control');
+      toast.success(t('weight.toastEdited'), t('weight.namespace'));
       setShowWeightDialog(false);
       setSampleWeights([]);
       setEditingWeightLog(null);
       setWeightNotes('');
     },
-    onError: (error: Error) => toast.error(error.message, 'Error'),
+    onError: (error: Error) => toast.error(error.message, t('common.error')),
   });
 
   const deleteWeightMutation = useMutation({
@@ -245,11 +247,11 @@ export default function PackagingQCPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-packaging-weight', workOrderId] });
-      toast.success('ลบข้อมูลสำเร็จ', 'Weight Control');
+      toast.success(t('weight.toastDeleted'), t('weight.namespace'));
       setDeletingWeightLogId(null);
     },
     onError: (error: Error) => {
-      toast.error(error.message, 'Error');
+      toast.error(error.message, t('common.error'));
       setDeletingWeightLogId(null);
     },
   });
@@ -270,7 +272,7 @@ export default function PackagingQCPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-packaging-integrity', workOrderId] });
-      toast.success('บันทึกการตรวจ Integrity แล้ว', 'Integrity Check');
+      toast.success(t('integrity.toastAdded'), t('integrity.namespace'));
       setShowIntegrityDialog(false);
       setIntegrityForm({
         tubeCapComplete: true,
@@ -279,7 +281,7 @@ export default function PackagingQCPage() {
         notes: '',
       });
     },
-    onError: (error: Error) => toast.error(error.message, 'Error'),
+    onError: (error: Error) => toast.error(error.message, t('common.error')),
   });
 
   const handleOpenWeightDialog = () => {
@@ -378,7 +380,7 @@ export default function PackagingQCPage() {
                 className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
-                กลับไป Execution Dashboard
+                {t('common.back')}
               </button>
 
               <div className="flex items-center gap-3 mb-2">
@@ -387,16 +389,16 @@ export default function PackagingQCPage() {
                 </div>
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                    ตรวจน้ำหนักบรรจุภัณฑ์
+                    {t('weight.title')}
                   </h1>
-                  <p className="text-white/80 text-sm">Packaging Weight Control</p>
+                  <p className="text-white/80 text-sm">{t('weight.subtitle')}</p>
                 </div>
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90">
                 <span className="font-mono font-semibold">{workOrder.woNumber}</span>
                 <span className="text-white/40">•</span>
-                <span>Batch: {workOrder.batchNumber}</span>
+                <span>{t('common.batch')}: {workOrder.batchNumber}</span>
                 <span className="text-white/40">•</span>
                 <span>{workOrder.productName}</span>
               </div>
@@ -410,33 +412,33 @@ export default function PackagingQCPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="h-4 w-4 text-indigo-500" />
                   <span className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-                    เกณฑ์การตรวจ (Acceptance Criteria)
+                    {t('weight.criteria')}
                   </span>
                 </div>
                 {criteria ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">น้ำหนักขั้นต่ำ</div>
+                      <div className="text-xs text-gray-500 mb-1">{t('weight.minWeight')}</div>
                       <div className="text-xl font-bold text-indigo-700">
                         {criteria.weightMin}
                         <span className="text-sm font-normal text-gray-500 ml-1">g</span>
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">น้ำหนักสูงสุด</div>
+                      <div className="text-xs text-gray-500 mb-1">{t('weight.maxWeight')}</div>
                       <div className="text-xl font-bold text-indigo-700">
                         {criteria.weightMax}
                         <span className="text-sm font-normal text-gray-500 ml-1">g</span>
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">จำนวนตัวอย่าง</div>
+                      <div className="text-xs text-gray-500 mb-1">{t('weight.sampleSize')}</div>
                       <div className="text-xl font-bold text-indigo-700">
                         {criteria.sampleSize}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">เสียได้ไม่เกิน</div>
+                      <div className="text-xs text-gray-500 mb-1">{t('weight.maxFailures')}</div>
                       <div className="text-xl font-bold text-amber-600">
                         {criteria.maxFailures}
                       </div>
@@ -444,7 +446,7 @@ export default function PackagingQCPage() {
                   </div>
                 ) : (
                   <div className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200">
-                    ⚠️ ยังไม่ได้กำหนดเกณฑ์น้ำหนักใน BOM — ติดต่อ admin เพื่อกำหนดก่อน
+                    ⚠️ {t('weight.noBomCriteria')}
                   </div>
                 )}
               </CardContent>
@@ -460,8 +462,8 @@ export default function PackagingQCPage() {
                 <div className="rounded-full bg-white/20 p-2">
                   <Plus className="h-6 w-6" />
                 </div>
-                <span className="font-bold text-lg">บันทึกการตรวจน้ำหนัก</span>
-                <span className="text-xs text-white/80">Add Weight Check</span>
+                <span className="font-bold text-lg">{t('weight.addCheck')}</span>
+                <span className="text-xs text-white/80">{t('weight.addCheckEn')}</span>
               </div>
             </button>
           </div>
@@ -470,25 +472,25 @@ export default function PackagingQCPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               icon={<Activity className="h-5 w-5" />}
-              label="จำนวนครั้งที่ตรวจ"
+              label={t('weight.totalChecks')}
               value={totalChecks}
               tone="indigo"
             />
             <StatCard
               icon={<CheckCircle2 className="h-5 w-5" />}
-              label="ผ่าน"
+              label={t('weight.passed')}
               value={passedChecks}
               tone="emerald"
             />
             <StatCard
               icon={<XCircle className="h-5 w-5" />}
-              label="ไม่ผ่าน"
+              label={t('weight.failed')}
               value={failedChecks}
               tone="rose"
             />
             <StatCard
               icon={<TrendingUp className="h-5 w-5" />}
-              label="อัตราผ่าน"
+              label={t('weight.passRate')}
               value={`${passRate}%`}
               tone={passRate >= 95 ? 'emerald' : passRate >= 80 ? 'amber' : 'rose'}
             />
@@ -506,7 +508,7 @@ export default function PackagingQCPage() {
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-1 w-12 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500" />
-                <h3 className="font-bold text-gray-900">ประวัติการตรวจ ({totalChecks})</h3>
+                <h3 className="font-bold text-gray-900">{t('common.history')} ({totalChecks})</h3>
               </div>
 
               {weightLoading ? (
@@ -516,8 +518,8 @@ export default function PackagingQCPage() {
               ) : totalChecks === 0 ? (
                 <EmptyState
                   icon={<Scale className="h-10 w-10 text-indigo-400" />}
-                  title="ยังไม่มีการตรวจน้ำหนัก"
-                  hint='คลิก "บันทึกการตรวจน้ำหนัก" ด้านบนเพื่อเริ่มต้น'
+                  title={t('weight.emptyTitle')}
+                  hint={t('weight.emptyHint')}
                 />
               ) : (
                 <div className="grid gap-3 md:gap-4">
@@ -567,11 +569,11 @@ export default function PackagingQCPage() {
                                       : 'bg-rose-100 text-rose-700'
                                   }`}
                                 >
-                                  {log.isPass ? '✓ PASS' : '✗ FAIL'}
+                                  {log.isPass ? `✓ ${t('weight.passLabel')}` : `✗ ${t('weight.failLabel')}`}
                                 </span>
                                 {log.failedCount > 0 && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200">
-                                    เสีย {log.failedCount} ตัวอย่าง
+                                    {t('weight.failedSamples', { count: log.failedCount })}
                                   </span>
                                 )}
                               </div>
@@ -591,14 +593,14 @@ export default function PackagingQCPage() {
                                 className="rounded-lg bg-white text-blue-600 hover:bg-blue-50 active:bg-blue-100 px-3 py-1.5 text-xs font-semibold border border-blue-200 transition-colors flex items-center gap-1 shadow-sm"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
-                                แก้ไข
+                                {t('common.edit')}
                               </button>
                               <button
                                 onClick={() => setDeletingWeightLogId(log.id)}
                                 className="rounded-lg bg-white text-rose-600 hover:bg-rose-50 active:bg-rose-100 px-3 py-1.5 text-xs font-semibold border border-rose-200 transition-colors flex items-center gap-1 shadow-sm"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
-                                ลบ
+                                {t('common.delete')}
                               </button>
                             </div>
                           )}
@@ -608,19 +610,19 @@ export default function PackagingQCPage() {
                         {validSamples.length > 0 && (
                           <div className="grid grid-cols-3 gap-2 mb-3 p-2.5 rounded-xl bg-white/70 border border-gray-100">
                             <StatChip
-                              label="เฉลี่ย"
+                              label={t('weight.avg')}
                               value={`${avg.toFixed(2)}g`}
                               tone="indigo"
                             />
                             <StatChip
-                              label="ต่ำสุด"
+                              label={t('weight.min')}
                               value={`${minW.toFixed(2)}g`}
                               tone={
                                 criteria && minW < criteria.weightMin ? 'rose' : 'emerald'
                               }
                             />
                             <StatChip
-                              label="สูงสุด"
+                              label={t('weight.max')}
                               value={`${maxW.toFixed(2)}g`}
                               tone={
                                 criteria && maxW > criteria.weightMax ? 'rose' : 'emerald'
@@ -656,7 +658,7 @@ export default function PackagingQCPage() {
 
                         {log.notes && (
                           <div className="mt-3 text-xs text-gray-600 border-t border-dashed border-gray-200 pt-2.5 flex items-start gap-2">
-                            <span className="font-semibold text-gray-500">หมายเหตุ:</span>
+                            <span className="font-semibold text-gray-500">{t('common.notesLabel')}</span>
                             <span className="italic">{log.notes}</span>
                           </div>
                         )}
@@ -678,7 +680,7 @@ export default function PackagingQCPage() {
             setEditingWeightLog(null);
             setWeightNotes('');
           }}
-          title={editingWeightLog ? 'แก้ไขการตรวจน้ำหนัก' : 'บันทึกการตรวจน้ำหนัก'}
+          title={editingWeightLog ? t('weight.dialogEdit') : t('weight.dialogAdd')}
           width={640}
           height="auto"
           showCloseButton
@@ -689,8 +691,7 @@ export default function PackagingQCPage() {
               <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
                 <p className="text-sm text-amber-800">
-                  กำลังแก้ไขรายการของ <strong>{editingWeightLog.checkTime}</strong> —
-                  การเปลี่ยนแปลงจะถูกบันทึกใน audit trail
+                  {t('weight.editingFrom', { time: editingWeightLog.checkTime })}
                 </p>
               </div>
             )}
@@ -698,21 +699,21 @@ export default function PackagingQCPage() {
             {criteria && (
               <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 p-4">
                 <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">
-                  เกณฑ์
+                  {t('weight.criteriaLabel')}
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-sm">
                   <div>
-                    <span className="text-gray-500">ช่วงน้ำหนัก:</span>{' '}
+                    <span className="text-gray-500">{t('weight.criteriaRange')}</span>{' '}
                     <strong className="text-indigo-800">
                       {criteria.weightMin}–{criteria.weightMax}g
                     </strong>
                   </div>
                   <div>
-                    <span className="text-gray-500">ตัวอย่าง:</span>{' '}
+                    <span className="text-gray-500">{t('weight.criteriaSample')}</span>{' '}
                     <strong>{criteria.sampleSize}</strong>
                   </div>
                   <div>
-                    <span className="text-gray-500">เสียได้:</span>{' '}
+                    <span className="text-gray-500">{t('weight.criteriaMaxFail')}</span>{' '}
                     <strong className="text-amber-700">{criteria.maxFailures}</strong>
                   </div>
                 </div>
@@ -722,7 +723,7 @@ export default function PackagingQCPage() {
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
                 <Hash className="h-4 w-4 text-indigo-500" />
-                ใส่น้ำหนักแต่ละตัวอย่าง (กรัม) — ทศนิยม 2 ตำแหน่ง
+                {t('weight.inputLabel')}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[420px] overflow-y-auto p-1">
                 {sampleWeights.map((weight, index) => {
@@ -743,7 +744,7 @@ export default function PackagingQCPage() {
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-xs font-bold text-gray-500">
-                          ตัวอย่าง #{index + 1}
+                          {t('weight.inputItem', { index: index + 1 })}
                         </span>
                         {weight > 0 && (
                           <span
@@ -751,7 +752,7 @@ export default function PackagingQCPage() {
                               fail ? 'text-rose-600' : 'text-emerald-600'
                             }`}
                           >
-                            {fail ? 'นอกเกณฑ์' : 'OK'}
+                            {fail ? t('weight.outOfRange') : t('weight.ok')}
                           </span>
                         )}
                       </div>
@@ -771,28 +772,29 @@ export default function PackagingQCPage() {
               {criteria && (
                 <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
                   <span className="text-indigo-500">ⓘ</span>
-                  น้ำหนักที่ผ่าน:{' '}
-                  <strong className="text-emerald-700">
-                    {criteria.weightMin}–{criteria.weightMax}g
-                  </strong>{' '}
-                  (เสียได้ไม่เกิน{' '}
-                  <strong className="text-amber-700">{criteria.maxFailures}</strong> ตัวอย่าง)
+                  {t('weight.helperText', {
+                    min: criteria.weightMin,
+                    max: criteria.weightMax,
+                    maxFail: criteria.maxFailures,
+                  })}
                 </p>
               )}
             </div>
 
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-1 block">
-                หมายเหตุ{' '}
+                {t('common.notes')}{' '}
                 {editingWeightLog && (
-                  <span className="text-amber-600 text-xs">(เหตุผลในการแก้ไข)</span>
+                  <span className="text-amber-600 text-xs">{t('weight.notesEditReason')}</span>
                 )}
               </label>
               <DxTextArea
                 value={weightNotes}
                 onValueChanged={(e) => setWeightNotes(e.value)}
                 placeholder={
-                  editingWeightLog ? 'ระบุเหตุผลในการแก้ไข...' : 'หมายเหตุเพิ่มเติม...'
+                  editingWeightLog
+                    ? t('weight.notesPlaceholderEdit')
+                    : t('weight.notesPlaceholderAdd')
                 }
                 height={70}
               />
@@ -824,10 +826,11 @@ export default function PackagingQCPage() {
                         weightResult.isPass ? 'text-emerald-800' : 'text-rose-800'
                       }`}
                     >
-                      {weightResult.isPass ? 'PASS' : 'FAIL'}
+                      {weightResult.isPass ? t('weight.passLabel') : t('weight.failLabel')}
                     </div>
                     <div className="text-xs text-gray-600">
-                      เสีย {weightResult.failedCount} / สูงสุด {criteria?.maxFailures || 0}
+                      {t('weight.failedSamples', { count: weightResult.failedCount })}{' '}
+                      / {t('weight.maxFailures')}: {criteria?.maxFailures || 0}
                     </div>
                   </div>
                 </div>
@@ -836,12 +839,12 @@ export default function PackagingQCPage() {
 
             <div className="flex justify-end gap-2 pt-3 border-t">
               <DxButton
-                text="ยกเลิก"
+                text={t('common.cancel')}
                 stylingMode="outlined"
                 onClick={() => setShowWeightDialog(false)}
               />
               <DxButton
-                text={editingWeightLog ? 'อัพเดท' : 'บันทึก'}
+                text={editingWeightLog ? t('common.update') : t('common.save')}
                 type="success"
                 onClick={handleSaveWeight}
                 disabled={
@@ -857,7 +860,7 @@ export default function PackagingQCPage() {
         <DxPopup
           visible={deletingWeightLogId !== null}
           onHiding={() => setDeletingWeightLogId(null)}
-          title="ยืนยันการลบ"
+          title={t('common.deleteConfirmTitle')}
           width={420}
           height="auto"
           showCloseButton
@@ -868,18 +871,16 @@ export default function PackagingQCPage() {
               <div className="rounded-full bg-rose-100 p-2">
                 <Trash2 className="h-5 w-5 text-rose-600" />
               </div>
-              <p className="text-gray-700 text-sm">
-                คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
-              </p>
+              <p className="text-gray-700 text-sm">{t('common.deleteConfirmMessage')}</p>
             </div>
             <div className="flex justify-end gap-2 pt-3 border-t">
               <DxButton
-                text="ยกเลิก"
+                text={t('common.cancel')}
                 stylingMode="outlined"
                 onClick={() => setDeletingWeightLogId(null)}
               />
               <DxButton
-                text="ลบรายการ"
+                text={t('common.deleteAction')}
                 type="danger"
                 onClick={() =>
                   deletingWeightLogId && deleteWeightMutation.mutate(deletingWeightLogId)
@@ -926,7 +927,7 @@ export default function PackagingQCPage() {
               className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              กลับไป Execution Dashboard
+              {t('common.back')}
             </button>
 
             <div className="flex items-center gap-3 mb-2">
@@ -935,16 +936,16 @@ export default function PackagingQCPage() {
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                  ตรวจสอบคุณภาพบรรจุภัณฑ์
+                  {t('integrity.title')}
                 </h1>
-                <p className="text-white/80 text-sm">Packaging Integrity Check</p>
+                <p className="text-white/80 text-sm">{t('integrity.subtitle')}</p>
               </div>
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90">
               <span className="font-mono font-semibold">{workOrder.woNumber}</span>
               <span className="text-white/40">•</span>
-              <span>Batch: {workOrder.batchNumber}</span>
+              <span>{t('common.batch')}: {workOrder.batchNumber}</span>
               <span className="text-white/40">•</span>
               <span>{workOrder.productName}</span>
             </div>
@@ -958,24 +959,24 @@ export default function PackagingQCPage() {
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="h-4 w-4 text-purple-500" />
                 <span className="text-xs font-semibold uppercase tracking-wide text-purple-600">
-                  รายการตรวจสอบ (Checklist)
+                  {t('integrity.checklist')}
                 </span>
               </div>
               <div className="grid sm:grid-cols-3 gap-3">
                 <ChecklistItem
                   icon="🧴"
-                  label="หลอด/ฝา ปิดสนิท"
-                  sublabel="Tube/Cap Sealed"
+                  label={t('integrity.tubeCapLabel')}
+                  sublabel={t('integrity.tubeCapSub')}
                 />
                 <ChecklistItem
                   icon="🔢"
-                  label="Lot Number ถูกต้อง"
-                  sublabel="Lot Correct"
+                  label={t('integrity.lotLabel')}
+                  sublabel={t('integrity.lotSub')}
                 />
                 <ChecklistItem
                   icon="📦"
-                  label="การบรรจุถูกต้อง"
-                  sublabel="Packing Correct"
+                  label={t('integrity.packingLabel')}
+                  sublabel={t('integrity.packingSub')}
                 />
               </div>
             </CardContent>
@@ -990,8 +991,8 @@ export default function PackagingQCPage() {
               <div className="rounded-full bg-white/20 p-2">
                 <Plus className="h-6 w-6" />
               </div>
-              <span className="font-bold text-lg">บันทึกการตรวจ Integrity</span>
-              <span className="text-xs text-white/80">Add Integrity Check</span>
+              <span className="font-bold text-lg">{t('integrity.addCheck')}</span>
+              <span className="text-xs text-white/80">{t('integrity.addCheckEn')}</span>
             </div>
           </button>
         </div>
@@ -1000,25 +1001,25 @@ export default function PackagingQCPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             icon={<Activity className="h-5 w-5" />}
-            label="จำนวนครั้งที่ตรวจ"
+            label={t('integrity.totalChecks')}
             value={totalIntegrity}
             tone="purple"
           />
           <StatCard
             icon={<CheckCircle2 className="h-5 w-5" />}
-            label="ผ่านครบทุกข้อ"
+            label={t('integrity.allPass')}
             value={allPassIntegrity}
             tone="emerald"
           />
           <StatCard
             icon={<AlertTriangle className="h-5 w-5" />}
-            label="พบปัญหา"
+            label={t('integrity.issues')}
             value={issuesIntegrity}
             tone="rose"
           />
           <StatCard
             icon={<TrendingUp className="h-5 w-5" />}
-            label="อัตราผ่าน"
+            label={t('integrity.passRate')}
             value={`${integrityRate}%`}
             tone={integrityRate >= 95 ? 'emerald' : integrityRate >= 80 ? 'amber' : 'rose'}
           />
@@ -1029,7 +1030,7 @@ export default function PackagingQCPage() {
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-1 w-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
-              <h3 className="font-bold text-gray-900">ประวัติการตรวจ ({totalIntegrity})</h3>
+              <h3 className="font-bold text-gray-900">{t('common.history')} ({totalIntegrity})</h3>
             </div>
 
             {integrityLoading ? (
@@ -1039,8 +1040,8 @@ export default function PackagingQCPage() {
             ) : totalIntegrity === 0 ? (
               <EmptyState
                 icon={<Package className="h-10 w-10 text-purple-400" />}
-                title="ยังไม่มีการตรวจ Integrity"
-                hint='คลิก "บันทึกการตรวจ Integrity" ด้านบนเพื่อเริ่มต้น'
+                title={t('integrity.emptyTitle')}
+                hint={t('integrity.emptyHint')}
               />
             ) : (
               <div className="grid gap-3 md:gap-4">
@@ -1088,20 +1089,22 @@ export default function PackagingQCPage() {
                                     : 'bg-rose-100 text-rose-700'
                                 }`}
                               >
-                                {allPass ? '✓ ผ่านครบ 3/3' : `✗ ${3 - failCount}/3 ผ่าน`}
+                                {allPass
+                                  ? `✓ ${t('integrity.passAll')}`
+                                  : `✗ ${t('integrity.passPartial', { pass: 3 - failCount })}`}
                               </span>
                             </div>
                             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                               {log.operatorName && (
                                 <span className="flex items-center gap-1">
                                   <User className="h-3 w-3" />
-                                  Operator: {log.operatorName}
+                                  {t('common.operator')}: {log.operatorName}
                                 </span>
                               )}
                               {log.inspectorName && (
                                 <span className="flex items-center gap-1">
                                   <User className="h-3 w-3" />
-                                  Inspector: {log.inspectorName}
+                                  {t('common.inspector')}: {log.inspectorName}
                                 </span>
                               )}
                             </div>
@@ -1112,24 +1115,24 @@ export default function PackagingQCPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <CheckResult
                           icon="🧴"
-                          label="หลอด/ฝา ปิดสนิท"
+                          label={t('integrity.tubeCapLabel')}
                           pass={log.tubeCapComplete}
                         />
                         <CheckResult
                           icon="🔢"
-                          label="Lot Number ถูกต้อง"
+                          label={t('integrity.lotLabel')}
                           pass={log.lotNumberCorrect}
                         />
                         <CheckResult
                           icon="📦"
-                          label="การบรรจุถูกต้อง"
+                          label={t('integrity.packingLabel')}
                           pass={log.packingCorrect}
                         />
                       </div>
 
                       {log.notes && (
                         <div className="mt-3 text-xs text-gray-600 border-t border-dashed border-gray-200 pt-2.5 flex items-start gap-2">
-                          <span className="font-semibold text-gray-500">หมายเหตุ:</span>
+                          <span className="font-semibold text-gray-500">{t('common.notesLabel')}</span>
                           <span className="italic">{log.notes}</span>
                         </div>
                       )}
@@ -1146,7 +1149,7 @@ export default function PackagingQCPage() {
       <DxPopup
         visible={showIntegrityDialog}
         onHiding={() => setShowIntegrityDialog(false)}
-        title="บันทึกการตรวจ Integrity"
+        title={t('integrity.dialogTitle')}
         width={500}
         height="auto"
         showCloseButton
@@ -1154,14 +1157,14 @@ export default function PackagingQCPage() {
       >
         <div className="p-5 space-y-4">
           <div className="rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 p-3 text-sm text-purple-800">
-            ตรวจสอบทั้ง 3 ข้อ — สลับ toggle หากพบปัญหา
+            {t('integrity.dialogIntro')}
           </div>
 
           <div className="space-y-2">
             <ToggleRow
               icon="🧴"
-              label="หลอด/ฝา ปิดสนิท"
-              sublabel="Tube/Cap Complete & Sealed"
+              label={t('integrity.tubeCapLabel')}
+              sublabel={t('integrity.tubeCapFull')}
               value={integrityForm.tubeCapComplete}
               onChange={(v) =>
                 setIntegrityForm({ ...integrityForm, tubeCapComplete: v })
@@ -1169,8 +1172,8 @@ export default function PackagingQCPage() {
             />
             <ToggleRow
               icon="🔢"
-              label="Lot Number ถูกต้อง"
-              sublabel="Lot Number Correct"
+              label={t('integrity.lotLabel')}
+              sublabel={t('integrity.lotFull')}
               value={integrityForm.lotNumberCorrect}
               onChange={(v) =>
                 setIntegrityForm({ ...integrityForm, lotNumberCorrect: v })
@@ -1178,8 +1181,8 @@ export default function PackagingQCPage() {
             />
             <ToggleRow
               icon="📦"
-              label="การบรรจุถูกต้อง"
-              sublabel="Packing Correct"
+              label={t('integrity.packingLabel')}
+              sublabel={t('integrity.packingFull')}
               value={integrityForm.packingCorrect}
               onChange={(v) =>
                 setIntegrityForm({ ...integrityForm, packingCorrect: v })
@@ -1189,24 +1192,24 @@ export default function PackagingQCPage() {
 
           <div>
             <label className="text-sm font-semibold text-gray-700 mb-1 block">
-              หมายเหตุ
+              {t('common.notes')}
             </label>
             <DxTextArea
               value={integrityForm.notes}
               onValueChanged={(e) => setIntegrityForm({ ...integrityForm, notes: e.value })}
-              placeholder="ระบุปัญหาที่พบ หรือ ข้อสังเกต..."
+              placeholder={t('integrity.notesPlaceholder')}
               height={80}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('common.cancel')}
               stylingMode="outlined"
               onClick={() => setShowIntegrityDialog(false)}
             />
             <DxButton
-              text="บันทึก"
+              text={t('common.save')}
               type="success"
               onClick={() => addIntegrityMutation.mutate(integrityForm)}
               disabled={addIntegrityMutation.isPending}
