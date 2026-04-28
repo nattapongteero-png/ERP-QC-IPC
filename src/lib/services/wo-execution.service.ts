@@ -760,6 +760,14 @@ export async function getWOSOPExecution(workOrderId: number) {
   });
 }
 
+/**
+ * Initialize / sync WO SOP execution rows from current BOM SOP steps.
+ *
+ * Idempotent: existing rows are preserved (so operator progress isn't lost).
+ * Only BOM steps that don't yet have a corresponding wo_sop_execution row
+ * are inserted. Safe to re-run after BOM is edited (e.g. a packaging SOP
+ * step added after the WO was first initialized).
+ */
 export async function initializeWOSOPExecution(workOrderId: number, bomId: number) {
   const tables = getTables();
 
@@ -771,9 +779,18 @@ export async function initializeWOSOPExecution(workOrderId: number, bomId: numbe
       .where(eq(tables.bomSOPSteps.bomId, bomId))
       .orderBy(asc(tables.bomSOPSteps.sequence));
 
-    // Create WO SOP execution records
-    const executions = [];
+    // Existing executions for this WO — keyed by bom_step_id so we can
+    // detect which BOM steps still need a wo_sop_execution row.
+    const existing = await db
+      .select({ bomStepId: tables.woSOPExecution.bomStepId })
+      .from(tables.woSOPExecution)
+      .where(eq(tables.woSOPExecution.workOrderId, workOrderId));
+    const existingStepIds = new Set<number>(existing.map((e: any) => e.bomStepId));
+
+    const inserted = [];
     for (const step of bomSteps) {
+      if (existingStepIds.has(step.id)) continue; // already initialized
+
       const values = {
         workOrderId,
         bomStepId: step.id,
@@ -786,16 +803,16 @@ export async function initializeWOSOPExecution(workOrderId: number, bomId: numbe
 
       if (isSqlite()) {
         const [execution] = await db.insert(tables.woSOPExecution).values(values).returning();
-        executions.push(execution);
+        inserted.push(execution);
       } else {
         const result = await db.insert(tables.woSOPExecution).values(values);
         const insertId = getInsertId(result);
         const [execution] = await db.select().from(tables.woSOPExecution).where(eq(tables.woSOPExecution.id, insertId));
-        executions.push(execution);
+        inserted.push(execution);
       }
     }
 
-    return executions;
+    return inserted;
   });
 }
 
@@ -2303,9 +2320,17 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
       targetLotId = Number(getInsertId(lotResult));
     }
 
-    // Check existing IPC tests to avoid duplicates
+    // Existing IPC tests for this WO's lot, keyed by sample_number ("IPC-1",
+    // "IPC-2", …). Idempotent sync: if a sample_number is already present,
+    // we skip creation so operator results aren't reset. Old tests with
+    // ipc_phase=NULL are also backfilled here when we know the phase from
+    // the matching BOM config sequence.
     const existingTests = await db
-      .select({ sampleNumber: tables.qualityTests.sampleNumber })
+      .select({
+        id: tables.qualityTests.id,
+        sampleNumber: tables.qualityTests.sampleNumber,
+        ipcPhase: tables.qualityTests.ipcPhase,
+      })
       .from(tables.qualityTests)
       .where(
         and(
@@ -2313,14 +2338,30 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
           eq(tables.qualityTests.testType, 'in_process')
         )
       );
-    const existingCount = existingTests.length;
+    const existingByNumber = new Map<string, { id: number; ipcPhase: string | null }>(
+      existingTests
+        .filter((t: any) => t.sampleNumber)
+        .map((t: any) => [t.sampleNumber as string, { id: t.id, ipcPhase: t.ipcPhase }])
+    );
 
     // Create quality_tests for each BOM IPC criteria
     const created = [];
     for (let i = 0; i < ipcConfig.length; i++) {
       const config = ipcConfig[i];
-      // Skip if already initialized (based on count match)
-      if (existingCount >= ipcConfig.length) continue;
+      const sampleNumber = `IPC-${config.sequence || (i + 1)}`;
+      const phaseFromConfig = config.phase || 'production';
+
+      // Already exists — backfill ipcPhase if NULL, then skip creation.
+      const existingForThisCriteria = existingByNumber.get(sampleNumber);
+      if (existingForThisCriteria) {
+        if (existingForThisCriteria.ipcPhase == null) {
+          await db
+            .update(tables.qualityTests)
+            .set({ ipcPhase: phaseFromConfig, updatedAt: getNow() })
+            .where(eq(tables.qualityTests.id, existingForThisCriteria.id));
+        }
+        continue;
+      }
 
       // When specTarget is present, recompute Min/Max from Target + SpecTolerancePercent
       // so the quality test always uses the formula-derived bounds (server-authoritative).
@@ -2341,7 +2382,7 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
       const testResult = await db.insert(tables.qualityTests).values({
         lotId: targetLotId,
         testType: 'in_process',
-        sampleNumber: `IPC-${config.sequence || (i + 1)}`,
+        sampleNumber,
         sampleSize: config.sampleSize,
         status: 'pending',
         requestedBy: operatorId,
@@ -2362,7 +2403,7 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
           : (config.acceptanceStages ? JSON.stringify(config.acceptanceStages) : null),
         // Snapshot phase from BOM IPC config — frozen at init so subsequent
         // BOM edits don't reshuffle which dashboard card hosts this test.
-        ipcPhase: config.phase || 'production',
+        ipcPhase: phaseFromConfig,
         notes: config.testNameTh || config.testName,
         createdAt: getNow(),
         updatedAt: getNow(),

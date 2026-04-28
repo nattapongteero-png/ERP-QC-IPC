@@ -6,6 +6,7 @@
  * Used in both WO detail page (Execution tab) and standalone execution page
  */
 
+import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -123,6 +124,39 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   const toast = useToast();
   const t = useTranslations('production');
   const queryClient = useQueryClient();
+
+  // Idempotent BOM↔WO sync on mount. Fires once per WO mount; if the BOM
+  // gained new SOP steps or IPC criteria after this WO was initialized
+  // (or pre-existing IPC tests are missing ipc_phase from the legacy
+  // schema), the sync endpoint inserts what's missing and backfills phases.
+  // Operator progress is preserved — no rows updated except NULL phase fill.
+  const syncedRef = useRef(false);
+  useEffect(() => {
+    if (syncedRef.current) return;
+    syncedRef.current = true;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/production/work-orders/${workOrderId}/sync-bom`, {
+          method: 'POST',
+        });
+        if (cancelled) return;
+        const result = await res.json();
+        if (!result.success) return;
+        const sopAdded = result.data?.sopInserted ?? 0;
+        const ipcAdded = result.data?.ipcInserted ?? 0;
+        if (sopAdded > 0 || ipcAdded > 0) {
+          // New rows landed — refetch the summary so the new cards appear.
+          queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
+        }
+      } catch {
+        // Sync is best-effort; failure must never break the dashboard.
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [workOrderId, queryClient]);
 
   // staleTime:0 + refetchOnMount:'always' overrides the global 60s cache —
   // the user typically clicks into a card, records data, then comes back; if
