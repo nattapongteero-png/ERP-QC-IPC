@@ -369,10 +369,19 @@ export default function WorkOrdersPage() {
     };
   }, [workOrders]);
 
-  // Filtered work orders + tag with display row number (mirrors /inventory/items).
+  // Filtered work orders. Newest WO surfaces first (sort by createdAt
+  // descending; fall back to id desc) so the row labelled #1 at the top
+  // is always the most recently created order. Row numbers are assigned
+  // after sorting/filtering so they always run 1, 2, 3… top-down.
   const filteredWorkOrders = useMemo(() => {
-    const list = !statusFilter ? workOrders : workOrders.filter(wo => wo.status === statusFilter);
-    return list.map((wo, index) => ({ ...wo, _rowNumber: index + 1 }));
+    const base = !statusFilter ? workOrders : workOrders.filter(wo => wo.status === statusFilter);
+    const sorted = [...base].sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (tb !== ta) return tb - ta;
+      return (b.id || 0) - (a.id || 0);
+    });
+    return sorted.map((wo, index) => ({ ...wo, _rowNumber: index + 1 }));
   }, [workOrders, statusFilter]);
 
   // Chart data
