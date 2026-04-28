@@ -172,7 +172,8 @@ export default function BatchRecordsDashboardPage() {
     });
   };
 
-  // Apply tab + text search on top of API-level status filter
+  // Apply tab + text search on top of API-level status filter; tag rows with
+  // display row number (mirrors /inventory/items).
   const filteredRecords = useMemo(() => {
     let result: BatchRecordRow[] = recordsData || [];
     if (activeTab !== 'all') {
@@ -187,7 +188,7 @@ export default function BatchRecordsDashboardPage() {
         (r.productName || '').toLowerCase().includes(q)
       );
     }
-    return result;
+    return result.map((r, index) => ({ ...r, _rowNumber: index + 1 }));
   }, [recordsData, activeTab, searchText]);
 
   const handleRefresh = () => {
@@ -645,6 +646,17 @@ export default function BatchRecordsDashboardPage() {
               <DxSearchPanel visible placeholder={t('batchRecords.registry.dataGridSearch')} />
               <DxPaging defaultPageSize={15} />
 
+              <DxColumn
+                dataField="_rowNumber"
+                caption="#"
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                cellRender={(cell) => (
+                  <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
+                )}
+              />
               <DxColumn
                 dataField="woNumber"
                 caption={t('batchRecords.columns.workOrder')}

@@ -122,7 +122,7 @@ export default function PackagingQCCriteriaPage() {
       {/* Data Grid */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <DxDataGrid
-          dataSource={criteria || []}
+          dataSource={(criteria || []).map((c, i) => ({ ...c, _rowNumber: i + 1 }))}
           keyExpr="id"
           showBorders={false}
           rowAlternationEnabled
@@ -134,6 +134,9 @@ export default function PackagingQCCriteriaPage() {
           <DxSearchPanel visible placeholder="Search criteria..." width={200} />
           <DxPaging defaultPageSize={20} />
 
+          <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
+            <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
+          )} />
           <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
             <span className="font-mono font-medium text-indigo-700">{cell.value}</span>
           )} />

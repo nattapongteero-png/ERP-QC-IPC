@@ -369,10 +369,10 @@ export default function WorkOrdersPage() {
     };
   }, [workOrders]);
 
-  // Filtered work orders based on status
+  // Filtered work orders + tag with display row number (mirrors /inventory/items).
   const filteredWorkOrders = useMemo(() => {
-    if (!statusFilter) return workOrders;
-    return workOrders.filter(wo => wo.status === statusFilter);
+    const list = !statusFilter ? workOrders : workOrders.filter(wo => wo.status === statusFilter);
+    return list.map((wo, index) => ({ ...wo, _rowNumber: index + 1 }));
   }, [workOrders, statusFilter]);
 
   // Chart data
@@ -939,6 +939,17 @@ export default function WorkOrdersPage() {
           <HeaderFilter visible={true} />
           <Export enabled={true} formats={['xlsx']} />
 
+          <Column
+            dataField="_rowNumber"
+            caption="#"
+            width={60}
+            alignment="center"
+            allowFiltering={false}
+            allowSorting={false}
+            cellRender={(cellInfo) => (
+              <span className="text-gray-500 text-sm font-medium">{cellInfo.data._rowNumber}</span>
+            )}
+          />
           <Column
             dataField="woNumber"
             caption={t('workOrders.grid.columns.woBatch')}

@@ -146,7 +146,7 @@ export default function SOPTemplatesPage() {
       {/* Data Grid */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <DxDataGrid
-          dataSource={templates || []}
+          dataSource={(templates || []).map((t, i) => ({ ...t, _rowNumber: i + 1 }))}
           keyExpr="id"
           showBorders={false}
           rowAlternationEnabled
@@ -158,6 +158,9 @@ export default function SOPTemplatesPage() {
           <DxSearchPanel visible placeholder="Search templates..." width={200} />
           <DxPaging defaultPageSize={20} />
 
+          <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
+            <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
+          )} />
           <DxColumn dataField="code" caption="Code" minWidth={140} cellRender={(cell) => (
             <span className="font-mono font-medium text-amber-700">{cell.value}</span>
           )} />

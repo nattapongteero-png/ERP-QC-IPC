@@ -72,6 +72,7 @@ type BOMListItem = {
   standardBatchSize?: number | string | null;
   batchUnit?: string | null;
   createdAt?: string | Date | null;
+  _rowNumber?: number;
 };
 
 export default function BOMDashboardPage() {
@@ -173,7 +174,8 @@ export default function BOMDashboardPage() {
       if (tb !== ta) return tb - ta;
       return (b.id || 0) - (a.id || 0);
     });
-    return result;
+    // Tag with display row number (mirrors /inventory/items).
+    return result.map((bom, index) => ({ ...bom, _rowNumber: index + 1 }));
   }, [bomData, activeTab, searchText]);
 
   const handleCreate = () => router.push('/production/bom/new');
@@ -555,6 +557,17 @@ export default function BOMDashboardPage() {
             >
               <DxPaging defaultPageSize={20} />
 
+              <DxColumn
+                dataField="_rowNumber"
+                caption="#"
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                cellRender={(cell) => (
+                  <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
+                )}
+              />
               <DxColumn
                 dataField="code"
                 caption={t('bom.table.columns.code')}
