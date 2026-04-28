@@ -720,6 +720,7 @@ export async function getWOSOPExecution(workOrderId: number) {
     const templateIds = [...new Set(executions.map((e: any) => e.templateId).filter(Boolean))] as number[];
 
     let templateStepsMap: Record<number, any[]> = {};
+    let linkedIPCMap: Record<number, any[]> = {}; // templateId → IPC criteria
     if (templateIds.length > 0) {
       const { inArray } = await import('drizzle-orm');
       const allTemplateSteps = await db
@@ -731,6 +732,52 @@ export async function getWOSOPExecution(workOrderId: number) {
       for (const ts of allTemplateSteps) {
         if (!templateStepsMap[ts.templateId]) templateStepsMap[ts.templateId] = [];
         templateStepsMap[ts.templateId].push(ts);
+      }
+
+      // Phase 2 — for each template, also pull the IPC criteria linked to
+      // any of its sub-steps. We aggregate at the parent-template level so
+      // each WO SOP step (which references a parent template, not a specific
+      // sub-step) gets a flat list of IPC tests the operator should record.
+      const allTemplateStepIds = allTemplateSteps.map((ts: any) => ts.id) as number[];
+      if (allTemplateStepIds.length > 0) {
+        const linkTable = getTableRef('sOPTemplateIPCCriteria');
+        const ipcTable = getTableRef('iPCCriteria');
+        const ipcLinks = await db
+          .select({
+            id: linkTable.id,
+            procedureStepId: linkTable.procedureStepId,
+            criteriaId: linkTable.criteriaId,
+            sequence: linkTable.sequence,
+            sampleSize: linkTable.sampleSize,
+            isCritical: linkTable.isCritical,
+            notes: linkTable.notes,
+            criteriaCode: ipcTable.code,
+            criteriaName: ipcTable.name,
+            criteriaNameTh: ipcTable.nameTh,
+            specification: ipcTable.specification,
+            minValue: ipcTable.minValue,
+            maxValue: ipcTable.maxValue,
+            specTarget: ipcTable.specTarget,
+            specTolerancePercent: ipcTable.specTolerancePercent,
+            unit: ipcTable.unit,
+            criteriaType: ipcTable.criteriaType,
+            testMethod: ipcTable.testMethod,
+            isCriteriaCritical: ipcTable.isCritical,
+          })
+          .from(linkTable)
+          .innerJoin(ipcTable, eq(linkTable.criteriaId, ipcTable.id))
+          .where(inArray(linkTable.procedureStepId, allTemplateStepIds))
+          .orderBy(asc(linkTable.sequence), asc(linkTable.id));
+
+        const stepToTemplate = new Map<number, number>();
+        for (const ts of allTemplateSteps) stepToTemplate.set(ts.id, ts.templateId);
+
+        for (const link of ipcLinks as any[]) {
+          const templateId = stepToTemplate.get(link.procedureStepId);
+          if (!templateId) continue;
+          if (!linkedIPCMap[templateId]) linkedIPCMap[templateId] = [];
+          linkedIPCMap[templateId].push(link);
+        }
       }
     }
 
@@ -750,12 +797,13 @@ export async function getWOSOPExecution(workOrderId: number) {
       for (const u of users) userMap.set(u.id, u.name);
     }
 
-    // Attach template sub-steps + user names to each execution
+    // Attach template sub-steps + user names + linked IPC criteria.
     return executions.map((exec: any) => ({
       ...exec,
       operatorName: exec.operatorId ? (userMap.get(exec.operatorId) || null) : null,
       verifierName: exec.verifierId ? (userMap.get(exec.verifierId) || null) : null,
       templateSteps: exec.templateId ? (templateStepsMap[exec.templateId] || []) : [],
+      linkedIPC: exec.templateId ? (linkedIPCMap[exec.templateId] || []) : [],
     }));
   });
 }

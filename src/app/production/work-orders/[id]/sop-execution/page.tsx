@@ -33,6 +33,7 @@ import {
   Gauge,
   Wrench,
   ListChecks,
+  FlaskConical,
 } from 'lucide-react';
 
 interface TemplateSubStep {
@@ -43,6 +44,28 @@ interface TemplateSubStep {
   instructions?: string;
   instructionsTh?: string;
   defaultParameters?: string;
+}
+
+interface LinkedIPCCriterion {
+  id: number;
+  procedureStepId: number;
+  criteriaId: number;
+  sequence: number;
+  sampleSize: number;
+  isCritical: boolean;
+  notes?: string | null;
+  criteriaCode: string;
+  criteriaName: string;
+  criteriaNameTh?: string | null;
+  specification?: string | null;
+  minValue?: number | null;
+  maxValue?: number | null;
+  specTarget?: number | null;
+  specTolerancePercent?: number | null;
+  unit?: string | null;
+  criteriaType: string;
+  testMethod?: string | null;
+  isCriteriaCritical: boolean;
 }
 
 interface SOPStep {
@@ -67,6 +90,10 @@ interface SOPStep {
   verifiedAt?: string;
   notes?: string;
   templateSteps?: TemplateSubStep[];
+  // IPC criteria linked to this step's parent SOP template (via
+  // sop_template_ipc_criteria). Phase 1 sets up the link; Phase 2 surfaces
+  // them here so operators see what tests are expected for the step.
+  linkedIPC?: LinkedIPCCriterion[];
   // Phase from BOM step — drives per-phase filter when ?phase= is set.
   phase?: 'pre_production' | 'production' | 'post_production' | 'packaging';
 }
@@ -675,6 +702,70 @@ export default function SOPExecutionPage() {
                                     <span className="font-medium">{value}</span>
                                   </span>
                                 ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* IPC ที่ผูกไว้กับ template ของ step นี้ — Phase 2.
+                              Display-only here. Click ไป IPC page เพื่อบันทึกผลจริง.
+                              The matching IPC test on the WO uses the same criteriaId, so
+                              the link target lets the operator find and record it directly. */}
+                          {step.linkedIPC && step.linkedIPC.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-dashed border-emerald-200">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-800 uppercase tracking-wide">
+                                  <FlaskConical className="h-3.5 w-3.5" />
+                                  IPC ที่ต้องตรวจ
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[11px] font-semibold">
+                                  {step.linkedIPC.length}
+                                </span>
+                              </div>
+                              <div className="space-y-1.5">
+                                {step.linkedIPC.map((ipc) => {
+                                  const spec = ipc.specification
+                                    || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
+                                    || ((ipc.minValue != null || ipc.maxValue != null)
+                                        ? `${ipc.minValue ?? '-'} – ${ipc.maxValue ?? '-'}${ipc.unit ? ' ' + ipc.unit : ''}`
+                                        : null);
+                                  return (
+                                    <button
+                                      key={ipc.id}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/production/work-orders/${workOrderId}/ipc?phase=${step.phase || 'production'}`);
+                                      }}
+                                      className="w-full text-left p-2 rounded-lg border bg-white hover:bg-emerald-50/40 hover:border-emerald-300 transition-colors flex items-start gap-2 group"
+                                    >
+                                      <FlaskConical className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                            {ipc.criteriaCode}
+                                          </span>
+                                          <span className="text-sm font-medium text-gray-900 truncate">
+                                            {ipc.criteriaNameTh || ipc.criteriaName}
+                                          </span>
+                                          {ipc.isCritical && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">
+                                              <AlertCircle className="h-2.5 w-2.5" />
+                                              Critical
+                                            </span>
+                                          )}
+                                        </div>
+                                        {spec && (
+                                          <div className="text-xs text-gray-500 mt-0.5 truncate">
+                                            <span className="text-gray-400">Spec:</span> {spec}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <span className="text-[11px] text-emerald-600 flex-shrink-0 self-center group-hover:underline">
+                                        บันทึกผล →
+                                      </span>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
