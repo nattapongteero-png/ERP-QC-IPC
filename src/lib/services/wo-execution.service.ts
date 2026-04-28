@@ -705,6 +705,8 @@ export async function getWOSOPExecution(workOrderId: number) {
         expectedParameters: tables.bomSOPSteps.parameters,
         equipmentIds: tables.bomSOPSteps.equipmentIds,
         requiresVerification: tables.bomSOPSteps.requiresVerification,
+        // Phase: drives per-phase SOP cards on Execution Dashboard
+        phase: tables.bomSOPSteps.phase,
         // Template ID for fetching sub-steps
         templateId: tables.bomSOPSteps.templateId,
       })
@@ -1697,6 +1699,8 @@ export async function getBOMIPCConfig(bomId: number) {
         sequence: tables.bomInProcessQC.sequence,
         sampleSize: tables.bomInProcessQC.sampleSize,
         isCritical: tables.bomInProcessQC.isCritical,
+        // Phase: drives per-phase IPC cards on Execution Dashboard
+        phase: tables.bomInProcessQC.phase,
         // IPC Criteria details
         testName: ipcCriteria.name,
         testNameTh: ipcCriteria.nameTh,
@@ -1796,6 +1800,8 @@ export async function getWOIPCTests(workOrderId: number) {
         tolerancePercent: tables.qualityTests.tolerancePercent,
         // Phase 3: stage plan snapshot — null = single-stage
         acceptanceStages: tables.qualityTests.acceptanceStages,
+        // IPC phase snapshot — drives per-phase dashboard cards
+        ipcPhase: tables.qualityTests.ipcPhase,
         disposition: tables.qualityTests.disposition,
         // Spec details
         testName: tables.qualitySpecs.testName,
@@ -2354,6 +2360,9 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
         acceptanceStages: typeof config.acceptanceStages === 'string'
           ? config.acceptanceStages
           : (config.acceptanceStages ? JSON.stringify(config.acceptanceStages) : null),
+        // Snapshot phase from BOM IPC config — frozen at init so subsequent
+        // BOM edits don't reshuffle which dashboard card hosts this test.
+        ipcPhase: config.phase || 'production',
         notes: config.testNameTh || config.testName,
         createdAt: getNow(),
         updatedAt: getNow(),

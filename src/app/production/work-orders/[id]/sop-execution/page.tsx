@@ -6,8 +6,8 @@
  * Form Section: 6 (Production Process)
  */
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
@@ -67,7 +67,18 @@ interface SOPStep {
   verifiedAt?: string;
   notes?: string;
   templateSteps?: TemplateSubStep[];
+  // Phase from BOM step — drives per-phase filter when ?phase= is set.
+  phase?: 'pre_production' | 'production' | 'post_production' | 'packaging';
 }
+
+// Filterable execution phases. pre_packaging removed (collapsed into packaging).
+type SOPPhase = 'pre_production' | 'production' | 'post_production' | 'packaging';
+const SOP_PHASE_LABELS: Record<SOPPhase, string> = {
+  pre_production: 'Pre-Production',
+  production: 'Production',
+  post_production: 'Post-Production',
+  packaging: 'Packaging',
+};
 
 /** Safely parse JSON that might be a string or already parsed */
 function parseJson<T>(value: T | string | null | undefined): T | null {
@@ -89,12 +100,21 @@ interface WorkOrderBasic {
 export default function SOPExecutionPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const toast = useToast();
   const t = useTranslations('production');
   const locale = useLocale();
 
   const workOrderId = Number(params.id);
+
+  // Phase filter from ?phase=. When set, only steps from that phase render —
+  // matches the per-phase SOP cards on Execution Dashboard.
+  const phaseParam = searchParams.get('phase');
+  const phaseFilter: SOPPhase | null =
+    phaseParam && ['pre_production', 'production', 'post_production', 'packaging'].includes(phaseParam)
+      ? (phaseParam as SOPPhase)
+      : null;
 
   const [selectedStep, setSelectedStep] = useState<SOPStep | null>(null);
   const [showExecuteDialog, setShowExecuteDialog] = useState(false);
@@ -130,6 +150,13 @@ export default function SOPExecutionPage() {
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
+
+  // Filtered view — when ?phase= is set, only show that phase's steps.
+  const displaySteps = useMemo<SOPStep[] | undefined>(() => {
+    if (!steps) return steps;
+    if (!phaseFilter) return steps;
+    return steps.filter((s) => (s.phase || 'production') === phaseFilter);
+  }, [steps, phaseFilter]);
 
   // Auto-refresh when another user modifies SOP steps on this WO
   useRealtimeTopic('work-order-changed', (data) => {
@@ -375,7 +402,7 @@ export default function SOPExecutionPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="SOP Execution"
+        title={phaseFilter ? `SOP Execution — ${SOP_PHASE_LABELS[phaseFilter]}` : 'SOP Execution'}
         subtitle={`${workOrder.woNumber} | Batch: ${workOrder.batchNumber}`}
         icon={ClipboardList}
         iconBgColor="bg-blue-100"
@@ -436,7 +463,7 @@ export default function SOPExecutionPage() {
             <div className="flex items-center justify-center h-40">
               <DxLoadIndicator />
             </div>
-          ) : !steps || steps.length === 0 ? (
+          ) : !displaySteps || displaySteps.length === 0 ? (
             executionNotInitialized ? (
               <div className="text-center py-12">
                 <ClipboardList className="h-12 w-12 text-blue-400 mx-auto mb-4" />
@@ -463,11 +490,14 @@ export default function SOPExecutionPage() {
             )
           ) : (
             <div className="space-y-4">
-              {steps.map((step, index) => {
+              {displaySteps.map((step) => {
+                // Use the global step list to compute previous-step status —
+                // we still enforce sequential execution across all phases even
+                // when the view is filtered to a single phase.
+                const globalIndex = (steps ?? []).findIndex((s) => s.id === step.id);
                 const statusInfo = getStatusInfo(step.status);
                 const StatusIcon = statusInfo.icon;
-                // Step progression: must verify previous step before starting next
-                const prevStep = index > 0 ? steps[index - 1] : null;
+                const prevStep = globalIndex > 0 ? (steps ?? [])[globalIndex - 1] : null;
                 const prevStepDone = !prevStep ||
                   (prevStep.requiresVerification
                     ? prevStep.status === 'verified'

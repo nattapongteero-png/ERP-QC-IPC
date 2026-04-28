@@ -31,6 +31,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             sequence: bomIpc.sequence,
             sampleSize: bomIpc.sampleSize,
             isCritical: bomIpc.isCritical,
+            phase: bomIpc.phase,
             // Criteria details
             criteriaCode: ipcCriteria.code,
             criteriaName: ipcCriteria.name,
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           sequence: data.sequence || nextSeq,
           sampleSize: data.sampleSize || 5,
           isCritical: data.isCritical ?? false,
+          phase: data.phase || 'production',
           createdAt: getNow(),
         } as any);
       });
@@ -109,6 +111,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (data.sequence !== undefined) updateData.sequence = data.sequence;
       if (data.sampleSize !== undefined) updateData.sampleSize = data.sampleSize;
       if (data.isCritical !== undefined) updateData.isCritical = data.isCritical;
+      if (data.phase !== undefined) updateData.phase = data.phase;
 
       await executeDbOperation(async (db) => {
         return db.update(bomIpc).set(updateData as any).where(eq(bomIpc.id, data.bomIpcId));

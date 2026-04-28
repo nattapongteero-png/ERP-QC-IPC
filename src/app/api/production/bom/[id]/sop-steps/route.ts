@@ -99,6 +99,7 @@ export async function POST(
           ? JSON.stringify(data.equipmentIds)
           : data.equipmentIds,
         requiresVerification: data.requiresVerification ?? true,
+        phase: data.phase || 'production',
       });
 
       return successResponse(step, 'SOP step added to BOM');
@@ -164,6 +165,7 @@ export async function PUT(
           ? JSON.stringify(data.equipmentIds)
           : data.equipmentIds,
         requiresVerification: data.requiresVerification,
+        phase: data.phase,
       });
 
       return successResponse(step, 'SOP step updated');

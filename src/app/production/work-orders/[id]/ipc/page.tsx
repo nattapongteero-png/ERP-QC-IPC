@@ -6,8 +6,8 @@
  * Tests are defined in BOM config and initialized per work order
  */
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
@@ -121,6 +121,8 @@ interface IPCTest {
   tolerancePercent: number | null;
   /** Phase 3: snapshot of multi-stage acceptance plan (JSON). Null = single-stage. */
   acceptanceStages: string | null;
+  /** Snapshot of phase from BOM IPC config — drives per-phase filter. */
+  ipcPhase: string | null;
   testName: string | null;
   testMethod: string | null;
   testedByName: string | null;
@@ -129,6 +131,15 @@ interface IPCTest {
   rounds: IPCRound[];
   totalRounds: number;
 }
+
+// Filterable execution phases (pre_packaging collapsed into packaging).
+type IPCPhase = 'pre_production' | 'production' | 'post_production' | 'packaging';
+const IPC_PHASE_LABELS: Record<IPCPhase, string> = {
+  pre_production: 'Pre-Production',
+  production: 'Production',
+  post_production: 'Post-Production',
+  packaging: 'Packaging',
+};
 
 interface IPCSample {
   id: number;
@@ -192,12 +203,20 @@ function StatusBadge({ status }: { status: string }) {
 export default function IPCPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const toast = useToast();
   const t = useTranslations('production');
   const tc = useTranslations('common');
 
   const workOrderId = Number(params.id);
+
+  // Phase filter from ?phase= — matches per-phase IPC cards on Execution Dashboard.
+  const phaseParam = searchParams.get('phase');
+  const phaseFilter: IPCPhase | null =
+    phaseParam && ['pre_production', 'production', 'post_production', 'packaging'].includes(phaseParam)
+      ? (phaseParam as IPCPhase)
+      : null;
 
   // GMP dual-control: the test's performer can't approve their own work
   const { data: currentUser } = useCurrentUser();
@@ -446,10 +465,17 @@ export default function IPCPage() {
     });
   }
 
-  // Progress calculations
-  const totalTests = ipcTests?.length || 0;
-  const completedTests = ipcTests?.filter((t) => t.status === 'pass' || t.status === 'fail').length || 0;
-  const approvedTests = ipcTests?.filter((t) => t.approvedBy != null).length || 0;
+  // Phase-filtered view — matches per-phase IPC cards on the dashboard.
+  const displayTests = useMemo<IPCTest[] | undefined>(() => {
+    if (!ipcTests) return ipcTests;
+    if (!phaseFilter) return ipcTests;
+    return ipcTests.filter((t) => (t.ipcPhase || 'production') === phaseFilter);
+  }, [ipcTests, phaseFilter]);
+
+  // Progress calculations — operate on displayed (filtered) list when a phase is selected.
+  const totalTests = displayTests?.length || 0;
+  const completedTests = displayTests?.filter((t) => t.status === 'pass' || t.status === 'fail').length || 0;
+  const approvedTests = displayTests?.filter((t) => t.approvedBy != null).length || 0;
   const progressPercent = totalTests > 0 ? Math.round((completedTests / totalTests) * 100) : 0;
   const hasTests = totalTests > 0;
   const hasBOMConfig = (bomConfig?.length || 0) > 0;
@@ -458,7 +484,9 @@ export default function IPCPage() {
     <div className="flex flex-col gap-4 p-4">
       {/* Header */}
       <ResponsivePageHeader
-        title={t('execution.ipc')}
+        title={phaseFilter
+          ? `${t('execution.ipc')} — ${IPC_PHASE_LABELS[phaseFilter]}`
+          : t('execution.ipc')}
         subtitle={workOrder ? `${workOrder.woNumber} - ${workOrder.batchNumber}` : ''}
         icon={FlaskConical}
         iconBgColor="bg-emerald-100"
@@ -542,7 +570,7 @@ export default function IPCPage() {
       {/* IPC Test Checklist */}
       {hasTests && (
         <div className="space-y-3">
-          {ipcTests!.map((test) => {
+          {displayTests!.map((test) => {
             const isExpanded = expandedTests.has(test.id);
             const hasSamples = (test.sampleSize || 1) > 1;
             const isRecorded = test.status !== 'pending';

@@ -39,6 +39,14 @@ import {
 } from 'lucide-react';
 
 // IPC Configuration Section Component
+type IPCPhase = 'pre_production' | 'production' | 'post_production' | 'packaging';
+const IPC_PHASE_OPTIONS: Array<{ value: IPCPhase; label: string }> = [
+  { value: 'pre_production', label: 'Pre-Production' },
+  { value: 'production', label: 'Production' },
+  { value: 'post_production', label: 'Post-Production' },
+  { value: 'packaging', label: 'Packaging' },
+];
+
 function IPCConfigSection({ bomId }: { bomId: number }) {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -47,6 +55,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
   const [selCriteria, setSelCriteria] = useState<number | null>(null);
   const [sampleSize, setSampleSize] = useState(5);
   const [isCritical, setIsCritical] = useState(false);
+  const [phase, setPhase] = useState<IPCPhase>('production');
 
   const { data: configs = [], isLoading } = useQuery<any[]>({
     queryKey: ['bom-ipc', bomId],
@@ -71,14 +80,14 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     : allCriteria.filter((c: any) => !configs.some((cfg: any) => cfg.criteriaId === c.id));
 
   const resetForm = () => {
-    setShowForm(false); setEditingIpcId(null); setSelCriteria(null); setSampleSize(5); setIsCritical(false);
+    setShowForm(false); setEditingIpcId(null); setSelCriteria(null); setSampleSize(5); setIsCritical(false); setPhase('production');
   };
 
   const addMut = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/production/bom/${bomId}/ipc`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ criteriaId: selCriteria, sampleSize, isCritical }),
+        body: JSON.stringify({ criteriaId: selCriteria, sampleSize, isCritical, phase }),
       });
       const r = await res.json();
       if (!r.success) throw new Error(r.error);
@@ -95,7 +104,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     mutationFn: async () => {
       const res = await fetch(`/api/production/bom/${bomId}/ipc`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bomIpcId: editingIpcId, sampleSize, isCritical }),
+        body: JSON.stringify({ bomIpcId: editingIpcId, sampleSize, isCritical, phase }),
       });
       const r = await res.json();
       if (!r.success) throw new Error(r.error);
@@ -126,6 +135,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     setSelCriteria(cfg.criteriaId);
     setSampleSize(cfg.sampleSize);
     setIsCritical(cfg.isCritical);
+    setPhase(((cfg.phase as string) || 'production') as IPCPhase);
     setShowForm(true);
   };
 
@@ -207,6 +217,17 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                 <DxSwitch value={isCritical} onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setIsCritical(e.value)} />
                 <span className="text-sm">Critical</span>
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
+              <DxSelectBox
+                dataSource={IPC_PHASE_OPTIONS as unknown as Record<string, unknown>[]}
+                displayExpr="label"
+                valueExpr="value"
+                value={phase}
+                onValueChanged={(e) => setPhase(e.value)}
+              />
+              <p className="text-xs text-gray-500 mt-1">เลือก phase ที่จะให้ IPC test นี้แสดงใน Execution Dashboard</p>
             </div>
             <div className="flex justify-end gap-2">
               <DxButton text="Cancel" stylingMode="text" onClick={resetForm} />
@@ -502,7 +523,8 @@ export default function BOMConfigurationPage() {
     phase: 'production' as string,
   });
 
-  // Add SOP Step form state
+  // Add SOP Step form state — phase drives which Execution Dashboard card
+  // hosts this step (per-phase SOP cards).
   const [sopForm, setSOPForm] = useState({
     templateId: 0,
     stepName: '',
@@ -511,6 +533,7 @@ export default function BOMConfigurationPage() {
     instructionsTh: '',
     parameters: '',
     requiresVerification: true,
+    phase: 'production' as 'pre_production' | 'production' | 'post_production' | 'packaging',
   });
 
   // Add Packaging QC form state
@@ -796,7 +819,7 @@ export default function BOMConfigurationPage() {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
       toast.success('SOP Step Added', 'SOP step has been added.');
       setShowAddDialog(false);
-      setSOPForm({ templateId: 0, stepName: '', stepNameTh: '', instructions: '', instructionsTh: '', parameters: '', requiresVerification: true });
+      setSOPForm({ templateId: 0, stepName: '', stepNameTh: '', instructions: '', instructionsTh: '', parameters: '', requiresVerification: true, phase: 'production' });
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -893,6 +916,7 @@ export default function BOMConfigurationPage() {
           instructionsTh: (item.instructionsTh as string) || '',
           parameters: (item.parameters as string) || '',
           requiresVerification: item.requiresVerification !== false,
+          phase: ((item.phase as string) || 'production') as 'pre_production' | 'production' | 'post_production' | 'packaging',
         });
         break;
       case 'qc':
@@ -1521,6 +1545,17 @@ export default function BOMConfigurationPage() {
                   onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setSOPForm({ ...sopForm, requiresVerification: e.value ?? true })}
                 />
                 <span className="text-sm text-gray-700">Requires verification by supervisor</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
+                <DxSelectBox
+                  dataSource={phases as unknown as Record<string, unknown>[]}
+                  displayExpr="label"
+                  valueExpr="value"
+                  value={sopForm.phase}
+                  onValueChanged={(e) => setSOPForm({ ...sopForm, phase: e.value })}
+                />
+                <p className="text-xs text-gray-500 mt-1">เลือก phase ที่จะให้ขั้นตอนนี้แสดงใน Execution Dashboard</p>
               </div>
             </>
           )}

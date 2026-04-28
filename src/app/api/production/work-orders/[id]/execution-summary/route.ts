@@ -88,12 +88,22 @@ export async function GET(
         verified: productionCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
       };
 
-      // Calculate SOP execution status
+      // Calculate SOP execution status (overall + per-phase breakdown).
+      // Per-phase counts let the dashboard render one SOP card per phase
+      // that actually has steps configured in the BOM.
       const sopExecution = {
         total: sopExecutions.length,
         completed: sopExecutions.filter((s: any) => s.isCompleted).length,
         verified: sopExecutions.filter((s: any) => s.verifiedAt).length,
       };
+      const sopByPhase: Record<string, { total: number; completed: number; verified: number }> = {};
+      for (const s of sopExecutions as any[]) {
+        const p = s.phase || 'production';
+        if (!sopByPhase[p]) sopByPhase[p] = { total: 0, completed: 0, verified: 0 };
+        sopByPhase[p].total += 1;
+        if (s.isCompleted) sopByPhase[p].completed += 1;
+        if (s.verifiedAt) sopByPhase[p].verified += 1;
+      }
 
       // Calculate pre-production environmental status
       const preProductionEnvironmental = {
@@ -240,13 +250,21 @@ export async function GET(
           : null,
       };
 
-      // Calculate IPC (In-Process Control) status
+      // Calculate IPC (In-Process Control) status — overall + per-phase.
       const ipcTestList = Array.isArray(ipcTests) ? ipcTests : [];
       const ipc = {
         total: ipcTestList.length,
         completed: ipcTestList.filter((t: any) => t.status === 'pass' || t.status === 'fail').length,
         approved: ipcTestList.filter((t: any) => t.approvedBy != null).length,
       };
+      const ipcByPhase: Record<string, { total: number; completed: number; approved: number }> = {};
+      for (const t of ipcTestList as any[]) {
+        const p = t.ipcPhase || 'production';
+        if (!ipcByPhase[p]) ipcByPhase[p] = { total: 0, completed: 0, approved: 0 };
+        ipcByPhase[p].total += 1;
+        if (t.status === 'pass' || t.status === 'fail') ipcByPhase[p].completed += 1;
+        if (t.approvedBy != null) ipcByPhase[p].approved += 1;
+      }
 
       const summary = {
         workOrderStatus: woData?.status || 'planned',
@@ -256,6 +274,8 @@ export async function GET(
         preProductionEnvironmental,
         productionCleaning: productionCleaningStatus,
         sopExecution,
+        // Per-phase SOP counts; missing phases simply absent (dashboard hides card).
+        sopByPhase,
         productionEnvironmental,
         productionOutput,
         bulkOutput,
@@ -268,6 +288,8 @@ export async function GET(
         packagingEnvironmental,
         finishedInspection: finishedInspectionStatus,
         ipc,
+        // Per-phase IPC counts; same render rule as sopByPhase.
+        ipcByPhase,
       };
 
       return successResponse(summary);

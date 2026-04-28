@@ -50,6 +50,10 @@ interface ExecutionSummary {
   packagingEnvironmental: { total: number; recorded: number; normal: number };
   finishedInspection: { status: 'pending' | 'in_progress' | 'passed' | 'failed' };
   ipc: { total: number; completed: number; approved: number };
+  // Per-phase breakdowns — drive dynamic SOP/IPC cards on the dashboard.
+  // Phases without items are simply absent (no card rendered).
+  sopByPhase?: Record<string, { total: number; completed: number; verified: number }>;
+  ipcByPhase?: Record<string, { total: number; completed: number; approved: number }>;
   materialRequisition: {
     status: 'none' | 'requested' | 'approved';
     requestedBy: number | null;
@@ -179,6 +183,10 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
   });
 
+  // Resolve summary up-front so per-phase card generation below has access
+  // to sopByPhase / ipcByPhase before sectionsByPhase is built.
+  const currentSummary = summary || defaultSummaryValue;
+
   const executionSections: ExecutionSection[] = [
     {
       id: 'material-requisition',
@@ -242,22 +250,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
           : s.materialWeighing.completed > 0 ? 'in_progress' : 'pending',
       }),
     },
-    {
-      id: 'sop-execution',
-      title: 'SOP Execution',
-      icon: <ClipboardList className="h-5 w-5" />,
-      href: `/production/work-orders/${workOrderId}/sop-execution`,
-      phase: 'production',
-      description: 'Execute production steps with parameter recording',
-      getStatus: (s) => ({
-        completed: s.sopExecution.completed,
-        verified: s.sopExecution.verified,
-        total: s.sopExecution.total,
-        status: s.sopExecution.verified === s.sopExecution.total && s.sopExecution.total > 0 ? 'verified'
-          : s.sopExecution.completed === s.sopExecution.total && s.sopExecution.total > 0 ? 'completed'
-          : s.sopExecution.completed > 0 ? 'in_progress' : 'pending',
-      }),
-    },
+    // SOP cards are generated per-phase from sopByPhase below.
     {
       id: 'production-cleaning',
       title: 'Production Cleaning',
@@ -277,24 +270,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
         };
       },
     },
-    {
-      id: 'ipc',
-      title: t('execution.ipc'),
-      icon: <FlaskConical className="h-5 w-5" />,
-      href: `/production/work-orders/${workOrderId}/ipc`,
-      phase: 'production',
-      description: t('execution.ipcDescription'),
-      // IPC has no operator-vs-supervisor verify step in this workflow —
-      // record = test result, no separate verify gate. Keep verified=0 so
-      // the bar stays green throughout (matches environmental cards).
-      getStatus: (s) => ({
-        completed: s.ipc.completed,
-        verified: 0,
-        total: s.ipc.total,
-        status: s.ipc.completed === s.ipc.total && s.ipc.total > 0 ? 'completed'
-          : s.ipc.completed > 0 ? 'in_progress' : 'pending',
-      }),
-    },
+    // IPC cards are generated per-phase from ipcByPhase below.
     {
       id: 'production-environmental',
       title: 'Environmental Monitoring (Production)',
@@ -439,6 +415,73 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
   ];
 
+  // Generate per-phase SOP cards from sopByPhase. Each phase that has at least
+  // one SOP step gets its own card linking to /sop-execution?phase=<phase>.
+  const sopPhaseLabels: Record<string, string> = {
+    pre_production: 'Pre-Production',
+    production: 'Production',
+    post_production: 'Post-Production',
+    packaging: 'Packaging',
+  };
+  const sopPhaseOrder: Array<keyof typeof sopPhaseLabels> = [
+    'pre_production', 'production', 'post_production', 'packaging',
+  ];
+  const sopByPhase = currentSummary.sopByPhase ?? {};
+  for (const ph of sopPhaseOrder) {
+    const counts = sopByPhase[ph];
+    if (!counts || counts.total === 0) continue;
+    executionSections.push({
+      id: `sop-execution-${ph}`,
+      title: `SOP Execution — ${sopPhaseLabels[ph]}`,
+      icon: <ClipboardList className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/sop-execution?phase=${ph}`,
+      phase: ph as ExecutionSection['phase'],
+      description: 'Execute production steps with parameter recording',
+      getStatus: () => ({
+        completed: counts.completed,
+        verified: counts.verified,
+        total: counts.total,
+        status: counts.total > 0 && counts.verified === counts.total ? 'verified'
+          : counts.total > 0 && counts.completed === counts.total ? 'completed'
+          : counts.completed > 0 ? 'in_progress' : 'pending',
+      }),
+    });
+  }
+
+  // Generate per-phase IPC cards (same pattern as SOP).
+  const ipcByPhase = currentSummary.ipcByPhase ?? {};
+  for (const ph of sopPhaseOrder) {
+    const counts = ipcByPhase[ph];
+    if (!counts || counts.total === 0) continue;
+    executionSections.push({
+      id: `ipc-${ph}`,
+      title: `${t('execution.ipc')} — ${sopPhaseLabels[ph]}`,
+      icon: <FlaskConical className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/ipc?phase=${ph}`,
+      phase: ph as ExecutionSection['phase'],
+      description: t('execution.ipcDescription'),
+      // IPC has no separate verify gate — record is the result.
+      getStatus: () => ({
+        completed: counts.completed,
+        verified: 0,
+        total: counts.total,
+        status: counts.total > 0 && counts.completed === counts.total ? 'completed'
+          : counts.completed > 0 ? 'in_progress' : 'pending',
+      }),
+    });
+  }
+
+  // Cards that should always render even when their underlying counts are 0.
+  // Process steps (requisition, yield, inspection, output) are always relevant
+  // because they don't come from BOM-configurable lists.
+  const alwaysShowCardIds = new Set([
+    'material-requisition',
+    'material-weighing',
+    'bulk-product-yield',
+    'finished-inspection',
+    'production-output',
+  ]);
+
   const renderStatusBadge = (status: 'pending' | 'in_progress' | 'completed' | 'verified') => {
     const styles = {
       pending: 'bg-gray-100 text-gray-600',
@@ -501,8 +544,6 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     );
   }
 
-  const currentSummary = summary || defaultSummaryValue;
-
   // Determine which sections are locked based on workflow prerequisites
   const isSectionLocked = (sectionId: string): { locked: boolean; reason: string } => {
     const s = currentSummary;
@@ -564,7 +605,16 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     return { locked: false, reason: '' };
   };
 
-  const sectionsByPhase = executionSections.reduce((acc, section) => {
+  // Hide BOM-derived cards with total=0 so the dashboard only surfaces work
+  // that's actually configured. Process-step cards (always-on whitelist)
+  // remain visible regardless of count.
+  const visibleSections = executionSections.filter((section) => {
+    if (alwaysShowCardIds.has(section.id)) return true;
+    const status = section.getStatus(currentSummary);
+    return status.total > 0;
+  });
+
+  const sectionsByPhase = visibleSections.reduce((acc, section) => {
     if (!acc[section.phase]) acc[section.phase] = [];
     acc[section.phase].push(section);
     return acc;

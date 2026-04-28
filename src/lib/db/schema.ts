@@ -478,6 +478,10 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
   // Phase 3: Multi-stage acceptance plan snapshot (USP <711>, <905>)
   // JSON array; null = single-stage (uses sampleSize + tolerancePercent above).
   acceptanceStages: text('acceptance_stages'),
+  // IPC phase snapshot (in_process tests only): pre_production, production,
+  // post_production, packaging — drives per-phase IPC card on Execution Dashboard.
+  // Null for incoming/final tests where phase is irrelevant.
+  ipcPhase: text('ipc_phase'),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: integer('disposition_by').references(() => sqliteUsers.id),
@@ -1259,6 +1263,9 @@ export const sqliteBOMSOPSteps = sqliteTable('bom_sop_steps', {
   equipmentIds: text('equipment_ids'), // JSON array of equipment IDs
   // Verification requirements
   requiresVerification: integer('requires_verification', { mode: 'boolean' }).notNull().default(true),
+  // Phase determines which Execution Dashboard card hosts this step.
+  // Values: pre_production, production, post_production, packaging
+  phase: text('phase').notNull().default('production'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1307,6 +1314,9 @@ export const sqliteBOMInProcessQC = sqliteTable('bom_in_process_qc', {
   sequence: integer('sequence').notNull().default(1),
   sampleSize: integer('sample_size').notNull().default(1),
   isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  // Phase determines which Execution Dashboard card hosts this IPC test.
+  // Values: pre_production, production, post_production, packaging
+  phase: text('phase').notNull().default('production'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1913,6 +1923,8 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   // Phase 3: Multi-stage acceptance plan snapshot (USP <711>, <905>)
   // JSON array; null = single-stage (uses sampleSize + tolerancePercent above).
   acceptanceStages: mysqlText('acceptance_stages'),
+  // IPC phase snapshot (in_process tests only) — drives per-phase IPC card.
+  ipcPhase: varchar('ipc_phase', { length: 50 }),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: varchar('disposition', { length: 50 }), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: int('disposition_by').references(() => mysqlUsers.id),
@@ -4485,6 +4497,8 @@ export const mysqlBOMSOPSteps = mysqlTable('bom_sop_steps', {
   equipmentIds: mysqlText('equipment_ids'), // JSON array of equipment IDs
   // Verification requirements
   requiresVerification: mysqlBoolean('requires_verification').notNull().default(true),
+  // Phase determines which Execution Dashboard card hosts this step.
+  phase: varchar('phase', { length: 50 }).notNull().default('production'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -4533,6 +4547,8 @@ export const mysqlBOMInProcessQC = mysqlTable('bom_in_process_qc', {
   sequence: int('sequence').notNull().default(1),
   sampleSize: int('sample_size').notNull().default(1),
   isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  // Phase determines which Execution Dashboard card hosts this IPC test.
+  phase: varchar('phase', { length: 50 }).notNull().default('production'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
