@@ -8,6 +8,7 @@
 
 import { eq, and, asc, inArray } from 'drizzle-orm';
 import { getTableRef, executeDbOperation, getInsertId } from '../db/db-helper';
+import { getNow } from '../db/date-utils';
 
 export interface ProcedureStepIPCRow {
   id: number;
@@ -144,6 +145,9 @@ export async function addProcedureStepIPC(input: AddLinkInput): Promise<{ id: nu
       throw new Error('DUPLICATE: IPC criteria นี้ถูกผูกกับขั้นตอนนี้อยู่แล้ว');
     }
 
+    // createdAt set explicitly — schema-sync didn't apply CURRENT_TIMESTAMP
+    // default to the datetime column on existing tenants, so INSERT without
+    // it fails on MySQL with "Field 'created_at' doesn't have a default value".
     const result = await db.insert(link).values({
       procedureStepId: input.procedureStepId,
       criteriaId: input.criteriaId,
@@ -151,6 +155,7 @@ export async function addProcedureStepIPC(input: AddLinkInput): Promise<{ id: nu
       sampleSize: input.sampleSize ?? 1,
       isCritical: input.isCritical ?? false,
       notes: input.notes ?? null,
+      createdAt: getNow(),
     });
 
     return { id: getInsertId(result) };
