@@ -341,37 +341,25 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       }),
     },
     {
-      id: 'pre-packaging-cleaning',
-      title: 'Pre-Packaging Cleaning',
-      icon: <Sparkles className="h-5 w-5" />,
-      href: `/production/work-orders/${workOrderId}/cleaning?phase=pre_packaging`,
-      phase: 'pre_packaging',
-      description: 'Verify packaging area cleanliness',
-      getStatus: (s) => ({
-        completed: s.prePackagingCleaning.completed,
-        verified: s.prePackagingCleaning.verified,
-        total: s.prePackagingCleaning.total,
-        status: s.prePackagingCleaning.verified === s.prePackagingCleaning.total && s.prePackagingCleaning.total > 0 ? 'verified'
-          : s.prePackagingCleaning.completed === s.prePackagingCleaning.total && s.prePackagingCleaning.total > 0 ? 'completed'
-          : s.prePackagingCleaning.completed > 0 ? 'in_progress' : 'pending',
-      }),
-    },
-    {
       id: 'packaging-cleaning',
       title: 'Packaging Cleaning',
       icon: <Sparkles className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/cleaning?phase=packaging`,
       phase: 'packaging',
-      description: 'Verify packaging area cleanliness during packaging',
+      description: 'Line clearance + packaging area cleanliness',
       getStatus: (s) => {
-        const c = s.packagingCleaning ?? { total: 0, completed: 0, verified: 0 };
+        const pre = s.prePackagingCleaning ?? { total: 0, completed: 0, verified: 0 };
+        const pkg = s.packagingCleaning ?? { total: 0, completed: 0, verified: 0 };
+        const total = pre.total + pkg.total;
+        const completed = pre.completed + pkg.completed;
+        const verified = pre.verified + pkg.verified;
         return {
-          completed: c.completed,
-          verified: c.verified,
-          total: c.total,
-          status: c.verified === c.total && c.total > 0 ? 'verified'
-            : c.completed === c.total && c.total > 0 ? 'completed'
-            : c.completed > 0 ? 'in_progress' : 'pending',
+          completed,
+          verified,
+          total,
+          status: total > 0 && verified === total ? 'verified'
+            : total > 0 && completed === total ? 'completed'
+            : completed > 0 ? 'in_progress' : 'pending',
         };
       },
     },
@@ -582,7 +570,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     return acc;
   }, {} as Record<string, ExecutionSection[]>);
 
-  const phases = ['pre_production', 'production', 'post_production', 'pre_packaging', 'packaging', 'inspection'] as const;
+  const phases = ['pre_production', 'production', 'post_production', 'packaging', 'inspection'] as const;
 
   return (
     <div className="space-y-4">

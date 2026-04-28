@@ -67,6 +67,10 @@ interface CleaningRequirement {
   nameTh?: string;
   isRequired: boolean;
   cleaningLog?: CleaningLog;
+  // Source phase — used when Packaging view merges items configured under
+  // pre_packaging (line clearance) with items configured under packaging.
+  // Each log is recorded against the item's source phase, not the URL phase.
+  sourcePhase?: CleaningPhase;
 }
 
 interface WorkOrderBasic {
@@ -90,11 +94,13 @@ const PHASE_META: Record<CleaningPhase, { label: string; icon: string; short: st
   packaging: { label: 'Packaging', short: 'Pkg', icon: 'box' },
 };
 
+// pre_packaging removed — its items merge into the Packaging view via
+// fetch-and-tag below. Direct ?phase=pre_packaging URLs still work via
+// PHASE_META lookup, but Packaging is now the canonical entry point.
 const PHASE_ORDER: CleaningPhase[] = [
   'pre_production',
   'production',
   'post_production',
-  'pre_packaging',
   'packaging',
 ];
 
@@ -135,14 +141,27 @@ export default function CleaningPage() {
     },
   });
 
-  // Fetch cleaning requirements with logs for the CURRENT phase
+  // Fetch cleaning requirements with logs for the CURRENT phase.
+  // When phase=packaging, also fetch pre_packaging items (line clearance)
+  // and merge into the same list — Pre-Packaging phase was collapsed into
+  // Packaging so a single Cleaning page hosts both sets of items.
   const { data: requirements, isLoading: reqLoading } = useQuery<CleaningRequirement[]>({
     queryKey: ['wo-cleaning-requirements', workOrderId, currentPhase],
     queryFn: async () => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs?phase=${currentPhase}`);
-      const data = await res.json();
-      if (!data.success) return [];
-      return data.data;
+      const fetchPhase = async (p: CleaningPhase): Promise<CleaningRequirement[]> => {
+        const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs?phase=${p}`);
+        const data = await res.json();
+        if (!data.success) return [];
+        return (data.data as CleaningRequirement[]).map(item => ({ ...item, sourcePhase: p }));
+      };
+      if (currentPhase === 'packaging') {
+        const [pre, pkg] = await Promise.all([
+          fetchPhase('pre_packaging'),
+          fetchPhase('packaging'),
+        ]);
+        return [...pre, ...pkg];
+      }
+      return fetchPhase(currentPhase);
     },
     staleTime: 0,
     refetchOnMount: 'always',
@@ -161,9 +180,12 @@ export default function CleaningPage() {
   // one phase at a time as requested by the operator. Phase switching
   // happens upstream (Execution Dashboard links go to each phase URL).
 
-  // Create cleaning log mutation
+  // Create cleaning log mutation — phase comes from the item itself
+  // (sourcePhase) so pre_packaging items keep their phase tag even when
+  // recorded from the merged Packaging view.
   const createLogMutation = useMutation({
     mutationFn: async (data: {
+      phase: CleaningPhase;
       itemType: 'room' | 'equipment';
       roomId?: number;
       equipmentId?: number;
@@ -173,10 +195,7 @@ export default function CleaningPage() {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phase: currentPhase,
-          ...data,
-        }),
+        body: JSON.stringify(data),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
@@ -232,6 +251,7 @@ export default function CleaningPage() {
   const handleSubmitCleaning = () => {
     if (!selectedItem) return;
     createLogMutation.mutate({
+      phase: selectedItem.sourcePhase ?? currentPhase,
       itemType: selectedItem.type,
       roomId: selectedItem.type === 'room' ? selectedItem.id : undefined,
       equipmentId: selectedItem.type === 'equipment' ? selectedItem.id : undefined,

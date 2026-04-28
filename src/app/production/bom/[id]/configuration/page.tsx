@@ -331,11 +331,14 @@ interface BOMPackagingQC {
   criteria?: PackagingQCCriteria;
 }
 
+// pre_packaging phase merged into packaging — operator records both line
+// clearance + packaging cleanliness from the Packaging Cleaning card. Existing
+// BOM rows with phase='pre_packaging' still render (color mapping kept below)
+// but new rooms/equipment can only be assigned to the 4 phases below.
 const phases = [
   { value: 'pre_production', label: 'Pre-Production' },
   { value: 'production', label: 'Production' },
   { value: 'post_production', label: 'Post-Production' },
-  { value: 'pre_packaging', label: 'Pre-Packaging' },
   { value: 'packaging', label: 'Packaging' },
 ];
 

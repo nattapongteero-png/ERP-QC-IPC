@@ -5,7 +5,7 @@
  * Each gate checks prerequisites before allowing transition.
  */
 
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { executeDbOperation, getTableRef } from '../db/db-helper';
 import { isSqlite } from '../db';
 import {
@@ -243,7 +243,11 @@ export async function canCompleteProduction(workOrderId: number): Promise<GateCh
 /**
  * Check if packaging can start (completed → packaging)
  * Requirements:
- * - Pre-packaging cleaning complete + verified
+ * - Cleaning complete + verified (line clearance + packaging area)
+ *
+ * Pre-Packaging phase was collapsed into Packaging in the UI; both
+ * `phase='pre_packaging'` (legacy BOMs) and `phase='packaging'` cleaning
+ * logs satisfy this gate.
  */
 export async function canStartPackaging(workOrderId: number): Promise<GateCheckResult> {
   const tables = getTables();
@@ -251,29 +255,28 @@ export async function canStartPackaging(workOrderId: number): Promise<GateCheckR
   const completedChecks: string[] = [];
 
   return executeDbOperation(async (db: any) => {
-    // Check pre-packaging cleaning
     const cleaningLogs = await db
       .select()
       .from(tables.woCleaningLogs)
       .where(
         and(
           eq(tables.woCleaningLogs.workOrderId, workOrderId),
-          eq(tables.woCleaningLogs.phase, 'pre_packaging')
+          inArray(tables.woCleaningLogs.phase, ['pre_packaging', 'packaging'])
         )
       );
 
     if (cleaningLogs.length === 0) {
-      blockers.push('No pre-packaging cleaning logs recorded');
+      blockers.push('No packaging cleaning logs recorded');
     } else {
       const allClean = cleaningLogs.every((log: any) => log.isClean);
       const allVerified = cleaningLogs.every((log: any) => log.verifierId !== null);
 
       if (!allClean) {
-        blockers.push('Not all pre-packaging cleaning items marked as clean');
+        blockers.push('Not all packaging cleaning items marked as clean');
       } else if (!allVerified) {
-        blockers.push('Not all pre-packaging cleaning items verified');
+        blockers.push('Not all packaging cleaning items verified');
       } else {
-        completedChecks.push('Pre-packaging cleaning complete and verified');
+        completedChecks.push('Packaging cleaning complete and verified');
       }
     }
 
