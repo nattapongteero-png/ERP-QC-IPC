@@ -601,11 +601,16 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
         missing.push('Bulk Product Yield');
       }
 
+      // IPC has no operator-vs-supervisor verify step in this workflow —
+      // a recorded test result IS the completion signal (matches what the
+      // IPC card displays as "Completed"). Gating on `approved` would
+      // require a supervisor approve flow that the IPC UI doesn't surface,
+      // so the gate would never lift in practice.
       const pkgIpc = s.ipcByPhase?.packaging;
       if (pkgIpc && pkgIpc.total > 0) {
-        const approved = pkgIpc.approved ?? 0;
-        if (approved < pkgIpc.total) {
-          missing.push(`Packaging IPC (${approved}/${pkgIpc.total} approved)`);
+        const completed = pkgIpc.completed ?? 0;
+        if (completed < pkgIpc.total) {
+          missing.push(`Packaging IPC (${completed}/${pkgIpc.total} completed)`);
         }
       }
       // If BOM has no Packaging IPC configured (pkgIpc undefined or total=0),
