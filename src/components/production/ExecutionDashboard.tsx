@@ -565,48 +565,58 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       }
     }
 
-    // Production phase: requires WO status >= in_progress
-    if (['sop-execution', 'ipc', 'production-environmental'].includes(sectionId)) {
+    // Cards that need WO to be in_progress before they're recordable.
+    // Per-phase SOP/IPC card IDs are dynamic (e.g. sop-execution-pre_production)
+    // so we match by prefix as well as the legacy static IDs.
+    const requiresInProgress =
+      sectionId.startsWith('sop-execution-') ||
+      sectionId.startsWith('ipc-') ||
+      ['production-cleaning', 'production-environmental',
+       'post-production-cleaning',
+       'packaging-cleaning', 'packaging-environmental',
+       'finished-inspection',
+      ].includes(sectionId);
+    if (requiresInProgress) {
       if (woStatus === 'planned' || woStatus === 'released') {
         return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
       }
     }
 
-    // Post-production: requires SOP execution started
-    if (sectionId === 'post-production-cleaning') {
-      if (woStatus === 'planned' || woStatus === 'released') {
-        return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
-      }
-    }
-
-    // Packaging phase: requires WO status >= in_progress
-    if (['pre-packaging-cleaning', 'packaging-weight', 'packaging-integrity', 'packaging-environmental'].includes(sectionId)) {
-      if (woStatus === 'planned' || woStatus === 'released') {
-        return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
-      }
-    }
-
-    // Inspection: requires packaging steps done
-    if (sectionId === 'finished-inspection') {
-      if (woStatus === 'planned' || woStatus === 'released') {
-        return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
-      }
-    }
-
-    // Bulk Product Yield — FINAL step: requires all prior phases complete
-    // Gate on Finished Inspection passed (which itself chains all prior dependencies)
+    // Production Output / Yield — FINAL step (records FG quantity into the
+    // warehouse). Practical gate: enforce the four checkpoints that prove the
+    // batch is complete and QC-cleared, with a specific list of what's still
+    // missing so the operator knows what to do next.
+    //   1. WO Status = in_progress (status flipped from planned/released)
+    //   2. Bulk Output recorded   (we know how many units left production)
+    //   3. Packaging IPC complete (all phase=packaging tests approved)
+    //   4. Finished Inspection passed (final 15-point checklist)
     if (sectionId === 'production-output') {
       if (woStatus === 'planned' || woStatus === 'released') {
         return { locked: true, reason: 'ต้องเปลี่ยนสถานะ WO เป็น In Progress ก่อน' };
       }
-      if (s.finishedInspection.status !== 'passed') {
-        return { locked: true, reason: 'ต้องผ่าน Finished Product Inspection ก่อน' };
+
+      const missing: string[] = [];
+
+      if (!s.bulkOutput?.recorded) {
+        missing.push('Bulk Product Yield');
       }
-      // Also require packaging to be complete (all three packaging checks passed)
-      const pkgWeightDone = s.packagingWeight.total > 0 && s.packagingWeight.passed === s.packagingWeight.total;
-      const pkgIntegrityDone = s.packagingIntegrity.total > 0 && s.packagingIntegrity.passed === s.packagingIntegrity.total;
-      if (!pkgWeightDone || !pkgIntegrityDone) {
-        return { locked: true, reason: 'ต้องผ่านขั้นตอน Packaging QC (Weight + Integrity) ก่อน' };
+
+      const pkgIpc = s.ipcByPhase?.packaging;
+      if (pkgIpc && pkgIpc.total > 0) {
+        const approved = pkgIpc.approved ?? 0;
+        if (approved < pkgIpc.total) {
+          missing.push(`Packaging IPC (${approved}/${pkgIpc.total} approved)`);
+        }
+      }
+      // If BOM has no Packaging IPC configured (pkgIpc undefined or total=0),
+      // we don't gate on it — there's simply nothing to require.
+
+      if (s.finishedInspection.status !== 'passed') {
+        missing.push('Finished Product Inspection');
+      }
+
+      if (missing.length > 0) {
+        return { locked: true, reason: `ยังไม่ผ่าน: ${missing.join(', ')}` };
       }
     }
 
