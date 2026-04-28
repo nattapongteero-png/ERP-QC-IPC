@@ -98,6 +98,12 @@ export default function WorkCentersPage() {
   const workCenters = data?.data || [];
   const total = data?.total || 0;
 
+  // Add row sequence numbers for grid display
+  const workCentersWithRowNum = useMemo(
+    () => workCenters.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [workCenters],
+  );
+
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -377,7 +383,7 @@ export default function WorkCentersPage() {
           ) : (
             <DataGrid
               key={locale}
-              dataSource={workCenters}
+              dataSource={workCentersWithRowNum}
               showBorders
               columnAutoWidth
               rowAlternationEnabled
@@ -397,6 +403,20 @@ export default function WorkCentersPage() {
               <FilterRow visible />
               <Sorting mode="single" />
 
+              <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <Column
                 dataField="code"
                 caption={t('workCenters.grid.columns.code')}

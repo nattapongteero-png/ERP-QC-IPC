@@ -118,6 +118,12 @@ export default function LandedCostsPage() {
   const landedCosts = data?.data || [];
   const total = data?.total || 0;
 
+  // Add row sequence numbers for grid display
+  const landedCostsWithRowNum = useMemo(
+    () => landedCosts.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [landedCosts],
+  );
+
   // Compute stats from full data set (within current filtered view)
   const stats = useMemo(() => {
     const draft = landedCosts.filter((lc) => lc.status === 'draft').length;
@@ -370,7 +376,7 @@ export default function LandedCostsPage() {
           ) : (
             <DataGrid
               key={locale}
-              dataSource={landedCosts}
+              dataSource={landedCostsWithRowNum}
               showBorders
               columnAutoWidth
               rowAlternationEnabled
@@ -391,6 +397,20 @@ export default function LandedCostsPage() {
               <SearchPanel visible={false} />
               <Sorting mode="single" />
 
+              <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <Column
                 dataField="documentNumber"
                 caption={t('landedCosts.grid.columns.documentNumber')}

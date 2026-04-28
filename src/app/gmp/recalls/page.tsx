@@ -390,7 +390,7 @@ export default function RecallsDashboardPage() {
       );
     }
 
-    return list;
+    return list.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [recalls, activeTab, search]);
 
   // Chart data
@@ -548,6 +548,19 @@ export default function RecallsDashboardPage() {
 
   // DataGrid columns
   const columns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cell) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {(cell.data as { _rowNumber?: number })._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'recallNumber',
       caption: t('recalls.columns.recallNumber'),

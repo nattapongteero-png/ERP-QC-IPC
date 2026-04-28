@@ -231,5 +231,12 @@
       "success": "Purchase order approved successfully",
       "error": "Failed to approve purchase order"
     }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

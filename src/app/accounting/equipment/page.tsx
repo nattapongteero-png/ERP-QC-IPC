@@ -244,6 +244,12 @@ export default function EquipmentPage() {
     setShowDeleteConfirm(true);
   };
 
+  // Add row sequence numbers for the grid
+  const equipmentWithRowNumber = useMemo(
+    () => equipment.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [equipment]
+  );
+
   const renderActionsCell = (cellData: { data: EquipmentWithAsset }) => {
     return (
       <div className="flex items-center gap-1">
@@ -441,7 +447,7 @@ export default function EquipmentPage() {
         <CardContent className="p-0">
           <DataGrid
             key={locale}
-            dataSource={equipment}
+            dataSource={equipmentWithRowNumber}
             keyExpr="id"
             showBorders={false}
             showRowLines
@@ -464,6 +470,20 @@ export default function EquipmentPage() {
               showNavigationButtons
             />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column dataField="assetCode" caption={t('equipment.table.columns.assetCode')} width={150} />
             <Column dataField="assetName" caption={t('equipment.table.columns.assetName')} minWidth={200} />
             <Column dataField="serialNumber" caption={t('equipment.table.columns.serialNumber')} width={150} />

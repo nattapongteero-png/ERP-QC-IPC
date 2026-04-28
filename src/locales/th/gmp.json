@@ -1112,5 +1112,12 @@
     "save": "บันทึก",
     "refresh": "รีเฟรช",
     "actions": "จัดการ"
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

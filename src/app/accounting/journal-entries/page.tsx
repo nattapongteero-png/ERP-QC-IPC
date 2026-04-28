@@ -244,7 +244,7 @@ export default function JournalEntriesPage() {
 
   // Filter entries
   const filteredEntries = useMemo(() => {
-    return entries.filter((entry) => {
+    const filtered = entries.filter((entry) => {
       if (statusFilter && entry.status !== statusFilter) return false;
       if (sourceTypeFilter && entry.sourceType !== sourceTypeFilter) return false;
       if (searchText.trim()) {
@@ -256,6 +256,7 @@ export default function JournalEntriesPage() {
       }
       return true;
     });
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [entries, statusFilter, sourceTypeFilter, searchText]);
 
   // ============================================
@@ -631,6 +632,20 @@ export default function JournalEntriesPage() {
                 <Item name="columnChooserButton" location="after" />
               </Toolbar>
 
+              <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <Column
                 dataField="entryNumber"
                 caption={t('journalEntries.columns.entryNumber')}

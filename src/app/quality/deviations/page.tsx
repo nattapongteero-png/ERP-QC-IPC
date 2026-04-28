@@ -241,7 +241,7 @@ export default function DeviationsPage() {
       const matchesSource = !sourceFilter || dev.sourceType === sourceFilter;
 
       return matchesSearch && matchesStatus && matchesSeverity && matchesSource;
-    });
+    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [deviations, search, statusFilter, severityFilter, sourceFilter]);
 
   // Per-tab counts (total irrespective of search/severity/source)
@@ -442,6 +442,19 @@ export default function DeviationsPage() {
 
   // DataGrid columns
   const columns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {(cellInfo.data as { _rowNumber?: number })._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'deviationNumber',
       caption: t('deviations.grid.columns.number'),

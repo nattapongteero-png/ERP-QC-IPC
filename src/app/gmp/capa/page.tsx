@@ -284,20 +284,26 @@ export default function CapaDashboardPage() {
   const filteredCapas = useMemo(() => {
     if (!capaData?.capas) return [];
 
+    let filtered: Capa[];
     switch (activeTab) {
       case 'active':
-        return capaData.capas.filter(c =>
+        filtered = capaData.capas.filter(c =>
           ['open', 'investigation', 'action_pending', 'verification'].includes(c.status)
         );
+        break;
       case 'overdue':
-        return capaData.capas.filter(c => c.isOverdue);
+        filtered = capaData.capas.filter(c => c.isOverdue);
+        break;
       case 'pending_approval':
-        return capaData.capas.filter(c => c.status === 'pending_approval');
+        filtered = capaData.capas.filter(c => c.status === 'pending_approval');
+        break;
       case 'closed':
-        return capaData.capas.filter(c => c.status === 'closed');
+        filtered = capaData.capas.filter(c => c.status === 'closed');
+        break;
       default:
-        return capaData.capas;
+        filtered = capaData.capas;
     }
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [capaData?.capas, activeTab]);
 
   // Chart data
@@ -765,6 +771,20 @@ export default function CapaDashboardPage() {
               />
               <MasterDetail enabled={true} component={masterDetailTemplate} />
 
+              <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <Column dataField="capaNumber" caption={t('capa.table.columns.capaNumber')} width={130} fixed={true} />
               <Column dataField="title" caption={t('capa.table.columns.title')} minWidth={200} />
               <Column

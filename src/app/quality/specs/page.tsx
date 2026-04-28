@@ -184,7 +184,7 @@ export default function QualitySpecsPage() {
       );
     }
 
-    return result;
+    return result.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [specs, statusFilter, criticalFilter, searchText]);
 
   // Calculate statistics
@@ -557,6 +557,20 @@ export default function QualitySpecsPage() {
                 <HeaderFilter visible={true} />
                 <Export enabled={true} formats={['xlsx']} />
 
+                <Column
+                  dataField="_rowNumber"
+                  caption={t('items.grid.columns.rowNum')}
+                  width={60}
+                  alignment="center"
+                  allowFiltering={false}
+                  allowSorting={false}
+                  allowGrouping={false}
+                  cellRender={(cellInfo) => (
+                    <span className="text-gray-500 text-sm font-medium">
+                      {cellInfo.data._rowNumber}
+                    </span>
+                  )}
+                />
                 <Column
                   dataField="itemCode"
                   caption={t('specs.grid.item')}

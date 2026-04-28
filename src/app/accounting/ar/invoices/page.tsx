@@ -598,6 +598,12 @@ export default function ARInvoicesPage() {
     return { total, pending, outstanding, paid, totalAmount, outstandingAmount };
   }, [invoices]);
 
+  // Add row sequence numbers for the grid
+  const invoicesWithRowNumber = useMemo(
+    () => invoices.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [invoices]
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" data-testid="ar-invoices-page">
       {/* Professional Header */}
@@ -684,7 +690,7 @@ export default function ARInvoicesPage() {
         {/* Data Grid */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ar-invoices-grid">
         <DataGrid
-          dataSource={invoices}
+          dataSource={invoicesWithRowNumber}
           keyExpr="id"
           showBorders={true}
           showRowLines={true}
@@ -716,6 +722,20 @@ export default function ARInvoicesPage() {
             <Item name="columnChooserButton" location="after" />
           </Toolbar>
 
+          <Column
+            dataField="_rowNumber"
+            caption={t('items.grid.columns.rowNum')}
+            width={60}
+            alignment="center"
+            allowFiltering={false}
+            allowSorting={false}
+            allowGrouping={false}
+            cellRender={(cellInfo) => (
+              <span className="text-gray-500 text-sm font-medium">
+                {cellInfo.data._rowNumber}
+              </span>
+            )}
+          />
           <Column dataField="invoiceNumber" caption="เลขที่ใบแจ้งหนี้" width={150} />
           <Column dataField="taxInvoiceNumber" caption="เลขที่ใบกำกับภาษี" width={160} />
           <Column dataField="customerId" caption="ลูกค้า" width={150} visible={false} />

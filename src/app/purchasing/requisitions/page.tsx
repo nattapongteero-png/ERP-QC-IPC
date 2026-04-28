@@ -227,15 +227,18 @@ export default function PurchaseRequisitionsPage() {
   }, [fetchRequisitions]);
 
   // Client-side filtering
-  const filteredRequisitions = requisitions.filter((pr) => {
-    const matchesStatus = !statusFilter || normalizeStatus(pr.status) === statusFilter;
-    const matchesSearch =
-      !search ||
-      pr.prNumber?.toLowerCase().includes(search.toLowerCase()) ||
-      pr.description?.toLowerCase().includes(search.toLowerCase()) ||
-      pr.requesterName?.toLowerCase().includes(search.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  const filteredRequisitions = useMemo(() => {
+    const filtered = requisitions.filter((pr) => {
+      const matchesStatus = !statusFilter || normalizeStatus(pr.status) === statusFilter;
+      const matchesSearch =
+        !search ||
+        pr.prNumber?.toLowerCase().includes(search.toLowerCase()) ||
+        pr.description?.toLowerCase().includes(search.toLowerCase()) ||
+        pr.requesterName?.toLowerCase().includes(search.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+  }, [requisitions, statusFilter, search]);
 
   // Calculate counts for each status
   const statusCounts = STATUS_ORDER.reduce((acc, status) => {
@@ -301,6 +304,19 @@ export default function PurchaseRequisitionsPage() {
 
   // Define columns for DevExtreme DataGrid
   const columns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {(cellInfo.data as { _rowNumber?: number })._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'prNumber',
       caption: t('requisitions.grid.columns.prNumber'),

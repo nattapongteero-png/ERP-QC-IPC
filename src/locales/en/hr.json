@@ -797,5 +797,12 @@
       "success": "Employee added successfully",
       "error": "Failed to add employee"
     }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

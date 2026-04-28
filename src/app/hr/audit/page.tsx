@@ -4,7 +4,7 @@
 // Feature: 007-hr-personnel-management
 // Pattern: Aligned with Template module design
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import DataGrid, {
   Column,
@@ -107,6 +107,16 @@ export default function AuditLogPage() {
 
   const auditLogs = auditResult?.data || [];
   const totalLogs = auditResult?.total || 0;
+
+  const auditLogsWithRowNum = useMemo(
+    () => auditLogs.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [auditLogs]
+  );
+
+  const accessReviewWithRowNum = useMemo(
+    () => accessReview.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [accessReview]
+  );
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString(locale === 'th' ? 'th-TH' : 'en-US', {
@@ -270,7 +280,7 @@ export default function AuditLogPage() {
           <CardContent className="p-0">
             <DataGrid
               key={locale}
-              dataSource={auditLogs}
+              dataSource={auditLogsWithRowNum}
               showBorders={false}
               showRowLines
               rowAlternationEnabled
@@ -295,6 +305,20 @@ export default function AuditLogPage() {
                 showNavigationButtons
               />
 
+              <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <Column
                 dataField="createdAt"
                 caption={t('audit.columns.dateTime')}
@@ -373,7 +397,7 @@ export default function AuditLogPage() {
           <CardContent className="p-0">
             <DataGrid
               key={locale}
-              dataSource={accessReview}
+              dataSource={accessReviewWithRowNum}
               showBorders={false}
               showRowLines
               rowAlternationEnabled
@@ -392,6 +416,20 @@ export default function AuditLogPage() {
                 showNavigationButtons
               />
 
+              <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <Column
                 dataField="employeeName"
                 caption={t('audit.columns.employee')}

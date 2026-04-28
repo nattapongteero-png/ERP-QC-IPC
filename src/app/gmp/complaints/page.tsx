@@ -306,7 +306,7 @@ export default function ComplaintsListPage() {
         (c.description || '').toLowerCase().includes(q),
       );
     }
-    return result;
+    return result.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [complaints, statusFilter, search]);
 
   // Calculate totals (keeps same semantics as before)
@@ -344,6 +344,19 @@ export default function ComplaintsListPage() {
 
   // Desktop DataGrid columns
   const columns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cell) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {(cell.data as { _rowNumber?: number })._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'complaintNumber',
       caption: t('complaints.columns.complaintNumber'),

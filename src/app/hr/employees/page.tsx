@@ -186,6 +186,11 @@ export default function EmployeesPage() {
   // Compute analytics data
   const employeeList = useMemo(() => Array.isArray(employees) ? employees : [], [employees]);
 
+  const employeeListWithRowNum = useMemo(
+    () => employeeList.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [employeeList]
+  );
+
   const analytics = useMemo(() => {
     const activeCount = employeeList.filter((e) => e.status === 'active').length;
     const inactiveCount = employeeList.filter((e) => e.status === 'inactive').length;
@@ -754,7 +759,7 @@ export default function EmployeesPage() {
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm" data-testid="hr-employees-grid">
           <DataGrid
             key={locale}
-            dataSource={employeeList}
+            dataSource={employeeListWithRowNum}
             keyExpr="id"
             showBorders={false}
             showRowLines
@@ -785,7 +790,7 @@ export default function EmployeesPage() {
             <GroupPanel visible />
             <Grouping autoExpandAll={false} />
             <ColumnChooser enabled mode="select" />
-            <StateStoring enabled type="localStorage" storageKey="hrEmployeesGrid" />
+            <StateStoring enabled type="localStorage" storageKey="hrEmployeesGrid_v2" />
 
             <Toolbar>
               <Item name="groupPanel" />
@@ -799,6 +804,20 @@ export default function EmployeesPage() {
             </Summary>
 
             {/* Professional columns with enhanced cell renderers */}
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column
               caption={t('employees.employeeCol')}
               cellRender={renderEmployeeCell}

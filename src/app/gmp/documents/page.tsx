@@ -290,7 +290,7 @@ export default function GmpDocumentsDashboardPage() {
       );
     }
 
-    return docs;
+    return docs.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [documentsData?.documents, activeTab, searchText]);
 
   // Chart data
@@ -779,6 +779,20 @@ export default function GmpDocumentsDashboardPage() {
             />
             <MasterDetail enabled={true} component={masterDetailTemplate} />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column
               dataField="documentNumber"
               caption={t('documents.table.columns.documentNumber')}

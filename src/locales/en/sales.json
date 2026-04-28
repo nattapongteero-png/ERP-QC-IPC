@@ -788,5 +788,12 @@
       "success": "Sales order confirmed successfully",
       "error": "Failed to confirm sales order"
     }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

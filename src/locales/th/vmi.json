@@ -249,5 +249,12 @@
       "autoSyncLabel": "Auto Sync:",
       "autoSyncDescription": "ระบบจะซิงค์อัตโนมัติทุก 15 นาที ทั้งแบบ Client-side และ Server-side (Vercel Cron)"
     }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

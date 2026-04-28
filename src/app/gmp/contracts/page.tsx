@@ -175,14 +175,18 @@ export default function ContractsDashboardPage() {
 
   // Apply search filter
   const filteredContracts = useMemo(() => {
-    if (!searchText.trim()) return allContracts;
-    const q = searchText.toLowerCase();
-    return allContracts.filter((c) =>
-      (c.contractNumber || '').toLowerCase().includes(q) ||
-      (c.contractorName || '').toLowerCase().includes(q) ||
-      (c.scope || '').toLowerCase().includes(q) ||
-      (c.contactPerson || '').toLowerCase().includes(q)
-    );
+    const filtered = !searchText.trim()
+      ? allContracts
+      : (() => {
+          const q = searchText.toLowerCase();
+          return allContracts.filter((c) =>
+            (c.contractNumber || '').toLowerCase().includes(q) ||
+            (c.contractorName || '').toLowerCase().includes(q) ||
+            (c.scope || '').toLowerCase().includes(q) ||
+            (c.contactPerson || '').toLowerCase().includes(q)
+          );
+        })();
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [allContracts, searchText]);
 
   // Tab counts
@@ -878,6 +882,20 @@ export default function ContractsDashboardPage() {
               <DxSearchPanel visible={false} />
               <DxPaging defaultPageSize={15} />
 
+              <DxColumn
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <DxColumn
                 dataField="contractorName"
                 caption={t('contracts.type.manufacturer')}

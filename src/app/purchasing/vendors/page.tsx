@@ -147,7 +147,7 @@ export default function VendorsPage() {
 
   // Client-side filtering
   const filteredVendors = useMemo(() => {
-    return vendors.filter((vendor) => {
+    const filtered = vendors.filter((vendor) => {
       // Status filter
       let matchesStatus = true;
       switch (statusFilter) {
@@ -174,6 +174,7 @@ export default function VendorsPage() {
 
       return matchesStatus && matchesSearch;
     });
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [vendors, statusFilter, search]);
 
   // Calculate counts for each status
@@ -212,6 +213,19 @@ export default function VendorsPage() {
 
   // Define columns for DevExtreme DataGrid
   const columns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {(cellInfo.data as { _rowNumber?: number })._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'code',
       caption: t('vendors.grid.columns.code'),

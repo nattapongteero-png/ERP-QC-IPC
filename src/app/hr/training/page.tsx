@@ -286,7 +286,7 @@ export default function TrainingDashboardPage() {
       const matchesStatus = !statusFilter || session.status === statusFilter;
 
       return matchesSearch && matchesStatus;
-    });
+    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [sessions, searchText, statusFilter]);
 
   const filteredCourses = useMemo(() => {
@@ -651,11 +651,25 @@ export default function TrainingDashboardPage() {
             <StateStoring
               enabled
               type="localStorage"
-              storageKey="hr_training_sessions_grid"
+              storageKey="hr_training_sessions_grid_v2"
             />
             <Scrolling mode="virtual" />
             <Export enabled />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column
               dataField="courseCode"
               caption="รหัสหลักสูตร"

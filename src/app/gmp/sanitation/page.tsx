@@ -175,8 +175,27 @@ export default function SanitationDashboardPage() {
     refetchTrends();
   };
 
+  // Pending tasks with row numbers (top 10 used by both mobile and grid views)
+  const pendingTasksWithRowNum = useMemo(
+    () => (pendingTasks?.slice(0, 10) ?? []).map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [pendingTasks]
+  );
+
   // Pending tasks grid columns (desktop)
   const taskColumns: DxDataGridColumn[] = [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cell) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {(cell.data as { _rowNumber?: number })._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'scheduleName',
       caption: 'Task',
@@ -658,7 +677,7 @@ export default function SanitationDashboardPage() {
         ) : (
           <div className="overflow-x-auto">
             <DxDataGrid
-              dataSource={pendingTasks.slice(0, 10)}
+              dataSource={pendingTasksWithRowNum}
               columns={taskColumns}
               showBorders={false}
               rowAlternationEnabled

@@ -1112,5 +1112,12 @@
     "save": "Save",
     "refresh": "Refresh",
     "actions": "Actions"
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

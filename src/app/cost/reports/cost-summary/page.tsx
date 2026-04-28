@@ -125,6 +125,12 @@ export default function CostSummaryReportPage() {
   const items = data?.data || [];
   const total = data?.total || 0;
 
+  // Add row sequence numbers for grid display
+  const itemsWithRowNum = useMemo(
+    () => items.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [items],
+  );
+
   const translateItemType = useCallback(
     (type: string): string => {
       const key = `reports.costSummary.itemTypes.${type}`;
@@ -398,7 +404,7 @@ export default function CostSummaryReportPage() {
             <DataGrid
               key={locale}
               ref={gridRef}
-              dataSource={items}
+              dataSource={itemsWithRowNum}
               showBorders
               columnAutoWidth
               rowAlternationEnabled
@@ -417,6 +423,20 @@ export default function CostSummaryReportPage() {
               <FilterRow visible />
               <Sorting mode="single" />
 
+              <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <Column dataField="itemCode" caption={t('reports.costSummary.grid.columns.code')} width={120} />
               <Column dataField="itemName" caption={t('reports.costSummary.grid.columns.name')} minWidth={200} />
               <Column

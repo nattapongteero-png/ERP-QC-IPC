@@ -386,5 +386,12 @@
       "quality": "คุณภาพ",
       "specifications": "ข้อกำหนด"
     }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

@@ -867,5 +867,12 @@
     "grandTotal": "Grand Total",
     "refresh": "Refresh",
     "clearFilters": "Clear Filters"
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

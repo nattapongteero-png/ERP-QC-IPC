@@ -237,8 +237,8 @@ export default function QualityTestsPage() {
 
   // Filtered tests based on status
   const filteredTests = useMemo(() => {
-    if (activeTab === 'all') return tests;
-    return tests.filter(t => t.status === activeTab);
+    const filtered = activeTab === 'all' ? tests : tests.filter(t => t.status === activeTab);
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [tests, activeTab]);
 
   // Chart data
@@ -765,6 +765,20 @@ export default function QualityTestsPage() {
             <HeaderFilter visible={true} />
             <Export enabled={true} formats={['xlsx']} />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column
               dataField="lotNumber"
               caption={t('tests.grid.lotItem')}

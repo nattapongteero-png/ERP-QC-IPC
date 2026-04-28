@@ -434,6 +434,12 @@ export default function APPaymentsPage() {
     return { total, paidThisMonth, pending, outstanding };
   }, [payments]);
 
+  // Add row sequence numbers for the grid
+  const paymentsWithRowNumber = useMemo(
+    () => payments.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [payments]
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Professional Header */}
@@ -554,7 +560,7 @@ export default function APPaymentsPage() {
         {/* Data Grid */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <DataGrid
-            dataSource={payments}
+            dataSource={paymentsWithRowNumber}
             keyExpr="id"
             showBorders={true}
             showRowLines={true}
@@ -586,6 +592,20 @@ export default function APPaymentsPage() {
               <Item name="columnChooserButton" location="after" />
             </Toolbar>
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column dataField="paymentNumber" caption="Payment Number" width={150} />
             <Column dataField="invoiceNumber" caption="Invoice Number" width={150} />
             <Column dataField="vendorName" caption="Vendor Name" minWidth={180} />

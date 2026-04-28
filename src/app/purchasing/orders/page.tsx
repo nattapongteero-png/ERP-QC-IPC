@@ -217,14 +217,17 @@ export default function PurchaseOrdersPage() {
   };
 
   // Client-side filtering
-  const filteredOrders = useMemo(() => orders.filter((order) => {
-    const matchesStatus = !statusFilter || normalizeStatus(order.status) === statusFilter;
-    const matchesSearch =
-      !search ||
-      order.poNumber?.toLowerCase().includes(search.toLowerCase()) ||
-      order.vendorName?.toLowerCase().includes(search.toLowerCase());
-    return matchesStatus && matchesSearch;
-  }), [orders, statusFilter, search]);
+  const filteredOrders = useMemo(() => {
+    const filtered = orders.filter((order) => {
+      const matchesStatus = !statusFilter || normalizeStatus(order.status) === statusFilter;
+      const matchesSearch =
+        !search ||
+        order.poNumber?.toLowerCase().includes(search.toLowerCase()) ||
+        order.vendorName?.toLowerCase().includes(search.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+  }, [orders, statusFilter, search]);
 
   // Calculate counts for each status
   const statusCounts = useMemo(() => STATUS_ORDER.reduce((acc, status) => {
@@ -270,6 +273,19 @@ export default function PurchaseOrdersPage() {
 
   // Define columns for DevExtreme DataGrid
   const columns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {(cellInfo.data as { _rowNumber?: number })._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'poNumber',
       caption: t('orders.grid.columns.poNumber'),

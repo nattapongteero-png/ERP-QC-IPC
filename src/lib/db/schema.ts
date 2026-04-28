@@ -1192,6 +1192,22 @@ export const sqliteSOPTemplateSteps = sqliteTable('sop_template_steps', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// SOP Template Step ↔ IPC Criteria links (many-to-many).
+// "After this template step, perform these IPC tests." When a BOM uses
+// the template, downstream logic (Phase 2) can auto-create the IPC tests.
+// Phase 1 defines the link only — no propagation yet.
+// Column names match what sop-template-ipc.service.ts expects.
+export const sqliteSOPTemplateIPCCriteria = sqliteTable('sop_template_ipc_criteria', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  procedureStepId: integer('procedure_step_id').notNull().references(() => sqliteSOPTemplateSteps.id),
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  sequence: integer('sequence').notNull().default(1),
+  sampleSize: integer('sample_size').notNull().default(1),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Packaging QC Criteria (Master Data) - Lookup table for packaging weight/inspection criteria
 export const sqlitePackagingQCCriteria = sqliteTable('packaging_qc_criteria', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -4423,6 +4439,18 @@ export const mysqlSOPTemplateSteps = mysqlTable('sop_template_steps', {
   instructions: mysqlText('instructions'),
   instructionsTh: mysqlText('instructions_th'),
   defaultParameters: mysqlText('default_parameters'), // JSON: { temperature: 75, duration: 10 }
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// SOP Template Step ↔ IPC Criteria links (many-to-many) — MySQL
+export const mysqlSOPTemplateIPCCriteria = mysqlTable('sop_template_ipc_criteria', {
+  id: int('id').primaryKey().autoincrement(),
+  procedureStepId: int('procedure_step_id').notNull().references(() => mysqlSOPTemplateSteps.id),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  sequence: int('sequence').notNull().default(1),
+  sampleSize: int('sample_size').notNull().default(1),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  notes: mysqlText('notes'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

@@ -498,6 +498,12 @@ export default function ARReceiptsPage() {
     );
   }, []);
 
+  // Add row sequence numbers for the grid
+  const receiptsWithRowNumber = useMemo(
+    () => receipts.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [receipts]
+  );
+
   return (
     <div className="space-y-6 p-1">
       {/* Header */}
@@ -663,7 +669,7 @@ export default function ARReceiptsPage() {
               </div>
             ) : (
               <DataGrid
-                dataSource={receipts}
+                dataSource={receiptsWithRowNumber}
                 keyExpr="id"
                 showBorders={false}
                 showRowLines
@@ -684,6 +690,20 @@ export default function ARReceiptsPage() {
                   <ToolbarItem name="exportButton" location="after" />
                 </Toolbar>
 
+                <Column
+                  dataField="_rowNumber"
+                  caption={t('items.grid.columns.rowNum')}
+                  width={60}
+                  alignment="center"
+                  allowFiltering={false}
+                  allowSorting={false}
+                  allowGrouping={false}
+                  cellRender={(cellInfo) => (
+                    <span className="text-gray-500 text-sm font-medium">
+                      {cellInfo.data._rowNumber}
+                    </span>
+                  )}
+                />
                 <Column dataField="receiptNumber" caption="Receipt #" width={150} />
                 <Column
                   dataField="receiptDate"

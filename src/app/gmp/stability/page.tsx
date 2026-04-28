@@ -316,15 +316,19 @@ export default function StabilityDashboardPage() {
   // Filter studies client-side for search
   const filteredStudies = useMemo(() => {
     const list = studiesData?.studies || [];
-    if (!searchText.trim()) return list;
-    const q = searchText.toLowerCase();
-    return list.filter(
-      (s) =>
-        (s.studyNumber || '').toLowerCase().includes(q) ||
-        (s.productName || '').toLowerCase().includes(q) ||
-        (s.lotNumber || '').toLowerCase().includes(q) ||
-        (s.protocolNumber || '').toLowerCase().includes(q)
-    );
+    const filtered = !searchText.trim()
+      ? list
+      : (() => {
+          const q = searchText.toLowerCase();
+          return list.filter(
+            (s) =>
+              (s.studyNumber || '').toLowerCase().includes(q) ||
+              (s.productName || '').toLowerCase().includes(q) ||
+              (s.lotNumber || '').toLowerCase().includes(q) ||
+              (s.protocolNumber || '').toLowerCase().includes(q)
+          );
+        })();
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [studiesData, searchText]);
 
   // Prepare chart data

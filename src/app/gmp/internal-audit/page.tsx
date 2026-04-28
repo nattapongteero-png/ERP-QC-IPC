@@ -543,8 +543,8 @@ export default function InternalAuditDashboardPage() {
 
   // Filter audits by tab
   const filteredAudits = useMemo(() => {
-    if (activeTab === 'all') return audits;
-    return audits.filter((a) => a.status === activeTab);
+    const filtered = activeTab === 'all' ? audits : audits.filter((a) => a.status === activeTab);
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [audits, activeTab]);
 
   // Chart data
@@ -1149,6 +1149,20 @@ export default function InternalAuditDashboardPage() {
               <ColumnChooser enabled={true} mode="select" />
               <Export enabled={true} allowExportSelectedData={true} />
 
+              <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <Column
                 dataField="auditNumber"
                 caption={t('internalAudit.table.columns.auditNumber')}

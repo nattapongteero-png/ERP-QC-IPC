@@ -249,5 +249,12 @@
       "autoSyncLabel": "Auto Sync:",
       "autoSyncDescription": "The system syncs automatically every 15 minutes, both Client-side and Server-side (Vercel Cron)"
     }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

@@ -258,7 +258,7 @@ export default function CustomersPage() {
         (statusFilter === 'inactive' && !customer.isActive);
 
       return matchesSearch && matchesType && matchesStatus;
-    });
+    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [customers, search, typeFilter, statusFilter]);
 
   // Calculate statistics
@@ -384,6 +384,20 @@ export default function CustomersPage() {
 
   // DataGrid columns
   const columns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowHeaderFiltering: false,
+      allowSorting: false,
+      cellRender: (cellInfo: { data?: Customer & { _rowNumber?: number } }) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {cellInfo.data?._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'code',
       caption: t('customers.grid.columns.code'),

@@ -248,7 +248,7 @@ export default function PositionsPage() {
       if (filters.status === 'inactive' && pos.isActive) return false;
       if (filters.gmpOnly && !pos.isGmpCritical) return false;
       return true;
-    });
+    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [positions, filters]);
 
   // Calculate analytics
@@ -795,7 +795,7 @@ export default function PositionsPage() {
               <Grouping contextMenuEnabled />
               <GroupPanel visible />
               <ColumnChooser enabled />
-              <StateStoring enabled type="localStorage" storageKey="hr-positions-grid" />
+              <StateStoring enabled type="localStorage" storageKey="hr-positions-grid-v2" />
               <Export enabled />
 
               <Toolbar>
@@ -805,6 +805,20 @@ export default function PositionsPage() {
                 <Item name="exportButton" />
               </Toolbar>
 
+              <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
               <Column dataField="code" caption={t('positions.columns.code')} width={100} hidingPriority={1} />
               <Column dataField="title" caption={t('positions.columns.title')} minWidth={150} hidingPriority={0} />
               <Column dataField="titleEn" caption={t('positions.columns.titleEn')} width={150} hidingPriority={4} />

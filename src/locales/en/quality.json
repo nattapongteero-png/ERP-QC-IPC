@@ -386,5 +386,12 @@
       "quality": "Quality",
       "specifications": "Specifications"
     }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

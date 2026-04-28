@@ -235,5 +235,12 @@
       "success": "Cost calculated successfully",
       "error": "Failed to calculate cost"
     }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
   }
 }

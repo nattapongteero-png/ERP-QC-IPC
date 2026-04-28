@@ -323,6 +323,11 @@ export default function VmiSyncPage() {
     return matching.length > 0 ? matching[matching.length - 1] : null;
   }, [historyData]);
 
+  // History items with row numbers for DataGrid
+  const historyItemsWithRowNum = useMemo(() => {
+    return (historyData?.items || []).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+  }, [historyData]);
+
   // Calculate stats with useMemo
   const stats = useMemo(() => {
     const today = new Date().toDateString();
@@ -1051,7 +1056,7 @@ export default function VmiSyncPage() {
           ) : (
           <DataGrid
             key={locale}
-            dataSource={historyData?.items || []}
+            dataSource={historyItemsWithRowNum}
             keyExpr="id"
             showBorders={false}
             showRowLines={true}
@@ -1088,6 +1093,21 @@ export default function VmiSyncPage() {
               </Item>
               <Item name="exportButton" location="after" />
             </Toolbar>
+
+            <Column
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              allowExporting={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.rowIndex + 1}
+                </span>
+              )}
+            />
 
             <Column
               dataField="syncType"

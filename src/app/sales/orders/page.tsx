@@ -256,7 +256,7 @@ export default function SalesOrdersPage() {
       const matchesStatus = !statusFilter || order.status === statusFilter;
 
       return matchesSearch && matchesStatus;
-    });
+    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [orders, search, statusFilter]);
 
   // Calculate statistics
@@ -372,6 +372,20 @@ export default function SalesOrdersPage() {
 
   // DataGrid columns (min widths ensure usability; hide on mobile via prop)
   const columns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowHeaderFiltering: false,
+      allowSorting: false,
+      cellRender: (cellInfo: { data?: SalesOrder & { _rowNumber?: number } }) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {cellInfo.data?._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'soNumber',
       caption: t('orders.grid.columns.soNumber'),

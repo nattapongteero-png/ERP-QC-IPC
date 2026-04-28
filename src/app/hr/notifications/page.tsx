@@ -217,13 +217,17 @@ export default function NotificationsPage() {
 
   // Filter notifications based on search text
   const notifications = useMemo(() => {
-    if (!searchText.trim()) return allNotifications;
-    const searchLower = searchText.toLowerCase().trim();
-    return allNotifications.filter((n) =>
-      n.employeeCode?.toLowerCase().includes(searchLower) ||
-      n.employeeName?.toLowerCase().includes(searchLower) ||
-      n.title?.toLowerCase().includes(searchLower)
-    );
+    const filtered = !searchText.trim()
+      ? allNotifications
+      : allNotifications.filter((n) => {
+          const searchLower = searchText.toLowerCase().trim();
+          return (
+            n.employeeCode?.toLowerCase().includes(searchLower) ||
+            n.employeeName?.toLowerCase().includes(searchLower) ||
+            n.title?.toLowerCase().includes(searchLower)
+          );
+        });
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [allNotifications, searchText]);
 
   // Handlers
@@ -498,6 +502,20 @@ export default function NotificationsPage() {
               showNavigationButtons
             />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column
               dataField="type"
               caption={t('notifications.columns.type')}

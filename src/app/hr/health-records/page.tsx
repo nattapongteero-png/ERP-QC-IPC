@@ -4,7 +4,7 @@
 // Feature: 007-hr-personnel-management
 // Pattern: Aligned with Template module design
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
@@ -106,6 +106,21 @@ export default function HealthRecordsPage() {
     queryKey: ['hr', 'health-records', 'overdue'],
     queryFn: fetchOverdueHealthChecks,
   });
+
+  const healthRecordsWithRowNum = useMemo(
+    () => healthRecords.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [healthRecords]
+  );
+
+  const healthChecksDueWithRowNum = useMemo(
+    () => healthChecksDue.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [healthChecksDue]
+  );
+
+  const overdueChecksWithRowNum = useMemo(
+    () => overdueChecks.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [overdueChecks]
+  );
 
   const deleteMutation = useMutation({
     mutationFn: deleteHealthRecord,
@@ -342,7 +357,7 @@ export default function HealthRecordsPage() {
           <CardContent className="p-0">
             <DataGrid
               key={locale}
-              dataSource={healthRecords}
+              dataSource={healthRecordsWithRowNum}
               showBorders={false}
               showRowLines
               rowAlternationEnabled
@@ -364,6 +379,20 @@ export default function HealthRecordsPage() {
               showNavigationButtons
             />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column
               dataField="employeeName"
               caption={t('healthRecords.columns.employee')}
@@ -433,7 +462,7 @@ export default function HealthRecordsPage() {
           <CardContent className="p-0">
             <DataGrid
               key={locale}
-              dataSource={healthChecksDue}
+              dataSource={healthChecksDueWithRowNum}
               showBorders={false}
               showRowLines
               rowAlternationEnabled
@@ -449,6 +478,20 @@ export default function HealthRecordsPage() {
               showInfo
             />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column
               dataField="employeeName"
               caption={t('healthRecords.columns.employee')}
@@ -504,7 +547,7 @@ export default function HealthRecordsPage() {
           <CardContent className="p-0">
             <DataGrid
               key={locale}
-              dataSource={overdueChecks}
+              dataSource={overdueChecksWithRowNum}
               showBorders={false}
               showRowLines
               rowAlternationEnabled
@@ -520,6 +563,20 @@ export default function HealthRecordsPage() {
               showInfo
             />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column
               dataField="employeeName"
               caption={t('healthRecords.columns.employee')}

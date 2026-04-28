@@ -327,7 +327,7 @@ export default function AuthorizationsPage() {
       const matchesStatus = !statusFilter || status.status === statusFilter;
 
       return matchesSearch && matchesType && matchesStatus;
-    });
+    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [authorizations, searchText, authTypeFilter, statusFilter, t]);
 
   // Mutations
@@ -673,10 +673,24 @@ export default function AuthorizationsPage() {
             <Grouping autoExpandAll={false} />
             <GroupPanel visible />
             <ColumnChooser enabled mode="select" />
-            <StateStoring enabled type="localStorage" storageKey="hr_authorizations_grid" />
+            <StateStoring enabled type="localStorage" storageKey="hr_authorizations_grid_v2" />
             <Scrolling mode="virtual" />
             <Export enabled />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column dataField="employeeName" caption={t('authorizations.columns.employee')} minWidth={180} allowGrouping />
             <Column
               dataField="authType"
