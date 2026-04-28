@@ -363,11 +363,14 @@ const phases = [
   { value: 'packaging', label: 'Packaging' },
 ];
 
+// Packaging QC tab removed — packaging-specific QC criteria are now defined
+// as IPC criteria (phase=packaging). Legacy bom_packaging_qc data remains in
+// the database but is no longer reachable from the UI. Tab IDs 3+ keep their
+// numeric position so existing tab-content blocks don't need re-wiring.
 const tabItems: DxTabItem[] = [
   { id: 0, text: 'Rooms', icon: 'home' },
   { id: 1, text: 'Equipment', icon: 'toolbox' },
   { id: 2, text: 'SOP Steps', icon: 'textdocument' },
-  { id: 3, text: 'Packaging QC', icon: 'box' },
   { id: 4, text: 'IPC', icon: 'checklist' },
 ];
 

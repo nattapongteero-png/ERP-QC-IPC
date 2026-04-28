@@ -339,36 +339,10 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
         };
       },
     },
-    {
-      id: 'packaging-weight',
-      title: 'Packaging Weight Control',
-      icon: <Scale className="h-5 w-5" />,
-      href: `/production/work-orders/${workOrderId}/packaging-qc?tab=weight`,
-      phase: 'packaging',
-      description: 'Sample weight verification during packaging',
-      getStatus: (s) => ({
-        completed: s.packagingWeight.passed,
-        verified: 0,
-        total: s.packagingWeight.total,
-        status: s.packagingWeight.passed === s.packagingWeight.total && s.packagingWeight.total > 0 ? 'completed'
-          : s.packagingWeight.passed > 0 ? 'in_progress' : 'pending',
-      }),
-    },
-    {
-      id: 'packaging-integrity',
-      title: 'Packaging Integrity',
-      icon: <Package className="h-5 w-5" />,
-      href: `/production/work-orders/${workOrderId}/packaging-qc?tab=integrity`,
-      phase: 'packaging',
-      description: 'Cap, label, and packing verification',
-      getStatus: (s) => ({
-        completed: s.packagingIntegrity.passed,
-        verified: 0,
-        total: s.packagingIntegrity.total,
-        status: s.packagingIntegrity.passed === s.packagingIntegrity.total && s.packagingIntegrity.total > 0 ? 'completed'
-          : s.packagingIntegrity.passed > 0 ? 'in_progress' : 'pending',
-      }),
-    },
+    // Packaging Weight Control + Packaging Integrity cards removed — these
+    // criteria now live as IPC criteria (phase=packaging) and surface in the
+    // per-phase IPC card. Legacy /packaging-qc page remains for viewing
+    // historical bom_packaging_qc data but no card links to it.
     {
       id: 'packaging-environmental',
       title: 'Environmental Monitoring (Packaging)',
