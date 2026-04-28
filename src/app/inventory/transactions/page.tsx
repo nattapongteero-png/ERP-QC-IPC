@@ -241,24 +241,22 @@ export default function TransactionsPage() {
   // Helper function to normalize type for comparison (handle both upper and lower case)
   const normalizeType = (type: string) => type?.toUpperCase() || '';
 
-  // Filter transactions based on type and search
-  const filteredTransactions = allTransactions.filter(txn => {
-    // Type filter (case-insensitive)
-    if (typeFilter && normalizeType(txn.type) !== typeFilter) {
-      return false;
-    }
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      return (
-        txn.transactionNumber?.toLowerCase().includes(searchLower) ||
-        txn.lotNumber?.toLowerCase().includes(searchLower) ||
-        txn.itemCode?.toLowerCase().includes(searchLower) ||
-        txn.itemName?.toLowerCase().includes(searchLower)
-      );
-    }
-    return true;
-  });
+  // Filter transactions + tag with display row number (mirrors /inventory/items).
+  const filteredTransactions = allTransactions
+    .filter(txn => {
+      if (typeFilter && normalizeType(txn.type) !== typeFilter) return false;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        return (
+          txn.transactionNumber?.toLowerCase().includes(searchLower) ||
+          txn.lotNumber?.toLowerCase().includes(searchLower) ||
+          txn.itemCode?.toLowerCase().includes(searchLower) ||
+          txn.itemName?.toLowerCase().includes(searchLower)
+        );
+      }
+      return true;
+    })
+    .map((txn, index) => ({ ...txn, _rowNumber: index + 1 }));
 
   // Calculate counts for tabs (case-insensitive)
   const typeCounts: Record<TransactionTypeFilter, number> = {
@@ -343,6 +341,19 @@ export default function TransactionsPage() {
   };
 
   const columns: DxDataGridColumn[] = [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {cellInfo.data._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'transactionNumber',
       caption: t('transactions.table.columns.transactionNumber'),

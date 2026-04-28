@@ -622,7 +622,8 @@ export default function LotsPage() {
       result = result.filter((lot) => lot.itemType === 'finished_good' || lot.itemType === 'finished_goods');
     }
 
-    return result;
+    // Tag with display row number (mirrors /inventory/items).
+    return result.map((lot, index) => ({ ...lot, _rowNumber: index + 1 }));
   }, [lots, statusFilter, search, warehouseFilter, expiryFrom, expiryTo, receivedFrom, receivedTo, quickFilter]);
 
   const fetchMasterData = async () => {
@@ -835,6 +836,19 @@ export default function LotsPage() {
 
   // Define columns for DevExtreme DataGrid
   const columns: DxDataGridColumn[] = [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {cellInfo.data._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'lotNumber',
       caption: t('lots.grid.columns.lotNumber'),

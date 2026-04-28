@@ -220,23 +220,21 @@ export default function WarehousesPage() {
     router.push(`/inventory/warehouses/${warehouse.id}`);
   }, [router]);
 
-  // Filter warehouses based on type and search
-  const filteredWarehouses = warehouses.filter(warehouse => {
-    // Type filter
-    if (typeFilter && warehouse.type !== typeFilter) {
-      return false;
-    }
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      return (
-        warehouse.code?.toLowerCase().includes(searchLower) ||
-        warehouse.name?.toLowerCase().includes(searchLower) ||
-        warehouse.location?.toLowerCase().includes(searchLower)
-      );
-    }
-    return true;
-  });
+  // Filter warehouses + tag with display row number (mirrors /inventory/items).
+  const filteredWarehouses = warehouses
+    .filter(warehouse => {
+      if (typeFilter && warehouse.type !== typeFilter) return false;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        return (
+          warehouse.code?.toLowerCase().includes(searchLower) ||
+          warehouse.name?.toLowerCase().includes(searchLower) ||
+          warehouse.location?.toLowerCase().includes(searchLower)
+        );
+      }
+      return true;
+    })
+    .map((w, index) => ({ ...w, _rowNumber: index + 1 }));
 
   // Calculate counts for tabs
   const typeCounts: Record<WarehouseTypeFilter, number> = {
@@ -256,6 +254,19 @@ export default function WarehousesPage() {
 
   // Define columns for DevExtreme DataGrid
   const columns: DxDataGridColumn[] = [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {cellInfo.data._rowNumber}
+        </span>
+      ),
+    },
     {
       dataField: 'code',
       caption: t('warehouses.table.columns.code'),

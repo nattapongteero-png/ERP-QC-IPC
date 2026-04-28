@@ -109,7 +109,23 @@ export default function ExpiryAlertsPage() {
     [t],
   );
 
+  // Reusable row-number column matching /inventory/items.
+  const rowNumberColumn: DxDataGridColumn = {
+    dataField: '_rowNumber',
+    caption: t('items.grid.columns.rowNum'),
+    width: 60,
+    alignment: 'center',
+    allowFiltering: false,
+    allowSorting: false,
+    cellRender: (cellInfo) => (
+      <span className="text-gray-500 text-sm font-medium">
+        {cellInfo.data._rowNumber}
+      </span>
+    ),
+  };
+
   const expiredColumns: DxDataGridColumn[] = [
+    rowNumberColumn,
     { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 150 },
     { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 120, hideOnMobile: true },
     { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
@@ -133,6 +149,7 @@ export default function ExpiryAlertsPage() {
   ];
 
   const nearExpiryColumns: DxDataGridColumn[] = [
+    rowNumberColumn,
     { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 150 },
     { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 120, hideOnMobile: true },
     { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
@@ -155,8 +172,9 @@ export default function ExpiryAlertsPage() {
     },
   ];
 
-  const expired = report?.expired || [];
-  const nearExpiry = report?.nearExpiry || [];
+  // Tag with display row number (mirrors /inventory/items pattern).
+  const expired = (report?.expired || []).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+  const nearExpiry = (report?.nearExpiry || []).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   const expiredCount = report?.summary.expiredCount || 0;
   const expiredValue = report?.summary.expiredValue || 0;
   const nearExpiryCount = report?.summary.nearExpiryCount || 0;
