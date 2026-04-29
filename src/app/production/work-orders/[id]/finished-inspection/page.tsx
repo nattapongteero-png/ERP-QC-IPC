@@ -11,6 +11,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader } from '@/components/shared';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -155,6 +156,16 @@ export default function FinishedInspectionPage() {
       if (!data.success) return null;
       return data.data;
     },
+  });
+
+  // Realtime sync — when another user records / verifies / re-inspects on
+  // the same WO, refresh both the inspection record and the WO header
+  // (status flips when inspection passes).
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    if (data.section !== 'finished-inspection' && data.section !== 'status') return;
+    queryClient.invalidateQueries({ queryKey: ['wo-finished-inspection', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
   // Create inspection mutation

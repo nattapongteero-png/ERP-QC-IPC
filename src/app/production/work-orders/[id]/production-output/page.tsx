@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader } from '@/components/shared';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -137,6 +138,14 @@ export default function ProductionOutputPage() {
       return data.data;
     },
     enabled: !!workOrder?.actualQuantity,
+  });
+
+  // Realtime sync — when another user records bulk/finished output on this
+  // WO (or flips status afterwards), refresh the WO header and yield row.
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['wo-yield', workOrderId] });
   });
 
   // Record output mutation

@@ -6,8 +6,9 @@
  */
 
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader } from '@/components/shared';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -33,6 +34,7 @@ export default function WorkOrderExecutionPage() {
   const pageTitle = t('execution.title');
   const workOrderId = Number(params.id);
 
+  const queryClient = useQueryClient();
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderBasic>({
     queryKey: ['work-order', workOrderId],
     queryFn: async () => {
@@ -41,6 +43,14 @@ export default function WorkOrderExecutionPage() {
       if (!data.success) throw new Error(data.error);
       return data.data?.workOrder;
     },
+  });
+
+  // The wrapped ExecutionDashboard already syncs its own queries; here we
+  // refresh the header (status badge + planned/actual qty) so it doesn't
+  // sit stale after another user flips the WO status or records output.
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
   if (woLoading) {

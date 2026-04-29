@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
@@ -216,6 +217,21 @@ export default function WorkOrderDetailPage() {
     fetchWorkOrderDetail();
     fetchLineClearanceStatus();
   }, [params.id]);
+
+  // Realtime sync — when another user (or another tab on the same machine)
+  // changes any execution sub-section on this work order, refetch the
+  // detail + line-clearance status so the header / KPIs / progress bars
+  // stay in sync without a manual reload.
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== Number(params.id)) return;
+    fetchWorkOrderDetail();
+    fetchLineClearanceStatus();
+  });
+  // Also reflect requisition state flips initiated from /inventory/lots.
+  useRealtimeTopic('requisition-changed', (data) => {
+    if (data.workOrderId !== Number(params.id)) return;
+    fetchWorkOrderDetail();
+  });
 
   useEffect(() => {
     if (selectedItem) {

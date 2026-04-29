@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, successResponse, errorResponse } from '@/lib/api-utils';
 import { calculateYield, recordProductionOutput, recordBulkOutput } from '@/lib/services/production.service';
 import { getProductionYieldReport } from '@/lib/services/reports.service';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 
 // GET - Get yield calculation for a work order
 export async function GET(request: NextRequest) {
@@ -42,6 +43,9 @@ export async function POST(request: NextRequest) {
 
       if (outputStage === 'bulk') {
         await recordBulkOutput(workOrderId, actualQuantity, user.userId);
+        // Notify dashboards / sub-pages on the same WO so they refresh
+        // without manual reload (multi-user / multi-device).
+        try { publishWorkOrderChanged(workOrderId, 'production-output', user.userId, 'bulk'); } catch {}
         return successResponse({
           stage: 'bulk',
           bulkQuantity: actualQuantity,
@@ -62,6 +66,8 @@ export async function POST(request: NextRequest) {
       );
 
       const yieldResult = await calculateYield(workOrderId);
+
+      try { publishWorkOrderChanged(workOrderId, 'production-output', user.userId, 'finished'); } catch {}
 
       return successResponse({
         stage: 'finished',
