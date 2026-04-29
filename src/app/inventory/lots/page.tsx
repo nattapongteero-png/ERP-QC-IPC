@@ -855,10 +855,10 @@ export default function LotsPage() {
       minWidth: 180,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
-          <span className={cn('p-1 rounded-sm border', STATUS_CONFIG[cellInfo.data.status as StatusType]?.bgColor, STATUS_CONFIG[cellInfo.data.status as StatusType]?.textColor)}>
+          <span className={cn('p-1 rounded', STATUS_CONFIG[cellInfo.data.status as StatusType]?.bgColor, STATUS_CONFIG[cellInfo.data.status as StatusType]?.textColor)}>
             {STATUS_CONFIG[cellInfo.data.status as StatusType]?.icon}
           </span>
-          <span className="font-mono font-semibold text-sky-700 hover:text-sky-800">{cellInfo.data.lotNumber}</span>
+          <span className="font-mono text-emerald-600 hover:text-emerald-800">{cellInfo.data.lotNumber}</span>
         </div>
       ),
     },
@@ -1104,58 +1104,11 @@ export default function LotsPage() {
   return (
     <MainLayout>
       <div className="space-y-4">
-        {/* Style E Hero — Pharma Pro */}
-        <div className="bg-white rounded-md p-5 lg:p-6 border-2 border-sky-100">
-          <div className="border-l-4 border-sky-600 bg-sky-50 rounded-r-md p-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-12 h-12 rounded-md bg-sky-600 flex items-center justify-center flex-shrink-0">
-                <Boxes className="w-6 h-6 text-white" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                  Pharmaceutical Inventory · Lot Master · GMP-Audit-Ready
-                </div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900 mt-0.5 truncate">
-                  {t('lots.pageTitle')}
-                </h1>
-                <p className="text-sm text-slate-600 mt-0.5 max-w-2xl">{t('lots.description')}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-sky-300 bg-white text-sky-800">
-                    <Boxes className="h-3 w-3 text-sky-700" />
-                    <span className="font-bold tabular-nums">{stats.totalLots.toLocaleString()}</span>
-                    <span>lots</span>
-                  </span>
-                  {stats.releasedCount > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-emerald-300 bg-emerald-50 text-emerald-800">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span className="font-bold tabular-nums">{stats.releasedCount}</span>
-                      <span>{t('stats.released') || 'ปล่อย'}</span>
-                    </span>
-                  )}
-                  {stats.quarantineCount > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-amber-300 bg-amber-50 text-amber-800">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                      <span className="font-bold tabular-nums">{stats.quarantineCount}</span>
-                      <span>กักกัน</span>
-                    </span>
-                  )}
-                  {stats.nearExpiryCount > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-amber-300 bg-amber-50 text-amber-800">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                      <span className="font-bold tabular-nums">{stats.nearExpiryCount}</span>
-                      <span>ใกล้หมดอายุ</span>
-                    </span>
-                  )}
-                  {stats.expiredCount > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-rose-300 bg-rose-50 text-rose-800">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                      <span className="font-bold tabular-nums">{stats.expiredCount}</span>
-                      <span>หมดอายุ</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+        {/* Page Header */}
+        <PageHeader
+          title={t('lots.pageTitle')}
+          description={t('lots.description')}
+          actions={
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => {
@@ -1166,7 +1119,7 @@ export default function LotsPage() {
                   });
                 }}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-sky-700 bg-white border-2 border-sky-600 rounded-md hover:bg-sky-50 transition-colors disabled:opacity-50 min-h-[40px]"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 min-h-[40px]"
                 aria-label={t('common.refresh')}
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
@@ -1176,14 +1129,14 @@ export default function LotsPage() {
               </button>
               <button
                 onClick={() => router.push('/inventory/items')}
-                className="hidden md:inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-sky-700 bg-white border-2 border-sky-600 rounded-md hover:bg-sky-50 transition-colors min-h-[40px]"
+                className="hidden md:inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[40px]"
               >
                 <Package className="h-4 w-4" />
                 {t('lots.viewItems')}
               </button>
               <button
                 onClick={handleDownloadLots}
-                className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-sky-700 bg-white border-2 border-sky-600 rounded-md hover:bg-sky-50 transition-colors min-h-[40px]"
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors min-h-[40px]"
               >
                 <Download className="h-4 w-4" /> Download Excel
               </button>
@@ -1191,13 +1144,13 @@ export default function LotsPage() {
                 <>
                   <button
                     onClick={handleDownloadLotTemplate}
-                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-sky-700 bg-white border-2 border-sky-600 rounded-md hover:bg-sky-50 transition-colors min-h-[40px]"
+                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[40px]"
                   >
                     <Download className="h-4 w-4" /> {t('common.downloadTemplate')}
                   </button>
                   <button
                     onClick={() => { setShowImportDialog(true); setImportLog([]); }}
-                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-sky-700 bg-white border-2 border-sky-600 rounded-md hover:bg-sky-50 transition-colors min-h-[40px]"
+                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors min-h-[40px]"
                   >
                     <Upload className="h-4 w-4" /> {t('common.importExcel')}
                   </button>
@@ -1205,77 +1158,70 @@ export default function LotsPage() {
               )}
               <button
                 onClick={() => { resetForm(); setShowModal(true); }}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-sky-600 border-2 border-sky-600 rounded-md hover:bg-sky-700 hover:border-sky-700 transition-colors min-h-[40px]"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors font-medium min-h-[40px] shadow-sm"
               >
                 <Plus className="h-4 w-4" />
                 <span>{t('lots.addLot')}</span>
               </button>
             </div>
-          </div>
-        </div>
-        {/* Hidden PageHeader to keep import side-effect-free */}
-        <span className="hidden">
-          <PageHeader title={t('lots.pageTitle')} description={t('lots.description')} />
-        </span>
+          }
+        />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4 h-auto p-0 bg-transparent gap-3 w-full grid grid-cols-1 md:grid-cols-2">
-            {/* ── Tab 1: รายการ Lot — Style E ── */}
+            {/* ── Tab 1: รายการ Lot ── */}
             <TabsTrigger
               value="lots"
               className={cn(
-                'h-auto p-0 rounded-md border-2 overflow-hidden bg-white shadow-none',
-                'data-[state=active]:border-sky-600 data-[state=active]:ring-2 data-[state=active]:ring-sky-200',
-                'data-[state=inactive]:border-slate-200 hover:border-sky-400 transition-colors'
+                'h-auto p-0 rounded-xl border shadow-sm overflow-hidden bg-white',
+                'data-[state=active]:border-emerald-500 data-[state=active]:ring-2 data-[state=active]:ring-emerald-500/20',
+                'data-[state=inactive]:border-gray-200 data-[state=inactive]:opacity-75 hover:opacity-100',
+                'data-[state=active]:shadow-md transition-all'
               )}
             >
               <div className="w-full p-4 text-left">
                 <div className="flex items-start gap-3">
                   <div className={cn(
-                    'flex-shrink-0 w-12 h-12 rounded-md flex items-center justify-center border',
-                    activeTab === 'lots' ? 'bg-sky-50 border-sky-300 text-sky-700' : 'bg-slate-50 border-slate-200 text-slate-500'
+                    'flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center',
+                    activeTab === 'lots' ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-500'
                   )}>
                     <Boxes className="h-6 w-6" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
-                      <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wide">รายการ Lot</h3>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-wider flex-shrink-0">Inventory Lots</span>
+                      <h3 className="font-semibold text-gray-900 text-base">รายการ Lot</h3>
+                      <span className="text-xs text-gray-400 flex-shrink-0">Inventory Lots</span>
                     </div>
                     <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl font-bold text-slate-900 tabular-nums">
+                      <span className="text-2xl font-bold text-gray-900 tabular-nums">
                         {lots.length.toLocaleString()}
                       </span>
-                      <span className="text-sm text-slate-500">lots</span>
-                      <span className="text-slate-300">·</span>
-                      <span className="text-sm font-semibold text-sky-700 tabular-nums">
+                      <span className="text-sm text-gray-500">lots</span>
+                      <span className="text-gray-300">·</span>
+                      <span className="text-sm font-medium text-emerald-600 tabular-nums">
                         {formatCurrency(stats.totalValue)}
                       </span>
                     </div>
-                    {/* Style E metric badges */}
+                    {/* Metric chips */}
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       {stats.quarantineCount > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-amber-300 bg-amber-50 text-amber-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                          <span className="tabular-nums">{stats.quarantineCount}</span> กักกัน
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <Clock className="h-3 w-3" /> {stats.quarantineCount} กักกัน
                         </span>
                       )}
                       {stats.releasedCount > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-emerald-300 bg-emerald-50 text-emerald-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          <span className="tabular-nums">{stats.releasedCount}</span> ปล่อย
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="h-3 w-3" /> {stats.releasedCount} ปล่อย
                         </span>
                       )}
                       {stats.nearExpiryCount > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-amber-300 bg-amber-50 text-amber-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                          <span className="tabular-nums">{stats.nearExpiryCount}</span> ใกล้หมดอายุ
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+                          <AlertTriangle className="h-3 w-3" /> {stats.nearExpiryCount} ใกล้หมดอายุ
                         </span>
                       )}
                       {stats.expiredCount > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-rose-300 bg-rose-50 text-rose-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                          <span className="tabular-nums">{stats.expiredCount}</span> หมดอายุ
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                          <XCircle className="h-3 w-3" /> {stats.expiredCount} หมดอายุ
                         </span>
                       )}
                     </div>
@@ -1284,13 +1230,14 @@ export default function LotsPage() {
               </div>
             </TabsTrigger>
 
-            {/* ── Tab 2: ใบเบิกวัตถุดิบ — Style E ── */}
+            {/* ── Tab 2: ใบเบิกวัตถุดิบ ── */}
             <TabsTrigger
               value="requisitions"
               className={cn(
-                'h-auto p-0 rounded-md border-2 overflow-hidden bg-white shadow-none',
-                'data-[state=active]:border-sky-600 data-[state=active]:ring-2 data-[state=active]:ring-sky-200',
-                'data-[state=inactive]:border-slate-200 hover:border-sky-400 transition-colors'
+                'h-auto p-0 rounded-xl border shadow-sm overflow-hidden bg-white',
+                'data-[state=active]:border-indigo-500 data-[state=active]:ring-2 data-[state=active]:ring-indigo-500/20',
+                'data-[state=inactive]:border-gray-200 data-[state=inactive]:opacity-75 hover:opacity-100',
+                'data-[state=active]:shadow-md transition-all'
               )}
             >
               <div className="w-full p-4 text-left relative">
@@ -1303,46 +1250,44 @@ export default function LotsPage() {
                 )}
                 <div className="flex items-start gap-3">
                   <div className={cn(
-                    'flex-shrink-0 w-12 h-12 rounded-md flex items-center justify-center border',
-                    activeTab === 'requisitions' ? 'bg-sky-50 border-sky-300 text-sky-700' : 'bg-slate-50 border-slate-200 text-slate-500'
+                    'flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center',
+                    activeTab === 'requisitions' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'
                   )}>
                     <ClipboardList className="h-6 w-6" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
-                      <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wide">ใบเบิกวัตถุดิบ</h3>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-wider flex-shrink-0">Material Requisitions</span>
+                      <h3 className="font-semibold text-gray-900 text-base">ใบเบิกวัตถุดิบ</h3>
+                      <span className="text-xs text-gray-400 flex-shrink-0">Material Requisitions</span>
                     </div>
                     <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl font-bold text-slate-900 tabular-nums">
+                      <span className="text-2xl font-bold text-gray-900 tabular-nums">
                         {reqStats.total}
                       </span>
-                      <span className="text-sm text-slate-500">ใบ</span>
+                      <span className="text-sm text-gray-500">ใบ</span>
                       {reqStats.totalMaterials > 0 && (
                         <>
-                          <span className="text-slate-300">·</span>
-                          <span className="text-sm font-semibold text-sky-700 tabular-nums">
+                          <span className="text-gray-300">·</span>
+                          <span className="text-sm font-medium text-indigo-600 tabular-nums">
                             {reqStats.totalMaterials} รายการ
                           </span>
                         </>
                       )}
                     </div>
-                    {/* Style E metric badges */}
+                    {/* Metric chips */}
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       {reqStats.pending > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-amber-300 bg-amber-50 text-amber-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                          <span className="tabular-nums">{reqStats.pending}</span> รออนุมัติ
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <Clock className="h-3 w-3" /> {reqStats.pending} รออนุมัติ
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-slate-200 bg-slate-50 text-slate-700">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
                           <CheckCircle className="h-3 w-3" /> ไม่มีที่รออนุมัติ
                         </span>
                       )}
                       {reqStats.approved > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-emerald-300 bg-emerald-50 text-emerald-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          <span className="tabular-nums">{reqStats.approved}</span> อนุมัติแล้ว
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="h-3 w-3" /> {reqStats.approved} อนุมัติแล้ว
                         </span>
                       )}
                     </div>
@@ -1352,33 +1297,32 @@ export default function LotsPage() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="lots">
-        {/* Style E DataGrid panel */}
-        <div className="bg-white rounded-md border-2 border-slate-200 overflow-hidden">
-          {/* Style E sky panel header with status pills */}
-          <div className="px-4 py-3 bg-sky-50 border-b-2 border-sky-200">
+        {/* DataGrid Card */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          {/* Tabs + Stats Header */}
+          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-              {/* Status Tabs (Style E pill format) */}
-              <div className="flex items-center gap-1.5 overflow-x-auto">
+              {/* Status Tabs */}
+              <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200 overflow-x-auto">
                 {(Object.keys(STATUS_CONFIG) as StatusType[]).map((status) => {
                   const config = STATUS_CONFIG[status];
                   const count = statusCounts[status];
-                  const isActive = statusFilter === status;
                   return (
                     <button
                       key={status}
                       onClick={() => setStatusFilter(status)}
                       className={cn(
-                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap border-2',
-                        isActive
-                          ? 'bg-sky-600 text-white border-sky-600'
-                          : 'bg-white text-slate-700 border-slate-200 hover:border-sky-400 hover:text-sky-700'
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                        statusFilter === status
+                          ? status === '' ? 'bg-gray-900 text-white' : `${config.bgColor} ${config.textColor}`
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                       )}
                     >
                       {config.icon}
                       {status === '' ? t('common.all') : t(`lots.status.${config.translationKey}`)}
                       <span className={cn(
-                        'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-bold rounded-sm tabular-nums',
-                        isActive ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-700'
+                        'text-xs px-1.5 py-0.5 rounded-full',
+                        statusFilter === status ? (status === '' ? 'bg-gray-700' : 'bg-white/50') : 'bg-gray-200'
                       )}>
                         {count}
                       </span>
@@ -1387,29 +1331,30 @@ export default function LotsPage() {
                 })}
               </div>
 
-              {/* Style E compact stats */}
-              <div className="flex items-center gap-2 text-xs flex-wrap">
+              {/* Compact Stats */}
+              <div className="flex items-center gap-4 text-sm">
                 {stats.nearExpiryCount > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-amber-300 bg-amber-50 text-amber-800">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    <span className="tabular-nums">{stats.nearExpiryCount}</span> {t('stats.nearExpiry')}
-                  </span>
+                  <div className="flex items-center gap-1.5 text-amber-600">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="font-medium">{stats.nearExpiryCount} {t('stats.nearExpiry')}</span>
+                  </div>
                 )}
                 {stats.expiredCount > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-rose-300 bg-rose-50 text-rose-800">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                    <span className="tabular-nums">{stats.expiredCount}</span> {t('stats.expired')}
-                  </span>
+                  <div className="flex items-center gap-1.5 text-red-600">
+                    <XCircle className="h-4 w-4" />
+                    <span className="font-medium">{stats.expiredCount} {t('stats.expired')}</span>
+                  </div>
                 )}
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-sky-300 bg-white text-sky-800">
-                  <TrendingUp className="h-3 w-3 text-sky-700" />
-                  <span className="tabular-nums">{stats.totalQuantity.toLocaleString()}</span> {t('common.units')}
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-sky-300 bg-white text-sky-800">
-                  <DollarSign className="h-3 w-3 text-sky-700" />
-                  <span className="tabular-nums">{formatCurrency(stats.totalValue)}</span>
-                </span>
-                <span className="text-slate-600 text-[11px] font-semibold">{t('common.lotsShown', { count: filteredLots.length })}</span>
+                <div className="flex items-center gap-1.5 text-gray-500">
+                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+                  <span>{stats.totalQuantity.toLocaleString()} {t('common.units')}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-gray-500">
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  <span>{formatCurrency(stats.totalValue)}</span>
+                </div>
+                <div className="text-gray-400">|</div>
+                <span className="text-gray-500">{t('common.lotsShown', { count: filteredLots.length })}</span>
               </div>
             </div>
           </div>
@@ -1433,7 +1378,7 @@ export default function LotsPage() {
               setQuickFilter('');
             };
             return (
-              <div className="bg-slate-50 border-b-2 border-slate-200">
+              <div className="bg-gradient-to-b from-white to-gray-50/50 border-b border-gray-100">
                 {/* ── Row 1: Main filters with labels ── */}
                 <div className="px-4 pt-3 pb-2">
                   <div className="flex flex-wrap items-end gap-x-4 gap-y-2 filter-compact">
@@ -1506,17 +1451,17 @@ export default function LotsPage() {
                   </div>
                 </div>
 
-                {/* ── Row 2: Quick filters (Style E secondary buttons) ── */}
+                {/* ── Row 2: Quick filters ── */}
                 <div className="px-4 pb-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 whitespace-nowrap">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">
                       ตัวกรองด่วน
                     </span>
                     {([
-                      { key: 'near_expiry' as QuickFilter, label: 'ใกล้หมดอายุ ≤30 วัน', icon: <CalendarClock className="h-3.5 w-3.5" /> },
-                      { key: 'expired' as QuickFilter, label: 'หมดอายุแล้ว', icon: <XCircle className="h-3.5 w-3.5" /> },
-                      { key: 'raw_material' as QuickFilter, label: 'วัตถุดิบ', icon: <Package className="h-3.5 w-3.5" /> },
-                      { key: 'finished_goods' as QuickFilter, label: 'สินค้าสำเร็จรูป', icon: <Boxes className="h-3.5 w-3.5" /> },
+                      { key: 'near_expiry' as QuickFilter, label: 'ใกล้หมดอายุ ≤30 วัน', color: 'text-amber-700 bg-amber-50 border-amber-300 ring-amber-400/30', icon: <CalendarClock className="h-3.5 w-3.5" /> },
+                      { key: 'expired' as QuickFilter, label: 'หมดอายุแล้ว', color: 'text-red-700 bg-red-50 border-red-300 ring-red-400/30', icon: <XCircle className="h-3.5 w-3.5" /> },
+                      { key: 'raw_material' as QuickFilter, label: 'วัตถุดิบ', color: 'text-blue-700 bg-blue-50 border-blue-300 ring-blue-400/30', icon: <Package className="h-3.5 w-3.5" /> },
+                      { key: 'finished_goods' as QuickFilter, label: 'สินค้าสำเร็จรูป', color: 'text-purple-700 bg-purple-50 border-purple-300 ring-purple-400/30', icon: <Boxes className="h-3.5 w-3.5" /> },
                     ]).map((tag) => {
                       const isActive = quickFilter === tag.key;
                       return (
@@ -1524,10 +1469,10 @@ export default function LotsPage() {
                           key={tag.key}
                           onClick={() => setQuickFilter(isActive ? '' : tag.key)}
                           className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border-2 transition',
+                            'inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border transition-all',
                             isActive
-                              ? 'bg-sky-600 text-white border-sky-600'
-                              : 'text-sky-700 bg-white border-sky-600 hover:bg-sky-50'
+                              ? `${tag.color} ring-2 shadow-sm`
+                              : 'text-gray-600 bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                           )}
                         >
                           {tag.icon}
@@ -2102,10 +2047,10 @@ export default function LotsPage() {
       {/* Lot Import Dialog */}
       {showImportDialog && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-md shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col border-2 border-sky-100">
-            <div className="flex items-center justify-between px-5 py-4 bg-sky-50 border-b-2 border-sky-200">
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">นำเข้า Inventory Lots</h2>
-              <button onClick={() => setShowImportDialog(false)} className="p-1 hover:bg-sky-100 rounded-md"><X className="h-5 w-5 text-sky-700" /></button>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">นำเข้า Inventory Lots</h2>
+              <button onClick={() => setShowImportDialog(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X className="h-5 w-5 text-gray-500" /></button>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto flex-1">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">

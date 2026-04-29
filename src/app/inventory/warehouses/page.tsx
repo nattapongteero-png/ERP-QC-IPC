@@ -11,7 +11,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxConfirmDialog } from '@/components/ui/dx-popup';
 import { Badge } from '@/components/ui/badge';
-// ResponsivePageHeader, StatCard removed — Style E uses inline hero + custom KPI cards
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
 import {
   WarehouseEditDialog,
@@ -274,25 +274,25 @@ export default function WarehousesPage() {
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
           <div className={cn(
-            'h-8 w-8 rounded-md border flex items-center justify-center',
-            cellInfo.data.type === 'raw_material' ? 'bg-sky-50 border-sky-200' :
-            cellInfo.data.type === 'finished_goods' ? 'bg-emerald-50 border-emerald-200' :
-            cellInfo.data.type === 'quarantine' ? 'bg-amber-50 border-amber-200' :
-            cellInfo.data.type === 'rejected' ? 'bg-rose-50 border-rose-200' :
-            cellInfo.data.type === 'cold_storage' ? 'bg-sky-50 border-sky-200' :
-            'bg-slate-50 border-slate-200'
+            'h-8 w-8 rounded-lg flex items-center justify-center',
+            cellInfo.data.type === 'raw_material' ? 'bg-blue-100' :
+            cellInfo.data.type === 'finished_goods' ? 'bg-emerald-100' :
+            cellInfo.data.type === 'quarantine' ? 'bg-yellow-100' :
+            cellInfo.data.type === 'rejected' ? 'bg-red-100' :
+            cellInfo.data.type === 'cold_storage' ? 'bg-cyan-100' :
+            'bg-gray-100'
           )}>
             <Warehouse className={cn(
               'h-4 w-4',
-              cellInfo.data.type === 'raw_material' ? 'text-sky-700' :
-              cellInfo.data.type === 'finished_goods' ? 'text-emerald-700' :
-              cellInfo.data.type === 'quarantine' ? 'text-amber-700' :
-              cellInfo.data.type === 'rejected' ? 'text-rose-700' :
-              cellInfo.data.type === 'cold_storage' ? 'text-sky-700' :
-              'text-slate-700'
+              cellInfo.data.type === 'raw_material' ? 'text-blue-600' :
+              cellInfo.data.type === 'finished_goods' ? 'text-emerald-600' :
+              cellInfo.data.type === 'quarantine' ? 'text-yellow-600' :
+              cellInfo.data.type === 'rejected' ? 'text-red-600' :
+              cellInfo.data.type === 'cold_storage' ? 'text-cyan-600' :
+              'text-gray-600'
             )} />
           </div>
-          <span className="font-mono font-semibold text-sky-700">{cellInfo.data.code}</span>
+          <span className="font-mono font-semibold text-gray-900">{cellInfo.data.code}</span>
         </div>
       ),
     },
@@ -453,23 +453,14 @@ export default function WarehousesPage() {
   return (
     <MainLayout>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
-        {/* Style E Hero — Pharma Pro */}
-        <div className="bg-white rounded-md p-5 lg:p-6 border-2 border-sky-100">
-          <div className="border-l-4 border-sky-600 bg-sky-50 rounded-r-md p-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-12 h-12 rounded-md bg-sky-600 flex items-center justify-center flex-shrink-0">
-                <Warehouse className="w-6 h-6 text-white" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                  Pharmaceutical Inventory · Storage Master
-                </div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900 mt-0.5 truncate">
-                  {t('warehouses.pageTitle')}
-                </h1>
-                <p className="text-sm text-slate-600 mt-0.5">{t('warehouses.description')}</p>
-              </div>
-            </div>
+        {/* Responsive Page Header */}
+        <ResponsivePageHeader
+          title={t('warehouses.pageTitle')}
+          subtitle={t('warehouses.description')}
+          icon={Warehouse}
+          iconBgColor="bg-indigo-100"
+          iconColor="text-indigo-600"
+          actions={
             <div className="flex items-center gap-2 flex-wrap">
               <DxButton
                 icon="refresh"
@@ -499,32 +490,56 @@ export default function WarehousesPage() {
                   XLSX.utils.book_append_sheet(wb, ws, 'Warehouses');
                   XLSX.writeFile(wb, `warehouses-${new Date().toISOString().slice(0, 10)}.xlsx`);
                 }}
-                className="rounded-md bg-white border-2 border-sky-600 text-sky-700 px-3 py-1.5 text-sm font-semibold hover:bg-sky-50 transition inline-flex items-center gap-1.5"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
               >
                 <Download className="h-4 w-4" /> Download Excel
               </button>
-              <button
+              <DxButton
+                text={t('warehouses.addWarehouse')}
+                icon="plus"
+                type="success"
                 onClick={handleCreate}
-                className="rounded-md border-2 border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 hover:border-sky-700 transition inline-flex items-center gap-1.5"
-              >
-                <span aria-hidden>+</span> {t('warehouses.addWarehouse')}
-              </button>
+              />
             </div>
-          </div>
+          }
+        />
+
+        {/* KPI Stat Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <StatCard
+            label={t('stats.total')}
+            value={warehouses.length}
+            icon={Boxes}
+            iconColor="text-indigo-500"
+            accentColor="border-indigo-500"
+          />
+          <StatCard
+            label={t('stats.active')}
+            value={activeCount}
+            icon={CheckCircle}
+            iconColor="text-emerald-500"
+            accentColor="border-emerald-500"
+          />
+          <StatCard
+            label={t('stats.coldStorage')}
+            value={coldStorageCount}
+            icon={Snowflake}
+            iconColor="text-cyan-500"
+            accentColor="border-cyan-500"
+          />
+          <StatCard
+            label={t('stats.inactive')}
+            value={inactiveCount}
+            icon={XCircle}
+            iconColor="text-gray-400"
+            accentColor="border-gray-400"
+          />
         </div>
 
-        {/* Style E KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <WarehouseKpiCard label={t('stats.total')} value={warehouses.length} icon={Boxes} accent="sky" />
-          <WarehouseKpiCard label={t('stats.active')} value={activeCount} icon={CheckCircle} accent="emerald" />
-          <WarehouseKpiCard label={t('stats.coldStorage')} value={coldStorageCount} icon={Snowflake} accent="sky" />
-          <WarehouseKpiCard label={t('stats.inactive')} value={inactiveCount} icon={XCircle} accent="rose" />
-        </div>
-
-        {/* Style E DataGrid panel */}
-        <div className="bg-white rounded-md border-2 border-slate-200 overflow-hidden">
-          {/* Filter Header: Type Tabs (Style E sky panel header) */}
-          <div className="px-3 py-3 sm:px-4 bg-sky-50 border-b-2 border-sky-200">
+        {/* DataGrid Card */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          {/* Filter Header: Type Tabs */}
+          <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
             <div className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x">
               {(Object.keys(TYPE_CONFIG) as WarehouseTypeFilter[]).map((type) => {
                 const config = TYPE_CONFIG[type];
@@ -559,7 +574,7 @@ export default function WarehousesPage() {
           </div>
 
           {/* Search + Result Count Row */}
-          <div className="px-3 py-3 sm:px-4 border-b-2 border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="w-full sm:max-w-md">
               <DxTextBox
                 placeholder={t('warehouses.searchPlaceholder')}
@@ -569,9 +584,9 @@ export default function WarehousesPage() {
                 mode="search"
               />
             </div>
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 whitespace-nowrap">
-              <Boxes className="h-4 w-4 text-slate-500" />
-              <span className="tabular-nums">{t('common.warehousesShown', { count: filteredWarehouses.length })}</span>
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+              <Boxes className="h-4 w-4 text-gray-400" />
+              <span>{t('common.warehousesShown', { count: filteredWarehouses.length })}</span>
             </div>
           </div>
 
@@ -889,51 +904,6 @@ function NoResultsState({ onClear, t }: { onClear: () => void; t: TranslateFn })
         stylingMode="outlined"
         onClick={onClear}
       />
-    </div>
-  );
-}
-
-// Style E clinical KPI card — accent-bordered with Current + Δ Week split.
-type WarehouseKpiAccent = 'sky' | 'emerald' | 'rose' | 'amber';
-function WarehouseKpiCard({
-  label,
-  value,
-  icon: Icon,
-  accent,
-}: {
-  label: string;
-  value: number;
-  icon: React.ComponentType<{ className?: string }>;
-  accent: WarehouseKpiAccent;
-}) {
-  const colors =
-    accent === 'sky' ? 'border-sky-200 bg-sky-50/50' :
-    accent === 'emerald' ? 'border-emerald-200 bg-emerald-50/50' :
-    accent === 'rose' ? 'border-rose-200 bg-rose-50/50' :
-    'border-amber-200 bg-amber-50/50';
-  const iconColor =
-    accent === 'sky' ? 'text-sky-600' :
-    accent === 'emerald' ? 'text-emerald-600' :
-    accent === 'rose' ? 'text-rose-600' :
-    'text-amber-600';
-  return (
-    <div className={`bg-white rounded-md border-2 ${colors} p-4`}>
-      <div className="flex items-start justify-between mb-3 pb-2 border-b border-slate-200">
-        <div className="text-xs font-semibold text-slate-600 uppercase tracking-wide truncate">
-          {label}
-        </div>
-        <Icon className={`w-4 h-4 ${iconColor} flex-shrink-0`} />
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <div className="text-[10px] uppercase text-slate-500">Current</div>
-          <div className={`text-2xl font-bold tabular-nums ${iconColor}`}>{value.toLocaleString()}</div>
-        </div>
-        <div>
-          <div className="text-[10px] uppercase text-slate-500">Δ Week</div>
-          <div className="text-sm font-semibold text-slate-700 tabular-nums">—</div>
-        </div>
-      </div>
     </div>
   );
 }
