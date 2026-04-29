@@ -89,9 +89,11 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
   bgColor: string;
   textColor: string;
   borderColor: string;
-  gradient: string;
+  solidBg: string;
+  topBorder: string;
   ring: string;
   iconBg: string;
+  iconText: string;
   icon: React.ReactNode;
 }> = {
   raw_material: {
@@ -99,9 +101,11 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
     bgColor: 'bg-blue-50',
     textColor: 'text-blue-700',
     borderColor: 'border-blue-200',
-    gradient: 'from-blue-500 to-sky-500',
+    solidBg: 'bg-blue-600',
+    topBorder: 'border-t-blue-500',
     ring: 'ring-blue-200',
     iconBg: 'bg-blue-100',
+    iconText: 'text-blue-700',
     icon: <Leaf className="h-4 w-4" />,
   },
   packaging: {
@@ -109,9 +113,11 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
     bgColor: 'bg-cyan-50',
     textColor: 'text-cyan-700',
     borderColor: 'border-cyan-200',
-    gradient: 'from-cyan-500 to-teal-500',
+    solidBg: 'bg-cyan-600',
+    topBorder: 'border-t-cyan-500',
     ring: 'ring-cyan-200',
     iconBg: 'bg-cyan-100',
+    iconText: 'text-cyan-700',
     icon: <Box className="h-4 w-4" />,
   },
   wip: {
@@ -119,9 +125,11 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
     bgColor: 'bg-orange-50',
     textColor: 'text-orange-700',
     borderColor: 'border-orange-200',
-    gradient: 'from-orange-500 to-amber-500',
+    solidBg: 'bg-orange-600',
+    topBorder: 'border-t-orange-500',
     ring: 'ring-orange-200',
     iconBg: 'bg-orange-100',
+    iconText: 'text-orange-700',
     icon: <FlaskConical className="h-4 w-4" />,
   },
   finished_goods: {
@@ -129,9 +137,11 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
     bgColor: 'bg-emerald-50',
     textColor: 'text-emerald-700',
     borderColor: 'border-emerald-200',
-    gradient: 'from-emerald-500 to-green-500',
+    solidBg: 'bg-emerald-600',
+    topBorder: 'border-t-emerald-500',
     ring: 'ring-emerald-200',
     iconBg: 'bg-emerald-100',
+    iconText: 'text-emerald-700',
     icon: <Pill className="h-4 w-4" />,
   },
   consumable: {
@@ -139,9 +149,11 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
     bgColor: 'bg-slate-50',
     textColor: 'text-slate-700',
     borderColor: 'border-slate-200',
-    gradient: 'from-slate-500 to-gray-500',
+    solidBg: 'bg-slate-600',
+    topBorder: 'border-t-slate-500',
     ring: 'ring-slate-200',
     iconBg: 'bg-slate-100',
+    iconText: 'text-slate-700',
     icon: <Package className="h-4 w-4" />,
   },
 };
@@ -496,8 +508,9 @@ export default function ItemsPage() {
       <div className="flex items-center gap-2.5">
         <span
           className={cn(
-            'inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm ring-1 ring-white/40',
-            config?.gradient ?? 'from-slate-400 to-slate-500'
+            'inline-flex h-8 w-8 items-center justify-center rounded-lg',
+            config?.iconBg ?? 'bg-slate-100',
+            config?.iconText ?? 'text-slate-700'
           )}
         >
           {config?.icon}
@@ -559,7 +572,7 @@ export default function ItemsPage() {
         </div>
         <span className="text-xs text-gray-500">{data.data.primaryUnit}</span>
         {isLow && (
-          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-gradient-to-r from-rose-500 to-red-500 text-white font-semibold rounded-full shadow-sm">
+          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-rose-600 text-white font-semibold rounded-full shadow-sm">
             <AlertTriangle className="h-2.5 w-2.5" />
             {t('items.grid.lowStock')}
           </span>
@@ -593,12 +606,12 @@ export default function ItemsPage() {
 
   const renderStatusCell = useCallback((data: { value: boolean }) => {
     return data.value ? (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border border-emerald-200">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
         <CheckCircle className="h-3 w-3" />
         {t('items.status.active')}
       </span>
     ) : (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-rose-50 to-red-50 text-rose-700 border border-rose-200">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
         <XCircle className="h-3 w-3" />
         {t('items.status.inactive')}
       </span>
@@ -609,7 +622,7 @@ export default function ItemsPage() {
     const hasVmi = data.data.tppCode || data.data.ttmtCode;
     return hasVmi ? (
       <div
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-50 to-emerald-50 text-emerald-700 border border-emerald-200"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
         title={`TPP: ${data.data.tppCode || '-'}, TTMT: ${data.data.ttmtCode || '-'}`}
       >
         <CheckCircle className="h-3.5 w-3.5" />
@@ -665,62 +678,61 @@ export default function ItemsPage() {
   return (
     <MainLayout>
       <div className="space-y-5">
-        {/* Hero Banner */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-600 shadow-lg">
-          {/* Decorative blobs */}
-          <div className="absolute inset-0 opacity-20" aria-hidden="true">
-            <div className="absolute -top-12 -right-12 h-56 w-56 rounded-full bg-white blur-3xl" />
-            <div className="absolute -bottom-16 left-12 h-48 w-48 rounded-full bg-cyan-300 blur-3xl" />
-          </div>
-          <div className="relative px-5 sm:px-7 py-6 sm:py-7">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        {/* Page Header — clean white card */}
+        <div className="rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="px-5 sm:px-6 py-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm ring-1 ring-white/30 shadow-md">
-                  <Package className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                  <Package className="h-6 w-6" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-xl sm:text-2xl font-bold text-white drop-shadow-sm">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
                     {t('items.pageTitle')}
                   </h1>
-                  <p className="mt-1 text-sm text-cyan-50/90 max-w-xl">
+                  <p className="mt-1 text-sm text-slate-600 max-w-xl">
                     {t('items.description')}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-xs font-medium ring-1 ring-white/20">
-                      <Package className="h-3.5 w-3.5" />
-                      {t('common.itemsShown', { count: totalItems })}
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                      <Package className="h-3.5 w-3.5 text-slate-500" />
+                      <span className="text-slate-500">{t('common.itemsShown', { count: 0 }).replace(/\d+/, '')}</span>
+                      <span className="font-semibold text-blue-600 tabular-nums">{totalItems.toLocaleString()}</span>
                     </span>
                     {statistics.activeItems > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/20 backdrop-blur-sm text-emerald-50 text-xs font-medium ring-1 ring-emerald-300/30">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200">
                         <CheckCircle className="h-3.5 w-3.5" />
-                        {statistics.activeItems} {t('stats.active')}
+                        <span className="font-semibold tabular-nums">{statistics.activeItems}</span>
+                        <span>{t('stats.active')}</span>
                       </span>
                     )}
                     {statistics.lowStockItems > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-400/20 backdrop-blur-sm text-rose-50 text-xs font-medium ring-1 ring-rose-300/30">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-medium border border-rose-200">
                         <AlertTriangle className="h-3.5 w-3.5" />
-                        {statistics.lowStockItems} {t('stats.lowStock')}
+                        <span className="font-semibold tabular-nums">{statistics.lowStockItems}</span>
+                        <span>{t('stats.lowStock')}</span>
                       </span>
                     )}
                     {statistics.itemsInQuarantine > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/20 backdrop-blur-sm text-amber-50 text-xs font-medium ring-1 ring-amber-300/30">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200">
                         <Clock className="h-3.5 w-3.5" />
-                        {statistics.itemsInQuarantine} {t('stats.inQuarantine')}
+                        <span className="font-semibold tabular-nums">{statistics.itemsInQuarantine}</span>
+                        <span>{t('stats.inQuarantine')}</span>
                       </span>
                     )}
                   </div>
                 </div>
               </div>
-              {/* Action buttons */}
+              {/* Action buttons — flat colors */}
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={handleRefresh}
                   disabled={isLoading}
                   className={cn(
-                    'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg backdrop-blur-sm ring-1 ring-white/30 transition-all shadow-sm',
+                    'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all',
                     isLoading
-                      ? 'text-white/60 bg-white/10 cursor-not-allowed'
-                      : 'text-white bg-white/15 hover:bg-white/25'
+                      ? 'text-slate-400 bg-slate-50 border-slate-200 cursor-not-allowed'
+                      : 'text-slate-700 bg-white border-slate-300 hover:bg-slate-50'
                   )}
                   title={t('common.refresh')}
                 >
@@ -729,14 +741,14 @@ export default function ItemsPage() {
                 </button>
                 <button
                   onClick={() => router.push('/inventory/lots')}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-white/15 backdrop-blur-sm ring-1 ring-white/30 rounded-lg hover:bg-white/25 transition-all shadow-sm"
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-all"
                 >
                   <Warehouse className="h-4 w-4" />
                   <span className="hidden sm:inline">{t('items.viewLots')}</span>
                 </button>
                 <button
                   onClick={handleDownloadData}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-white/15 backdrop-blur-sm ring-1 ring-white/30 rounded-lg hover:bg-white/25 transition-all shadow-sm"
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-all"
                   title="Download Excel"
                 >
                   <Download className="h-4 w-4" />
@@ -746,7 +758,7 @@ export default function ItemsPage() {
                   <>
                     <button
                       onClick={handleDownloadTemplate}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-white/15 backdrop-blur-sm ring-1 ring-white/30 rounded-lg hover:bg-white/25 transition-all shadow-sm"
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-all"
                       title={t('common.downloadTemplate')}
                     >
                       <Download className="h-4 w-4" />
@@ -754,7 +766,7 @@ export default function ItemsPage() {
                     </button>
                     <button
                       onClick={() => { setShowImportDialog(true); setImportLog([]); }}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-white/15 backdrop-blur-sm ring-1 ring-white/30 rounded-lg hover:bg-white/25 transition-all shadow-sm"
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
                     >
                       <Upload className="h-4 w-4" />
                       <span className="hidden md:inline">{t('common.importExcel')}</span>
@@ -763,7 +775,7 @@ export default function ItemsPage() {
                 )}
                 <button
                   onClick={() => router.push('/inventory/items/new')}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-emerald-700 bg-white rounded-lg hover:bg-emerald-50 transition-all shadow-md hover:shadow-lg ring-1 ring-white/40"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-sm"
                 >
                   <Plus className="h-4 w-4" />
                   {t('items.addItem')}
@@ -789,27 +801,29 @@ export default function ItemsPage() {
                 key={type}
                 onClick={() => setActiveTab(isActive ? 'all' : type)}
                 className={cn(
-                  'group relative overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
-                  isActive ? `${config.borderColor} ring-2 ${config.ring}` : 'border-gray-200'
+                  'group relative overflow-hidden rounded-xl bg-white p-4 text-left shadow-sm transition-all hover:shadow-md',
+                  'border border-slate-200 border-t-4',
+                  config.topBorder,
+                  isActive ? `ring-2 ${config.ring}` : ''
                 )}
               >
-                <div className={cn('absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br opacity-10 transition-opacity group-hover:opacity-20', config.gradient)} />
                 <div className="relative flex items-start justify-between">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
                       {t(`items.types.${config.translationKey}`)}
                     </p>
-                    <p className="mt-1.5 text-2xl font-bold text-gray-900 tabular-nums">
+                    <p className={cn("mt-1.5 text-2xl font-bold tabular-nums", config.textColor)}>
                       {count.toLocaleString()}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-gray-400">
+                    <p className="mt-0.5 text-[11px] text-slate-400">
                       {totalItems > 0 ? `${Math.round((count / totalItems) * 100)}%` : '0%'} {t('stats.total').toLowerCase()}
                     </p>
                   </div>
                   <span
                     className={cn(
-                      'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm',
-                      config.gradient
+                      'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+                      config.iconBg,
+                      config.iconText
                     )}
                   >
                     {config.icon}
@@ -823,7 +837,7 @@ export default function ItemsPage() {
         {/* Items DataGrid Card */}
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           {/* Filter pill bar */}
-          <div className="px-4 sm:px-5 py-4 border-b border-gray-100 bg-gradient-to-b from-slate-50/80 to-white">
+          <div className="px-4 sm:px-5 py-4 border-b border-slate-200 bg-slate-50/50">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               {/* Type filter pills */}
               <div className="flex flex-wrap items-center gap-1.5">
@@ -832,15 +846,15 @@ export default function ItemsPage() {
                   className={cn(
                     'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-all whitespace-nowrap border',
                     activeTab === 'all'
-                      ? 'bg-gradient-to-r from-slate-800 to-gray-900 text-white border-transparent shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-gray-900'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'
                   )}
                 >
                   {t('common.all')}
                   <span
                     className={cn(
                       'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full',
-                      activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                      activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
                     )}
                   >
                     {totalItems}
@@ -856,8 +870,8 @@ export default function ItemsPage() {
                       className={cn(
                         'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-all whitespace-nowrap border',
                         isActive
-                          ? `bg-gradient-to-r ${config.gradient} text-white border-transparent shadow-sm`
-                          : `bg-white text-gray-600 border-gray-200 hover:${config.borderColor} hover:${config.textColor}`
+                          ? `${config.solidBg} text-white border-transparent shadow-sm`
+                          : `bg-white text-slate-600 border-slate-200 hover:${config.borderColor} hover:${config.textColor}`
                       )}
                     >
                       {config.icon}
@@ -865,7 +879,7 @@ export default function ItemsPage() {
                       <span
                         className={cn(
                           'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full',
-                          isActive ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-600'
+                          isActive ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-600'
                         )}
                       >
                         {typeCounts[type]}
@@ -1093,8 +1107,8 @@ export default function ItemsPage() {
           font-family: inherit;
         }
         .items-professional-grid .dx-datagrid-headers {
-          background: linear-gradient(to bottom, #f8fafc, #eff6ff);
-          border-bottom: 2px solid #dbeafe;
+          background: #f8fafc;
+          border-bottom: 2px solid #e2e8f0;
         }
         .items-professional-grid .dx-datagrid-headers .dx-header-row td {
           font-weight: 600;
@@ -1110,7 +1124,7 @@ export default function ItemsPage() {
           border-color: #f1f5f9;
         }
         .items-professional-grid .dx-data-row:hover {
-          background: linear-gradient(to right, #eff6ff, #ecfeff) !important;
+          background: #eff6ff !important;
         }
         .items-professional-grid .dx-data-row {
           cursor: pointer;
@@ -1129,7 +1143,7 @@ export default function ItemsPage() {
         }
         .items-professional-grid .dx-datagrid-group-panel {
           padding: 8px 16px;
-          background: linear-gradient(to right, #f8fafc, #ffffff);
+          background: #f8fafc;
         }
         .items-professional-grid .dx-pager {
           padding: 12px 16px;
@@ -1147,18 +1161,18 @@ export default function ItemsPage() {
       {/* Import Dialog */}
       {showImportDialog && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="relative px-5 py-4 border-b border-gray-100 shrink-0 bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+            <div className="relative px-5 py-4 border-b border-blue-700 shrink-0 bg-blue-600 text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm ring-1 ring-white/30">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500 ring-1 ring-blue-400">
                     <Upload className="h-5 w-5 text-white" />
                   </div>
                   <h2 className="text-lg font-semibold">นำเข้ารายการสินค้า</h2>
                 </div>
                 <button
                   onClick={() => setShowImportDialog(false)}
-                  className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                  className="p-1.5 hover:bg-blue-500 rounded-lg transition-colors"
                 >
                   <X className="h-5 w-5 text-white" />
                 </button>
@@ -1197,8 +1211,9 @@ export default function ItemsPage() {
                         />
                         <span
                           className={cn(
-                            'inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm',
-                            config?.gradient ?? 'from-slate-400 to-slate-500'
+                            'inline-flex h-7 w-7 items-center justify-center rounded-lg',
+                            config?.iconBg ?? 'bg-slate-100',
+                            config?.iconText ?? 'text-slate-700'
                           )}
                         >
                           {config?.icon}
@@ -1235,7 +1250,7 @@ export default function ItemsPage() {
                 </div>
               )}
               {importLog.length > 0 && (
-                <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-gray-200">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                   <label className="block text-sm font-semibold text-gray-800 mb-2">ผลการนำเข้า:</label>
                   <div className="text-xs font-mono space-y-1 max-h-40 overflow-y-auto">
                     {importLog.map((line, i) => (

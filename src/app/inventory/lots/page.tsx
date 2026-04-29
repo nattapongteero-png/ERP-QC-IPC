@@ -1104,68 +1104,120 @@ export default function LotsPage() {
   return (
     <MainLayout>
       <div className="space-y-4">
-        {/* Page Header */}
-        <PageHeader
-          title={t('lots.pageTitle')}
-          description={t('lots.description')}
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => {
-                  fetchLots().then(() => {
-                    toast.success('รีเฟรชข้อมูลสำเร็จ');
-                  }).catch(() => {
-                    toast.error('เกิดข้อผิดพลาดในการรีเฟรชข้อมูล');
-                  });
-                }}
-                disabled={isLoading}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 min-h-[40px]"
-                aria-label={t('common.refresh')}
-              >
-                <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                <span className="hidden sm:inline">
-                  {isLoading ? 'กำลังโหลด...' : t('common.refresh')}
-                </span>
-              </button>
-              <button
-                onClick={() => router.push('/inventory/items')}
-                className="hidden md:inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[40px]"
-              >
-                <Package className="h-4 w-4" />
-                {t('lots.viewItems')}
-              </button>
-              <button
-                onClick={handleDownloadLots}
-                className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors min-h-[40px]"
-              >
-                <Download className="h-4 w-4" /> Download Excel
-              </button>
-              {isAdmin && (
-                <>
-                  <button
-                    onClick={handleDownloadLotTemplate}
-                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[40px]"
-                  >
-                    <Download className="h-4 w-4" /> {t('common.downloadTemplate')}
-                  </button>
-                  <button
-                    onClick={() => { setShowImportDialog(true); setImportLog([]); }}
-                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors min-h-[40px]"
-                  >
-                    <Upload className="h-4 w-4" /> {t('common.importExcel')}
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => { resetForm(); setShowModal(true); }}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors font-medium min-h-[40px] shadow-sm"
-              >
-                <Plus className="h-4 w-4" />
-                <span>{t('lots.addLot')}</span>
-              </button>
+        {/* Page Header — clean white card, flat colors */}
+        <div className="rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="px-5 sm:px-6 py-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <Boxes className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+                    {t('lots.pageTitle')}
+                  </h1>
+                  <p className="mt-1 text-sm text-slate-600 max-w-xl">
+                    {t('lots.description')}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                      <Boxes className="h-3.5 w-3.5 text-slate-500" />
+                      <span className="font-semibold text-emerald-600 tabular-nums">{stats.totalLots.toLocaleString()}</span>
+                      <span className="text-slate-500">lots</span>
+                    </span>
+                    {stats.releasedCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        <span className="font-semibold tabular-nums">{stats.releasedCount}</span>
+                        <span>{t('stats.released') || 'ปล่อย'}</span>
+                      </span>
+                    )}
+                    {stats.quarantineCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span className="font-semibold tabular-nums">{stats.quarantineCount}</span>
+                        <span>กักกัน</span>
+                      </span>
+                    )}
+                    {stats.nearExpiryCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 text-xs font-medium border border-orange-200">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        <span className="font-semibold tabular-nums">{stats.nearExpiryCount}</span>
+                        <span>ใกล้หมดอายุ</span>
+                      </span>
+                    )}
+                    {stats.expiredCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-medium border border-rose-200">
+                        <XCircle className="h-3.5 w-3.5" />
+                        <span className="font-semibold tabular-nums">{stats.expiredCount}</span>
+                        <span>หมดอายุ</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => {
+                    fetchLots().then(() => {
+                      toast.success('รีเฟรชข้อมูลสำเร็จ');
+                    }).catch(() => {
+                      toast.error('เกิดข้อผิดพลาดในการรีเฟรชข้อมูล');
+                    });
+                  }}
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 min-h-[40px]"
+                  aria-label={t('common.refresh')}
+                >
+                  <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+                  <span className="hidden sm:inline">
+                    {isLoading ? 'กำลังโหลด...' : t('common.refresh')}
+                  </span>
+                </button>
+                <button
+                  onClick={() => router.push('/inventory/items')}
+                  className="hidden md:inline-flex items-center gap-2 px-3 py-2 text-sm text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors min-h-[40px]"
+                >
+                  <Package className="h-4 w-4" />
+                  {t('lots.viewItems')}
+                </button>
+                <button
+                  onClick={handleDownloadLots}
+                  className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors min-h-[40px]"
+                >
+                  <Download className="h-4 w-4" /> Download Excel
+                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={handleDownloadLotTemplate}
+                      className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors min-h-[40px]"
+                    >
+                      <Download className="h-4 w-4" /> {t('common.downloadTemplate')}
+                    </button>
+                    <button
+                      onClick={() => { setShowImportDialog(true); setImportLog([]); }}
+                      className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors min-h-[40px]"
+                    >
+                      <Upload className="h-4 w-4" /> {t('common.importExcel')}
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => { resetForm(); setShowModal(true); }}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors font-medium min-h-[40px] shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>{t('lots.addLot')}</span>
+                </button>
+              </div>
             </div>
-          }
-        />
+          </div>
+        </div>
+        {/* Hidden PageHeader to keep import side-effect-free */}
+        <span className="hidden">
+          <PageHeader title={t('lots.pageTitle')} description={t('lots.description')} />
+        </span>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4 h-auto p-0 bg-transparent gap-3 w-full grid grid-cols-1 md:grid-cols-2">
@@ -1378,7 +1430,7 @@ export default function LotsPage() {
               setQuickFilter('');
             };
             return (
-              <div className="bg-gradient-to-b from-white to-gray-50/50 border-b border-gray-100">
+              <div className="bg-slate-50/50 border-b border-slate-200">
                 {/* ── Row 1: Main filters with labels ── */}
                 <div className="px-4 pt-3 pb-2">
                   <div className="flex flex-wrap items-end gap-x-4 gap-y-2 filter-compact">
