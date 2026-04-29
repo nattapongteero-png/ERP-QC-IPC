@@ -6207,6 +6207,438 @@ export const mysqlVarianceRecords = mysqlTable('variance_records', {
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// ============================================
+// QC + COA Module — Phase 1 Schema
+// Standards: ISO/IEC 17025:2017, FDA 21 CFR Part 11,
+//            FDA 21 CFR Part 211 Subpart I, WHO TRS 1010 Annex 4
+// ============================================
+
+// ---------- SQLite (testing) ----------
+
+// QC Samples — sample registration with state machine
+// States: draft → registered → testing → reviewed → approved → released
+//         (also: rejected, quarantine, oos)
+export const sqliteQcSamples = sqliteTable('qc_samples', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleNumber: text('sample_number').notNull().unique(), // e.g. "QC-2026-0001"
+  // Source of the sample
+  sourceType: text('source_type').notNull(), // raw_material_lot|work_order_batch|customer_return|stability|purchased_herb|outgoing_shipment|other
+  sourceRefId: integer('source_ref_id'), // FK to relevant table (lot/wo/etc) — soft reference
+  sourceRefText: text('source_ref_text'), // free text when source_ref_id not set
+  productId: integer('product_id').notNull().references(() => sqliteItems.id),
+  lotNumber: text('lot_number'),
+  manufactureDate: text('manufacture_date'),
+  expiryDate: text('expiry_date'),
+  retestDate: text('retest_date'),
+  quantityReceived: real('quantity_received'),
+  unit: text('unit'),
+  storageConditions: text('storage_conditions'),
+  // Outgoing-shipment context (drives COA)
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  salesOrderRef: text('sales_order_ref'),
+  receivedDate: text('received_date').notNull(),
+  receivedBy: integer('received_by').notNull().references(() => sqliteUsers.id),
+  status: text('status').notNull().default('draft'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// QC Sample Tests — per-test result lines per sample (reuses ipc_criteria master)
+export const sqliteQcSampleTests = sqliteTable('qc_sample_tests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleId: integer('sample_id').notNull().references(() => sqliteQcSamples.id),
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  sequence: integer('sequence').notNull().default(1),
+  // Spec snapshot at test time (immutable even if master spec later changes)
+  specMin: real('spec_min'),
+  specMax: real('spec_max'),
+  specTarget: real('spec_target'),
+  specText: text('spec_text'), // for non-numeric specs (e.g. "Pass identification")
+  unit: text('unit'),
+  testMethod: text('test_method'), // e.g. "USP <11>", "Ph.Eur 2.8.20", "In-house SOP-XXX"
+  // Actual result
+  numericResult: real('numeric_result'),
+  textResult: text('text_result'),
+  resultStatus: text('result_status').notNull().default('pending'), // pending|pass|fail|retest|na
+  // Audit
+  testedBy: integer('tested_by').references(() => sqliteUsers.id),
+  testedAt: text('tested_at'),
+  reviewedBy: integer('reviewed_by').references(() => sqliteUsers.id),
+  reviewedAt: text('reviewed_at'),
+  notes: text('notes'),
+  attachmentPath: text('attachment_path'), // chromatogram / photo
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// QC Test Panels — default test panel master per product/category
+export const sqliteQcTestPanels = sqliteTable('qc_test_panels', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  productId: integer('product_id').references(() => sqliteItems.id), // null = applies to all (category-level)
+  productCategory: text('product_category'), // 'herb','capsule','powder', etc.
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  isRequired: integer('is_required', { mode: 'boolean' }).notNull().default(true),
+  sequence: integer('sequence').notNull().default(1),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// QC OOS Investigations — Out-of-Spec investigation per FDA 21 CFR 211.192
+export const sqliteQcOosInvestigations = sqliteTable('qc_oos_investigations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleTestId: integer('sample_test_id').notNull().references(() => sqliteQcSampleTests.id),
+  initiatedBy: integer('initiated_by').notNull().references(() => sqliteUsers.id),
+  initiatedAt: text('initiated_at').notNull(),
+  phase1LabErrorCheck: text('phase1_lab_error_check'), // analyst hypothesis
+  phase2RootCause: text('phase2_root_cause'),
+  classification: text('classification'), // lab_error|manufacturing_error|undetermined
+  retestAuthorized: integer('retest_authorized', { mode: 'boolean' }).notNull().default(false),
+  closedBy: integer('closed_by').references(() => sqliteUsers.id),
+  closedAt: text('closed_at'),
+  conclusion: text('conclusion'),
+  capaId: integer('capa_id').references(() => sqliteCapa.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// QC Sample Signatures — 3-tier sign-off per 21 CFR Part 11
+// Roles: analyst → reviewer → approver → qa_release
+export const sqliteQcSampleSignatures = sqliteTable('qc_sample_signatures', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleId: integer('sample_id').notNull().references(() => sqliteQcSamples.id),
+  role: text('role').notNull(), // analyst|reviewer|approver|qa_release
+  userId: integer('user_id').notNull().references(() => sqliteUsers.id),
+  signedAt: text('signed_at').notNull(),
+  signatureMeaning: text('signature_meaning'), // 'Tested','Reviewed','Approved','Released'
+  notes: text('notes'),
+  // 21 CFR Part 11: meaning + auditable link
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Templates — template config (header/footer HTML, signatory roles, layout flags)
+export const sqliteCoaTemplates = sqliteTable('coa_templates', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  productCategory: text('product_category'), // 'herb','capsule','powder','liquid' or null=default
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // Layout config
+  headerLogoPath: text('header_logo_path'),
+  headerHtml: text('header_html'), // company name, address, license #
+  footerHtml: text('footer_html'), // disclaimer, references
+  // Signatory roles required (JSON array stored as text)
+  signatoryRoles: text('signatory_roles'), // e.g. '["analyst","qc_manager","qa_manager"]'
+  // Optional sections to show/hide
+  showStorageConditions: integer('show_storage_conditions', { mode: 'boolean' }).notNull().default(true),
+  showExpiryDate: integer('show_expiry_date', { mode: 'boolean' }).notNull().default(true),
+  showRetestDate: integer('show_retest_date', { mode: 'boolean' }).notNull().default(false),
+  showQrVerify: integer('show_qr_verify', { mode: 'boolean' }).notNull().default(true),
+  language: text('language').notNull().default('bilingual'), // th|en|bilingual
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Documents — main COA record with QR token and lifecycle
+export const sqliteCoaDocuments = sqliteTable('coa_documents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaNumber: text('coa_number').notNull().unique(), // COA-2026-000123
+  sampleId: integer('sample_id').notNull().references(() => sqliteQcSamples.id),
+  templateId: integer('template_id').references(() => sqliteCoaTemplates.id),
+  productId: integer('product_id').notNull().references(() => sqliteItems.id),
+  lotNumber: text('lot_number').notNull(),
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  salesOrderRef: text('sales_order_ref'),
+  // Document metadata
+  issueDate: text('issue_date').notNull(),
+  expiryDate: text('expiry_date'),
+  retestDate: text('retest_date'),
+  manufactureDate: text('manufacture_date'),
+  conclusion: text('conclusion').notNull(), // complies|does_not_comply|partial
+  // Lifecycle
+  status: text('status').notNull().default('draft'), // draft|review|approved|issued|superseded|revoked
+  supersededBy: integer('superseded_by'), // self-reference (no FK to avoid circular dep at create time)
+  revokeReason: text('revoke_reason'),
+  // Verification (public QR portal)
+  qrCodeToken: text('qr_code_token').notNull().unique(), // random 32-byte URL-safe hash
+  // Audit
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  releasedAt: text('released_at'),
+  releasedBy: integer('released_by').references(() => sqliteUsers.id),
+  // PDF cache
+  pdfPath: text('pdf_path'),
+  pdfGeneratedAt: text('pdf_generated_at'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Test Results — immutable snapshot of test data at COA issue time
+export const sqliteCoaTestResults = sqliteTable('coa_test_results', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaId: integer('coa_id').notNull().references(() => sqliteCoaDocuments.id),
+  sampleTestId: integer('sample_test_id').references(() => sqliteQcSampleTests.id), // source of truth
+  sequence: integer('sequence').notNull().default(1),
+  // Snapshot at COA issue time (immutable)
+  testName: text('test_name').notNull(),
+  testNameTh: text('test_name_th'),
+  testMethod: text('test_method'),
+  specification: text('specification').notNull(),
+  result: text('result').notNull(),
+  resultUnit: text('result_unit'),
+  conclusion: text('conclusion').notNull(), // conform|non_conform|na
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Signatures — 21 CFR Part 11 e-signatures with name/title snapshots
+export const sqliteCoaSignatures = sqliteTable('coa_signatures', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaId: integer('coa_id').notNull().references(() => sqliteCoaDocuments.id),
+  role: text('role').notNull(), // 'analyst','qc_manager','qa_manager'
+  userId: integer('user_id').notNull().references(() => sqliteUsers.id),
+  userNameSnapshot: text('user_name_snapshot'), // preserve display name at sign time
+  userTitleSnapshot: text('user_title_snapshot'), // preserve job title at sign time
+  signedAt: text('signed_at').notNull(),
+  signatureImagePath: text('signature_image_path'),
+  signatureMeaning: text('signature_meaning'), // 'Tested','Reviewed','Approved','Released'
+  ipAddress: text('ip_address'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Print History — audit trail of every print/email action
+export const sqliteCoaPrintHistory = sqliteTable('coa_print_history', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaId: integer('coa_id').notNull().references(() => sqliteCoaDocuments.id),
+  printedBy: integer('printed_by').notNull().references(() => sqliteUsers.id),
+  printedAt: text('printed_at').notNull(),
+  printType: text('print_type').notNull(), // preview|official|reprint|customer_email
+  customerEmail: text('customer_email'), // if emailed
+  ipAddress: text('ip_address'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Verify Log — public verify portal hit log (audit)
+export const sqliteCoaVerifyLog = sqliteTable('coa_verify_log', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaId: integer('coa_id').references(() => sqliteCoaDocuments.id), // nullable: unknown token still logged
+  qrTokenAttempted: text('qr_token_attempted'), // raw token that was queried
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  referer: text('referer'),
+  result: text('result').notNull().default('found'), // found|not_found|revoked|superseded
+  verifiedAt: text('verified_at').notNull().default('CURRENT_TIMESTAMP'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ---------- MySQL (production) ----------
+
+// QC Samples — MySQL
+export const mysqlQcSamples = mysqlTable('qc_samples', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleNumber: varchar('sample_number', { length: 50 }).notNull().unique(),
+  sourceType: varchar('source_type', { length: 30 }).notNull(),
+  sourceRefId: int('source_ref_id'),
+  sourceRefText: varchar('source_ref_text', { length: 255 }),
+  productId: int('product_id').notNull().references(() => mysqlItems.id),
+  lotNumber: varchar('lot_number', { length: 100 }),
+  manufactureDate: datetime('manufacture_date'),
+  expiryDate: datetime('expiry_date'),
+  retestDate: datetime('retest_date'),
+  quantityReceived: decimal('quantity_received', { precision: 15, scale: 3 }),
+  unit: varchar('unit', { length: 20 }),
+  storageConditions: mysqlText('storage_conditions'),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  salesOrderRef: varchar('sales_order_ref', { length: 50 }),
+  receivedDate: datetime('received_date').notNull(),
+  receivedBy: int('received_by').notNull().references(() => mysqlUsers.id),
+  status: varchar('status', { length: 20 }).notNull().default('draft'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC Sample Tests — MySQL
+export const mysqlQcSampleTests = mysqlTable('qc_sample_tests', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleId: int('sample_id').notNull().references(() => mysqlQcSamples.id),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  sequence: int('sequence').notNull().default(1),
+  specMin: decimal('spec_min', { precision: 15, scale: 4 }),
+  specMax: decimal('spec_max', { precision: 15, scale: 4 }),
+  specTarget: decimal('spec_target', { precision: 15, scale: 4 }),
+  specText: varchar('spec_text', { length: 500 }),
+  unit: varchar('unit', { length: 20 }),
+  testMethod: varchar('test_method', { length: 255 }),
+  numericResult: decimal('numeric_result', { precision: 15, scale: 4 }),
+  textResult: mysqlText('text_result'),
+  resultStatus: varchar('result_status', { length: 20 }).notNull().default('pending'),
+  testedBy: int('tested_by').references(() => mysqlUsers.id),
+  testedAt: datetime('tested_at'),
+  reviewedBy: int('reviewed_by').references(() => mysqlUsers.id),
+  reviewedAt: datetime('reviewed_at'),
+  notes: mysqlText('notes'),
+  attachmentPath: varchar('attachment_path', { length: 500 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC Test Panels — MySQL
+export const mysqlQcTestPanels = mysqlTable('qc_test_panels', {
+  id: int('id').primaryKey().autoincrement(),
+  productId: int('product_id').references(() => mysqlItems.id),
+  productCategory: varchar('product_category', { length: 50 }),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  isRequired: mysqlBoolean('is_required').notNull().default(true),
+  sequence: int('sequence').notNull().default(1),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC OOS Investigations — MySQL
+export const mysqlQcOosInvestigations = mysqlTable('qc_oos_investigations', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleTestId: int('sample_test_id').notNull().references(() => mysqlQcSampleTests.id),
+  initiatedBy: int('initiated_by').notNull().references(() => mysqlUsers.id),
+  initiatedAt: datetime('initiated_at').notNull(),
+  phase1LabErrorCheck: mysqlText('phase1_lab_error_check'),
+  phase2RootCause: mysqlText('phase2_root_cause'),
+  classification: varchar('classification', { length: 30 }),
+  retestAuthorized: mysqlBoolean('retest_authorized').notNull().default(false),
+  closedBy: int('closed_by').references(() => mysqlUsers.id),
+  closedAt: datetime('closed_at'),
+  conclusion: mysqlText('conclusion'),
+  capaId: int('capa_id').references(() => mysqlCapa.id),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC Sample Signatures — MySQL
+export const mysqlQcSampleSignatures = mysqlTable('qc_sample_signatures', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleId: int('sample_id').notNull().references(() => mysqlQcSamples.id),
+  role: varchar('role', { length: 20 }).notNull(),
+  userId: int('user_id').notNull().references(() => mysqlUsers.id),
+  signedAt: datetime('signed_at').notNull(),
+  signatureMeaning: varchar('signature_meaning', { length: 50 }),
+  notes: mysqlText('notes'),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: varchar('user_agent', { length: 500 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Templates — MySQL
+export const mysqlCoaTemplates = mysqlTable('coa_templates', {
+  id: int('id').primaryKey().autoincrement(),
+  name: varchar('name', { length: 100 }).notNull(),
+  productCategory: varchar('product_category', { length: 50 }),
+  isDefault: mysqlBoolean('is_default').notNull().default(false),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  headerLogoPath: varchar('header_logo_path', { length: 500 }),
+  headerHtml: mysqlText('header_html'),
+  footerHtml: mysqlText('footer_html'),
+  signatoryRoles: mysqlText('signatory_roles'), // JSON array stored as text
+  showStorageConditions: mysqlBoolean('show_storage_conditions').notNull().default(true),
+  showExpiryDate: mysqlBoolean('show_expiry_date').notNull().default(true),
+  showRetestDate: mysqlBoolean('show_retest_date').notNull().default(false),
+  showQrVerify: mysqlBoolean('show_qr_verify').notNull().default(true),
+  language: varchar('language', { length: 10 }).notNull().default('bilingual'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Documents — MySQL
+export const mysqlCoaDocuments = mysqlTable('coa_documents', {
+  id: int('id').primaryKey().autoincrement(),
+  coaNumber: varchar('coa_number', { length: 30 }).notNull().unique(),
+  sampleId: int('sample_id').notNull().references(() => mysqlQcSamples.id),
+  templateId: int('template_id').references(() => mysqlCoaTemplates.id),
+  productId: int('product_id').notNull().references(() => mysqlItems.id),
+  lotNumber: varchar('lot_number', { length: 100 }).notNull(),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  salesOrderRef: varchar('sales_order_ref', { length: 50 }),
+  issueDate: datetime('issue_date').notNull(),
+  expiryDate: datetime('expiry_date'),
+  retestDate: datetime('retest_date'),
+  manufactureDate: datetime('manufacture_date'),
+  conclusion: varchar('conclusion', { length: 20 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('draft'),
+  supersededBy: int('superseded_by'),
+  revokeReason: mysqlText('revoke_reason'),
+  qrCodeToken: varchar('qr_code_token', { length: 64 }).notNull().unique(),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  releasedAt: datetime('released_at'),
+  releasedBy: int('released_by').references(() => mysqlUsers.id),
+  pdfPath: varchar('pdf_path', { length: 500 }),
+  pdfGeneratedAt: datetime('pdf_generated_at'),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Test Results — MySQL
+export const mysqlCoaTestResults = mysqlTable('coa_test_results', {
+  id: int('id').primaryKey().autoincrement(),
+  coaId: int('coa_id').notNull().references(() => mysqlCoaDocuments.id),
+  sampleTestId: int('sample_test_id').references(() => mysqlQcSampleTests.id),
+  sequence: int('sequence').notNull().default(1),
+  testName: varchar('test_name', { length: 255 }).notNull(),
+  testNameTh: varchar('test_name_th', { length: 255 }),
+  testMethod: varchar('test_method', { length: 255 }),
+  specification: varchar('specification', { length: 500 }).notNull(),
+  result: varchar('result', { length: 500 }).notNull(),
+  resultUnit: varchar('result_unit', { length: 20 }),
+  conclusion: varchar('conclusion', { length: 20 }).notNull(),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Signatures — MySQL
+export const mysqlCoaSignatures = mysqlTable('coa_signatures', {
+  id: int('id').primaryKey().autoincrement(),
+  coaId: int('coa_id').notNull().references(() => mysqlCoaDocuments.id),
+  role: varchar('role', { length: 50 }).notNull(),
+  userId: int('user_id').notNull().references(() => mysqlUsers.id),
+  userNameSnapshot: varchar('user_name_snapshot', { length: 100 }),
+  userTitleSnapshot: varchar('user_title_snapshot', { length: 100 }),
+  signedAt: datetime('signed_at').notNull(),
+  signatureImagePath: varchar('signature_image_path', { length: 500 }),
+  signatureMeaning: varchar('signature_meaning', { length: 50 }),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Print History — MySQL
+export const mysqlCoaPrintHistory = mysqlTable('coa_print_history', {
+  id: int('id').primaryKey().autoincrement(),
+  coaId: int('coa_id').notNull().references(() => mysqlCoaDocuments.id),
+  printedBy: int('printed_by').notNull().references(() => mysqlUsers.id),
+  printedAt: datetime('printed_at').notNull(),
+  printType: varchar('print_type', { length: 30 }).notNull(),
+  customerEmail: varchar('customer_email', { length: 255 }),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Verify Log — MySQL
+export const mysqlCoaVerifyLog = mysqlTable('coa_verify_log', {
+  id: int('id').primaryKey().autoincrement(),
+  coaId: int('coa_id').references(() => mysqlCoaDocuments.id),
+  qrTokenAttempted: varchar('qr_token_attempted', { length: 64 }),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: varchar('user_agent', { length: 500 }),
+  referer: varchar('referer', { length: 500 }),
+  result: varchar('result', { length: 20 }).notNull().default('found'),
+  verifiedAt: datetime('verified_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Export type aliases for easier use
 export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
@@ -6525,6 +6957,30 @@ export type StandardCost = typeof sqliteStandardCosts.$inferSelect;
 export type NewStandardCost = typeof sqliteStandardCosts.$inferInsert;
 export type VarianceRecord = typeof sqliteVarianceRecords.$inferSelect;
 export type NewVarianceRecord = typeof sqliteVarianceRecords.$inferInsert;
+
+// QC + COA Module (Phase 1)
+export type QcSample = typeof sqliteQcSamples.$inferSelect;
+export type NewQcSample = typeof sqliteQcSamples.$inferInsert;
+export type QcSampleTest = typeof sqliteQcSampleTests.$inferSelect;
+export type NewQcSampleTest = typeof sqliteQcSampleTests.$inferInsert;
+export type QcTestPanel = typeof sqliteQcTestPanels.$inferSelect;
+export type NewQcTestPanel = typeof sqliteQcTestPanels.$inferInsert;
+export type QcOosInvestigation = typeof sqliteQcOosInvestigations.$inferSelect;
+export type NewQcOosInvestigation = typeof sqliteQcOosInvestigations.$inferInsert;
+export type QcSampleSignature = typeof sqliteQcSampleSignatures.$inferSelect;
+export type NewQcSampleSignature = typeof sqliteQcSampleSignatures.$inferInsert;
+export type CoaTemplate = typeof sqliteCoaTemplates.$inferSelect;
+export type NewCoaTemplate = typeof sqliteCoaTemplates.$inferInsert;
+export type CoaDocument = typeof sqliteCoaDocuments.$inferSelect;
+export type NewCoaDocument = typeof sqliteCoaDocuments.$inferInsert;
+export type CoaTestResult = typeof sqliteCoaTestResults.$inferSelect;
+export type NewCoaTestResult = typeof sqliteCoaTestResults.$inferInsert;
+export type CoaSignature = typeof sqliteCoaSignatures.$inferSelect;
+export type NewCoaSignature = typeof sqliteCoaSignatures.$inferInsert;
+export type CoaPrintHistory = typeof sqliteCoaPrintHistory.$inferSelect;
+export type NewCoaPrintHistory = typeof sqliteCoaPrintHistory.$inferInsert;
+export type CoaVerifyLog = typeof sqliteCoaVerifyLog.$inferSelect;
+export type NewCoaVerifyLog = typeof sqliteCoaVerifyLog.$inferInsert;
 
 // ============================================
 // Template Module (ERP Prototype)
