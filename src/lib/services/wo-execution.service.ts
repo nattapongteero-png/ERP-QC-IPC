@@ -2626,16 +2626,26 @@ export async function recordSOPLinkedIPCResults(
         testStatus = failPct > tolPct ? 'fail' : 'pass';
       }
 
-      // Insert the quality_test row.
-      const insertRes = await db.insert(tables.qualityTests).values({
-        lotId: targetLotId,
-        testType: 'in_process',
-        sampleNumber: `SOP-${input.sopExecutionId}-IPC-${input.criteriaId}`,
+      // Idempotent upsert: when the operator saves IPC standalone (Phase 4)
+      // they may resave the same step's tests multiple times before
+      // completing it. Match the existing row by its deterministic
+      // sample_number — UPDATE in place, otherwise INSERT.
+      const sampleNumber = `SOP-${input.sopExecutionId}-IPC-${input.criteriaId}`;
+      const existingTest = await db
+        .select({ id: tables.qualityTests.id })
+        .from(tables.qualityTests)
+        .where(and(
+          eq(tables.qualityTests.lotId, targetLotId),
+          eq(tables.qualityTests.testType, 'in_process'),
+          eq(tables.qualityTests.sampleNumber, sampleNumber),
+        ))
+        .limit(1);
+
+      let qualityTestId: number;
+      const sharedFields = {
         sampleSize: total || 1,
         status: testStatus,
         result: testStatus === 'pending' ? null : testStatus,
-        requestedBy: operatorId,
-        requestedAt: getNow(),
         testedBy: testStatus === 'pending' ? null : operatorId,
         testDate: testStatus === 'pending' ? null : getNow(),
         specMinValue: effectiveMin,
@@ -2651,10 +2661,31 @@ export async function recordSOPLinkedIPCResults(
           : (criteria.acceptanceStages ? JSON.stringify(criteria.acceptanceStages) : null),
         ipcPhase: input.ipcPhase,
         notes: input.notes ?? (criteria.nameTh || criteria.name),
-        createdAt: getNow(),
         updatedAt: getNow(),
-      });
-      const qualityTestId = Number(getInsertId(insertRes));
+      };
+
+      if (existingTest.length > 0) {
+        qualityTestId = Number(existingTest[0].id);
+        await db
+          .update(tables.qualityTests)
+          .set(sharedFields)
+          .where(eq(tables.qualityTests.id, qualityTestId));
+        // Replace prior samples — operator may have changed values.
+        await db
+          .delete(tables.ipcTestSamples)
+          .where(eq(tables.ipcTestSamples.qualityTestId, qualityTestId));
+      } else {
+        const insertRes = await db.insert(tables.qualityTests).values({
+          lotId: targetLotId,
+          testType: 'in_process',
+          sampleNumber,
+          requestedBy: operatorId,
+          requestedAt: getNow(),
+          createdAt: getNow(),
+          ...sharedFields,
+        });
+        qualityTestId = Number(getInsertId(insertRes));
+      }
       created.push(qualityTestId);
 
       // Insert sample rows.

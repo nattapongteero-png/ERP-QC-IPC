@@ -106,7 +106,7 @@ export async function PUT(
         return errorResponse('Missing required fields: executionId, action');
       }
 
-      const validActions = ['start', 'complete', 'confirm_substeps'];
+      const validActions = ['start', 'complete', 'confirm_substeps', 'record_ipc'];
       if (!validActions.includes(data.action)) {
         return errorResponse(`Invalid action. Must be one of: ${validActions.join(', ')}`);
       }
@@ -122,6 +122,20 @@ export async function PUT(
         execution = await confirmWOSOPSubSteps(data.executionId, data.confirmedSubStepIds);
         publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'confirm_substeps');
         return successResponse(execution, 'Sub-steps confirmed');
+      } else if (data.action === 'record_ipc') {
+        // Phase 4 — record IPC results without changing SOP step status.
+        // Operator can save IPC during in_progress, then complete the step
+        // when the procedure work itself is done. recordSOPLinkedIPCResults
+        // is idempotent so re-saving overwrites the prior values rather
+        // than duplicating quality_test rows.
+        if (!Array.isArray(data.ipcResults) || data.ipcResults.length === 0) {
+          return errorResponse('ipcResults array is required');
+        }
+        const ipcInputs = data.ipcResults as SOPLinkedIPCInput[];
+        for (const r of ipcInputs) r.sopExecutionId = data.executionId;
+        const result = await recordSOPLinkedIPCResults(workOrderId, session.userId, ipcInputs);
+        publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'sop-standalone-record');
+        return successResponse(result, 'IPC results saved');
       } else if (data.action === 'start') {
         execution = await startWOSOPStep(data.executionId, operatorId);
         publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'start');

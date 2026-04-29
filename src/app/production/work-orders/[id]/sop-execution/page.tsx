@@ -156,6 +156,11 @@ export default function SOPExecutionPage() {
   const [ipcSampleResults, setIpcSampleResults] = useState<Record<number, ('pass' | 'fail' | null)[]>>({});
   const [ipcText, setIpcText] = useState<Record<number, string>>({});
 
+  // Standalone IPC recording dialog (Phase 4) — independent of the Complete
+  // Step flow. Operator opens this any time during in_progress, fills in
+  // sample values, saves. Backend upsert handles re-saves.
+  const [showIPCDialog, setShowIPCDialog] = useState(false);
+
   // Used to gate the Verify button under GMP dual-control:
   // a step's operator cannot also be its verifier.
   const { data: currentUser } = useCurrentUser();
@@ -320,6 +325,44 @@ export default function SOPExecutionPage() {
     },
   });
 
+  // Standalone IPC recording — Phase 4. Saves IPC results without
+  // changing the SOP step status. Backend upsert means re-saving the
+  // same step replaces (not duplicates) the prior values.
+  const recordIPCOnlyMutation = useMutation({
+    mutationFn: async ({ stepId, ipcResults }: {
+      stepId: number;
+      ipcResults: Array<{
+        criteriaId: number;
+        ipcPhase: string;
+        numericValues?: (number | null)[];
+        sampleResults?: ('pass' | 'fail' | null)[];
+        textValue?: string;
+      }>;
+    }) => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ executionId: stepId, action: 'record_ipc', ipcResults }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-ipc-tests', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
+      toast.success('IPC Saved', 'บันทึกผล IPC แล้ว — สามารถบันทึก SOP Step ภายหลังได้');
+      setShowIPCDialog(false);
+      setSelectedStep(null);
+      setIpcNumeric({});
+      setIpcSampleResults({});
+      setIpcText({});
+    },
+    onError: (error: Error) => {
+      toast.error('Error', error.message);
+    },
+  });
+
   // Verify step mutation
   const verifyStepMutation = useMutation({
     mutationFn: async (stepId: number) => {
@@ -393,7 +436,13 @@ export default function SOPExecutionPage() {
     if (expected) {
       setActualParams({ ...expected });
     }
-    // Seed empty IPC buffers for every linked criterion so render is stable.
+    seedIPCBuffers(step);
+    setShowCompleteDialog(true);
+  };
+
+  /** Seed empty IPC buffers for the current step. Used by both the
+   *  Complete Step dialog (Phase 3) and the standalone IPC dialog (Phase 4). */
+  const seedIPCBuffers = (step: SOPStep) => {
     const numericInit: Record<number, (number | null)[]> = {};
     const sampleInit: Record<number, ('pass' | 'fail' | null)[]> = {};
     const textInit: Record<number, string> = {};
@@ -410,8 +459,29 @@ export default function SOPExecutionPage() {
     setIpcNumeric(numericInit);
     setIpcSampleResults(sampleInit);
     setIpcText(textInit);
-    setShowCompleteDialog(true);
   };
+
+  const handleOpenIPCDialog = (step: SOPStep) => {
+    setSelectedStep(step);
+    seedIPCBuffers(step);
+    setShowIPCDialog(true);
+  };
+
+  /** Pack the operator's IPC inputs for the API request. */
+  const packIPCResults = (step: SOPStep) =>
+    (step.linkedIPC || []).map((ipc) => {
+      const base = {
+        criteriaId: ipc.criteriaId,
+        ipcPhase: step.phase || 'production',
+      };
+      if (ipc.criteriaType === 'numeric') {
+        return { ...base, numericValues: ipcNumeric[ipc.criteriaId] || [] };
+      }
+      if (ipc.criteriaType === 'text') {
+        return { ...base, textValue: ipcText[ipc.criteriaId] || '' };
+      }
+      return { ...base, sampleResults: ipcSampleResults[ipc.criteriaId] || [] };
+    });
 
   /** Validate every linked IPC has all sample inputs filled. */
   const ipcInputsComplete = (step: SOPStep | null): boolean => {
@@ -439,21 +509,7 @@ export default function SOPExecutionPage() {
       return;
     }
 
-    // Pack linked IPC results to send alongside the complete request.
-    const ipcResults = (selectedStep.linkedIPC || []).map((ipc) => {
-      const base = {
-        criteriaId: ipc.criteriaId,
-        ipcPhase: selectedStep.phase || 'production',
-      };
-      if (ipc.criteriaType === 'numeric') {
-        return { ...base, numericValues: ipcNumeric[ipc.criteriaId] || [] };
-      }
-      if (ipc.criteriaType === 'text') {
-        return { ...base, textValue: ipcText[ipc.criteriaId] || '' };
-      }
-      return { ...base, sampleResults: ipcSampleResults[ipc.criteriaId] || [] };
-    });
-
+    const ipcResults = packIPCResults(selectedStep);
     completeStepMutation.mutate({
       stepId: selectedStep.id,
       data: {
@@ -462,6 +518,20 @@ export default function SOPExecutionPage() {
         ipcResults: ipcResults.length > 0 ? ipcResults : undefined,
       },
     });
+  };
+
+  const handleSaveIPCOnly = () => {
+    if (!selectedStep) return;
+    if (!ipcInputsComplete(selectedStep)) {
+      toast.error('IPC Required', 'กรุณากรอก IPC ทุก sample ให้ครบก่อน');
+      return;
+    }
+    const ipcResults = packIPCResults(selectedStep);
+    if (ipcResults.length === 0) {
+      toast.error('No IPC', 'ไม่มี IPC ให้บันทึก');
+      return;
+    }
+    recordIPCOnlyMutation.mutate({ stepId: selectedStep.id, ipcResults });
   };
 
   const getStatusInfo = (status: SOPStep['status']) => {
@@ -915,6 +985,16 @@ export default function SOPExecutionPage() {
                             disabled={startStepMutation.isPending}
                           />
                         )}
+                        {canComplete && step.linkedIPC && step.linkedIPC.length > 0 && (
+                          <DxButton
+                            text="บันทึก IPC"
+                            icon="testrun"
+                            type="default"
+                            stylingMode="outlined"
+                            onClick={() => handleOpenIPCDialog(step)}
+                            disabled={recordIPCOnlyMutation.isPending}
+                          />
+                        )}
                         {canComplete && (
                           <DxButton
                             text="Complete"
@@ -1078,11 +1158,8 @@ export default function SOPExecutionPage() {
             );
           })()}
 
-          {/* Inline IPC recording — Phase 3. Renders one block per linked
-              criterion. Numeric → N number boxes; pass_fail/visual/checkbox →
-              N PASS/FAIL toggles; text → single textarea. The data is sent
-              with the Complete request so the backend can create the
-              quality_test + ipc_test_samples rows in the same transaction. */}
+          {/* Inline IPC recording — shared between Complete dialog (Phase 3)
+              and the standalone IPC dialog (Phase 4) via the same input state. */}
           {selectedStep?.linkedIPC && selectedStep.linkedIPC.length > 0 && (
             <div className="space-y-3">
               <h5 className="text-sm font-medium text-emerald-800 flex items-center gap-1.5">
@@ -1235,6 +1312,177 @@ export default function SOPExecutionPage() {
             disabled={completeStepMutation.isPending}
           />
         </div>
+        </div>
+      </DxPopup>
+
+      {/* Standalone IPC Dialog — Phase 4. Shows ONLY the IPC inputs so the
+          operator can save IPC results during in_progress without completing
+          the SOP step. Reuses the same state buffers as the Complete dialog
+          (only one of the two is open at a time). */}
+      <DxPopup
+        visible={showIPCDialog}
+        onHiding={() => {
+          setShowIPCDialog(false);
+          setSelectedStep(null);
+          setIpcNumeric({});
+          setIpcSampleResults({});
+          setIpcText({});
+        }}
+        title="บันทึก IPC"
+        width={560}
+        height="90vh"
+        showCloseButton
+        dragEnabled={false}
+      >
+        <div className="flex flex-col h-full">
+          <div className="p-4 space-y-4 overflow-y-auto flex-1">
+            <div className="bg-emerald-50 rounded-lg p-3">
+              <h4 className="font-medium text-emerald-800 text-sm">
+                {t('bomConfiguration.step', { sequence: selectedStep?.sequence ?? 0 })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
+              </h4>
+              <p className="text-xs text-emerald-700 mt-1">
+                บันทึก IPC ก่อน Complete Step ได้ — ค่าที่บันทึกจะ replace ค่าก่อนหน้าเสมอ
+              </p>
+            </div>
+
+            {selectedStep?.linkedIPC && selectedStep.linkedIPC.length > 0 ? (
+              <div className="space-y-3">
+                <h5 className="text-sm font-medium text-emerald-800 flex items-center gap-1.5">
+                  <FlaskConical className="h-4 w-4" />
+                  IPC Test ({selectedStep.linkedIPC.length})
+                </h5>
+                {selectedStep.linkedIPC.map((ipc) => {
+                  const size = ipc.sampleSize || 1;
+                  const spec = ipc.specification
+                    || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
+                    || ((ipc.minValue != null || ipc.maxValue != null)
+                        ? `${ipc.minValue ?? '-'} – ${ipc.maxValue ?? '-'}${ipc.unit ? ' ' + ipc.unit : ''}`
+                        : null);
+                  return (
+                    <div
+                      key={ipc.id}
+                      className={`p-3 rounded-lg border ${
+                        ipc.isCritical ? 'border-rose-200 bg-rose-50/30' : 'border-emerald-200 bg-emerald-50/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                        <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          {ipc.criteriaCode}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {ipc.criteriaNameTh || ipc.criteriaName}
+                        </span>
+                        {ipc.isCritical && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">
+                            <AlertCircle className="h-2.5 w-2.5" />
+                            Critical
+                          </span>
+                        )}
+                      </div>
+                      {spec && (
+                        <div className="text-xs text-gray-500 mb-2">
+                          <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {size}
+                        </div>
+                      )}
+
+                      {ipc.criteriaType === 'numeric' && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {(ipcNumeric[ipc.criteriaId] || []).map((v, idx) => {
+                            const min = ipc.minValue != null ? Number(ipc.minValue) : null;
+                            const max = ipc.maxValue != null ? Number(ipc.maxValue) : null;
+                            const inSpec = v == null
+                              ? null
+                              : (min == null || v >= min) && (max == null || v <= max);
+                            return (
+                              <div key={idx}>
+                                <label className="block text-[11px] text-gray-500 mb-0.5">#{idx + 1}</label>
+                                <DxNumberBox
+                                  value={v ?? undefined}
+                                  onValueChanged={(e) => {
+                                    const next = [...(ipcNumeric[ipc.criteriaId] || [])];
+                                    next[idx] = e.value == null ? null : Number(e.value);
+                                    setIpcNumeric({ ...ipcNumeric, [ipc.criteriaId]: next });
+                                  }}
+                                  format="#0.00"
+                                  showSpinButtons={false}
+                                />
+                                {v != null && (
+                                  <div className={`mt-0.5 text-[10px] font-semibold ${inSpec ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {inSpec ? '✓ ในเกณฑ์' : '✗ นอกเกณฑ์'}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text' && (
+                        <div className="space-y-1.5">
+                          {(ipcSampleResults[ipc.criteriaId] || []).map((r, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-600 w-8">#{idx + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
+                                  next[idx] = 'pass';
+                                  setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
+                                }}
+                                className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                                  r === 'pass'
+                                    ? 'bg-emerald-600 text-white border-emerald-700'
+                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
+                                }`}
+                              >
+                                ผ่าน
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
+                                  next[idx] = 'fail';
+                                  setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
+                                }}
+                                className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                                  r === 'fail'
+                                    ? 'bg-rose-600 text-white border-rose-700'
+                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-rose-50'
+                                }`}
+                              >
+                                ไม่ผ่าน
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {ipc.criteriaType === 'text' && (
+                        <DxTextArea
+                          value={ipcText[ipc.criteriaId] || ''}
+                          onValueChanged={(e) => setIpcText({ ...ipcText, [ipc.criteriaId]: e.value || '' })}
+                          placeholder="กรอกผลการตรวจ"
+                          height={60}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-8">ไม่มี IPC ผูกไว้กับ step นี้</p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0">
+            <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setShowIPCDialog(false)} />
+            <DxButton
+              text={recordIPCOnlyMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก IPC'}
+              icon="save"
+              type="success"
+              onClick={handleSaveIPCOnly}
+              disabled={recordIPCOnlyMutation.isPending}
+            />
+          </div>
         </div>
       </DxPopup>
     </div>
