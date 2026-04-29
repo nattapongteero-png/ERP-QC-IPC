@@ -482,6 +482,11 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
   // post_production, packaging — drives per-phase IPC card on Execution Dashboard.
   // Null for incoming/final tests where phase is irrelevant.
   ipcPhase: text('ipc_phase'),
+  // Retest tracking (FDA OOS 2006 / PIC/S):
+  // retestRound = current round number (1 = first test, 2 = first retest)
+  // retestReason = 'justified' | 'unjustified' | null. NULL on round 1.
+  retestRound: integer('retest_round').notNull().default(1),
+  retestReason: text('retest_reason'),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: integer('disposition_by').references(() => sqliteUsers.id),
@@ -1205,6 +1210,9 @@ export const sqliteSOPTemplateIPCCriteria = sqliteTable('sop_template_ipc_criter
   sampleSize: integer('sample_size').notNull().default(1),
   isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
   notes: text('notes'),
+  // Override of BOM/master max_retest_rounds for this SOP step linkage.
+  // NULL = inherit from BOM/master.
+  maxRetestRounds: integer('max_retest_rounds'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1320,6 +1328,10 @@ export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
   // Empty/null = single-stage (uses sampleSize + tolerancePercent above).
   // Each stage: { sampleSize, tolerancePercent, onFail: 'next_stage'|'reject_batch'|'deviation' }
   acceptanceStages: text('acceptance_stages'),
+  // Max retest rounds before forcing deviation (FDA OOS 2006 / PIC/S).
+  // Default = 1 (allow 1 retest = max 2 rounds total).
+  // Critical criteria force this to 0 at runtime (deviation immediately on round 1 fail).
+  maxRetestRounds: integer('max_retest_rounds').notNull().default(1),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1333,6 +1345,9 @@ export const sqliteBOMInProcessQC = sqliteTable('bom_in_process_qc', {
   // Phase determines which Execution Dashboard card hosts this IPC test.
   // Values: pre_production, production, post_production, packaging
   phase: text('phase').notNull().default('production'),
+  // Override of master ipc_criteria.max_retest_rounds for this BOM.
+  // NULL = inherit from master.
+  maxRetestRounds: integer('max_retest_rounds'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1941,6 +1956,9 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   acceptanceStages: mysqlText('acceptance_stages'),
   // IPC phase snapshot (in_process tests only) — drives per-phase IPC card.
   ipcPhase: varchar('ipc_phase', { length: 50 }),
+  // Retest tracking (FDA OOS 2006 / PIC/S):
+  retestRound: int('retest_round').notNull().default(1),
+  retestReason: varchar('retest_reason', { length: 20 }), // 'justified' | 'unjustified' | null
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: varchar('disposition', { length: 50 }), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: int('disposition_by').references(() => mysqlUsers.id),
@@ -4451,6 +4469,8 @@ export const mysqlSOPTemplateIPCCriteria = mysqlTable('sop_template_ipc_criteria
   sampleSize: int('sample_size').notNull().default(1),
   isCritical: mysqlBoolean('is_critical').notNull().default(false),
   notes: mysqlText('notes'),
+  // Override of BOM/master max_retest_rounds for this SOP step linkage. NULL = inherit.
+  maxRetestRounds: int('max_retest_rounds'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -4565,6 +4585,8 @@ export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
   // Empty/null = single-stage (uses sampleSize + tolerancePercent above).
   // Each stage: { sampleSize, tolerancePercent, onFail: 'next_stage'|'reject_batch'|'deviation' }
   acceptanceStages: mysqlText('acceptance_stages'),
+  // Max retest rounds before forcing deviation (FDA OOS 2006 / PIC/S).
+  maxRetestRounds: int('max_retest_rounds').notNull().default(1),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -4577,6 +4599,8 @@ export const mysqlBOMInProcessQC = mysqlTable('bom_in_process_qc', {
   isCritical: mysqlBoolean('is_critical').notNull().default(false),
   // Phase determines which Execution Dashboard card hosts this IPC test.
   phase: varchar('phase', { length: 50 }).notNull().default('production'),
+  // Override of master ipc_criteria.max_retest_rounds for this BOM. NULL = inherit.
+  maxRetestRounds: int('max_retest_rounds'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

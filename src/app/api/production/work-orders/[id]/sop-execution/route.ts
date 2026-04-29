@@ -124,10 +124,17 @@ export async function PUT(
         publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'confirm_substeps');
         return successResponse(execution, 'Sub-steps confirmed');
       } else if (data.action === 'add_ipc_round') {
-        // Phase 6b — append a new retest round to an existing IPC quality_test.
-        // Stage plan from the snapshot decides sample size + tolerance.
+        // Phase 6b + Retest Gate — append a new round to an existing IPC test.
+        //  - Multi-stage criteria: stage plan drives sampleSize/tolerance.
+        //  - Single-stage criteria: retestReason is REQUIRED on round 2+.
         if (!data.criteriaId || data.criteriaId === undefined) {
           return errorResponse('criteriaId is required');
+        }
+        // Validate retestReason — service double-checks but reject early
+        // for clearer error messaging.
+        const retestReason = data.retestReason;
+        if (retestReason != null && retestReason !== 'justified' && retestReason !== 'unjustified') {
+          return errorResponse('retestReason must be "justified" or "unjustified"');
         }
         const input: SOPLinkedIPCInput = {
           criteriaId: Number(data.criteriaId),
@@ -136,6 +143,9 @@ export async function PUT(
           numericValues: data.numericValues,
           sampleResults: data.sampleResults,
           textValue: data.textValue,
+          retestReason: retestReason ?? null,
+          deviationReason: typeof data.deviationReason === 'string' ? data.deviationReason : null,
+          deviationSeverity: data.deviationSeverity ?? null,
         };
         const result = await addIPCTestRound(workOrderId, session.userId, input);
         publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'sop-add-round');

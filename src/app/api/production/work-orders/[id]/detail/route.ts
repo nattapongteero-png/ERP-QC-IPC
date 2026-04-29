@@ -197,6 +197,8 @@ export async function GET(
               testedBy: qualityTests.testedBy,
               approvedBy: qualityTests.approvedBy,
               ipcPhase: qualityTests.ipcPhase,
+              retestRound: qualityTests.retestRound,
+              retestReason: qualityTests.retestReason,
             })
             .from(qualityTests)
             .where(inArray(qualityTests.lotId, lotIdArray));

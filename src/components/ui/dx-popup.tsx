@@ -77,6 +77,10 @@ export interface DxPopupProps {
       onClick?: () => void;
     };
   }>;
+  /** Defer rendering of children until first show. Default true. Set
+   *  false when children read state set in the same call as visible=true
+   *  (deferred rendering can cache the empty initial render). */
+  deferRendering?: boolean;
 }
 
 /**
@@ -141,6 +145,7 @@ export function DxPopup({
   className,
   children,
   toolbarItems,
+  deferRendering = true,
 }: DxPopupProps) {
   // Detect device type for responsive fullscreen
   const { isMobile, isTablet } = useMobile();
@@ -195,7 +200,7 @@ export function DxPopup({
       container={container}
       wrapperAttr={{ ...wrapperAttr, className }}
       toolbarItems={toolbarItems}
-      deferRendering={true}
+      deferRendering={deferRendering}
     >
       {children}
     </Popup>

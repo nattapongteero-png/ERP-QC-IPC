@@ -75,6 +75,9 @@ interface IPCCriteria {
   specTarget: number | null;
   specTolerancePercent: number;
   acceptanceStages: string | AcceptanceStage[] | null;
+  // FDA OOS 2006 / PIC/S retest budget. 0 = deviation immediately on round 1 fail.
+  // Critical criteria force this to 0 at runtime.
+  maxRetestRounds: number;
 }
 
 interface Props {
@@ -96,6 +99,7 @@ function normalizeRecord(raw: IPCCriteria | undefined): IPCCriteria | undefined 
     tolerancePercent: toNum(raw.tolerancePercent) ?? 0,
     specTarget: toNum(raw.specTarget),
     specTolerancePercent: toNum(raw.specTolerancePercent) ?? 0,
+    maxRetestRounds: toNum(raw.maxRetestRounds) ?? 1,
     isCritical: !!raw.isCritical,
     isActive: raw.isActive !== false,
     criteriaType: normalizeCriteriaType(raw.criteriaType),
@@ -128,6 +132,7 @@ export function IPCCriteriaForm({ mode, id }: Props) {
     checkIntervalMinutes: 30, isCritical: false, isActive: true,
     dosageForm: null, criteriaType: 'numeric', tolerancePercent: 0,
     specTarget: null, specTolerancePercent: 0, acceptanceStages: null,
+    maxRetestRounds: 1,
   };
 
   return <IPCCriteriaFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} />;
@@ -837,6 +842,46 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   desc="เปิดใช้กับ batch ใหม่"
                   activeColor="bg-emerald-50 border-emerald-300 text-emerald-700"
                 />
+              </div>
+
+              {/* Retest budget (FDA OOS 2006 / PIC/S) */}
+              <div className="sm:col-span-2 mt-2">
+                <label className={cn(FIELD_LABEL, 'flex items-center')}>
+                  จำนวน Retest สูงสุด <span className="text-slate-400 ml-1 font-normal">(Max Retest Rounds)</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={0}
+                    max={5}
+                    className={cn(FIELD_INPUT, 'w-24')}
+                    value={formData.maxRetestRounds ?? 1}
+                    disabled={!!formData.isCritical}
+                    onChange={(e) => {
+                      const n = Math.max(0, Math.min(5, Number(e.target.value) || 0));
+                      setFormData({ ...formData, maxRetestRounds: n });
+                    }}
+                  />
+                  <div className="text-xs text-slate-600">
+                    {formData.isCritical ? (
+                      <span className="text-red-600 font-medium">
+                        Critical = 0 (Deviation ทันทีถ้า fail รอบ 1)
+                      </span>
+                    ) : (
+                      <>
+                        อนุญาตให้ทดสอบซ้ำได้กี่รอบก่อนต้องสร้าง <span className="font-semibold">Deviation</span>
+                        <br />
+                        <span className="text-slate-500">
+                          เริ่มต้น 1 (ทำได้รวม 2 รอบ). 0 = Deviation ทันทีถ้า fail รอบ 1
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <p className={cn(FIELD_HELPER, 'mt-2')}>
+                  ตามมาตรฐาน FDA OOS 2006: Justified retest (พบสาเหตุ) นับเป็นรอบเพิ่ม / Unjustified
+                  retest (ไม่มีเหตุผลชัดเจน) จะสร้าง Deviation ทันที
+                </p>
               </div>
             </div>
           </div>

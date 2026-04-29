@@ -86,6 +86,12 @@ interface LinkedIPCCriterion {
   // Phase 6b — JSON snapshot of multi-stage acceptance plan. Drives the
   // "บันทึกรอบใหม่" button: present + last round failed + onFail=next_stage.
   recordedAcceptanceStages?: string | null;
+  // Retest budget (FDA OOS 2006). Master ipc_criteria.maxRetestRounds.
+  // Critical criteria → 0 (deviation immediately on round 1 fail).
+  maxRetestRounds?: number | null;
+  // Latest round + reason captured on the recorded quality_test.
+  recordedRetestRound?: number | null;
+  recordedRetestReason?: string | null;
 }
 
 interface AcceptanceStage {
@@ -197,6 +203,9 @@ export default function SOPExecutionPage() {
   // Step flow. Operator opens this any time during in_progress, fills in
   // sample values, saves. Backend upsert handles re-saves.
   const [showIPCDialog, setShowIPCDialog] = useState(false);
+  // Phase 8d — when set, the IPC dialog filters to IPCs linked to this
+  // sub-step only; null = step-level (all IPCs of the step).
+  const [selectedSubStepId, setSelectedSubStepId] = useState<number | null>(null);
 
   // Phase 6a — Set of recordedTestId currently expanded into the details
   // panel. Toggling clicks on the "บันทึกแล้ว" badge.
@@ -210,17 +219,27 @@ export default function SOPExecutionPage() {
     });
   };
 
-  // Phase 6b — Retest dialog state. Operator opens it for a single
-  // criterion that's failed and whose stage plan permits a next round.
+  // Phase 6b + Retest Gate — Retest dialog state. Operator opens it for a
+  // single criterion that's failed. Two paths:
+  //  - Multi-stage: stage plan defines next round's sample size + tolerance
+  //  - Single-stage: criteria.maxRetestRounds defines retest budget; round
+  //    2+ requires retestReason (justified/unjustified).
   const [retestTarget, setRetestTarget] = useState<{
     step: SOPStep;
     ipc: LinkedIPCCriterion;
     stage: AcceptanceStage;
     nextRound: number;
+    isMultiStage: boolean;
   } | null>(null);
   const [retestNumeric, setRetestNumeric] = useState<(number | null)[]>([]);
   const [retestSampleResults, setRetestSampleResults] = useState<('pass' | 'fail' | null)[]>([]);
   const [retestText, setRetestText] = useState('');
+  const [retestReason, setRetestReason] = useState<'justified' | 'unjustified' | null>(null);
+  // Phase 8b — inline Deviation reason captured at trigger time. Per-criteria
+  // for the standalone IPC dialog (multiple IPCs at once) and a single value
+  // for the retest dialog (one criterion at a time).
+  const [ipcDeviationReason, setIpcDeviationReason] = useState<Record<number, string>>({});
+  const [retestDeviationReason, setRetestDeviationReason] = useState('');
 
   // Used to gate the Verify button under GMP dual-control:
   // a step's operator cannot also be its verifier.
@@ -406,6 +425,9 @@ export default function SOPExecutionPage() {
       numericValues?: (number | null)[];
       sampleResults?: ('pass' | 'fail' | null)[];
       textValue?: string;
+      retestReason?: 'justified' | 'unjustified' | null;
+      deviationReason?: string | null;
+      deviationSeverity?: 'minor' | 'major' | 'critical' | null;
     }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`, {
         method: 'PUT',
@@ -418,6 +440,9 @@ export default function SOPExecutionPage() {
           numericValues: payload.numericValues,
           sampleResults: payload.sampleResults,
           textValue: payload.textValue,
+          retestReason: payload.retestReason,
+          deviationReason: payload.deviationReason,
+          deviationSeverity: payload.deviationSeverity,
         }),
       });
       const result = await res.json();
@@ -449,7 +474,27 @@ export default function SOPExecutionPage() {
       toast.error('IPC Required', 'กรุณากรอก samples ของรอบนี้ให้ครบ');
       return;
     }
+    // Single-stage retests REQUIRE retestReason on round 2+ per FDA OOS 2006.
+    // Multi-stage skips this — the stage plan governs progression.
+    if (!retestTarget.isMultiStage && retestReason == null) {
+      toast.error('เหตุผลการ Retest', 'กรุณาเลือกเหตุผลการทดสอบซ้ำ');
+      return;
+    }
+    // Phase 8b — when this round will trigger a Deviation, require the
+    // operator to type the rationale inline.
+    const willTrigger = willTriggerDeviationRetest();
+    if (willTrigger && !retestDeviationReason.trim()) {
+      toast.error('Deviation Reason Required', 'กรุณาระบุเหตุผลของ Deviation');
+      return;
+    }
     const { step, ipc } = retestTarget;
+    // Severity defaults: 'major' for unjustified retest, 'critical' for
+    // critical criteria, otherwise 'minor'.
+    const severity: 'minor' | 'major' | 'critical' = ipc.isCriteriaCritical
+      ? 'critical'
+      : retestReason === 'unjustified'
+        ? 'major'
+        : 'minor';
     addIPCRoundMutation.mutate({
       stepId: step.id,
       criteriaId: ipc.criteriaId,
@@ -458,6 +503,9 @@ export default function SOPExecutionPage() {
       numericValues: ipc.criteriaType === 'numeric' ? retestNumeric : undefined,
       sampleResults: (ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text') ? retestSampleResults : undefined,
       textValue: ipc.criteriaType === 'text' ? retestText : undefined,
+      retestReason: retestTarget.isMultiStage ? null : retestReason,
+      deviationReason: willTrigger ? retestDeviationReason.trim() : null,
+      deviationSeverity: willTrigger ? severity : null,
     });
   };
 
@@ -583,36 +631,60 @@ export default function SOPExecutionPage() {
   };
 
   /** Decide whether the given recorded IPC can be retested. Returns the
-   *  next stage if so, otherwise null. */
-  const getNextRetestStage = (ipc: LinkedIPCCriterion): { nextRound: number; stage: AcceptanceStage } | null => {
+   *  next stage if so, otherwise null. Supports both multi-stage (USP <711>)
+   *  and single-stage (FDA OOS 2006 retest budget) paths. */
+  const getNextRetestStage = (ipc: LinkedIPCCriterion): { nextRound: number; stage: AcceptanceStage; isMultiStage: boolean } | null => {
     if (!ipc.recordedTestId || !ipc.recordedSamples?.length) return null;
-    const stages = parseStages(ipc.recordedAcceptanceStages);
-    if (stages.length === 0) return null;
 
-    // Find latest round number from samples.
+    // Last round number from samples.
     let lastRound = 1;
     for (const s of ipc.recordedSamples) {
       if (s.testRound > lastRound) lastRound = s.testRound;
     }
-    const lastStage = stages[lastRound - 1];
-    const nextStage = stages[lastRound];
-    if (!lastStage || !nextStage) return null;
-
-    // Last round must have failed at the stage's tolerance.
     const lastSamples = ipc.recordedSamples.filter((s) => s.testRound === lastRound);
-    const failPct = lastSamples.length === 0
-      ? 0
-      : (lastSamples.filter((s) => s.result === 'fail').length / lastSamples.length) * 100;
-    if (failPct <= lastStage.tolerancePercent) return null;
-    if (lastStage.onFail !== 'next_stage') return null;
+    const lastFailCount = lastSamples.filter((s) => s.result === 'fail').length;
 
-    return { nextRound: lastRound + 1, stage: nextStage };
+    const stages = parseStages(ipc.recordedAcceptanceStages);
+
+    // ---- Multi-stage path ----
+    if (stages.length > 0) {
+      const lastStage = stages[lastRound - 1];
+      const nextStage = stages[lastRound];
+      if (!lastStage || !nextStage) return null;
+      const failPct = lastSamples.length === 0
+        ? 0
+        : (lastFailCount / lastSamples.length) * 100;
+      if (failPct <= lastStage.tolerancePercent) return null;
+      if (lastStage.onFail !== 'next_stage') return null;
+      return { nextRound: lastRound + 1, stage: nextStage, isMultiStage: true };
+    }
+
+    // ---- Single-stage path (FDA OOS 2006) ----
+    // Allow retest only if last round had at least one fail and budget remains.
+    if (lastFailCount === 0) return null;
+    // Critical criteria force max=0 regardless of stored value (FDA OOS 2006).
+    // Some legacy rows have Critical=1 with stored max_retest_rounds=1; we
+    // resolve that here so the UI matches server-side resolveMaxRetestRounds.
+    const maxRetestRounds = ipc.isCriteriaCritical
+      ? 0
+      : (ipc.maxRetestRounds == null ? 1 : Number(ipc.maxRetestRounds));
+    const maxRoundsTotal = 1 + (Number.isFinite(maxRetestRounds) ? maxRetestRounds : 1);
+    if (lastRound >= maxRoundsTotal) return null;
+
+    const sampleSize = Number(ipc.sampleSize) || lastSamples.length || 1;
+    const tolerancePercent = 0; // Single-stage uses criteria default; we don't have it here. Server validates.
+    return {
+      nextRound: lastRound + 1,
+      stage: { sampleSize, tolerancePercent, onFail: 'next_stage' },
+      isMultiStage: false,
+    };
   };
 
   const handleOpenRetest = (step: SOPStep, ipc: LinkedIPCCriterion) => {
     const next = getNextRetestStage(ipc);
     if (!next) return;
-    setRetestTarget({ step, ipc, stage: next.stage, nextRound: next.nextRound });
+    setRetestTarget({ step, ipc, stage: next.stage, nextRound: next.nextRound, isMultiStage: next.isMultiStage });
+    setRetestReason(null);
     if (ipc.criteriaType === 'numeric') {
       setRetestNumeric(Array.from({ length: next.stage.sampleSize }, () => null));
       setRetestSampleResults([]);
@@ -633,6 +705,8 @@ export default function SOPExecutionPage() {
     setRetestNumeric([]);
     setRetestSampleResults([]);
     setRetestText('');
+    setRetestReason(null);
+    setRetestDeviationReason('');
   };
 
   const retestInputsComplete = (): boolean => {
@@ -665,6 +739,15 @@ export default function SOPExecutionPage() {
     }
     const rounds = Array.from(byRound.keys()).sort((a, b) => a - b);
     const retestNext = getNextRetestStage(ipc);
+    // Compute total round budget for display: 1 + maxRetestRounds.
+    // Critical criteria force max=0 regardless of stored value (FDA OOS 2006).
+    // Some legacy rows have Critical=1 with stored max_retest_rounds=1; we
+    // resolve that here so the UI matches server-side resolveMaxRetestRounds.
+    const maxRetestRounds = ipc.isCriteriaCritical
+      ? 0
+      : (ipc.maxRetestRounds == null ? 1 : Number(ipc.maxRetestRounds));
+    const maxRoundsTotal = 1 + (Number.isFinite(maxRetestRounds) ? maxRetestRounds : 1);
+    const isMultiStage = stages.length > 0;
 
     return (
       <div className="mt-2 p-2 rounded-lg bg-white border border-gray-200 text-xs space-y-2">
@@ -673,14 +756,32 @@ export default function SOPExecutionPage() {
             {ipc.recordedTestedByName && <>โดย <span className="font-medium text-gray-700">{ipc.recordedTestedByName}</span> · </>}
             {testedDate && <>เมื่อ {testedDate.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}</>}
           </span>
-          <span className={`font-semibold ${
-            ipc.recordedStatus === 'pass' ? 'text-emerald-700'
-              : ipc.recordedStatus === 'fail' ? 'text-rose-700'
-              : 'text-amber-700'
-          }`}>
-            สถานะล่าสุด: {ipc.recordedStatus === 'pass' ? 'ผ่าน' : ipc.recordedStatus === 'fail' ? 'ไม่ผ่าน' : 'รอผล'}
-          </span>
+          <div className="flex items-center gap-2">
+            {/* Round budget badge — single-stage shows progress (e.g., 2/3) */}
+            {!isMultiStage && rounds.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-medium text-[10px]">
+                รอบที่ {Math.max(...rounds)}/{maxRoundsTotal}
+              </span>
+            )}
+            <span className={`font-semibold ${
+              ipc.recordedStatus === 'pass' ? 'text-emerald-700'
+                : ipc.recordedStatus === 'fail' ? 'text-rose-700'
+                : 'text-amber-700'
+            }`}>
+              สถานะล่าสุด: {ipc.recordedStatus === 'pass' ? 'ผ่าน' : ipc.recordedStatus === 'fail' ? 'ไม่ผ่าน' : 'รอผล'}
+            </span>
+          </div>
         </div>
+        {/* Latest retest reason banner */}
+        {!isMultiStage && ipc.recordedRetestReason && (
+          <div className={`px-2 py-1 rounded text-[11px] ${
+            ipc.recordedRetestReason === 'unjustified'
+              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+          }`}>
+            เหตุผล Retest ล่าสุด: <strong>{ipc.recordedRetestReason === 'justified' ? 'Justified — พบสาเหตุ' : 'Unjustified — ไม่พบสาเหตุ (Deviation)'}</strong>
+          </div>
+        )}
 
         {/* Round-by-round timeline */}
         {rounds.map((roundNum) => {
@@ -771,13 +872,25 @@ export default function SOPExecutionPage() {
     );
   };
 
-  /** Seed empty IPC buffers for the current step. Used by both the
-   *  Complete Step dialog (Phase 3) and the standalone IPC dialog (Phase 4). */
-  const seedIPCBuffers = (step: SOPStep) => {
+  /** Filter step.linkedIPC down to a single sub-step's IPCs when
+   *  selectedSubStepId is set; otherwise return all of the step's IPCs. */
+  const linkedIPCsForDialog = (step: SOPStep | null): LinkedIPCCriterion[] => {
+    if (!step?.linkedIPC) return [];
+    if (selectedSubStepId == null) return step.linkedIPC;
+    return step.linkedIPC.filter((ipc) => ipc.procedureStepId === selectedSubStepId);
+  };
+
+  /** Seed empty IPC buffers for the current step / sub-step. Used by both
+   *  the Complete Step dialog (Phase 3) and the standalone IPC dialog (Phase 4).
+   *  Optional `subStepId` restricts seeding to one sub-step's IPCs. */
+  const seedIPCBuffers = (step: SOPStep, subStepId: number | null = null) => {
     const numericInit: Record<number, (number | null)[]> = {};
     const sampleInit: Record<number, ('pass' | 'fail' | null)[]> = {};
     const textInit: Record<number, string> = {};
-    for (const ipc of step.linkedIPC || []) {
+    const ipcs = subStepId == null
+      ? (step.linkedIPC || [])
+      : (step.linkedIPC || []).filter((ipc) => ipc.procedureStepId === subStepId);
+    for (const ipc of ipcs) {
       const size = ipc.sampleSize || 1;
       if (ipc.criteriaType === 'numeric') {
         numericInit[ipc.criteriaId] = Array.from({ length: size }, () => null);
@@ -790,24 +903,120 @@ export default function SOPExecutionPage() {
     setIpcNumeric(numericInit);
     setIpcSampleResults(sampleInit);
     setIpcText(textInit);
+    setIpcDeviationReason({});
   };
 
-  const handleOpenIPCDialog = (step: SOPStep) => {
+  /** Open IPC dialog for a step. If `subStepId` is provided, the dialog
+   *  shows only IPCs linked to that sub-step (Phase 8d). */
+  const handleOpenIPCDialog = (step: SOPStep, subStepId: number | null = null) => {
     setSelectedStep(step);
-    seedIPCBuffers(step);
+    setSelectedSubStepId(subStepId);
+    seedIPCBuffers(step, subStepId);
     setShowIPCDialog(true);
   };
 
+  /** Live-compute whether a single IPC (round 1, standalone) will trigger a
+   *  Deviation when saved with the current inputs. Used to show the inline
+   *  Deviation reason textarea before submit. */
+  const willTriggerDeviationRound1 = (ipc: LinkedIPCCriterion): boolean => {
+    // Critical criteria force max=0 regardless of stored value (FDA OOS 2006).
+    // Some legacy rows have Critical=1 with stored max_retest_rounds=1; we
+    // resolve that here so the UI matches server-side resolveMaxRetestRounds.
+    const maxRetestRounds = ipc.isCriteriaCritical
+      ? 0
+      : (ipc.maxRetestRounds == null ? 1 : Number(ipc.maxRetestRounds));
+    // Only fires immediately on round 1 when budget = 0 (Critical).
+    if (maxRetestRounds !== 0 && !ipc.isCriteriaCritical) return false;
+
+    // Compute fail status from current inputs vs spec.
+    if (ipc.criteriaType === 'numeric') {
+      const values = ipcNumeric[ipc.criteriaId] || [];
+      const min = ipc.minValue != null ? Number(ipc.minValue) : null;
+      const max = ipc.maxValue != null ? Number(ipc.maxValue) : null;
+      return values.some((v) => {
+        if (v == null || Number.isNaN(v)) return false;
+        const minOk = min == null || v >= min;
+        const maxOk = max == null || v <= max;
+        return !(minOk && maxOk);
+      });
+    }
+    if (ipc.criteriaType === 'text') {
+      return false; // text criteria can't auto-fail without explicit pass/fail
+    }
+    const results = ipcSampleResults[ipc.criteriaId] || [];
+    return results.some((r) => r === 'fail');
+  };
+
+  /** Live-compute whether the current retest inputs will trigger a Deviation. */
+  const willTriggerDeviationRetest = (): boolean => {
+    if (!retestTarget) return false;
+    if (retestTarget.isMultiStage) {
+      // Multi-stage: deviation only when this round fails (server-side
+      // decides based on stage tolerance). Pre-check: any sample fail?
+      if (retestTarget.ipc.criteriaType === 'numeric') {
+        const min = retestTarget.ipc.minValue != null ? Number(retestTarget.ipc.minValue) : null;
+        const max = retestTarget.ipc.maxValue != null ? Number(retestTarget.ipc.maxValue) : null;
+        return retestNumeric.some((v) => {
+          if (v == null || Number.isNaN(v)) return false;
+          const minOk = min == null || v >= min;
+          const maxOk = max == null || v <= max;
+          return !(minOk && maxOk);
+        });
+      }
+      return retestSampleResults.some((r) => r === 'fail');
+    }
+
+    // Single-stage path — Unjustified always triggers.
+    if (retestReason === 'unjustified') return true;
+
+    // Final round fail also triggers. Critical = force 0 (FDA OOS 2006).
+    const maxRetestRounds = retestTarget.ipc.isCriteriaCritical
+      ? 0
+      : (retestTarget.ipc.maxRetestRounds == null ? 1 : Number(retestTarget.ipc.maxRetestRounds));
+    const maxRoundsTotal = 1 + maxRetestRounds;
+    const isFinalRound = retestTarget.nextRound >= maxRoundsTotal;
+    if (!isFinalRound) return false;
+
+    // Check fail status from inputs.
+    if (retestTarget.ipc.criteriaType === 'numeric') {
+      const min = retestTarget.ipc.minValue != null ? Number(retestTarget.ipc.minValue) : null;
+      const max = retestTarget.ipc.maxValue != null ? Number(retestTarget.ipc.maxValue) : null;
+      return retestNumeric.some((v) => {
+        if (v == null || Number.isNaN(v)) return false;
+        const minOk = min == null || v >= min;
+        const maxOk = max == null || v <= max;
+        return !(minOk && maxOk);
+      });
+    }
+    return retestSampleResults.some((r) => r === 'fail');
+  };
+
   /** Pack the operator's IPC inputs — already-recorded criteria are skipped
-   *  so re-completing a step doesn't re-prompt for tests already saved. */
+   *  so re-completing a step doesn't re-prompt for tests already saved.
+   *  Phase 8b — also forwards the inline Deviation reason when the round-1
+   *  trigger condition was visible to the operator.
+   *  Phase 8d — when selectedSubStepId is set, only IPCs of that sub-step. */
   const packIPCResults = (step: SOPStep) =>
-    (step.linkedIPC || [])
+    linkedIPCsForDialog(step)
       .filter((ipc) => !ipc.recordedTestId)
       .map((ipc) => {
-        const base = {
+        const base: {
+          criteriaId: number;
+          ipcPhase: string;
+          deviationReason?: string;
+          deviationSeverity?: 'minor' | 'major' | 'critical';
+          numericValues?: (number | null)[];
+          sampleResults?: ('pass' | 'fail' | null)[];
+          textValue?: string;
+        } = {
           criteriaId: ipc.criteriaId,
           ipcPhase: step.phase || 'production',
         };
+        const reason = (ipcDeviationReason[ipc.criteriaId] || '').trim();
+        if (reason && willTriggerDeviationRound1(ipc)) {
+          base.deviationReason = reason;
+          base.deviationSeverity = ipc.isCriteriaCritical ? 'critical' : 'major';
+        }
         if (ipc.criteriaType === 'numeric') {
           return { ...base, numericValues: ipcNumeric[ipc.criteriaId] || [] };
         }
@@ -818,10 +1027,14 @@ export default function SOPExecutionPage() {
       });
 
   /** Validate every UNRECORDED linked IPC has its inputs filled. Already-
-   *  recorded criteria are not re-prompted, so they don't need validation. */
+   *  recorded criteria are not re-prompted, so they don't need validation.
+   *  Phase 8d — when selectedSubStepId is set, only validate IPCs of that
+   *  sub-step (the dialog only shows those). */
   const ipcInputsComplete = (step: SOPStep | null): boolean => {
     if (!step?.linkedIPC?.length) return true;
-    for (const ipc of step.linkedIPC) {
+    const ipcs = linkedIPCsForDialog(step);
+    if (!ipcs.length) return true;
+    for (const ipc of ipcs) {
       if (ipc.recordedTestId) continue; // already saved — skip
       if (ipc.criteriaType === 'numeric') {
         const values = ipcNumeric[ipc.criteriaId] || [];
@@ -861,6 +1074,22 @@ export default function SOPExecutionPage() {
     if (!ipcInputsComplete(selectedStep)) {
       toast.error('IPC Required', 'กรุณากรอก IPC ทุก sample ให้ครบก่อน');
       return;
+    }
+    // Phase 8b — when any IPC will trigger Deviation, require the operator
+    // to type a reason inline so the deviation record carries the rationale.
+    // Phase 8d — only consider IPCs visible in the current dialog scope.
+    const triggering = linkedIPCsForDialog(selectedStep).filter(
+      (ipc) => !ipc.recordedTestId && willTriggerDeviationRound1(ipc),
+    );
+    for (const ipc of triggering) {
+      const reason = (ipcDeviationReason[ipc.criteriaId] || '').trim();
+      if (!reason) {
+        toast.error(
+          'Deviation Reason Required',
+          `กรุณาระบุเหตุผลของ Deviation สำหรับ ${ipc.criteriaCode} (${ipc.criteriaNameTh || ipc.criteriaName})`,
+        );
+        return;
+      }
     }
     const ipcResults = packIPCResults(selectedStep);
     if (ipcResults.length === 0) {
@@ -912,16 +1141,20 @@ export default function SOPExecutionPage() {
 
   if (woLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
         <DxLoadIndicator />
+        <p className="text-sm text-slate-500">กำลังโหลดข้อมูล Work Order...</p>
       </div>
     );
   }
 
   if (!workOrder) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Work Order not found</p>
+      <div className="text-center py-16">
+        <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-100 to-red-100 shadow-inner">
+          <AlertCircle className="h-10 w-10 text-rose-600" />
+        </div>
+        <p className="text-slate-700 font-semibold text-lg">Work Order not found</p>
         <DxButton
           text="Back to Work Orders"
           type="normal"
@@ -933,8 +1166,64 @@ export default function SOPExecutionPage() {
     );
   }
 
+  // Phase color theme map — gradient classes per execution phase.
+  // Used for header banner, step accents, and dialog headers to give each
+  // phase a visually distinct identity.
+  const phaseTheme = (phase?: SOPPhase | null) => {
+    switch (phase) {
+      case 'pre_production':
+        return {
+          gradient: 'from-sky-500 to-cyan-500',
+          softBg: 'from-sky-50 to-cyan-50',
+          border: 'border-sky-300',
+          accent: 'bg-sky-500',
+          text: 'text-sky-700',
+          ring: 'ring-sky-200',
+        };
+      case 'production':
+        return {
+          gradient: 'from-emerald-500 to-teal-500',
+          softBg: 'from-emerald-50 to-teal-50',
+          border: 'border-emerald-300',
+          accent: 'bg-emerald-500',
+          text: 'text-emerald-700',
+          ring: 'ring-emerald-200',
+        };
+      case 'post_production':
+        return {
+          gradient: 'from-amber-500 to-orange-500',
+          softBg: 'from-amber-50 to-orange-50',
+          border: 'border-amber-300',
+          accent: 'bg-amber-500',
+          text: 'text-amber-700',
+          ring: 'ring-amber-200',
+        };
+      case 'packaging':
+        return {
+          gradient: 'from-violet-500 to-fuchsia-500',
+          softBg: 'from-violet-50 to-fuchsia-50',
+          border: 'border-violet-300',
+          accent: 'bg-violet-500',
+          text: 'text-violet-700',
+          ring: 'ring-violet-200',
+        };
+      default:
+        return {
+          gradient: 'from-slate-600 to-slate-700',
+          softBg: 'from-slate-50 to-gray-50',
+          border: 'border-slate-300',
+          accent: 'bg-slate-500',
+          text: 'text-slate-700',
+          ring: 'ring-slate-200',
+        };
+    }
+  };
+  const activeTheme = phaseTheme(phaseFilter);
+  const progressPct = progress.total > 0 ? (progress.verified / progress.total) * 100 : 0;
+  const completedPct = progress.total > 0 ? (progress.completed / progress.total) * 100 : 0;
+
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
+    <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border bg-gradient-to-br from-slate-50 via-white to-slate-50 min-h-screen">
       {/* Header */}
       <ResponsivePageHeader
         title={phaseFilter ? `SOP Execution — ${SOP_PHASE_LABELS[phaseFilter]}` : 'SOP Execution'}
@@ -959,53 +1248,91 @@ export default function SOPExecutionPage() {
         }
       />
 
-      {/* Progress Card */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="text-blue-800">
-                <span className="text-2xl font-bold">{progress.completed}</span>
-                <span className="text-sm">/{progress.total} Completed</span>
+      {/* WO Banner — gradient hero card showing WO context with progress stats */}
+      <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${activeTheme.gradient} shadow-lg shadow-slate-300/40`}>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.25),_transparent_60%)]" />
+        <div className="absolute -right-12 -bottom-12 opacity-10">
+          <ClipboardList className="h-48 w-48 text-white" />
+        </div>
+        <div className="relative p-5 md:p-6 text-white">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/80">
+                <span className="inline-flex h-2 w-2 rounded-full bg-white animate-pulse" />
+                {phaseFilter ? SOP_PHASE_LABELS[phaseFilter] : 'All Phases'}
+                <span className="opacity-50">·</span>
+                <span>{workOrder.status}</span>
               </div>
-              <div className="text-blue-800">
-                <span className="text-2xl font-bold">{progress.verified}</span>
-                <span className="text-sm">/{progress.total} Verified</span>
-              </div>
+              <h2 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight">
+                {workOrder.woNumber}
+              </h2>
+              <p className="text-white/85 text-sm mt-0.5">
+                {workOrder.productName} <span className="text-white/60">·</span> Batch{' '}
+                <span className="font-mono font-semibold">{workOrder.batchNumber}</span>
+              </p>
             </div>
-            <div className="flex-1 max-w-xs mx-4">
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 transition-all duration-300"
-                  style={{ width: `${progress.total > 0 ? (progress.verified / progress.total) * 100 : 0}%` }}
-                />
+            <div className="flex items-center gap-3 md:gap-5">
+              <div className="text-right">
+                <div className="text-3xl md:text-4xl font-bold leading-none tabular-nums">
+                  {progress.completed}
+                  <span className="text-lg text-white/70 font-normal">/{progress.total}</span>
+                </div>
+                <div className="text-[11px] uppercase tracking-wider text-white/75 mt-1">Completed</div>
               </div>
+              <div className="h-12 w-px bg-white/30" />
+              <div className="text-right">
+                <div className="text-3xl md:text-4xl font-bold leading-none tabular-nums">
+                  {progress.verified}
+                  <span className="text-lg text-white/70 font-normal">/{progress.total}</span>
+                </div>
+                <div className="text-[11px] uppercase tracking-wider text-white/75 mt-1">Verified</div>
+              </div>
+              {progress.verified === progress.total && progress.total > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-semibold border border-white/30 shadow-sm">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  All Verified
+                </span>
+              )}
             </div>
-            {progress.verified === progress.total && progress.total > 0 && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium">
-                <CheckCircle2 className="h-4 w-4" />
-                All Verified
-              </span>
-            )}
           </div>
-        </CardContent>
-      </Card>
+          {/* Dual progress bar — completed (lighter) on top of verified (darker) */}
+          <div className="mt-5 space-y-1.5">
+            <div className="relative h-2.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+              <div
+                className="absolute inset-y-0 left-0 bg-white/40 transition-all duration-500 ease-out"
+                style={{ width: `${completedPct}%` }}
+              />
+              <div
+                className="absolute inset-y-0 left-0 bg-white shadow-[0_0_12px_rgba(255,255,255,0.6)] transition-all duration-500 ease-out"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-white/70 font-medium">
+              <span>{Math.round(progressPct)}% verified</span>
+              <span>{Math.round(completedPct)}% completed</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Steps List */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="rounded-2xl border-slate-200/70 shadow-sm shadow-slate-200/40 backdrop-blur-sm bg-white/80">
+        <CardContent className="p-4 md:p-5">
           {stepsLoading ? (
-            <div className="flex items-center justify-center h-40">
+            <div className="flex flex-col items-center justify-center h-40 gap-3">
               <DxLoadIndicator />
+              <p className="text-sm text-slate-500">กำลังโหลดขั้นตอนการผลิต...</p>
             </div>
           ) : !displaySteps || displaySteps.length === 0 ? (
             executionNotInitialized ? (
-              <div className="text-center py-12">
-                <ClipboardList className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-                <p className="text-gray-700 font-medium">
+              <div className="text-center py-16">
+                <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-cyan-100 shadow-inner">
+                  <ClipboardList className="h-10 w-10 text-sky-600" />
+                </div>
+                <p className="text-slate-800 font-semibold text-lg">
                   BOM มีขั้นตอน SOP {bomConfig!.sopSteps.length} ขั้นตอน
                 </p>
-                <p className="text-sm text-gray-500 mt-1 mb-4">
+                <p className="text-sm text-slate-500 mt-1.5 mb-5 max-w-md mx-auto">
                   กดปุ่มด้านล่างเพื่อสร้างรายการ SOP Execution จาก BOM
                 </p>
                 <DxButton
@@ -1017,10 +1344,12 @@ export default function SOPExecutionPage() {
                 />
               </div>
             ) : (
-              <div className="text-center py-12">
-                <AlertCircle className="h-12 w-12 text-amber-400 mx-auto mb-4" />
-                <p className="text-gray-500">No SOP steps configured for this work order&apos;s BOM.</p>
-                <p className="text-sm text-gray-400 mt-2">Configure the BOM to add production steps.</p>
+              <div className="text-center py-16">
+                <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 shadow-inner">
+                  <AlertCircle className="h-10 w-10 text-amber-600" />
+                </div>
+                <p className="text-slate-700 font-semibold">No SOP steps configured for this work order&apos;s BOM.</p>
+                <p className="text-sm text-slate-500 mt-2">Configure the BOM to add production steps.</p>
               </div>
             )
           ) : (
@@ -1059,21 +1388,45 @@ export default function SOPExecutionPage() {
                 const stepEquipmentIds = parseJson<number[]>(step.equipmentIds);
                 const stepInstructions = locale === 'th' && step.instructionsTh ? step.instructionsTh : step.instructions;
 
+                const stepTheme = phaseTheme(step.phase as SOPPhase);
+                // Modern status pill with gradient + animated dot for in_progress
+                const statusPillClasses =
+                  step.status === 'in_progress'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm shadow-amber-200'
+                    : step.status === 'completed'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm shadow-emerald-200'
+                      : step.status === 'verified'
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm shadow-blue-200'
+                        : step.status === 'deviation'
+                          ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm shadow-rose-200'
+                          : 'bg-slate-200 text-slate-700';
                 return (
                   <div
                     key={step.id}
-                    className={`p-4 border rounded-lg ${
-                      step.status === 'in_progress' ? 'border-blue-300 bg-blue-50' : 'bg-white'
+                    className={`group relative overflow-hidden rounded-2xl border bg-white/95 backdrop-blur-sm shadow-sm shadow-slate-200/60 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 ${
+                      step.status === 'in_progress'
+                        ? 'border-amber-300 ring-2 ring-amber-100 bg-gradient-to-br from-amber-50/40 to-white'
+                        : step.status === 'verified'
+                          ? 'border-blue-200/70'
+                          : step.status === 'deviation'
+                            ? 'border-rose-200 ring-1 ring-rose-100'
+                            : 'border-slate-200/70'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${statusInfo.color}`}>
+                    {/* Phase color accent stripe — left edge */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${stepTheme.gradient}`} />
+                    <div className="p-4 md:p-5 pl-5 md:pl-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 md:gap-4 min-w-0 flex-1">
+                        <div className={`relative flex-none w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${stepTheme.gradient} text-white shadow-md shadow-slate-200/60`}>
                           <StatusIcon className="h-5 w-5" />
+                          {step.status === 'in_progress' && (
+                            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-amber-400 ring-2 ring-white animate-pulse" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-lg font-medium text-gray-900">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-base md:text-lg font-semibold text-slate-900 tracking-tight">
                               {/* Renumber from 1 within the filtered view —
                                   e.g. global seq 2 + 5 in pre_production
                                   shows as "step 1" + "step 2". The original
@@ -1082,15 +1435,19 @@ export default function SOPExecutionPage() {
                               {t('bomConfiguration.step', { sequence: phaseFilter ? displayIndex + 1 : step.sequence })}: {locale === 'th' && step.stepNameTh ? step.stepNameTh : step.stepName}
                             </span>
                             {phaseFilter && step.sequence !== displayIndex + 1 && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-gray-500 bg-gray-100" title="Original sequence in BOM">
+                              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono text-slate-500 bg-slate-100 border border-slate-200" title="Original sequence in BOM">
                                 #{step.sequence}
                               </span>
                             )}
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusInfo.color}`}>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusPillClasses}`}>
+                              {step.status === 'in_progress' && (
+                                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                              )}
                               {statusInfo.label}
                             </span>
                             {step.requiresVerification && (
-                              <span className="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                                <UserCheck className="h-2.5 w-2.5" />
                                 Requires Verification
                               </span>
                             )}
@@ -1105,15 +1462,18 @@ export default function SOPExecutionPage() {
 
                           {/* BOM Instructions */}
                           {stepInstructions && (
-                            <div className="mt-2 bg-blue-50 border border-blue-200 rounded-md p-3">
-                              <p className="text-sm font-medium text-blue-700 mb-1">{t('bomConfiguration.instructions')}</p>
-                              <p className="text-sm text-blue-800">{stepInstructions}</p>
+                            <div className="mt-3 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/70 rounded-xl p-3.5 shadow-sm">
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-1.5 flex items-center gap-1.5">
+                                <ListChecks className="h-3.5 w-3.5" />
+                                {t('bomConfiguration.instructions')}
+                              </p>
+                              <p className="text-sm text-blue-900 leading-relaxed">{stepInstructions}</p>
                               {/* Show secondary language instructions */}
                               {locale === 'th' && step.instructions && step.instructionsTh && (
-                                <p className="text-xs text-blue-600 mt-1">{step.instructions}</p>
+                                <p className="text-xs text-blue-600/80 mt-1.5 italic">{step.instructions}</p>
                               )}
                               {locale !== 'th' && step.instructionsTh && (
-                                <p className="text-xs text-blue-600 mt-1">{step.instructionsTh}</p>
+                                <p className="text-xs text-blue-600/80 mt-1.5 italic">{step.instructionsTh}</p>
                               )}
                             </div>
                           )}
@@ -1129,38 +1489,44 @@ export default function SOPExecutionPage() {
                             const confirmedCount = step.templateSteps!.filter((s) => confirmed.includes(s.id)).length;
                             const subStepsEditable = step.status === 'in_progress';
                             return (
-                              <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                                <div className="flex items-center justify-between mb-2">
-                                  <p className="text-sm font-semibold text-emerald-800 flex items-center gap-1.5">
-                                    <ListChecks className="h-4 w-4" />
-                                    ขั้นตอนย่อย ({confirmedCount}/{step.templateSteps!.length})
+                              <div className="mt-3 bg-gradient-to-br from-emerald-50 via-teal-50/60 to-emerald-50 border border-emerald-200/80 rounded-xl p-3.5 shadow-sm">
+                                <div className="flex items-center justify-between mb-2.5 gap-2 flex-wrap">
+                                  <p className="text-sm font-bold text-emerald-900 flex items-center gap-1.5">
+                                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-sm">
+                                      <ListChecks className="h-4 w-4" />
+                                    </span>
+                                    ขั้นตอนย่อย
+                                    <span className="ml-1 px-2 py-0.5 rounded-full bg-white/70 text-emerald-700 text-[11px] font-mono font-semibold border border-emerald-200">
+                                      {confirmedCount}/{step.templateSteps!.length}
+                                    </span>
                                   </p>
                                   {subStepsEditable && !allConfirmed && (
                                     <button
                                       onClick={() => confirmAllSubSteps(step)}
                                       disabled={confirmSubStepsMutation.isPending}
-                                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors disabled:opacity-50"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-lg shadow-sm hover:shadow transition-all disabled:opacity-50"
                                     >
                                       <CheckCircle2 className="h-3.5 w-3.5" />
                                       ยืนยันทั้งหมด
                                     </button>
                                   )}
                                   {allConfirmed && (
-                                    <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-200 rounded-md">
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-lg">
                                       <CheckCircle2 className="h-3.5 w-3.5" />
                                       ยืนยันครบแล้ว
                                     </span>
                                   )}
                                   {!subStepsEditable && step.status === 'pending' && (
-                                    <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg font-medium">
+                                      <AlertCircle className="h-3 w-3" />
                                       กด Start ก่อนถึงติ๊กได้
                                     </span>
                                   )}
                                 </div>
                                 {/* Progress bar */}
-                                <div className="w-full h-1.5 bg-emerald-200 rounded-full mb-3">
+                                <div className="w-full h-2 bg-emerald-100 rounded-full mb-3 overflow-hidden">
                                   <div
-                                    className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                                     style={{ width: `${step.templateSteps!.length > 0 ? (confirmedCount / step.templateSteps!.length) * 100 : 0}%` }}
                                   />
                                 </div>
@@ -1169,30 +1535,147 @@ export default function SOPExecutionPage() {
                                     const isConfirmed = confirmed.includes(sub.id);
                                     const subNameTh = sub.stepNameTh || sub.stepName;
                                     const subInstrTh = sub.instructionsTh || sub.instructions;
+                                    // Phase 8c — surface IPC criteria linked to THIS sub-step
+                                    // inline so operator sees the test alongside the procedure.
+                                    const subIPCs = (step.linkedIPC || []).filter(
+                                      (ipc) => ipc.procedureStepId === sub.id,
+                                    );
                                     return (
                                       <li
                                         key={sub.id}
-                                        className={`flex items-start gap-2 p-2 rounded-lg transition-colors ${
-                                          isConfirmed ? 'bg-emerald-100/80' : 'hover:bg-white/60'
-                                        } ${subStepsEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
-                                        onClick={() => subStepsEditable && toggleSubStep(step, sub.id)}
+                                        className={`p-2.5 rounded-xl transition-all border ${
+                                          isConfirmed
+                                            ? 'bg-emerald-100/60 border-emerald-200'
+                                            : 'bg-white/70 border-emerald-100 hover:bg-white hover:border-emerald-300 hover:shadow-sm'
+                                        }`}
                                       >
-                                        <div className={`flex-none w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center transition-colors ${isConfirmed ? 'bg-emerald-600 border-emerald-600' : 'border-gray-300 bg-white'}`}>
-                                          {isConfirmed && (
-                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                          )}
+                                        <div className="flex items-start gap-2.5">
+                                          <div
+                                            className={`flex-none w-6 h-6 mt-0.5 rounded-md border-2 flex items-center justify-center transition-all ${isConfirmed ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border-emerald-600 shadow-sm' : 'border-slate-300 bg-white hover:border-emerald-400'} ${subStepsEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                                            onClick={() => subStepsEditable && toggleSubStep(step, sub.id)}
+                                          >
+                                            {isConfirmed && (
+                                              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            )}
+                                          </div>
+                                          <span className={`flex-none text-xs font-bold w-6 text-center mt-1 tabular-nums ${isConfirmed ? 'text-emerald-700' : 'text-slate-400'}`}>
+                                            {subIdx + 1}.
+                                          </span>
+                                          <div
+                                            className={`flex-1 min-w-0 ${subStepsEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                                            onClick={() => subStepsEditable && toggleSubStep(step, sub.id)}
+                                          >
+                                            <p className={`text-sm font-semibold ${isConfirmed ? 'text-emerald-800 line-through decoration-emerald-400 decoration-2' : 'text-slate-900'}`}>{subNameTh}</p>
+                                            {subInstrTh && (
+                                              <p className={`text-xs mt-1 whitespace-pre-line leading-relaxed ${isConfirmed ? 'text-emerald-600/80' : 'text-slate-600'}`}>{subInstrTh}</p>
+                                            )}
+                                          </div>
+                                          {/* Phase 8e — Prominent "บันทึก IPC" button at sub-step
+                                              header. Highlighted when there are unrecorded IPCs and
+                                              the parent step is in_progress. Stops propagation so
+                                              clicking the button doesn't toggle the sub-step. */}
+                                          {(() => {
+                                            const unrecorded = subIPCs.filter((i) => !i.recordedTestId);
+                                            const canRecord = step.status === 'in_progress' && unrecorded.length > 0;
+                                            if (!canRecord) return null;
+                                            return (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleOpenIPCDialog(step, sub.id);
+                                                }}
+                                                className="flex-none inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 shadow-sm hover:shadow transition-all"
+                                                title={`บันทึก IPC ${unrecorded.length} รายการของขั้นตอนนี้`}
+                                              >
+                                                <FlaskConical className="h-3.5 w-3.5" />
+                                                บันทึก IPC
+                                                <span className="ml-0.5 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-white/30 text-[10px] font-bold">
+                                                  {unrecorded.length}
+                                                </span>
+                                              </button>
+                                            );
+                                          })()}
                                         </div>
-                                        <span className={`flex-none text-xs font-bold w-5 text-center mt-0.5 ${isConfirmed ? 'text-emerald-700' : 'text-gray-500'}`}>
-                                          {subIdx + 1}.
-                                        </span>
-                                        <div className="flex-1 min-w-0">
-                                          <p className={`text-sm font-medium ${isConfirmed ? 'text-emerald-800 line-through decoration-emerald-400' : 'text-gray-900'}`}>{subNameTh}</p>
-                                          {subInstrTh && (
-                                            <p className={`text-xs mt-1 whitespace-pre-line ${isConfirmed ? 'text-emerald-600' : 'text-gray-600'}`}>{subInstrTh}</p>
-                                          )}
-                                        </div>
+                                        {/* IPC criteria linked to this sub-step — visible inline so
+                                            operator sees the test alongside the procedure (Phase 8c).
+                                            Click recorded badge to expand sample details + retest options. */}
+                                        {subIPCs.length > 0 && (
+                                          <div className="mt-2 ml-12 space-y-1.5">
+                                            {subIPCs.map((ipc) => {
+                                              const spec = ipc.specification
+                                                || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
+                                                || ((ipc.minValue != null || ipc.maxValue != null)
+                                                    ? `${ipc.minValue ?? '-'} – ${ipc.maxValue ?? '-'}${ipc.unit ? ' ' + ipc.unit : ''}`
+                                                    : null);
+                                              const isExpanded = ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId);
+                                              return (
+                                                <div
+                                                  key={ipc.id}
+                                                  className="px-2 py-1.5 rounded bg-white border border-emerald-200/60"
+                                                >
+                                                  <div className="flex items-start gap-1.5 text-xs">
+                                                    <FlaskConical className="h-3 w-3 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <span className="font-mono font-semibold text-emerald-700 bg-emerald-50 px-1 rounded text-[10px]">
+                                                          {ipc.criteriaCode}
+                                                        </span>
+                                                        <span className="text-gray-900 truncate">
+                                                          {ipc.criteriaNameTh || ipc.criteriaName}
+                                                        </span>
+                                                        {ipc.isCritical && (
+                                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-rose-100 text-rose-700 px-1 rounded">
+                                                            <AlertCircle className="h-2 w-2" />
+                                                            Critical
+                                                          </span>
+                                                        )}
+                                                        {ipc.recordedTestId ? (
+                                                          <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              toggleExpandedRecorded(ipc.recordedTestId!);
+                                                            }}
+                                                            className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
+                                                              ipc.recordedStatus === 'pass'
+                                                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                                                : ipc.recordedStatus === 'fail'
+                                                                  ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                                                                  : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                                            }`}
+                                                            title="คลิกเพื่อดูรายละเอียดและบันทึกรอบใหม่"
+                                                          >
+                                                            <CheckCircle2 className="h-2.5 w-2.5" />
+                                                            {ipc.recordedStatus === 'pass'
+                                                              ? 'ผ่าน'
+                                                              : ipc.recordedStatus === 'fail'
+                                                                ? 'ไม่ผ่าน'
+                                                                : 'รอผล'}
+                                                            {isExpanded ? ' ▴' : ' ▾'}
+                                                          </button>
+                                                        ) : (
+                                                          <span className="inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                                                            ยังไม่บันทึก
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                      {spec && (
+                                                        <div className="text-[10px] text-gray-500 mt-0.5">
+                                                          Spec: {spec} {ipc.sampleSize ? `· ${ipc.sampleSize} samples` : ''}
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                  {/* Expanded round-by-round details + retest button */}
+                                                  {isExpanded && renderRecordedDetails(step, ipc)}
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
                                       </li>
                                     );
                                   })}
@@ -1240,27 +1723,32 @@ export default function SOPExecutionPage() {
                             </div>
                           )}
 
-                          {/* Linked IPC criteria — informational only.
-                              The actual recording happens inside the Complete
-                              Step dialog (Phase 3) so the operator stays on
-                              this page through the whole flow. We previously
-                              had per-row "บันทึกผล →" buttons jumping to
-                              /ipc, but that page doesn't pre-create rows for
-                              SOP-linked criteria so the operator landed on an
-                              empty list and got stuck. */}
-                          {step.linkedIPC && step.linkedIPC.length > 0 && (
+                          {/* Linked IPC criteria — orphans only (Phase 8c).
+                              IPCs whose procedureStepId matches a sub-step are
+                              now rendered inline under that sub-step. We keep
+                              this section as a fallback for IPCs that don't
+                              match any current sub-step (rare — usually means
+                              the SOP template was edited after this WO was
+                              initialized). */}
+                          {(() => {
+                            const subStepIds = new Set((step.templateSteps || []).map((s) => s.id));
+                            const orphanIPCs = (step.linkedIPC || []).filter(
+                              (ipc) => !subStepIds.has(ipc.procedureStepId),
+                            );
+                            if (orphanIPCs.length === 0) return null;
+                            return (
                             <div className="mt-3 pt-3 border-t border-dashed border-emerald-200">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-800 uppercase tracking-wide">
                                   <FlaskConical className="h-3.5 w-3.5" />
-                                  IPC ที่ต้องตรวจ
+                                  IPC อื่นๆ (ไม่ผูกกับ sub-step ปัจจุบัน)
                                 </span>
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[11px] font-semibold">
-                                  {step.linkedIPC.length}
+                                  {orphanIPCs.length}
                                 </span>
                               </div>
                               <div className="space-y-1.5">
-                                {step.linkedIPC.map((ipc) => {
+                                {orphanIPCs.map((ipc) => {
                                   const spec = ipc.specification
                                     || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
                                     || ((ipc.minValue != null || ipc.maxValue != null)
@@ -1329,7 +1817,8 @@ export default function SOPExecutionPage() {
                                 บันทึกผล IPC ทั้งหมดในหน้า &quot;บันทึก SOP Step&quot; ของ step นี้
                               </p>
                             </div>
-                          )}
+                            );
+                          })()}
 
                           {/* Actual Parameters (if completed) — strip
                               private/internal keys like _confirmedSubSteps
@@ -1383,9 +1872,10 @@ export default function SOPExecutionPage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 flex-shrink-0 items-center">
+                      <div className="flex flex-wrap gap-2 flex-shrink-0 items-center justify-end">
                         {isBlockedByVerification && (
-                          <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                          <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 font-medium">
+                            <Clock className="h-3 w-3" />
                             รอตรวจสอบ Step {prevStep!.sequence} ก่อน
                           </span>
                         )}
@@ -1398,16 +1888,27 @@ export default function SOPExecutionPage() {
                             disabled={startStepMutation.isPending}
                           />
                         )}
-                        {canComplete && step.linkedIPC && step.linkedIPC.length > 0 && (
-                          <DxButton
-                            text="บันทึก IPC"
-                            icon="testrun"
-                            type="default"
-                            stylingMode="outlined"
-                            onClick={() => handleOpenIPCDialog(step)}
-                            disabled={recordIPCOnlyMutation.isPending}
-                          />
-                        )}
+                        {/* Phase 8d — step-level "บันทึก IPC" only for orphan IPCs.
+                            IPCs linked to current sub-steps now have per-sub-step
+                            buttons inside the sub-step list. */}
+                        {(() => {
+                          if (!canComplete) return null;
+                          const subStepIds = new Set((step.templateSteps || []).map((s) => s.id));
+                          const orphanUnrecorded = (step.linkedIPC || []).filter(
+                            (ipc) => !subStepIds.has(ipc.procedureStepId) && !ipc.recordedTestId,
+                          );
+                          if (orphanUnrecorded.length === 0) return null;
+                          return (
+                            <DxButton
+                              text={`บันทึก IPC อื่น (${orphanUnrecorded.length})`}
+                              icon="testrun"
+                              type="default"
+                              stylingMode="outlined"
+                              onClick={() => handleOpenIPCDialog(step)}
+                              disabled={recordIPCOnlyMutation.isPending}
+                            />
+                          );
+                        })()}
                         {canComplete && (
                           <DxButton
                             text="Complete"
@@ -1429,6 +1930,7 @@ export default function SOPExecutionPage() {
                         {showAwaitingOtherVerifier && <AwaitingOtherVerifierBadge />}
                       </div>
                     </div>
+                    </div>
                   </div>
                 );
               })}
@@ -1442,33 +1944,43 @@ export default function SOPExecutionPage() {
         visible={showExecuteDialog}
         onHiding={() => setShowExecuteDialog(false)}
         title="Start Production Step"
-        width={450}
+        width={480}
         height="auto"
         showCloseButton
         dragEnabled={false}
       >
-        <div className="p-4 space-y-4">
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h4 className="font-medium text-blue-800 mb-2">
-              {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
-            </h4>
-            {(() => {
-              const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
-              return instr ? <p className="text-sm text-blue-700">{instr}</p> : null;
-            })()}
+        <div className="p-5 space-y-4">
+          <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${phaseTheme(selectedStep?.phase as SOPPhase).gradient} p-4 text-white shadow-md`}>
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.2),_transparent_60%)]" />
+            <div className="relative">
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-white/80 mb-1 inline-flex items-center gap-1.5">
+                <Play className="h-3 w-3" />
+                Start step
+              </div>
+              <h4 className="font-bold text-lg leading-snug">
+                {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
+              </h4>
+              {(() => {
+                const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
+                return instr ? <p className="text-sm text-white/90 mt-1.5 leading-relaxed">{instr}</p> : null;
+              })()}
+            </div>
           </div>
 
           {(() => {
             const expected = parseJson<Record<string, number>>(selectedStep?.expectedParameters);
             if (!expected || Object.keys(expected).length === 0) return null;
             return (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h5 className="text-sm font-medium text-gray-700 mb-2">{t('bomConfiguration.parameters')}:</h5>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-2 flex items-center gap-1.5">
+                  <Gauge className="h-3.5 w-3.5" />
+                  {t('bomConfiguration.parameters')}
+                </h5>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(expected).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{key}:</span>
-                      <span className="font-medium">{value}</span>
+                    <div key={key} className="flex justify-between text-sm bg-white px-2.5 py-1.5 rounded-lg border border-slate-100">
+                      <span className="text-slate-600">{key}</span>
+                      <span className="font-semibold text-slate-900 tabular-nums">{value}</span>
                     </div>
                   ))}
                 </div>
@@ -1481,14 +1993,18 @@ export default function SOPExecutionPage() {
             const eqIds = parseJson<number[]>(selectedStep?.equipmentIds);
             if (!eqIds || eqIds.length === 0) return null;
             return (
-              <div className="bg-indigo-50 rounded-lg p-4">
-                <h5 className="text-sm font-medium text-indigo-700 mb-2">{t('bomConfiguration.equipment')}:</h5>
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                <h5 className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 mb-2 flex items-center gap-1.5">
+                  <Wrench className="h-3.5 w-3.5" />
+                  {t('bomConfiguration.equipment')}
+                </h5>
                 <div className="flex flex-wrap gap-2">
                   {eqIds.map((eqId) => {
                     const equip = equipmentLookup.get(eqId);
                     return equip ? (
-                      <span key={eqId} className="text-sm text-indigo-800">
-                        <strong>{equip.code}</strong> ({locale === 'th' && equip.nameTh ? equip.nameTh : equip.name})
+                      <span key={eqId} className="inline-flex items-center gap-1 px-2 py-1 bg-white text-sm text-indigo-800 rounded-lg border border-indigo-200 shadow-sm">
+                        <strong>{equip.code}</strong>
+                        <span className="text-indigo-600">({locale === 'th' && equip.nameTh ? equip.nameTh : equip.name})</span>
                       </span>
                     ) : null;
                   })}
@@ -1497,11 +2013,12 @@ export default function SOPExecutionPage() {
             );
           })()}
 
-          <p className="text-sm text-gray-600">
+          <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <Clock className="inline h-3.5 w-3.5 text-slate-500 mr-1 -mt-0.5" />
             Starting this step will record the current time and operator. You can then record actual parameters when completing the step.
           </p>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
             <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowExecuteDialog(false)} />
             <DxButton
               text="Start Step"
@@ -1534,15 +2051,22 @@ export default function SOPExecutionPage() {
         dragEnabled={false}
       >
         <div className="flex flex-col h-full">
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
-          <div className="bg-green-50 rounded-lg p-4">
-            <h4 className="font-medium text-green-800 mb-2">
-              {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
-            </h4>
-            {(() => {
-              const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
-              return instr ? <p className="text-sm text-green-700">{instr}</p> : null;
-            })()}
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
+          <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${phaseTheme(selectedStep?.phase as SOPPhase).gradient} p-4 text-white shadow-md`}>
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.2),_transparent_60%)]" />
+            <div className="relative">
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-white/80 mb-1 inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3" />
+                Complete step
+              </div>
+              <h4 className="font-bold text-lg leading-snug">
+                {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
+              </h4>
+              {(() => {
+                const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
+                return instr ? <p className="text-sm text-white/90 mt-1.5 leading-relaxed">{instr}</p> : null;
+              })()}
+            </div>
           </div>
 
           {/* Actual Parameters Input */}
@@ -1550,13 +2074,16 @@ export default function SOPExecutionPage() {
             const expected = parseJson<Record<string, number>>(selectedStep?.expectedParameters);
             if (!expected || Object.keys(expected).length === 0) return null;
             return (
-              <div className="space-y-3">
-                <h5 className="text-sm font-medium text-gray-700">Record Actual Parameters:</h5>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Gauge className="h-3.5 w-3.5" />
+                  Record Actual Parameters
+                </h5>
+                <div className="grid grid-cols-2 gap-3">
                   {Object.entries(expected).map(([key, expectedValue]) => (
                     <div key={key}>
-                      <label className="block text-sm text-gray-600 mb-1">
-                        {key} <span className="text-gray-400">(expected: {expectedValue})</span>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                        {key} <span className="text-slate-400 font-normal">(expected: {expectedValue})</span>
                       </label>
                       <DxNumberBox
                         value={actualParams[key] ?? expectedValue}
@@ -1737,8 +2264,8 @@ export default function SOPExecutionPage() {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-2">Notes</label>
             <DxTextArea
               value={notes}
               onValueChanged={(e) => setNotes(e.value)}
@@ -1750,7 +2277,7 @@ export default function SOPExecutionPage() {
         </div>
         {/* Sticky footer — never scrolls, so the submit button is always
             in reach even with long lists of IPC tests above. */}
-        <div className="flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0">
+        <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white shrink-0">
           <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setShowCompleteDialog(false)} />
           <DxButton
             text={completeStepMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก SOP Step'}
@@ -1772,9 +2299,11 @@ export default function SOPExecutionPage() {
         onHiding={() => {
           setShowIPCDialog(false);
           setSelectedStep(null);
+          setSelectedSubStepId(null);
           setIpcNumeric({});
           setIpcSampleResults({});
           setIpcText({});
+          setIpcDeviationReason({});
         }}
         title="บันทึก IPC"
         width={560}
@@ -1783,23 +2312,43 @@ export default function SOPExecutionPage() {
         dragEnabled={false}
       >
         <div className="flex flex-col h-full">
-          <div className="p-4 space-y-4 overflow-y-auto flex-1">
-            <div className="bg-emerald-50 rounded-lg p-3">
-              <h4 className="font-medium text-emerald-800 text-sm">
-                {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
-              </h4>
-              <p className="text-xs text-emerald-700 mt-1">
-                บันทึก IPC ก่อน Complete Step ได้ — ค่าที่บันทึกจะ replace ค่าก่อนหน้าเสมอ
-              </p>
+          <div className="p-5 space-y-4 overflow-y-auto flex-1">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 p-4 text-white shadow-md">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.2),_transparent_60%)]" />
+              <div className="relative">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-white/80 mb-1 inline-flex items-center gap-1.5">
+                  <FlaskConical className="h-3 w-3" />
+                  IPC Recording
+                </div>
+                <h4 className="font-bold text-base leading-snug">
+                  {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
+                </h4>
+                <p className="text-xs text-white/85 mt-1.5">
+                  บันทึก IPC ก่อน Complete Step ได้ — ค่าที่บันทึกจะ replace ค่าก่อนหน้าเสมอ
+                </p>
+              </div>
             </div>
 
-            {selectedStep?.linkedIPC && selectedStep.linkedIPC.length > 0 ? (
+            {(() => {
+              const dialogIPCs = linkedIPCsForDialog(selectedStep);
+              if (!dialogIPCs.length) return (
+                <p className="text-sm text-gray-500 text-center py-8">ไม่มี IPC ผูกไว้กับ step นี้</p>
+              );
+              const subStepLabel = selectedSubStepId != null
+                ? selectedStep?.templateSteps?.find((s) => s.id === selectedSubStepId)?.stepNameTh
+                  ?? selectedStep?.templateSteps?.find((s) => s.id === selectedSubStepId)?.stepName
+                  ?? null
+                : null;
+              return (
               <div className="space-y-3">
                 <h5 className="text-sm font-medium text-emerald-800 flex items-center gap-1.5">
                   <FlaskConical className="h-4 w-4" />
-                  IPC Test ({selectedStep.linkedIPC.length})
+                  IPC Test ({dialogIPCs.length})
+                  {subStepLabel && (
+                    <span className="text-xs font-normal text-emerald-600">— {subStepLabel}</span>
+                  )}
                 </h5>
-                {selectedStep.linkedIPC.map((ipc) => {
+                {dialogIPCs.map((ipc) => {
                   const size = ipc.sampleSize || 1;
                   const spec = ipc.specification
                     || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
@@ -1938,15 +2487,43 @@ export default function SOPExecutionPage() {
                           height={60}
                         />
                       )}
+
+                      {/* Phase 8b — Inline Deviation reason. Shown when this
+                          IPC's current inputs will trigger a Deviation immediately
+                          on save (Critical OR maxRetestRounds=0 + any fail). */}
+                      {willTriggerDeviationRound1(ipc) && (
+                        <div className="mt-3 p-2.5 rounded border border-rose-300 bg-rose-50/60">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-800 mb-1.5">
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            จะสร้าง Deviation ทันทีหลังบันทึก
+                          </div>
+                          <label className="block text-xs font-medium text-rose-900 mb-1">
+                            เหตุผลของ Deviation <span className="text-red-500">*</span>
+                          </label>
+                          <DxTextArea
+                            value={ipcDeviationReason[ipc.criteriaId] || ''}
+                            onValueChanged={(e) =>
+                              setIpcDeviationReason({
+                                ...ipcDeviationReason,
+                                [ipc.criteriaId]: e.value || '',
+                              })
+                            }
+                            placeholder="อธิบายสิ่งที่สังเกตเห็น หรือสาเหตุที่คาดว่าทำให้ fail..."
+                            height={70}
+                          />
+                          <p className="text-[10px] text-rose-700 mt-1">
+                            เหตุผลนี้จะถูกใช้เป็น description ของ Deviation ที่ระบบสร้างให้อัตโนมัติ
+                          </p>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-8">ไม่มี IPC ผูกไว้กับ step นี้</p>
-            )}
+              );
+            })()}
           </div>
-          <div className="flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0">
+          <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white shrink-0">
             <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setShowIPCDialog(false)} />
             <DxButton
               text={recordIPCOnlyMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก IPC'}
@@ -1966,23 +2543,77 @@ export default function SOPExecutionPage() {
         visible={!!retestTarget}
         onHiding={closeRetest}
         title={retestTarget ? `บันทึกรอบ ${retestTarget.nextRound}` : 'บันทึกรอบใหม่'}
-        width={520}
-        height="auto"
+        width={560}
+        height="90vh"
         showCloseButton
         dragEnabled={false}
+        deferRendering={false}
       >
-        {retestTarget && (
-          <div className="flex flex-col h-full">
-            <div className="p-4 space-y-4 overflow-y-auto flex-1">
-              <div className="bg-amber-50 rounded-lg p-3 text-sm">
-                <div className="font-semibold text-amber-900 flex items-center gap-1.5">
-                  <FlaskConical className="h-4 w-4" />
-                  {retestTarget.ipc.criteriaCode} · {retestTarget.ipc.criteriaNameTh || retestTarget.ipc.criteriaName}
-                </div>
-                <div className="text-xs text-amber-800 mt-1">
-                  Stage {retestTarget.nextRound} · sample size <strong>{retestTarget.stage.sampleSize}</strong> · tolerance <strong>{retestTarget.stage.tolerancePercent}%</strong> · onFail: <strong>{retestTarget.stage.onFail}</strong>
+        <div className="flex flex-col h-full">
+          <div className="p-5 space-y-4 overflow-y-auto flex-1">
+            {retestTarget ? (<>
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 p-4 text-white shadow-md">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.2),_transparent_60%)]" />
+                <div className="relative">
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-white/85 mb-1 inline-flex items-center gap-1.5">
+                    <FlaskConical className="h-3 w-3" />
+                    Retest · Round {retestTarget.nextRound}
+                  </div>
+                  <div className="font-bold text-base leading-snug flex items-center gap-1.5">
+                    {retestTarget.ipc.criteriaCode} · {retestTarget.ipc.criteriaNameTh || retestTarget.ipc.criteriaName}
+                  </div>
+                  <div className="text-xs text-white/90 mt-1.5">
+                    {retestTarget.isMultiStage ? (
+                      <>Stage {retestTarget.nextRound} · sample size <strong>{retestTarget.stage.sampleSize}</strong> · tolerance <strong>{retestTarget.stage.tolerancePercent}%</strong> · onFail: <strong>{retestTarget.stage.onFail}</strong></>
+                    ) : (
+                      <>รอบที่ <strong>{retestTarget.nextRound}</strong> · sample size <strong>{retestTarget.stage.sampleSize}</strong> · ใช้เกณฑ์เดิมจาก master criteria</>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* Retest reason — required on round 2+ for single-stage criteria
+                  per FDA OOS 2006. Multi-stage skips this since the stage plan
+                  governs progression. */}
+              {!retestTarget.isMultiStage && (
+                <div className="border border-amber-200 rounded-lg p-3 bg-amber-50/40">
+                  <label className="block text-sm font-semibold text-amber-900 mb-2">
+                    เหตุผลการทดสอบซ้ำ <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-2">
+                    <label className={`flex items-start gap-2 p-2 rounded border cursor-pointer transition-colors ${
+                      retestReason === 'justified' ? 'border-emerald-400 bg-emerald-50' : 'border-gray-200 hover:bg-gray-50'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="retestReason"
+                        checked={retestReason === 'justified'}
+                        onChange={() => setRetestReason('justified')}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 text-xs">
+                        <div className="font-semibold text-emerald-800">Justified — พบสาเหตุชัดเจน</div>
+                        <div className="text-gray-600 mt-0.5">เก็บตัวอย่างผิด / เครื่องมือผิดปกติ / ขั้นตอนคลาดเคลื่อน — รอบนี้นับเป็น retest ปกติ</div>
+                      </div>
+                    </label>
+                    <label className={`flex items-start gap-2 p-2 rounded border cursor-pointer transition-colors ${
+                      retestReason === 'unjustified' ? 'border-rose-400 bg-rose-50' : 'border-gray-200 hover:bg-gray-50'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="retestReason"
+                        checked={retestReason === 'unjustified'}
+                        onChange={() => setRetestReason('unjustified')}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 text-xs">
+                        <div className="font-semibold text-rose-800">Unjustified — ไม่พบสาเหตุชัดเจน</div>
+                        <div className="text-gray-600 mt-0.5">⚠️ ระบบจะสร้าง <strong>Deviation</strong> ทันที (FDA OOS 2006)</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
 
               {retestTarget.ipc.criteriaType === 'numeric' && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -2064,8 +2695,64 @@ export default function SOPExecutionPage() {
                   height={80}
                 />
               )}
-            </div>
-            <div className="flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0">
+
+              {/* Debug fallback: if none of the input blocks render (because
+                  criteriaType is unknown OR sample buffers are empty),
+                  show a diagnostic message so the operator isn't stuck
+                  with a blank dialog. */}
+              {(() => {
+                const ct = retestTarget.ipc.criteriaType;
+                const numericRendered = ct === 'numeric' && retestNumeric.length > 0;
+                const textRendered = ct === 'text';
+                const passFailRendered = ct !== 'numeric' && ct !== 'text' && retestSampleResults.length > 0;
+                if (numericRendered || textRendered || passFailRendered) return null;
+                return (
+                  <div className="p-3 rounded-lg border border-amber-300 bg-amber-50 text-sm text-amber-900">
+                    <div className="font-semibold mb-1">⚠️ ไม่สามารถสร้างฟอร์มกรอกข้อมูลได้</div>
+                    <div className="text-xs space-y-0.5">
+                      <div>criteriaType: <code>{String(ct)}</code></div>
+                      <div>sampleSize: <code>{retestTarget.stage.sampleSize}</code></div>
+                      <div>retestNumeric.length: <code>{retestNumeric.length}</code></div>
+                      <div>retestSampleResults.length: <code>{retestSampleResults.length}</code></div>
+                    </div>
+                    <div className="mt-2 text-xs">กรุณาส่งข้อมูลนี้ให้ผู้พัฒนาตรวจสอบ</div>
+                  </div>
+                );
+              })()}
+
+              {/* Phase 8b — Inline Deviation reason on retest. Visible whenever
+                  current inputs / settings will trigger a Deviation:
+                  Unjustified retest, Critical fail, or final-round fail. */}
+              {willTriggerDeviationRetest() && (
+                <div className="p-2.5 rounded border border-rose-300 bg-rose-50/60">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-800 mb-1.5">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    จะสร้าง Deviation ทันทีหลังบันทึก
+                    {retestReason === 'unjustified' && <span className="text-[10px] font-normal">— Unjustified retest (FDA OOS 2006)</span>}
+                  </div>
+                  <label className="block text-xs font-medium text-rose-900 mb-1">
+                    เหตุผลของ Deviation <span className="text-red-500">*</span>
+                  </label>
+                  <DxTextArea
+                    value={retestDeviationReason}
+                    onValueChanged={(e) => setRetestDeviationReason(e.value || '')}
+                    placeholder="อธิบายสิ่งที่สังเกตเห็น หรือสาเหตุที่คาดว่าทำให้ fail..."
+                    height={70}
+                  />
+                  <p className="text-[10px] text-rose-700 mt-1">
+                    เหตุผลนี้จะถูกใช้เป็น description ของ Deviation ที่ระบบสร้างให้อัตโนมัติ
+                  </p>
+                </div>
+              )}
+            </>) : (
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">
+                <DxLoadIndicator />
+                <p className="text-sm">กำลังโหลด...</p>
+              </div>
+            )}
+          </div>
+          {retestTarget && (
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-gradient-to-r from-amber-50 to-white shrink-0">
               <DxButton text="ยกเลิก" stylingMode="outlined" onClick={closeRetest} />
               <DxButton
                 text={addIPCRoundMutation.isPending ? 'กำลังบันทึก...' : `บันทึกรอบ ${retestTarget.nextRound}`}
@@ -2075,8 +2762,8 @@ export default function SOPExecutionPage() {
                 disabled={addIPCRoundMutation.isPending}
               />
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </DxPopup>
     </div>
   );

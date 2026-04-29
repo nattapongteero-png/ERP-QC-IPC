@@ -104,6 +104,8 @@ export async function POST(request: NextRequest) {
         tolerancePercent: data.tolerancePercent ?? 0,
         specTarget, specTolerancePercent,
         acceptanceStages,
+        // FDA OOS 2006 retest budget — Critical forces 0 server-side as well.
+        maxRetestRounds: (data.isCritical ?? false) ? 0 : Math.max(0, Math.min(5, Number(data.maxRetestRounds ?? 1))),
       };
 
       // Upsert
@@ -183,6 +185,13 @@ export async function PUT(request: NextRequest) {
       ];
       for (const field of fields) {
         if (data[field] !== undefined) updateData[field] = data[field];
+      }
+
+      // Retest budget: Critical forces 0; otherwise clamp to [0, 5].
+      if (data.maxRetestRounds !== undefined || data.isCritical !== undefined) {
+        const isCrit = data.isCritical ?? false;
+        const raw = Number(data.maxRetestRounds ?? 1);
+        updateData.maxRetestRounds = isCrit ? 0 : Math.max(0, Math.min(5, raw));
       }
 
       // Serialize stages independently so empty/null clears multi-stage cleanly

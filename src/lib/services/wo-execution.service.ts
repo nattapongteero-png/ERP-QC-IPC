@@ -763,6 +763,7 @@ export async function getWOSOPExecution(workOrderId: number) {
             criteriaType: ipcTable.criteriaType,
             testMethod: ipcTable.testMethod,
             isCriteriaCritical: ipcTable.isCritical,
+            maxRetestRounds: ipcTable.maxRetestRounds,
           })
           .from(linkTable)
           .innerJoin(ipcTable, eq(linkTable.criteriaId, ipcTable.id))
@@ -800,6 +801,8 @@ export async function getWOSOPExecution(workOrderId: number) {
       testedBy: number | null;
       testDate: string | null;
       acceptanceStages: string | null;
+      retestRound: number | null;
+      retestReason: string | null;
       samples: Array<{
         sampleNumber: number;
         testRound: number;
@@ -820,6 +823,8 @@ export async function getWOSOPExecution(workOrderId: number) {
             testedBy: tables.qualityTests.testedBy,
             testDate: tables.qualityTests.testDate,
             acceptanceStages: tables.qualityTests.acceptanceStages,
+            retestRound: tables.qualityTests.retestRound,
+            retestReason: tables.qualityTests.retestReason,
           })
           .from(tables.qualityTests)
           .where(and(
@@ -868,6 +873,8 @@ export async function getWOSOPExecution(workOrderId: number) {
             testedBy: t.testedBy,
             testDate: t.testDate,
             acceptanceStages: t.acceptanceStages ?? null,
+            retestRound: t.retestRound != null ? Number(t.retestRound) : null,
+            retestReason: t.retestReason ?? null,
             samples: samplesByTest.get(t.id) || [],
           });
         }
@@ -903,6 +910,8 @@ export async function getWOSOPExecution(workOrderId: number) {
           recordedTestedByName: found?.testedBy ? (userMap.get(found.testedBy) || null) : null,
           recordedTestDate: found?.testDate ?? null,
           recordedAcceptanceStages: found?.acceptanceStages ?? null,
+          recordedRetestRound: found?.retestRound ?? null,
+          recordedRetestReason: found?.retestReason ?? null,
         };
       });
 
@@ -2293,6 +2302,28 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
  * flow when the sample number doesn't follow the SOP-{execId}-IPC-{cid}
  * convention.
  */
+/**
+ * Resolve max retest rounds for a given criteria (FDA OOS 2006 / PIC/S).
+ *
+ * Priority:
+ *  1. Critical criteria → forced 0 (deviation immediately on round 1 fail)
+ *  2. Master ipc_criteria.maxRetestRounds (default 1)
+ *
+ * Future: BOM-level override (bom_in_process_qc.maxRetestRounds) and
+ * SOP-step override (sop_template_ipc_criteria.maxRetestRounds) — schema
+ * columns exist but resolution path adds complexity; defer until needed.
+ */
+function resolveMaxRetestRounds(criteria: {
+  isCritical?: boolean | number | null;
+  maxRetestRounds?: number | null;
+}): number {
+  if (criteria.isCritical) return 0;
+  const v = criteria.maxRetestRounds;
+  if (v == null) return 1;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : 1;
+}
+
 async function ensureDeviationForFailedSOPIPC(
   db: any,
   tables: ReturnType<typeof getTables>,
@@ -2301,6 +2332,10 @@ async function ensureDeviationForFailedSOPIPC(
     sopExecutionId: number;
     operatorId: number;
     testRound?: number;
+    /** Operator-supplied description (overrides auto-generated template). */
+    reason?: string | null;
+    /** Override severity (defaults to 'minor'). */
+    severity?: 'minor' | 'major' | 'critical' | null;
   },
 ): Promise<{ id: number; deviationNumber: string } | null> {
   try {
@@ -2364,16 +2399,28 @@ async function ensureDeviationForFailedSOPIPC(
     const phaseLabel = test.ipcPhase ? ` [${test.ipcPhase}]` : '';
     const roundLabel = params.testRound ? ` (Round ${params.testRound})` : '';
 
+    // Compose description: prefer operator's reason (with auto context as
+    // suffix for traceability) when provided. Falls back to the template
+    // when the trigger fired without a UI prompt (e.g. legacy clients).
+    const autoContext = `In-Process Control test failed during SOP execution${roundLabel}. Spec: ${test.specSpecification || 'n/a'}.`;
+    const operatorReason = (params.reason || '').trim();
+    const description = operatorReason
+      ? `${operatorReason}\n\n— ${autoContext}`
+      : `${autoContext} Auto-generated when operator recorded failing samples on the SOP step.`;
+
+    const validSeverities = new Set(['minor', 'major', 'critical']);
+    const severity = params.severity && validSeverities.has(params.severity) ? params.severity : 'minor';
+
     const result = await db.insert(deviationsTable).values({
       deviationNumber,
       title: `IPC Failure — ${test.notes || test.sampleNumber || 'Unknown test'}${phaseLabel}`,
-      description: `In-Process Control test failed during SOP execution${roundLabel}. Spec: ${test.specSpecification || 'n/a'}. Auto-generated when operator recorded failing samples on the SOP step.`,
+      description,
       type: 'OOS',
       sourceType: 'production',
       sourceId: params.qualityTestId,
       lotId: test.lotId,
       workOrderId,
-      severity: 'minor',
+      severity,
       status: 'open',
       reportedBy: params.operatorId,
       reportedAt: getNow(),
@@ -2702,6 +2749,22 @@ export interface SOPLinkedIPCInput {
   /** Free text response for criteriaType=text. */
   textValue?: string | null;
   notes?: string | null;
+  /**
+   * Reason for this retest round (FDA OOS 2006). Required on round 2+.
+   *  - 'justified': sampling/instrument issue identified — keeps retest window open
+   *  - 'unjustified': no clear cause — forces deviation immediately
+   * Ignored on round 1.
+   */
+  retestReason?: 'justified' | 'unjustified' | null;
+  /**
+   * Inline Deviation reason captured when this save will trigger a Deviation
+   * (Critical fail on round 1, Unjustified retest, final-round fail).
+   * If null, the auto-generated template description is used. Required by
+   * the UI when the trigger conditions are visible to the operator.
+   */
+  deviationReason?: string | null;
+  /** Override severity when creating the auto-deviation. Defaults to 'minor'. */
+  deviationSeverity?: 'minor' | 'major' | 'critical' | null;
 }
 
 export interface SOPIPCRecordResult {
@@ -2887,6 +2950,8 @@ export async function recordSOPLinkedIPCResults(
           ? criteria.acceptanceStages
           : (criteria.acceptanceStages ? JSON.stringify(criteria.acceptanceStages) : null),
         ipcPhase: input.ipcPhase,
+        retestRound: 1, // Round 1 (this function only handles initial recording)
+        retestReason: null, // No reason on round 1
         notes: input.notes ?? (criteria.nameTh || criteria.name),
         updatedAt: getNow(),
       };
@@ -2928,20 +2993,26 @@ export async function recordSOPLinkedIPCResults(
         });
       }
 
-      // Phase 7a — auto-create deviation when this round fails. Idempotent
-      // on (sourceType, sourceId) so re-saving a failed test doesn't
-      // duplicate the deviation. The operator still has to fill in root
-      // cause + CAPA on the deviation page, but the record is in place
-      // immediately so nothing falls through the cracks.
+      // Phase 7a + retest gate — create deviation ONLY when round 1 fail
+      // exhausts the configured retest budget. Default master = 1 retest
+      // allowed (so round 1 fail does NOT auto-create a deviation; operator
+      // must record round 2 via addIPCTestRound). Critical criteria force
+      // maxRetestRounds = 0 (deviation immediately on round 1 fail) per
+      // FDA OOS 2006 guidance.
       if (testStatus === 'fail') {
-        const dev = await ensureDeviationForFailedSOPIPC(db, tables, {
-          qualityTestId,
-          sopExecutionId: input.sopExecutionId,
-          operatorId,
-          testRound: 1,
-        });
-        if (dev) {
-          deviationsCreated.push({ qualityTestId, deviationId: dev.id, deviationNumber: dev.deviationNumber });
+        const maxRetestRounds = resolveMaxRetestRounds(criteria);
+        if (maxRetestRounds === 0) {
+          const dev = await ensureDeviationForFailedSOPIPC(db, tables, {
+            qualityTestId,
+            sopExecutionId: input.sopExecutionId,
+            operatorId,
+            testRound: 1,
+            reason: input.deviationReason ?? null,
+            severity: input.deviationSeverity ?? (criteria.isCritical ? 'critical' : 'minor'),
+          });
+          if (dev) {
+            deviationsCreated.push({ qualityTestId, deviationId: dev.id, deviationNumber: dev.deviationNumber });
+          }
         }
       }
     }
@@ -2951,20 +3022,18 @@ export async function recordSOPLinkedIPCResults(
 }
 
 /**
- * Phase 6b — append a new round of IPC samples to an existing test.
+ * Phase 6b + Retest Gate — append a new round of IPC samples to an existing test.
  *
- * Used when a previous round failed and the criteria's acceptance plan
- * permits a retest at the next stage (USP <711>/<905> tiered workflow).
+ * Two paths share this function:
+ *  1. Multi-stage criteria (USP <711>/<905>): drive sampleSize/tolerance from
+ *     the stage plan; previous stage must have onFail=next_stage.
+ *  2. Single-stage criteria with retest budget (FDA OOS 2006): use the
+ *     criteria's default sampleSize/tolerance; retestReason is REQUIRED on
+ *     round 2+. Unjustified retest creates deviation immediately.
  *
- * Validations:
+ * Common validations:
  *   - Existing test must already be present for (sopExecutionId, criteriaId)
  *   - Latest round must be `fail` (no point retesting a passing round)
- *   - Stage plan must define a stage at the target round index
- *   - Previous stage's onFail must be `next_stage`
- *
- * Sample size + tolerance are taken from the stage definition, not the
- * criteria row, so a 6→6→12 plan pulls the right number of samples on
- * each round and applies the right tolerance.
  */
 export async function addIPCTestRound(
   workOrderId: number,
@@ -3039,35 +3108,75 @@ export async function addIPCTestRound(
     const lastRoundTotal = lastRoundSamples.length;
     const lastRoundFailPct = lastRoundTotal === 0 ? 0 : (lastRoundFails / lastRoundTotal) * 100;
 
-    // Pull stage plan from snapshot. Single-stage criteria shouldn't reach here.
     const stages = parseAcceptanceStages(existing.acceptanceStages);
-    if (stages.length === 0) {
-      throw new Error('Criteria นี้ไม่มี multi-stage plan — บันทึกรอบใหม่ไม่ได้');
-    }
-
-    const lastStageIdx = lastRound - 1;
-    const lastStage = stages[lastStageIdx];
-    if (!lastStage) {
-      throw new Error(`Stage ${lastRound} ไม่ได้กำหนดใน acceptance plan`);
-    }
-    // The previous stage must have failed (otherwise no retest needed).
-    if (lastRoundFailPct <= lastStage.tolerancePercent) {
-      throw new Error('รอบก่อนหน้าผ่านแล้ว — ไม่ต้องทำรอบใหม่');
-    }
-    // Previous stage's onFail must permit advancing.
-    if (lastStage.onFail !== 'next_stage') {
-      throw new Error(`รอบก่อนหน้ากำหนด onFail=${lastStage.onFail} — ไม่อนุญาตให้ retest`);
-    }
-
+    const isMultiStage = stages.length > 0;
     const nextRound = lastRound + 1;
-    const nextStage = stages[nextRound - 1];
-    if (!nextStage) {
-      throw new Error(`ไม่มี Stage ${nextRound} ใน acceptance plan — สุดทางแล้ว`);
+
+    // ----- Branch A: Multi-stage (USP <711>/<905>) -----
+    let expectedSize: number;
+    let tolPct: number;
+    let retestReasonForUpdate: string | null = null;
+    let unjustifiedDeviationOverride = false; // forces deviation regardless of pass/fail
+
+    if (isMultiStage) {
+      const lastStageIdx = lastRound - 1;
+      const lastStage = stages[lastStageIdx];
+      if (!lastStage) {
+        throw new Error(`Stage ${lastRound} ไม่ได้กำหนดใน acceptance plan`);
+      }
+      if (lastRoundFailPct <= lastStage.tolerancePercent) {
+        throw new Error('รอบก่อนหน้าผ่านแล้ว — ไม่ต้องทำรอบใหม่');
+      }
+      if (lastStage.onFail !== 'next_stage') {
+        throw new Error(`รอบก่อนหน้ากำหนด onFail=${lastStage.onFail} — ไม่อนุญาตให้ retest`);
+      }
+      const nextStage = stages[nextRound - 1];
+      if (!nextStage) {
+        throw new Error(`ไม่มี Stage ${nextRound} ใน acceptance plan — สุดทางแล้ว`);
+      }
+      expectedSize = nextStage.sampleSize;
+      tolPct = nextStage.tolerancePercent;
+    } else {
+      // ----- Branch B: Single-stage retest (FDA OOS 2006) -----
+      // Pull master criteria for retest budget + critical flag.
+      const ipcCriteriaTable = getTableRef('iPCCriteria');
+      const [criteria] = await db
+        .select()
+        .from(ipcCriteriaTable)
+        .where(eq(ipcCriteriaTable.id, input.criteriaId))
+        .limit(1);
+      if (!criteria) throw new Error(`IPC criteria ${input.criteriaId} not found`);
+
+      // Last round must have failed (otherwise no retest needed).
+      if (lastRoundFails === 0) {
+        throw new Error('รอบก่อนหน้าไม่มี sample fail — ไม่ต้องทำรอบใหม่');
+      }
+
+      const maxRetestRounds = resolveMaxRetestRounds(criteria);
+      // Total allowed rounds = 1 (initial) + maxRetestRounds (retests).
+      const maxRoundsTotal = 1 + maxRetestRounds;
+      if (nextRound > maxRoundsTotal) {
+        throw new Error(
+          `ครบจำนวน retest สูงสุดแล้ว (${maxRoundsTotal} รอบ) — ต้องบันทึก Deviation`,
+        );
+      }
+
+      // Round 2+ requires retestReason. Already validated upstream but
+      // double-check at the service boundary.
+      const reason = input.retestReason;
+      if (reason !== 'justified' && reason !== 'unjustified') {
+        throw new Error('กรุณาระบุเหตุผลการทดสอบซ้ำ (justified/unjustified)');
+      }
+      retestReasonForUpdate = reason;
+      // Unjustified retest forces deviation per FDA OOS 2006 — record the
+      // round but the deviation will be created regardless of result.
+      unjustifiedDeviationOverride = reason === 'unjustified';
+
+      expectedSize = Number(criteria.sampleSize) || lastRoundTotal || 1;
+      tolPct = Number(criteria.tolerancePercent) || 0;
     }
 
-    // Build samples for the new round using stage's sampleSize.
-    const expectedSize = nextStage.sampleSize;
-    const tolPct = nextStage.tolerancePercent;
+    // ----- Common: build samples for the new round -----
     const criteriaType = existing.criteriaType || 'numeric';
     const effectiveMin = existing.specMinValue;
     const effectiveMax = existing.specMaxValue;
@@ -3118,7 +3227,7 @@ export async function addIPCTestRound(
       });
     }
 
-    // Compute overall status from THIS round's failures vs stage tolerance.
+    // Compute overall status for this round.
     const total = samples.length;
     const failCount = samples.filter((s) => s.result === 'fail').length;
     const pendingCount = samples.filter((s) => s.result === 'pending').length;
@@ -3151,18 +3260,52 @@ export async function addIPCTestRound(
         tolerancePercent: tolPct,
         testedBy: testStatus === 'pending' ? null : operatorId,
         testDate: testStatus === 'pending' ? null : getNow(),
+        retestRound: nextRound,
+        retestReason: retestReasonForUpdate,
         updatedAt: getNow(),
       })
       .where(eq(tables.qualityTests.id, existing.id));
 
-    // Phase 7a — auto-create deviation if this retest round also fails.
+    // Deviation creation logic:
+    //  - Multi-stage: keep existing behavior (deviation if final stage fails)
+    //  - Single-stage:
+    //      * Unjustified retest → deviation immediately (regardless of result)
+    //      * Final round failed → deviation
+    //      * Otherwise (intermediate retest passed/failed) → no deviation
     let deviation: { id: number; deviationNumber: string } | null = null;
-    if (testStatus === 'fail') {
+    let shouldCreateDeviation = false;
+
+    if (isMultiStage) {
+      shouldCreateDeviation = testStatus === 'fail';
+    } else if (unjustifiedDeviationOverride) {
+      shouldCreateDeviation = true;
+    } else if (testStatus === 'fail') {
+      // For single-stage retest: re-resolve the criteria to know the budget.
+      const ipcCriteriaTable = getTableRef('iPCCriteria');
+      const [criteria] = await db
+        .select()
+        .from(ipcCriteriaTable)
+        .where(eq(ipcCriteriaTable.id, input.criteriaId))
+        .limit(1);
+      const maxRetestRounds = resolveMaxRetestRounds(criteria);
+      const maxRoundsTotal = 1 + maxRetestRounds;
+      if (nextRound >= maxRoundsTotal) {
+        shouldCreateDeviation = true;
+      }
+    }
+
+    if (shouldCreateDeviation) {
+      // Default severity: 'major' for unjustified retest (FDA OOS treats this
+      // as a procedural failure), 'minor' otherwise. Operator can override
+      // via input.deviationSeverity.
+      const defaultSeverity: 'minor' | 'major' | 'critical' = unjustifiedDeviationOverride ? 'major' : 'minor';
       const dev = await ensureDeviationForFailedSOPIPC(db, tables, {
         qualityTestId: existing.id,
         sopExecutionId: input.sopExecutionId,
         operatorId,
         testRound: nextRound,
+        reason: input.deviationReason ?? null,
+        severity: input.deviationSeverity ?? defaultSeverity,
       });
       if (dev) deviation = dev;
     }
