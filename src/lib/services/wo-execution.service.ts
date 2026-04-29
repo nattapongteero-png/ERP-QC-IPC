@@ -797,14 +797,56 @@ export async function getWOSOPExecution(workOrderId: number) {
       for (const u of users) userMap.set(u.id, u.name);
     }
 
+    // Phase 5 — find which IPC criteria are already recorded per WO step,
+    // so the UI can skip "fill again" prompts on already-saved tests. We
+    // match on the deterministic sample_number used by recordSOPLinkedIPCResults
+    // (`SOP-{executionId}-IPC-{criteriaId}`). One round-trip covers all steps.
+    const recordedKey = new Map<string, { id: number; status: string | null }>();
+    if (executions.length > 0) {
+      const lotIds = await findWOLotIds(db, tables, workOrderId);
+      if (lotIds.length > 0) {
+        const { like, inArray } = await import('drizzle-orm');
+        const recordedTests = await db
+          .select({
+            id: tables.qualityTests.id,
+            sampleNumber: tables.qualityTests.sampleNumber,
+            status: tables.qualityTests.status,
+          })
+          .from(tables.qualityTests)
+          .where(and(
+            inArray(tables.qualityTests.lotId, lotIds),
+            eq(tables.qualityTests.testType, 'in_process'),
+            like(tables.qualityTests.sampleNumber, 'SOP-%-IPC-%'),
+          ));
+        for (const t of recordedTests as any[]) {
+          recordedKey.set(t.sampleNumber, { id: t.id, status: t.status });
+        }
+      }
+    }
+
     // Attach template sub-steps + user names + linked IPC criteria.
-    return executions.map((exec: any) => ({
-      ...exec,
-      operatorName: exec.operatorId ? (userMap.get(exec.operatorId) || null) : null,
-      verifierName: exec.verifierId ? (userMap.get(exec.verifierId) || null) : null,
-      templateSteps: exec.templateId ? (templateStepsMap[exec.templateId] || []) : [],
-      linkedIPC: exec.templateId ? (linkedIPCMap[exec.templateId] || []) : [],
-    }));
+    // Each step gets its own copy of linkedIPC[] with recordedTestId / status
+    // resolved against the deterministic sample_number for that exec id.
+    return executions.map((exec: any) => {
+      const baseLinks = exec.templateId ? (linkedIPCMap[exec.templateId] || []) : [];
+      const linkedIPC = baseLinks.map((link: any) => {
+        const key = `SOP-${exec.id}-IPC-${link.criteriaId}`;
+        const found = recordedKey.get(key);
+        return {
+          ...link,
+          recordedTestId: found?.id ?? null,
+          recordedStatus: found?.status ?? null,
+        };
+      });
+
+      return {
+        ...exec,
+        operatorName: exec.operatorId ? (userMap.get(exec.operatorId) || null) : null,
+        verifierName: exec.verifierId ? (userMap.get(exec.verifierId) || null) : null,
+        templateSteps: exec.templateId ? (templateStepsMap[exec.templateId] || []) : [],
+        linkedIPC,
+      };
+    });
   });
 }
 

@@ -66,6 +66,11 @@ interface LinkedIPCCriterion {
   criteriaType: string;
   testMethod?: string | null;
   isCriteriaCritical: boolean;
+  // Phase 5 — set when this criterion has already been recorded for the
+  // current WO SOP step (via record_ipc or earlier complete). Lets the UI
+  // skip "fill again" prompts and show a status badge instead.
+  recordedTestId?: number | null;
+  recordedStatus?: 'pass' | 'fail' | 'pending' | null;
 }
 
 interface SOPStep {
@@ -467,26 +472,31 @@ export default function SOPExecutionPage() {
     setShowIPCDialog(true);
   };
 
-  /** Pack the operator's IPC inputs for the API request. */
+  /** Pack the operator's IPC inputs — already-recorded criteria are skipped
+   *  so re-completing a step doesn't re-prompt for tests already saved. */
   const packIPCResults = (step: SOPStep) =>
-    (step.linkedIPC || []).map((ipc) => {
-      const base = {
-        criteriaId: ipc.criteriaId,
-        ipcPhase: step.phase || 'production',
-      };
-      if (ipc.criteriaType === 'numeric') {
-        return { ...base, numericValues: ipcNumeric[ipc.criteriaId] || [] };
-      }
-      if (ipc.criteriaType === 'text') {
-        return { ...base, textValue: ipcText[ipc.criteriaId] || '' };
-      }
-      return { ...base, sampleResults: ipcSampleResults[ipc.criteriaId] || [] };
-    });
+    (step.linkedIPC || [])
+      .filter((ipc) => !ipc.recordedTestId)
+      .map((ipc) => {
+        const base = {
+          criteriaId: ipc.criteriaId,
+          ipcPhase: step.phase || 'production',
+        };
+        if (ipc.criteriaType === 'numeric') {
+          return { ...base, numericValues: ipcNumeric[ipc.criteriaId] || [] };
+        }
+        if (ipc.criteriaType === 'text') {
+          return { ...base, textValue: ipcText[ipc.criteriaId] || '' };
+        }
+        return { ...base, sampleResults: ipcSampleResults[ipc.criteriaId] || [] };
+      });
 
-  /** Validate every linked IPC has all sample inputs filled. */
+  /** Validate every UNRECORDED linked IPC has its inputs filled. Already-
+   *  recorded criteria are not re-prompted, so they don't need validation. */
   const ipcInputsComplete = (step: SOPStep | null): boolean => {
     if (!step?.linkedIPC?.length) return true;
     for (const ipc of step.linkedIPC) {
+      if (ipc.recordedTestId) continue; // already saved — skip
       if (ipc.criteriaType === 'numeric') {
         const values = ipcNumeric[ipc.criteriaId] || [];
         if (values.length === 0 || values.some((v) => v == null || Number.isNaN(v))) return false;
@@ -911,6 +921,25 @@ export default function SOPExecutionPage() {
                                               Critical
                                             </span>
                                           )}
+                                          {/* Status badge — keeps the operator
+                                              from re-recording an already saved
+                                              criterion by mistake. */}
+                                          {ipc.recordedTestId && (
+                                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                              ipc.recordedStatus === 'pass'
+                                                ? 'bg-emerald-100 text-emerald-700'
+                                                : ipc.recordedStatus === 'fail'
+                                                ? 'bg-rose-100 text-rose-700'
+                                                : 'bg-amber-100 text-amber-700'
+                                            }`}>
+                                              <CheckCircle2 className="h-2.5 w-2.5" />
+                                              {ipc.recordedStatus === 'pass'
+                                                ? 'บันทึกแล้ว — ผ่าน'
+                                                : ipc.recordedStatus === 'fail'
+                                                ? 'บันทึกแล้ว — ไม่ผ่าน'
+                                                : 'บันทึกแล้ว'}
+                                            </span>
+                                          )}
                                         </div>
                                         {spec && (
                                           <div className="text-xs text-gray-500 mt-0.5 truncate">
@@ -1193,6 +1222,25 @@ export default function SOPExecutionPage() {
                           Critical
                         </span>
                       )}
+                      {/* Phase 5 — already-recorded badge. When set, the input
+                          fields below are replaced by a "saved" notice so the
+                          operator isn't prompted to re-enter values. */}
+                      {ipc.recordedTestId && (
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                          ipc.recordedStatus === 'pass'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : ipc.recordedStatus === 'fail'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          {ipc.recordedStatus === 'pass'
+                            ? 'บันทึกแล้ว — ผ่าน'
+                            : ipc.recordedStatus === 'fail'
+                            ? 'บันทึกแล้ว — ไม่ผ่าน'
+                            : 'บันทึกแล้ว'}
+                        </span>
+                      )}
                     </div>
                     {spec && (
                       <div className="text-xs text-gray-500 mb-2">
@@ -1200,88 +1248,98 @@ export default function SOPExecutionPage() {
                       </div>
                     )}
 
-                    {/* Numeric — N number boxes */}
-                    {ipc.criteriaType === 'numeric' && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {(ipcNumeric[ipc.criteriaId] || []).map((v, idx) => {
-                          const min = ipc.minValue != null ? Number(ipc.minValue) : null;
-                          const max = ipc.maxValue != null ? Number(ipc.maxValue) : null;
-                          const inSpec = v == null
-                            ? null
-                            : (min == null || v >= min) && (max == null || v <= max);
-                          return (
-                            <div key={idx}>
-                              <label className="block text-[11px] text-gray-500 mb-0.5">#{idx + 1}</label>
-                              <DxNumberBox
-                                value={v ?? undefined}
-                                onValueChanged={(e) => {
-                                  const next = [...(ipcNumeric[ipc.criteriaId] || [])];
-                                  next[idx] = e.value == null ? null : Number(e.value);
-                                  setIpcNumeric({ ...ipcNumeric, [ipc.criteriaId]: next });
-                                }}
-                                format="#0.00"
-                                showSpinButtons={false}
-                              />
-                              {v != null && (
-                                <div className={`mt-0.5 text-[10px] font-semibold ${inSpec ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                  {inSpec ? '✓ ในเกณฑ์' : '✗ นอกเกณฑ์'}
+                    {/* Already saved — show a passive notice instead of input
+                        fields. Operator can re-record via "บันทึก IPC" if needed. */}
+                    {ipc.recordedTestId ? (
+                      <div className="text-xs text-gray-500 italic px-2 py-1.5 rounded bg-white/60 border border-dashed border-emerald-200">
+                        IPC นี้บันทึกไว้แล้ว — กดปุ่ม &quot;บันทึก IPC&quot; ภายนอกถ้าต้องการแก้ค่า
+                      </div>
+                    ) : (
+                      <>
+                        {/* Numeric — N number boxes */}
+                        {ipc.criteriaType === 'numeric' && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {(ipcNumeric[ipc.criteriaId] || []).map((v, idx) => {
+                              const min = ipc.minValue != null ? Number(ipc.minValue) : null;
+                              const max = ipc.maxValue != null ? Number(ipc.maxValue) : null;
+                              const inSpec = v == null
+                                ? null
+                                : (min == null || v >= min) && (max == null || v <= max);
+                              return (
+                                <div key={idx}>
+                                  <label className="block text-[11px] text-gray-500 mb-0.5">#{idx + 1}</label>
+                                  <DxNumberBox
+                                    value={v ?? undefined}
+                                    onValueChanged={(e) => {
+                                      const next = [...(ipcNumeric[ipc.criteriaId] || [])];
+                                      next[idx] = e.value == null ? null : Number(e.value);
+                                      setIpcNumeric({ ...ipcNumeric, [ipc.criteriaId]: next });
+                                    }}
+                                    format="#0.00"
+                                    showSpinButtons={false}
+                                  />
+                                  {v != null && (
+                                    <div className={`mt-0.5 text-[10px] font-semibold ${inSpec ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                      {inSpec ? '✓ ในเกณฑ์' : '✗ นอกเกณฑ์'}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Pass/Fail / Visual / Checkbox — N toggle pairs */}
-                    {ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text' && (
-                      <div className="space-y-1.5">
-                        {(ipcSampleResults[ipc.criteriaId] || []).map((r, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <span className="text-xs text-gray-600 w-8">#{idx + 1}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
-                                next[idx] = 'pass';
-                                setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
-                              }}
-                              className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
-                                r === 'pass'
-                                  ? 'bg-emerald-600 text-white border-emerald-700'
-                                  : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
-                              }`}
-                            >
-                              ผ่าน
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
-                                next[idx] = 'fail';
-                                setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
-                              }}
-                              className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
-                                r === 'fail'
-                                  ? 'bg-rose-600 text-white border-rose-700'
-                                  : 'bg-white text-gray-600 border-gray-200 hover:bg-rose-50'
-                              }`}
-                            >
-                              ไม่ผ่าน
-                            </button>
+                              );
+                            })}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        )}
 
-                    {/* Text — single textarea */}
-                    {ipc.criteriaType === 'text' && (
-                      <DxTextArea
-                        value={ipcText[ipc.criteriaId] || ''}
-                        onValueChanged={(e) => setIpcText({ ...ipcText, [ipc.criteriaId]: e.value || '' })}
-                        placeholder="กรอกผลการตรวจ"
-                        height={60}
-                      />
+                        {/* Pass/Fail / Visual / Checkbox — N toggle pairs */}
+                        {ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text' && (
+                          <div className="space-y-1.5">
+                            {(ipcSampleResults[ipc.criteriaId] || []).map((r, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <span className="text-xs text-gray-600 w-8">#{idx + 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
+                                    next[idx] = 'pass';
+                                    setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
+                                  }}
+                                  className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                                    r === 'pass'
+                                      ? 'bg-emerald-600 text-white border-emerald-700'
+                                      : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
+                                  }`}
+                                >
+                                  ผ่าน
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
+                                    next[idx] = 'fail';
+                                    setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
+                                  }}
+                                  className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                                    r === 'fail'
+                                      ? 'bg-rose-600 text-white border-rose-700'
+                                      : 'bg-white text-gray-600 border-gray-200 hover:bg-rose-50'
+                                  }`}
+                                >
+                                  ไม่ผ่าน
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Text — single textarea */}
+                        {ipc.criteriaType === 'text' && (
+                          <DxTextArea
+                            value={ipcText[ipc.criteriaId] || ''}
+                            onValueChanged={(e) => setIpcText({ ...ipcText, [ipc.criteriaId]: e.value || '' })}
+                            placeholder="กรอกผลการตรวจ"
+                            height={60}
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 );
@@ -1376,6 +1434,25 @@ export default function SOPExecutionPage() {
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">
                             <AlertCircle className="h-2.5 w-2.5" />
                             Critical
+                          </span>
+                        )}
+                        {/* Already-recorded indicator. Inputs stay editable so
+                            the operator can intentionally re-save (idempotent
+                            upsert on the backend). */}
+                        {ipc.recordedTestId && (
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                            ipc.recordedStatus === 'pass'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : ipc.recordedStatus === 'fail'
+                              ? 'bg-rose-100 text-rose-700'
+                              : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            <CheckCircle2 className="h-2.5 w-2.5" />
+                            {ipc.recordedStatus === 'pass'
+                              ? 'บันทึกแล้ว — ผ่าน · กรอกใหม่จะ replace'
+                              : ipc.recordedStatus === 'fail'
+                              ? 'บันทึกแล้ว — ไม่ผ่าน · กรอกใหม่จะ replace'
+                              : 'บันทึกแล้ว · กรอกใหม่จะ replace'}
                           </span>
                         )}
                       </div>
