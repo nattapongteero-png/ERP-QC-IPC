@@ -795,10 +795,14 @@ export default function SOPExecutionPage() {
                             </div>
                           )}
 
-                          {/* IPC ที่ผูกไว้กับ template ของ step นี้ — Phase 2.
-                              Display-only here. Click ไป IPC page เพื่อบันทึกผลจริง.
-                              The matching IPC test on the WO uses the same criteriaId, so
-                              the link target lets the operator find and record it directly. */}
+                          {/* Linked IPC criteria — informational only.
+                              The actual recording happens inside the Complete
+                              Step dialog (Phase 3) so the operator stays on
+                              this page through the whole flow. We previously
+                              had per-row "บันทึกผล →" buttons jumping to
+                              /ipc, but that page doesn't pre-create rows for
+                              SOP-linked criteria so the operator landed on an
+                              empty list and got stuck. */}
                           {step.linkedIPC && step.linkedIPC.length > 0 && (
                             <div className="mt-3 pt-3 border-t border-dashed border-emerald-200">
                               <div className="flex items-center justify-between mb-2">
@@ -818,14 +822,9 @@ export default function SOPExecutionPage() {
                                         ? `${ipc.minValue ?? '-'} – ${ipc.maxValue ?? '-'}${ipc.unit ? ' ' + ipc.unit : ''}`
                                         : null);
                                   return (
-                                    <button
+                                    <div
                                       key={ipc.id}
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        router.push(`/production/work-orders/${workOrderId}/ipc?phase=${step.phase || 'production'}`);
-                                      }}
-                                      className="w-full text-left p-2 rounded-lg border bg-white hover:bg-emerald-50/40 hover:border-emerald-300 transition-colors flex items-start gap-2 group"
+                                      className="p-2 rounded-lg border bg-white flex items-start gap-2"
                                     >
                                       <FlaskConical className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                                       <div className="flex-1 min-w-0">
@@ -845,17 +844,17 @@ export default function SOPExecutionPage() {
                                         </div>
                                         {spec && (
                                           <div className="text-xs text-gray-500 mt-0.5 truncate">
-                                            <span className="text-gray-400">Spec:</span> {spec}
+                                            <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {ipc.sampleSize}
                                           </div>
                                         )}
                                       </div>
-                                      <span className="text-[11px] text-emerald-600 flex-shrink-0 self-center group-hover:underline">
-                                        บันทึกผล →
-                                      </span>
-                                    </button>
+                                    </div>
                                   );
                                 })}
                               </div>
+                              <p className="text-[11px] text-gray-500 mt-2 italic">
+                                บันทึกผล IPC ทั้งหมดในหน้า &quot;บันทึก SOP Step&quot; ของ step นี้
+                              </p>
                             </div>
                           )}
 
@@ -1021,7 +1020,9 @@ export default function SOPExecutionPage() {
         </div>
       </DxPopup>
 
-      {/* Complete Step Dialog */}
+      {/* Complete Step Dialog — body is scrollable, footer is sticky so the
+          submit button is reachable even when many IPC inputs stretch the
+          form below the fold. */}
       <DxPopup
         visible={showCompleteDialog}
         onHiding={() => {
@@ -1029,14 +1030,18 @@ export default function SOPExecutionPage() {
           setSelectedStep(null);
           setActualParams({});
           setNotes('');
+          setIpcNumeric({});
+          setIpcSampleResults({});
+          setIpcText({});
         }}
-        title="Complete Production Step"
-        width={500}
-        height="auto"
+        title="บันทึก SOP Step"
+        width={560}
+        height="90vh"
         showCloseButton
         dragEnabled={false}
       >
-        <div className="p-4 space-y-4">
+        <div className="flex flex-col h-full">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
           <div className="bg-green-50 rounded-lg p-4">
             <h4 className="font-medium text-green-800 mb-2">
               {t('bomConfiguration.step', { sequence: selectedStep?.sequence ?? 0 })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
@@ -1217,15 +1222,19 @@ export default function SOPExecutionPage() {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowCompleteDialog(false)} />
-            <DxButton
-              text="Complete Step"
-              type="success"
-              onClick={handleCompleteStep}
-              disabled={completeStepMutation.isPending}
-            />
-          </div>
+        </div>
+        {/* Sticky footer — never scrolls, so the submit button is always
+            in reach even with long lists of IPC tests above. */}
+        <div className="flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0">
+          <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setShowCompleteDialog(false)} />
+          <DxButton
+            text={completeStepMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก SOP Step'}
+            icon="save"
+            type="success"
+            onClick={handleCompleteStep}
+            disabled={completeStepMutation.isPending}
+          />
+        </div>
         </div>
       </DxPopup>
     </div>
