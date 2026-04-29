@@ -616,7 +616,7 @@ export default function BOMConfigurationPage() {
   const activeTemplateIdForSubSteps =
     selectedStepForIPC?.templateId ??
     (sopForm.templateId > 0 ? sopForm.templateId : null);
-  const { data: subStepsForSelectedBomStep = [] } = useQuery<any[]>({
+  const { data: subStepsForSelectedBomStep = [], isFetching: subStepsFetching } = useQuery<any[]>({
     queryKey: ['sop-template-sub-steps', activeTemplateIdForSubSteps],
     queryFn: async () => {
       const res = await fetch(`/api/master-data/sop-templates/${activeTemplateIdForSubSteps}/steps`);
@@ -625,6 +625,8 @@ export default function BOMConfigurationPage() {
       return data.data;
     },
     enabled: !!activeTemplateIdForSubSteps,
+    staleTime: 60_000,
+    refetchOnMount: true,
   });
 
   // Add Packaging QC form state
@@ -1151,6 +1153,25 @@ export default function BOMConfigurationPage() {
       maxRetestRounds: null,
       notes: '',
     });
+    // Reset sopForm so the previous session's templateId doesn't bleed in
+    // (this caused the "have to open/close several times to see sub-steps"
+    // bug — a stale templateId made the picker show selected without
+    // triggering the sub-steps fetch).
+    if (type === 'sop') {
+      setSOPForm({
+        templateId: 0,
+        stepName: '',
+        stepNameTh: '',
+        instructions: '',
+        instructionsTh: '',
+        parameters: '',
+        requiresVerification: true,
+        phase: 'production',
+      });
+    }
+    // Also clear any lingering selectedStepForIPC that would shadow
+    // sopForm.templateId via activeTemplateIdForSubSteps.
+    setSelectedStepForIPC(null);
     setShowAddDialog(true);
   };
 
@@ -2064,9 +2085,14 @@ export default function BOMConfigurationPage() {
                         </span>
                       </div>
 
-                      {subSteps.length === 0 ? (
-                        <p className="text-xs text-gray-500 italic">
-                          Loading sub-steps... หรือ template นี้ไม่มี sub-step
+                      {subStepsFetching && subSteps.length === 0 ? (
+                        <div className="flex items-center gap-2 py-3 text-sm text-emerald-700">
+                          <span className="inline-block w-3 h-3 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin" />
+                          <span>กำลังโหลด sub-steps จาก template...</span>
+                        </div>
+                      ) : subSteps.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic py-3">
+                          Template นี้ไม่มี sub-step — ไม่สามารถผูก IPC ได้
                         </p>
                       ) : (
                         <div className="space-y-2">
