@@ -504,32 +504,100 @@ export default function WorkOrderDetailPage() {
   ];
 
   // Grid columns for QC tests
+  // Map source → label + badge colour. The convention matches the
+  // classification done in /api/.../detail (sample_number prefix).
+  const sourceConfig: Record<string, { label: string; bg: string; text: string }> = {
+    'sop': { label: 'SOP Step', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+    'bom-ipc': { label: 'BOM IPC', bg: 'bg-indigo-50', text: 'text-indigo-700' },
+    'incoming': { label: 'Incoming', bg: 'bg-amber-50', text: 'text-amber-700' },
+    'final': { label: 'Final', bg: 'bg-blue-50', text: 'text-blue-700' },
+    'other': { label: 'Other', bg: 'bg-gray-50', text: 'text-gray-700' },
+  };
+
+  /** Drill-in target for a QC test row. */
+  const buildQCDrillUrl = (row: Record<string, unknown>): string => {
+    if (row.source === 'sop') {
+      const phase = row.ipcPhase ? String(row.ipcPhase) : 'production';
+      return `/production/work-orders/${params.id}/sop-execution?phase=${phase}`;
+    }
+    if (row.source === 'bom-ipc') {
+      const phase = row.ipcPhase ? String(row.ipcPhase) : 'production';
+      return `/production/work-orders/${params.id}/ipc?phase=${phase}`;
+    }
+    return `/quality/tests/${row.id}`;
+  };
+
   const qcTestsColumns: DxDataGridColumn[] = [
     {
       dataField: 'testCode',
       caption: 'Test Code',
-      cellRender: (cellInfo) => <span className="font-medium">{cellInfo.data.testCode}</span>,
+      width: 110,
+      cellRender: (cellInfo) => <span className="font-mono text-xs font-medium">{cellInfo.data.testCode}</span>,
     },
     {
-      dataField: 'testType',
-      caption: 'Test Type',
+      dataField: 'source',
+      caption: 'แหล่งที่มา',
+      width: 110,
+      cellRender: (cellInfo) => {
+        const cfg = sourceConfig[cellInfo.data.source as string] || sourceConfig.other;
+        return <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>;
+      },
+    },
+    {
+      dataField: 'specSpecification',
+      caption: 'Spec / Test',
+      cellRender: (cellInfo) => (
+        <span className="text-xs">{cellInfo.data.specSpecification || cellInfo.data.notes || cellInfo.data.testType}</span>
+      ),
     },
     {
       dataField: 'status',
       caption: 'Status',
+      width: 100,
       cellRender: (cellInfo) => <Badge variant={getStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>,
     },
     {
       dataField: 'result',
       caption: 'Result',
+      width: 90,
       cellRender: (cellInfo) => (
         cellInfo.data.result ? <Badge variant={getStatusVariant(cellInfo.data.result)}>{cellInfo.data.result}</Badge> : null
       ),
     },
     {
+      dataField: 'testedByName',
+      caption: 'ผู้บันทึก (Production)',
+      width: 160,
+      cellRender: (cellInfo) => (
+        <span className="text-xs text-gray-700">{cellInfo.data.testedByName || <span className="text-gray-400">—</span>}</span>
+      ),
+    },
+    {
+      dataField: 'approvedByName',
+      caption: 'ผู้อนุมัติ (QC)',
+      width: 140,
+      cellRender: (cellInfo) => (
+        <span className="text-xs text-gray-700">{cellInfo.data.approvedByName || <span className="text-gray-400">รอ QC</span>}</span>
+      ),
+    },
+    {
       dataField: 'testedAt',
-      caption: 'Tested At',
-      cellRender: (cellInfo) => <span>{cellInfo.data.testedAt ? new Date(cellInfo.data.testedAt).toLocaleString('th-TH') : '-'}</span>,
+      caption: 'เวลาที่บันทึก',
+      width: 150,
+      cellRender: (cellInfo) => <span className="text-xs">{cellInfo.data.testedAt ? new Date(cellInfo.data.testedAt).toLocaleString('th-TH') : '-'}</span>,
+    },
+    {
+      caption: 'รายละเอียด',
+      width: 110,
+      cellRender: (cellInfo) => (
+        <button
+          type="button"
+          onClick={() => router.push(buildQCDrillUrl(cellInfo.data))}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+        >
+          ดูรายละเอียด →
+        </button>
+      ),
     },
   ];
 

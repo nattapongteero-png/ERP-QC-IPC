@@ -174,7 +174,9 @@ export async function GET(
         batchLots.forEach((l: { id: number }) => relatedLotIds.add(l.id));
       }
 
-      // Get QC tests for all related lots
+      // Get QC tests for all related lots — include tester/approver IDs +
+      // ipc_phase so the production-vs-QC traceability column on the WO
+      // detail page can show source + drill-in target.
       let relatedQcTests: Record<string, unknown>[] = [];
       if (relatedLotIds.size > 0) {
         const lotIdArray = Array.from(relatedLotIds);
@@ -192,16 +194,65 @@ export async function GET(
               specSpecification: qualityTests.specSpecification,
               specUnit: qualityTests.specUnit,
               notes: qualityTests.notes,
+              testedBy: qualityTests.testedBy,
+              approvedBy: qualityTests.approvedBy,
+              ipcPhase: qualityTests.ipcPhase,
             })
             .from(qualityTests)
             .where(inArray(qualityTests.lotId, lotIdArray));
         });
-        // Map field names for UI compatibility
-        relatedQcTests = relatedQcTests.map((t: Record<string, unknown>) => ({
-          ...t,
-          testCode: `QC-${t.id}`,
-          testedAt: t.testDate,
-        }));
+
+        // Resolve tester / approver names in one round-trip.
+        const userIds = new Set<number>();
+        for (const t of relatedQcTests) {
+          if (t.testedBy) userIds.add(t.testedBy as number);
+          if (t.approvedBy) userIds.add(t.approvedBy as number);
+        }
+        const userNameMap = new Map<number, string>();
+        if (userIds.size > 0) {
+          const usersTable = getTableRef('users');
+          const userRows = await executeDbOperation(async (db) =>
+            db.select({ id: usersTable.id, name: usersTable.name })
+              .from(usersTable)
+              .where(inArray(usersTable.id, [...userIds]))
+          );
+          for (const u of userRows) userNameMap.set(u.id as number, u.name as string);
+        }
+
+        // Classify each test by sample_number convention so the UI can
+        // route the operator back to the page that captured it:
+        //   SOP-{execId}-IPC-{criteriaId} → SOP Step  (recorded inline)
+        //   IPC-N                          → BOM IPC  (recorded on /ipc page)
+        //   testType=incoming              → Incoming QC
+        //   testType=final                 → Final QC
+        relatedQcTests = relatedQcTests.map((t: Record<string, unknown>) => {
+          const sample = String(t.sampleNumber ?? '');
+          const sopMatch = sample.match(/^SOP-(\d+)-IPC-(\d+)$/);
+          let source: 'sop' | 'bom-ipc' | 'incoming' | 'final' | 'other' = 'other';
+          let sopExecutionId: number | null = null;
+          let criteriaId: number | null = null;
+          if (sopMatch) {
+            source = 'sop';
+            sopExecutionId = Number(sopMatch[1]);
+            criteriaId = Number(sopMatch[2]);
+          } else if (sample.startsWith('IPC-')) {
+            source = 'bom-ipc';
+          } else if (t.testType === 'incoming') {
+            source = 'incoming';
+          } else if (t.testType === 'final') {
+            source = 'final';
+          }
+          return {
+            ...t,
+            testCode: `QC-${t.id}`,
+            testedAt: t.testDate,
+            testedByName: t.testedBy ? (userNameMap.get(t.testedBy as number) ?? null) : null,
+            approvedByName: t.approvedBy ? (userNameMap.get(t.approvedBy as number) ?? null) : null,
+            source,
+            sopExecutionId,
+            criteriaId,
+          };
+        });
       }
 
       // Calculate yield
