@@ -146,51 +146,47 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <div className="space-y-6 md:space-y-8">
-        {/* Hero — clean white card with welcome + inline stat chips */}
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm px-5 py-6 md:px-8 md:py-7">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0 flex-1 flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                <Activity className="h-6 w-6" />
+        {/* Style E Hero — Pharma Pro clinical pharmaceutical layout */}
+        <div className="bg-white rounded-md p-5 lg:p-6 border-2 border-sky-100">
+          <div className="border-l-4 border-sky-600 bg-sky-50 rounded-r-md p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-12 h-12 rounded-md bg-sky-600 flex items-center justify-center flex-shrink-0">
+                <Activity className="w-6 h-6 text-white" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-slate-500">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider">
-                    GMP Pharmaceutical ERP
-                  </span>
+                <div className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                  GMP Pharmaceutical ERP · Audit-Ready
                 </div>
-                <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 mt-0.5">
                   {t('title')}
                 </h1>
-                <p className="mt-1.5 max-w-2xl text-sm text-slate-600">
-                  {t('description')}
-                </p>
+                <p className="text-sm text-slate-600 mt-0.5 max-w-2xl">{t('description')}</p>
               </div>
             </div>
 
             {/* At-a-glance inline stat chips with colored numbers */}
             {!isLoading && (
               <div className="grid grid-cols-2 sm:grid-cols-4 md:flex md:items-center gap-2 md:gap-3">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                <div className="rounded-md border-2 border-emerald-200 bg-white px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     {t('kpis.activeWorkOrders.label')}
                   </p>
                   <p className="mt-0.5 text-xl font-bold text-emerald-600 tabular-nums">{activeWO}</p>
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                <div className="rounded-md border-2 border-rose-200 bg-white px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     {t('kpis.openDeviations.label')}
                   </p>
                   <p className="mt-0.5 text-xl font-bold text-rose-600 tabular-nums">{openDev}</p>
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                <div className="rounded-md border-2 border-amber-200 bg-white px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     {t('kpis.expiringSoon.label')}
                   </p>
                   <p className="mt-0.5 text-xl font-bold text-amber-600 tabular-nums">{expSoon}</p>
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                <div className="rounded-md border-2 border-amber-200 bg-white px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     {t('kpis.lotsInQuarantine.label')}
                   </p>
                   <p className="mt-0.5 text-xl font-bold text-amber-600 tabular-nums">{inQuar}</p>
@@ -230,18 +226,18 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            {/* Primary KPIs - Most Important Metrics — flat colored icon tiles */}
+            {/* Primary KPIs — Style E clinical accent borders */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KPICard
                 label={t('kpis.totalItems.label')}
                 value={data?.summary.totalItems || 0}
                 subtitle={t('kpis.totalItems.subtitle')}
                 icon={<Package className="h-6 w-6" />}
-                iconBgColor="bg-blue-600"
+                iconBgColor="bg-sky-600"
                 iconColor="text-white"
                 trend="up"
                 trendValue="+12%"
-                className="motion-safe:animate-fade-in motion-reduce:animate-none ring-1 ring-slate-200 hover:ring-blue-300"
+                className="motion-safe:animate-fade-in motion-reduce:animate-none rounded-md border-2 border-sky-200 bg-sky-50/50 shadow-none"
                 style={{ animationDelay: '0ms' }}
               />
 
@@ -252,7 +248,7 @@ export default function DashboardPage() {
                 icon={<Factory className="h-6 w-6" />}
                 iconBgColor="bg-emerald-600"
                 iconColor="text-white"
-                className="motion-safe:animate-fade-in motion-reduce:animate-none ring-1 ring-slate-200 hover:ring-emerald-300"
+                className="motion-safe:animate-fade-in motion-reduce:animate-none rounded-md border-2 border-emerald-200 bg-emerald-50/50 shadow-none"
                 style={{ animationDelay: '50ms' }}
               />
 
@@ -265,7 +261,7 @@ export default function DashboardPage() {
                 iconColor="text-white"
                 trend={data?.summary.openDeviations && data.summary.openDeviations > 0 ? 'up' : 'neutral'}
                 trendValue={data?.summary.openDeviations && data.summary.openDeviations > 0 ? t('kpis.openDeviations.actionNeeded') : t('kpis.openDeviations.allClear')}
-                className="motion-safe:animate-fade-in motion-reduce:animate-none ring-1 ring-slate-200 hover:ring-rose-300"
+                className="motion-safe:animate-fade-in motion-reduce:animate-none rounded-md border-2 border-rose-200 bg-rose-50/50 shadow-none"
                 style={{ animationDelay: '100ms' }}
               />
 
@@ -278,7 +274,7 @@ export default function DashboardPage() {
                 iconColor="text-white"
                 trend={data?.summary.lotsExpiringSoon && data.summary.lotsExpiringSoon > 5 ? 'up' : 'down'}
                 trendValue={data?.summary.lotsExpiringSoon && data.summary.lotsExpiringSoon > 5 ? t('kpis.expiringSoon.monitorClosely') : t('kpis.expiringSoon.lowRisk')}
-                className="motion-safe:animate-fade-in motion-reduce:animate-none ring-1 ring-slate-200 hover:ring-amber-300"
+                className="motion-safe:animate-fade-in motion-reduce:animate-none rounded-md border-2 border-amber-200 bg-amber-50/50 shadow-none"
                 style={{ animationDelay: '150ms' }}
               />
             </div>
@@ -333,30 +329,26 @@ export default function DashboardPage() {
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Recent Work Orders — flat clean card */}
+              {/* Recent Work Orders — Style E section panel */}
               <Card
                 elevation="raised"
                 className={cn(
                   'motion-safe:animate-fade-in motion-reduce:animate-none',
                   'overflow-hidden bg-white',
-                  'border border-slate-200 shadow-sm hover:shadow'
+                  'rounded-md border-2 border-slate-200 shadow-none'
                 )}
                 style={{ animationDelay: '400ms' }}
               >
-                {/* Custom header with icon + count badge */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                      <Factory className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-base md:text-lg font-semibold text-slate-900 truncate">
-                        {t('sections.recentWorkOrders.title')}
-                      </h3>
-                    </div>
+                {/* Style E section panel header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-sky-50 border-b-2 border-sky-200">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Factory className="h-4 w-4 text-sky-700 flex-shrink-0" />
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide truncate">
+                      {t('sections.recentWorkOrders.title')}
+                    </h3>
                   </div>
                   {data?.recentWorkOrders && data.recentWorkOrders.length > 0 && (
-                    <span className="flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                    <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-sky-300 bg-white text-sky-800">
                       {data.recentWorkOrders.length}
                     </span>
                   )}
@@ -369,22 +361,21 @@ export default function DashboardPage() {
                           key={wo.id}
                           className={cn(
                             'group flex items-center justify-between gap-3',
-                            'p-3 rounded-lg border border-slate-200',
-                            'bg-white hover:bg-emerald-50 hover:border-emerald-200',
-                            'hover:shadow-sm',
-                            'transition-all duration-150',
+                            'p-3 rounded-md border border-slate-200',
+                            'bg-white hover:bg-sky-50/30 hover:border-sky-300',
+                            'transition-colors duration-150',
                             'motion-reduce:transition-none',
                             'cursor-pointer'
                           )}
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                            <div className="flex-shrink-0 w-9 h-9 rounded-md bg-sky-50 border border-sky-200 text-sky-700 flex items-center justify-center">
                               <Factory className="h-4 w-4" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-semibold text-slate-900 truncate">{wo.woNumber}</p>
+                              <p className="font-mono font-semibold text-sky-700 truncate">{wo.woNumber}</p>
                               <p className="text-xs text-slate-500 truncate">
-                                {t('sections.recentWorkOrders.batchPrefix')}: {wo.batchNumber}
+                                {t('sections.recentWorkOrders.batchPrefix')}: <span className="font-mono">{wo.batchNumber}</span>
                               </p>
                             </div>
                           </div>
@@ -410,29 +401,25 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              {/* Inventory by Status — flat clean card */}
+              {/* Inventory by Status — Style E section panel */}
               <Card
                 elevation="raised"
                 className={cn(
                   'motion-safe:animate-fade-in motion-reduce:animate-none',
                   'overflow-hidden bg-white',
-                  'border border-slate-200 shadow-sm hover:shadow'
+                  'rounded-md border-2 border-slate-200 shadow-none'
                 )}
                 style={{ animationDelay: '450ms' }}
               >
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
-                      <Package className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-base md:text-lg font-semibold text-slate-900 truncate">
-                        {t('sections.inventoryByStatus.title')}
-                      </h3>
-                    </div>
+                <div className="flex items-center justify-between px-4 py-3 bg-sky-50 border-b-2 border-sky-200">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Package className="h-4 w-4 text-sky-700 flex-shrink-0" />
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide truncate">
+                      {t('sections.inventoryByStatus.title')}
+                    </h3>
                   </div>
                   {data?.inventoryByStatus && data.inventoryByStatus.length > 0 && (
-                    <span className="flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                    <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-sky-300 bg-white text-sky-800">
                       {data.inventoryByStatus.length}
                     </span>
                   )}
@@ -451,15 +438,15 @@ export default function DashboardPage() {
                             <div
                               key={item.status}
                               className={cn(
-                                'group p-3 rounded-lg border border-slate-200',
-                                'bg-white hover:bg-blue-50 hover:border-blue-200',
-                                'hover:shadow-sm transition-all duration-150',
+                                'group p-3 rounded-md border border-slate-200',
+                                'bg-white hover:bg-sky-50/30 hover:border-sky-300',
+                                'transition-colors duration-150',
                                 'motion-reduce:transition-none'
                               )}
                             >
                               <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
-                                  <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                                  <div className="flex-shrink-0 w-9 h-9 rounded-md bg-sky-50 border border-sky-200 text-sky-700 flex items-center justify-center">
                                     <Package className="h-4 w-4" />
                                   </div>
                                   <Badge variant={getStatusVariant(item.status)} dot>
@@ -479,10 +466,10 @@ export default function DashboardPage() {
                                   </p>
                                 </div>
                               </div>
-                              {/* Progress bar visualization — flat */}
-                              <div className="mt-2 h-1.5 w-full rounded-full bg-blue-100 overflow-hidden">
+                              {/* Progress bar visualization — sky accent */}
+                              <div className="mt-2 h-1.5 w-full rounded-full bg-sky-100 overflow-hidden">
                                 <div
-                                  className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                                  className="h-full rounded-full bg-sky-600 transition-all duration-500"
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>
@@ -503,29 +490,25 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            {/* Inventory by Warehouse Type — flat */}
+            {/* Inventory by Warehouse Type — Style E section panel */}
             <Card
               elevation="raised"
               className={cn(
                 'motion-safe:animate-fade-in motion-reduce:animate-none',
                 'overflow-hidden bg-white',
-                'border border-slate-200 shadow-sm'
+                'rounded-md border-2 border-slate-200 shadow-none'
               )}
               style={{ animationDelay: '500ms' }}
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center">
-                    <Warehouse className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-base md:text-lg font-semibold text-slate-900 truncate">
-                      {t('sections.warehouseOverview.title')}
-                    </h3>
-                  </div>
+              <div className="flex items-center justify-between px-4 py-3 bg-sky-50 border-b-2 border-sky-200">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Warehouse className="h-4 w-4 text-sky-700 flex-shrink-0" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide truncate">
+                    {t('sections.warehouseOverview.title')}
+                  </h3>
                 </div>
                 {data?.inventoryByWarehouseType && data.inventoryByWarehouseType.length > 0 && (
-                  <span className="flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 border border-violet-200">
+                  <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold border border-sky-300 bg-white text-sky-800">
                     {data.inventoryByWarehouseType.length}
                   </span>
                 )}
@@ -540,34 +523,23 @@ export default function DashboardPage() {
                         <div
                           key={`${item.warehouseType}-${item.warehouseName}-${index}`}
                           className={cn(
-                            'group relative p-4 rounded-xl bg-white',
-                            'border border-slate-200 border-t-4',
-                            config.topBorder,
-                            'hover:shadow-md',
-                            'transition-all duration-200',
+                            'group bg-white rounded-md border-2 border-slate-200 p-4',
+                            'hover:border-sky-400 transition-colors',
                             'motion-reduce:transition-none'
                           )}
                         >
-                          <div className="flex items-start gap-3">
-                            <div className={cn(
-                              'flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center',
-                              config.iconBg,
-                              config.iconText
-                            )}>
-                              <Icon className="h-5 w-5" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-slate-900 truncate">
-                                {item.warehouseName}
-                              </p>
-                              <p className={cn('text-xs font-semibold mt-0.5', config.textColor)}>
-                                {t(`warehouseTypes.${config.translationKey}`)}
-                              </p>
-                            </div>
+                          <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-200">
+                            <Icon className={cn('w-4 h-4', config.iconText)} />
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                              {t(`warehouseTypes.${config.translationKey}`)}
+                            </span>
                           </div>
-                          <div className="mt-4 pt-3 border-t border-slate-200 grid grid-cols-2 gap-3">
+                          <p className="font-semibold text-slate-900 truncate text-sm" title={item.warehouseName}>
+                            {item.warehouseName}
+                          </p>
+                          <div className="mt-3 grid grid-cols-2 gap-3">
                             <div>
-                              <p className="text-[10px] uppercase tracking-wider font-medium text-slate-500">
+                              <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
                                 {t('sections.warehouseOverview.lotsLabel')}
                               </p>
                               <p className="text-xl font-bold text-slate-900 tabular-nums mt-0.5">
@@ -575,10 +547,10 @@ export default function DashboardPage() {
                               </p>
                             </div>
                             <div>
-                              <p className="text-[10px] uppercase tracking-wider font-medium text-slate-500">
+                              <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
                                 {t('sections.warehouseOverview.totalQtyLabel')}
                               </p>
-                              <p className="text-xl font-bold text-slate-900 tabular-nums mt-0.5">
+                              <p className="text-xl font-bold text-sky-700 tabular-nums mt-0.5">
                                 {Number(item.totalQuantity || 0).toLocaleString()}
                               </p>
                             </div>

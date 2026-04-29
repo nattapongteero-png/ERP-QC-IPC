@@ -13,7 +13,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { Badge } from '@/components/ui/badge';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
+// ResponsivePageHeader, StatCard removed — Style E uses inline hero + custom KPI cards
 import { useMobile } from '@/hooks/use-mobile';
 import {
   ArrowDownCircle,
@@ -534,14 +534,23 @@ export default function TransactionsPage() {
   return (
     <MainLayout>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
-        {/* Responsive Page Header */}
-        <ResponsivePageHeader
-          title={t('transactions.pageTitle')}
-          subtitle={t('transactions.description')}
-          icon={ArrowLeftRight}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-          actions={
+        {/* Style E Hero — Pharma Pro */}
+        <div className="bg-white rounded-md p-5 lg:p-6 border-2 border-sky-100">
+          <div className="border-l-4 border-sky-600 bg-sky-50 rounded-r-md p-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-12 h-12 rounded-md bg-sky-600 flex items-center justify-center flex-shrink-0">
+                <ArrowLeftRight className="w-6 h-6 text-white" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                  Pharmaceutical Inventory · Stock Movements
+                </div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 mt-0.5 truncate">
+                  {t('transactions.pageTitle')}
+                </h1>
+                <p className="text-sm text-slate-600 mt-0.5">{t('transactions.description')}</p>
+              </div>
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
               <DxButton
                 icon="refresh"
@@ -557,52 +566,28 @@ export default function TransactionsPage() {
                 onClick={() => router.push('/inventory/lots')}
                 className="hidden md:inline-flex"
               />
-              <DxButton
-                text={t('transactions.actions.newTransaction')}
-                icon="plus"
-                type="success"
+              <button
                 onClick={() => { resetForm(); setShowModal(true); }}
-              />
+                className="rounded-md border-2 border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 hover:border-sky-700 transition inline-flex items-center gap-1.5"
+              >
+                <span aria-hidden>+</span> {t('transactions.actions.newTransaction')}
+              </button>
             </div>
-          }
-        />
-
-        {/* KPI Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <StatCard
-            label={t('transactions.stats.total')}
-            value={allTransactions.length}
-            icon={Boxes}
-            iconColor="text-indigo-500"
-            accentColor="border-indigo-500"
-          />
-          <StatCard
-            label={t('transactions.stats.incoming')}
-            value={`+${totalIncoming.toLocaleString()}`}
-            icon={TrendingUp}
-            iconColor="text-emerald-500"
-            accentColor="border-emerald-500"
-          />
-          <StatCard
-            label={t('transactions.stats.outgoing')}
-            value={`-${totalOutgoing.toLocaleString()}`}
-            icon={TrendingDown}
-            iconColor="text-red-500"
-            accentColor="border-red-500"
-          />
-          <StatCard
-            label={t('transactions.stats.today')}
-            value={todayCount}
-            icon={Calendar}
-            iconColor="text-blue-500"
-            accentColor="border-blue-500"
-          />
+          </div>
         </div>
 
-        {/* DataGrid Card */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          {/* Filter Header: Type Tabs */}
-          <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+        {/* Style E KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <TxnKpiCard label={t('transactions.stats.total')} value={allTransactions.length.toLocaleString()} icon={Boxes} accent="sky" />
+          <TxnKpiCard label={t('transactions.stats.incoming')} value={`+${totalIncoming.toLocaleString()}`} icon={TrendingUp} accent="emerald" />
+          <TxnKpiCard label={t('transactions.stats.outgoing')} value={`-${totalOutgoing.toLocaleString()}`} icon={TrendingDown} accent="rose" />
+          <TxnKpiCard label={t('transactions.stats.today')} value={todayCount.toLocaleString()} icon={Calendar} accent="amber" />
+        </div>
+
+        {/* Style E DataGrid panel */}
+        <div className="bg-white rounded-md border-2 border-slate-200 overflow-hidden">
+          {/* Filter Header: Type Tabs (Style E sky panel header) */}
+          <div className="px-3 py-3 sm:px-4 bg-sky-50 border-b-2 border-sky-200">
             <div className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x">
               {(Object.keys(TYPE_CONFIG) as TransactionTypeFilter[]).map((type) => {
                 const config = TYPE_CONFIG[type];
@@ -637,7 +622,7 @@ export default function TransactionsPage() {
           </div>
 
           {/* Search + Date Filter Row */}
-          <div className="px-3 py-3 sm:px-4 border-b border-gray-100">
+          <div className="px-3 py-3 sm:px-4 border-b-2 border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1 w-full sm:max-w-md">
                 <DxTextBox
@@ -775,19 +760,19 @@ export default function TransactionsPage() {
               searchEnabled
             />
             {selectedLot && (
-              <div className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-lg border border-blue-200/50">
+              <div className="mt-2 p-3 bg-sky-50 rounded-md border-2 border-sky-200">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-blue-600">{t('transactions.form.lotInfo.item')}</span>
-                    <p className="font-medium text-blue-900">{selectedLot.itemName}</p>
+                    <span className="text-sky-700 text-xs font-semibold uppercase tracking-wide">{t('transactions.form.lotInfo.item')}</span>
+                    <p className="font-medium text-slate-900">{selectedLot.itemName}</p>
                   </div>
                   <div>
-                    <span className="text-blue-600">{t('transactions.form.lotInfo.available')}</span>
-                    <p className="font-medium text-blue-900">{selectedLot.quantity} {selectedLot.unit}</p>
+                    <span className="text-sky-700 text-xs font-semibold uppercase tracking-wide">{t('transactions.form.lotInfo.available')}</span>
+                    <p className="font-medium text-slate-900 tabular-nums">{selectedLot.quantity} {selectedLot.unit}</p>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-blue-600">{t('transactions.form.lotInfo.warehouse')}</span>
-                    <p className="font-medium text-blue-900">{selectedLot.warehouseName}</p>
+                    <span className="text-sky-700 text-xs font-semibold uppercase tracking-wide">{t('transactions.form.lotInfo.warehouse')}</span>
+                    <p className="font-medium text-slate-900">{selectedLot.warehouseName}</p>
                   </div>
                 </div>
               </div>
@@ -1095,13 +1080,13 @@ function EmptyState({ onCreateNew, t }: { onCreateNew: () => void; t: TranslateF
 function NoResultsState({ onClear, t }: { onClear: () => void; t: TranslateFn }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-      <div className="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-        <SearchX className="h-8 w-8 text-gray-400" />
+      <div className="h-16 w-16 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center mb-4">
+        <SearchX className="h-8 w-8 text-slate-400" />
       </div>
-      <h3 className="text-base font-semibold text-gray-900 mb-1">
+      <h3 className="text-base font-semibold text-slate-900 mb-1">
         {t('transactions.noResults.title')}
       </h3>
-      <p className="text-sm text-gray-500 max-w-sm mb-4">
+      <p className="text-sm text-slate-500 max-w-sm mb-4">
         {t('transactions.noResults.description')}
       </p>
       <DxButton
@@ -1110,6 +1095,51 @@ function NoResultsState({ onClear, t }: { onClear: () => void; t: TranslateFn })
         stylingMode="outlined"
         onClick={onClear}
       />
+    </div>
+  );
+}
+
+// Style E clinical KPI card — accent-bordered with Current + Δ Week split.
+type TxnKpiAccent = 'sky' | 'emerald' | 'rose' | 'amber';
+function TxnKpiCard({
+  label,
+  value,
+  icon: Icon,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ComponentType<{ className?: string }>;
+  accent: TxnKpiAccent;
+}) {
+  const colors =
+    accent === 'sky' ? 'border-sky-200 bg-sky-50/50' :
+    accent === 'emerald' ? 'border-emerald-200 bg-emerald-50/50' :
+    accent === 'rose' ? 'border-rose-200 bg-rose-50/50' :
+    'border-amber-200 bg-amber-50/50';
+  const iconColor =
+    accent === 'sky' ? 'text-sky-600' :
+    accent === 'emerald' ? 'text-emerald-600' :
+    accent === 'rose' ? 'text-rose-600' :
+    'text-amber-600';
+  return (
+    <div className={`bg-white rounded-md border-2 ${colors} p-4`}>
+      <div className="flex items-start justify-between mb-3 pb-2 border-b border-slate-200">
+        <div className="text-xs font-semibold text-slate-600 uppercase tracking-wide truncate">
+          {label}
+        </div>
+        <Icon className={`w-4 h-4 ${iconColor} flex-shrink-0`} />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <div className="text-[10px] uppercase text-slate-500">Current</div>
+          <div className={`text-2xl font-bold tabular-nums ${iconColor} truncate`}>{value}</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase text-slate-500">Δ Week</div>
+          <div className="text-sm font-semibold text-slate-700 tabular-nums">—</div>
+        </div>
+      </div>
     </div>
   );
 }

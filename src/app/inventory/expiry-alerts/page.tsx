@@ -8,7 +8,7 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { ApiError } from '@/components/ui/api-error';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
+// ResponsivePageHeader, StatCard removed — Style E uses inline hero + custom KPI cards
 import { useMobile } from '@/hooks/use-mobile';
 import { AlertTriangle, Clock, XCircle, CheckCircle } from 'lucide-react';
 
@@ -186,15 +186,24 @@ export default function ExpiryAlertsPage() {
   return (
     <MainLayout>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
-        {/* Responsive Page Header */}
-        <ResponsivePageHeader
-          title={t('expiryAlerts.pageTitle')}
-          subtitle={t('expiryAlerts.description')}
-          icon={AlertTriangle}
-          iconBgColor="bg-amber-100"
-          iconColor="text-amber-600"
-          actions={
-            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+        {/* Style E Hero — clinical pharma-grade with sky-600 accent */}
+        <div className="bg-white rounded-md p-5 lg:p-6 border-2 border-sky-100">
+          <div className="border-l-4 border-sky-600 bg-sky-50 rounded-r-md p-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-md bg-sky-600 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-white" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                  Pharmaceutical Inventory · Expiry Surveillance
+                </div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 mt-0.5 truncate">
+                  {t('expiryAlerts.pageTitle')}
+                </h1>
+                <p className="text-sm text-slate-600 mt-0.5">{t('expiryAlerts.description')}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
               <DxSelectBox
                 items={daysOptions}
                 value={daysThreshold}
@@ -219,8 +228,8 @@ export default function ExpiryAlertsPage() {
                 className="sm:hidden"
               />
             </div>
-          }
-        />
+          </div>
+        </div>
 
         {/* Error Display */}
         {apiError && (
@@ -231,39 +240,35 @@ export default function ExpiryAlertsPage() {
           />
         )}
 
-        {/* KPI Stat Cards */}
+        {/* Style E KPI Cards — solid borders + Current/Δ Week split */}
         {!apiError && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            <StatCard
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <StyleEKpiCard
               label={t('expiryAlerts.stats.expiredLots')}
-              value={expiredCount}
+              value={expiredCount.toLocaleString()}
               icon={XCircle}
-              iconColor="text-red-500"
-              accentColor="border-red-500"
+              accent="rose"
               isLoading={isLoading}
             />
-            <StatCard
+            <StyleEKpiCard
               label={t('expiryAlerts.stats.expiredValue')}
               value={`฿${expiredValue.toLocaleString()}`}
               icon={AlertTriangle}
-              iconColor="text-red-500"
-              accentColor="border-red-500"
+              accent="rose"
               isLoading={isLoading}
             />
-            <StatCard
+            <StyleEKpiCard
               label={t('expiryAlerts.stats.nearExpiryLots')}
-              value={nearExpiryCount}
+              value={nearExpiryCount.toLocaleString()}
               icon={Clock}
-              iconColor="text-amber-500"
-              accentColor="border-amber-500"
+              accent="amber"
               isLoading={isLoading}
             />
-            <StatCard
+            <StyleEKpiCard
               label={t('expiryAlerts.stats.nearExpiryValue')}
               value={`฿${nearExpiryValue.toLocaleString()}`}
               icon={AlertTriangle}
-              iconColor="text-amber-500"
-              accentColor="border-amber-500"
+              accent="amber"
               isLoading={isLoading}
             />
           </div>
@@ -281,17 +286,19 @@ export default function ExpiryAlertsPage() {
         {/* Empty state — all clear */}
         {showAllClearEmpty && <AllClearEmptyState t={t} />}
 
-        {/* Expired Lots Section */}
+        {/* Expired Lots Section — Style E panel */}
         {!apiError && !isLoading && expired.length > 0 && (
-          <div className="bg-white border border-red-100 rounded-xl shadow-sm overflow-hidden flex flex-col">
-            <div className="p-3 sm:p-4 bg-gradient-to-r from-red-50 to-red-100/30 border-b border-red-100">
-              <h2 className="text-base sm:text-lg font-semibold text-red-800 flex items-center gap-2">
-                <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-                {t('expiryAlerts.sections.expiredTitle', { count: expired.length })}
-              </h2>
-              <p className="text-xs sm:text-sm text-red-600 mt-1">
-                {t('expiryAlerts.sections.expiredDescription')}
-              </p>
+          <div className="bg-white rounded-md border-2 border-slate-200 overflow-hidden">
+            <div className="px-4 py-3 bg-rose-50 border-b-2 border-rose-200 flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-rose-700 flex-shrink-0" />
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                  {t('expiryAlerts.sections.expiredTitle', { count: expired.length })}
+                </h2>
+                <p className="text-xs text-rose-700 mt-0.5">
+                  {t('expiryAlerts.sections.expiredDescription')}
+                </p>
+              </div>
             </div>
             {isMobile ? (
               <ExpiredLotsMobileList items={expired} t={t} />
@@ -310,17 +317,19 @@ export default function ExpiryAlertsPage() {
           </div>
         )}
 
-        {/* Near Expiry Lots Section */}
+        {/* Near Expiry Lots Section — Style E panel */}
         {!apiError && !isLoading && nearExpiry.length > 0 && (
-          <div className="bg-white border border-amber-100 rounded-xl shadow-sm overflow-hidden flex flex-col">
-            <div className="p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-amber-100/30 border-b border-amber-100">
-              <h2 className="text-base sm:text-lg font-semibold text-amber-800 flex items-center gap-2">
-                <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
-                {t('expiryAlerts.sections.nearExpiryTitle', { count: nearExpiry.length })}
-              </h2>
-              <p className="text-xs sm:text-sm text-amber-600 mt-1">
-                {t('expiryAlerts.sections.nearExpiryDescription', { days: daysThreshold })}
-              </p>
+          <div className="bg-white rounded-md border-2 border-slate-200 overflow-hidden">
+            <div className="px-4 py-3 bg-amber-50 border-b-2 border-amber-200 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-amber-700 flex-shrink-0" />
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                  {t('expiryAlerts.sections.nearExpiryTitle', { count: nearExpiry.length })}
+                </h2>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  {t('expiryAlerts.sections.nearExpiryDescription', { days: daysThreshold })}
+                </p>
+              </div>
             </div>
             {isMobile ? (
               <NearExpiryLotsMobileList items={nearExpiry} t={t} />
@@ -340,6 +349,57 @@ export default function ExpiryAlertsPage() {
         )}
       </div>
     </MainLayout>
+  );
+}
+
+// Style E clinical KPI card — accent-bordered with Current + Δ Week split.
+type StyleEKpiAccent = 'sky' | 'emerald' | 'rose' | 'amber';
+function StyleEKpiCard({
+  label,
+  value,
+  icon: Icon,
+  accent,
+  isLoading,
+}: {
+  label: string;
+  value: string | number;
+  icon: typeof AlertTriangle;
+  accent: StyleEKpiAccent;
+  isLoading?: boolean;
+}) {
+  const colors =
+    accent === 'sky' ? 'border-sky-200 bg-sky-50/50' :
+    accent === 'emerald' ? 'border-emerald-200 bg-emerald-50/50' :
+    accent === 'rose' ? 'border-rose-200 bg-rose-50/50' :
+    'border-amber-200 bg-amber-50/50';
+  const iconColor =
+    accent === 'sky' ? 'text-sky-600' :
+    accent === 'emerald' ? 'text-emerald-600' :
+    accent === 'rose' ? 'text-rose-600' :
+    'text-amber-600';
+  return (
+    <div className={`bg-white rounded-md border-2 ${colors} p-4`}>
+      <div className="flex items-start justify-between mb-3 pb-2 border-b border-slate-200">
+        <div className="text-xs font-semibold text-slate-600 uppercase tracking-wide truncate">
+          {label}
+        </div>
+        <Icon className={`w-4 h-4 ${iconColor} flex-shrink-0`} />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <div className="text-[10px] uppercase text-slate-500">Current</div>
+          {isLoading ? (
+            <div className="h-7 w-16 bg-slate-200 rounded animate-pulse mt-1" />
+          ) : (
+            <div className={`text-2xl font-bold tabular-nums ${iconColor} truncate`}>{value}</div>
+          )}
+        </div>
+        <div>
+          <div className="text-[10px] uppercase text-slate-500">Δ Week</div>
+          <div className="text-sm font-semibold text-slate-700 tabular-nums">—</div>
+        </div>
+      </div>
+    </div>
   );
 }
 
