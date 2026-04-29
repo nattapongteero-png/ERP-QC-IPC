@@ -2457,11 +2457,12 @@ export default function BOMConfigurationPage() {
         onHiding={() => { setShowIPCLinkDialog(false); resetIpcLinkForm(); setSelectedStepForIPC(null); }}
         title={selectedStepForIPC ? `IPC Tests — Step ${selectedStepForIPC.sequence}: ${selectedStepForIPC.stepNameTh || selectedStepForIPC.stepName}` : 'IPC Tests'}
         width={780}
-        height="auto"
+        height="90vh"
         showCloseButton
         dragEnabled={false}
       >
-        <div className="p-4 space-y-4">
+        <div className="flex flex-col h-full">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {selectedStepForIPC && (() => {
             const stepLinks = bomStepIpcLinks.filter((l: any) => l.bomStepId === selectedStepForIPC.id);
             const linkedCriteriaIds = new Set(stepLinks.map((l: any) => l.criteriaId));
@@ -2765,16 +2766,21 @@ export default function BOMConfigurationPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2 border-t">
-                  <DxButton
-                    text="Close"
-                    stylingMode="outlined"
-                    onClick={() => { setShowIPCLinkDialog(false); resetIpcLinkForm(); setSelectedStepForIPC(null); }}
-                  />
-                </div>
               </>
             );
           })()}
+        </div>
+        {/* Sticky footer — Close button always visible regardless of how
+            long the IPC list grows. Without flex+sticky the button slid
+            off-screen on tall lists and the operator had no way to
+            dismiss the dialog except via the header X. */}
+        <div className="flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0">
+          <DxButton
+            text="Close"
+            stylingMode="outlined"
+            onClick={() => { setShowIPCLinkDialog(false); resetIpcLinkForm(); setSelectedStepForIPC(null); }}
+          />
+        </div>
         </div>
       </DxPopup>
 
