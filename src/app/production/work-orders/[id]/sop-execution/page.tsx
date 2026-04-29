@@ -881,11 +881,15 @@ export default function SOPExecutionPage() {
     return statusMap[status];
   };
 
+  // Progress card counts steps in the currently-visible scope so the
+  // numbers match what the operator sees on screen. Filtering to one
+  // phase shouldn't surface steps from other phases in the totals.
   const calculateProgress = () => {
-    if (!steps || steps.length === 0) return { total: 0, completed: 0, verified: 0 };
-    const total = steps.length;
-    const completed = steps.filter(s => ['completed', 'verified'].includes(s.status)).length;
-    const verified = steps.filter(s => s.status === 'verified').length;
+    const list = displaySteps ?? steps ?? [];
+    if (list.length === 0) return { total: 0, completed: 0, verified: 0 };
+    const total = list.length;
+    const completed = list.filter(s => ['completed', 'verified'].includes(s.status)).length;
+    const verified = list.filter(s => s.status === 'verified').length;
     return { total, completed, verified };
   };
 
