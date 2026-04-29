@@ -3160,14 +3160,14 @@ export async function addIPCTestRound(
         throw new Error('รอบก่อนหน้าไม่มี sample fail — ไม่ต้องทำรอบใหม่');
       }
 
-      const maxRetestRounds = resolveMaxRetestRounds(criteria);
-      // Total allowed rounds = 1 (initial) + maxRetestRounds (retests).
-      const maxRoundsTotal = 1 + maxRetestRounds;
-      if (nextRound > maxRoundsTotal) {
-        throw new Error(
-          `ครบจำนวน retest สูงสุดแล้ว (${maxRoundsTotal} รอบ) — ต้องบันทึก Deviation`,
-        );
-      }
+      // No upstream cap-block: previously we threw "ครบจำนวน retest สูงสุด"
+      // before the operator could even submit, which forced a Deviation
+      // even when the rerun was going to pass. Per user feedback the
+      // budget should only matter for the *result*, not the intent —
+      // a passing extra-round result must be saveable without a Deviation.
+      // The downstream deviation-creation logic at the end of this fn
+      // still creates a Deviation when an over-budget round fails, so
+      // FDA OOS 2006 alignment is preserved for the failure path.
 
       // Round 2+ requires retestReason. Already validated upstream but
       // double-check at the service boundary.
