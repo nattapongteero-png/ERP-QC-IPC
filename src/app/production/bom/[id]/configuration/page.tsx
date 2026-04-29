@@ -486,20 +486,6 @@ export default function BOMConfigurationPage() {
     },
   });
 
-  // Sub-steps (procedure_step_id targets) for the BOM step being managed.
-  // Lets the IPC linker show "ขั้นตอนย่อย" sections so user picks WHICH
-  // sub-step the IPC attaches to (instead of attaching to the whole BOM step).
-  const { data: subStepsForSelectedBomStep = [] } = useQuery<any[]>({
-    queryKey: ['sop-template-sub-steps', selectedStepForIPC?.templateId],
-    queryFn: async () => {
-      const res = await fetch(`/api/master-data/sop-templates/${selectedStepForIPC!.templateId}/steps`);
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      return data.data;
-    },
-    enabled: !!selectedStepForIPC?.templateId,
-  });
-
   // Master IPC criteria list (active only) for the linker dialog dropdown.
   // Reused at the page level (in addition to the existing IPCConfigSection
   // which has its own copy under the IPC tab).
@@ -592,6 +578,24 @@ export default function BOMConfigurationPage() {
     parameters: '',
     requiresVerification: true,
     phase: 'production' as 'pre_production' | 'production' | 'post_production' | 'packaging',
+  });
+
+  // Sub-steps (procedure_step_id targets) for the template currently in
+  // play — either the Manage dialog's selectedStepForIPC OR the Edit Step
+  // dialog's sopForm.templateId. Lets both inline + standalone IPC linkers
+  // group "ขั้นตอนย่อย" sections.
+  const activeTemplateIdForSubSteps =
+    selectedStepForIPC?.templateId ??
+    (sopForm.templateId > 0 ? sopForm.templateId : null);
+  const { data: subStepsForSelectedBomStep = [] } = useQuery<any[]>({
+    queryKey: ['sop-template-sub-steps', activeTemplateIdForSubSteps],
+    queryFn: async () => {
+      const res = await fetch(`/api/master-data/sop-templates/${activeTemplateIdForSubSteps}/steps`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.data;
+    },
+    enabled: !!activeTemplateIdForSubSteps,
   });
 
   // Add Packaging QC form state
@@ -1747,6 +1751,108 @@ export default function BOMConfigurationPage() {
                 />
                 <p className="text-xs text-gray-500 mt-1">เลือก phase ที่จะให้ขั้นตอนนี้แสดงใน Execution Dashboard</p>
               </div>
+
+              {/* Inline IPC linker — shown when template is picked. Allows
+                  user to attach IPC criteria to specific sub-steps right
+                  here in the same Step dialog. */}
+              {sopForm.templateId > 0 && (() => {
+                if (!editingId) {
+                  return (
+                    <div className="border-2 border-dashed border-emerald-200 bg-emerald-50/30 rounded-lg p-4">
+                      <div className="flex items-start gap-2">
+                        <FlaskConical className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="text-sm font-semibold text-emerald-800">IPC Tests by Sub-Step</h4>
+                          <p className="text-xs text-gray-600 mt-1">
+                            บันทึก step นี้ก่อน แล้วกลับมาแก้ไขเพื่อผูก IPC กับขั้นตอนย่อย — หรือใช้ปุ่ม &quot;Manage&quot; ในตาราง SOP Steps หลังบันทึก
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                // Edit mode — render full inline linker for the editing step.
+                const stepLinks = bomStepIpcLinks.filter((l: any) => l.bomStepId === editingId);
+                const linksBySubStep = new Map<number | null, any[]>();
+                for (const link of stepLinks) {
+                  const key = link.procedureStepId ?? null;
+                  if (!linksBySubStep.has(key)) linksBySubStep.set(key, []);
+                  linksBySubStep.get(key)!.push(link);
+                }
+                // Use the same templateId from form (live) — fetch sub-steps if mismatch with selected step.
+                const subSteps = (selectedStepForIPC?.templateId === sopForm.templateId
+                  ? subStepsForSelectedBomStep
+                  : []) as any[];
+                return (
+                  <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                        <FlaskConical className="h-4 w-4 text-emerald-600" />
+                        IPC Tests by Sub-Step ({stepLinks.length})
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Open the standalone Manage dialog so the user gets the full
+                          // editor with form, edit/delete, etc. We pass the current step.
+                          const currentStep = (bomSOPSteps || []).find((s: any) => s.id === editingId);
+                          if (currentStep) {
+                            setSelectedStepForIPC(currentStep as BOMSOPStep);
+                            setShowIPCLinkDialog(true);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white border border-emerald-300 hover:bg-emerald-50 rounded transition-colors"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        จัดการ IPC แบบเต็ม
+                      </button>
+                    </div>
+                    {subSteps.length === 0 ? (
+                      <p className="text-xs text-gray-500 italic">
+                        Loading sub-steps... หรือ template นี้ไม่มี sub-step
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {subSteps.map((sub: any, idx: number) => {
+                          const subLinks = linksBySubStep.get(sub.id) ?? [];
+                          return (
+                            <div key={sub.id} className="rounded-md bg-white border border-gray-200 p-2.5">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="flex-none w-5 h-5 rounded bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="text-sm font-medium text-gray-800 truncate">{sub.stepNameTh || sub.stepName}</span>
+                                  <span className="flex-none text-[10px] text-gray-500">({subLinks.length} IPC)</span>
+                                </div>
+                              </div>
+                              {subLinks.length === 0 ? (
+                                <div className="text-xs text-gray-400 italic pl-7">— ยังไม่ได้ผูก IPC —</div>
+                              ) : (
+                                <div className="pl-7 space-y-1">
+                                  {subLinks.map((link: any) => (
+                                    <div key={link.id} className="flex items-center gap-2 text-xs">
+                                      <span className="font-mono text-emerald-700">{link.criteriaCode}</span>
+                                      <span className="text-gray-700 truncate">{link.criteriaNameTh || link.criteriaName}</span>
+                                      {link.isCritical && (
+                                        <span className="text-[10px] text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">Critical</span>
+                                      )}
+                                      <span className="text-gray-500">· Sample: {link.sampleSize}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500 italic">
+                      เพิ่ม / แก้ไข / ลบ IPC ผ่านปุ่ม &quot;จัดการ IPC แบบเต็ม&quot;
+                    </p>
+                  </div>
+                );
+              })()}
             </>
           )}
 
