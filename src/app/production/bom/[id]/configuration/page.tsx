@@ -21,7 +21,6 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSwitch } from '@/components/ui/dx-switch';
 import { DxTabs } from '@/components/ui/dx-tabs';
-import type { DxTabItem } from '@/components/ui/dx-tabs';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import { SwitchTypes } from 'devextreme-react/switch';
@@ -367,7 +366,9 @@ const phases = [
 // as IPC criteria (phase=packaging). Legacy bom_packaging_qc data remains in
 // the database but is no longer reachable from the UI. Tab IDs 3+ keep their
 // numeric position so existing tab-content blocks don't need re-wiring.
-const tabItems: DxTabItem[] = [
+// Tab items are now built inside the component so each tab label can carry
+// a live count badge (e.g. "Rooms 4"). The base shape stays declarative.
+const tabBlueprint: Array<{ id: number; text: string; icon: string }> = [
   { id: 0, text: 'Rooms', icon: 'home' },
   { id: 1, text: 'Equipment', icon: 'toolbox' },
   { id: 2, text: 'SOP Steps', icon: 'textdocument' },
@@ -1416,11 +1417,20 @@ export default function BOMConfigurationPage() {
         }
       />
 
-      {/* Tabs */}
+      {/* Tabs — labels carry live counts so the operator sees what's
+          configured at a glance ("Rooms 4 · Equipment 6 · …"). */}
       <Card>
         <CardContent className="p-0">
           <DxTabs
-            items={tabItems}
+            items={tabBlueprint.map((t) => {
+              const count =
+                t.id === 0 ? (bomRooms?.length ?? 0)
+                : t.id === 1 ? (bomEquipment?.length ?? 0)
+                : t.id === 2 ? (bomSOPSteps?.length ?? 0)
+                : t.id === 4 ? bomStepIpcLinks.length
+                : 0;
+              return { ...t, badge: count > 0 ? count : undefined };
+            })}
             selectedIndex={activeTab}
             onSelectedIndexChange={(idx) => setActiveTab(idx)}
           />
@@ -1563,15 +1573,6 @@ export default function BOMConfigurationPage() {
                       {cell.value ? 'Required' : 'Not Required'}
                     </span>
                   )} />
-                  <DxColumn dataField="parameters" caption="Parameters" width={200} cellRender={(cell) => {
-                    if (!cell.value) return '-';
-                    try {
-                      const params = JSON.parse(cell.value);
-                      return Object.entries(params).map(([k, v]) => `${k}: ${v}`).join(', ');
-                    } catch {
-                      return cell.value;
-                    }
-                  }} />
                   <DxColumn caption="IPC" width={140} cellRender={(cell) => {
                     // Count IPC links attached to this BOM SOP step. Click
                     // "Manage" to open the per-step IPC linker dialog.
