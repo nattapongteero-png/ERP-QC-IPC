@@ -1306,30 +1306,40 @@ export default function SOPExecutionPage() {
                             </div>
                           )}
 
-                          {/* Actual Parameters (if completed) */}
-                          {actualParams_ && Object.keys(actualParams_).length > 0 && (
-                            <div className="mt-2">
-                              <span className="text-xs font-medium text-green-600 uppercase tracking-wide">Actual</span>
-                              <div className="mt-1 flex flex-wrap gap-2">
-                                {Object.entries(actualParams_).map(([key, value]) => {
-                                  const expectedVal = expectedParams?.[key];
-                                  const isDeviation = expectedVal != null && value !== expectedVal;
-                                  return (
-                                    <span key={key} className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${
-                                      isDeviation ? 'bg-amber-100 border border-amber-300' : 'bg-green-100'
-                                    }`}>
-                                      {getParamIcon(key)}
-                                      <span className={isDeviation ? 'text-amber-700' : 'text-green-600'}>{key}:</span>
-                                      <span className={`font-medium ${isDeviation ? 'text-amber-800' : 'text-green-800'}`}>{value}</span>
-                                      {isDeviation && expectedVal != null && (
-                                        <span className="text-xs text-amber-600">(exp: {expectedVal})</span>
-                                      )}
-                                    </span>
-                                  );
-                                })}
+                          {/* Actual Parameters (if completed) — strip
+                              private/internal keys like _confirmedSubSteps
+                              that piggyback on actualParameters JSON purely
+                              for persistence (operator-confirmed sub-step
+                              IDs). Those aren't production parameters. */}
+                          {(() => {
+                            if (!actualParams_) return null;
+                            const visible = Object.entries(actualParams_)
+                              .filter(([key]) => !key.startsWith('_'));
+                            if (visible.length === 0) return null;
+                            return (
+                              <div className="mt-2">
+                                <span className="text-xs font-medium text-green-600 uppercase tracking-wide">Actual</span>
+                                <div className="mt-1 flex flex-wrap gap-2">
+                                  {visible.map(([key, value]) => {
+                                    const expectedVal = expectedParams?.[key];
+                                    const isDeviation = expectedVal != null && value !== expectedVal;
+                                    return (
+                                      <span key={key} className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${
+                                        isDeviation ? 'bg-amber-100 border border-amber-300' : 'bg-green-100'
+                                      }`}>
+                                        {getParamIcon(key)}
+                                        <span className={isDeviation ? 'text-amber-700' : 'text-green-600'}>{key}:</span>
+                                        <span className={`font-medium ${isDeviation ? 'text-amber-800' : 'text-green-800'}`}>{value}</span>
+                                        {isDeviation && expectedVal != null && (
+                                          <span className="text-xs text-amber-600">(exp: {expectedVal})</span>
+                                        )}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
 
                           {/* Execution info */}
                           {(step.startedAt || step.completedAt || step.verifiedAt) && (
