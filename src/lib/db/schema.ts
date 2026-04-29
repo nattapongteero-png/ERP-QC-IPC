@@ -1301,6 +1301,26 @@ export const sqliteBOMPackagingQC = sqliteTable('bom_packaging_qc', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// BOM SOP-Step IPC Links — replaces master sop_template_ipc_criteria.
+// Each BOM owns its own IPC linkages per SOP step (and optionally per
+// sub-step via procedureStepId). Allows different BOMs to attach different
+// IPC criteria to the same SOP template step.
+export const sqliteBOMSOPStepIPC = sqliteTable('bom_sop_step_ipc', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomStepId: integer('bom_step_id').notNull().references(() => sqliteBOMSOPSteps.id),
+  // Sub-step within the SOP template (nullable = whole BOM step).
+  procedureStepId: integer('procedure_step_id').references(() => sqliteSOPTemplateSteps.id),
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  sequence: integer('sequence').notNull().default(1),
+  sampleSize: integer('sample_size').notNull().default(1),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  // BOM-level override of master ipc_criteria.maxRetestRounds.
+  // NULL = inherit from master criterion.
+  maxRetestRounds: integer('max_retest_rounds'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // BOM In-Process QC - Link quality specs to BOM for IPC tests
 // IPC Criteria (Master Data) - In-Process Control test criteria templates
 export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
@@ -4555,6 +4575,21 @@ export const mysqlBOMPackagingQC = mysqlTable('bom_packaging_qc', {
   id: int('id').primaryKey().autoincrement(),
   bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
   criteriaId: int('criteria_id').notNull().references(() => mysqlPackagingQCCriteria.id),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// BOM SOP-Step IPC Links — MySQL (replaces sop_template_ipc_criteria as
+// authoritative source). Each BOM owns its IPC linkages per SOP step.
+export const mysqlBOMSOPStepIPC = mysqlTable('bom_sop_step_ipc', {
+  id: int('id').primaryKey().autoincrement(),
+  bomStepId: int('bom_step_id').notNull().references(() => mysqlBOMSOPSteps.id),
+  procedureStepId: int('procedure_step_id').references(() => mysqlSOPTemplateSteps.id),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  sequence: int('sequence').notNull().default(1),
+  sampleSize: int('sample_size').notNull().default(1),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  maxRetestRounds: int('max_retest_rounds'),
+  notes: mysqlText('notes'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

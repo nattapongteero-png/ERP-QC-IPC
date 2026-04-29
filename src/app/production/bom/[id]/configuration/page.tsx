@@ -391,6 +391,22 @@ export default function BOMConfigurationPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
 
+  // BOM SOP-step IPC linker state.
+  // selectedStepForIPC = the BOM SOP step the operator is managing IPCs for.
+  // showIPCLinkDialog opens the per-step IPC management popup.
+  // editingIpcLinkId tracks which existing link is being edited (null = new).
+  const [selectedStepForIPC, setSelectedStepForIPC] = useState<BOMSOPStep | null>(null);
+  const [showIPCLinkDialog, setShowIPCLinkDialog] = useState(false);
+  const [editingIpcLinkId, setEditingIpcLinkId] = useState<number | null>(null);
+  const [ipcLinkForm, setIpcLinkForm] = useState({
+    criteriaId: null as number | null,
+    sampleSize: 1,
+    sequence: 1,
+    isCritical: false,
+    maxRetestRounds: null as number | null,
+    notes: '',
+  });
+
   // Fetch BOM basic info
   const { data: bom, isLoading: bomLoading } = useQuery<BOMBasic>({
     queryKey: ['bom', bomId],
@@ -454,6 +470,30 @@ export default function BOMConfigurationPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;
+    },
+  });
+
+  // Fetch BOM SOP-step IPC links — joined with IPC master so the grid can
+  // show code/name/spec without a second roundtrip per row.
+  const { data: bomStepIpcLinks = [], isLoading: stepIpcLinksLoading } = useQuery<any[]>({
+    queryKey: ['bom-sop-step-ipc-links', bomId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.data;
+    },
+  });
+
+  // Master IPC criteria list (active only) for the linker dialog dropdown.
+  // Reused at the page level (in addition to the existing IPCConfigSection
+  // which has its own copy under the IPC tab).
+  const { data: ipcCriteriaMaster = [] } = useQuery<any[]>({
+    queryKey: ['ipc-criteria-active'],
+    queryFn: async () => {
+      const res = await fetch('/api/master-data/ipc-criteria?isActive=true');
+      const d = await res.json();
+      return d.success ? d.data : [];
     },
   });
 
@@ -602,6 +642,8 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
+      // Removing a step cascades the IPC links server-side; clear the cache.
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
       toast.success('SOP Step Removed', 'SOP step has been removed.');
     },
     onError: (error: Error) => {
@@ -851,6 +893,108 @@ export default function BOMConfigurationPage() {
     },
   });
 
+  // IPC linker mutations — wired against /api/production/bom/[id]/sop-step-ipc.
+  // bomStepId is captured from selectedStepForIPC at submit time so the
+  // form itself only carries criteria-level fields.
+  const createIpcLinkMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedStepForIPC) throw new Error('No SOP step selected');
+      if (!ipcLinkForm.criteriaId) throw new Error('Please select an IPC criterion');
+      const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bomStepId: selectedStepForIPC.id,
+          criteriaId: ipcLinkForm.criteriaId,
+          sampleSize: ipcLinkForm.sampleSize,
+          sequence: ipcLinkForm.sequence,
+          isCritical: ipcLinkForm.isCritical,
+          maxRetestRounds: ipcLinkForm.maxRetestRounds,
+          notes: ipcLinkForm.notes || null,
+        }),
+      });
+      const r = await res.json();
+      if (!r.success) throw new Error(r.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
+      resetIpcLinkForm();
+      toast.success('IPC Linked', 'IPC criterion attached to SOP step.');
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const updateIpcLinkMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingIpcLinkId) throw new Error('No IPC link selected');
+      const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingIpcLinkId,
+          sampleSize: ipcLinkForm.sampleSize,
+          sequence: ipcLinkForm.sequence,
+          isCritical: ipcLinkForm.isCritical,
+          maxRetestRounds: ipcLinkForm.maxRetestRounds,
+          notes: ipcLinkForm.notes || null,
+        }),
+      });
+      const r = await res.json();
+      if (!r.success) throw new Error(r.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
+      resetIpcLinkForm();
+      toast.success('IPC Updated', 'IPC link updated.');
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const deleteIpcLinkMutation = useMutation({
+    mutationFn: async (linkId: number) => {
+      const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc?linkId=${linkId}`, {
+        method: 'DELETE',
+      });
+      const r = await res.json();
+      if (!r.success) throw new Error(r.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
+      toast.success('IPC Removed', 'IPC link removed from step.');
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const resetIpcLinkForm = () => {
+    setEditingIpcLinkId(null);
+    setIpcLinkForm({
+      criteriaId: null,
+      sampleSize: 1,
+      sequence: 1,
+      isCritical: false,
+      maxRetestRounds: null,
+      notes: '',
+    });
+  };
+
+  const openIpcManageDialog = (step: BOMSOPStep) => {
+    setSelectedStepForIPC(step);
+    resetIpcLinkForm();
+    setShowIPCLinkDialog(true);
+  };
+
+  const openEditIpcLink = (link: any) => {
+    setEditingIpcLinkId(link.id);
+    setIpcLinkForm({
+      criteriaId: link.criteriaId,
+      sampleSize: link.sampleSize ?? 1,
+      sequence: link.sequence ?? 1,
+      isCritical: !!link.isCritical,
+      maxRetestRounds: link.maxRetestRounds ?? null,
+      notes: link.notes || '',
+    });
+  };
+
   // Copy configuration mutation
   const copyConfigMutation = useMutation({
     mutationFn: async (sourceBomId: number) => {
@@ -869,6 +1013,7 @@ export default function BOMConfigurationPage() {
       queryClient.invalidateQueries({ queryKey: ['bom-environmental-conditions', bomId] });
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
       queryClient.invalidateQueries({ queryKey: ['bom-packaging-qc', bomId] });
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
       toast.success('Configuration Copied', 'BOM configuration has been copied successfully.');
       setShowCopyDialog(false);
     },
@@ -1222,6 +1367,25 @@ export default function BOMConfigurationPage() {
                     } catch {
                       return cell.value;
                     }
+                  }} />
+                  <DxColumn caption="IPC" width={140} cellRender={(cell) => {
+                    // Count IPC links attached to this BOM SOP step. Click
+                    // "Manage" to open the per-step IPC linker dialog.
+                    const stepId = cell.data.id as number;
+                    const count = bomStepIpcLinks.filter((l: any) => l.bomStepId === stepId).length;
+                    return (
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded text-xs font-medium ${count > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'}`}>
+                          {count}
+                        </span>
+                        <button
+                          onClick={() => openIpcManageDialog(cell.data as BOMSOPStep)}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200"
+                        >
+                          <FlaskConical className="h-3 w-3" /> Manage
+                        </button>
+                      </div>
+                    );
                   }} />
                   <DxColumn caption="Actions" width={100} cellRender={(cell) => (
                     <div className="flex gap-0.5">
@@ -1610,6 +1774,235 @@ export default function BOMConfigurationPage() {
               }
             />
           </div>
+        </div>
+      </DxPopup>
+
+      {/* BOM SOP Step IPC Linker Dialog */}
+      {/* Opened from the "Manage" button on the IPC column of the SOP Steps grid. */}
+      {/* Shows existing links + an inline Add/Edit form, all scoped to one BOM step. */}
+      <DxPopup
+        visible={showIPCLinkDialog}
+        onHiding={() => { setShowIPCLinkDialog(false); resetIpcLinkForm(); setSelectedStepForIPC(null); }}
+        title={selectedStepForIPC ? `IPC Tests — Step ${selectedStepForIPC.sequence}: ${selectedStepForIPC.stepNameTh || selectedStepForIPC.stepName}` : 'IPC Tests'}
+        width={780}
+        height="auto"
+        showCloseButton
+        dragEnabled={false}
+      >
+        <div className="p-4 space-y-4">
+          {selectedStepForIPC && (() => {
+            const stepLinks = bomStepIpcLinks.filter((l: any) => l.bomStepId === selectedStepForIPC.id);
+            const linkedCriteriaIds = new Set(stepLinks.map((l: any) => l.criteriaId));
+            // When editing, keep current criterion in the dropdown so it
+            // shows up; otherwise filter out already-linked ones.
+            const availableCriteria = ipcCriteriaMaster.filter((c: any) =>
+              editingIpcLinkId ? true : !linkedCriteriaIds.has(c.id)
+            );
+            const editingLink = editingIpcLinkId ? stepLinks.find((l: any) => l.id === editingIpcLinkId) : null;
+
+            return (
+              <>
+                {/* Step header summary */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div className="text-xs text-gray-500">SOP Step</div>
+                  <div className="font-medium">
+                    {selectedStepForIPC.stepName}
+                    {selectedStepForIPC.stepNameTh && (
+                      <span className="text-gray-500 font-normal"> — {selectedStepForIPC.stepNameTh}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Existing IPC links list */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <FlaskConical className="h-4 w-4 text-emerald-600" />
+                      IPC Tests ({stepLinks.length})
+                    </h4>
+                  </div>
+                  {stepIpcLinksLoading ? (
+                    <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
+                  ) : stepLinks.length === 0 ? (
+                    <div className="text-center py-6 text-gray-500 text-sm border border-dashed border-gray-200 rounded-lg">
+                      No IPC tests linked to this step yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {stepLinks.map((link: any) => (
+                        <div key={link.id} className={`flex items-start gap-3 p-3 rounded-lg border bg-white group ${editingIpcLinkId === link.id ? 'border-emerald-400 bg-emerald-50/40' : 'border-gray-200'}`}>
+                          <span className="flex-none w-7 h-7 rounded bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center mt-0.5">
+                            {link.sequence}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-xs text-emerald-700">{link.criteriaCode}</span>
+                              <span className="font-medium">{link.criteriaNameTh || link.criteriaName}</span>
+                              {link.isCritical && (
+                                <span className="text-xs text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Critical</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {link.specification && <span>Spec: {link.specification} | </span>}
+                              <span>Sample: {link.sampleSize}</span>
+                              <span> | Max retests: {link.maxRetestRounds != null
+                                ? link.maxRetestRounds
+                                : <span className="italic">Master default ({link.masterMaxRetestRounds ?? '—'})</span>}
+                              </span>
+                            </div>
+                            {link.notes && (
+                              <div className="text-xs text-gray-600 mt-1 italic">{link.notes}</div>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => openEditIpcLink(link)}
+                              className="p-1 text-gray-400 hover:text-blue-600"
+                              title="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => { if (confirm('Remove this IPC link?')) deleteIpcLinkMutation.mutate(link.id); }}
+                              className="p-1 text-gray-400 hover:text-red-600"
+                              title="Remove"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Add / Edit form */}
+                <div className="border border-emerald-200 bg-emerald-50/50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      {editingIpcLinkId ? 'Edit IPC link' : 'Add IPC test'}
+                    </h4>
+                    {editingIpcLinkId && (
+                      <button
+                        onClick={resetIpcLinkForm}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Cancel edit
+                      </button>
+                    )}
+                  </div>
+
+                  {!editingIpcLinkId && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">IPC Criterion *</label>
+                      <DxSelectBox
+                        dataSource={availableCriteria.map((c: any) => ({
+                          id: c.id,
+                          display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
+                        }))}
+                        displayExpr="display"
+                        valueExpr="id"
+                        value={ipcLinkForm.criteriaId}
+                        onValueChanged={(e) => {
+                          const picked = ipcCriteriaMaster.find((c: any) => c.id === e.value);
+                          // Pre-fill sampleSize/critical from master defaults so
+                          // the operator doesn't have to retype them.
+                          setIpcLinkForm((f) => ({
+                            ...f,
+                            criteriaId: e.value,
+                            sampleSize: picked?.sampleSize ?? f.sampleSize,
+                            isCritical: picked?.isCritical ?? f.isCritical,
+                          }));
+                        }}
+                        placeholder="Select IPC criterion"
+                        searchEnabled
+                      />
+                    </div>
+                  )}
+                  {editingIpcLinkId && editingLink && (
+                    <div className="text-sm font-medium text-gray-700">
+                      Editing: <span className="font-mono text-xs text-emerald-700">{editingLink.criteriaCode}</span> {editingLink.criteriaNameTh || editingLink.criteriaName}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sequence</label>
+                      <DxNumberBox
+                        value={ipcLinkForm.sequence}
+                        onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, sequence: e.value ?? 1 }))}
+                        min={1}
+                        showSpinButtons
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sample Size</label>
+                      <DxNumberBox
+                        value={ipcLinkForm.sampleSize}
+                        onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, sampleSize: e.value ?? 1 }))}
+                        min={1}
+                        showSpinButtons
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Max Retest Rounds</label>
+                      <DxNumberBox
+                        value={ipcLinkForm.maxRetestRounds ?? null}
+                        onValueChanged={(e) => setIpcLinkForm((f) => ({
+                          ...f,
+                          maxRetestRounds: e.value === null || e.value === undefined ? null : Number(e.value),
+                        }))}
+                        min={0}
+                        showClearButton
+                        placeholder="Use master default"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <DxSwitch
+                      value={ipcLinkForm.isCritical}
+                      onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setIpcLinkForm((f) => ({ ...f, isCritical: e.value ?? false }))}
+                    />
+                    <span className="text-sm text-gray-700">Critical (failure must be flagged for QA review)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <DxTextArea
+                      value={ipcLinkForm.notes}
+                      onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, notes: e.value ?? '' }))}
+                      height={60}
+                      placeholder="Optional — special instructions for this step's IPC test"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-emerald-200">
+                    <DxButton
+                      text={editingIpcLinkId ? 'Save changes' : 'Add IPC'}
+                      type="success"
+                      icon={editingIpcLinkId ? 'save' : 'plus'}
+                      onClick={() => editingIpcLinkId ? updateIpcLinkMutation.mutate() : createIpcLinkMutation.mutate()}
+                      disabled={
+                        (!editingIpcLinkId && !ipcLinkForm.criteriaId) ||
+                        createIpcLinkMutation.isPending ||
+                        updateIpcLinkMutation.isPending
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2 border-t">
+                  <DxButton
+                    text="Close"
+                    stylingMode="outlined"
+                    onClick={() => { setShowIPCLinkDialog(false); resetIpcLinkForm(); setSelectedStepForIPC(null); }}
+                  />
+                </div>
+              </>
+            );
+          })()}
         </div>
       </DxPopup>
 

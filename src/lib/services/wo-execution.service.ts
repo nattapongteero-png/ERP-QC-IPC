@@ -720,7 +720,10 @@ export async function getWOSOPExecution(workOrderId: number) {
     const templateIds = [...new Set(executions.map((e: any) => e.templateId).filter(Boolean))] as number[];
 
     let templateStepsMap: Record<number, any[]> = {};
-    let linkedIPCMap: Record<number, any[]> = {}; // templateId → IPC criteria
+    // BOM-level IPC linkage (Phase 14): linkedIPC keyed by bomStepId
+    // (was templateId pre-Phase-14). Each BOM owns its IPC links — different
+    // BOMs sharing the same SOP template can attach different IPC criteria.
+    const linkedIPCMapByBomStep: Record<number, any[]> = {};
     if (templateIds.length > 0) {
       const { inArray } = await import('drizzle-orm');
       const allTemplateSteps = await db
@@ -734,23 +737,27 @@ export async function getWOSOPExecution(workOrderId: number) {
         templateStepsMap[ts.templateId].push(ts);
       }
 
-      // Phase 2 — for each template, also pull the IPC criteria linked to
-      // any of its sub-steps. We aggregate at the parent-template level so
-      // each WO SOP step (which references a parent template, not a specific
-      // sub-step) gets a flat list of IPC tests the operator should record.
-      const allTemplateStepIds = allTemplateSteps.map((ts: any) => ts.id) as number[];
-      if (allTemplateStepIds.length > 0) {
-        const linkTable = getTableRef('sOPTemplateIPCCriteria');
+      // Phase 14 — pull IPC links from bom_sop_step_ipc (BOM-level), not
+      // sop_template_ipc_criteria (master). Each WO SOP step references a
+      // bom_step_id, and the IPCs attached to that bom_step are what the
+      // operator records. procedureStepId is preserved on each link so the
+      // UI can still group IPCs under specific sub-steps (templateSteps).
+      const allBomStepIds = [...new Set(executions.map((e: any) => e.bomStepId).filter(Boolean))] as number[];
+      if (allBomStepIds.length > 0) {
+        const linkTable = getTableRef('bOMSOPStepIPC');
         const ipcTable = getTableRef('iPCCriteria');
         const ipcLinks = await db
           .select({
             id: linkTable.id,
+            bomStepId: linkTable.bomStepId,
             procedureStepId: linkTable.procedureStepId,
             criteriaId: linkTable.criteriaId,
             sequence: linkTable.sequence,
             sampleSize: linkTable.sampleSize,
             isCritical: linkTable.isCritical,
             notes: linkTable.notes,
+            // BOM-level override of master maxRetestRounds (nullable).
+            bomMaxRetestRounds: linkTable.maxRetestRounds,
             criteriaCode: ipcTable.code,
             criteriaName: ipcTable.name,
             criteriaNameTh: ipcTable.nameTh,
@@ -763,21 +770,21 @@ export async function getWOSOPExecution(workOrderId: number) {
             criteriaType: ipcTable.criteriaType,
             testMethod: ipcTable.testMethod,
             isCriteriaCritical: ipcTable.isCritical,
-            maxRetestRounds: ipcTable.maxRetestRounds,
+            masterMaxRetestRounds: ipcTable.maxRetestRounds,
           })
           .from(linkTable)
           .innerJoin(ipcTable, eq(linkTable.criteriaId, ipcTable.id))
-          .where(inArray(linkTable.procedureStepId, allTemplateStepIds))
+          .where(inArray(linkTable.bomStepId, allBomStepIds))
           .orderBy(asc(linkTable.sequence), asc(linkTable.id));
 
-        const stepToTemplate = new Map<number, number>();
-        for (const ts of allTemplateSteps) stepToTemplate.set(ts.id, ts.templateId);
-
         for (const link of ipcLinks as any[]) {
-          const templateId = stepToTemplate.get(link.procedureStepId);
-          if (!templateId) continue;
-          if (!linkedIPCMap[templateId]) linkedIPCMap[templateId] = [];
-          linkedIPCMap[templateId].push(link);
+          // Resolve effective maxRetestRounds: BOM override > master default.
+          const effectiveMax = link.bomMaxRetestRounds != null
+            ? Number(link.bomMaxRetestRounds)
+            : (link.masterMaxRetestRounds != null ? Number(link.masterMaxRetestRounds) : null);
+          const enriched = { ...link, maxRetestRounds: effectiveMax };
+          if (!linkedIPCMapByBomStep[link.bomStepId]) linkedIPCMapByBomStep[link.bomStepId] = [];
+          linkedIPCMapByBomStep[link.bomStepId].push(enriched);
         }
       }
     }
@@ -897,7 +904,8 @@ export async function getWOSOPExecution(workOrderId: number) {
     // Each step gets its own copy of linkedIPC[] with recordedTestId / status
     // resolved against the deterministic sample_number for that exec id.
     return executions.map((exec: any) => {
-      const baseLinks = exec.templateId ? (linkedIPCMap[exec.templateId] || []) : [];
+      // Phase 14 — IPC links keyed by bomStepId (BOM-level), not templateId.
+      const baseLinks = exec.bomStepId ? (linkedIPCMapByBomStep[exec.bomStepId] || []) : [];
       const linkedIPC = baseLinks.map((link: any) => {
         const key = `SOP-${exec.id}-IPC-${link.criteriaId}`;
         const found = recordedKey.get(key);
