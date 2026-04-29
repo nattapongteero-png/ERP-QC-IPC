@@ -13,6 +13,7 @@ import {
   verifyWOSOPStep,
   confirmWOSOPSubSteps,
   recordSOPLinkedIPCResults,
+  addIPCTestRound,
   type SOPLinkedIPCInput,
 } from '@/lib/services/wo-execution.service';
 import { publishWorkOrderChanged } from '@/lib/realtime';
@@ -106,7 +107,7 @@ export async function PUT(
         return errorResponse('Missing required fields: executionId, action');
       }
 
-      const validActions = ['start', 'complete', 'confirm_substeps', 'record_ipc'];
+      const validActions = ['start', 'complete', 'confirm_substeps', 'record_ipc', 'add_ipc_round'];
       if (!validActions.includes(data.action)) {
         return errorResponse(`Invalid action. Must be one of: ${validActions.join(', ')}`);
       }
@@ -122,6 +123,23 @@ export async function PUT(
         execution = await confirmWOSOPSubSteps(data.executionId, data.confirmedSubStepIds);
         publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'confirm_substeps');
         return successResponse(execution, 'Sub-steps confirmed');
+      } else if (data.action === 'add_ipc_round') {
+        // Phase 6b — append a new retest round to an existing IPC quality_test.
+        // Stage plan from the snapshot decides sample size + tolerance.
+        if (!data.criteriaId || data.criteriaId === undefined) {
+          return errorResponse('criteriaId is required');
+        }
+        const input: SOPLinkedIPCInput = {
+          criteriaId: Number(data.criteriaId),
+          sopExecutionId: Number(data.executionId),
+          ipcPhase: data.ipcPhase || 'production',
+          numericValues: data.numericValues,
+          sampleResults: data.sampleResults,
+          textValue: data.textValue,
+        };
+        const result = await addIPCTestRound(workOrderId, session.userId, input);
+        publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'sop-add-round');
+        return successResponse(result, `บันทึกรอบ ${result.round} แล้ว`);
       } else if (data.action === 'record_ipc') {
         // Phase 4 — record IPC results without changing SOP step status.
         // Operator can save IPC during in_progress, then complete the step

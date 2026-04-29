@@ -799,6 +799,7 @@ export async function getWOSOPExecution(workOrderId: number) {
       status: string | null;
       testedBy: number | null;
       testDate: string | null;
+      acceptanceStages: string | null;
       samples: Array<{
         sampleNumber: number;
         testRound: number;
@@ -818,6 +819,7 @@ export async function getWOSOPExecution(workOrderId: number) {
             status: tables.qualityTests.status,
             testedBy: tables.qualityTests.testedBy,
             testDate: tables.qualityTests.testDate,
+            acceptanceStages: tables.qualityTests.acceptanceStages,
           })
           .from(tables.qualityTests)
           .where(and(
@@ -865,6 +867,7 @@ export async function getWOSOPExecution(workOrderId: number) {
             status: t.status,
             testedBy: t.testedBy,
             testDate: t.testDate,
+            acceptanceStages: t.acceptanceStages ?? null,
             samples: samplesByTest.get(t.id) || [],
           });
         }
@@ -899,6 +902,7 @@ export async function getWOSOPExecution(workOrderId: number) {
           recordedTestedBy: found?.testedBy ?? null,
           recordedTestedByName: found?.testedBy ? (userMap.get(found.testedBy) || null) : null,
           recordedTestDate: found?.testDate ?? null,
+          recordedAcceptanceStages: found?.acceptanceStages ?? null,
         };
       });
 
@@ -2808,5 +2812,209 @@ export async function recordSOPLinkedIPCResults(
     }
 
     return { qualityTestIds: created };
+  });
+}
+
+/**
+ * Phase 6b — append a new round of IPC samples to an existing test.
+ *
+ * Used when a previous round failed and the criteria's acceptance plan
+ * permits a retest at the next stage (USP <711>/<905> tiered workflow).
+ *
+ * Validations:
+ *   - Existing test must already be present for (sopExecutionId, criteriaId)
+ *   - Latest round must be `fail` (no point retesting a passing round)
+ *   - Stage plan must define a stage at the target round index
+ *   - Previous stage's onFail must be `next_stage`
+ *
+ * Sample size + tolerance are taken from the stage definition, not the
+ * criteria row, so a 6→6→12 plan pulls the right number of samples on
+ * each round and applies the right tolerance.
+ */
+export async function addIPCTestRound(
+  workOrderId: number,
+  operatorId: number,
+  input: SOPLinkedIPCInput
+): Promise<{ qualityTestId: number; round: number; testStatus: string }> {
+  const tables = getTables();
+  const { parseAcceptanceStages } = await import('../master-data/ipc-stages');
+
+  return executeDbOperation(async (db: any) => {
+    // Resolve target lot the same way standalone record does.
+    const [wo] = await db
+      .select({
+        id: tables.workOrders.id,
+        batchNumber: tables.workOrders.batchNumber,
+      })
+      .from(tables.workOrders)
+      .where(eq(tables.workOrders.id, workOrderId));
+    if (!wo) throw new Error('Work order not found');
+
+    let targetLotId: number | null = null;
+    if (wo.batchNumber) {
+      const lots = await db
+        .select({ id: tables.inventoryLots.id })
+        .from(tables.inventoryLots)
+        .where(eq(tables.inventoryLots.batchNumber, wo.batchNumber));
+      if (lots.length > 0) targetLotId = lots[0].id;
+    }
+    if (!targetLotId) throw new Error('No matching in-process lot for this work order');
+
+    // Find the existing quality_test.
+    const sampleNumber = `SOP-${input.sopExecutionId}-IPC-${input.criteriaId}`;
+    const [existing] = await db
+      .select()
+      .from(tables.qualityTests)
+      .where(and(
+        eq(tables.qualityTests.lotId, targetLotId),
+        eq(tables.qualityTests.testType, 'in_process'),
+        eq(tables.qualityTests.sampleNumber, sampleNumber),
+      ))
+      .limit(1);
+    if (!existing) {
+      throw new Error('ยังไม่มีการบันทึกรอบแรก — กรุณากดบันทึก IPC เพื่อบันทึกรอบ 1 ก่อน');
+    }
+
+    // Existing samples grouped by round to figure out the next round.
+    const existingSamples = await db
+      .select({
+        testRound: tables.ipcTestSamples.testRound,
+        result: tables.ipcTestSamples.result,
+      })
+      .from(tables.ipcTestSamples)
+      .where(eq(tables.ipcTestSamples.qualityTestId, existing.id));
+
+    const roundMap = new Map<number, Array<{ result: string | null }>>();
+    for (const s of existingSamples as any[]) {
+      const r = Number(s.testRound) || 1;
+      if (!roundMap.has(r)) roundMap.set(r, []);
+      roundMap.get(r)!.push({ result: s.result });
+    }
+    if (roundMap.size === 0) {
+      throw new Error('Existing test has no samples — cannot start a new round');
+    }
+    const lastRound = Math.max(...roundMap.keys());
+    const lastRoundSamples = roundMap.get(lastRound)!;
+    const lastRoundFails = lastRoundSamples.filter((s) => s.result === 'fail').length;
+    const lastRoundTotal = lastRoundSamples.length;
+    const lastRoundFailPct = lastRoundTotal === 0 ? 0 : (lastRoundFails / lastRoundTotal) * 100;
+
+    // Pull stage plan from snapshot. Single-stage criteria shouldn't reach here.
+    const stages = parseAcceptanceStages(existing.acceptanceStages);
+    if (stages.length === 0) {
+      throw new Error('Criteria นี้ไม่มี multi-stage plan — บันทึกรอบใหม่ไม่ได้');
+    }
+
+    const lastStageIdx = lastRound - 1;
+    const lastStage = stages[lastStageIdx];
+    if (!lastStage) {
+      throw new Error(`Stage ${lastRound} ไม่ได้กำหนดใน acceptance plan`);
+    }
+    // The previous stage must have failed (otherwise no retest needed).
+    if (lastRoundFailPct <= lastStage.tolerancePercent) {
+      throw new Error('รอบก่อนหน้าผ่านแล้ว — ไม่ต้องทำรอบใหม่');
+    }
+    // Previous stage's onFail must permit advancing.
+    if (lastStage.onFail !== 'next_stage') {
+      throw new Error(`รอบก่อนหน้ากำหนด onFail=${lastStage.onFail} — ไม่อนุญาตให้ retest`);
+    }
+
+    const nextRound = lastRound + 1;
+    const nextStage = stages[nextRound - 1];
+    if (!nextStage) {
+      throw new Error(`ไม่มี Stage ${nextRound} ใน acceptance plan — สุดทางแล้ว`);
+    }
+
+    // Build samples for the new round using stage's sampleSize.
+    const expectedSize = nextStage.sampleSize;
+    const tolPct = nextStage.tolerancePercent;
+    const criteriaType = existing.criteriaType || 'numeric';
+    const effectiveMin = existing.specMinValue;
+    const effectiveMax = existing.specMaxValue;
+
+    const samples: Array<{
+      sampleNumber: number;
+      numericValue: number | null;
+      textValue: string | null;
+      result: 'pass' | 'fail' | 'pending';
+    }> = [];
+
+    if (criteriaType === 'numeric') {
+      const values = (input.numericValues || []).slice(0, expectedSize);
+      while (values.length < expectedSize) values.push(null);
+      values.forEach((v, idx) => {
+        let res: 'pass' | 'fail' | 'pending' = 'pending';
+        if (v != null && !Number.isNaN(v)) {
+          const minOk = effectiveMin == null || v >= Number(effectiveMin);
+          const maxOk = effectiveMax == null || v <= Number(effectiveMax);
+          res = minOk && maxOk ? 'pass' : 'fail';
+        }
+        samples.push({
+          sampleNumber: idx + 1,
+          numericValue: v != null ? Number(v) : null,
+          textValue: null,
+          result: res,
+        });
+      });
+    } else if (criteriaType === 'text') {
+      const text = input.textValue ?? null;
+      const res = input.sampleResults?.[0] ?? (text ? 'pass' : 'pending');
+      samples.push({
+        sampleNumber: 1,
+        numericValue: null,
+        textValue: text,
+        result: res === null ? 'pending' : res,
+      });
+    } else {
+      const results = (input.sampleResults || []).slice(0, expectedSize);
+      while (results.length < expectedSize) results.push(null);
+      results.forEach((r, idx) => {
+        samples.push({
+          sampleNumber: idx + 1,
+          numericValue: null,
+          textValue: null,
+          result: r === null ? 'pending' : r,
+        });
+      });
+    }
+
+    // Compute overall status from THIS round's failures vs stage tolerance.
+    const total = samples.length;
+    const failCount = samples.filter((s) => s.result === 'fail').length;
+    const pendingCount = samples.filter((s) => s.result === 'pending').length;
+    let testStatus: 'pending' | 'pass' | 'fail' = 'pending';
+    if (total > 0 && pendingCount === 0) {
+      const failPct = (failCount / total) * 100;
+      testStatus = failPct > tolPct ? 'fail' : 'pass';
+    }
+
+    // Insert new-round samples (preserve previous rounds).
+    for (const s of samples) {
+      await db.insert(tables.ipcTestSamples).values({
+        qualityTestId: existing.id,
+        sampleNumber: s.sampleNumber,
+        testRound: nextRound,
+        numericValue: s.numericValue,
+        textValue: s.textValue,
+        result: s.result,
+        createdAt: getNow(),
+      });
+    }
+
+    // Refresh quality_test status to reflect the latest round.
+    await db
+      .update(tables.qualityTests)
+      .set({
+        status: testStatus,
+        result: testStatus === 'pending' ? null : testStatus,
+        sampleSize: total,
+        tolerancePercent: tolPct,
+        testedBy: testStatus === 'pending' ? null : operatorId,
+        testDate: testStatus === 'pending' ? null : getNow(),
+        updatedAt: getNow(),
+      })
+      .where(eq(tables.qualityTests.id, existing.id));
+
+    return { qualityTestId: existing.id, round: nextRound, testStatus };
   });
 }

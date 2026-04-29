@@ -83,7 +83,27 @@ interface LinkedIPCCriterion {
   recordedTestedBy?: number | null;
   recordedTestedByName?: string | null;
   recordedTestDate?: string | null;
+  // Phase 6b — JSON snapshot of multi-stage acceptance plan. Drives the
+  // "บันทึกรอบใหม่" button: present + last round failed + onFail=next_stage.
+  recordedAcceptanceStages?: string | null;
 }
+
+interface AcceptanceStage {
+  sampleSize: number;
+  tolerancePercent: number;
+  onFail: 'next_stage' | 'reject_batch' | 'deviation';
+}
+
+const parseStages = (raw: string | null | undefined): AcceptanceStage[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((s) => s && typeof s.sampleSize === 'number' && typeof s.tolerancePercent === 'number');
+  } catch {
+    return [];
+  }
+};
 
 interface SOPStep {
   id: number;
@@ -189,6 +209,18 @@ export default function SOPExecutionPage() {
       return next;
     });
   };
+
+  // Phase 6b — Retest dialog state. Operator opens it for a single
+  // criterion that's failed and whose stage plan permits a next round.
+  const [retestTarget, setRetestTarget] = useState<{
+    step: SOPStep;
+    ipc: LinkedIPCCriterion;
+    stage: AcceptanceStage;
+    nextRound: number;
+  } | null>(null);
+  const [retestNumeric, setRetestNumeric] = useState<(number | null)[]>([]);
+  const [retestSampleResults, setRetestSampleResults] = useState<('pass' | 'fail' | null)[]>([]);
+  const [retestText, setRetestText] = useState('');
 
   // Used to gate the Verify button under GMP dual-control:
   // a step's operator cannot also be its verifier.
@@ -354,6 +386,69 @@ export default function SOPExecutionPage() {
     },
   });
 
+  // Phase 6b — Retest mutation. Appends a new round to an existing
+  // recorded IPC. Status of the underlying quality_test is updated to
+  // reflect the latest round; previous rounds remain visible in the
+  // timeline view.
+  const addIPCRoundMutation = useMutation({
+    mutationFn: async (payload: {
+      stepId: number;
+      criteriaId: number;
+      ipcPhase: string;
+      criteriaType: string;
+      numericValues?: (number | null)[];
+      sampleResults?: ('pass' | 'fail' | null)[];
+      textValue?: string;
+    }) => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          executionId: payload.stepId,
+          action: 'add_ipc_round',
+          criteriaId: payload.criteriaId,
+          ipcPhase: payload.ipcPhase,
+          numericValues: payload.numericValues,
+          sampleResults: payload.sampleResults,
+          textValue: payload.textValue,
+        }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-ipc-tests', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
+      const round = (data as { round?: number })?.round ?? '?';
+      const status = (data as { testStatus?: string })?.testStatus ?? '';
+      toast.success(`บันทึกรอบ ${round}`, status === 'pass' ? 'ผ่านเกณฑ์ ✅' : status === 'fail' ? 'ยังไม่ผ่าน ⚠️' : 'รอผลการตรวจ');
+      closeRetest();
+    },
+    onError: (error: Error) => {
+      toast.error('Error', error.message);
+    },
+  });
+
+  const handleSubmitRetest = () => {
+    if (!retestTarget) return;
+    if (!retestInputsComplete()) {
+      toast.error('IPC Required', 'กรุณากรอก samples ของรอบนี้ให้ครบ');
+      return;
+    }
+    const { step, ipc } = retestTarget;
+    addIPCRoundMutation.mutate({
+      stepId: step.id,
+      criteriaId: ipc.criteriaId,
+      ipcPhase: step.phase || 'production',
+      criteriaType: ipc.criteriaType,
+      numericValues: ipc.criteriaType === 'numeric' ? retestNumeric : undefined,
+      sampleResults: (ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text') ? retestSampleResults : undefined,
+      textValue: ipc.criteriaType === 'text' ? retestText : undefined,
+    });
+  };
+
   // Standalone IPC recording — Phase 4. Saves IPC results without
   // changing the SOP step status. Backend upsert means re-saving the
   // same step replaces (not duplicates) the prior values.
@@ -469,12 +564,90 @@ export default function SOPExecutionPage() {
     setShowCompleteDialog(true);
   };
 
+  /** Decide whether the given recorded IPC can be retested. Returns the
+   *  next stage if so, otherwise null. */
+  const getNextRetestStage = (ipc: LinkedIPCCriterion): { nextRound: number; stage: AcceptanceStage } | null => {
+    if (!ipc.recordedTestId || !ipc.recordedSamples?.length) return null;
+    const stages = parseStages(ipc.recordedAcceptanceStages);
+    if (stages.length === 0) return null;
+
+    // Find latest round number from samples.
+    let lastRound = 1;
+    for (const s of ipc.recordedSamples) {
+      if (s.testRound > lastRound) lastRound = s.testRound;
+    }
+    const lastStage = stages[lastRound - 1];
+    const nextStage = stages[lastRound];
+    if (!lastStage || !nextStage) return null;
+
+    // Last round must have failed at the stage's tolerance.
+    const lastSamples = ipc.recordedSamples.filter((s) => s.testRound === lastRound);
+    const failPct = lastSamples.length === 0
+      ? 0
+      : (lastSamples.filter((s) => s.result === 'fail').length / lastSamples.length) * 100;
+    if (failPct <= lastStage.tolerancePercent) return null;
+    if (lastStage.onFail !== 'next_stage') return null;
+
+    return { nextRound: lastRound + 1, stage: nextStage };
+  };
+
+  const handleOpenRetest = (step: SOPStep, ipc: LinkedIPCCriterion) => {
+    const next = getNextRetestStage(ipc);
+    if (!next) return;
+    setRetestTarget({ step, ipc, stage: next.stage, nextRound: next.nextRound });
+    if (ipc.criteriaType === 'numeric') {
+      setRetestNumeric(Array.from({ length: next.stage.sampleSize }, () => null));
+      setRetestSampleResults([]);
+      setRetestText('');
+    } else if (ipc.criteriaType === 'text') {
+      setRetestNumeric([]);
+      setRetestSampleResults([]);
+      setRetestText('');
+    } else {
+      setRetestNumeric([]);
+      setRetestSampleResults(Array.from({ length: next.stage.sampleSize }, () => null));
+      setRetestText('');
+    }
+  };
+
+  const closeRetest = () => {
+    setRetestTarget(null);
+    setRetestNumeric([]);
+    setRetestSampleResults([]);
+    setRetestText('');
+  };
+
+  const retestInputsComplete = (): boolean => {
+    if (!retestTarget) return false;
+    const { ipc } = retestTarget;
+    if (ipc.criteriaType === 'numeric') {
+      return retestNumeric.length > 0 && retestNumeric.every((v) => v != null && !Number.isNaN(v));
+    }
+    if (ipc.criteriaType === 'text') {
+      return retestText.trim().length > 0;
+    }
+    return retestSampleResults.length > 0 && retestSampleResults.every((r) => r != null);
+  };
+
   /** Render the read-only details panel for a recorded IPC criterion.
-   *  Shown when the operator clicks the "บันทึกแล้ว" badge. */
-  const renderRecordedDetails = (ipc: LinkedIPCCriterion) => {
+   *  Phase 6c — samples are grouped by testRound; each round shows its own
+   *  pass/fail summary using the corresponding stage's tolerance. The next
+   *  retest stage (if any) becomes a "บันทึกรอบใหม่" button at the bottom. */
+  const renderRecordedDetails = (step: SOPStep, ipc: LinkedIPCCriterion) => {
     if (!ipc.recordedTestId || !ipc.recordedSamples) return null;
     const samples = ipc.recordedSamples;
     const testedDate = ipc.recordedTestDate ? new Date(ipc.recordedTestDate) : null;
+    const stages = parseStages(ipc.recordedAcceptanceStages);
+
+    // Group samples by testRound, ordered ascending.
+    const byRound = new Map<number, typeof samples>();
+    for (const s of samples) {
+      if (!byRound.has(s.testRound)) byRound.set(s.testRound, []);
+      byRound.get(s.testRound)!.push(s);
+    }
+    const rounds = Array.from(byRound.keys()).sort((a, b) => a - b);
+    const retestNext = getNextRetestStage(ipc);
+
     return (
       <div className="mt-2 p-2 rounded-lg bg-white border border-gray-200 text-xs space-y-2">
         <div className="flex items-center justify-between text-[11px] text-gray-500">
@@ -487,53 +660,94 @@ export default function SOPExecutionPage() {
               : ipc.recordedStatus === 'fail' ? 'text-rose-700'
               : 'text-amber-700'
           }`}>
-            {samples.filter((s) => s.result === 'pass').length}/{samples.length} ผ่าน
+            สถานะล่าสุด: {ipc.recordedStatus === 'pass' ? 'ผ่าน' : ipc.recordedStatus === 'fail' ? 'ไม่ผ่าน' : 'รอผล'}
           </span>
         </div>
-        {ipc.criteriaType === 'numeric' && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
-            {samples.map((s, idx) => (
-              <div
-                key={idx}
-                className={`px-1.5 py-1 rounded text-center text-[11px] border ${
-                  s.result === 'pass'
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                    : s.result === 'fail'
-                    ? 'bg-rose-50 border-rose-200 text-rose-800'
-                    : 'bg-gray-50 border-gray-200 text-gray-600'
-                }`}
-              >
-                <div className="text-[9px] text-gray-400">#{s.sampleNumber}</div>
-                <div className="font-mono font-semibold">{s.numericValue ?? '-'}</div>
+
+        {/* Round-by-round timeline */}
+        {rounds.map((roundNum) => {
+          const rs = byRound.get(roundNum)!;
+          const passCount = rs.filter((s) => s.result === 'pass').length;
+          const failCount = rs.filter((s) => s.result === 'fail').length;
+          const stage = stages[roundNum - 1];
+          const tolPct = stage?.tolerancePercent ?? 0;
+          const failPct = rs.length === 0 ? 0 : (failCount / rs.length) * 100;
+          const roundPass = failPct <= tolPct;
+          return (
+            <div key={roundNum} className="rounded border border-gray-200 overflow-hidden">
+              <div className={`flex items-center justify-between px-2 py-1 text-[11px] ${
+                roundPass ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
+              }`}>
+                <span className="font-semibold">
+                  รอบ {roundNum}{stage ? ` · Stage sample ${stage.sampleSize} · tolerance ${stage.tolerancePercent}%` : ''}
+                </span>
+                <span>
+                  {passCount}/{rs.length} ผ่าน · {roundPass ? '✓' : '✗'}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-        {ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text' && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
-            {samples.map((s, idx) => (
-              <div
-                key={idx}
-                className={`px-1.5 py-1 rounded text-center text-[11px] border ${
-                  s.result === 'pass'
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                    : s.result === 'fail'
-                    ? 'bg-rose-50 border-rose-200 text-rose-800'
-                    : 'bg-gray-50 border-gray-200 text-gray-600'
-                }`}
-              >
-                <div className="text-[9px] text-gray-400">#{s.sampleNumber}</div>
-                <div className="font-semibold">
-                  {s.result === 'pass' ? 'ผ่าน' : s.result === 'fail' ? 'ไม่ผ่าน' : '–'}
-                </div>
+              <div className="p-1.5">
+                {ipc.criteriaType === 'numeric' && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1">
+                    {rs.map((s, idx) => (
+                      <div
+                        key={idx}
+                        className={`px-1.5 py-1 rounded text-center text-[11px] border ${
+                          s.result === 'pass'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                            : s.result === 'fail'
+                            ? 'bg-rose-50 border-rose-200 text-rose-800'
+                            : 'bg-gray-50 border-gray-200 text-gray-600'
+                        }`}
+                      >
+                        <div className="text-[9px] text-gray-400">#{s.sampleNumber}</div>
+                        <div className="font-mono font-semibold">{s.numericValue ?? '-'}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text' && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1">
+                    {rs.map((s, idx) => (
+                      <div
+                        key={idx}
+                        className={`px-1.5 py-1 rounded text-center text-[11px] border ${
+                          s.result === 'pass'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                            : s.result === 'fail'
+                            ? 'bg-rose-50 border-rose-200 text-rose-800'
+                            : 'bg-gray-50 border-gray-200 text-gray-600'
+                        }`}
+                      >
+                        <div className="text-[9px] text-gray-400">#{s.sampleNumber}</div>
+                        <div className="font-semibold">
+                          {s.result === 'pass' ? 'ผ่าน' : s.result === 'fail' ? 'ไม่ผ่าน' : '–'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {ipc.criteriaType === 'text' && rs[0]?.textValue && (
+                  <div className="px-2 py-1.5 rounded bg-gray-50 border border-gray-200 text-gray-700 whitespace-pre-wrap">
+                    {rs[0].textValue}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-        {ipc.criteriaType === 'text' && samples[0]?.textValue && (
-          <div className="px-2 py-1.5 rounded bg-gray-50 border border-gray-200 text-gray-700 whitespace-pre-wrap">
-            {samples[0].textValue}
-          </div>
+            </div>
+          );
+        })}
+
+        {/* Phase 6b — retest button when stage plan permits next round */}
+        {retestNext && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenRetest(step, ipc);
+            }}
+            className="w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300 transition-colors"
+          >
+            ▶ บันทึกรอบ {retestNext.nextRound} (Stage sample {retestNext.stage.sampleSize} · tolerance {retestNext.stage.tolerancePercent}%)
+          </button>
         )}
       </div>
     );
@@ -1048,7 +1262,7 @@ export default function SOPExecutionPage() {
                                             <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {ipc.sampleSize}
                                           </div>
                                         )}
-                                        {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(ipc)}
+                                        {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(step, ipc)}
                                       </div>
                                     </div>
                                   );
@@ -1361,7 +1575,7 @@ export default function SOPExecutionPage() {
                         <div className="text-xs text-gray-500 italic px-2 py-1.5 rounded bg-white/60 border border-dashed border-emerald-200">
                           IPC นี้บันทึกไว้แล้ว — กดปุ่ม &quot;บันทึก IPC&quot; ภายนอกถ้าต้องการแก้ค่า
                         </div>
-                        {expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(ipc)}
+                        {expandedRecordedIPC.has(ipc.recordedTestId) && selectedStep && renderRecordedDetails(selectedStep, ipc)}
                       </>
                     ) : (
                       <>
@@ -1575,7 +1789,7 @@ export default function SOPExecutionPage() {
                           <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {size}
                         </div>
                       )}
-                      {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(ipc)}
+                      {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && selectedStep && renderRecordedDetails(selectedStep, ipc)}
 
                       {ipc.criteriaType === 'numeric' && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1676,6 +1890,126 @@ export default function SOPExecutionPage() {
             />
           </div>
         </div>
+      </DxPopup>
+
+      {/* Retest Dialog — Phase 6b. Captures samples for the next round
+          based on the snapshot stage plan. Backend appends with the
+          incremented testRound. */}
+      <DxPopup
+        visible={!!retestTarget}
+        onHiding={closeRetest}
+        title={retestTarget ? `บันทึกรอบ ${retestTarget.nextRound}` : 'บันทึกรอบใหม่'}
+        width={520}
+        height="auto"
+        showCloseButton
+        dragEnabled={false}
+      >
+        {retestTarget && (
+          <div className="flex flex-col h-full">
+            <div className="p-4 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-amber-50 rounded-lg p-3 text-sm">
+                <div className="font-semibold text-amber-900 flex items-center gap-1.5">
+                  <FlaskConical className="h-4 w-4" />
+                  {retestTarget.ipc.criteriaCode} · {retestTarget.ipc.criteriaNameTh || retestTarget.ipc.criteriaName}
+                </div>
+                <div className="text-xs text-amber-800 mt-1">
+                  Stage {retestTarget.nextRound} · sample size <strong>{retestTarget.stage.sampleSize}</strong> · tolerance <strong>{retestTarget.stage.tolerancePercent}%</strong> · onFail: <strong>{retestTarget.stage.onFail}</strong>
+                </div>
+              </div>
+
+              {retestTarget.ipc.criteriaType === 'numeric' && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {retestNumeric.map((v, idx) => {
+                    const min = retestTarget.ipc.minValue != null ? Number(retestTarget.ipc.minValue) : null;
+                    const max = retestTarget.ipc.maxValue != null ? Number(retestTarget.ipc.maxValue) : null;
+                    const inSpec = v == null
+                      ? null
+                      : (min == null || v >= min) && (max == null || v <= max);
+                    return (
+                      <div key={idx}>
+                        <label className="block text-[11px] text-gray-500 mb-0.5">#{idx + 1}</label>
+                        <DxNumberBox
+                          value={v ?? undefined}
+                          onValueChanged={(e) => {
+                            const next = [...retestNumeric];
+                            next[idx] = e.value == null ? null : Number(e.value);
+                            setRetestNumeric(next);
+                          }}
+                          format="#0.00"
+                          showSpinButtons={false}
+                        />
+                        {v != null && (
+                          <div className={`mt-0.5 text-[10px] font-semibold ${inSpec ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {inSpec ? '✓ ในเกณฑ์' : '✗ นอกเกณฑ์'}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {retestTarget.ipc.criteriaType !== 'numeric' && retestTarget.ipc.criteriaType !== 'text' && (
+                <div className="space-y-1.5">
+                  {retestSampleResults.map((r, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-xs text-gray-600 w-8">#{idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = [...retestSampleResults];
+                          next[idx] = 'pass';
+                          setRetestSampleResults(next);
+                        }}
+                        className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                          r === 'pass'
+                            ? 'bg-emerald-600 text-white border-emerald-700'
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
+                        }`}
+                      >
+                        ผ่าน
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = [...retestSampleResults];
+                          next[idx] = 'fail';
+                          setRetestSampleResults(next);
+                        }}
+                        className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                          r === 'fail'
+                            ? 'bg-rose-600 text-white border-rose-700'
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-rose-50'
+                        }`}
+                      >
+                        ไม่ผ่าน
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {retestTarget.ipc.criteriaType === 'text' && (
+                <DxTextArea
+                  value={retestText}
+                  onValueChanged={(e) => setRetestText(e.value || '')}
+                  placeholder="กรอกผลการตรวจ"
+                  height={80}
+                />
+              )}
+            </div>
+            <div className="flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0">
+              <DxButton text="ยกเลิก" stylingMode="outlined" onClick={closeRetest} />
+              <DxButton
+                text={addIPCRoundMutation.isPending ? 'กำลังบันทึก...' : `บันทึกรอบ ${retestTarget.nextRound}`}
+                icon="save"
+                type="success"
+                onClick={handleSubmitRetest}
+                disabled={addIPCRoundMutation.isPending}
+              />
+            </div>
+          </div>
+        )}
       </DxPopup>
     </div>
   );
