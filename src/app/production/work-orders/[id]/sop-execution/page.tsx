@@ -71,6 +71,18 @@ interface LinkedIPCCriterion {
   // skip "fill again" prompts and show a status badge instead.
   recordedTestId?: number | null;
   recordedStatus?: 'pass' | 'fail' | 'pending' | null;
+  // Phase 6a — sample-level history attached server-side so the UI can
+  // expand the badge into a read-only details panel without refetching.
+  recordedSamples?: Array<{
+    sampleNumber: number;
+    testRound: number;
+    numericValue: number | null;
+    textValue: string | null;
+    result: string | null;
+  }>;
+  recordedTestedBy?: number | null;
+  recordedTestedByName?: string | null;
+  recordedTestDate?: string | null;
 }
 
 interface SOPStep {
@@ -165,6 +177,18 @@ export default function SOPExecutionPage() {
   // Step flow. Operator opens this any time during in_progress, fills in
   // sample values, saves. Backend upsert handles re-saves.
   const [showIPCDialog, setShowIPCDialog] = useState(false);
+
+  // Phase 6a — Set of recordedTestId currently expanded into the details
+  // panel. Toggling clicks on the "บันทึกแล้ว" badge.
+  const [expandedRecordedIPC, setExpandedRecordedIPC] = useState<Set<number>>(new Set());
+  const toggleExpandedRecorded = (testId: number) => {
+    setExpandedRecordedIPC((prev) => {
+      const next = new Set(prev);
+      if (next.has(testId)) next.delete(testId);
+      else next.add(testId);
+      return next;
+    });
+  };
 
   // Used to gate the Verify button under GMP dual-control:
   // a step's operator cannot also be its verifier.
@@ -443,6 +467,76 @@ export default function SOPExecutionPage() {
     }
     seedIPCBuffers(step);
     setShowCompleteDialog(true);
+  };
+
+  /** Render the read-only details panel for a recorded IPC criterion.
+   *  Shown when the operator clicks the "บันทึกแล้ว" badge. */
+  const renderRecordedDetails = (ipc: LinkedIPCCriterion) => {
+    if (!ipc.recordedTestId || !ipc.recordedSamples) return null;
+    const samples = ipc.recordedSamples;
+    const testedDate = ipc.recordedTestDate ? new Date(ipc.recordedTestDate) : null;
+    return (
+      <div className="mt-2 p-2 rounded-lg bg-white border border-gray-200 text-xs space-y-2">
+        <div className="flex items-center justify-between text-[11px] text-gray-500">
+          <span>
+            {ipc.recordedTestedByName && <>โดย <span className="font-medium text-gray-700">{ipc.recordedTestedByName}</span> · </>}
+            {testedDate && <>เมื่อ {testedDate.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}</>}
+          </span>
+          <span className={`font-semibold ${
+            ipc.recordedStatus === 'pass' ? 'text-emerald-700'
+              : ipc.recordedStatus === 'fail' ? 'text-rose-700'
+              : 'text-amber-700'
+          }`}>
+            {samples.filter((s) => s.result === 'pass').length}/{samples.length} ผ่าน
+          </span>
+        </div>
+        {ipc.criteriaType === 'numeric' && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
+            {samples.map((s, idx) => (
+              <div
+                key={idx}
+                className={`px-1.5 py-1 rounded text-center text-[11px] border ${
+                  s.result === 'pass'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : s.result === 'fail'
+                    ? 'bg-rose-50 border-rose-200 text-rose-800'
+                    : 'bg-gray-50 border-gray-200 text-gray-600'
+                }`}
+              >
+                <div className="text-[9px] text-gray-400">#{s.sampleNumber}</div>
+                <div className="font-mono font-semibold">{s.numericValue ?? '-'}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text' && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
+            {samples.map((s, idx) => (
+              <div
+                key={idx}
+                className={`px-1.5 py-1 rounded text-center text-[11px] border ${
+                  s.result === 'pass'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : s.result === 'fail'
+                    ? 'bg-rose-50 border-rose-200 text-rose-800'
+                    : 'bg-gray-50 border-gray-200 text-gray-600'
+                }`}
+              >
+                <div className="text-[9px] text-gray-400">#{s.sampleNumber}</div>
+                <div className="font-semibold">
+                  {s.result === 'pass' ? 'ผ่าน' : s.result === 'fail' ? 'ไม่ผ่าน' : '–'}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {ipc.criteriaType === 'text' && samples[0]?.textValue && (
+          <div className="px-2 py-1.5 rounded bg-gray-50 border border-gray-200 text-gray-700 whitespace-pre-wrap">
+            {samples[0].textValue}
+          </div>
+        )}
+      </div>
+    );
   };
 
   /** Seed empty IPC buffers for the current step. Used by both the
@@ -921,24 +1015,32 @@ export default function SOPExecutionPage() {
                                               Critical
                                             </span>
                                           )}
-                                          {/* Status badge — keeps the operator
-                                              from re-recording an already saved
-                                              criterion by mistake. */}
+                                          {/* Status badge — clickable to expand
+                                              read-only sample details (Phase 6a). */}
                                           {ipc.recordedTestId && (
-                                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                                              ipc.recordedStatus === 'pass'
-                                                ? 'bg-emerald-100 text-emerald-700'
-                                                : ipc.recordedStatus === 'fail'
-                                                ? 'bg-rose-100 text-rose-700'
-                                                : 'bg-amber-100 text-amber-700'
-                                            }`}>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleExpandedRecorded(ipc.recordedTestId!);
+                                              }}
+                                              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
+                                                ipc.recordedStatus === 'pass'
+                                                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                                  : ipc.recordedStatus === 'fail'
+                                                  ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                                                  : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                              }`}
+                                              title="คลิกเพื่อดูรายละเอียด samples"
+                                            >
                                               <CheckCircle2 className="h-2.5 w-2.5" />
                                               {ipc.recordedStatus === 'pass'
                                                 ? 'บันทึกแล้ว — ผ่าน'
                                                 : ipc.recordedStatus === 'fail'
                                                 ? 'บันทึกแล้ว — ไม่ผ่าน'
                                                 : 'บันทึกแล้ว'}
-                                            </span>
+                                              {expandedRecordedIPC.has(ipc.recordedTestId!) ? ' ▴' : ' ▾'}
+                                            </button>
                                           )}
                                         </div>
                                         {spec && (
@@ -946,6 +1048,7 @@ export default function SOPExecutionPage() {
                                             <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {ipc.sampleSize}
                                           </div>
                                         )}
+                                        {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(ipc)}
                                       </div>
                                     </div>
                                   );
@@ -1222,24 +1325,28 @@ export default function SOPExecutionPage() {
                           Critical
                         </span>
                       )}
-                      {/* Phase 5 — already-recorded badge. When set, the input
-                          fields below are replaced by a "saved" notice so the
-                          operator isn't prompted to re-enter values. */}
+                      {/* Phase 5/6a — clickable badge expands sample details. */}
                       {ipc.recordedTestId && (
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                          ipc.recordedStatus === 'pass'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : ipc.recordedStatus === 'fail'
-                            ? 'bg-rose-100 text-rose-700'
-                            : 'bg-amber-100 text-amber-700'
-                        }`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandedRecorded(ipc.recordedTestId!)}
+                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
+                            ipc.recordedStatus === 'pass'
+                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                              : ipc.recordedStatus === 'fail'
+                              ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                              : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                          }`}
+                          title="คลิกเพื่อดูรายละเอียด samples"
+                        >
                           <CheckCircle2 className="h-2.5 w-2.5" />
                           {ipc.recordedStatus === 'pass'
                             ? 'บันทึกแล้ว — ผ่าน'
                             : ipc.recordedStatus === 'fail'
                             ? 'บันทึกแล้ว — ไม่ผ่าน'
                             : 'บันทึกแล้ว'}
-                        </span>
+                          {expandedRecordedIPC.has(ipc.recordedTestId!) ? ' ▴' : ' ▾'}
+                        </button>
                       )}
                     </div>
                     {spec && (
@@ -1248,12 +1355,14 @@ export default function SOPExecutionPage() {
                       </div>
                     )}
 
-                    {/* Already saved — show a passive notice instead of input
-                        fields. Operator can re-record via "บันทึก IPC" if needed. */}
+                    {/* Already saved — show passive notice + optional details. */}
                     {ipc.recordedTestId ? (
-                      <div className="text-xs text-gray-500 italic px-2 py-1.5 rounded bg-white/60 border border-dashed border-emerald-200">
-                        IPC นี้บันทึกไว้แล้ว — กดปุ่ม &quot;บันทึก IPC&quot; ภายนอกถ้าต้องการแก้ค่า
-                      </div>
+                      <>
+                        <div className="text-xs text-gray-500 italic px-2 py-1.5 rounded bg-white/60 border border-dashed border-emerald-200">
+                          IPC นี้บันทึกไว้แล้ว — กดปุ่ม &quot;บันทึก IPC&quot; ภายนอกถ้าต้องการแก้ค่า
+                        </div>
+                        {expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(ipc)}
+                      </>
                     ) : (
                       <>
                         {/* Numeric — N number boxes */}
@@ -1436,24 +1545,29 @@ export default function SOPExecutionPage() {
                             Critical
                           </span>
                         )}
-                        {/* Already-recorded indicator. Inputs stay editable so
-                            the operator can intentionally re-save (idempotent
-                            upsert on the backend). */}
+                        {/* Already-recorded indicator. Click to expand samples;
+                            inputs stay editable so the operator can re-save. */}
                         {ipc.recordedTestId && (
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                            ipc.recordedStatus === 'pass'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : ipc.recordedStatus === 'fail'
-                              ? 'bg-rose-100 text-rose-700'
-                              : 'bg-amber-100 text-amber-700'
-                          }`}>
+                          <button
+                            type="button"
+                            onClick={() => toggleExpandedRecorded(ipc.recordedTestId!)}
+                            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
+                              ipc.recordedStatus === 'pass'
+                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                : ipc.recordedStatus === 'fail'
+                                ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                                : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                            }`}
+                            title="คลิกเพื่อดูรายละเอียด samples"
+                          >
                             <CheckCircle2 className="h-2.5 w-2.5" />
                             {ipc.recordedStatus === 'pass'
                               ? 'บันทึกแล้ว — ผ่าน · กรอกใหม่จะ replace'
                               : ipc.recordedStatus === 'fail'
                               ? 'บันทึกแล้ว — ไม่ผ่าน · กรอกใหม่จะ replace'
                               : 'บันทึกแล้ว · กรอกใหม่จะ replace'}
-                          </span>
+                            {expandedRecordedIPC.has(ipc.recordedTestId!) ? ' ▴' : ' ▾'}
+                          </button>
                         )}
                       </div>
                       {spec && (
@@ -1461,6 +1575,7 @@ export default function SOPExecutionPage() {
                           <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {size}
                         </div>
                       )}
+                      {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(ipc)}
 
                       {ipc.criteriaType === 'numeric' && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

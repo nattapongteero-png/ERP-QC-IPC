@@ -781,27 +781,32 @@ export async function getWOSOPExecution(workOrderId: number) {
       }
     }
 
-    // Resolve operator/verifier names
+    // Collect every user id we'll need names for (executions + recorded
+    // tests). One round-trip resolves all of them.
     const userIds = new Set<number>();
     for (const e of executions) {
       if (e.operatorId) userIds.add(e.operatorId);
       if (e.verifierId) userIds.add(e.verifierId);
     }
-    const userMap = new Map<number, string>();
-    if (userIds.size > 0) {
-      const { inArray } = await import('drizzle-orm');
-      const users = await db
-        .select({ id: tables.users.id, name: tables.users.name })
-        .from(tables.users)
-        .where(inArray(tables.users.id, [...userIds]));
-      for (const u of users) userMap.set(u.id, u.name);
-    }
 
-    // Phase 5 — find which IPC criteria are already recorded per WO step,
-    // so the UI can skip "fill again" prompts on already-saved tests. We
-    // match on the deterministic sample_number used by recordSOPLinkedIPCResults
-    // (`SOP-{executionId}-IPC-{criteriaId}`). One round-trip covers all steps.
-    const recordedKey = new Map<string, { id: number; status: string | null }>();
+    // Phase 5 + 6a — find which IPC criteria are already recorded per WO
+    // step (skip re-prompt) AND attach sample-level details so the UI can
+    // expand a "บันทึกแล้ว" badge into a read-only details panel without
+    // a second round-trip. We match on the deterministic sample_number
+    // used by recordSOPLinkedIPCResults (`SOP-{executionId}-IPC-{criteriaId}`).
+    const recordedKey = new Map<string, {
+      id: number;
+      status: string | null;
+      testedBy: number | null;
+      testDate: string | null;
+      samples: Array<{
+        sampleNumber: number;
+        testRound: number;
+        numericValue: number | null;
+        textValue: string | null;
+        result: string | null;
+      }>;
+    }>();
     if (executions.length > 0) {
       const lotIds = await findWOLotIds(db, tables, workOrderId);
       if (lotIds.length > 0) {
@@ -811,6 +816,8 @@ export async function getWOSOPExecution(workOrderId: number) {
             id: tables.qualityTests.id,
             sampleNumber: tables.qualityTests.sampleNumber,
             status: tables.qualityTests.status,
+            testedBy: tables.qualityTests.testedBy,
+            testDate: tables.qualityTests.testDate,
           })
           .from(tables.qualityTests)
           .where(and(
@@ -818,10 +825,62 @@ export async function getWOSOPExecution(workOrderId: number) {
             eq(tables.qualityTests.testType, 'in_process'),
             like(tables.qualityTests.sampleNumber, 'SOP-%-IPC-%'),
           ));
+
+        // Batch-fetch samples for every recorded test in one query.
+        const testIds = (recordedTests as any[]).map((t) => t.id);
+        const samplesByTest = new Map<number, any[]>();
+        if (testIds.length > 0) {
+          const sampleRows = await db
+            .select({
+              qualityTestId: tables.ipcTestSamples.qualityTestId,
+              sampleNumber: tables.ipcTestSamples.sampleNumber,
+              testRound: tables.ipcTestSamples.testRound,
+              numericValue: tables.ipcTestSamples.numericValue,
+              textValue: tables.ipcTestSamples.textValue,
+              result: tables.ipcTestSamples.result,
+            })
+            .from(tables.ipcTestSamples)
+            .where(inArray(tables.ipcTestSamples.qualityTestId, testIds))
+            .orderBy(asc(tables.ipcTestSamples.testRound), asc(tables.ipcTestSamples.sampleNumber));
+          for (const s of sampleRows as any[]) {
+            if (!samplesByTest.has(s.qualityTestId)) samplesByTest.set(s.qualityTestId, []);
+            samplesByTest.get(s.qualityTestId)!.push({
+              sampleNumber: s.sampleNumber,
+              testRound: s.testRound,
+              numericValue: s.numericValue != null ? Number(s.numericValue) : null,
+              textValue: s.textValue,
+              result: s.result,
+            });
+          }
+
+          // Resolve testedBy names along with operator names already collected.
+          for (const t of recordedTests as any[]) {
+            if (t.testedBy) userIds.add(t.testedBy);
+          }
+        }
+
         for (const t of recordedTests as any[]) {
-          recordedKey.set(t.sampleNumber, { id: t.id, status: t.status });
+          recordedKey.set(t.sampleNumber, {
+            id: t.id,
+            status: t.status,
+            testedBy: t.testedBy,
+            testDate: t.testDate,
+            samples: samplesByTest.get(t.id) || [],
+          });
         }
       }
+    }
+
+    // Resolve user names for everyone we touch (operators, verifiers,
+    // recorded-test testers).
+    const userMap = new Map<number, string>();
+    if (userIds.size > 0) {
+      const { inArray } = await import('drizzle-orm');
+      const users = await db
+        .select({ id: tables.users.id, name: tables.users.name })
+        .from(tables.users)
+        .where(inArray(tables.users.id, [...userIds]));
+      for (const u of users) userMap.set(u.id, u.name);
     }
 
     // Attach template sub-steps + user names + linked IPC criteria.
@@ -836,6 +895,10 @@ export async function getWOSOPExecution(workOrderId: number) {
           ...link,
           recordedTestId: found?.id ?? null,
           recordedStatus: found?.status ?? null,
+          recordedSamples: found?.samples ?? [],
+          recordedTestedBy: found?.testedBy ?? null,
+          recordedTestedByName: found?.testedBy ? (userMap.get(found.testedBy) || null) : null,
+          recordedTestDate: found?.testDate ?? null,
         };
       });
 
