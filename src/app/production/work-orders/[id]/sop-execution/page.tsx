@@ -1012,14 +1012,18 @@ export default function SOPExecutionPage() {
             )
           ) : (
             <div className="space-y-4">
-              {displaySteps.map((step) => {
-                // Use the global step list to compute previous-step status —
-                // we still enforce sequential execution across all phases even
-                // when the view is filtered to a single phase.
-                const globalIndex = (steps ?? []).findIndex((s) => s.id === step.id);
+              {displaySteps.map((step, displayIndex) => {
+                // Sequential execution: when the view is filtered to one phase,
+                // gate on the previous step WITHIN that phase (so a stalled
+                // production step doesn't block a pre-production retest).
+                // When unfiltered, use the global ordering as before.
+                const referenceList = phaseFilter ? displaySteps : (steps ?? []);
+                const refIndex = phaseFilter
+                  ? displayIndex
+                  : (steps ?? []).findIndex((s) => s.id === step.id);
                 const statusInfo = getStatusInfo(step.status);
                 const StatusIcon = statusInfo.icon;
-                const prevStep = globalIndex > 0 ? (steps ?? [])[globalIndex - 1] : null;
+                const prevStep = refIndex > 0 ? referenceList[refIndex - 1] : null;
                 const prevStepDone = !prevStep ||
                   (prevStep.requiresVerification
                     ? prevStep.status === 'verified'
@@ -1057,8 +1061,18 @@ export default function SOPExecutionPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 flex-wrap">
                             <span className="text-lg font-medium text-gray-900">
-                              {t('bomConfiguration.step', { sequence: step.sequence })}: {locale === 'th' && step.stepNameTh ? step.stepNameTh : step.stepName}
+                              {/* Renumber from 1 within the filtered view —
+                                  e.g. global seq 2 + 5 in pre_production
+                                  shows as "step 1" + "step 2". The original
+                                  global sequence is kept as a small badge so
+                                  audit trails still align. */}
+                              {t('bomConfiguration.step', { sequence: phaseFilter ? displayIndex + 1 : step.sequence })}: {locale === 'th' && step.stepNameTh ? step.stepNameTh : step.stepName}
                             </span>
+                            {phaseFilter && step.sequence !== displayIndex + 1 && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-gray-500 bg-gray-100" title="Original sequence in BOM">
+                                #{step.sequence}
+                              </span>
+                            )}
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusInfo.color}`}>
                               {statusInfo.label}
                             </span>
