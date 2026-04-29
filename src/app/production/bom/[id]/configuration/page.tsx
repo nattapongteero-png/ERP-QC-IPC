@@ -6,7 +6,7 @@
  * and packaging QC criteria for a specific BOM.
  */
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -564,6 +564,28 @@ export default function BOMConfigurationPage() {
     },
   });
 
+  // Memoize the SOP-template dropdown items. Without this, the inline
+  // .filter().map() rebuilt the array on every render, and DxSelectBox saw
+  // a fresh dataSource reference each time. After the user clicked an
+  // item, the next render swapped in a "new" array, which made the widget
+  // re-emit onValueChanged(null) — wiping templateId back to 0 and hiding
+  // the IPC sub-step linker. Stable identity → no spurious null emit.
+  const sopTemplateOptions = useMemo(
+    () =>
+      (sopTemplates || [])
+        .filter((t) => t.isActive)
+        .map((t) => {
+          const th = (t.nameTh || '').trim();
+          const en = (t.name || '').trim();
+          const both = th && en && th !== en ? `${th} / ${en}` : (th || en || '—');
+          return {
+            ...t,
+            displayLabel: `${t.code} — ${both}`,
+          };
+        }),
+    [sopTemplates],
+  );
+
   const { data: qcCriteria } = useQuery<PackagingQCCriteria[]>({
     queryKey: ['packaging-qc-criteria'],
     queryFn: async () => {
@@ -609,13 +631,28 @@ export default function BOMConfigurationPage() {
     phase: 'production' as 'pre_production' | 'production' | 'post_production' | 'packaging',
   });
 
+  // Clear pendingIpcLinks + pending form state whenever the user switches
+  // the template in the Add Step dialog. Otherwise IPC entries staged for
+  // template A would carry over (with stale procedure_step_id) when the
+  // operator changes their mind and picks template B — which would silently
+  // create cross-template links on save.
+  useEffect(() => {
+    if (showAddDialog && dialogType === 'sop') {
+      setPendingIpcLinks([]);
+      setPendingIpcEditingId(null);
+      setPendingIpcActiveSubStepId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sopForm.templateId]);
+
   // Sub-steps (procedure_step_id targets) for the template currently in
-  // play — either the Manage dialog's selectedStepForIPC OR the Edit Step
-  // dialog's sopForm.templateId. Lets both inline + standalone IPC linkers
-  // group "ขั้นตอนย่อย" sections.
-  const activeTemplateIdForSubSteps =
-    selectedStepForIPC?.templateId ??
-    (sopForm.templateId > 0 ? sopForm.templateId : null);
+  // play. The two dialogs that need this MUST NOT mix sources — that caused
+  // sticky stale state when the user picked a different template:
+  //  - Manage IPC popup (showIPCLinkDialog): use selectedStepForIPC.templateId
+  //  - Add/Edit Step dialog (showAddDialog + dialogType='sop'): use sopForm.templateId
+  const activeTemplateIdForSubSteps = showIPCLinkDialog
+    ? (selectedStepForIPC?.templateId ?? null)
+    : (showAddDialog && dialogType === 'sop' && sopForm.templateId > 0 ? sopForm.templateId : null);
   const { data: subStepsForSelectedBomStep = [], isFetching: subStepsFetching } = useQuery<any[]>({
     queryKey: ['sop-template-sub-steps', activeTemplateIdForSubSteps],
     queryFn: async () => {
@@ -1791,38 +1828,27 @@ export default function BOMConfigurationPage() {
                   From Template <span className="text-gray-400">(Optional)</span>
                 </label>
                 <DxSelectBox
-                  dataSource={
-                    // Build displayLabel that shows code + both names so the user
-                    // can spot the template regardless of which language they
-                    // typed into the master. Fallback to whichever name exists.
-                    (sopTemplates || [])
-                      .filter((t) => t.isActive)
-                      .map((t) => {
-                        const th = (t.nameTh || '').trim();
-                        const en = (t.name || '').trim();
-                        const both = th && en && th !== en ? `${th} / ${en}` : (th || en || '—');
-                        return {
-                          ...t,
-                          displayLabel: `${t.code} — ${both}`,
-                        };
-                      }) as unknown as Record<string, unknown>[]
-                  }
+                  dataSource={sopTemplateOptions as unknown as Record<string, unknown>[]}
                   displayExpr="displayLabel"
                   valueExpr="id"
                   searchExpr={['displayLabel', 'nameTh', 'name', 'code']}
                   value={sopForm.templateId || null}
                   onValueChanged={(e) => {
+                    // Guard: spurious null emit (no DOM event) means the
+                    // widget reset itself after a programmatic value change
+                    // — don't honor it, the user didn't clear.
+                    if (e.value == null && !e.event) return;
                     const template = sopTemplates?.find((t) => t.id === e.value);
-                    if (template) {
-                      setSOPForm({
-                        ...sopForm,
-                        templateId: e.value,
-                        stepName: template.name,
-                        stepNameTh: template.nameTh,
-                      });
-                    } else {
-                      setSOPForm({ ...sopForm, templateId: 0 });
-                    }
+                    // Use functional setState so the spread reads the LATEST
+                    // sopForm. Without this, sibling DxTextBox handlers
+                    // emitting on prop change can revert templateId back to
+                    // 0 via a stale closure spread (their closure still has
+                    // the pre-pick sopForm).
+                    setSOPForm((prev) =>
+                      template
+                        ? { ...prev, templateId: e.value, stepName: template.name, stepNameTh: template.nameTh }
+                        : { ...prev, templateId: 0 }
+                    );
                   }}
                   placeholder="เลือก Template หรือเว้นว่างเพื่อกรอกเอง"
                   searchEnabled
@@ -1837,7 +1863,7 @@ export default function BOMConfigurationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (TH) *</label>
                   <DxTextBox
                     value={sopForm.stepNameTh}
-                    onValueChanged={(e) => setSOPForm({ ...sopForm, stepNameTh: e.value })}
+                    onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, stepNameTh: e.value }))}
                     placeholder="เช่น ผสมส่วนผสม"
                   />
                 </div>
@@ -1847,7 +1873,7 @@ export default function BOMConfigurationPage() {
                   </label>
                   <DxTextBox
                     value={sopForm.stepName}
-                    onValueChanged={(e) => setSOPForm({ ...sopForm, stepName: e.value })}
+                    onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, stepName: e.value }))}
                     placeholder="e.g., Mix ingredients"
                   />
                 </div>
@@ -1856,7 +1882,7 @@ export default function BOMConfigurationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (TH)</label>
                 <DxTextArea
                   value={sopForm.instructionsTh}
-                  onValueChanged={(e) => setSOPForm({ ...sopForm, instructionsTh: e.value })}
+                  onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, instructionsTh: e.value }))}
                   height={60}
                 />
               </div>
@@ -1871,7 +1897,7 @@ export default function BOMConfigurationPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
                     <DxTextArea
                       value={sopForm.instructions}
-                      onValueChanged={(e) => setSOPForm({ ...sopForm, instructions: e.value })}
+                      onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, instructions: e.value }))}
                       height={60}
                     />
                   </div>
@@ -1879,7 +1905,7 @@ export default function BOMConfigurationPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Parameters (JSON)</label>
                     <DxTextBox
                       value={sopForm.parameters}
-                      onValueChanged={(e) => setSOPForm({ ...sopForm, parameters: e.value })}
+                      onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, parameters: e.value }))}
                       placeholder='e.g., {"temperature": 75, "duration": 5}'
                     />
                   </div>
@@ -1888,7 +1914,7 @@ export default function BOMConfigurationPage() {
               <div className="flex items-center gap-2">
                 <DxSwitch
                   value={sopForm.requiresVerification}
-                  onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setSOPForm({ ...sopForm, requiresVerification: e.value ?? true })}
+                  onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setSOPForm((prev) => ({ ...prev, requiresVerification: e.value ?? true }))}
                 />
                 <span className="text-sm text-gray-700">Requires verification by supervisor</span>
               </div>
@@ -1899,7 +1925,7 @@ export default function BOMConfigurationPage() {
                   displayExpr="label"
                   valueExpr="value"
                   value={sopForm.phase}
-                  onValueChanged={(e) => setSOPForm({ ...sopForm, phase: e.value })}
+                  onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, phase: e.value }))}
                 />
                 <p className="text-xs text-gray-500 mt-1">เลือก phase ที่จะให้ขั้นตอนนี้แสดงใน Execution Dashboard</p>
               </div>

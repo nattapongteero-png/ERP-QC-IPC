@@ -352,6 +352,9 @@
 
 <script>
 var DATA=[
+  // ==================== 30 เมษายน 2569 ====================
+  {module:'Production',menu:'BOM Configuration — Step Dialog',sub:'แก้ template-pick ครั้งแรกไม่แสดง sub-steps + จำตัวเลือกข้าม template',type:'fix',desc:'User feedback: "เลือก template ครั้งแรกไม่แสดง sub-step + เปลี่ยน template ระบบจำของเก่า" — root cause: stale closure ใน setSOPForm spread + DxSelectBox spurious null emit หลัง user click — Fix: functional setState ทุก handler (setSOPForm(prev => ...)) + guard ignore null emit ที่ไม่มี DOM event + memoize dataSource',date:'30 เม.ย. 69',startTime:'00:50',endTime:'01:30',prompt:'เลือกครั้งแรกไม่แสดงเสมอ + เปลี่ยน template ยังจำ step ย่อยเดิม'},
+
   // ==================== 29 เมษายน 2569 ====================
   {module:'Production',menu:'BOM Configuration — Step Dialog',sub:'แก้ template stale — sub-steps ไม่แสดงตอนเลือก template ครั้งแรก',type:'fix',desc:'User feedback: "เลือก template แล้ว รายการไม่แสดง ต้องเข้าออกหลายรอบ" — root cause: openAddDialog ไม่ reset sopForm + selectedStepForIPC ทำให้ stale templateId จาก session ก่อนทำให้ activeTemplateIdForSubSteps คืนค่าผิด — Fix: reset sopForm + selectedStepForIPC ใน openAddDialog เสมอ + เพิ่ม loading spinner ตอน fetch sub-steps (isFetching) + staleTime 60s + refetchOnMount + ปรับข้อความ empty state ชัดเจน',date:'29 เม.ย. 69',startTime:'00:10',endTime:'00:20',prompt:'เลือก template แล้ว รายการไม่แสดง ต้องเข้าออกหลายรอบ'},
   {module:'Production',menu:'BOM Configuration — Step Dialog',sub:'แก้ dialog ล้นจอ + IPC ต้องผูก sub-step เสมอ',type:'fix',desc:'(1) Dialog SOP Step สูง 90vh + scroll + sticky footer → ปุ่ม Save/Cancel ไม่หายลงจอ (2) ลบตัวเลือก "ผูกกับ step ทั้งหมด" — IPC ต้องผูก sub-step เสมอ (เพื่อให้ WO Execution บันทึกได้) (3) Sub-step picker required + validation throw ถ้าไม่เลือก',date:'29 เม.ย. 69',startTime:'07:35',endTime:'07:50',prompt:'IPC ต้องผูกกับ SOP sub-step เท่านั้น + ปุ่ม save/cancel มองไม่เห็นล้นจอ'},
