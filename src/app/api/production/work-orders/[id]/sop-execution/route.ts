@@ -204,6 +204,13 @@ export async function PUT(
       }
     } catch (error) {
       console.error('Error updating WO SOP execution:', error);
+      // Service-layer validation errors carry user-facing Thai messages
+      // (e.g. "ครบจำนวน retest สูงสุดแล้ว — ต้องบันทึก Deviation"). Surface
+      // them as 400 so the operator sees what to do; reserve 500 for
+      // truly internal failures (non-Error throws).
+      if (error instanceof Error && error.message) {
+        return errorResponse(error.message, 400);
+      }
       return serverErrorResponse(error);
     }
   });

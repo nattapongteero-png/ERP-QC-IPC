@@ -951,9 +951,14 @@ export default function BOMConfigurationPage() {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
 
       // Batch-insert any IPC links the operator staged in pendingIpcLinks
-      // before the step itself was saved. The server returns the new step's
-      // id in result.data.id (matches POST /api/production/bom/[id]/sop-steps).
-      const newBomStepId: number | undefined = result?.data?.id ?? result?.data?.bomStepId;
+      // before the step itself was saved. POST /sop-steps now flattens the
+      // response so result.data.id is the bomStep id; the legacy nested
+      // shape result.data.bomStep.id is checked too in case an older
+      // server build is in front of a freshly-deployed UI.
+      const newBomStepId: number | undefined =
+        result?.data?.id ??
+        result?.data?.bomStep?.id ??
+        result?.data?.bomStepId;
       const pending = pendingIpcLinks;
       let linkedCount = 0;
       let linkErrors = 0;
