@@ -1437,11 +1437,6 @@ export default function SOPExecutionPage() {
                                   audit trails still align. */}
                               {t('bomConfiguration.step', { sequence: phaseFilter ? displayIndex + 1 : step.sequence })}: {locale === 'th' && step.stepNameTh ? step.stepNameTh : step.stepName}
                             </span>
-                            {phaseFilter && step.sequence !== displayIndex + 1 && (
-                              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono text-slate-500 bg-slate-100 border border-slate-200" title="Original sequence in BOM">
-                                #{step.sequence}
-                              </span>
-                            )}
                             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusPillClasses}`}>
                               {step.status === 'in_progress' && (
                                 <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
