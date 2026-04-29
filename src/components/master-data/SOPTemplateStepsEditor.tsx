@@ -8,7 +8,6 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ListOrdered, Plus, ChevronUp, ChevronDown, Pencil, Trash2 } from 'lucide-react';
-import { ProcedureStepIPCChips } from './ProcedureStepIPCChips';
 
 interface SOPTemplateStep {
   id: number;
@@ -331,12 +330,9 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
                 </div>
               </div>
             )}
-            {/* IPC criteria linker — only shown when step is committed (has id)
-                and not currently being edited. Each linker fetches its own
-                state, so re-renders of sibling steps don't cascade.  */}
-            {editingId !== step.id && (
-              <ProcedureStepIPCChips templateId={templateId} procedureStepId={step.id} />
-            )}
+            {/* IPC linker removed (Phase 14): IPC criteria are now configured
+                at the BOM level (BOM Configuration → SOP Steps → Manage IPC).
+                The master template only defines the procedure/steps now. */}
           </div>
         ))}
 
