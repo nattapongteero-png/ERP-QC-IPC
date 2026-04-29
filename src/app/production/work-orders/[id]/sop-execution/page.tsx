@@ -1416,7 +1416,10 @@ export default function SOPExecutionPage() {
                     {/* Phase color accent stripe — left edge */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${stepTheme.gradient}`} />
                     <div className="p-4 md:p-5 pl-5 md:pl-6">
-                    <div className="flex items-start justify-between gap-3">
+                    {/* Mobile: stack title block above action buttons so the
+                        title isn't squeezed into a thin column when
+                        Start/Complete/Verify chips are also rendered. */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div className="flex items-start gap-3 md:gap-4 min-w-0 flex-1">
                         <div className={`relative flex-none w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${stepTheme.gradient} text-white shadow-md shadow-slate-200/60`}>
                           <StatusIcon className="h-5 w-5" />
@@ -1426,7 +1429,7 @@ export default function SOPExecutionPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-base md:text-lg font-semibold text-slate-900 tracking-tight">
+                            <span className="text-base md:text-lg font-semibold text-slate-900 tracking-tight break-words">
                               {/* Renumber from 1 within the filtered view —
                                   e.g. global seq 2 + 5 in pre_production
                                   shows as "step 1" + "step 2". The original
@@ -1623,7 +1626,7 @@ export default function SOPExecutionPage() {
                                                         <span className="font-mono font-semibold text-emerald-700 bg-emerald-50 px-1 rounded text-[10px]">
                                                           {ipc.criteriaCode}
                                                         </span>
-                                                        <span className="text-gray-900 truncate">
+                                                        <span className="text-gray-900 break-words min-w-0">
                                                           {ipc.criteriaNameTh || ipc.criteriaName}
                                                         </span>
                                                         {ipc.isCritical && (
@@ -1872,7 +1875,7 @@ export default function SOPExecutionPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 flex-shrink-0 items-center justify-end">
+                      <div className="flex flex-wrap gap-2 items-center justify-start sm:justify-end sm:flex-shrink-0">
                         {isBlockedByVerification && (
                           <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 font-medium">
                             <Clock className="h-3 w-3" />

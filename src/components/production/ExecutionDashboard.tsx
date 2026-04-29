@@ -553,9 +553,75 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   }
 
   // Determine which sections are locked based on workflow prerequisites
+  // Per-phase completeness — a phase is complete when every visible section
+  // in it has `completed >= total` (and total > 0). Used to enforce the
+  // sequential-phase rule: Production locked until Pre-Production complete,
+  // Post-Production until Production complete, etc. Material Requisition is
+  // special-cased: completeness = warehouse approval, not item count.
+  const phaseCompleteness: Record<string, boolean> = (() => {
+    const allSections = executionSections;
+    const out: Record<string, boolean> = {};
+    for (const phase of ['pre_production', 'production', 'post_production', 'packaging', 'inspection'] as const) {
+      const phaseSections = allSections.filter((sec) => sec.phase === phase);
+      if (phaseSections.length === 0) {
+        // No work configured for this phase — treat as complete so it doesn't
+        // block downstream phases. Only configured phases gate.
+        out[phase] = true;
+        continue;
+      }
+      out[phase] = phaseSections.every((sec) => {
+        if (sec.id === 'material-requisition') {
+          return currentSummary.materialRequisition.status === 'approved';
+        }
+        const status = sec.getStatus(currentSummary);
+        if (status.total === 0) return true; // section has nothing to do
+        return status.completed >= status.total;
+      });
+    }
+    return out;
+  })();
+
+  // Phase order — each phase requires all earlier phases to be complete.
+  const phaseOrder: Record<string, number> = {
+    pre_production: 0,
+    production: 1,
+    post_production: 2,
+    pre_packaging: 3,
+    packaging: 3,
+    inspection: 4,
+  };
+  const phaseLabelMap: Record<string, string> = {
+    pre_production: 'Pre-Production',
+    production: 'Production',
+    post_production: 'Post-Production',
+    pre_packaging: 'Pre-Packaging',
+    packaging: 'Packaging',
+    inspection: 'Inspection',
+  };
+
   const isSectionLocked = (sectionId: string): { locked: boolean; reason: string } => {
     const s = currentSummary;
     const woStatus = s.workOrderStatus || 'planned';
+
+    // Phase-sequence gate: a section in phase N is locked until every earlier
+    // phase is complete. The prerequisite chain: Pre → Production → Post →
+    // Packaging → Inspection. A phase with no configured sections is treated
+    // as complete so empty BOM segments don't deadlock the workflow.
+    const ownSection = executionSections.find((sec) => sec.id === sectionId);
+    if (ownSection) {
+      const ownIdx = phaseOrder[ownSection.phase] ?? 0;
+      const blockingPhases: string[] = [];
+      for (const [phase, complete] of Object.entries(phaseCompleteness)) {
+        const idx = phaseOrder[phase] ?? 0;
+        if (idx < ownIdx && !complete) blockingPhases.push(phaseLabelMap[phase] ?? phase);
+      }
+      if (blockingPhases.length > 0) {
+        return {
+          locked: true,
+          reason: `ต้องบันทึก ${blockingPhases.join(' + ')} ให้ครบก่อน`,
+        };
+      }
+    }
 
     // Pre-production: cleaning & environmental are always accessible
     // Material weighing: requires requisition approved
