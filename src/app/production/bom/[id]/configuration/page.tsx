@@ -141,16 +141,35 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
   return (
     <Card>
       <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <FlaskConical className="h-5 w-5 text-emerald-600" />
-            <h3 className="text-lg font-medium">In-Process Control (IPC) Criteria</h3>
+            <h3 className="text-lg font-medium">In-Process Control (IPC) — Phase Level</h3>
           </div>
           {!showForm && (
             <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200">
               <Plus className="h-4 w-4" /> Add IPC Criteria
             </button>
           )}
+        </div>
+
+        {/* Phase-level vs sub-step-level guidance — without this hint
+            operators sometimes added the same criterion both here and in
+            "SOP Steps → Manage IPC", duplicating quality_test rows in WO
+            execution. The two scopes coexist intentionally. */}
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5 text-xs text-amber-900 leading-relaxed">
+          <p className="font-semibold mb-0.5">เลือกใช้ tab ให้ถูก scope</p>
+          <ul className="list-disc pl-5 space-y-0.5">
+            <li>
+              <strong>tab นี้ (IPC — Phase Level):</strong> สำหรับ IPC ที่ผูกกับ <em>phase</em> ทั้ง phase ไม่ระบุ sub-step (เช่น IPC แบบทั่วไปของ Production)
+            </li>
+            <li>
+              <strong>tab &quot;SOP Steps&quot; → ปุ่ม &quot;Manage&quot; ในแต่ละ step:</strong> สำหรับ IPC ที่ผูกกับ sub-step เฉพาะของ procedure (recommended สำหรับ test ที่เกี่ยวข้องกับขั้นตอนใดขั้นตอนหนึ่ง)
+            </li>
+          </ul>
+          <p className="mt-1.5 text-[11px] text-amber-700">
+            ห้ามใส่ criterion เดียวกันทั้งสอง scope จะทำให้ WO execution บันทึกซ้ำ
+          </p>
         </div>
 
         {isLoading && <div className="text-center py-6 text-gray-400">Loading...</div>}
@@ -368,11 +387,14 @@ const phases = [
 // numeric position so existing tab-content blocks don't need re-wiring.
 // Tab items are now built inside the component so each tab label can carry
 // a live count badge (e.g. "Rooms 4"). The base shape stays declarative.
+// IPC tab is renamed to make the legacy phase-level scope explicit — the
+// new per-sub-step linker lives under "SOP Steps → Manage IPC" so operators
+// don't accidentally double-record the same criterion in both places.
 const tabBlueprint: Array<{ id: number; text: string; icon: string }> = [
   { id: 0, text: 'Rooms', icon: 'home' },
   { id: 1, text: 'Equipment', icon: 'toolbox' },
   { id: 2, text: 'SOP Steps', icon: 'textdocument' },
-  { id: 4, text: 'IPC', icon: 'checklist' },
+  { id: 4, text: 'IPC — Phase Level', icon: 'checklist' },
 ];
 
 export default function BOMConfigurationPage() {
