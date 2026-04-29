@@ -1483,7 +1483,7 @@ export default function BOMConfigurationPage() {
                   noDataText="No rooms configured. Click 'Add Room' to add requirements."
                 >
                   <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="sequence" caption="#" width={60} />
+                  <DxColumn dataField="sequence" caption="#" width={60} sortOrder="asc" sortIndex={0} />
                   <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="room.code" caption="Room Code" width={120} />
                   <DxColumn dataField="room.name" caption="Room Name" />
@@ -1540,7 +1540,7 @@ export default function BOMConfigurationPage() {
                   noDataText="No equipment configured. Click 'Add Equipment' to add requirements."
                 >
                   <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="sequence" caption="#" width={60} />
+                  <DxColumn dataField="sequence" caption="#" width={60} sortOrder="asc" sortIndex={0} />
                   <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="equipment.code" caption="Equipment Code" width={120} />
                   <DxColumn dataField="equipment.name" caption="Equipment Name" />
@@ -1586,7 +1586,7 @@ export default function BOMConfigurationPage() {
                   noDataText="No SOP steps configured. Click 'Add Step' to add production steps."
                 >
                   <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="sequence" caption="Step" width={70} />
+                  <DxColumn dataField="sequence" caption="Step" width={70} sortOrder="asc" sortIndex={0} />
                   <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="stepName" caption="Step Name (EN)" />
                   <DxColumn dataField="stepNameTh" caption="Step Name (TH)" />
