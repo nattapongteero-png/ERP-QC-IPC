@@ -89,20 +89,29 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
   bgColor: string;
   textColor: string;
   borderColor: string;
+  gradient: string;
+  ring: string;
+  iconBg: string;
   icon: React.ReactNode;
 }> = {
   raw_material: {
     translationKey: 'rawMaterial',
-    bgColor: 'bg-green-50',
-    textColor: 'text-green-700',
-    borderColor: 'border-green-200',
+    bgColor: 'bg-blue-50',
+    textColor: 'text-blue-700',
+    borderColor: 'border-blue-200',
+    gradient: 'from-blue-500 to-sky-500',
+    ring: 'ring-blue-200',
+    iconBg: 'bg-blue-100',
     icon: <Leaf className="h-4 w-4" />,
   },
   packaging: {
     translationKey: 'packaging',
-    bgColor: 'bg-blue-50',
-    textColor: 'text-blue-700',
-    borderColor: 'border-blue-200',
+    bgColor: 'bg-cyan-50',
+    textColor: 'text-cyan-700',
+    borderColor: 'border-cyan-200',
+    gradient: 'from-cyan-500 to-teal-500',
+    ring: 'ring-cyan-200',
+    iconBg: 'bg-cyan-100',
     icon: <Box className="h-4 w-4" />,
   },
   wip: {
@@ -110,20 +119,29 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
     bgColor: 'bg-orange-50',
     textColor: 'text-orange-700',
     borderColor: 'border-orange-200',
+    gradient: 'from-orange-500 to-amber-500',
+    ring: 'ring-orange-200',
+    iconBg: 'bg-orange-100',
     icon: <FlaskConical className="h-4 w-4" />,
   },
   finished_goods: {
     translationKey: 'finishedGoods',
-    bgColor: 'bg-purple-50',
-    textColor: 'text-purple-700',
-    borderColor: 'border-purple-200',
+    bgColor: 'bg-emerald-50',
+    textColor: 'text-emerald-700',
+    borderColor: 'border-emerald-200',
+    gradient: 'from-emerald-500 to-green-500',
+    ring: 'ring-emerald-200',
+    iconBg: 'bg-emerald-100',
     icon: <Pill className="h-4 w-4" />,
   },
   consumable: {
     translationKey: 'consumable',
-    bgColor: 'bg-gray-50',
-    textColor: 'text-gray-700',
-    borderColor: 'border-gray-200',
+    bgColor: 'bg-slate-50',
+    textColor: 'text-slate-700',
+    borderColor: 'border-slate-200',
+    gradient: 'from-slate-500 to-gray-500',
+    ring: 'ring-slate-200',
+    iconBg: 'bg-slate-100',
     icon: <Package className="h-4 w-4" />,
   },
 };
@@ -475,13 +493,18 @@ export default function ItemsPage() {
   const renderCodeCell = useCallback((data: { data: Item }) => {
     const config = ITEM_TYPE_CONFIG[data.data.type as ItemType];
     return (
-      <div className="flex items-center gap-2">
-        <span className={cn('p-1 rounded', config?.bgColor, config?.textColor)}>
+      <div className="flex items-center gap-2.5">
+        <span
+          className={cn(
+            'inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm ring-1 ring-white/40',
+            config?.gradient ?? 'from-slate-400 to-slate-500'
+          )}
+        >
           {config?.icon}
         </span>
         <button
           onClick={() => router.push(`/inventory/items/${data.data.id}`)}
-          className="font-mono text-amber-600 hover:text-amber-800 hover:underline"
+          className="font-mono text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
         >
           {data.data.code}
         </button>
@@ -491,10 +514,10 @@ export default function ItemsPage() {
 
   const renderNameCell = useCallback((data: { data: Item }) => {
     return (
-      <div>
-        <p className="font-medium text-gray-900">{data.data.nameTh}</p>
+      <div className="min-w-0">
+        <p className="font-medium text-gray-900 truncate">{data.data.nameTh}</p>
         {data.data.nameEn && (
-          <p className="text-xs text-gray-500">{data.data.nameEn}</p>
+          <p className="text-xs text-gray-500 truncate">{data.data.nameEn}</p>
         )}
       </div>
     );
@@ -504,7 +527,14 @@ export default function ItemsPage() {
     const config = ITEM_TYPE_CONFIG[data.value];
     if (!config) return data.value;
     return (
-      <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium', config.bgColor, config.textColor)}>
+      <span
+        className={cn(
+          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border',
+          config.bgColor,
+          config.textColor,
+          config.borderColor
+        )}
+      >
         {config.icon}
         {t(`items.types.${config.translationKey}`)}
       </span>
@@ -515,15 +545,25 @@ export default function ItemsPage() {
     const onHand = data.data.onHand ?? 0;
     const minStock = data.data.minStock ?? 0;
     const isLow = minStock > 0 && onHand < minStock;
+    const isZero = onHand === 0;
 
     return (
-      <div>
-        <div className={cn('font-medium', isLow ? 'text-red-600' : 'text-gray-900')}>
-          {formatCompactNumber(onHand)} {data.data.primaryUnit}
-          {isLow && (
-            <span className="ml-1 text-xs px-1 py-0.5 bg-red-100 text-red-700 rounded">{t('items.grid.lowStock')}</span>
+      <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            'font-semibold text-sm tabular-nums',
+            isLow ? 'text-rose-600' : isZero ? 'text-gray-400' : 'text-gray-900'
           )}
+        >
+          {formatCompactNumber(onHand)}
         </div>
+        <span className="text-xs text-gray-500">{data.data.primaryUnit}</span>
+        {isLow && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-gradient-to-r from-rose-500 to-red-500 text-white font-semibold rounded-full shadow-sm">
+            <AlertTriangle className="h-2.5 w-2.5" />
+            {t('items.grid.lowStock')}
+          </span>
+        )}
       </div>
     );
   }, [t]);
@@ -533,29 +573,32 @@ export default function ItemsPage() {
 
     if (quarantineQty === 0) {
       return (
-        <div className="text-gray-400 text-center">-</div>
+        <div className="text-gray-300 text-center">—</div>
       );
     }
 
     return (
-      <div className="flex items-center gap-1.5" title={`${quarantineQty.toLocaleString()} ${data.data.primaryUnit}`}>
-        <Clock className="h-4 w-4 text-amber-500" />
-        <span className="font-medium text-amber-700">
+      <div
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200"
+        title={`${quarantineQty.toLocaleString()} ${data.data.primaryUnit}`}
+      >
+        <Clock className="h-3.5 w-3.5 text-amber-600" />
+        <span className="font-semibold text-amber-700 text-xs tabular-nums">
           {formatCompactNumber(quarantineQty)}
         </span>
-        <span className="text-xs text-gray-500">{data.data.primaryUnit}</span>
+        <span className="text-[10px] text-amber-600/70">{data.data.primaryUnit}</span>
       </div>
     );
   }, []);
 
   const renderStatusCell = useCallback((data: { value: boolean }) => {
     return data.value ? (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border border-emerald-200">
         <CheckCircle className="h-3 w-3" />
         {t('items.status.active')}
       </span>
     ) : (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-rose-50 to-red-50 text-rose-700 border border-rose-200">
         <XCircle className="h-3 w-3" />
         {t('items.status.inactive')}
       </span>
@@ -565,14 +608,17 @@ export default function ItemsPage() {
   const renderVmiCell = useCallback((data: { data: Item }) => {
     const hasVmi = data.data.tppCode || data.data.ttmtCode;
     return hasVmi ? (
-      <div className="flex items-center gap-1 text-emerald-600" title={`TPP: ${data.data.tppCode || '-'}, TTMT: ${data.data.ttmtCode || '-'}`}>
-        <CheckCircle className="h-4 w-4" />
-        <span className="text-xs font-medium">{t('items.grid.vmiReady')}</span>
+      <div
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-50 to-emerald-50 text-emerald-700 border border-emerald-200"
+        title={`TPP: ${data.data.tppCode || '-'}, TTMT: ${data.data.ttmtCode || '-'}`}
+      >
+        <CheckCircle className="h-3.5 w-3.5" />
+        <span className="text-[11px] font-semibold">{t('items.grid.vmiReady')}</span>
       </div>
     ) : (
-      <div className="flex items-center gap-1 text-gray-400">
-        <XCircle className="h-4 w-4" />
-        <span className="text-xs">-</span>
+      <div className="flex items-center gap-1 text-gray-300">
+        <XCircle className="h-3.5 w-3.5" />
+        <span className="text-xs">—</span>
       </div>
     );
   }, [t]);
@@ -585,7 +631,7 @@ export default function ItemsPage() {
             e.stopPropagation();
             router.push(`/inventory/items/${data.data.id}`);
           }}
-          className="p-1 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded"
+          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
           title={t('items.buttons.viewDetails')}
         >
           <Eye className="h-4 w-4" />
@@ -595,7 +641,7 @@ export default function ItemsPage() {
             e.stopPropagation();
             handleEdit(data.data);
           }}
-          className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+          className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
           title={t('items.buttons.edit')}
         >
           <Edit className="h-4 w-4" />
@@ -605,7 +651,7 @@ export default function ItemsPage() {
             e.stopPropagation();
             setDeleteConfirm({ open: true, item: data.data });
           }}
-          className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+          className="p-1.5 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
           title={t('items.buttons.delete')}
         >
           <Trash2 className="h-4 w-4" />
@@ -618,98 +664,210 @@ export default function ItemsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-4">
-        {/* Page Header */}
-        <PageHeader
-          title={t('items.pageTitle')}
-          description={t('items.description')}
-          actions={
-            <div className="flex items-center gap-2">
+      <div className="space-y-5">
+        {/* Hero Banner */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-600 shadow-lg">
+          {/* Decorative blobs */}
+          <div className="absolute inset-0 opacity-20" aria-hidden="true">
+            <div className="absolute -top-12 -right-12 h-56 w-56 rounded-full bg-white blur-3xl" />
+            <div className="absolute -bottom-16 left-12 h-48 w-48 rounded-full bg-cyan-300 blur-3xl" />
+          </div>
+          <div className="relative px-5 sm:px-7 py-6 sm:py-7">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm ring-1 ring-white/30 shadow-md">
+                  <Package className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white drop-shadow-sm">
+                    {t('items.pageTitle')}
+                  </h1>
+                  <p className="mt-1 text-sm text-cyan-50/90 max-w-xl">
+                    {t('items.description')}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-xs font-medium ring-1 ring-white/20">
+                      <Package className="h-3.5 w-3.5" />
+                      {t('common.itemsShown', { count: totalItems })}
+                    </span>
+                    {statistics.activeItems > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/20 backdrop-blur-sm text-emerald-50 text-xs font-medium ring-1 ring-emerald-300/30">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        {statistics.activeItems} {t('stats.active')}
+                      </span>
+                    )}
+                    {statistics.lowStockItems > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-400/20 backdrop-blur-sm text-rose-50 text-xs font-medium ring-1 ring-rose-300/30">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        {statistics.lowStockItems} {t('stats.lowStock')}
+                      </span>
+                    )}
+                    {statistics.itemsInQuarantine > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/20 backdrop-blur-sm text-amber-50 text-xs font-medium ring-1 ring-amber-300/30">
+                        <Clock className="h-3.5 w-3.5" />
+                        {statistics.itemsInQuarantine} {t('stats.inQuarantine')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* Action buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg backdrop-blur-sm ring-1 ring-white/30 transition-all shadow-sm',
+                    isLoading
+                      ? 'text-white/60 bg-white/10 cursor-not-allowed'
+                      : 'text-white bg-white/15 hover:bg-white/25'
+                  )}
+                  title={t('common.refresh')}
+                >
+                  <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+                  <span className="hidden sm:inline">{t('common.refresh')}</span>
+                </button>
+                <button
+                  onClick={() => router.push('/inventory/lots')}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-white/15 backdrop-blur-sm ring-1 ring-white/30 rounded-lg hover:bg-white/25 transition-all shadow-sm"
+                >
+                  <Warehouse className="h-4 w-4" />
+                  <span className="hidden sm:inline">{t('items.viewLots')}</span>
+                </button>
+                <button
+                  onClick={handleDownloadData}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-white/15 backdrop-blur-sm ring-1 ring-white/30 rounded-lg hover:bg-white/25 transition-all shadow-sm"
+                  title="Download Excel"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden md:inline">Excel</span>
+                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={handleDownloadTemplate}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-white/15 backdrop-blur-sm ring-1 ring-white/30 rounded-lg hover:bg-white/25 transition-all shadow-sm"
+                      title={t('common.downloadTemplate')}
+                    >
+                      <Download className="h-4 w-4" />
+                      <span className="hidden md:inline">{t('common.downloadTemplate')}</span>
+                    </button>
+                    <button
+                      onClick={() => { setShowImportDialog(true); setImportLog([]); }}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-white/15 backdrop-blur-sm ring-1 ring-white/30 rounded-lg hover:bg-white/25 transition-all shadow-sm"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span className="hidden md:inline">{t('common.importExcel')}</span>
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => router.push('/inventory/items/new')}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-emerald-700 bg-white rounded-lg hover:bg-emerald-50 transition-all shadow-md hover:shadow-lg ring-1 ring-white/40"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t('items.addItem')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Hidden PageHeader to keep import side-effect-free */}
+        <span className="hidden">
+          <PageHeader title={t('items.pageTitle')} description={t('items.description')} />
+        </span>
+
+        {/* Stats strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {(Object.keys(ITEM_TYPE_CONFIG) as ItemType[]).map((type) => {
+            const config = ITEM_TYPE_CONFIG[type];
+            const count = typeCounts[type];
+            const isActive = activeTab === type;
+            return (
               <button
-                onClick={handleRefresh}
-                disabled={isLoading}
+                key={type}
+                onClick={() => setActiveTab(isActive ? 'all' : type)}
                 className={cn(
-                  "inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors",
-                  isLoading
-                    ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
-                    : "text-gray-600 bg-white border-gray-300 hover:bg-gray-50"
+                  'group relative overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
+                  isActive ? `${config.borderColor} ring-2 ${config.ring}` : 'border-gray-200'
                 )}
               >
-                <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                {t('common.refresh')}
+                <div className={cn('absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br opacity-10 transition-opacity group-hover:opacity-20', config.gradient)} />
+                <div className="relative flex items-start justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                      {t(`items.types.${config.translationKey}`)}
+                    </p>
+                    <p className="mt-1.5 text-2xl font-bold text-gray-900 tabular-nums">
+                      {count.toLocaleString()}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-gray-400">
+                      {totalItems > 0 ? `${Math.round((count / totalItems) * 100)}%` : '0%'} {t('stats.total').toLowerCase()}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm',
+                      config.gradient
+                    )}
+                  >
+                    {config.icon}
+                  </span>
+                </div>
               </button>
-              <button
-                onClick={() => router.push('/inventory/lots')}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Warehouse className="h-4 w-4" />
-                {t('items.viewLots')}
-              </button>
-              <button onClick={handleDownloadData} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors">
-                <Download className="h-4 w-4" /> Download Excel
-              </button>
-              {isAdmin && (
-                <>
-                  <button onClick={handleDownloadTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Download className="h-4 w-4" /> {t('common.downloadTemplate')}
-                  </button>
-                  <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Upload className="h-4 w-4" /> {t('common.importExcel')}
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => router.push('/inventory/items/new')}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                <Plus className="h-4 w-4" />
-                {t('items.addItem')}
-              </button>
-            </div>
-          }
-        />
+            );
+          })}
+        </div>
 
         {/* Items DataGrid Card */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          {/* Tabs + Stats Header */}
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+          {/* Filter pill bar */}
+          <div className="px-4 sm:px-5 py-4 border-b border-gray-100 bg-gradient-to-b from-slate-50/80 to-white">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-              {/* Type Tabs */}
-              <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200 overflow-x-auto">
+              {/* Type filter pills */}
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   onClick={() => setActiveTab('all')}
                   className={cn(
-                    'px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                    'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-all whitespace-nowrap border',
                     activeTab === 'all'
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      ? 'bg-gradient-to-r from-slate-800 to-gray-900 text-white border-transparent shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-gray-900'
                   )}
                 >
                   {t('common.all')}
-                  <span className={cn(
-                    'ml-1.5 text-xs px-1.5 py-0.5 rounded-full',
-                    activeTab === 'all' ? 'bg-gray-700' : 'bg-gray-200'
-                  )}>{totalItems}</span>
+                  <span
+                    className={cn(
+                      'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full',
+                      activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                    )}
+                  >
+                    {totalItems}
+                  </span>
                 </button>
                 {(Object.keys(ITEM_TYPE_CONFIG) as ItemType[]).map((type) => {
                   const config = ITEM_TYPE_CONFIG[type];
+                  const isActive = activeTab === type;
                   return (
                     <button
                       key={type}
                       onClick={() => setActiveTab(type)}
                       className={cn(
-                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                        activeTab === type
-                          ? `${config.bgColor} ${config.textColor}`
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-all whitespace-nowrap border',
+                        isActive
+                          ? `bg-gradient-to-r ${config.gradient} text-white border-transparent shadow-sm`
+                          : `bg-white text-gray-600 border-gray-200 hover:${config.borderColor} hover:${config.textColor}`
                       )}
                     >
                       {config.icon}
                       {t(`items.types.${config.translationKey}`)}
-                      <span className={cn(
-                        'text-xs px-1.5 py-0.5 rounded-full',
-                        activeTab === type ? 'bg-white/50' : 'bg-gray-200'
-                      )}>
+                      <span
+                        className={cn(
+                          'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full',
+                          isActive ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-600'
+                        )}
+                      >
                         {typeCounts[type]}
                       </span>
                     </button>
@@ -717,26 +875,27 @@ export default function ItemsPage() {
                 })}
               </div>
 
-              {/* Compact Stats */}
-              <div className="flex items-center gap-4 text-sm">
+              {/* Compact info chips */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
                 {statistics.lowStockItems > 0 && (
-                  <div className="flex items-center gap-1.5 text-red-600">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="font-medium">{statistics.lowStockItems} {t('stats.lowStock')}</span>
-                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 font-medium">
+                    <AlertTriangle className="h-3 w-3" />
+                    {statistics.lowStockItems} {t('stats.lowStock')}
+                  </span>
                 )}
                 {statistics.itemsInQuarantine > 0 && (
-                  <div className="flex items-center gap-1.5 text-amber-600">
-                    <Clock className="h-4 w-4" />
-                    <span className="font-medium">{statistics.itemsInQuarantine} {t('stats.inQuarantine')}</span>
-                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-medium">
+                    <Clock className="h-3 w-3" />
+                    {statistics.itemsInQuarantine} {t('stats.inQuarantine')}
+                  </span>
                 )}
-                <div className="flex items-center gap-1.5 text-gray-500">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>{statistics.activeItems} {t('stats.active')}</span>
-                </div>
-                <div className="text-gray-400">|</div>
-                <span className="text-gray-500">{t('common.itemsShown', { count: filteredItems.length })}</span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium">
+                  <CheckCircle className="h-3 w-3" />
+                  {statistics.activeItems} {t('stats.active')}
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-600 font-medium">
+                  {t('common.itemsShown', { count: filteredItems.length })}
+                </span>
               </div>
             </div>
           </div>
@@ -934,40 +1093,51 @@ export default function ItemsPage() {
           font-family: inherit;
         }
         .items-professional-grid .dx-datagrid-headers {
-          background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
-          border-bottom: 2px solid #e2e8f0;
+          background: linear-gradient(to bottom, #f8fafc, #eff6ff);
+          border-bottom: 2px solid #dbeafe;
         }
         .items-professional-grid .dx-datagrid-headers .dx-header-row td {
           font-weight: 600;
-          color: #334155;
-          padding: 12px 8px;
+          color: #1e3a8a;
+          padding: 12px 10px;
+          font-size: 12px;
+          letter-spacing: 0.025em;
+          text-transform: uppercase;
         }
         .items-professional-grid .dx-data-row td {
-          padding: 10px 8px;
+          padding: 12px 10px;
           vertical-align: middle;
+          border-color: #f1f5f9;
         }
         .items-professional-grid .dx-data-row:hover {
-          background-color: #fffbeb !important;
+          background: linear-gradient(to right, #eff6ff, #ecfeff) !important;
         }
         .items-professional-grid .dx-data-row {
           cursor: pointer;
+          transition: background-color 0.15s ease;
         }
         .items-professional-grid .dx-row-alt > td {
-          background-color: #fafafa;
+          background-color: #fafbfc;
         }
         .items-professional-grid .dx-datagrid-search-panel {
           margin-left: 0;
+          border-radius: 0.5rem;
         }
         .items-professional-grid .dx-toolbar {
-          padding: 8px 16px;
+          padding: 10px 16px;
           background: transparent;
         }
         .items-professional-grid .dx-datagrid-group-panel {
           padding: 8px 16px;
+          background: linear-gradient(to right, #f8fafc, #ffffff);
         }
         .items-professional-grid .dx-pager {
           padding: 12px 16px;
           border-top: 1px solid #e2e8f0;
+          background: #fafbfc;
+        }
+        .items-professional-grid .dx-datagrid-filter-row {
+          background: #f8fafc;
         }
       `}</style>
 
@@ -976,43 +1146,112 @@ export default function ItemsPage() {
 
       {/* Import Dialog */}
       {showImportDialog && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
-              <h2 className="text-lg font-semibold text-gray-900">นำเข้ารายการสินค้า</h2>
-              <button onClick={() => setShowImportDialog(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X className="h-5 w-5 text-gray-500" /></button>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="relative px-5 py-4 border-b border-gray-100 shrink-0 bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm ring-1 ring-white/30">
+                    <Upload className="h-5 w-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold">นำเข้ารายการสินค้า</h2>
+                </div>
+                <button
+                  onClick={() => setShowImportDialog(false)}
+                  className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-white" />
+                </button>
+              </div>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto flex-1">
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">1. เลือกประเภทสินค้าที่ต้องการนำเข้า</label>
-                  <button onClick={() => setSelectedTypes(prev => prev.length === ALL_TYPE_KEYS.length ? [] : [...ALL_TYPE_KEYS])} className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                <div className="flex items-center justify-between mb-2.5">
+                  <label className="text-sm font-semibold text-gray-800">1. เลือกประเภทสินค้าที่ต้องการนำเข้า</label>
+                  <button
+                    onClick={() => setSelectedTypes(prev => prev.length === ALL_TYPE_KEYS.length ? [] : [...ALL_TYPE_KEYS])}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
                     {selectedTypes.length === ALL_TYPE_KEYS.length ? <><CheckSquare className="h-3.5 w-3.5" /> ยกเลิกทั้งหมด</> : <><Square className="h-3.5 w-3.5" /> เลือกทั้งหมด</>}
                   </button>
                 </div>
                 <div className="space-y-1.5">
-                  {ITEM_TYPES_CONFIG.map(tc => (
-                    <label key={tc.key} className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${selectedTypes.includes(tc.key) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
-                      <input type="checkbox" checked={selectedTypes.includes(tc.key)} onChange={() => setSelectedTypes(prev => prev.includes(tc.key) ? prev.filter(k => k !== tc.key) : [...prev, tc.key])} className="h-4 w-4 rounded text-blue-600" />
-                      <span className="text-sm font-medium text-gray-900 flex-1">{tc.label}</span>
-                      <span className="text-xs text-gray-400">Sheet: {tc.sheetName}</span>
-                    </label>
-                  ))}
+                  {ITEM_TYPES_CONFIG.map(tc => {
+                    const config = ITEM_TYPE_CONFIG[tc.key as ItemType];
+                    const checked = selectedTypes.includes(tc.key);
+                    return (
+                      <label
+                        key={tc.key}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 cursor-pointer transition-all',
+                          checked
+                            ? `${config?.borderColor} ${config?.bgColor} shadow-sm`
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => setSelectedTypes(prev => prev.includes(tc.key) ? prev.filter(k => k !== tc.key) : [...prev, tc.key])}
+                          className="h-4 w-4 rounded text-blue-600"
+                        />
+                        <span
+                          className={cn(
+                            'inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm',
+                            config?.gradient ?? 'from-slate-400 to-slate-500'
+                          )}
+                        >
+                          {config?.icon}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900 flex-1">{tc.label}</span>
+                        <span className="text-[10px] text-gray-400 font-mono">{tc.sheetName}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
               {selectedTypes.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">2. เลือกไฟล์ Excel ({selectedTypes.length} ประเภท)</label>
-                  <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50">
-                    <Upload className="h-5 w-5" />{importing ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    2. เลือกไฟล์ Excel <span className="text-xs font-normal text-gray-500">({selectedTypes.length} ประเภท)</span>
+                  </label>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={importing}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-4 border-2 border-dashed border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all disabled:opacity-50"
+                  >
+                    {importing ? (
+                      <>
+                        <RefreshCw className="h-5 w-5 animate-spin" />
+                        กำลังนำเข้า...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5" />
+                        คลิกเพื่อเลือกไฟล์ (.xlsx)
+                      </>
+                    )}
                   </button>
                 </div>
               )}
               {importLog.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-3 border">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">ผลการนำเข้า:</label>
-                  <div className="text-xs font-mono space-y-0.5 max-h-40 overflow-y-auto">
-                    {importLog.map((line, i) => <div key={i} className={line.includes('❌') ? 'text-red-600' : 'text-gray-700'}>{line}</div>)}
+                <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-gray-200">
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">ผลการนำเข้า:</label>
+                  <div className="text-xs font-mono space-y-1 max-h-40 overflow-y-auto">
+                    {importLog.map((line, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          'px-2 py-1 rounded',
+                          line.includes('❌') ? 'text-rose-700 bg-rose-50' :
+                          line.includes('⚠️') ? 'text-amber-700 bg-amber-50' :
+                          line.includes('✅') ? 'text-emerald-700 bg-emerald-50' :
+                          'text-gray-700'
+                        )}
+                      >
+                        {line}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
