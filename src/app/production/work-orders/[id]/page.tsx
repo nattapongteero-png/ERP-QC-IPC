@@ -205,17 +205,48 @@ export default function WorkOrderDetailPage() {
   // Line Clearance State (FR-062)
   const [lineClearanceStatus, setLineClearanceStatus] = useState<LineClearanceStatus | null>(null);
 
+  // Phase 7c — deviations linked to this work order. Auto-created when an
+  // operator records a failing IPC during SOP execution; the badge under
+  // the tab gives the production team an at-a-glance count of CAPA work.
+  interface WODeviation {
+    id: number;
+    deviationNumber: string;
+    title: string | null;
+    severity: string;
+    status: string;
+    type: string | null;
+    sourceType: string | null;
+    sourceId: number | null;
+    reportedAt: string | null;
+    createdAt: string;
+  }
+  const [deviations, setDeviations] = useState<WODeviation[]>([]);
+
+  const fetchDeviations = async () => {
+    try {
+      const response = await fetch(`/api/quality/deviations?workOrderId=${params.id}&limit=200`);
+      const result = await response.json();
+      if (result.success) {
+        setDeviations(result.data?.items || result.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch deviations:', error);
+    }
+  };
+
   const tabs: DxTabItem[] = [
     { text: 'Overview', icon: 'info' },
     { text: 'Execution', icon: 'runner' },
     { text: 'Materials', icon: 'box' },
     { text: 'QC Tests', icon: 'check' },
+    { text: 'Deviations', icon: 'warning' },
     { text: 'eBMR', icon: 'doc' },
   ];
 
   useEffect(() => {
     fetchWorkOrderDetail();
     fetchLineClearanceStatus();
+    fetchDeviations();
   }, [params.id]);
 
   // Realtime sync — when another user (or another tab on the same machine)
@@ -226,6 +257,7 @@ export default function WorkOrderDetailPage() {
     if (data.workOrderId !== Number(params.id)) return;
     fetchWorkOrderDetail();
     fetchLineClearanceStatus();
+    fetchDeviations();
   });
   // Also reflect requisition state flips initiated from /inventory/lots.
   useRealtimeTopic('requisition-changed', (data) => {
@@ -954,7 +986,81 @@ export default function WorkOrderDetailPage() {
         )}
 
         {/* eBMR Tab Content - always rendered so print works from any tab */}
-        <div className={`space-y-6 ${activeTabIndex !== 4 ? 'hidden' : ''}`} id="ebmr-content">
+        {activeTabIndex === 4 && (
+          <Card className="no-print">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  Deviations
+                  {deviations.length > 0 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
+                      {deviations.length}
+                    </span>
+                  )}
+                </CardTitle>
+                <DxButton
+                  text="เปิด /quality/deviations"
+                  icon="link"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => router.push(`/quality/deviations?workOrderId=${params.id}`)}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {deviations.length === 0 ? (
+                <div className="text-center py-8 text-sm text-gray-500">
+                  ยังไม่มี Deviation บันทึกไว้สำหรับ Work Order นี้
+                  <p className="text-xs text-gray-400 mt-1">
+                    ระบบจะสร้าง Deviation อัตโนมัติเมื่อ IPC test ที่ผูกกับ SOP step บันทึกผลไม่ผ่าน
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {deviations.map((d) => {
+                    const sev = d.severity || 'minor';
+                    const sevColor = sev === 'critical' ? 'bg-red-100 text-red-800'
+                      : sev === 'major' ? 'bg-orange-100 text-orange-800'
+                      : 'bg-amber-100 text-amber-800';
+                    const statusColor = d.status === 'closed' ? 'bg-emerald-100 text-emerald-700'
+                      : d.status === 'resolved' ? 'bg-blue-100 text-blue-700'
+                      : d.status === 'investigating' ? 'bg-yellow-100 text-yellow-700'
+                      : 'bg-rose-100 text-rose-700';
+                    return (
+                      <div
+                        key={d.id}
+                        onClick={() => router.push(`/quality/deviations/${d.id}`)}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-white hover:border-rose-300 hover:bg-rose-50/30 cursor-pointer transition-colors"
+                      >
+                        <AlertCircle className="h-5 w-5 text-rose-500 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-semibold text-rose-700">{d.deviationNumber}</span>
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${sevColor}`}>{sev}</span>
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${statusColor}`}>{d.status}</span>
+                            {d.type && (
+                              <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-gray-100 text-gray-700">{d.type}</span>
+                            )}
+                          </div>
+                          {d.title && (
+                            <p className="text-sm text-gray-800 mt-1 truncate" title={d.title}>{d.title}</p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {d.sourceType && <span>Source: {d.sourceType}</span>}
+                            {d.reportedAt && <span> · บันทึก {new Date(d.reportedAt).toLocaleString('th-TH')}</span>}
+                          </p>
+                        </div>
+                        <span className="text-xs text-rose-600 flex-shrink-0">ดูรายละเอียด →</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        <div className={`space-y-6 ${activeTabIndex !== 5 ? 'hidden' : ''}`} id="ebmr-content">
           {/* Print-only document header */}
           <div className="print-only ebmr-print-header">
             <div className="text-center">

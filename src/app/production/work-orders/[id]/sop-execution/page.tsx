@@ -368,11 +368,18 @@ export default function SOPExecutionPage() {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['wo-ipc-tests', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-deviations', workOrderId] });
       toast.success('Step Completed', 'Production step has been completed.');
+      // Phase 7b — surface auto-created deviations from failing IPC.
+      const devs = (data as { deviations?: Array<{ deviationNumber: string; deviationId: number }> })?.deviations || [];
+      if (devs.length > 0) {
+        const numbers = devs.map((d) => d.deviationNumber).join(', ');
+        toast.warning('พบ IPC ไม่ผ่าน — สร้าง Deviation แล้ว', `${numbers} · ไปกรอกรายละเอียดที่หน้า Deviations`);
+      }
       setShowCompleteDialog(false);
       setSelectedStep(null);
       setActualParams({});
@@ -421,9 +428,14 @@ export default function SOPExecutionPage() {
       queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['wo-ipc-tests', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-deviations', workOrderId] });
       const round = (data as { round?: number })?.round ?? '?';
       const status = (data as { testStatus?: string })?.testStatus ?? '';
       toast.success(`บันทึกรอบ ${round}`, status === 'pass' ? 'ผ่านเกณฑ์ ✅' : status === 'fail' ? 'ยังไม่ผ่าน ⚠️' : 'รอผลการตรวจ');
+      const dev = (data as { deviation?: { deviationNumber: string } | null })?.deviation;
+      if (dev) {
+        toast.warning('พบ IPC ไม่ผ่าน — สร้าง Deviation แล้ว', dev.deviationNumber);
+      }
       closeRetest();
     },
     onError: (error: Error) => {
@@ -472,10 +484,16 @@ export default function SOPExecutionPage() {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['wo-ipc-tests', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-deviations', workOrderId] });
       toast.success('IPC Saved', 'บันทึกผล IPC แล้ว — สามารถบันทึก SOP Step ภายหลังได้');
+      const devs = (data as { deviations?: Array<{ deviationNumber: string }> })?.deviations || [];
+      if (devs.length > 0) {
+        toast.warning('พบ IPC ไม่ผ่าน — สร้าง Deviation แล้ว', devs.map((d) => d.deviationNumber).join(', '));
+      }
       setShowIPCDialog(false);
       setSelectedStep(null);
       setIpcNumeric({});

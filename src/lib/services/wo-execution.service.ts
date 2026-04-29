@@ -2282,6 +2282,112 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
  * cannot be resolved (we never block the test recording because of deviation
  * bookkeeping — the failing test result is the source of truth).
  */
+/**
+ * Phase 7a — auto-create deviation for a SOP-linked IPC test that failed.
+ *
+ * Idempotent on (sourceType='production', sourceId=qualityTestId): if a
+ * deviation already exists for the same test we return its info instead of
+ * creating another. WO resolution prefers the deterministic
+ * sopExecutionId → wo_sop_execution.work_order_id path; falls back to the
+ * lot.batchNumber → work_orders.batch_number match used by the legacy IPC
+ * flow when the sample number doesn't follow the SOP-{execId}-IPC-{cid}
+ * convention.
+ */
+async function ensureDeviationForFailedSOPIPC(
+  db: any,
+  tables: ReturnType<typeof getTables>,
+  params: {
+    qualityTestId: number;
+    sopExecutionId: number;
+    operatorId: number;
+    testRound?: number;
+  },
+): Promise<{ id: number; deviationNumber: string } | null> {
+  try {
+    const deviationsTable = getTableRef('deviations');
+
+    // Skip if a deviation for this test already exists. We treat
+    // (sourceType, sourceId) as the dedup key — recordSOPLinkedIPCResults is
+    // idempotent so re-saving a fail must not create another deviation.
+    const existing = await db
+      .select({ id: deviationsTable.id, deviationNumber: deviationsTable.deviationNumber })
+      .from(deviationsTable)
+      .where(and(
+        eq(deviationsTable.sourceType, 'production'),
+        eq(deviationsTable.sourceId, params.qualityTestId),
+      ))
+      .limit(1);
+    if (existing.length > 0) {
+      return { id: existing[0].id, deviationNumber: existing[0].deviationNumber };
+    }
+
+    // Quality test snapshot for descriptive fields.
+    const [test] = await db
+      .select({
+        lotId: tables.qualityTests.lotId,
+        sampleNumber: tables.qualityTests.sampleNumber,
+        notes: tables.qualityTests.notes,
+        specSpecification: tables.qualityTests.specSpecification,
+        ipcPhase: tables.qualityTests.ipcPhase,
+      })
+      .from(tables.qualityTests)
+      .where(eq(tables.qualityTests.id, params.qualityTestId));
+    if (!test) return null;
+
+    // Resolve workOrderId — prefer SOP execution lookup (deterministic).
+    let workOrderId: number | null = null;
+    const [exec] = await db
+      .select({ workOrderId: tables.woSOPExecution.workOrderId })
+      .from(tables.woSOPExecution)
+      .where(eq(tables.woSOPExecution.id, params.sopExecutionId))
+      .limit(1);
+    if (exec?.workOrderId) {
+      workOrderId = Number(exec.workOrderId);
+    } else if (test.lotId) {
+      // Fall back to batch matching for non-SOP tests (legacy path).
+      const [lot] = await db
+        .select({ batchNumber: tables.inventoryLots.batchNumber })
+        .from(tables.inventoryLots)
+        .where(eq(tables.inventoryLots.id, test.lotId));
+      if (lot?.batchNumber) {
+        const [wo] = await db
+          .select({ id: tables.workOrders.id })
+          .from(tables.workOrders)
+          .where(eq(tables.workOrders.batchNumber, lot.batchNumber));
+        if (wo) workOrderId = Number(wo.id);
+      }
+    }
+
+    const year = new Date().getFullYear();
+    const seq = String(Math.floor(Math.random() * 9000) + 1000);
+    const deviationNumber = `DEV-${year}-${seq}`;
+    const phaseLabel = test.ipcPhase ? ` [${test.ipcPhase}]` : '';
+    const roundLabel = params.testRound ? ` (Round ${params.testRound})` : '';
+
+    const result = await db.insert(deviationsTable).values({
+      deviationNumber,
+      title: `IPC Failure — ${test.notes || test.sampleNumber || 'Unknown test'}${phaseLabel}`,
+      description: `In-Process Control test failed during SOP execution${roundLabel}. Spec: ${test.specSpecification || 'n/a'}. Auto-generated when operator recorded failing samples on the SOP step.`,
+      type: 'OOS',
+      sourceType: 'production',
+      sourceId: params.qualityTestId,
+      lotId: test.lotId,
+      workOrderId,
+      severity: 'minor',
+      status: 'open',
+      reportedBy: params.operatorId,
+      reportedAt: getNow(),
+      createdAt: getNow(),
+      updatedAt: getNow(),
+    });
+    const id = Number(getInsertId(result));
+    return { id, deviationNumber };
+  } catch (err) {
+    console.error('[ipc] Failed to auto-create deviation for SOP-linked IPC fail:', err);
+    return null;
+  }
+}
+
 async function createDeviationForFailedIPC(
   db: any,
   tables: ReturnType<typeof getTables>,
@@ -2598,15 +2704,27 @@ export interface SOPLinkedIPCInput {
   notes?: string | null;
 }
 
+export interface SOPIPCRecordResult {
+  qualityTestIds: number[];
+  /** Auto-created deviations triggered by failing tests. Empty when all pass. */
+  deviations: Array<{
+    qualityTestId: number;
+    deviationId: number;
+    deviationNumber: string;
+  }>;
+}
+
 export async function recordSOPLinkedIPCResults(
   workOrderId: number,
   operatorId: number,
   inputs: SOPLinkedIPCInput[]
-): Promise<{ qualityTestIds: number[] }> {
+): Promise<SOPIPCRecordResult> {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    if (inputs.length === 0) return { qualityTestIds: [] };
+    if (inputs.length === 0) return { qualityTestIds: [], deviations: [] };
+
+    const deviationsCreated: SOPIPCRecordResult['deviations'] = [];
 
     // Resolve target lot (auto-create if missing — same logic as
     // initializeWOIPCTests so SOP-linked tests share the in-process lot).
@@ -2809,9 +2927,26 @@ export async function recordSOPLinkedIPCResults(
           createdAt: getNow(),
         });
       }
+
+      // Phase 7a — auto-create deviation when this round fails. Idempotent
+      // on (sourceType, sourceId) so re-saving a failed test doesn't
+      // duplicate the deviation. The operator still has to fill in root
+      // cause + CAPA on the deviation page, but the record is in place
+      // immediately so nothing falls through the cracks.
+      if (testStatus === 'fail') {
+        const dev = await ensureDeviationForFailedSOPIPC(db, tables, {
+          qualityTestId,
+          sopExecutionId: input.sopExecutionId,
+          operatorId,
+          testRound: 1,
+        });
+        if (dev) {
+          deviationsCreated.push({ qualityTestId, deviationId: dev.id, deviationNumber: dev.deviationNumber });
+        }
+      }
     }
 
-    return { qualityTestIds: created };
+    return { qualityTestIds: created, deviations: deviationsCreated };
   });
 }
 
@@ -2835,7 +2970,12 @@ export async function addIPCTestRound(
   workOrderId: number,
   operatorId: number,
   input: SOPLinkedIPCInput
-): Promise<{ qualityTestId: number; round: number; testStatus: string }> {
+): Promise<{
+  qualityTestId: number;
+  round: number;
+  testStatus: string;
+  deviation: { id: number; deviationNumber: string } | null;
+}> {
   const tables = getTables();
   const { parseAcceptanceStages } = await import('../master-data/ipc-stages');
 
@@ -3015,6 +3155,18 @@ export async function addIPCTestRound(
       })
       .where(eq(tables.qualityTests.id, existing.id));
 
-    return { qualityTestId: existing.id, round: nextRound, testStatus };
+    // Phase 7a — auto-create deviation if this retest round also fails.
+    let deviation: { id: number; deviationNumber: string } | null = null;
+    if (testStatus === 'fail') {
+      const dev = await ensureDeviationForFailedSOPIPC(db, tables, {
+        qualityTestId: existing.id,
+        sopExecutionId: input.sopExecutionId,
+        operatorId,
+        testRound: nextRound,
+      });
+      if (dev) deviation = dev;
+    }
+
+    return { qualityTestId: existing.id, round: nextRound, testStatus, deviation };
   });
 }

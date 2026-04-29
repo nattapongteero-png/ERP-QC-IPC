@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
       const search = searchParams.get('search') || '';
       const status = searchParams.get('status') || '';
       const severity = searchParams.get('severity') || '';
+      const workOrderIdParam = searchParams.get('workOrderId');
+      const workOrderId = workOrderIdParam ? Number(workOrderIdParam) : null;
 
       const deviationsTable = getTableRef('deviations');
 
@@ -43,6 +45,11 @@ export async function GET(request: NextRequest) {
       }
       if (severity) {
         conditions.push(eq(deviationsTable.severity, severity));
+      }
+      // Filter by linked Work Order — used by /production/work-orders/[id]
+      // Deviations tab to scope the list to one WO.
+      if (workOrderId !== null && !Number.isNaN(workOrderId)) {
+        conditions.push(eq(deviationsTable.workOrderId, workOrderId));
       }
 
       const total = await executeDbOperation(async (db) => {
