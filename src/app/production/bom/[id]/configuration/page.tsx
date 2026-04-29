@@ -400,6 +400,7 @@ export default function BOMConfigurationPage() {
   const [editingIpcLinkId, setEditingIpcLinkId] = useState<number | null>(null);
   const [ipcLinkForm, setIpcLinkForm] = useState({
     criteriaId: null as number | null,
+    procedureStepId: null as number | null,
     sampleSize: 1,
     sequence: 1,
     isCritical: false,
@@ -483,6 +484,20 @@ export default function BOMConfigurationPage() {
       if (!data.success) throw new Error(data.error);
       return data.data;
     },
+  });
+
+  // Sub-steps (procedure_step_id targets) for the BOM step being managed.
+  // Lets the IPC linker show "ขั้นตอนย่อย" sections so user picks WHICH
+  // sub-step the IPC attaches to (instead of attaching to the whole BOM step).
+  const { data: subStepsForSelectedBomStep = [] } = useQuery<any[]>({
+    queryKey: ['sop-template-sub-steps', selectedStepForIPC?.templateId],
+    queryFn: async () => {
+      const res = await fetch(`/api/master-data/sop-templates/${selectedStepForIPC!.templateId}/steps`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.data;
+    },
+    enabled: !!selectedStepForIPC?.templateId,
   });
 
   // Master IPC criteria list (active only) for the linker dialog dropdown.
@@ -905,6 +920,7 @@ export default function BOMConfigurationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bomStepId: selectedStepForIPC.id,
+          procedureStepId: ipcLinkForm.procedureStepId,
           criteriaId: ipcLinkForm.criteriaId,
           sampleSize: ipcLinkForm.sampleSize,
           sequence: ipcLinkForm.sequence,
@@ -969,6 +985,7 @@ export default function BOMConfigurationPage() {
     setEditingIpcLinkId(null);
     setIpcLinkForm({
       criteriaId: null,
+      procedureStepId: null,
       sampleSize: 1,
       sequence: 1,
       isCritical: false,
@@ -983,10 +1000,16 @@ export default function BOMConfigurationPage() {
     setShowIPCLinkDialog(true);
   };
 
+  const openAddIpcForSubStep = (procedureStepId: number | null) => {
+    resetIpcLinkForm();
+    setIpcLinkForm((f) => ({ ...f, procedureStepId }));
+  };
+
   const openEditIpcLink = (link: any) => {
     setEditingIpcLinkId(link.id);
     setIpcLinkForm({
       criteriaId: link.criteriaId,
+      procedureStepId: link.procedureStepId ?? null,
       sampleSize: link.sampleSize ?? 1,
       sequence: link.sequence ?? 1,
       isCritical: !!link.isCritical,
@@ -1800,6 +1823,60 @@ export default function BOMConfigurationPage() {
             );
             const editingLink = editingIpcLinkId ? stepLinks.find((l: any) => l.id === editingIpcLinkId) : null;
 
+            // Group existing IPC links by procedureStepId (sub-step). null
+            // = not tied to any specific sub-step ("whole step" IPCs).
+            const linksBySubStep = new Map<number | null, any[]>();
+            for (const link of stepLinks) {
+              const key = link.procedureStepId ?? null;
+              if (!linksBySubStep.has(key)) linksBySubStep.set(key, []);
+              linksBySubStep.get(key)!.push(link);
+            }
+
+            // Render a single IPC link row (used by both grouped and ungrouped views).
+            const renderLinkRow = (link: any) => (
+              <div key={link.id} className={`flex items-start gap-3 p-3 rounded-lg border bg-white group ${editingIpcLinkId === link.id ? 'border-emerald-400 bg-emerald-50/40' : 'border-gray-200'}`}>
+                <span className="flex-none w-7 h-7 rounded bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center mt-0.5">
+                  {link.sequence}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs text-emerald-700">{link.criteriaCode}</span>
+                    <span className="font-medium">{link.criteriaNameTh || link.criteriaName}</span>
+                    {link.isCritical && (
+                      <span className="text-xs text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Critical</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {link.specification && <span>Spec: {link.specification} | </span>}
+                    <span>Sample: {link.sampleSize}</span>
+                    <span> | Max retests: {link.maxRetestRounds != null
+                      ? link.maxRetestRounds
+                      : <span className="italic">Master default ({link.masterMaxRetestRounds ?? '—'})</span>}
+                    </span>
+                  </div>
+                  {link.notes && (
+                    <div className="text-xs text-gray-600 mt-1 italic">{link.notes}</div>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => openEditIpcLink(link)}
+                    className="p-1 text-gray-400 hover:text-blue-600"
+                    title="Edit"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => { if (confirm('Remove this IPC link?')) deleteIpcLinkMutation.mutate(link.id); }}
+                    className="p-1 text-gray-400 hover:text-red-600"
+                    title="Remove"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+
             return (
               <>
                 {/* Step header summary */}
@@ -1813,68 +1890,93 @@ export default function BOMConfigurationPage() {
                   </div>
                 </div>
 
-                {/* Existing IPC links list */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <FlaskConical className="h-4 w-4 text-emerald-600" />
-                      IPC Tests ({stepLinks.length})
-                    </h4>
-                  </div>
-                  {stepIpcLinksLoading ? (
-                    <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
-                  ) : stepLinks.length === 0 ? (
-                    <div className="text-center py-6 text-gray-500 text-sm border border-dashed border-gray-200 rounded-lg">
-                      No IPC tests linked to this step yet.
+                {/* Sub-step grouped IPC list — when the BOM step uses an SOP
+                    template with sub-steps, render each sub-step as its own
+                    section. Operator clicks "+ Add IPC" on the sub-step they
+                    want to attach to. */}
+                {subStepsForSelectedBomStep.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <FlaskConical className="h-4 w-4 text-emerald-600" />
+                        IPC Tests by Sub-Step ({stepLinks.length})
+                      </h4>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {stepLinks.map((link: any) => (
-                        <div key={link.id} className={`flex items-start gap-3 p-3 rounded-lg border bg-white group ${editingIpcLinkId === link.id ? 'border-emerald-400 bg-emerald-50/40' : 'border-gray-200'}`}>
-                          <span className="flex-none w-7 h-7 rounded bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center mt-0.5">
-                            {link.sequence}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-mono text-xs text-emerald-700">{link.criteriaCode}</span>
-                              <span className="font-medium">{link.criteriaNameTh || link.criteriaName}</span>
-                              {link.isCritical && (
-                                <span className="text-xs text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Critical</span>
-                              )}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              {link.specification && <span>Spec: {link.specification} | </span>}
-                              <span>Sample: {link.sampleSize}</span>
-                              <span> | Max retests: {link.maxRetestRounds != null
-                                ? link.maxRetestRounds
-                                : <span className="italic">Master default ({link.masterMaxRetestRounds ?? '—'})</span>}
+                    {subStepsForSelectedBomStep.map((sub: any, idx: number) => {
+                      const subLinks = linksBySubStep.get(sub.id) ?? [];
+                      const subName = sub.stepNameTh || sub.stepName;
+                      const isFormTargetingThisSub = !editingIpcLinkId && ipcLinkForm.procedureStepId === sub.id;
+                      return (
+                        <div key={sub.id} className={`rounded-lg border ${isFormTargetingThisSub ? 'border-emerald-400 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
+                          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50/50 rounded-t-lg">
+                            <div className="flex items-center gap-2">
+                              <span className="flex-none w-6 h-6 rounded bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center">
+                                {idx + 1}
                               </span>
+                              <span className="text-sm font-medium text-gray-800">{subName}</span>
+                              <span className="text-xs text-gray-500">({subLinks.length} IPC)</span>
                             </div>
-                            {link.notes && (
-                              <div className="text-xs text-gray-600 mt-1 italic">{link.notes}</div>
-                            )}
+                            <button
+                              onClick={() => openAddIpcForSubStep(sub.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              เพิ่ม IPC
+                            </button>
                           </div>
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => openEditIpcLink(link)}
-                              className="p-1 text-gray-400 hover:text-blue-600"
-                              title="Edit"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => { if (confirm('Remove this IPC link?')) deleteIpcLinkMutation.mutate(link.id); }}
-                              className="p-1 text-gray-400 hover:text-red-600"
-                              title="Remove"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                          {subLinks.length === 0 ? (
+                            <div className="px-3 py-3 text-xs text-gray-400 italic">
+                              ยังไม่มี IPC ผูกกับขั้นตอนย่อยนี้
+                            </div>
+                          ) : (
+                            <div className="p-2 space-y-2">
+                              {subLinks.map(renderLinkRow)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {/* "Whole step" IPCs — links without a procedureStepId */}
+                    {(() => {
+                      const wholeStepLinks = linksBySubStep.get(null) ?? [];
+                      if (wholeStepLinks.length === 0) return null;
+                      return (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50/20">
+                          <div className="px-3 py-2 border-b border-amber-200 bg-amber-50/50 rounded-t-lg">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-amber-800">⚠ ผูกกับ step ทั้งหมด (ไม่ระบุ sub-step)</span>
+                              <span className="text-xs text-amber-700">({wholeStepLinks.length} IPC)</span>
+                            </div>
+                          </div>
+                          <div className="p-2 space-y-2">
+                            {wholeStepLinks.map(renderLinkRow)}
                           </div>
                         </div>
-                      ))}
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  // Fallback: BOM step has no template/sub-steps — flat list.
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <FlaskConical className="h-4 w-4 text-emerald-600" />
+                        IPC Tests ({stepLinks.length})
+                      </h4>
                     </div>
-                  )}
-                </div>
+                    {stepIpcLinksLoading ? (
+                      <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
+                    ) : stepLinks.length === 0 ? (
+                      <div className="text-center py-6 text-gray-500 text-sm border border-dashed border-gray-200 rounded-lg">
+                        ยังไม่มี IPC ผูกกับ step นี้
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {stepLinks.map(renderLinkRow)}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Add / Edit form */}
                 <div className="border border-emerald-200 bg-emerald-50/50 rounded-lg p-4 space-y-3">
@@ -1892,6 +1994,28 @@ export default function BOMConfigurationPage() {
                       </button>
                     )}
                   </div>
+
+                  {/* Sub-step picker — show only when template has sub-steps */}
+                  {subStepsForSelectedBomStep.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        ขั้นตอนย่อย (Sub-step) <span className="text-xs text-gray-500 font-normal">— เลือกขั้นตอนย่อยที่ IPC ผูก</span>
+                      </label>
+                      <DxSelectBox
+                        dataSource={[
+                          { id: null, display: '— ไม่ระบุ (ผูกกับ step ทั้งหมด) —' },
+                          ...subStepsForSelectedBomStep.map((s: any, idx: number) => ({
+                            id: s.id,
+                            display: `${idx + 1}. ${s.stepNameTh || s.stepName}`,
+                          })),
+                        ]}
+                        displayExpr="display"
+                        valueExpr="id"
+                        value={ipcLinkForm.procedureStepId}
+                        onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, procedureStepId: e.value }))}
+                      />
+                    </div>
+                  )}
 
                   {!editingIpcLinkId && (
                     <div>
