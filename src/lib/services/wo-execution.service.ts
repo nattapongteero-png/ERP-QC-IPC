@@ -2462,3 +2462,215 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
     return created;
   });
 }
+
+/**
+ * Inline IPC capture for SOP-template-linked criteria.
+ *
+ * When operator completes a SOP step that has IPC criteria attached at the
+ * master template level (sop_template_ipc_criteria), the recording happens
+ * inside the same Complete dialog. This creates the corresponding
+ * quality_test + ipc_test_samples rows on the fly — those tests are not
+ * pre-initialised by initializeWOIPCTests because that function only seeds
+ * tests from bom_in_process_qc, not from SOP template links.
+ *
+ * Each invocation is idempotent at the (workOrder, criteria, sopExecution)
+ * tuple — repeat submissions update an existing row rather than duplicating.
+ */
+export interface SOPLinkedIPCInput {
+  criteriaId: number;
+  sopExecutionId: number;
+  ipcPhase: string;
+  /** Numeric values (one per sample) for criteriaType=numeric. */
+  numericValues?: (number | null)[];
+  /** Sample-level pass/fail for criteriaType=pass_fail / visual / checkbox. */
+  sampleResults?: ('pass' | 'fail' | null)[];
+  /** Free text response for criteriaType=text. */
+  textValue?: string | null;
+  notes?: string | null;
+}
+
+export async function recordSOPLinkedIPCResults(
+  workOrderId: number,
+  operatorId: number,
+  inputs: SOPLinkedIPCInput[]
+): Promise<{ qualityTestIds: number[] }> {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    if (inputs.length === 0) return { qualityTestIds: [] };
+
+    // Resolve target lot (auto-create if missing — same logic as
+    // initializeWOIPCTests so SOP-linked tests share the in-process lot).
+    const [wo] = await db
+      .select({
+        id: tables.workOrders.id,
+        bomId: tables.workOrders.bomId,
+        batchNumber: tables.workOrders.batchNumber,
+        productId: tables.workOrders.productId,
+        unit: tables.workOrders.unit,
+      })
+      .from(tables.workOrders)
+      .where(eq(tables.workOrders.id, workOrderId));
+
+    if (!wo) throw new Error('Work order not found');
+
+    let targetLotId: number | null = null;
+    if (wo.batchNumber) {
+      const lots = await db
+        .select({ id: tables.inventoryLots.id })
+        .from(tables.inventoryLots)
+        .where(eq(tables.inventoryLots.batchNumber, wo.batchNumber));
+      if (lots.length > 0) targetLotId = lots[0].id;
+    }
+    if (!targetLotId) {
+      const lotResult = await db.insert(tables.inventoryLots).values({
+        itemId: wo.productId,
+        lotNumber: `${wo.batchNumber || `WO${workOrderId}`}-IP`,
+        batchNumber: wo.batchNumber || null,
+        warehouseId: 1,
+        quantity: 0,
+        reservedQuantity: 0,
+        unit: wo.unit || 'unit',
+        status: 'under_test',
+        manufacturingDate: getNow(),
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      });
+      targetLotId = Number(getInsertId(lotResult));
+    }
+
+    const ipcCriteriaTable = getTableRef('iPCCriteria');
+    const created: number[] = [];
+
+    for (const input of inputs) {
+      // Look up criteria spec snapshot.
+      const [criteria] = await db
+        .select()
+        .from(ipcCriteriaTable)
+        .where(eq(ipcCriteriaTable.id, input.criteriaId))
+        .limit(1);
+      if (!criteria) throw new Error(`IPC criteria ${input.criteriaId} not found`);
+
+      // Determine effective min/max via spec target if present.
+      let effectiveMin = criteria.minValue;
+      let effectiveMax = criteria.maxValue;
+      const specTargetNum = criteria.specTarget !== null && criteria.specTarget !== undefined
+        ? Number(criteria.specTarget)
+        : null;
+      const specTolPctNum = Number(criteria.specTolerancePercent) || 0;
+      if (specTargetNum !== null && !Number.isNaN(specTargetNum)) {
+        const calc = calculateMinMax(specTargetNum, specTolPctNum);
+        if (calc) {
+          effectiveMin = calc.min;
+          effectiveMax = calc.max;
+        }
+      }
+
+      // Compute per-sample results + overall test result.
+      const tolPct = Number(criteria.tolerancePercent) || 0;
+      const criteriaType = criteria.criteriaType || 'numeric';
+      const samples: Array<{
+        sampleNumber: number;
+        numericValue: number | null;
+        textValue: string | null;
+        result: 'pass' | 'fail' | 'pending';
+      }> = [];
+
+      if (criteriaType === 'numeric') {
+        const values = input.numericValues || [];
+        values.forEach((v, idx) => {
+          let res: 'pass' | 'fail' | 'pending' = 'pending';
+          if (v != null && !Number.isNaN(v)) {
+            const minOk = effectiveMin == null || v >= Number(effectiveMin);
+            const maxOk = effectiveMax == null || v <= Number(effectiveMax);
+            res = minOk && maxOk ? 'pass' : 'fail';
+          }
+          samples.push({
+            sampleNumber: idx + 1,
+            numericValue: v != null ? Number(v) : null,
+            textValue: null,
+            result: res,
+          });
+        });
+      } else if (criteriaType === 'text') {
+        // Single sample row holding the operator's text. Pass by default
+        // unless the operator marks it failing via sampleResults[0].
+        const text = input.textValue ?? null;
+        const res = input.sampleResults?.[0] ?? (text ? 'pass' : 'pending');
+        samples.push({
+          sampleNumber: 1,
+          numericValue: null,
+          textValue: text,
+          result: res === null ? 'pending' : res,
+        });
+      } else {
+        // pass_fail / visual / checkbox — driven by sampleResults[].
+        const results = input.sampleResults || [];
+        results.forEach((r, idx) => {
+          samples.push({
+            sampleNumber: idx + 1,
+            numericValue: null,
+            textValue: null,
+            result: r === null ? 'pending' : r,
+          });
+        });
+      }
+
+      // Overall test status from sample failures + tolerance.
+      const total = samples.length;
+      const failCount = samples.filter((s) => s.result === 'fail').length;
+      const pendingCount = samples.filter((s) => s.result === 'pending').length;
+      let testStatus: 'pending' | 'pass' | 'fail' = 'pending';
+      if (total > 0 && pendingCount === 0) {
+        const failPct = total === 0 ? 0 : (failCount / total) * 100;
+        testStatus = failPct > tolPct ? 'fail' : 'pass';
+      }
+
+      // Insert the quality_test row.
+      const insertRes = await db.insert(tables.qualityTests).values({
+        lotId: targetLotId,
+        testType: 'in_process',
+        sampleNumber: `SOP-${input.sopExecutionId}-IPC-${input.criteriaId}`,
+        sampleSize: total || 1,
+        status: testStatus,
+        result: testStatus === 'pending' ? null : testStatus,
+        requestedBy: operatorId,
+        requestedAt: getNow(),
+        testedBy: testStatus === 'pending' ? null : operatorId,
+        testDate: testStatus === 'pending' ? null : getNow(),
+        specMinValue: effectiveMin,
+        specMaxValue: effectiveMax,
+        specSpecification: criteria.specification || criteria.name,
+        specUnit: criteria.unit,
+        criteriaType,
+        tolerancePercent: tolPct,
+        specTarget: specTargetNum,
+        specTolerancePercent: specTolPctNum,
+        acceptanceStages: typeof criteria.acceptanceStages === 'string'
+          ? criteria.acceptanceStages
+          : (criteria.acceptanceStages ? JSON.stringify(criteria.acceptanceStages) : null),
+        ipcPhase: input.ipcPhase,
+        notes: input.notes ?? (criteria.nameTh || criteria.name),
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      });
+      const qualityTestId = Number(getInsertId(insertRes));
+      created.push(qualityTestId);
+
+      // Insert sample rows.
+      for (const s of samples) {
+        await db.insert(tables.ipcTestSamples).values({
+          qualityTestId,
+          sampleNumber: s.sampleNumber,
+          testRound: 1,
+          numericValue: s.numericValue,
+          textValue: s.textValue,
+          result: s.result,
+          createdAt: getNow(),
+        });
+      }
+    }
+
+    return { qualityTestIds: created };
+  });
+}

@@ -149,6 +149,13 @@ export default function SOPExecutionPage() {
   const [actualParams, setActualParams] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
 
+  // IPC inline recording state — keyed by criteriaId. Each linked IPC has its
+  // own buffer of sample values. Reset every time the dialog opens for a new
+  // step (handled in the open handler below).
+  const [ipcNumeric, setIpcNumeric] = useState<Record<number, (number | null)[]>>({});
+  const [ipcSampleResults, setIpcSampleResults] = useState<Record<number, ('pass' | 'fail' | null)[]>>({});
+  const [ipcText, setIpcText] = useState<Record<number, string>>({});
+
   // Used to gate the Verify button under GMP dual-control:
   // a step's operator cannot also be its verifier.
   const { data: currentUser } = useCurrentUser();
@@ -263,13 +270,33 @@ export default function SOPExecutionPage() {
     },
   });
 
-  // Complete step mutation
+  // Complete step mutation — accepts optional ipcResults[] for inline IPC
+  // recording. Backend records IPC samples (creating quality_test rows)
+  // before flipping the step to completed; if IPC recording fails the
+  // step stays in_progress so the operator can retry.
+  type CompleteStepPayload = {
+    actualParameters: Record<string, number>;
+    notes?: string;
+    ipcResults?: Array<{
+      criteriaId: number;
+      ipcPhase: string;
+      numericValues?: (number | null)[];
+      sampleResults?: ('pass' | 'fail' | null)[];
+      textValue?: string;
+    }>;
+  };
   const completeStepMutation = useMutation({
-    mutationFn: async ({ stepId, data }: { stepId: number; data: { actualParameters: Record<string, number>; notes?: string } }) => {
+    mutationFn: async ({ stepId, data }: { stepId: number; data: CompleteStepPayload }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ executionId: stepId, action: 'complete', actualParameters: data.actualParameters, notes: data.notes }),
+        body: JSON.stringify({
+          executionId: stepId,
+          action: 'complete',
+          actualParameters: data.actualParameters,
+          notes: data.notes,
+          ipcResults: data.ipcResults,
+        }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
@@ -277,11 +304,16 @@ export default function SOPExecutionPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-ipc-tests', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
       toast.success('Step Completed', 'Production step has been completed.');
       setShowCompleteDialog(false);
       setSelectedStep(null);
       setActualParams({});
       setNotes('');
+      setIpcNumeric({});
+      setIpcSampleResults({});
+      setIpcText({});
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -361,16 +393,73 @@ export default function SOPExecutionPage() {
     if (expected) {
       setActualParams({ ...expected });
     }
+    // Seed empty IPC buffers for every linked criterion so render is stable.
+    const numericInit: Record<number, (number | null)[]> = {};
+    const sampleInit: Record<number, ('pass' | 'fail' | null)[]> = {};
+    const textInit: Record<number, string> = {};
+    for (const ipc of step.linkedIPC || []) {
+      const size = ipc.sampleSize || 1;
+      if (ipc.criteriaType === 'numeric') {
+        numericInit[ipc.criteriaId] = Array.from({ length: size }, () => null);
+      } else if (ipc.criteriaType === 'text') {
+        textInit[ipc.criteriaId] = '';
+      } else {
+        sampleInit[ipc.criteriaId] = Array.from({ length: size }, () => null);
+      }
+    }
+    setIpcNumeric(numericInit);
+    setIpcSampleResults(sampleInit);
+    setIpcText(textInit);
     setShowCompleteDialog(true);
+  };
+
+  /** Validate every linked IPC has all sample inputs filled. */
+  const ipcInputsComplete = (step: SOPStep | null): boolean => {
+    if (!step?.linkedIPC?.length) return true;
+    for (const ipc of step.linkedIPC) {
+      if (ipc.criteriaType === 'numeric') {
+        const values = ipcNumeric[ipc.criteriaId] || [];
+        if (values.length === 0 || values.some((v) => v == null || Number.isNaN(v))) return false;
+      } else if (ipc.criteriaType === 'text') {
+        const t = ipcText[ipc.criteriaId];
+        if (!t || !t.trim()) return false;
+      } else {
+        const results = ipcSampleResults[ipc.criteriaId] || [];
+        if (results.length === 0 || results.some((r) => r == null)) return false;
+      }
+    }
+    return true;
   };
 
   const handleCompleteStep = () => {
     if (!selectedStep) return;
+
+    if (!ipcInputsComplete(selectedStep)) {
+      toast.error('IPC Required', 'กรุณากรอก IPC ทุก sample ให้ครบก่อน');
+      return;
+    }
+
+    // Pack linked IPC results to send alongside the complete request.
+    const ipcResults = (selectedStep.linkedIPC || []).map((ipc) => {
+      const base = {
+        criteriaId: ipc.criteriaId,
+        ipcPhase: selectedStep.phase || 'production',
+      };
+      if (ipc.criteriaType === 'numeric') {
+        return { ...base, numericValues: ipcNumeric[ipc.criteriaId] || [] };
+      }
+      if (ipc.criteriaType === 'text') {
+        return { ...base, textValue: ipcText[ipc.criteriaId] || '' };
+      }
+      return { ...base, sampleResults: ipcSampleResults[ipc.criteriaId] || [] };
+    });
+
     completeStepMutation.mutate({
       stepId: selectedStep.id,
       data: {
         actualParameters: actualParams,
         notes: notes || undefined,
+        ipcResults: ipcResults.length > 0 ? ipcResults : undefined,
       },
     });
   };
@@ -983,6 +1072,140 @@ export default function SOPExecutionPage() {
               </div>
             );
           })()}
+
+          {/* Inline IPC recording — Phase 3. Renders one block per linked
+              criterion. Numeric → N number boxes; pass_fail/visual/checkbox →
+              N PASS/FAIL toggles; text → single textarea. The data is sent
+              with the Complete request so the backend can create the
+              quality_test + ipc_test_samples rows in the same transaction. */}
+          {selectedStep?.linkedIPC && selectedStep.linkedIPC.length > 0 && (
+            <div className="space-y-3">
+              <h5 className="text-sm font-medium text-emerald-800 flex items-center gap-1.5">
+                <FlaskConical className="h-4 w-4" />
+                IPC Test ({selectedStep.linkedIPC.length})
+              </h5>
+              {selectedStep.linkedIPC.map((ipc) => {
+                const size = ipc.sampleSize || 1;
+                const spec = ipc.specification
+                  || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
+                  || ((ipc.minValue != null || ipc.maxValue != null)
+                      ? `${ipc.minValue ?? '-'} – ${ipc.maxValue ?? '-'}${ipc.unit ? ' ' + ipc.unit : ''}`
+                      : null);
+                return (
+                  <div
+                    key={ipc.id}
+                    className={`p-3 rounded-lg border ${
+                      ipc.isCritical ? 'border-rose-200 bg-rose-50/30' : 'border-emerald-200 bg-emerald-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                      <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                        {ipc.criteriaCode}
+                      </span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {ipc.criteriaNameTh || ipc.criteriaName}
+                      </span>
+                      {ipc.isCritical && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">
+                          <AlertCircle className="h-2.5 w-2.5" />
+                          Critical
+                        </span>
+                      )}
+                    </div>
+                    {spec && (
+                      <div className="text-xs text-gray-500 mb-2">
+                        <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {size}
+                      </div>
+                    )}
+
+                    {/* Numeric — N number boxes */}
+                    {ipc.criteriaType === 'numeric' && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {(ipcNumeric[ipc.criteriaId] || []).map((v, idx) => {
+                          const min = ipc.minValue != null ? Number(ipc.minValue) : null;
+                          const max = ipc.maxValue != null ? Number(ipc.maxValue) : null;
+                          const inSpec = v == null
+                            ? null
+                            : (min == null || v >= min) && (max == null || v <= max);
+                          return (
+                            <div key={idx}>
+                              <label className="block text-[11px] text-gray-500 mb-0.5">#{idx + 1}</label>
+                              <DxNumberBox
+                                value={v ?? undefined}
+                                onValueChanged={(e) => {
+                                  const next = [...(ipcNumeric[ipc.criteriaId] || [])];
+                                  next[idx] = e.value == null ? null : Number(e.value);
+                                  setIpcNumeric({ ...ipcNumeric, [ipc.criteriaId]: next });
+                                }}
+                                format="#0.00"
+                                showSpinButtons={false}
+                              />
+                              {v != null && (
+                                <div className={`mt-0.5 text-[10px] font-semibold ${inSpec ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {inSpec ? '✓ ในเกณฑ์' : '✗ นอกเกณฑ์'}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Pass/Fail / Visual / Checkbox — N toggle pairs */}
+                    {ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text' && (
+                      <div className="space-y-1.5">
+                        {(ipcSampleResults[ipc.criteriaId] || []).map((r, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-600 w-8">#{idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
+                                next[idx] = 'pass';
+                                setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
+                              }}
+                              className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                                r === 'pass'
+                                  ? 'bg-emerald-600 text-white border-emerald-700'
+                                  : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
+                              }`}
+                            >
+                              ผ่าน
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
+                                next[idx] = 'fail';
+                                setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
+                              }}
+                              className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                                r === 'fail'
+                                  ? 'bg-rose-600 text-white border-rose-700'
+                                  : 'bg-white text-gray-600 border-gray-200 hover:bg-rose-50'
+                              }`}
+                            >
+                              ไม่ผ่าน
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Text — single textarea */}
+                    {ipc.criteriaType === 'text' && (
+                      <DxTextArea
+                        value={ipcText[ipc.criteriaId] || ''}
+                        onValueChanged={(e) => setIpcText({ ...ipcText, [ipc.criteriaId]: e.value || '' })}
+                        placeholder="กรอกผลการตรวจ"
+                        height={60}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>

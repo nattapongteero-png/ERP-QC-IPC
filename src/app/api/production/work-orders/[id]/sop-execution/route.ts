@@ -12,6 +12,8 @@ import {
   completeWOSOPStep,
   verifyWOSOPStep,
   confirmWOSOPSubSteps,
+  recordSOPLinkedIPCResults,
+  type SOPLinkedIPCInput,
 } from '@/lib/services/wo-execution.service';
 import { publishWorkOrderChanged } from '@/lib/realtime';
 import { executeDbOperation } from '@/lib/db/db-helper';
@@ -140,6 +142,19 @@ export async function PUT(
           typeof data.actualParameters === 'object'
             ? JSON.stringify(data.actualParameters)
             : data.actualParameters;
+
+        // Phase 3 — when the SOP step has IPC criteria linked at the master
+        // template level, the operator can record those results inline in
+        // the same Complete dialog. We record IPC samples first so a failure
+        // there short-circuits step completion (operator sees an error
+        // without the step prematurely flipping to completed).
+        if (Array.isArray(data.ipcResults) && data.ipcResults.length > 0) {
+          const ipcInputs = data.ipcResults as SOPLinkedIPCInput[];
+          // Stamp every input with the SOP execution it belongs to.
+          for (const r of ipcInputs) r.sopExecutionId = data.executionId;
+          await recordSOPLinkedIPCResults(workOrderId, session.userId, ipcInputs);
+          publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'sop-inline-record');
+        }
 
         execution = await completeWOSOPStep(data.executionId, actualParams, data.notes);
         publishWorkOrderChanged(workOrderId, 'sop-execution', session.userId, 'complete');
