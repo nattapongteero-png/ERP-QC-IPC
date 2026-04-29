@@ -800,14 +800,43 @@ function renderTable(items,mod){
 // Split description into 2-line summary + (1)(2)(3) numbered detail lines.
 // Detail block is hidden by default; user clicks "ดูรายละเอียด" to expand.
 function formatDescription(text){
+  // Break long descriptions into a concise summary + collapsible detail items.
+  // Items split on (1)(2)(3) numbered patterns OR " — " (em-dash) separators.
   var idx=text.search(/\(1\)/);
-  if(idx<0)return{summary:text,items:null};
-  var summary=text.substring(0,idx).trim().replace(/[\u2014\-,:;]\s*$/,'').trim();
-  if(!summary)summary=text.substring(0,80);
-  // Split full text on space-followed-by-(N) so each numbered item is its own line
-  var rest=text.substring(idx);
-  var items=rest.split(/\s+(?=\(\d+\))/).map(function(s){return s.trim();}).filter(Boolean);
+  var summary,items;
+  if(idx>=0){
+    summary=text.substring(0,idx).trim().replace(/[\u2014\-,:;]\s*$/,'').trim();
+    var rest=text.substring(idx);
+    items=rest.split(/\s+(?=\(\d+\))/).map(function(s){return s.trim();}).filter(Boolean);
+  }else{
+    // No numbered list — split on " — " for items (em-dash separator)
+    var parts=text.split(/\s+\u2014\s+/);
+    if(parts.length>1){
+      summary=parts[0].trim();
+      items=parts.slice(1).map(function(s){return s.trim();}).filter(Boolean);
+    }else{
+      return{summary:text,items:null};
+    }
+  }
+  // Trim summary to ~140 chars on first sentence-like break for readability
+  if(summary.length>140){
+    var cut=summary.search(/[.\u0E2F]\s|\s—\s|: /);
+    if(cut>0&&cut<160)summary=summary.substring(0,cut+1).trim();
+    else summary=summary.substring(0,140).trim()+'…';
+  }
+  if(!summary)summary=text.substring(0,100);
   return{summary:summary,items:items};
+}
+
+// Wrap long text into multi-line (split at numbered (N) patterns and em-dashes)
+// for nicer Excel cell display when wrapText is enabled.
+function wrapForExcel(text){
+  if(!text)return'';
+  // Insert newlines before each (N) marker
+  var t=text.replace(/\s+(?=\(\d+\))/g,'\n');
+  // Insert newlines before " — " separators (em-dash)
+  t=t.replace(/\s+\u2014\s+/g,'\n— ');
+  return t;
 }
 
 function renderTableRows(items){
@@ -906,20 +935,33 @@ function exportExcel(){
   var ws2=XLSX.utils.json_to_sheet(summary);ws2['!cols']=[{wch:20},{wch:10},{wch:10},{wch:10},{wch:10}];
   XLSX.utils.book_append_sheet(wb,ws2,'Summary');
 
-  // Detail sheet — vertical layout per entry
+  // Detail sheet — vertical layout per entry, with row number on each entry
+  // and line-wrapped descriptions for better readability.
   var detailRows=[];
-  items.forEach(function(d){
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Module','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.module});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Menu','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.menu});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Sub Menu','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.sub});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':typeLabelTh(d.type)});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.desc});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.prompt});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':formatDateLong(d.date)});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':calcDuration(d.startTime,d.endTime)||'\u2014'});
-    detailRows.push({'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':''});
+  items.forEach(function(d,i){
+    var seq=i+1;
+    detailRows.push({'\u0E25\u0E33\u0E14\u0E31\u0E1A':seq,'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Module','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.module});
+    detailRows.push({'\u0E25\u0E33\u0E14\u0E31\u0E1A':seq,'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Menu','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.menu});
+    detailRows.push({'\u0E25\u0E33\u0E14\u0E31\u0E1A':seq,'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Sub Menu','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':d.sub});
+    detailRows.push({'\u0E25\u0E33\u0E14\u0E31\u0E1A':seq,'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':typeLabelTh(d.type)});
+    detailRows.push({'\u0E25\u0E33\u0E14\u0E31\u0E1A':seq,'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02 / \u0E01\u0E32\u0E23\u0E1E\u0E31\u0E12\u0E19\u0E32','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':wrapForExcel(d.desc)});
+    detailRows.push({'\u0E25\u0E33\u0E14\u0E31\u0E1A':seq,'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'Prompt \u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E02','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':wrapForExcel(d.prompt)});
+    detailRows.push({'\u0E25\u0E33\u0E14\u0E31\u0E1A':seq,'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':formatDateLong(d.date)});
+    detailRows.push({'\u0E25\u0E33\u0E14\u0E31\u0E1A':seq,'\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':calcDuration(d.startTime,d.endTime)||'\u2014'});
+    detailRows.push({'\u0E25\u0E33\u0E14\u0E31\u0E1A':'','\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D':'','\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14':''});
   });
-  var ws3=XLSX.utils.json_to_sheet(detailRows);ws3['!cols']=[{wch:30},{wch:80}];
+  var ws3=XLSX.utils.json_to_sheet(detailRows);
+  ws3['!cols']=[{wch:6},{wch:30},{wch:90}];
+  // Enable wrapText on every cell so multiline descriptions render on multiple
+  // lines instead of being cut off / overflowing.
+  var range=XLSX.utils.decode_range(ws3['!ref']);
+  for(var R=range.s.r;R<=range.e.r;R++){
+    for(var C=range.s.c;C<=range.e.c;C++){
+      var addr=XLSX.utils.encode_cell({r:R,c:C});
+      if(!ws3[addr])continue;
+      ws3[addr].s={alignment:{wrapText:true,vertical:'top'}};
+    }
+  }
   XLSX.utils.book_append_sheet(wb,ws3,'Detail');
 
   XLSX.writeFile(wb,'Herbal-ERP-Changelog.xlsx');
