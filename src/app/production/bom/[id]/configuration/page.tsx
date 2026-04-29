@@ -1550,6 +1550,7 @@ export default function BOMConfigurationPage() {
                 >
                   <DxPaging defaultPageSize={10} />
                   <DxColumn dataField="sequence" caption="Step" width={70} />
+                  <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="stepName" caption="Step Name (EN)" />
                   <DxColumn dataField="stepNameTh" caption="Step Name (TH)" />
                   <DxColumn dataField="requiresVerification" caption="Verification" width={120} cellRender={(cell) => (

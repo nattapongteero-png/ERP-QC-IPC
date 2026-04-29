@@ -353,6 +353,7 @@
 <script>
 var DATA=[
   // ==================== 30 เมษายน 2569 ====================
+  {module:'Production',menu:'BOM Configuration — SOP Steps grid',sub:'เพิ่มคอลัมน์ Phase ในตาราง SOP Steps',type:'feat',desc:'แสดง phase ของแต่ละ step (Pre-/Production/Post-/Packaging) ในตาราง SOP Steps พร้อม badge สี',date:'30 เม.ย. 69',startTime:'01:55',endTime:'02:00',prompt:'แถบ SOP STEP ให้มี column แสดง phase ที่ผูกไว้ด้วย'},
   {module:'Production',menu:'BOM Configuration — Step Dialog',sub:'แก้ template-pick ครั้งแรกไม่แสดง sub-steps + จำตัวเลือกข้าม template',type:'fix',desc:'User feedback: "เลือก template ครั้งแรกไม่แสดง sub-step + เปลี่ยน template ระบบจำของเก่า" — root cause: stale closure ใน setSOPForm spread + DxSelectBox spurious null emit หลัง user click — Fix: functional setState ทุก handler (setSOPForm(prev => ...)) + guard ignore null emit ที่ไม่มี DOM event + memoize dataSource',date:'30 เม.ย. 69',startTime:'00:50',endTime:'01:30',prompt:'เลือกครั้งแรกไม่แสดงเสมอ + เปลี่ยน template ยังจำ step ย่อยเดิม'},
 
   // ==================== 29 เมษายน 2569 ====================
