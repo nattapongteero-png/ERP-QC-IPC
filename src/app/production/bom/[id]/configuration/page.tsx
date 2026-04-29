@@ -998,7 +998,13 @@ export default function BOMConfigurationPage() {
   const createIpcLinkMutation = useMutation({
     mutationFn: async () => {
       if (!selectedStepForIPC) throw new Error('No SOP step selected');
-      if (!ipcLinkForm.criteriaId) throw new Error('Please select an IPC criterion');
+      if (!ipcLinkForm.criteriaId) throw new Error('กรุณาเลือก IPC Criterion');
+      // IPC must bind to a sub-step (procedureStepId) when sub-steps exist —
+      // WO Execution renders IPC under sub-steps, so unrooted IPCs are
+      // unreachable to operators.
+      if (subStepsForSelectedBomStep.length > 0 && !ipcLinkForm.procedureStepId) {
+        throw new Error('กรุณาเลือกขั้นตอนย่อย (sub-step) ที่ IPC ผูก');
+      }
       const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1606,11 +1612,12 @@ export default function BOMConfigurationPage() {
                'Add Packaging QC Criteria')
         }
         width={dialogType === 'sop' ? 650 : dialogType === 'room' ? 600 : 500}
-        height="auto"
+        height={dialogType === 'sop' ? '90vh' : 'auto'}
         showCloseButton
         dragEnabled={false}
       >
-        <div className="p-4 space-y-4">
+        <div className={dialogType === 'sop' ? 'flex flex-col h-full' : 'p-4 space-y-4'}>
+        <div className={dialogType === 'sop' ? 'p-4 space-y-4 overflow-y-auto flex-1' : 'contents'}>
           {/* Room Form */}
           {dialogType === 'room' && (
             <>
@@ -2102,49 +2109,8 @@ export default function BOMConfigurationPage() {
                             );
                           })}
 
-                          {/* Whole-step pending links (no sub-step) */}
-                          {(() => {
-                            const wholeStepPending = pendingBySubStep.get(null) ?? [];
-                            const isFormTargetingWholeStep =
-                              pendingIpcEditingId === null && pendingIpcActiveSubStepId === -1;
-                            if (wholeStepPending.length === 0 && !isFormTargetingWholeStep && subSteps.length > 0) {
-                              return (
-                                <div className="flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={() => openPendingForm(null)}
-                                    className="text-xs text-gray-500 hover:text-emerald-700 underline"
-                                  >
-                                    + เพิ่ม IPC ที่ผูกกับ step ทั้งหมด (ไม่ระบุ sub-step)
-                                  </button>
-                                </div>
-                              );
-                            }
-                            if (wholeStepPending.length === 0) return null;
-                            return (
-                              <div
-                                className={`rounded-md border ${isFormTargetingWholeStep ? 'border-amber-400 bg-amber-50/30' : 'border-amber-200 bg-amber-50/20'}`}
-                              >
-                                <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200 bg-amber-50/50 rounded-t-md">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-amber-800">
-                                      ⚠ ผูกกับ step ทั้งหมด (ไม่ระบุ sub-step)
-                                    </span>
-                                    <span className="text-[10px] text-amber-700">({wholeStepPending.length} IPC)</span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => openPendingForm(null)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 rounded transition-colors"
-                                  >
-                                    <Plus className="h-3.5 w-3.5" />
-                                    เพิ่ม IPC
-                                  </button>
-                                </div>
-                                <div className="p-2 space-y-2">{wholeStepPending.map(renderPendingRow)}</div>
-                              </div>
-                            );
-                          })()}
+                          {/* IPC ต้องผูกกับ sub-step เสมอ (ไม่อนุญาตให้ผูกที่ระดับ
+                              step เพราะ WO Execution ต้องใช้ sub-step ในการบันทึก IPC) */}
                         </div>
                       )}
 
@@ -2163,9 +2129,6 @@ export default function BOMConfigurationPage() {
                                     return found ? found.stepNameTh || found.stepName : '';
                                   })()}
                                 </span>
-                              )}
-                              {formSubStepId === null && (
-                                <span className="text-amber-700 font-normal">— ผูกกับ step ทั้งหมด</span>
                               )}
                             </h5>
                             <button
@@ -2398,7 +2361,10 @@ export default function BOMConfigurationPage() {
             </>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          </div>
+          <div className={dialogType === 'sop'
+            ? 'flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0'
+            : 'flex justify-end gap-2 pt-4 border-t'}>
             <DxButton
               text="Cancel"
               stylingMode="outlined"
@@ -2620,24 +2586,23 @@ export default function BOMConfigurationPage() {
                     )}
                   </div>
 
-                  {/* Sub-step picker — show only when template has sub-steps */}
+                  {/* Sub-step picker — IPC ต้องผูกกับ sub-step เสมอ (จำเป็น) */}
                   {subStepsForSelectedBomStep.length > 0 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        ขั้นตอนย่อย (Sub-step) <span className="text-xs text-gray-500 font-normal">— เลือกขั้นตอนย่อยที่ IPC ผูก</span>
+                        ขั้นตอนย่อย (Sub-step) <span className="text-red-500">*</span>
+                        <span className="text-xs text-gray-500 font-normal ml-1">— เลือกขั้นตอนย่อยที่ IPC ผูก</span>
                       </label>
                       <DxSelectBox
-                        dataSource={[
-                          { id: null, display: '— ไม่ระบุ (ผูกกับ step ทั้งหมด) —' },
-                          ...subStepsForSelectedBomStep.map((s: any, idx: number) => ({
-                            id: s.id,
-                            display: `${idx + 1}. ${s.stepNameTh || s.stepName}`,
-                          })),
-                        ]}
+                        dataSource={subStepsForSelectedBomStep.map((s: any, idx: number) => ({
+                          id: s.id,
+                          display: `${idx + 1}. ${s.stepNameTh || s.stepName}`,
+                        }))}
                         displayExpr="display"
                         valueExpr="id"
                         value={ipcLinkForm.procedureStepId}
                         onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, procedureStepId: e.value }))}
+                        placeholder="เลือก sub-step..."
                       />
                     </div>
                   )}
