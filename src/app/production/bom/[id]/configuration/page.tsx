@@ -408,6 +408,35 @@ export default function BOMConfigurationPage() {
     notes: '',
   });
 
+  // Pending IPC links — staged client-side while creating a new BOM SOP step.
+  // Once the step itself is saved (addSOPMutation), each entry is POSTed to
+  // /api/production/bom/[id]/sop-step-ipc with the freshly-minted bomStepId.
+  type PendingIpcLink = {
+    tempId: string;
+    procedureStepId: number | null;
+    criteriaId: number;
+    sequence: number;
+    sampleSize: number;
+    isCritical: boolean;
+    maxRetestRounds: number | null;
+    notes: string;
+  };
+  const [pendingIpcLinks, setPendingIpcLinks] = useState<PendingIpcLink[]>([]);
+  const [pendingIpcEditingId, setPendingIpcEditingId] = useState<string | null>(null);
+  const [pendingIpcForm, setPendingIpcForm] = useState({
+    criteriaId: null as number | null,
+    procedureStepId: null as number | null,
+    sampleSize: 1,
+    sequence: 1,
+    isCritical: false,
+    maxRetestRounds: null as number | null,
+    notes: '',
+  });
+  // Active sub-step the inline ADD-mode form is currently targeting. null
+  // means the form is closed; pendingIpcActiveSubStepId === <number> means
+  // "Add IPC for sub-step #X" is open. Sentinel -1 = whole-step (no sub-step).
+  const [pendingIpcActiveSubStepId, setPendingIpcActiveSubStepId] = useState<number | null>(null);
+
   // Fetch BOM basic info
   const { data: bom, isLoading: bomLoading } = useQuery<BOMBasic>({
     queryKey: ['bom', bomId],
@@ -879,11 +908,62 @@ export default function BOMConfigurationPage() {
       if (!result.success) throw new Error(result.error);
       return result;
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
-      toast.success('SOP Step Added', 'SOP step has been added.');
+
+      // Batch-insert any IPC links the operator staged in pendingIpcLinks
+      // before the step itself was saved. The server returns the new step's
+      // id in result.data.id (matches POST /api/production/bom/[id]/sop-steps).
+      const newBomStepId: number | undefined = result?.data?.id ?? result?.data?.bomStepId;
+      const pending = pendingIpcLinks;
+      let linkedCount = 0;
+      let linkErrors = 0;
+      if (newBomStepId && pending.length > 0) {
+        for (const link of pending) {
+          try {
+            const linkRes = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                bomStepId: newBomStepId,
+                procedureStepId: link.procedureStepId,
+                criteriaId: link.criteriaId,
+                sequence: link.sequence,
+                sampleSize: link.sampleSize,
+                isCritical: link.isCritical,
+                maxRetestRounds: link.maxRetestRounds,
+                notes: link.notes || null,
+              }),
+            });
+            const linkJson = await linkRes.json();
+            if (linkJson.success) linkedCount++;
+            else linkErrors++;
+          } catch {
+            linkErrors++;
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
+      }
+
+      if (linkedCount > 0) {
+        toast.success('SOP Step Added', `บันทึกแล้ว — ${linkedCount} IPC link${linkedCount === 1 ? '' : 's'}${linkErrors > 0 ? ` (${linkErrors} failed)` : ''}`);
+      } else {
+        toast.success('SOP Step Added', 'SOP step has been added.');
+      }
       setShowAddDialog(false);
       setSOPForm({ templateId: 0, stepName: '', stepNameTh: '', instructions: '', instructionsTh: '', parameters: '', requiresVerification: true, phase: 'production' });
+      setPendingIpcLinks([]);
+      setPendingIpcEditingId(null);
+      setPendingIpcActiveSubStepId(null);
+      setPendingIpcForm({
+        criteriaId: null,
+        procedureStepId: null,
+        sampleSize: 1,
+        sequence: 1,
+        isCritical: false,
+        maxRetestRounds: null,
+        notes: '',
+      });
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -1052,7 +1132,34 @@ export default function BOMConfigurationPage() {
   const openAddDialog = (type: typeof dialogType) => {
     setDialogType(type);
     setEditingId(null);
+    // Reset pending IPC state — only relevant for SOP, but cheap to always reset.
+    setPendingIpcLinks([]);
+    setPendingIpcEditingId(null);
+    setPendingIpcActiveSubStepId(null);
+    setPendingIpcForm({
+      criteriaId: null,
+      procedureStepId: null,
+      sampleSize: 1,
+      sequence: 1,
+      isCritical: false,
+      maxRetestRounds: null,
+      notes: '',
+    });
     setShowAddDialog(true);
+  };
+
+  const resetPendingIpcForm = () => {
+    setPendingIpcEditingId(null);
+    setPendingIpcActiveSubStepId(null);
+    setPendingIpcForm({
+      criteriaId: null,
+      procedureStepId: null,
+      sampleSize: 1,
+      sequence: 1,
+      isCritical: false,
+      maxRetestRounds: null,
+      notes: '',
+    });
   };
 
   const openEditDialog = (type: typeof dialogType, item: Record<string, unknown>) => {
@@ -1139,8 +1246,8 @@ export default function BOMConfigurationPage() {
         }
         break;
       case 'sop': {
-        if (!sopForm.stepName) {
-          toast.error('Validation Error', 'Please enter a step name.');
+        if (!sopForm.stepNameTh) {
+          toast.error('Validation Error', 'กรุณากรอกชื่อขั้นตอน (ภาษาไทย)');
           return;
         }
         if (editingId) {
@@ -1478,7 +1585,13 @@ export default function BOMConfigurationPage() {
       {/* Add Dialog */}
       <DxPopup
         visible={showAddDialog}
-        onHiding={() => setShowAddDialog(false)}
+        onHiding={() => {
+          setShowAddDialog(false);
+          setEditingId(null);
+          setPendingIpcLinks([]);
+          setPendingIpcEditingId(null);
+          setPendingIpcActiveSubStepId(null);
+        }}
         title={
           editingId
             ? (dialogType === 'room' ? 'Edit Room Requirement' :
@@ -1693,29 +1806,23 @@ export default function BOMConfigurationPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (EN) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (TH) *</label>
+                  <DxTextBox
+                    value={sopForm.stepNameTh}
+                    onValueChanged={(e) => setSOPForm({ ...sopForm, stepNameTh: e.value })}
+                    placeholder="เช่น ผสมส่วนผสม"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Step Name (EN) <span className="text-gray-400">(Optional)</span>
+                  </label>
                   <DxTextBox
                     value={sopForm.stepName}
                     onValueChanged={(e) => setSOPForm({ ...sopForm, stepName: e.value })}
                     placeholder="e.g., Mix ingredients"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (TH)</label>
-                  <DxTextBox
-                    value={sopForm.stepNameTh}
-                    onValueChanged={(e) => setSOPForm({ ...sopForm, stepNameTh: e.value })}
-                    placeholder="e.g., ผสมส่วนผสม"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
-                <DxTextArea
-                  value={sopForm.instructions}
-                  onValueChanged={(e) => setSOPForm({ ...sopForm, instructions: e.value })}
-                  height={60}
-                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (TH)</label>
@@ -1725,14 +1832,31 @@ export default function BOMConfigurationPage() {
                   height={60}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Parameters (JSON)</label>
-                <DxTextBox
-                  value={sopForm.parameters}
-                  onValueChanged={(e) => setSOPForm({ ...sopForm, parameters: e.value })}
-                  placeholder='e.g., {"temperature": 75, "duration": 5}'
-                />
-              </div>
+              <details className="rounded-lg border border-gray-200 bg-gray-50/50 group">
+                <summary className="cursor-pointer select-none flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100/70 rounded-lg">
+                  <Settings className="h-4 w-4 text-gray-500 transition-transform group-open:rotate-90" />
+                  ตั้งค่าขั้นสูง (Advanced)
+                  <span className="ml-auto text-xs text-gray-400 font-normal">Instructions (EN), Parameters JSON</span>
+                </summary>
+                <div className="px-3 pb-3 pt-1 space-y-3 border-t border-gray-200">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
+                    <DxTextArea
+                      value={sopForm.instructions}
+                      onValueChanged={(e) => setSOPForm({ ...sopForm, instructions: e.value })}
+                      height={60}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Parameters (JSON)</label>
+                    <DxTextBox
+                      value={sopForm.parameters}
+                      onValueChanged={(e) => setSOPForm({ ...sopForm, parameters: e.value })}
+                      placeholder='e.g., {"temperature": 75, "duration": 5}'
+                    />
+                  </div>
+                </div>
+              </details>
               <div className="flex items-center gap-2">
                 <DxSwitch
                   value={sopForm.requiresVerification}
@@ -1757,17 +1881,403 @@ export default function BOMConfigurationPage() {
                   here in the same Step dialog. */}
               {sopForm.templateId > 0 && (() => {
                 if (!editingId) {
-                  return (
-                    <div className="border-2 border-dashed border-emerald-200 bg-emerald-50/30 rounded-lg p-4">
-                      <div className="flex items-start gap-2">
-                        <FlaskConical className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h4 className="text-sm font-semibold text-emerald-800">IPC Tests by Sub-Step</h4>
-                          <p className="text-xs text-gray-600 mt-1">
-                            บันทึก step นี้ก่อน แล้วกลับมาแก้ไขเพื่อผูก IPC กับขั้นตอนย่อย — หรือใช้ปุ่ม &quot;Manage&quot; ในตาราง SOP Steps หลังบันทึก
-                          </p>
+                  // ADD mode — pre-stage IPC links in pendingIpcLinks. They
+                  // get batch-POSTed to /sop-step-ipc once the parent step is
+                  // saved (see addSOPMutation.onSuccess).
+                  const subSteps = subStepsForSelectedBomStep as any[];
+                  // Group pending entries by procedureStepId.
+                  const pendingBySubStep = new Map<number | null, PendingIpcLink[]>();
+                  for (const link of pendingIpcLinks) {
+                    const key = link.procedureStepId ?? null;
+                    if (!pendingBySubStep.has(key)) pendingBySubStep.set(key, []);
+                    pendingBySubStep.get(key)!.push(link);
+                  }
+
+                  // Pending form — render only when user clicked "+ เพิ่ม IPC"
+                  // on a sub-step (or whole-step). pendingIpcActiveSubStepId
+                  // === null means form is hidden. Sentinel -1 = whole-step.
+                  const formOpen = pendingIpcActiveSubStepId !== null || pendingIpcEditingId !== null;
+                  const formSubStepId =
+                    pendingIpcEditingId !== null
+                      ? pendingIpcForm.procedureStepId
+                      : pendingIpcActiveSubStepId === -1
+                        ? null
+                        : pendingIpcActiveSubStepId;
+
+                  // Filter out criteria already staged for THIS sub-step (or
+                  // whole-step). When editing a pending entry, allow current.
+                  const criteriaUsedForThisSlot = new Set(
+                    pendingIpcLinks
+                      .filter((p) => (p.procedureStepId ?? null) === (formSubStepId ?? null))
+                      .filter((p) => p.tempId !== pendingIpcEditingId)
+                      .map((p) => p.criteriaId)
+                  );
+                  const availablePendingCriteria = ipcCriteriaMaster.filter((c: any) => !criteriaUsedForThisSlot.has(c.id));
+
+                  const openPendingForm = (subStepId: number | null) => {
+                    // Pre-fill defaults; sentinel -1 = whole-step.
+                    setPendingIpcEditingId(null);
+                    setPendingIpcActiveSubStepId(subStepId === null ? -1 : subStepId);
+                    setPendingIpcForm({
+                      criteriaId: null,
+                      procedureStepId: subStepId,
+                      sampleSize: 1,
+                      sequence: (pendingBySubStep.get(subStepId)?.length ?? 0) + 1,
+                      isCritical: false,
+                      maxRetestRounds: null,
+                      notes: '',
+                    });
+                  };
+
+                  const editPendingEntry = (entry: PendingIpcLink) => {
+                    setPendingIpcEditingId(entry.tempId);
+                    setPendingIpcActiveSubStepId(entry.procedureStepId === null ? -1 : entry.procedureStepId);
+                    setPendingIpcForm({
+                      criteriaId: entry.criteriaId,
+                      procedureStepId: entry.procedureStepId,
+                      sampleSize: entry.sampleSize,
+                      sequence: entry.sequence,
+                      isCritical: entry.isCritical,
+                      maxRetestRounds: entry.maxRetestRounds,
+                      notes: entry.notes,
+                    });
+                  };
+
+                  const deletePendingEntry = (tempId: string) => {
+                    setPendingIpcLinks((prev) => prev.filter((p) => p.tempId !== tempId));
+                    if (pendingIpcEditingId === tempId) resetPendingIpcForm();
+                  };
+
+                  const submitPendingForm = () => {
+                    if (!pendingIpcForm.criteriaId) {
+                      toast.error('Validation Error', 'กรุณาเลือก IPC Criterion');
+                      return;
+                    }
+                    if (pendingIpcEditingId !== null) {
+                      // Update existing pending entry.
+                      setPendingIpcLinks((prev) =>
+                        prev.map((p) =>
+                          p.tempId === pendingIpcEditingId
+                            ? {
+                                ...p,
+                                criteriaId: pendingIpcForm.criteriaId!,
+                                procedureStepId: pendingIpcForm.procedureStepId,
+                                sampleSize: pendingIpcForm.sampleSize,
+                                sequence: pendingIpcForm.sequence,
+                                isCritical: pendingIpcForm.isCritical,
+                                maxRetestRounds: pendingIpcForm.maxRetestRounds,
+                                notes: pendingIpcForm.notes,
+                              }
+                            : p
+                        )
+                      );
+                    } else {
+                      // Append new pending entry.
+                      const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+                      setPendingIpcLinks((prev) => [
+                        ...prev,
+                        {
+                          tempId,
+                          criteriaId: pendingIpcForm.criteriaId!,
+                          procedureStepId: pendingIpcForm.procedureStepId,
+                          sampleSize: pendingIpcForm.sampleSize,
+                          sequence: pendingIpcForm.sequence,
+                          isCritical: pendingIpcForm.isCritical,
+                          maxRetestRounds: pendingIpcForm.maxRetestRounds,
+                          notes: pendingIpcForm.notes,
+                        },
+                      ]);
+                    }
+                    resetPendingIpcForm();
+                  };
+
+                  // Render a single pending entry row (sub-step linked).
+                  const renderPendingRow = (entry: PendingIpcLink) => {
+                    const criterion = ipcCriteriaMaster.find((c: any) => c.id === entry.criteriaId) as any;
+                    return (
+                      <div
+                        key={entry.tempId}
+                        className={`flex items-start gap-3 p-2.5 rounded-md border bg-white ${pendingIpcEditingId === entry.tempId ? 'border-emerald-400 bg-emerald-50/40' : 'border-gray-200'}`}
+                      >
+                        <span className="flex-none w-6 h-6 rounded bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center mt-0.5">
+                          {entry.sequence}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-xs text-emerald-700">{criterion?.code ?? '—'}</span>
+                            <span className="text-sm font-medium truncate">
+                              {criterion?.nameTh || criterion?.name || 'Unknown criterion'}
+                            </span>
+                            {entry.isCritical && (
+                              <span className="text-[10px] text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">
+                                Critical
+                              </span>
+                            )}
+                            <span className="text-[10px] text-amber-700 bg-amber-50 px-1 py-0.5 rounded border border-amber-200">
+                              ยังไม่บันทึก
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            Sample: {entry.sampleSize}
+                            {entry.maxRetestRounds != null && <span> · Max retests: {entry.maxRetestRounds}</span>}
+                            {entry.notes && <span> · {entry.notes}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => editPendingEntry(entry)}
+                            className="p-1 text-gray-400 hover:text-blue-600"
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deletePendingEntry(entry.tempId)}
+                            className="p-1 text-gray-400 hover:text-red-600"
+                            title="Remove"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
+                    );
+                  };
+
+                  return (
+                    <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                          <FlaskConical className="h-4 w-4 text-emerald-600" />
+                          IPC Tests by Sub-Step ({pendingIpcLinks.length})
+                        </h4>
+                        <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          จะบันทึกพร้อม step
+                        </span>
+                      </div>
+
+                      {subSteps.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic">
+                          Loading sub-steps... หรือ template นี้ไม่มี sub-step
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {subSteps.map((sub: any, idx: number) => {
+                            const subPending = pendingBySubStep.get(sub.id) ?? [];
+                            const isFormTargetingThisSub =
+                              pendingIpcEditingId === null && pendingIpcActiveSubStepId === sub.id;
+                            return (
+                              <div
+                                key={sub.id}
+                                className={`rounded-md border ${isFormTargetingThisSub ? 'border-emerald-400 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}
+                              >
+                                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50/50 rounded-t-md">
+                                  <div className="flex items-center gap-2">
+                                    <span className="flex-none w-5 h-5 rounded bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center">
+                                      {idx + 1}
+                                    </span>
+                                    <span className="text-sm font-medium text-gray-800 truncate">
+                                      {sub.stepNameTh || sub.stepName}
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">({subPending.length} IPC)</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => openPendingForm(sub.id)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    เพิ่ม IPC
+                                  </button>
+                                </div>
+                                {subPending.length === 0 ? (
+                                  <div className="px-3 py-2.5 text-xs text-gray-400 italic">
+                                    ยังไม่มี IPC ผูกกับขั้นตอนย่อยนี้
+                                  </div>
+                                ) : (
+                                  <div className="p-2 space-y-2">{subPending.map(renderPendingRow)}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* Whole-step pending links (no sub-step) */}
+                          {(() => {
+                            const wholeStepPending = pendingBySubStep.get(null) ?? [];
+                            const isFormTargetingWholeStep =
+                              pendingIpcEditingId === null && pendingIpcActiveSubStepId === -1;
+                            if (wholeStepPending.length === 0 && !isFormTargetingWholeStep && subSteps.length > 0) {
+                              return (
+                                <div className="flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => openPendingForm(null)}
+                                    className="text-xs text-gray-500 hover:text-emerald-700 underline"
+                                  >
+                                    + เพิ่ม IPC ที่ผูกกับ step ทั้งหมด (ไม่ระบุ sub-step)
+                                  </button>
+                                </div>
+                              );
+                            }
+                            if (wholeStepPending.length === 0) return null;
+                            return (
+                              <div
+                                className={`rounded-md border ${isFormTargetingWholeStep ? 'border-amber-400 bg-amber-50/30' : 'border-amber-200 bg-amber-50/20'}`}
+                              >
+                                <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200 bg-amber-50/50 rounded-t-md">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-amber-800">
+                                      ⚠ ผูกกับ step ทั้งหมด (ไม่ระบุ sub-step)
+                                    </span>
+                                    <span className="text-[10px] text-amber-700">({wholeStepPending.length} IPC)</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => openPendingForm(null)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 rounded transition-colors"
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    เพิ่ม IPC
+                                  </button>
+                                </div>
+                                <div className="p-2 space-y-2">{wholeStepPending.map(renderPendingRow)}</div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Inline pending Add/Edit form — shown only when an
+                          "+ เพิ่ม IPC" button is clicked. */}
+                      {formOpen && (
+                        <div className="border border-emerald-300 bg-white rounded-md p-3 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                              <Plus className="h-3.5 w-3.5" />
+                              {pendingIpcEditingId !== null ? 'แก้ไข IPC' : 'เพิ่ม IPC ใหม่'}
+                              {formSubStepId !== null && subSteps.length > 0 && (
+                                <span className="text-gray-500 font-normal">
+                                  — {(() => {
+                                    const found = subSteps.find((s: any) => s.id === formSubStepId);
+                                    return found ? found.stepNameTh || found.stepName : '';
+                                  })()}
+                                </span>
+                              )}
+                              {formSubStepId === null && (
+                                <span className="text-amber-700 font-normal">— ผูกกับ step ทั้งหมด</span>
+                              )}
+                            </h5>
+                            <button
+                              type="button"
+                              onClick={resetPendingIpcForm}
+                              className="text-xs text-gray-500 hover:text-gray-700"
+                            >
+                              ยกเลิก
+                            </button>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">IPC Criterion *</label>
+                            <DxSelectBox
+                              dataSource={availablePendingCriteria.map((c: any) => ({
+                                id: c.id,
+                                display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
+                              }))}
+                              displayExpr="display"
+                              valueExpr="id"
+                              value={pendingIpcForm.criteriaId}
+                              onValueChanged={(e) => {
+                                const picked = ipcCriteriaMaster.find((c: any) => c.id === e.value) as any;
+                                setPendingIpcForm((f) => ({
+                                  ...f,
+                                  criteriaId: e.value,
+                                  sampleSize: picked?.sampleSize ?? f.sampleSize,
+                                  isCritical: picked?.isCritical ?? f.isCritical,
+                                }));
+                              }}
+                              placeholder="เลือก IPC criterion"
+                              searchEnabled
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Sequence</label>
+                              <DxNumberBox
+                                value={pendingIpcForm.sequence}
+                                onValueChanged={(e) => setPendingIpcForm((f) => ({ ...f, sequence: e.value ?? 1 }))}
+                                min={1}
+                                showSpinButtons
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Sample Size</label>
+                              <DxNumberBox
+                                value={pendingIpcForm.sampleSize}
+                                onValueChanged={(e) => setPendingIpcForm((f) => ({ ...f, sampleSize: e.value ?? 1 }))}
+                                min={1}
+                                showSpinButtons
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Max Retest</label>
+                              <DxNumberBox
+                                value={pendingIpcForm.maxRetestRounds ?? null}
+                                onValueChanged={(e) =>
+                                  setPendingIpcForm((f) => ({
+                                    ...f,
+                                    maxRetestRounds:
+                                      e.value === null || e.value === undefined ? null : Number(e.value),
+                                  }))
+                                }
+                                min={0}
+                                showClearButton
+                                placeholder="default"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <DxSwitch
+                              value={pendingIpcForm.isCritical}
+                              onValueChanged={(e: SwitchTypes.ValueChangedEvent) =>
+                                setPendingIpcForm((f) => ({ ...f, isCritical: e.value ?? false }))
+                              }
+                            />
+                            <span className="text-xs text-gray-700">Critical (failure must be flagged for QA review)</span>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                            <DxTextArea
+                              value={pendingIpcForm.notes}
+                              onValueChanged={(e) => setPendingIpcForm((f) => ({ ...f, notes: e.value ?? '' }))}
+                              height={48}
+                              placeholder="Optional"
+                            />
+                          </div>
+
+                          <div className="flex justify-end gap-2 pt-1 border-t border-emerald-100">
+                            <DxButton
+                              text="ยกเลิก"
+                              stylingMode="text"
+                              onClick={resetPendingIpcForm}
+                            />
+                            <DxButton
+                              text={pendingIpcEditingId !== null ? 'บันทึกการแก้ไข' : 'เพิ่ม'}
+                              type="success"
+                              icon={pendingIpcEditingId !== null ? 'save' : 'plus'}
+                              onClick={submitPendingForm}
+                              disabled={!pendingIpcForm.criteriaId}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-[11px] text-gray-500 italic">
+                        IPC ที่เพิ่มในนี้จะถูกบันทึกเมื่อกด &quot;Add&quot; — ยังไม่ได้บันทึกลงฐานข้อมูล
+                      </p>
                     </div>
                   );
                 }
@@ -1889,7 +2399,16 @@ export default function BOMConfigurationPage() {
           )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => { setShowAddDialog(false); setEditingId(null); }} />
+            <DxButton
+              text="Cancel"
+              stylingMode="outlined"
+              onClick={() => {
+                setShowAddDialog(false);
+                setEditingId(null);
+                setPendingIpcLinks([]);
+                resetPendingIpcForm();
+              }}
+            />
             <DxButton
               text={editingId ? 'Save' : 'Add'}
               type="success"
