@@ -1452,9 +1452,9 @@ export default function BOMConfigurationPage() {
                 >
                   <DxPaging defaultPageSize={10} />
                   <DxColumn dataField="sequence" caption="#" width={60} />
+                  <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="room.code" caption="Room Code" width={120} />
                   <DxColumn dataField="room.name" caption="Room Name" />
-                  <DxColumn dataField="phase" caption="Phase" width={150} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="isRequired" caption="Required" width={100} cellRender={(cell) => (
                     <span className={`px-2 py-0.5 rounded text-xs ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                       {cell.value ? 'Yes' : 'Optional'}
@@ -1509,10 +1509,10 @@ export default function BOMConfigurationPage() {
                 >
                   <DxPaging defaultPageSize={10} />
                   <DxColumn dataField="sequence" caption="#" width={60} />
+                  <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="equipment.code" caption="Equipment Code" width={120} />
                   <DxColumn dataField="equipment.name" caption="Equipment Name" />
                   <DxColumn dataField="equipment.capacity" caption="Capacity" width={120} />
-                  <DxColumn dataField="phase" caption="Phase" width={150} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="isRequired" caption="Required" width={100} cellRender={(cell) => (
                     <span className={`px-2 py-0.5 rounded text-xs ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                       {cell.value ? 'Yes' : 'Optional'}
