@@ -29,6 +29,7 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
+  ClipboardList,
 } from 'lucide-react';
 import { parseAcceptanceStages, calcStageAcceptance, type AcceptanceStage } from '@/lib/master-data/ipc-stages';
 import { parseSpecPayload, type SpecPayload } from '@/lib/master-data/ipc-spec-payload';
@@ -603,6 +604,36 @@ export default function IPCPage() {
                             {test.testName || `Test #${test.id}`}
                           </span>
                           <StatusBadge status={test.status} />
+                          {/* Source badge — distinguish tests recorded inline
+                              from a SOP step versus the standalone BOM IPC
+                              flow. SOP-* sample_number is the deterministic
+                              key recordSOPLinkedIPCResults uses. */}
+                          {(() => {
+                            const sample = String(test.sampleNumber || '');
+                            const sopMatch = sample.match(/^SOP-(\d+)-IPC-(\d+)$/);
+                            if (sopMatch) {
+                              const phase = test.ipcPhase || 'production';
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/production/work-orders/${workOrderId}/sop-execution?phase=${phase}`);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
+                                  title="คลิกเพื่อไป SOP Step ที่บันทึก"
+                                >
+                                  <ClipboardList className="h-3 w-3" />
+                                  SOP Step →
+                                </button>
+                              );
+                            }
+                            return (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                                BOM IPC
+                              </span>
+                            );
+                          })()}
                           {test.totalRounds > 0 && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                               Round {test.totalRounds}
