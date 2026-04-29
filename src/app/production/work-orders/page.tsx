@@ -395,14 +395,22 @@ export default function WorkOrdersPage() {
     ].filter(d => d.count > 0);
   }, [stats]);
 
+  // Active = WO ที่ยังทำงานอยู่ (ไม่นับ completed / cancelled). Priority
+  // ค่าน้อย = สำคัญสูง (1-3 = High, 4-6 = Medium, 7+ = Low) ตาม
+  // getPriorityLevel() ที่ใช้ในส่วนอื่นของหน้านี้.
   const priorityChartData = useMemo(() => {
     const activeOrders = workOrders.filter(wo => wo.status !== 'completed' && wo.status !== 'cancelled');
     return [
-      { priority: 'High', count: activeOrders.filter(wo => wo.priority <= 3).length },
-      { priority: 'Medium', count: activeOrders.filter(wo => wo.priority > 3 && wo.priority <= 6).length },
-      { priority: 'Low', count: activeOrders.filter(wo => wo.priority > 6).length },
+      { priority: 'High (1-3)', count: activeOrders.filter(wo => wo.priority <= 3).length, color: '#ef4444' },
+      { priority: 'Medium (4-6)', count: activeOrders.filter(wo => wo.priority > 3 && wo.priority <= 6).length, color: '#f59e0b' },
+      { priority: 'Low (7+)', count: activeOrders.filter(wo => wo.priority > 6).length, color: '#10b981' },
     ];
   }, [workOrders]);
+
+  const priorityChartTotal = useMemo(
+    () => priorityChartData.reduce((sum, d) => sum + d.count, 0),
+    [priorityChartData],
+  );
 
   // Status tabs
   const statusTabs = useMemo(() => [
@@ -739,18 +747,55 @@ export default function WorkOrdersPage() {
           )}
         </div>
 
-        {/* Priority Distribution */}
+        {/* Priority Distribution — gives the operator a glanceable count
+            of currently-active WOs split by urgency. The bars alone weren't
+            self-explaining (no axis labels, no priority threshold, all one
+            color), so we added: a subtitle that names the data source, a
+            threshold legend, color-coded bars (High=red / Med=amber /
+            Low=green), and per-bar count labels. */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:col-span-2 lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-amber-500" />
-              {t('workOrders.charts.byPriority')}
-            </h3>
+          <div className="flex items-start justify-between mb-1 gap-2">
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-amber-500" />
+                {t('workOrders.charts.byPriority')}
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                จำนวน WO ที่ยังทำงานอยู่ (ไม่นับ Completed / Cancelled) แบ่งตามระดับ Priority
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
+              <span className="text-gray-500">รวม</span>
+              <span className="font-bold text-gray-900">{priorityChartTotal}</span>
+              <span className="text-gray-500">orders</span>
+            </span>
+          </div>
+          <div className="mb-3 flex flex-wrap gap-2 text-[11px] text-gray-600">
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-500" /> High = priority 1–3 (เร่งด่วน)
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-500" /> Medium = 4–6
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Low = 7 ขึ้นไป
+            </span>
           </div>
           {priorityChartData.some(d => d.count > 0) ? (
-            <Chart id="priority-chart" dataSource={priorityChartData} size={{ height: 280 }}>
+            <Chart id="priority-chart" dataSource={priorityChartData} size={{ height: 240 }}>
               <CommonSeriesSettings argumentField="priority" type="bar" barWidth={40} />
-              <ChartSeries valueField="count" name="Orders" color="#6366f1" />
+              <ChartSeries
+                valueField="count"
+                name="Orders"
+                color="#6366f1"
+              >
+                <ChartLabel
+                  visible={true}
+                  backgroundColor="transparent"
+                  font={{ size: 12, weight: 600 }}
+                  customizeText={(arg: { value: string | number | Date; valueText: string }) => arg.valueText}
+                />
+              </ChartSeries>
               <ArgumentAxis>
                 <ChartLabel font={{ size: 12 }} />
               </ArgumentAxis>
@@ -759,7 +804,7 @@ export default function WorkOrdersPage() {
               <ChartTooltip
                 enabled={true}
                 customizeTooltip={(arg: { argumentText?: string; valueText?: string }) => ({
-                  text: `${arg.argumentText}: ${arg.valueText} orders`,
+                  text: `${arg.argumentText}: ${arg.valueText} active order${Number(arg.valueText) === 1 ? '' : 's'}`,
                 })}
               />
             </Chart>
