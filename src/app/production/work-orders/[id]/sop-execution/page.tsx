@@ -881,6 +881,15 @@ export default function SOPExecutionPage() {
     return statusMap[status];
   };
 
+  // Step number to show inside dialogs — matches the renumbered position
+  // in the on-screen list when a phase filter is active.
+  const displaySequenceFor = (step: SOPStep | null): number => {
+    if (!step) return 0;
+    if (!phaseFilter) return step.sequence;
+    const idx = (displaySteps ?? []).findIndex((s) => s.id === step.id);
+    return idx >= 0 ? idx + 1 : step.sequence;
+  };
+
   // Progress card counts steps in the currently-visible scope so the
   // numbers match what the operator sees on screen. Filtering to one
   // phase shouldn't surface steps from other phases in the totals.
@@ -1441,7 +1450,7 @@ export default function SOPExecutionPage() {
         <div className="p-4 space-y-4">
           <div className="bg-blue-50 rounded-lg p-4">
             <h4 className="font-medium text-blue-800 mb-2">
-              {t('bomConfiguration.step', { sequence: selectedStep?.sequence ?? 0 })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
+              {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
             </h4>
             {(() => {
               const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
@@ -1528,7 +1537,7 @@ export default function SOPExecutionPage() {
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
           <div className="bg-green-50 rounded-lg p-4">
             <h4 className="font-medium text-green-800 mb-2">
-              {t('bomConfiguration.step', { sequence: selectedStep?.sequence ?? 0 })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
+              {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
             </h4>
             {(() => {
               const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
@@ -1777,7 +1786,7 @@ export default function SOPExecutionPage() {
           <div className="p-4 space-y-4 overflow-y-auto flex-1">
             <div className="bg-emerald-50 rounded-lg p-3">
               <h4 className="font-medium text-emerald-800 text-sm">
-                {t('bomConfiguration.step', { sequence: selectedStep?.sequence ?? 0 })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
+                {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
               </h4>
               <p className="text-xs text-emerald-700 mt-1">
                 บันทึก IPC ก่อน Complete Step ได้ — ค่าที่บันทึกจะ replace ค่าก่อนหน้าเสมอ
