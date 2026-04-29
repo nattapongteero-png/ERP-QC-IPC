@@ -1105,11 +1105,16 @@ export default function SOPExecutionPage() {
                             </div>
                           )}
 
-                          {/* Template Sub-Steps (Procedure Details) with Confirmation */}
+                          {/* Template Sub-Steps (Procedure Details) with Confirmation.
+                              Editable only while the SOP step is in_progress
+                              (operator has clicked Start) — pending steps lack
+                              an operatorId/startedAt audit trail, and verified
+                              steps are immutable. */}
                           {step.templateSteps && step.templateSteps.length > 0 && (() => {
                             const confirmed = getConfirmedSubSteps(step);
                             const allConfirmed = step.templateSteps!.every((s) => confirmed.includes(s.id));
                             const confirmedCount = step.templateSteps!.filter((s) => confirmed.includes(s.id)).length;
+                            const subStepsEditable = step.status === 'in_progress';
                             return (
                               <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
                                 <div className="flex items-center justify-between mb-2">
@@ -1117,7 +1122,7 @@ export default function SOPExecutionPage() {
                                     <ListChecks className="h-4 w-4" />
                                     ขั้นตอนย่อย ({confirmedCount}/{step.templateSteps!.length})
                                   </p>
-                                  {!allConfirmed && (
+                                  {subStepsEditable && !allConfirmed && (
                                     <button
                                       onClick={() => confirmAllSubSteps(step)}
                                       disabled={confirmSubStepsMutation.isPending}
@@ -1131,6 +1136,11 @@ export default function SOPExecutionPage() {
                                     <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-200 rounded-md">
                                       <CheckCircle2 className="h-3.5 w-3.5" />
                                       ยืนยันครบแล้ว
+                                    </span>
+                                  )}
+                                  {!subStepsEditable && step.status === 'pending' && (
+                                    <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                                      กด Start ก่อนถึงติ๊กได้
                                     </span>
                                   )}
                                 </div>
@@ -1149,8 +1159,10 @@ export default function SOPExecutionPage() {
                                     return (
                                       <li
                                         key={sub.id}
-                                        className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors ${isConfirmed ? 'bg-emerald-100/80' : 'hover:bg-white/60'}`}
-                                        onClick={() => toggleSubStep(step, sub.id)}
+                                        className={`flex items-start gap-2 p-2 rounded-lg transition-colors ${
+                                          isConfirmed ? 'bg-emerald-100/80' : 'hover:bg-white/60'
+                                        } ${subStepsEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                                        onClick={() => subStepsEditable && toggleSubStep(step, sub.id)}
                                       >
                                         <div className={`flex-none w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center transition-colors ${isConfirmed ? 'bg-emerald-600 border-emerald-600' : 'border-gray-300 bg-white'}`}>
                                           {isConfirmed && (
