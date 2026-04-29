@@ -245,6 +245,8 @@ export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   retestIntervalMonths: integer('retest_interval_months'),
   lastRetestDate: text('last_retest_date'),
   retestStatus: text('retest_status'), // not_required, pending, scheduled, completed, overdue
+  // Material Return module: link a returned lot back to its source lot (self-reference)
+  parentLotId: integer('parent_lot_id').references((): AnySQLiteColumn => sqliteInventoryLots.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -1741,6 +1743,8 @@ export const mysqlInventoryLots = mysqlTable('inventory_lots', {
   retestIntervalMonths: int('retest_interval_months'),
   lastRetestDate: datetime('last_retest_date'),
   retestStatus: varchar('retest_status', { length: 50 }), // not_required, pending, scheduled, completed, overdue
+  // Material Return module: link a returned lot back to its source lot (self-reference)
+  parentLotId: int('parent_lot_id').references((): AnyMySqlColumn => mysqlInventoryLots.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -6639,6 +6643,146 @@ export const mysqlCoaVerifyLog = mysqlTable('coa_verify_log', {
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// ============================================
+// Material Return Module — Phase 1 Schema
+// Standards: FDA 21 CFR 211.103 (yield reconciliation),
+//            FDA 21 CFR 211.101–105 (charge-in/control of components),
+//            PIC/S PE 009 Annex 7 (herbal reconciliation),
+//            WHO Annex 2 (issue/dispense/return docs),
+//            Industry: Oracle MES "Reverse Dispense", SAP movement type 262
+// Note: source_requisition_id from design doc OMITTED — this project embeds
+// requisition fields on work_orders (no separate inventory_requisitions table).
+// ============================================
+
+// ---------- SQLite (testing) ----------
+
+// Material Returns — header for a return event (production -> warehouse trip)
+// Status flow: draft -> submitted -> received | rejected
+export const sqliteMaterialReturns = sqliteTable('material_returns', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  returnNumber: text('return_number').notNull().unique(), // e.g. "RET-2026-0001"
+  workOrderId: integer('work_order_id').references(() => sqliteWorkOrders.id),
+  returnDate: text('return_date').notNull(),
+  returnedBy: integer('returned_by').notNull().references(() => sqliteUsers.id),
+  receivingWarehouseId: integer('receiving_warehouse_id').notNull().references(() => sqliteWarehouses.id),
+  status: text('status').notNull().default('draft'), // draft|submitted|received|rejected
+  // QA approval
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  rejectionReason: text('rejection_reason'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Material Return Lines — per-item detail with reconciliation + variance tracking
+export const sqliteMaterialReturnLines = sqliteTable('material_return_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  returnId: integer('return_id').notNull().references(() => sqliteMaterialReturns.id),
+  // What was issued
+  sourceLotId: integer('source_lot_id').notNull().references(() => sqliteInventoryLots.id),
+  itemId: integer('item_id').notNull().references(() => sqliteItems.id),
+  issuedQty: real('issued_qty').notNull(),
+  issuedUnit: text('issued_unit').notNull(),
+  // What was used
+  usedQty: real('used_qty').notNull(),
+  usedUnit: text('used_unit').notNull(),
+  // What is being returned
+  returnQty: real('return_qty').notNull(),
+  returnUnit: text('return_unit').notNull(), // DISPENSE unit (small), per industry standard
+  // New lot for the returned portion (created on approval)
+  returnedLotId: integer('returned_lot_id').references(() => sqliteInventoryLots.id),
+  // Container tracking (cross-contamination prevention)
+  returnContainerLabel: text('return_container_label'), // e.g. "RTN-2026-0001-A"
+  returnContainerType: text('return_container_type'), // bag|drum|bottle
+  // Variance reconciliation
+  expectedVarianceQty: real('expected_variance_qty'), // known process loss
+  varianceQty: real('variance_qty').notNull(), // = issued - used - return
+  variancePct: real('variance_pct').notNull(), // = variance / issued * 100
+  varianceReason: text('variance_reason').notNull(), // process_loss|sampling|spillage|cleaning|measurement_error|unaccounted|other
+  varianceExplanation: text('variance_explanation'),
+  isOutsideTolerance: integer('is_outside_tolerance', { mode: 'boolean' }).notNull().default(false),
+  deviationId: integer('deviation_id').references(() => sqliteDeviations.id),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Material Variance Tolerances — per-item or per-category tolerance config
+// Lookup precedence: specific item_id wins over item_category fallback
+export const sqliteMaterialVarianceTolerances = sqliteTable('material_variance_tolerances', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  itemId: integer('item_id').references(() => sqliteItems.id), // null = category-level rule
+  itemCategory: text('item_category'), // 'active','inactive','excipient','herb', etc.
+  tolerancePct: real('tolerance_pct').notNull(), // e.g. 1.0 for active, 3.0 for inactive
+  effectiveFrom: text('effective_from').notNull(),
+  effectiveTo: text('effective_to'),
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ---------- MySQL (production) ----------
+
+// Material Returns — MySQL
+export const mysqlMaterialReturns = mysqlTable('material_returns', {
+  id: int('id').primaryKey().autoincrement(),
+  returnNumber: varchar('return_number', { length: 30 }).notNull().unique(),
+  workOrderId: int('work_order_id').references(() => mysqlWorkOrders.id),
+  returnDate: datetime('return_date').notNull(),
+  returnedBy: int('returned_by').notNull().references(() => mysqlUsers.id),
+  receivingWarehouseId: int('receiving_warehouse_id').notNull().references(() => mysqlWarehouses.id),
+  status: varchar('status', { length: 20 }).notNull().default('draft'),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  rejectionReason: mysqlText('rejection_reason'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Material Return Lines — MySQL
+export const mysqlMaterialReturnLines = mysqlTable('material_return_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  returnId: int('return_id').notNull().references(() => mysqlMaterialReturns.id),
+  sourceLotId: int('source_lot_id').notNull().references(() => mysqlInventoryLots.id),
+  itemId: int('item_id').notNull().references(() => mysqlItems.id),
+  issuedQty: decimal('issued_qty', { precision: 15, scale: 4 }).notNull(),
+  issuedUnit: varchar('issued_unit', { length: 20 }).notNull(),
+  usedQty: decimal('used_qty', { precision: 15, scale: 4 }).notNull(),
+  usedUnit: varchar('used_unit', { length: 20 }).notNull(),
+  returnQty: decimal('return_qty', { precision: 15, scale: 4 }).notNull(),
+  returnUnit: varchar('return_unit', { length: 20 }).notNull(),
+  returnedLotId: int('returned_lot_id').references(() => mysqlInventoryLots.id),
+  returnContainerLabel: varchar('return_container_label', { length: 50 }),
+  returnContainerType: varchar('return_container_type', { length: 50 }),
+  expectedVarianceQty: decimal('expected_variance_qty', { precision: 15, scale: 4 }),
+  varianceQty: decimal('variance_qty', { precision: 15, scale: 4 }).notNull(),
+  variancePct: decimal('variance_pct', { precision: 8, scale: 4 }).notNull(),
+  varianceReason: varchar('variance_reason', { length: 30 }).notNull(),
+  varianceExplanation: mysqlText('variance_explanation'),
+  isOutsideTolerance: mysqlBoolean('is_outside_tolerance').notNull().default(false),
+  deviationId: int('deviation_id').references(() => mysqlDeviations.id),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Material Variance Tolerances — MySQL
+export const mysqlMaterialVarianceTolerances = mysqlTable('material_variance_tolerances', {
+  id: int('id').primaryKey().autoincrement(),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  itemCategory: varchar('item_category', { length: 50 }),
+  tolerancePct: decimal('tolerance_pct', { precision: 8, scale: 4 }).notNull(),
+  effectiveFrom: datetime('effective_from').notNull(),
+  effectiveTo: datetime('effective_to'),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Export type aliases for easier use
 export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
@@ -6981,6 +7125,14 @@ export type CoaPrintHistory = typeof sqliteCoaPrintHistory.$inferSelect;
 export type NewCoaPrintHistory = typeof sqliteCoaPrintHistory.$inferInsert;
 export type CoaVerifyLog = typeof sqliteCoaVerifyLog.$inferSelect;
 export type NewCoaVerifyLog = typeof sqliteCoaVerifyLog.$inferInsert;
+
+// Material Return Module (Phase 1)
+export type MaterialReturn = typeof sqliteMaterialReturns.$inferSelect;
+export type NewMaterialReturn = typeof sqliteMaterialReturns.$inferInsert;
+export type MaterialReturnLine = typeof sqliteMaterialReturnLines.$inferSelect;
+export type NewMaterialReturnLine = typeof sqliteMaterialReturnLines.$inferInsert;
+export type MaterialVarianceTolerance = typeof sqliteMaterialVarianceTolerances.$inferSelect;
+export type NewMaterialVarianceTolerance = typeof sqliteMaterialVarianceTolerances.$inferInsert;
 
 // ============================================
 // Template Module (ERP Prototype)
