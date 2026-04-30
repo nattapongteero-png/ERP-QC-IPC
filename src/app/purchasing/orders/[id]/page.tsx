@@ -232,6 +232,21 @@ export default function PurchaseOrderDetailPage() {
   const [data, setData] = useState<PODetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'lines' | 'receiving' | 'lots'>('overview');
+  // VAT display preference, persisted across sessions per browser.
+  //   'split'     — show ยอดก่อน VAT / VAT 7% / ยอดรวมสุทธิ (3 lines)
+  //   'inclusive' — show only ยอดรวม (รวม VAT) (1 line)
+  // Different operators prefer different views — สรรพากร reports want
+  // split, while quick-glance ordering wants inclusive.
+  const [vatDisplayMode, setVatDisplayMode] = useState<'split' | 'inclusive'>(() => {
+    if (typeof window === 'undefined') return 'split';
+    const stored = window.localStorage.getItem('po-vat-display-mode');
+    return stored === 'inclusive' ? 'inclusive' : 'split';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('po-vat-display-mode', vatDisplayMode);
+    }
+  }, [vatDisplayMode]);
 
   // Edit states
   const [isEditingPO, setIsEditingPO] = useState(false);
@@ -1043,19 +1058,33 @@ export default function PurchaseOrderDetailPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card className="!p-3">
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
                 <DollarSign className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="min-w-0">
-                <p className="text-xs text-gray-500">ยอดรวมสุทธิ (รวม VAT)</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <p className="text-xs text-gray-500">
+                    {vatDisplayMode === 'split' ? 'ยอดรวมสุทธิ (รวม VAT)' : 'ยอดรวม (รวม VAT)'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setVatDisplayMode((m) => (m === 'split' ? 'inclusive' : 'split'))}
+                    className="text-[10px] text-gray-500 hover:text-blue-600 underline decoration-dotted"
+                    title="สลับโหมดแสดง VAT"
+                  >
+                    {vatDisplayMode === 'split' ? 'รวม VAT' : 'แยก VAT'}
+                  </button>
+                </div>
                 <p className="text-lg font-bold text-blue-600" data-testid="po-card-grand-total">
                   {formatCurrency(grandTotal)}
                 </p>
-                <p className="text-[11px] text-gray-500 leading-tight">
-                  ก่อน VAT <span className="font-medium text-gray-700" data-testid="po-card-subtotal">{formatCurrency(subtotal)}</span>
-                  {' '}· VAT {(VAT_RATE * 100).toFixed(0)}% <span className="font-medium text-gray-700" data-testid="po-card-vat">{formatCurrency(vatAmount)}</span>
-                </p>
+                {vatDisplayMode === 'split' && (
+                  <p className="text-[11px] text-gray-500 leading-tight">
+                    ก่อน VAT <span className="font-medium text-gray-700" data-testid="po-card-subtotal">{formatCurrency(subtotal)}</span>
+                    {' '}· VAT {(VAT_RATE * 100).toFixed(0)}% <span className="font-medium text-gray-700" data-testid="po-card-vat">{formatCurrency(vatAmount)}</span>
+                  </p>
+                )}
               </div>
             </div>
           </Card>
@@ -1261,18 +1290,27 @@ export default function PurchaseOrderDetailPage() {
                             <dt className="text-gray-500">วันที่คาดว่าจะได้รับ</dt>
                             <dd className="font-medium">{formatDate(po.expectedDate)}</dd>
                           </div>
-                          <div>
-                            <dt className="text-gray-500">ยอดก่อน VAT (Subtotal)</dt>
-                            <dd className="font-medium text-gray-900">{formatCurrency(subtotal)}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-gray-500">VAT {(VAT_RATE * 100).toFixed(0)}%</dt>
-                            <dd className="font-medium text-gray-900">{formatCurrency(vatAmount)}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-gray-500">ยอดรวมสุทธิ (รวม VAT)</dt>
-                            <dd className="font-bold text-blue-600">{formatCurrency(grandTotal)}</dd>
-                          </div>
+                          {vatDisplayMode === 'split' ? (
+                            <>
+                              <div>
+                                <dt className="text-gray-500">ยอดก่อน VAT (Subtotal)</dt>
+                                <dd className="font-medium text-gray-900">{formatCurrency(subtotal)}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-gray-500">VAT {(VAT_RATE * 100).toFixed(0)}%</dt>
+                                <dd className="font-medium text-gray-900">{formatCurrency(vatAmount)}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-gray-500">ยอดรวมสุทธิ (รวม VAT)</dt>
+                                <dd className="font-bold text-blue-600">{formatCurrency(grandTotal)}</dd>
+                              </div>
+                            </>
+                          ) : (
+                            <div>
+                              <dt className="text-gray-500">ยอดรวม (รวม VAT)</dt>
+                              <dd className="font-bold text-blue-600">{formatCurrency(grandTotal)}</dd>
+                            </div>
+                          )}
                           <div>
                             <dt className="text-gray-500">จำนวนรายการ</dt>
                             <dd className="font-medium">{summary.lineCount} รายการ</dd>
@@ -1371,26 +1409,51 @@ export default function PurchaseOrderDetailPage() {
                   exportFileName={`PO-${po.poNumber}-lines`}
                 />
 
-                {/* Summary Block: Subtotal / VAT 7% / Grand Total */}
+                {/* Summary Block — toggles with vatDisplayMode */}
                 {lines.length > 0 && (
                   <div className="flex justify-end" data-testid="po-summary-block">
                     <div className="w-full md:w-96 border rounded-lg overflow-hidden">
-                      <div className="flex justify-between items-center px-4 py-2.5 bg-gray-50 border-b">
-                        <span className="text-sm text-gray-600">ยอดรวม (Subtotal)</span>
-                        <span className="font-medium text-gray-900" data-testid="po-subtotal">
-                          {formatCurrency(subtotal)}
-                        </span>
+                      <div className="flex justify-between items-center px-4 py-1.5 bg-gray-100 border-b">
+                        <span className="text-[11px] text-gray-500">โหมดแสดง</span>
+                        <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white">
+                          <button
+                            type="button"
+                            onClick={() => setVatDisplayMode('split')}
+                            className={`px-2.5 py-1 text-[11px] ${vatDisplayMode === 'split' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                          >
+                            แยก VAT
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setVatDisplayMode('inclusive')}
+                            className={`px-2.5 py-1 text-[11px] border-l border-gray-300 ${vatDisplayMode === 'inclusive' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                          >
+                            รวม VAT
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center px-4 py-2.5 bg-white border-b">
-                        <span className="text-sm text-gray-600">
-                          ภาษีมูลค่าเพิ่ม (VAT {(VAT_RATE * 100).toFixed(0)}%)
-                        </span>
-                        <span className="font-medium text-gray-900" data-testid="po-vat">
-                          {formatCurrency(vatAmount)}
-                        </span>
-                      </div>
+                      {vatDisplayMode === 'split' && (
+                        <>
+                          <div className="flex justify-between items-center px-4 py-2.5 bg-gray-50 border-b">
+                            <span className="text-sm text-gray-600">ยอดรวม (Subtotal)</span>
+                            <span className="font-medium text-gray-900" data-testid="po-subtotal">
+                              {formatCurrency(subtotal)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center px-4 py-2.5 bg-white border-b">
+                            <span className="text-sm text-gray-600">
+                              ภาษีมูลค่าเพิ่ม (VAT {(VAT_RATE * 100).toFixed(0)}%)
+                            </span>
+                            <span className="font-medium text-gray-900" data-testid="po-vat">
+                              {formatCurrency(vatAmount)}
+                            </span>
+                          </div>
+                        </>
+                      )}
                       <div className="flex justify-between items-center px-4 py-3 bg-blue-50">
-                        <span className="text-sm font-semibold text-blue-900">ยอดสุทธิ (Grand Total)</span>
+                        <span className="text-sm font-semibold text-blue-900">
+                          {vatDisplayMode === 'split' ? 'ยอดสุทธิ (Grand Total)' : 'ยอดรวม (รวม VAT)'}
+                        </span>
                         <span className="text-lg font-bold text-blue-700" data-testid="po-grand-total">
                           {formatCurrency(grandTotal)}
                         </span>
