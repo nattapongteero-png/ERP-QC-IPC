@@ -91,6 +91,7 @@ const navigation: NavItem[] = [
       { name: 'Lots', href: '/inventory/lots', icon: Package },
       { name: 'Warehouses', href: '/inventory/warehouses', icon: Warehouse },
       { name: 'Transactions', href: '/inventory/transactions', icon: ArrowLeftRight },
+      { name: 'Returns Inbox', href: '/inventory/returns', icon: Undo2 },
       { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: AlertTriangle },
     ],
   },

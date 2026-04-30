@@ -24,6 +24,7 @@
     "lots": "Lots",
     "warehouses": "Warehouses",
     "transactions": "Transactions",
+    "returnsInbox": "Returns Inbox",
     "expiryAlerts": "Expiry Alerts"
   },
   "production": {

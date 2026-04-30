@@ -24,6 +24,10 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import {
+  MaterialReturnDialog,
+  type MaterialReturnSourceMaterial,
+} from '@/components/production/material-return-dialog';
+import {
   Scale,
   CheckCircle2,
   Clock,
@@ -99,6 +103,10 @@ export default function MaterialWeighingPage() {
 
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialLine | null>(null);
   const [showWeighDialog, setShowWeighDialog] = useState(false);
+  // Material-return state — separate from the weigh dialog so they can't
+  // interfere with each other.
+  const [returnMaterial, setReturnMaterial] = useState<MaterialReturnSourceMaterial | null>(null);
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
   const [formData, setFormData] = useState({
     weighedQty: 0,
     // Single-select: the DB stores exactly one primary lot id on
@@ -151,6 +159,83 @@ export default function MaterialWeighingPage() {
 
   const materials = materialsResult?.materials || [];
   const requisitionStatus = materialsResult?.requisitionStatus || 'none';
+
+  // Fetch material returns for this WO so we can show inline status badges
+  // ("✓ คืนแล้ว N kg · pending QA") on each material row that has a return.
+  // Refreshed on every successful submit via query invalidation.
+  interface MaterialReturnRow {
+    id: number;
+    returnNumber: string;
+    status: string;
+  }
+  interface MaterialReturnLineSlim {
+    sourceLotId: number;
+    itemId: number;
+    returnQty: number;
+    returnUnit: string;
+    status: string;
+    returnNumber: string;
+  }
+  const { data: returnsForWo } = useQuery<MaterialReturnLineSlim[]>({
+    queryKey: ['material-returns', workOrderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/inventory/returns?workOrderId=${workOrderId}&limit=200`);
+      const data = await res.json();
+      if (!data.success) return [];
+      const rows: MaterialReturnRow[] = data.data?.items || [];
+      // Fetch each return's detail to get line-level info (sourceLotId + qty).
+      // N+1 is acceptable here — typical WO has < 5 returns.
+      const all: MaterialReturnLineSlim[] = [];
+      for (const r of rows) {
+        try {
+          const detRes = await fetch(`/api/inventory/returns/${r.id}`);
+          const detJson = await detRes.json();
+          if (!detJson.success) continue;
+          const detail = detJson.data;
+          for (const line of (detail?.lines ?? []) as Array<{
+            sourceLot?: { id: number } | null;
+            itemId: number;
+            returnQty: number;
+            returnUnit: string;
+          }>) {
+            const lotId = line.sourceLot?.id;
+            if (!lotId) continue;
+            all.push({
+              sourceLotId: lotId,
+              itemId: Number(line.itemId),
+              returnQty: Number(line.returnQty),
+              returnUnit: String(line.returnUnit),
+              status: String(detail.status),
+              returnNumber: String(detail.returnNumber),
+            });
+          }
+        } catch {
+          // Ignore individual fetch failures — partial data is better than nothing.
+        }
+      }
+      return all;
+    },
+    enabled: !!workOrderId,
+    staleTime: 30_000,
+  });
+
+  // Helper: aggregate returns per (lotId + itemId) so a row can show
+  // "✓ คืนแล้ว X unit · pending QA" without re-iterating on every render.
+  const returnsByLotItem = (() => {
+    const map = new Map<string, { totalQty: number; unit: string; statuses: string[] }>();
+    for (const ret of returnsForWo ?? []) {
+      const key = `${ret.sourceLotId}:${ret.itemId}`;
+      const slot = map.get(key) ?? { totalQty: 0, unit: ret.returnUnit, statuses: [] };
+      slot.totalQty += ret.returnQty;
+      slot.statuses.push(ret.status);
+      map.set(key, slot);
+    }
+    return map;
+  })();
+  const getReturnSummary = (m: MaterialLine) => {
+    if (!m.lotId) return null;
+    return returnsByLotItem.get(`${m.lotId}:${m.itemId}`) ?? null;
+  };
 
   // Auto-update when warehouse approves/rejects this WO's requisition
   // from another browser (e.g. /inventory/lots) — flips status without refresh.
@@ -425,11 +510,12 @@ export default function MaterialWeighingPage() {
         </div>
       )}
 
-      {/* Progress Card */}
+      {/* Progress Card — stacks on mobile so the progress bar gets full
+          width instead of being squeezed between the two stats blocks. */}
       <Card className="border-amber-200 bg-amber-50">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-6 flex-wrap">
               <div className="text-amber-800">
                 <span className="text-2xl font-bold">{progress.weighed}</span>
                 <span className="text-sm">/{progress.total} {tw('progress.weighed')}</span>
@@ -439,7 +525,7 @@ export default function MaterialWeighingPage() {
                 <span className="text-sm">/{progress.total} {tw('progress.verified')}</span>
               </div>
             </div>
-            <div className="flex-1 max-w-xs mx-4">
+            <div className="flex-1 sm:max-w-xs sm:mx-2">
               <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-amber-500 transition-all duration-300"
@@ -448,7 +534,7 @@ export default function MaterialWeighingPage() {
               </div>
             </div>
             {progress.verified === progress.total && progress.total > 0 && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium self-start sm:self-auto">
                 <CheckCircle2 className="h-4 w-4" />
                 {tw('progress.allVerified')}
               </span>
@@ -481,9 +567,9 @@ export default function MaterialWeighingPage() {
                 return (
                   <div
                     key={material.id}
-                    className="flex items-center justify-between p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow"
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-4 min-w-0 flex-1">
                       <div className={`p-2 rounded-lg ${material.isWater ? 'bg-blue-100' : 'bg-amber-100'}`}>
                         {material.isWater ? (
                           <Droplets className="h-5 w-5 text-blue-600" />
@@ -524,7 +610,7 @@ export default function MaterialWeighingPage() {
                           <div className="mt-1 text-xs text-gray-500 flex items-center gap-3">
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {new Date(material.weighedAt!).toLocaleString()}
+                              {new Date(material.weighedAt!).toLocaleString('th-TH')}
                             </span>
                             <span>by {material.weighedByName}</span>
                             {material.verifiedByName && (
@@ -535,6 +621,38 @@ export default function MaterialWeighingPage() {
                             )}
                           </div>
                         )}
+                        {/* Inline material-return status — visible whenever a
+                            return line exists for this source lot. Shows
+                            total returned qty and the most-recent status. */}
+                        {(() => {
+                          const ret = getReturnSummary(material);
+                          if (!ret) return null;
+                          const isPending = ret.statuses.some((s) => s === 'submitted');
+                          const isReceived = ret.statuses.every((s) => s === 'received');
+                          const isRejected = ret.statuses.every((s) => s === 'rejected');
+                          const statusText = isReceived
+                            ? 'approved'
+                            : isPending
+                              ? 'pending QA'
+                              : isRejected
+                                ? 'rejected'
+                                : ret.statuses.join(', ');
+                          const colorClasses = isReceived
+                            ? 'bg-green-50 text-green-700 border-green-200'
+                            : isRejected
+                              ? 'bg-red-50 text-red-700 border-red-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200';
+                          return (
+                            <div
+                              className={`mt-2 inline-flex items-center gap-2 px-2 py-1 text-xs border rounded ${colorClasses}`}
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              <span>
+                                คืนแล้ว {ret.totalQty.toFixed(3)} {ret.unit} · {statusText}
+                              </span>
+                            </div>
+                          );
+                        })()}
                         {/* Water quality info */}
                         {material.isWater && material.waterConductivity && (
                           <div className="mt-1 text-xs text-blue-600">
@@ -545,7 +663,47 @@ export default function MaterialWeighingPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
+                    <div className="flex flex-col sm:items-end items-stretch gap-1 sm:flex-shrink-0">
+                      {/* "คืนของเหลือ" button — shown for any row that has
+                          weighedAt set AND there is operator-perceived excess
+                          (issued/weighed > planned, i.e. operator took out more
+                          than the recipe needed and has some left over). The
+                          button stays visible after a return is submitted so
+                          the operator can return more (if multiple bags) — the
+                          server enforces per-line caps. */}
+                      {material.weighedAt && material.lotId && (() => {
+                        const issued = material.weighedQty ?? 0;
+                        const planned = material.plannedQty ?? 0;
+                        const excess = issued - planned;
+                        // Subtract any already-returned qty so we don't show
+                        // the button when the entire excess is already returned.
+                        const ret = getReturnSummary(material);
+                        const alreadyReturned = ret?.totalQty ?? 0;
+                        const remainingExcess = excess - alreadyReturned;
+                        if (remainingExcess <= 0.0001) return null;
+                        return (
+                          <DxButton
+                            text="คืนของเหลือ"
+                            icon="undo"
+                            type="normal"
+                            stylingMode="outlined"
+                            onClick={() => {
+                              setReturnMaterial({
+                                workOrderMaterialId: material.id,
+                                itemId: material.itemId,
+                                itemCode: material.itemCode,
+                                itemName: getDisplayName(material),
+                                unit: material.unit,
+                                plannedQty: planned,
+                                weighedQty: issued,
+                                lotId: material.lotId ?? null,
+                                lotNumber: material.lotNumber ?? null,
+                              });
+                              setShowReturnDialog(true);
+                            }}
+                          />
+                        );
+                      })()}
                       {!material.weighedAt ? (
                         <DxButton
                           text={tw('actions.weigh')}
@@ -801,6 +959,32 @@ export default function MaterialWeighingPage() {
           </div>
         </div>
       </DxPopup>
+
+      {/* Material Return Dialog (Phase 3) — operator submits excess back to
+          warehouse. Refreshes both the material list and the per-WO returns
+          query so the inline status badge updates immediately. */}
+      <MaterialReturnDialog
+        visible={showReturnDialog}
+        material={returnMaterial}
+        workOrderId={workOrderId}
+        onClose={() => {
+          setShowReturnDialog(false);
+          setReturnMaterial(null);
+        }}
+        onSubmitted={(returnNumber) => {
+          toast.success(
+            'ส่งคืนวัตถุดิบสำเร็จ',
+            returnNumber ? `เลขที่ ${returnNumber} รอ QA ตรวจสอบ` : 'รอ QA ตรวจสอบ',
+          );
+          queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+          queryClient.invalidateQueries({ queryKey: ['material-returns', workOrderId] });
+          setShowReturnDialog(false);
+          setReturnMaterial(null);
+        }}
+        onError={(msg) => {
+          toast.error('ส่งคืนวัตถุดิบไม่สำเร็จ', msg);
+        }}
+      />
     </div>
   );
 }

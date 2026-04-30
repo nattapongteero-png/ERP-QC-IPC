@@ -24,6 +24,7 @@
     "lots": "ล็อต",
     "warehouses": "คลังสินค้า",
     "transactions": "ธุรกรรม",
+    "returnsInbox": "การคืนวัตถุดิบ",
     "expiryAlerts": "แจ้งเตือนหมดอายุ"
   },
   "production": {

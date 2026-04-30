@@ -48,6 +48,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Lots': 'inventory.lots',
   'Warehouses': 'inventory.warehouses',
   'Transactions': 'inventory.transactions',
+  'Returns Inbox': 'inventory.returnsInbox',
   'Expiry Alerts': 'inventory.expiryAlerts',
 
   // Production submenu
