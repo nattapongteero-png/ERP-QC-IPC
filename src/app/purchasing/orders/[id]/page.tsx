@@ -1044,12 +1044,18 @@ export default function PurchaseOrderDetailPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card className="!p-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
+              <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
                 <DollarSign className="h-5 w-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-xs text-gray-500">ยอดรวม</p>
-                <p className="text-lg font-bold text-blue-600">{formatCurrency(summary.totalAmount)}</p>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">ยอดรวมสุทธิ (รวม VAT)</p>
+                <p className="text-lg font-bold text-blue-600" data-testid="po-card-grand-total">
+                  {formatCurrency(grandTotal)}
+                </p>
+                <p className="text-[11px] text-gray-500 leading-tight">
+                  ก่อน VAT <span className="font-medium text-gray-700" data-testid="po-card-subtotal">{formatCurrency(subtotal)}</span>
+                  {' '}· VAT {(VAT_RATE * 100).toFixed(0)}% <span className="font-medium text-gray-700" data-testid="po-card-vat">{formatCurrency(vatAmount)}</span>
+                </p>
               </div>
             </div>
           </Card>
@@ -1256,8 +1262,16 @@ export default function PurchaseOrderDetailPage() {
                             <dd className="font-medium">{formatDate(po.expectedDate)}</dd>
                           </div>
                           <div>
-                            <dt className="text-gray-500">ยอดรวม</dt>
-                            <dd className="font-bold text-blue-600">{formatCurrency(summary.totalAmount)}</dd>
+                            <dt className="text-gray-500">ยอดก่อน VAT (Subtotal)</dt>
+                            <dd className="font-medium text-gray-900">{formatCurrency(subtotal)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">VAT {(VAT_RATE * 100).toFixed(0)}%</dt>
+                            <dd className="font-medium text-gray-900">{formatCurrency(vatAmount)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">ยอดรวมสุทธิ (รวม VAT)</dt>
+                            <dd className="font-bold text-blue-600">{formatCurrency(grandTotal)}</dd>
                           </div>
                           <div>
                             <dt className="text-gray-500">จำนวนรายการ</dt>
