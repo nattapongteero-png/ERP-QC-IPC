@@ -39,7 +39,8 @@
     "testPanels": "Test Panels",
     "tests": "การทดสอบ",
     "specs": "ข้อกำหนด",
-    "deviations": "ความเบี่ยงเบน"
+    "deviations": "ความเบี่ยงเบน",
+    "auditTrail": "เส้นทางการตรวจสอบ"
   },
   "gmp": {
     "documents": "เอกสาร",

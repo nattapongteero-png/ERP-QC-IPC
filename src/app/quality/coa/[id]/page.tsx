@@ -21,6 +21,7 @@ import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Award, Eye } from 'lucide-react';
+import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
 
 interface CoaTestResult {
   id: number;
@@ -474,6 +475,9 @@ export default function CoaDetailPage() {
             </table>
           </div>
         </div>
+
+        {/* Audit trail (per-entity) */}
+        <EntityAuditTrail entityType="coa_document" entityId={coa.id} />
       </div>
 
       {/* Revoke dialog */}

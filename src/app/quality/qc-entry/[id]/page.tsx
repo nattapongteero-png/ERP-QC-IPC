@@ -34,6 +34,7 @@ import { DxSwitch } from '@/components/ui/dx-switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { TestTube, AlertTriangle, ShieldCheck, AlertOctagon } from 'lucide-react';
+import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
 
 interface QcSampleTestRow {
   id: number;
@@ -1464,6 +1465,14 @@ export default function QcSampleDetailPage() {
             )}
           </div>
         )}
+
+        {/* Audit trail (per-entity) — Phase 9 */}
+        <div className="print:hidden">
+          <EntityAuditTrail
+            entityType="qc_sample"
+            entityId={detail.id}
+          />
+        </div>
       </div>
 
       {/* Apply panel dialog */}

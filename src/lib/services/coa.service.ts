@@ -1381,3 +1381,99 @@ export function buildVerifyUrl(token: string, baseUrl: string): string {
   const trimmed = baseUrl.replace(/\/$/, '');
   return `${trimmed}/api/coa/verify/${encodeURIComponent(token)}`;
 }
+
+// ----------------------------------------------------------------------------
+// Public verify portal — COA number lookup (alternate to QR token)
+// ----------------------------------------------------------------------------
+
+/**
+ * Resolve a COA by its human-readable COA number (e.g. "COA-2026-000123") and
+ * return the same public-safe view as `getCoaByQrToken`. Used by the public
+ * verify search page when a customer types the number printed on the
+ * certificate instead of scanning the QR code.
+ *
+ * Like `getCoaByQrToken`, this:
+ *   - Returns null for unknown / draft / review / approved / revoked COAs
+ *   - Logs every attempt to coa_verify_log (success or failure)
+ *   - Strips internal-only fields (signature image paths, IP-traceable refs)
+ */
+export async function getCoaByCoaNumber(
+  coaNumber: string,
+  ctx: VerifyContext = {},
+): Promise<CoaPublicView | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const trimmed = String(coaNumber || '').trim();
+    if (!trimmed || trimmed.length < 3 || trimmed.length > 64) {
+      await db.insert(tables.verify).values({
+        coaId: null,
+        qrTokenAttempted: trimmed || null,
+        ipAddress: ctx.ipAddress ?? null,
+        userAgent: ctx.userAgent ?? null,
+        referer: ctx.referer ?? null,
+        result: 'not_found',
+        verifiedAt: getNow(),
+        createdAt: getNow(),
+      });
+      return null;
+    }
+
+    // Lookup by coa_number — case-insensitive normalize
+    const [row] = await db
+      .select({ qrCodeToken: tables.coa.qrCodeToken })
+      .from(tables.coa)
+      .where(eq(tables.coa.coaNumber, trimmed))
+      .limit(1);
+
+    if (!row || !row.qrCodeToken) {
+      await db.insert(tables.verify).values({
+        coaId: null,
+        qrTokenAttempted: trimmed,
+        ipAddress: ctx.ipAddress ?? null,
+        userAgent: ctx.userAgent ?? null,
+        referer: ctx.referer ?? null,
+        result: 'not_found',
+        verifiedAt: getNow(),
+        createdAt: getNow(),
+      });
+      return null;
+    }
+
+    // Delegate to the canonical token-based lookup so verify-log + filtering
+    // logic stays in one place.
+    return getCoaByQrToken(String(row.qrCodeToken), ctx);
+  });
+}
+
+// ----------------------------------------------------------------------------
+// Internal — used by the public PDF endpoint
+// ----------------------------------------------------------------------------
+
+/**
+ * Return the COA full detail by QR token IF AND ONLY IF the COA is in
+ * status='issued'. Returns null for any other state. Does NOT log to
+ * coa_verify_log — the caller (public PDF route) is expected to log a
+ * `coa_print_history` row instead so we don't double-count verify hits.
+ *
+ * Use carefully: this exposes the internal CoaDocumentFull shape (which
+ * includes signature image paths). Only the server-side PDF renderer should
+ * receive this — never return it to the public API as JSON.
+ */
+export async function getIssuedCoaForPublicPdf(
+  token: string,
+): Promise<CoaDocumentFull | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    if (!token || typeof token !== 'string' || token.length < 8) {
+      return null;
+    }
+    const [row] = await db
+      .select({ id: tables.coa.id, status: tables.coa.status })
+      .from(tables.coa)
+      .where(eq(tables.coa.qrCodeToken, token))
+      .limit(1);
+    if (!row) return null;
+    if (String(row.status) !== 'issued') return null;
+    return getCoaById(Number(row.id));
+  });
+}

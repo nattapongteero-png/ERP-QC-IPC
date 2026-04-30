@@ -62,6 +62,7 @@ import {
   Layers,
   ListChecks,
   Award,
+  ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { expandRole } from '@/lib/auth/role-mapping';
@@ -121,6 +122,7 @@ const navigation: NavItem[] = [
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       { name: 'Specifications', href: '/quality/specs', icon: FileText },
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
+      { name: 'QC Audit Trail', href: '/quality/audit-trail', icon: ScrollText },
     ],
   },
   {

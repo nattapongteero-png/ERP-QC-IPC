@@ -39,7 +39,8 @@
     "testPanels": "Test Panels",
     "tests": "Tests",
     "specs": "Specifications",
-    "deviations": "Deviations"
+    "deviations": "Deviations",
+    "auditTrail": "Audit Trail"
   },
   "gmp": {
     "documents": "Documents",

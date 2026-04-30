@@ -64,6 +64,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Tests': 'quality.tests',
   'Specifications': 'quality.specs',
   'Deviations': 'quality.deviations',
+  'QC Audit Trail': 'quality.auditTrail',
 
   // GMP submenu
   'Documents': 'gmp.documents',
