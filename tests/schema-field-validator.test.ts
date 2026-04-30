@@ -371,6 +371,10 @@ const SKIP_LIST: Record<string, string> = {
   // Quality test detail/edit page
   'src/app/quality/tests/[id]/page.tsx': 'Detail/edit page with result recording',
 
+  // COA module pages (Phase 4 — service-based generation, not standard forms)
+  'src/app/quality/coa/page.tsx': 'List page with filters, no data form',
+  'src/app/quality/coa/[id]/page.tsx': 'Detail page with status actions, service-based API',
+
   // Sales pages
   'src/app/sales/orders/[id]/page.tsx': 'Detail page with delivery/fulfillment actions',
   'src/app/sales/vmi-orders/page.tsx': 'VMI order management, service-based API',

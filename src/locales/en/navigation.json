@@ -35,6 +35,7 @@
   },
   "quality": {
     "qcEntry": "QC Entry",
+    "coa": "Certificate of Analysis",
     "testPanels": "Test Panels",
     "tests": "Tests",
     "specs": "Specifications",

@@ -59,6 +59,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
 
   // Quality submenu
   'QC Entry': 'quality.qcEntry',
+  'Certificate of Analysis': 'quality.coa',
   'Test Panels': 'quality.testPanels',
   'Tests': 'quality.tests',
   'Specifications': 'quality.specs',

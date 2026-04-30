@@ -61,6 +61,7 @@ import {
   Play,
   Layers,
   ListChecks,
+  Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { expandRole } from '@/lib/auth/role-mapping';
@@ -115,6 +116,7 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager', 'production', 'qc'],
     children: [
       { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
+      { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
       { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       { name: 'Specifications', href: '/quality/specs', icon: FileText },

@@ -991,6 +991,53 @@ export default function QcSampleDetailPage() {
                 disabled={working}
               />
             )}
+            {/* Phase 4 — Generate COA button (visible once sample is released) */}
+            {detail.status === 'released' && !detail.linkedCoa && (
+              <DxButton
+                text="ออก COA (Generate COA)"
+                icon="doc"
+                type="success"
+                onClick={async () => {
+                  setWorking(true);
+                  try {
+                    const res = await fetch('/api/quality/coa', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ sampleId: detail.id }),
+                    });
+                    const data = await res.json();
+                    if (!data.success) {
+                      toast.error(data.error || 'ออก COA ล้มเหลว');
+                      return;
+                    }
+                    toast.success(data.message || 'ออก COA สำเร็จ');
+                    if (data.data?.coaId) {
+                      router.push(`/quality/coa/${data.data.coaId}`);
+                    } else {
+                      await fetchDetail();
+                    }
+                  } catch (e) {
+                    toast.error(
+                      e instanceof Error ? e.message : 'ออก COA ล้มเหลว',
+                    );
+                  } finally {
+                    setWorking(false);
+                  }
+                }}
+                disabled={working}
+              />
+            )}
+            {detail.status === 'released' && detail.linkedCoa && (
+              <DxButton
+                text={`ดู COA: ${detail.linkedCoa.coaNumber}`}
+                icon="doc"
+                stylingMode="outlined"
+                onClick={() =>
+                  router.push(`/quality/coa/${detail.linkedCoa!.id}`)
+                }
+                disabled={working}
+              />
+            )}
           </div>
         </div>
 
