@@ -58,6 +58,8 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Master Data': 'production.masterData',
 
   // Quality submenu
+  'QC Entry': 'quality.qcEntry',
+  'Test Panels': 'quality.testPanels',
   'Tests': 'quality.tests',
   'Specifications': 'quality.specs',
   'Deviations': 'quality.deviations',

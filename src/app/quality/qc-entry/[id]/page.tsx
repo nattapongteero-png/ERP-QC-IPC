@@ -1,0 +1,1111 @@
+'use client';
+
+/**
+ * QC Entry — Sample Detail + Test Results Entry
+ *
+ * Lab analyst lands here to:
+ *   1. Inspect sample header (product, lot, source)
+ *   2. Apply additional test panel (if registered with skip-panel)
+ *   3. Add/edit per-test numericResult / textResult / notes
+ *   4. Transition status: registered → testing → reviewed
+ *   5. Print summary
+ *
+ * Inline test result editing uses an "edit row" mode — DxNumberBox/DxTextBox
+ * for the focused row, plain rendered values otherwise. This avoids the
+ * complexity of DxDataGrid's batch edit while still keeping cell-level
+ * granularity. Status pass/fail is auto-recomputed server-side after save.
+ *
+ * Phase 3 sign-off (analyst → reviewer → approver) is OUT OF SCOPE here:
+ * those buttons surface a "Phase 3 — sign-off TBD" toast.
+ */
+
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { MainLayout } from '@/components/layout/main-layout';
+import { ResponsivePageHeader } from '@/components/shared';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxPopup } from '@/components/ui/dx-popup';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { TestTube, AlertTriangle } from 'lucide-react';
+
+interface QcSampleTestRow {
+  id: number;
+  sampleId: number;
+  criteriaId: number;
+  criteriaCode: string | null;
+  criteriaName: string | null;
+  criteriaNameTh: string | null;
+  sequence: number;
+  specMin: number | null;
+  specMax: number | null;
+  specTarget: number | null;
+  specText: string | null;
+  unit: string | null;
+  testMethod: string | null;
+  numericResult: number | null;
+  textResult: string | null;
+  resultStatus: string;
+  testedBy: number | null;
+  testedByName: string | null;
+  testedAt: string | null;
+  reviewedBy: number | null;
+  reviewedByName: string | null;
+  reviewedAt: string | null;
+  notes: string | null;
+  attachmentPath: string | null;
+}
+
+interface QcSampleDetail {
+  id: number;
+  sampleNumber: string;
+  sourceType: string;
+  sourceRefId: number | null;
+  sourceRefText: string | null;
+  productId: number;
+  productCode: string | null;
+  productName: string | null;
+  productNameEn: string | null;
+  lotNumber: string | null;
+  manufactureDate: string | null;
+  expiryDate: string | null;
+  retestDate: string | null;
+  quantityReceived: number | null;
+  unit: string | null;
+  storageConditions: string | null;
+  customerId: number | null;
+  customerName: string | null;
+  salesOrderRef: string | null;
+  receivedDate: string;
+  receivedBy: number;
+  receivedByName: string | null;
+  status: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  tests: QcSampleTestRow[];
+  signatures: Array<{
+    id: number;
+    role: string;
+    userId: number;
+    userName: string | null;
+    signedAt: string;
+    signatureMeaning: string | null;
+  }>;
+  oosInvestigations: unknown[];
+  linkedCoa: { id: number; coaNumber: string; status: string } | null;
+}
+
+interface IpcCriterion {
+  id: number;
+  code: string;
+  name: string;
+  nameTh?: string | null;
+  testMethod?: string | null;
+  specification?: string | null;
+  minValue?: number | null;
+  maxValue?: number | null;
+  unit?: string | null;
+}
+
+interface TestPanel {
+  id: number;
+  productId: number | null;
+  productCategory: string | null;
+  criteriaId: number;
+  criteriaName: string | null;
+}
+
+function formatDateTh(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
+  try {
+    return new Date(dateStr).toLocaleString('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return String(dateStr);
+  }
+}
+
+function formatDateOnlyTh(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
+  try {
+    return new Date(dateStr).toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return String(dateStr);
+  }
+}
+
+function statusBadge(status: string): {
+  variant: 'default' | 'success' | 'warning' | 'danger' | 'info';
+  label: string;
+} {
+  switch (status) {
+    case 'registered':
+      return { variant: 'info', label: 'Registered' };
+    case 'testing':
+      return { variant: 'warning', label: 'Testing' };
+    case 'reviewed':
+      return { variant: 'info', label: 'Reviewed' };
+    case 'approved':
+      return { variant: 'success', label: 'Approved' };
+    case 'released':
+      return { variant: 'success', label: 'Released' };
+    case 'rejected':
+      return { variant: 'danger', label: 'Rejected' };
+    case 'quarantine':
+      return { variant: 'warning', label: 'Quarantine' };
+    case 'oos':
+      return { variant: 'danger', label: 'OOS' };
+    default:
+      return { variant: 'default', label: status };
+  }
+}
+
+function resultBadge(status: string) {
+  switch (status) {
+    case 'pass':
+      return <Badge variant="success">PASS</Badge>;
+    case 'fail':
+      return <Badge variant="danger">FAIL</Badge>;
+    case 'retest':
+      return <Badge variant="warning">RETEST</Badge>;
+    case 'na':
+      return <Badge variant="default">N/A</Badge>;
+    default:
+      return <Badge variant="warning">PENDING</Badge>;
+  }
+}
+
+function formatSpec(test: QcSampleTestRow): string {
+  if (test.specText) return test.specText;
+  if (test.specMin != null && test.specMax != null) {
+    return `${test.specMin} – ${test.specMax}${test.unit ? ' ' + test.unit : ''}`;
+  }
+  if (test.specMin != null) {
+    return `≥ ${test.specMin}${test.unit ? ' ' + test.unit : ''}`;
+  }
+  if (test.specMax != null) {
+    return `≤ ${test.specMax}${test.unit ? ' ' + test.unit : ''}`;
+  }
+  if (test.specTarget != null) {
+    return `${test.specTarget}${test.unit ? ' ' + test.unit : ''}`;
+  }
+  return '—';
+}
+
+interface EditState {
+  testId: number;
+  numericResult: number | null;
+  textResult: string;
+  notes: string;
+}
+
+export default function QcSampleDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const toast = useToast();
+
+  const sampleId = Number(params.id);
+  const [detail, setDetail] = useState<QcSampleDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
+
+  const [editing, setEditing] = useState<EditState | null>(null);
+
+  const [showApplyPanel, setShowApplyPanel] = useState(false);
+  const [showAddTest, setShowAddTest] = useState(false);
+
+  const [panels, setPanels] = useState<TestPanel[]>([]);
+  const [selectedPanelId, setSelectedPanelId] = useState<number | null>(null);
+
+  const [criteria, setCriteria] = useState<IpcCriterion[]>([]);
+  const [newCriteriaId, setNewCriteriaId] = useState<number | null>(null);
+  const [newSequence, setNewSequence] = useState<number>(1);
+
+  const fetchDetail = useCallback(async () => {
+    if (!Number.isFinite(sampleId)) {
+      setError('Invalid sample ID');
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/quality/qc-samples/${sampleId}`);
+      const data = await res.json();
+      if (!data.success) {
+        setError(data.error || 'Failed to load sample');
+        setDetail(null);
+      } else {
+        setDetail(data.data);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  }, [sampleId]);
+
+  useEffect(() => {
+    fetchDetail();
+  }, [fetchDetail]);
+
+  // Load panels when "Apply panel" dialog opens.
+  useEffect(() => {
+    if (!showApplyPanel || !detail) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/quality/test-panels?productId=${detail.productId}&isActive=true`,
+        );
+        const data = await res.json();
+        if (data.success) {
+          // De-duplicate by id (a panel "row" maps 1:1 to a single criteria;
+          // operators usually want to apply the whole product set so we list
+          // by criteria for now).
+          setPanels(data.data?.items || []);
+        }
+      } catch {
+        setPanels([]);
+      }
+    })();
+  }, [showApplyPanel, detail]);
+
+  // Load criteria for the "Add custom test" dialog.
+  useEffect(() => {
+    if (!showAddTest) return;
+    (async () => {
+      try {
+        const res = await fetch('/api/master-data/ipc-criteria');
+        const data = await res.json();
+        if (data.success) {
+          setCriteria(Array.isArray(data.data) ? data.data : []);
+        }
+      } catch {
+        setCriteria([]);
+      }
+    })();
+  }, [showAddTest]);
+
+  const handleStartEdit = (test: QcSampleTestRow) => {
+    setEditing({
+      testId: test.id,
+      numericResult: test.numericResult,
+      textResult: test.textResult ?? '',
+      notes: test.notes ?? '',
+    });
+  };
+
+  const handleCancelEdit = () => setEditing(null);
+
+  const handleSaveEdit = async () => {
+    if (!editing || !detail) return;
+    const test = detail.tests.find((t) => t.id === editing.testId);
+    if (!test) return;
+    setWorking(true);
+    try {
+      const res = await fetch(
+        `/api/quality/qc-samples/${detail.id}/tests`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            testId: test.id,
+            criteriaId: test.criteriaId,
+            sequence: test.sequence,
+            specMin: test.specMin,
+            specMax: test.specMax,
+            specTarget: test.specTarget,
+            specText: test.specText,
+            unit: test.unit,
+            testMethod: test.testMethod,
+            numericResult: editing.numericResult,
+            textResult: editing.textResult || null,
+            notes: editing.notes || null,
+          }),
+        },
+      );
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('บันทึกไม่สำเร็จ', data.error || 'Unknown error');
+      } else {
+        toast.success('บันทึกแล้ว', `Result: ${data.data?.resultStatus || 'pending'}`);
+        setEditing(null);
+        await fetchDetail();
+      }
+    } catch (e) {
+      toast.error('บันทึกไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const handleDeleteTest = async (testId: number) => {
+    if (!detail) return;
+    if (!confirm('ลบการทดสอบนี้ใช่หรือไม่?')) return;
+    setWorking(true);
+    try {
+      const res = await fetch(
+        `/api/quality/qc-samples/${detail.id}/tests?testId=${testId}`,
+        { method: 'DELETE' },
+      );
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('ลบไม่สำเร็จ', data.error || 'Unknown error');
+      } else {
+        toast.success('ลบแล้ว');
+        await fetchDetail();
+      }
+    } catch (e) {
+      toast.error('ลบไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const handleApplyPanel = async () => {
+    if (!detail || !selectedPanelId) return;
+    setWorking(true);
+    try {
+      const res = await fetch(
+        `/api/quality/qc-samples/${detail.id}/apply-panel`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ panelKey: selectedPanelId }),
+        },
+      );
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('Apply panel failed', data.error || 'Unknown error');
+      } else {
+        toast.success(
+          'Apply panel สำเร็จ',
+          `เพิ่ม ${data.data?.added ?? 0} รายการ (ข้าม ${data.data?.skipped ?? 0})`,
+        );
+        setShowApplyPanel(false);
+        setSelectedPanelId(null);
+        await fetchDetail();
+      }
+    } catch (e) {
+      toast.error('Apply panel failed', e instanceof Error ? e.message : 'Network error');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const handleAddCustomTest = async () => {
+    if (!detail || !newCriteriaId) return;
+    setWorking(true);
+    try {
+      const res = await fetch(
+        `/api/quality/qc-samples/${detail.id}/tests`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            criteriaId: newCriteriaId,
+            sequence: newSequence,
+          }),
+        },
+      );
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('เพิ่มการทดสอบไม่สำเร็จ', data.error || 'Unknown error');
+      } else {
+        toast.success('เพิ่มการทดสอบแล้ว');
+        setShowAddTest(false);
+        setNewCriteriaId(null);
+        setNewSequence(1);
+        await fetchDetail();
+      }
+    } catch (e) {
+      toast.error(
+        'เพิ่มการทดสอบไม่สำเร็จ',
+        e instanceof Error ? e.message : 'Network error',
+      );
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const handleStatusAction = async (
+    action: 'start_testing' | 'submit_for_review' | 'approve' | 'release' | 'reject',
+  ) => {
+    if (!detail) return;
+    // Phase 3 actions return an info toast — sign-off workflow not built yet.
+    if (action === 'approve' || action === 'release') {
+      toast.info(
+        'Phase 3 — Sign-off',
+        'การอนุมัติและปล่อยใช้งานต้องการการลงนามตาม 21 CFR Part 11 (Phase 3)',
+      );
+      return;
+    }
+    if (action === 'reject') {
+      const reason = prompt('ระบุเหตุผลในการปฏิเสธ:');
+      if (!reason) return;
+      await postStatus(action, reason);
+      return;
+    }
+    await postStatus(action);
+  };
+
+  const postStatus = async (action: string, reason?: string) => {
+    if (!detail) return;
+    setWorking(true);
+    try {
+      const res = await fetch(`/api/quality/qc-samples/${detail.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, reason: reason || null }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('เปลี่ยนสถานะไม่สำเร็จ', data.error || 'Unknown error');
+      } else {
+        toast.success(
+          'เปลี่ยนสถานะแล้ว',
+          `${data.data?.fromStatus} → ${data.data?.toStatus}`,
+        );
+        await fetchDetail();
+      }
+    } catch (e) {
+      toast.error(
+        'เปลี่ยนสถานะไม่สำเร็จ',
+        e instanceof Error ? e.message : 'Network error',
+      );
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const handlePrint = () => window.print();
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <DxLoadIndicator />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error || !detail) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col gap-5 p-4 md:p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-red-800">ไม่สามารถโหลดข้อมูลได้</p>
+              <p className="text-sm text-red-700">
+                {error || 'QC sample not found'}
+              </p>
+            </div>
+            <DxButton
+              text="กลับ"
+              icon="back"
+              stylingMode="outlined"
+              onClick={() => router.push('/quality/qc-entry')}
+            />
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const sInfo = statusBadge(detail.status);
+  const canEditTests =
+    detail.status === 'registered' || detail.status === 'testing';
+  const canApplyPanel =
+    detail.status === 'registered' || detail.status === 'testing';
+
+  // Available state-machine buttons given current status.
+  const showStartTesting = detail.status === 'registered';
+  const showSubmitReview = detail.status === 'testing';
+  const showApprove = detail.status === 'reviewed';
+  const showRelease = detail.status === 'approved';
+  const showReject =
+    detail.status !== 'rejected' && detail.status !== 'released';
+
+  const sourceLabel = (() => {
+    switch (detail.sourceType) {
+      case 'raw_material_lot':
+        return 'วัตถุดิบเข้า';
+      case 'work_order_batch':
+        return 'ใบสั่งผลิต';
+      case 'customer_return':
+        return 'คืนจากลูกค้า';
+      case 'stability':
+        return 'Stability';
+      case 'purchased_herb':
+        return 'ซื้อสมุนไพร';
+      case 'outgoing_shipment':
+        return 'ส่งออกให้ลูกค้า';
+      default:
+        return detail.sourceType;
+    }
+  })();
+
+  // De-duplicate panels by id for the dialog dropdown — backend returns one row
+  // per criteria but the operator picks the panel-row to apply.
+  const panelOptions = panels.map((p) => ({
+    id: p.id,
+    label: `Panel #${p.id} — ${p.criteriaName ?? 'criteria#' + p.criteriaId}`,
+  }));
+
+  // Filter criteria the user might pick — exclude criteria already in tests.
+  const existingCriteriaIds = new Set(detail.tests.map((t) => t.criteriaId));
+  const availableCriteria = criteria.filter(
+    (c) => !existingCriteriaIds.has(c.id),
+  );
+
+  return (
+    <MainLayout>
+      <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full print:p-0">
+        <div className="print:hidden">
+          <ResponsivePageHeader
+            title={`Sample ${detail.sampleNumber}`}
+            subtitle={
+              detail.productCode
+                ? `${detail.productCode} — ${detail.productName ?? ''}`
+                : ''
+            }
+            icon={TestTube}
+            iconBgColor="bg-cyan-100"
+            iconColor="text-cyan-600"
+            breadcrumbs={[
+              { label: 'Quality', href: '/quality' },
+              { label: 'QC Entry', href: '/quality/qc-entry' },
+              { label: detail.sampleNumber },
+            ]}
+            actions={
+              <div className="flex items-center gap-2 flex-wrap">
+                <DxButton
+                  text="กลับ"
+                  icon="back"
+                  stylingMode="outlined"
+                  onClick={() => router.push('/quality/qc-entry')}
+                />
+                <DxButton
+                  text="พิมพ์"
+                  icon="print"
+                  stylingMode="outlined"
+                  onClick={handlePrint}
+                />
+              </div>
+            }
+          />
+        </div>
+
+        {/* Print-only header */}
+        <div className="hidden print:block">
+          <h1 className="text-2xl font-bold">{detail.sampleNumber}</h1>
+          <p className="text-sm">
+            {detail.productCode} · {detail.productName} · Lot {detail.lotNumber || '—'}
+          </p>
+        </div>
+
+        {/* Header card */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 md:p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">สถานะ</p>
+              <div className="mt-1">
+                <Badge variant={sInfo.variant}>{sInfo.label}</Badge>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">วันที่รับ</p>
+              <p className="mt-1 text-sm font-medium">
+                {formatDateOnlyTh(detail.receivedDate)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">ผู้รับ</p>
+              <p className="mt-1 text-sm font-medium">
+                {detail.receivedByName || '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Source</p>
+              <p className="mt-1 text-sm font-medium">{sourceLabel}</p>
+              {detail.sourceRefText && (
+                <p className="text-xs text-gray-500">{detail.sourceRefText}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Lot #</p>
+              <p className="mt-1 text-sm font-medium font-mono">
+                {detail.lotNumber || '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">จำนวน</p>
+              <p className="mt-1 text-sm font-medium">
+                {detail.quantityReceived != null
+                  ? `${Number(detail.quantityReceived).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${detail.unit || ''}`
+                  : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">วันผลิต</p>
+              <p className="mt-1 text-sm">{formatDateOnlyTh(detail.manufactureDate)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">วันหมดอายุ</p>
+              <p className="mt-1 text-sm">{formatDateOnlyTh(detail.expiryDate)}</p>
+            </div>
+            {detail.customerName && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">ลูกค้า</p>
+                <p className="mt-1 text-sm font-medium">{detail.customerName}</p>
+                {detail.salesOrderRef && (
+                  <p className="text-xs text-gray-500 font-mono">
+                    {detail.salesOrderRef}
+                  </p>
+                )}
+              </div>
+            )}
+            {detail.storageConditions && (
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  สภาพการเก็บ
+                </p>
+                <p className="mt-1 text-sm">{detail.storageConditions}</p>
+              </div>
+            )}
+          </div>
+          {detail.notes && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">
+                หมายเหตุ
+              </p>
+              <p className="mt-1 text-sm whitespace-pre-line">{detail.notes}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Action bar */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 md:p-4 print:hidden">
+          <div className="flex flex-wrap items-center gap-2">
+            {canApplyPanel && (
+              <DxButton
+                text="Apply test panel"
+                icon="textdocument"
+                stylingMode="outlined"
+                onClick={() => setShowApplyPanel(true)}
+                disabled={working}
+              />
+            )}
+            {canEditTests && (
+              <DxButton
+                text="เพิ่มการทดสอบ"
+                icon="plus"
+                stylingMode="outlined"
+                onClick={() => setShowAddTest(true)}
+                disabled={working}
+              />
+            )}
+            {showStartTesting && (
+              <DxButton
+                text="เริ่มทดสอบ"
+                icon="runner"
+                type="default"
+                onClick={() => handleStatusAction('start_testing')}
+                disabled={working}
+              />
+            )}
+            {showSubmitReview && (
+              <DxButton
+                text="ส่งทบทวน"
+                icon="check"
+                type="success"
+                onClick={() => handleStatusAction('submit_for_review')}
+                disabled={working}
+              />
+            )}
+            {showApprove && (
+              <DxButton
+                text="อนุมัติ (Phase 3)"
+                icon="check"
+                type="success"
+                stylingMode="outlined"
+                onClick={() => handleStatusAction('approve')}
+                disabled={working}
+              />
+            )}
+            {showRelease && (
+              <DxButton
+                text="ปล่อยใช้งาน (Phase 3)"
+                icon="check"
+                type="success"
+                stylingMode="outlined"
+                onClick={() => handleStatusAction('release')}
+                disabled={working}
+              />
+            )}
+            {showReject && (
+              <DxButton
+                text="ปฏิเสธ"
+                icon="close"
+                type="danger"
+                stylingMode="outlined"
+                onClick={() => handleStatusAction('reject')}
+                disabled={working}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Tests table */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">
+              ผลการทดสอบ ({detail.tests.length})
+            </h2>
+            {detail.linkedCoa && (
+              <a
+                href={`/quality/coa/${detail.linkedCoa.id}`}
+                className="text-xs text-emerald-600 hover:underline"
+              >
+                COA: {detail.linkedCoa.coaNumber}
+              </a>
+            )}
+          </div>
+          {detail.tests.length === 0 ? (
+            <div className="p-6 text-center text-sm text-gray-500">
+              ยังไม่มีรายการทดสอบ — กด &quot;Apply test panel&quot; หรือ &quot;เพิ่มการทดสอบ&quot;
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      #
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      Test
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide hidden md:table-cell">
+                      Method
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      Spec
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      Result
+                    </th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      Status
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide hidden md:table-cell">
+                      Tested by
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide print:hidden">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {detail.tests.map((t) => {
+                    const isEditing = editing?.testId === t.id;
+                    const isReviewed = t.reviewedBy != null;
+                    return (
+                      <tr key={t.id} className={isEditing ? 'bg-cyan-50/40' : ''}>
+                        <td className="px-3 py-2 text-sm text-gray-600">
+                          {t.sequence}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {t.criteriaNameTh ||
+                                t.criteriaName ||
+                                `criteria#${t.criteriaId}`}
+                            </p>
+                            <p className="text-xs text-gray-500 font-mono">
+                              {t.criteriaCode || ''}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-gray-700 hidden md:table-cell">
+                          {t.testMethod || '—'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-700">
+                          {formatSpec(t)}
+                        </td>
+                        <td className="px-3 py-2 text-sm">
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <DxNumberBox
+                                value={editing.numericResult ?? null}
+                                onValueChange={(v) =>
+                                  setEditing(
+                                    editing
+                                      ? { ...editing, numericResult: v ?? null }
+                                      : editing,
+                                  )
+                                }
+                                placeholder="ตัวเลข"
+                                showClearButton
+                              />
+                              <DxTextBox
+                                value={editing.textResult}
+                                onValueChange={(v) =>
+                                  setEditing(
+                                    editing
+                                      ? { ...editing, textResult: v }
+                                      : editing,
+                                  )
+                                }
+                                placeholder="ข้อความ (ถ้าไม่ใช่ตัวเลข)"
+                              />
+                            </div>
+                          ) : (
+                            <div>
+                              {t.numericResult != null ? (
+                                <span className="font-medium">
+                                  {Number(t.numericResult).toLocaleString(
+                                    undefined,
+                                    { maximumFractionDigits: 4 },
+                                  )}
+                                  {t.unit ? ` ${t.unit}` : ''}
+                                </span>
+                              ) : t.textResult ? (
+                                <span className="font-medium">{t.textResult}</span>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {resultBadge(t.resultStatus)}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-gray-600 hidden md:table-cell">
+                          {t.testedByName ? (
+                            <div>
+                              <p>{t.testedByName}</p>
+                              <p className="text-[10px] text-gray-500">
+                                {formatDateTh(t.testedAt)}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right print:hidden">
+                          {isReviewed ? (
+                            <span className="text-xs text-gray-400">
+                              reviewed — locked
+                            </span>
+                          ) : isEditing ? (
+                            <div className="flex justify-end gap-1">
+                              <DxButton
+                                icon="check"
+                                type="success"
+                                stylingMode="text"
+                                onClick={handleSaveEdit}
+                                disabled={working}
+                              />
+                              <DxButton
+                                icon="close"
+                                stylingMode="text"
+                                onClick={handleCancelEdit}
+                                disabled={working}
+                              />
+                            </div>
+                          ) : canEditTests ? (
+                            <div className="flex justify-end gap-1">
+                              <DxButton
+                                icon="edit"
+                                stylingMode="text"
+                                onClick={() => handleStartEdit(t)}
+                                disabled={working}
+                              />
+                              <DxButton
+                                icon="trash"
+                                type="danger"
+                                stylingMode="text"
+                                onClick={() => handleDeleteTest(t.id)}
+                                disabled={working}
+                              />
+                            </div>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Sign-off section (Phase 3 placeholder) */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 print:hidden">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+            การลงนาม (21 CFR Part 11) — Phase 3
+          </h2>
+          {detail.signatures.length === 0 ? (
+            <p className="text-xs text-gray-500">
+              ยังไม่มีการลงนาม — workflow การลงนาม 3 ระดับ (Analyst → Reviewer → Approver) จะเปิดใน Phase 3
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {detail.signatures.map((sig) => (
+                <div
+                  key={sig.id}
+                  className="border border-emerald-200 bg-emerald-50 rounded-lg p-3"
+                >
+                  <p className="text-xs uppercase text-emerald-700 font-semibold">
+                    {sig.role}
+                  </p>
+                  <p className="text-sm font-medium mt-1">{sig.userName}</p>
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    {formatDateTh(sig.signedAt)}
+                  </p>
+                  {sig.signatureMeaning && (
+                    <p className="text-xs text-gray-600 mt-1 italic">
+                      {sig.signatureMeaning}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Apply panel dialog */}
+      <DxPopup
+        visible={showApplyPanel}
+        onHiding={() => {
+          if (!working) {
+            setShowApplyPanel(false);
+            setSelectedPanelId(null);
+          }
+        }}
+        title="Apply test panel"
+        width={520}
+        height="auto"
+        showCloseButton
+      >
+        <div className="p-4 space-y-4">
+          {panels.length === 0 ? (
+            <p className="text-sm text-gray-600">
+              ไม่มี test panel ที่กำหนดสำหรับสินค้านี้ — ไปสร้างที่ <a className="text-cyan-600 hover:underline" href="/quality/test-panels">/quality/test-panels</a>
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-gray-700">
+                เลือก panel-row ที่จะ apply เข้าสู่ตัวอย่างนี้:
+              </p>
+              <DxSelectBox
+                value={selectedPanelId}
+                dataSource={panelOptions}
+                displayExpr="label"
+                valueExpr="id"
+                onValueChange={(v) => setSelectedPanelId(v == null ? null : Number(v))}
+                placeholder="เลือก panel"
+                searchEnabled
+              />
+            </>
+          )}
+          <div className="flex justify-end gap-2 pt-3 border-t">
+            <DxButton
+              text="ยกเลิก"
+              stylingMode="outlined"
+              onClick={() => {
+                setShowApplyPanel(false);
+                setSelectedPanelId(null);
+              }}
+              disabled={working}
+            />
+            <DxButton
+              text={working ? 'กำลัง apply...' : 'Apply'}
+              type="default"
+              onClick={handleApplyPanel}
+              disabled={working || !selectedPanelId}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* Add custom test dialog */}
+      <DxPopup
+        visible={showAddTest}
+        onHiding={() => {
+          if (!working) {
+            setShowAddTest(false);
+            setNewCriteriaId(null);
+            setNewSequence(1);
+          }
+        }}
+        title="เพิ่มการทดสอบ"
+        width={520}
+        height="auto"
+        showCloseButton
+      >
+        <div className="p-4 space-y-4">
+          <DxSelectBox
+            label="เกณฑ์ (IPC criteria)"
+            value={newCriteriaId}
+            dataSource={availableCriteria.map((c) => ({
+              id: c.id,
+              label: `${c.code} — ${c.nameTh || c.name}`,
+            }))}
+            displayExpr="label"
+            valueExpr="id"
+            onValueChange={(v) => setNewCriteriaId(v == null ? null : Number(v))}
+            searchEnabled
+            required
+          />
+          <DxNumberBox
+            label="ลำดับการแสดงผล"
+            value={newSequence}
+            onValueChange={(v) => setNewSequence(Number(v) || 1)}
+            min={1}
+            max={999}
+            step={1}
+            showSpinButtons
+          />
+          <div className="flex justify-end gap-2 pt-3 border-t">
+            <DxButton
+              text="ยกเลิก"
+              stylingMode="outlined"
+              onClick={() => {
+                setShowAddTest(false);
+                setNewCriteriaId(null);
+                setNewSequence(1);
+              }}
+              disabled={working}
+            />
+            <DxButton
+              text={working ? 'กำลังเพิ่ม...' : 'เพิ่ม'}
+              type="default"
+              onClick={handleAddCustomTest}
+              disabled={working || !newCriteriaId}
+            />
+          </div>
+        </div>
+      </DxPopup>
+    </MainLayout>
+  );
+}

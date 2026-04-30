@@ -34,6 +34,8 @@
     "masterData": "ข้อมูลหลัก"
   },
   "quality": {
+    "qcEntry": "บันทึก QC",
+    "testPanels": "Test Panels",
     "tests": "การทดสอบ",
     "specs": "ข้อกำหนด",
     "deviations": "ความเบี่ยงเบน"

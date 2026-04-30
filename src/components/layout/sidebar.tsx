@@ -60,6 +60,7 @@ import {
   TrendingUp,
   Play,
   Layers,
+  ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { expandRole } from '@/lib/auth/role-mapping';
@@ -113,6 +114,8 @@ const navigation: NavItem[] = [
     icon: ClipboardCheck,
     roles: ['admin', 'manager', 'production', 'qc'],
     children: [
+      { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
+      { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       { name: 'Specifications', href: '/quality/specs', icon: FileText },
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
