@@ -163,6 +163,68 @@ export const createTestPanelSchema = z.object({
 export const updateTestPanelSchema = createTestPanelSchema.partial();
 
 // ----------------------------------------------------------------------------
+// 6. Phase 3 — 3-tier sign-off (21 CFR Part 11)
+// ----------------------------------------------------------------------------
+
+export const signatureRoleSchema = z.enum([
+  'analyst',
+  'reviewer',
+  'approver',
+  'qa_release',
+]);
+
+/**
+ * E-signature payload — captures one of the four sign-off tiers.
+ * Server pulls userId from session and IP/UA from request headers.
+ * passwordReentry is OPTIONAL: when provided the server bcrypt-verifies
+ * against users.password (per 21 CFR Part 11). Soft path for environments
+ * not enforcing password re-entry yet.
+ */
+export const signQcSampleSchema = z.object({
+  role: signatureRoleSchema,
+  signatureMeaning: z
+    .string()
+    .min(1, 'signatureMeaning is required (e.g. "Tested", "Reviewed")')
+    .max(50),
+  notes: z.string().max(2000).nullable().optional(),
+  passwordReentry: z.string().max(255).optional(),
+});
+
+// ----------------------------------------------------------------------------
+// 7. Phase 3 — OOS investigation (FDA 21 CFR 211.192)
+// ----------------------------------------------------------------------------
+
+export const oosClassificationSchema = z.enum([
+  'lab_error',
+  'manufacturing_error',
+  'undetermined',
+]);
+
+export const createOosInvestigationSchema = z.object({
+  sampleTestId: z.number().int().positive('sampleTestId is required'),
+  phase1LabErrorCheck: z.string().max(4000).nullable().optional(),
+  phase2RootCause: z.string().max(4000).nullable().optional(),
+  classification: oosClassificationSchema.nullable().optional(),
+  retestAuthorized: z.boolean().optional().default(false),
+  conclusion: z.string().max(4000).nullable().optional(),
+});
+
+export const updateOosInvestigationSchema = z.object({
+  phase1LabErrorCheck: z.string().max(4000).nullable().optional(),
+  phase2RootCause: z.string().max(4000).nullable().optional(),
+  classification: oosClassificationSchema.nullable().optional(),
+  retestAuthorized: z.boolean().optional(),
+  conclusion: z.string().max(4000).nullable().optional(),
+});
+
+export const closeOosInvestigationSchema = z.object({
+  conclusion: z
+    .string()
+    .min(10, 'conclusion must be at least 10 characters')
+    .max(4000),
+});
+
+// ----------------------------------------------------------------------------
 // Type exports for service-layer consumption
 // ----------------------------------------------------------------------------
 export type CreateQcSampleInput = z.infer<typeof createQcSampleSchema>;
@@ -176,3 +238,9 @@ export type SampleSourceType = z.infer<typeof sampleSourceTypeSchema>;
 export type SampleStatus = z.infer<typeof sampleStatusSchema>;
 export type SampleAction = z.infer<typeof sampleActionSchema>;
 export type TestResultStatus = z.infer<typeof testResultStatusSchema>;
+export type SignatureRole = z.infer<typeof signatureRoleSchema>;
+export type SignQcSampleInput = z.infer<typeof signQcSampleSchema>;
+export type OosClassification = z.infer<typeof oosClassificationSchema>;
+export type CreateOosInvestigationInput = z.infer<typeof createOosInvestigationSchema>;
+export type UpdateOosInvestigationInput = z.infer<typeof updateOosInvestigationSchema>;
+export type CloseOosInvestigationInput = z.infer<typeof closeOosInvestigationSchema>;

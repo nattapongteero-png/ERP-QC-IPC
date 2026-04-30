@@ -28,10 +28,12 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxSwitch } from '@/components/ui/dx-switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { TestTube, AlertTriangle } from 'lucide-react';
+import { TestTube, AlertTriangle, ShieldCheck, AlertOctagon } from 'lucide-react';
 
 interface QcSampleTestRow {
   id: number;
@@ -95,10 +97,43 @@ interface QcSampleDetail {
     userName: string | null;
     signedAt: string;
     signatureMeaning: string | null;
+    notes?: string | null;
   }>;
-  oosInvestigations: unknown[];
+  oosInvestigations: Array<{
+    id: number;
+    sampleTestId: number;
+    initiatedBy: number;
+    initiatedByName: string | null;
+    initiatedAt: string;
+    classification: string | null;
+    retestAuthorized: boolean;
+    closedAt: string | null;
+    conclusion: string | null;
+  }>;
   linkedCoa: { id: number; coaNumber: string; status: string } | null;
 }
+
+interface OosInvestigation {
+  id: number;
+  sampleTestId: number;
+  sampleId: number;
+  sampleNumber: string | null;
+  initiatedBy: number;
+  initiatedByName: string | null;
+  initiatedAt: string;
+  phase1LabErrorCheck: string | null;
+  phase2RootCause: string | null;
+  classification: string | null;
+  retestAuthorized: boolean;
+  closedBy: number | null;
+  closedByName: string | null;
+  closedAt: string | null;
+  conclusion: string | null;
+  capaId: number | null;
+  linkedDeviation: { id: number; deviationNumber: string } | null;
+}
+
+type SignatureRole = 'analyst' | 'reviewer' | 'approver' | 'qa_release';
 
 interface IpcCriterion {
   id: number;
@@ -236,6 +271,24 @@ export default function QcSampleDetailPage() {
   const [newCriteriaId, setNewCriteriaId] = useState<number | null>(null);
   const [newSequence, setNewSequence] = useState<number>(1);
 
+  // ── Phase 3 — Sign-off state ─────────────────────────────────────────
+  const [signRole, setSignRole] = useState<SignatureRole | null>(null);
+  const [signNotes, setSignNotes] = useState<string>('');
+  const [signPassword, setSignPassword] = useState<string>('');
+
+  // ── Phase 3 — OOS state ──────────────────────────────────────────────
+  const [oosList, setOosList] = useState<OosInvestigation[]>([]);
+  const [showOpenOos, setShowOpenOos] = useState(false);
+  const [oosTestId, setOosTestId] = useState<number | null>(null);
+  const [oosPhase1, setOosPhase1] = useState<string>('');
+  const [oosPhase2, setOosPhase2] = useState<string>('');
+  const [oosClassification, setOosClassification] = useState<string | null>(null);
+  const [oosRetest, setOosRetest] = useState<boolean>(false);
+  const [oosConclusionInit, setOosConclusionInit] = useState<string>('');
+
+  const [closingOosId, setClosingOosId] = useState<number | null>(null);
+  const [oosCloseConclusion, setOosCloseConclusion] = useState<string>('');
+
   const fetchDetail = useCallback(async () => {
     if (!Number.isFinite(sampleId)) {
       setError('Invalid sample ID');
@@ -260,9 +313,28 @@ export default function QcSampleDetailPage() {
     }
   }, [sampleId]);
 
+  // Fetch the full OOS list (with linked deviation info) — separate call
+  // because the sample-detail endpoint returns a lite version.
+  const fetchOosList = useCallback(async () => {
+    if (!Number.isFinite(sampleId)) return;
+    try {
+      const res = await fetch(`/api/quality/qc-samples/${sampleId}/oos`);
+      const data = await res.json();
+      if (data.success) {
+        setOosList(Array.isArray(data.data?.items) ? data.data.items : []);
+      }
+    } catch {
+      // Non-fatal — UI shows "no OOS" if the endpoint hiccups.
+    }
+  }, [sampleId]);
+
   useEffect(() => {
     fetchDetail();
   }, [fetchDetail]);
+
+  useEffect(() => {
+    fetchOosList();
+  }, [fetchOosList]);
 
   // Load panels when "Apply panel" dialog opens.
   useEffect(() => {
@@ -447,14 +519,10 @@ export default function QcSampleDetailPage() {
     action: 'start_testing' | 'submit_for_review' | 'approve' | 'release' | 'reject',
   ) => {
     if (!detail) return;
-    // Phase 3 actions return an info toast — sign-off workflow not built yet.
-    if (action === 'approve' || action === 'release') {
-      toast.info(
-        'Phase 3 — Sign-off',
-        'การอนุมัติและปล่อยใช้งานต้องการการลงนามตาม 21 CFR Part 11 (Phase 3)',
-      );
-      return;
-    }
+    // Phase 3 — approve/release run as state transitions but the service
+    // refuses them unless the matching reviewer/qa_release signature exists.
+    // The buttons remain visible so operators can SEE what's blocking them
+    // (the toast surfaces the service-level error message).
     if (action === 'reject') {
       const reason = prompt('ระบุเหตุผลในการปฏิเสธ:');
       if (!reason) return;
@@ -462,6 +530,161 @@ export default function QcSampleDetailPage() {
       return;
     }
     await postStatus(action);
+  };
+
+  // ── Sign-off handlers ────────────────────────────────────────────────
+
+  const openSignDialog = (role: SignatureRole) => {
+    setSignRole(role);
+    setSignNotes('');
+    setSignPassword('');
+  };
+
+  const closeSignDialog = () => {
+    if (working) return;
+    setSignRole(null);
+    setSignNotes('');
+    setSignPassword('');
+  };
+
+  const meaningForRole = (role: SignatureRole): string => {
+    switch (role) {
+      case 'analyst':
+        return 'Tested';
+      case 'reviewer':
+        return 'Reviewed';
+      case 'approver':
+        return 'Approved';
+      case 'qa_release':
+        return 'Released';
+    }
+  };
+
+  const handleSign = async () => {
+    if (!detail || !signRole) return;
+    setWorking(true);
+    try {
+      const res = await fetch(
+        `/api/quality/qc-samples/${detail.id}/signatures`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: signRole,
+            signatureMeaning: meaningForRole(signRole),
+            notes: signNotes || null,
+            // Server treats empty string as "no password supplied" — soft path.
+            ...(signPassword ? { passwordReentry: signPassword } : {}),
+          }),
+        },
+      );
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('ลงนามไม่สำเร็จ', data.error || 'Unknown error');
+      } else {
+        const meta = data.data?.transitionedStatus
+          ? `สถานะ: ${data.data.transitionedStatus.fromStatus} → ${data.data.transitionedStatus.toStatus}`
+          : 'บันทึกการลงนามแล้ว';
+        toast.success('ลงนามสำเร็จ', meta);
+        setSignRole(null);
+        setSignNotes('');
+        setSignPassword('');
+        await fetchDetail();
+      }
+    } catch (e) {
+      toast.error('ลงนามไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  // ── OOS handlers ─────────────────────────────────────────────────────
+
+  const openOosDialog = (preselectTestId?: number) => {
+    setOosTestId(preselectTestId ?? null);
+    setOosPhase1('');
+    setOosPhase2('');
+    setOosClassification(null);
+    setOosRetest(false);
+    setOosConclusionInit('');
+    setShowOpenOos(true);
+  };
+
+  const handleOpenOos = async () => {
+    if (!detail || !oosTestId) return;
+    setWorking(true);
+    try {
+      const res = await fetch(
+        `/api/quality/qc-samples/${detail.id}/oos`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sampleTestId: oosTestId,
+            phase1LabErrorCheck: oosPhase1 || null,
+            phase2RootCause: oosPhase2 || null,
+            classification: oosClassification || null,
+            retestAuthorized: oosRetest,
+            conclusion: oosConclusionInit || null,
+          }),
+        },
+      );
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('เปิดสอบสวน OOS ไม่สำเร็จ', data.error || 'Unknown error');
+      } else {
+        toast.success(
+          'เปิดสอบสวน OOS สำเร็จ',
+          data.data?.deviationNumber
+            ? `Auto-deviation: ${data.data.deviationNumber}`
+            : `OOS #${data.data?.oosId} created`,
+        );
+        setShowOpenOos(false);
+        await Promise.all([fetchDetail(), fetchOosList()]);
+      }
+    } catch (e) {
+      toast.error(
+        'เปิดสอบสวน OOS ไม่สำเร็จ',
+        e instanceof Error ? e.message : 'Network error',
+      );
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const handleCloseOos = async () => {
+    if (!closingOosId) return;
+    if (oosCloseConclusion.trim().length < 10) {
+      toast.error('ปิดสอบสวนไม่สำเร็จ', 'ข้อสรุปต้องยาวอย่างน้อย 10 ตัวอักษร');
+      return;
+    }
+    setWorking(true);
+    try {
+      const res = await fetch(`/api/quality/oos/${closingOosId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'close',
+          conclusion: oosCloseConclusion,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('ปิดสอบสวนไม่สำเร็จ', data.error || 'Unknown error');
+      } else {
+        toast.success('ปิดสอบสวนแล้ว');
+        setClosingOosId(null);
+        setOosCloseConclusion('');
+        await Promise.all([fetchDetail(), fetchOosList()]);
+      }
+    } catch (e) {
+      toast.error(
+        'ปิดสอบสวนไม่สำเร็จ',
+        e instanceof Error ? e.message : 'Network error',
+      );
+    } finally {
+      setWorking(false);
+    }
   };
 
   const postStatus = async (action: string, reason?: string) => {
@@ -742,20 +965,18 @@ export default function QcSampleDetailPage() {
             )}
             {showApprove && (
               <DxButton
-                text="อนุมัติ (Phase 3)"
+                text="อนุมัติ"
                 icon="check"
                 type="success"
-                stylingMode="outlined"
                 onClick={() => handleStatusAction('approve')}
                 disabled={working}
               />
             )}
             {showRelease && (
               <DxButton
-                text="ปล่อยใช้งาน (Phase 3)"
+                text="ปล่อยใช้งาน"
                 icon="check"
                 type="success"
-                stylingMode="outlined"
                 onClick={() => handleStatusAction('release')}
                 disabled={working}
               />
@@ -958,39 +1179,244 @@ export default function QcSampleDetailPage() {
           )}
         </div>
 
-        {/* Sign-off section (Phase 3 placeholder) */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 print:hidden">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">
-            การลงนาม (21 CFR Part 11) — Phase 3
-          </h2>
-          {detail.signatures.length === 0 ? (
-            <p className="text-xs text-gray-500">
-              ยังไม่มีการลงนาม — workflow การลงนาม 3 ระดับ (Analyst → Reviewer → Approver) จะเปิดใน Phase 3
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {detail.signatures.map((sig) => (
-                <div
-                  key={sig.id}
-                  className="border border-emerald-200 bg-emerald-50 rounded-lg p-3"
-                >
-                  <p className="text-xs uppercase text-emerald-700 font-semibold">
-                    {sig.role}
-                  </p>
-                  <p className="text-sm font-medium mt-1">{sig.userName}</p>
-                  <p className="text-xs text-emerald-700 mt-0.5">
-                    {formatDateTh(sig.signedAt)}
-                  </p>
-                  {sig.signatureMeaning && (
-                    <p className="text-xs text-gray-600 mt-1 italic">
-                      {sig.signatureMeaning}
-                    </p>
-                  )}
-                </div>
-              ))}
+        {/* Sign-off (21 CFR Part 11) — 4 tiers */}
+        {(() => {
+          const signatureByRole = new Map<string, typeof detail.signatures[number]>();
+          for (const sig of detail.signatures) {
+            signatureByRole.set(sig.role, sig);
+          }
+          const analystSig = signatureByRole.get('analyst');
+          const reviewerSig = signatureByRole.get('reviewer');
+          const approverSig = signatureByRole.get('approver');
+          const releaseSig = signatureByRole.get('qa_release');
+
+          // Has at least one test row been recorded?
+          const hasTestedRow = detail.tests.some((t) => t.testedBy != null);
+
+          // Per-role visibility hints (server is authoritative).
+          const canSignAnalyst =
+            !analystSig &&
+            (detail.status === 'testing' || detail.status === 'registered');
+          const canSignReviewer =
+            !reviewerSig &&
+            detail.status === 'testing' &&
+            hasTestedRow;
+          const canSignApprover =
+            !approverSig && detail.status === 'reviewed';
+          const canSignRelease =
+            !releaseSig && detail.status === 'approved';
+
+          const tiers: Array<{
+            role: SignatureRole;
+            label: string;
+            sig: typeof detail.signatures[number] | undefined;
+            canSign: boolean;
+          }> = [
+            { role: 'analyst', label: 'Tested by / ผู้ทดสอบ', sig: analystSig, canSign: canSignAnalyst },
+            { role: 'reviewer', label: 'Reviewed by / ผู้ทบทวน', sig: reviewerSig, canSign: canSignReviewer },
+            { role: 'approver', label: 'Approved by / ผู้อนุมัติ', sig: approverSig, canSign: canSignApprover },
+            { role: 'qa_release', label: 'Released by / QA ปล่อยใช้งาน', sig: releaseSig, canSign: canSignRelease },
+          ];
+
+          return (
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 print:break-inside-avoid">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                <h2 className="text-sm font-semibold text-gray-700">
+                  การลงนาม / Sign-off (21 CFR Part 11)
+                </h2>
+              </div>
+              <div className="space-y-2">
+                {tiers.map((tier) => (
+                  <div
+                    key={tier.role}
+                    className={`flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-3 py-2 rounded-lg border ${
+                      tier.sig
+                        ? 'border-emerald-200 bg-emerald-50/60'
+                        : 'border-gray-200 bg-gray-50/40'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                        {tier.label}
+                      </p>
+                      {tier.sig ? (
+                        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                          <span className="text-sm font-medium">
+                            {tier.sig.userName ?? `user#${tier.sig.userId}`}
+                          </span>
+                          <span className="text-xs text-emerald-700">
+                            {formatDateTh(tier.sig.signedAt)} ✓
+                          </span>
+                          {tier.sig.signatureMeaning && (
+                            <span className="text-xs text-gray-500 italic">
+                              {tier.sig.signatureMeaning}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="mt-0.5 text-sm text-gray-400">— ยังไม่ลงนาม</p>
+                      )}
+                    </div>
+                    {!tier.sig && tier.canSign && (
+                      <DxButton
+                        text="Sign"
+                        icon="edit"
+                        type="default"
+                        stylingMode="outlined"
+                        onClick={() => openSignDialog(tier.role)}
+                        disabled={working}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-snug text-gray-500">
+                หมายเหตุ: เพื่อการทดสอบ password re-entry ในระบบจริง ผู้ใช้ต้องมี bcrypt hash —
+                บัญชี seed บางบัญชีใช้ plain-text จึงข้าม bcrypt
+              </p>
             </div>
-          )}
-        </div>
+          );
+        })()}
+
+        {/* OOS Investigations (FDA 21 CFR 211.192) */}
+        {(detail.status === 'oos' ||
+          oosList.length > 0 ||
+          detail.tests.some((t) => t.resultStatus === 'fail')) && (
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 print:break-inside-avoid">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <AlertOctagon className="h-4 w-4 text-rose-600" />
+                <h2 className="text-sm font-semibold text-gray-700">
+                  สอบสวน OOS / Out-of-Spec Investigation
+                </h2>
+              </div>
+              <DxButton
+                text="+ เปิดสอบสวน OOS"
+                icon="plus"
+                type="danger"
+                stylingMode="outlined"
+                onClick={() => openOosDialog()}
+                disabled={
+                  working ||
+                  !detail.tests.some((t) => t.resultStatus === 'fail')
+                }
+              />
+            </div>
+            {oosList.length === 0 ? (
+              <p className="text-xs text-gray-500">
+                {detail.tests.some((t) => t.resultStatus === 'fail')
+                  ? 'มีผลทดสอบที่ไม่ผ่านเกณฑ์ — กด "เปิดสอบสวน OOS" เพื่อเริ่ม phase 1/2'
+                  : 'ยังไม่มีผลทดสอบที่ไม่ผ่าน — ไม่จำเป็นต้องเปิด OOS'}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {oosList.map((oos) => {
+                  const failedTest = detail.tests.find(
+                    (t) => t.id === oos.sampleTestId,
+                  );
+                  return (
+                    <div
+                      key={oos.id}
+                      className={`px-3 py-2 rounded-lg border ${
+                        oos.closedAt
+                          ? 'border-gray-200 bg-gray-50'
+                          : 'border-rose-200 bg-rose-50/40'
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                          <span className="text-sm font-medium">
+                            OOS #{oos.id}
+                          </span>
+                          <span className="text-xs text-gray-600">
+                            ทดสอบ:{' '}
+                            {failedTest
+                              ? failedTest.criteriaNameTh ||
+                                failedTest.criteriaName ||
+                                `criteria#${failedTest.criteriaId}`
+                              : `test#${oos.sampleTestId}`}
+                          </span>
+                          {oos.classification && (
+                            <Badge
+                              variant={
+                                oos.classification === 'manufacturing_error'
+                                  ? 'danger'
+                                  : oos.classification === 'lab_error'
+                                  ? 'warning'
+                                  : 'default'
+                              }
+                            >
+                              {oos.classification}
+                            </Badge>
+                          )}
+                          {oos.closedAt ? (
+                            <Badge variant="success">CLOSED</Badge>
+                          ) : (
+                            <Badge variant="warning">OPEN</Badge>
+                          )}
+                          {oos.linkedDeviation && (
+                            <a
+                              href={`/quality/deviations/${oos.linkedDeviation.id}`}
+                              className="text-xs text-rose-600 hover:underline font-mono"
+                            >
+                              {oos.linkedDeviation.deviationNumber}
+                            </a>
+                          )}
+                        </div>
+                        {!oos.closedAt && (
+                          <DxButton
+                            text="ปิดสอบสวน"
+                            icon="check"
+                            stylingMode="outlined"
+                            onClick={() => {
+                              setClosingOosId(oos.id);
+                              setOosCloseConclusion(oos.conclusion ?? '');
+                            }}
+                            disabled={working}
+                          />
+                        )}
+                      </div>
+                      {oos.phase1LabErrorCheck && (
+                        <p className="mt-1 text-xs text-gray-700">
+                          <span className="font-semibold">Phase 1 (lab):</span>{' '}
+                          {oos.phase1LabErrorCheck}
+                        </p>
+                      )}
+                      {oos.phase2RootCause && (
+                        <p className="mt-1 text-xs text-gray-700">
+                          <span className="font-semibold">Phase 2 (root cause):</span>{' '}
+                          {oos.phase2RootCause}
+                        </p>
+                      )}
+                      {oos.conclusion && (
+                        <p className="mt-1 text-xs text-gray-700">
+                          <span className="font-semibold">Conclusion:</span>{' '}
+                          {oos.conclusion}
+                        </p>
+                      )}
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        เปิดโดย {oos.initiatedByName ?? `user#${oos.initiatedBy}`} ·{' '}
+                        {formatDateTh(oos.initiatedAt)}
+                        {oos.closedAt && (
+                          <>
+                            {' '}— ปิดโดย {oos.closedByName ?? `user#${oos.closedBy}`} ·{' '}
+                            {formatDateTh(oos.closedAt)}
+                          </>
+                        )}
+                        {oos.retestAuthorized && (
+                          <span className="ml-2 text-emerald-700 font-medium">
+                            · ✓ Retest authorized
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Apply panel dialog */}
@@ -1102,6 +1528,226 @@ export default function QcSampleDetailPage() {
               type="default"
               onClick={handleAddCustomTest}
               disabled={working || !newCriteriaId}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* ─────────── Sign-off dialog (21 CFR Part 11) ─────────── */}
+      <DxPopup
+        visible={signRole !== null}
+        onHiding={closeSignDialog}
+        title={
+          signRole
+            ? `ลงนาม — ${meaningForRole(signRole)} (${signRole})`
+            : 'ลงนาม'
+        }
+        width={520}
+        height="auto"
+        showCloseButton
+        fullScreenOnMobile
+      >
+        <div className="p-4 space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-sm text-amber-800">
+              ฉันยืนยันว่าฉันเป็นผู้ลงนามในฐานะ{' '}
+              <span className="font-semibold">
+                {signRole ? meaningForRole(signRole) : ''}
+              </span>{' '}
+              ของตัวอย่าง{' '}
+              <span className="font-mono">{detail?.sampleNumber}</span>
+            </p>
+            <p className="text-xs text-amber-700 mt-1">
+              I certify that I am signing as the {signRole}{' '}
+              of sample {detail?.sampleNumber}. This action is recorded with
+              IP address and user-agent for the audit trail (21 CFR Part 11).
+            </p>
+          </div>
+
+          <DxTextArea
+            label="หมายเหตุ / Notes (optional)"
+            labelMode="outside"
+            value={signNotes}
+            onValueChange={setSignNotes}
+            placeholder="เช่น: ตรวจซ้ำตัวอย่างหมายเลข ... และอ่านค่าตรงกัน"
+            height={80}
+            maxLength={2000}
+          />
+
+          <DxTextBox
+            label="รหัสผ่าน / Password re-entry (optional)"
+            labelMode="outside"
+            value={signPassword}
+            onValueChange={setSignPassword}
+            mode="password"
+            placeholder="ระบุรหัสผ่านเพื่อยืนยันตัวตน"
+          />
+          <p className="text-[11px] text-gray-500 -mt-2">
+            ปล่อยว่างได้ในช่วงทดสอบระบบ — เมื่อ enforced บัญชีต้องมี bcrypt hash
+          </p>
+
+          <div className="flex justify-end gap-2 pt-3 border-t">
+            <DxButton
+              text="ยกเลิก"
+              stylingMode="outlined"
+              onClick={closeSignDialog}
+              disabled={working}
+            />
+            <DxButton
+              text={working ? 'กำลังลงนาม...' : 'Sign'}
+              type="success"
+              onClick={handleSign}
+              disabled={working}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* ─────────── Open OOS investigation dialog ─────────── */}
+      <DxPopup
+        visible={showOpenOos}
+        onHiding={() => {
+          if (!working) setShowOpenOos(false);
+        }}
+        title="เปิดสอบสวน OOS (FDA 21 CFR 211.192)"
+        width={640}
+        height="auto"
+        showCloseButton
+        fullScreenOnMobile
+      >
+        <div className="p-4 space-y-3">
+          <DxSelectBox
+            label="ทดสอบที่ไม่ผ่าน (failed test) *"
+            labelMode="outside"
+            value={oosTestId}
+            dataSource={(detail?.tests ?? [])
+              .filter((t) => t.resultStatus === 'fail')
+              .map((t) => ({
+                id: t.id,
+                label: `#${t.sequence} ${t.criteriaNameTh || t.criteriaName || `criteria#${t.criteriaId}`} — result: ${
+                  t.numericResult != null
+                    ? Number(t.numericResult).toString()
+                    : t.textResult || ''
+                }`,
+              }))}
+            displayExpr="label"
+            valueExpr="id"
+            onValueChange={(v) => setOosTestId(v == null ? null : Number(v))}
+            placeholder="เลือกทดสอบที่ไม่ผ่าน"
+            searchEnabled
+          />
+          <DxTextArea
+            label="Phase 1 — Lab error hypothesis (analyst)"
+            labelMode="outside"
+            value={oosPhase1}
+            onValueChange={setOosPhase1}
+            placeholder="เช่น: เครื่องมือวัดสอบเทียบหรือไม่? วิธีการเตรียมตัวอย่างถูกต้องหรือไม่?"
+            height={80}
+            maxLength={4000}
+          />
+          <DxTextArea
+            label="Phase 2 — Root cause (formal investigation)"
+            labelMode="outside"
+            value={oosPhase2}
+            onValueChange={setOosPhase2}
+            placeholder="ผลการสืบสวนเชิงลึก เมื่อ Phase 1 ไม่พบสาเหตุจาก lab"
+            height={80}
+            maxLength={4000}
+          />
+          <DxSelectBox
+            label="Classification"
+            labelMode="outside"
+            value={oosClassification}
+            dataSource={[
+              { id: 'lab_error', label: 'Lab Error — สาเหตุจากห้องปฏิบัติการ' },
+              {
+                id: 'manufacturing_error',
+                label: 'Manufacturing Error — สาเหตุจากการผลิต (auto-creates Deviation)',
+              },
+              { id: 'undetermined', label: 'Undetermined — ระบุไม่ได้' },
+            ]}
+            displayExpr="label"
+            valueExpr="id"
+            onValueChange={(v) =>
+              setOosClassification(v == null ? null : String(v))
+            }
+            placeholder="ยังไม่ระบุ — ระบุภายหลังก็ได้"
+          />
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-700">
+              อนุญาตให้ทดสอบซ้ำ (Retest authorized)
+            </span>
+            <DxSwitch value={oosRetest} onValueChange={setOosRetest} />
+          </div>
+          <DxTextArea
+            label="ข้อสรุปเบื้องต้น / Initial conclusion (optional)"
+            labelMode="outside"
+            value={oosConclusionInit}
+            onValueChange={setOosConclusionInit}
+            placeholder="เพิ่มเติมภายหลังเมื่อปิดสอบสวนได้"
+            height={70}
+            maxLength={4000}
+          />
+          <div className="flex justify-end gap-2 pt-3 border-t">
+            <DxButton
+              text="ยกเลิก"
+              stylingMode="outlined"
+              onClick={() => setShowOpenOos(false)}
+              disabled={working}
+            />
+            <DxButton
+              text={working ? 'กำลังเปิด...' : 'เปิดสอบสวน'}
+              type="danger"
+              onClick={handleOpenOos}
+              disabled={working || !oosTestId}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* ─────────── Close OOS dialog ─────────── */}
+      <DxPopup
+        visible={closingOosId !== null}
+        onHiding={() => {
+          if (!working) {
+            setClosingOosId(null);
+            setOosCloseConclusion('');
+          }
+        }}
+        title={`ปิดสอบสวน OOS #${closingOosId ?? ''}`}
+        width={520}
+        height="auto"
+        showCloseButton
+        fullScreenOnMobile
+      >
+        <div className="p-4 space-y-3">
+          <p className="text-sm text-gray-700">
+            ระบุข้อสรุปการสอบสวน — ต้องอย่างน้อย 10 ตัวอักษร (FDA 211.192)
+          </p>
+          <DxTextArea
+            label="ข้อสรุป / Conclusion *"
+            labelMode="outside"
+            value={oosCloseConclusion}
+            onValueChange={setOosCloseConclusion}
+            placeholder="เช่น: หลังตรวจซ้ำพบว่าผลของวันแรกผิดพลาดจาก calibration ของเครื่องมือ ..."
+            height={120}
+            maxLength={4000}
+          />
+          <div className="flex justify-end gap-2 pt-3 border-t">
+            <DxButton
+              text="ยกเลิก"
+              stylingMode="outlined"
+              onClick={() => {
+                setClosingOosId(null);
+                setOosCloseConclusion('');
+              }}
+              disabled={working}
+            />
+            <DxButton
+              text={working ? 'กำลังปิด...' : 'ปิดสอบสวน'}
+              type="success"
+              onClick={handleCloseOos}
+              disabled={working || oosCloseConclusion.trim().length < 10}
             />
           </div>
         </div>

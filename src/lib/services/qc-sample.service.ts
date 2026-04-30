@@ -39,6 +39,7 @@ import {
   sqliteCustomers,
   sqliteUsers,
   sqliteCoaDocuments,
+  sqliteDeviations,
   // MySQL tables
   mysqlQcSamples,
   mysqlQcSampleTests,
@@ -50,6 +51,7 @@ import {
   mysqlCustomers,
   mysqlUsers,
   mysqlCoaDocuments,
+  mysqlDeviations,
 } from '../db/schema';
 
 import type {
@@ -60,7 +62,12 @@ import type {
   UpdateTestPanelInput,
   SampleStatus,
   SampleAction,
+  SignatureRole,
+  CreateOosInvestigationInput,
+  UpdateOosInvestigationInput,
+  OosClassification,
 } from '../validation/qc-sample';
+import { verifyPassword } from '../auth';
 
 // ----------------------------------------------------------------------------
 // Constants
@@ -86,6 +93,7 @@ function getTables() {
       customers: sqliteCustomers,
       users: sqliteUsers,
       coa: sqliteCoaDocuments,
+      deviations: sqliteDeviations,
     };
   }
   return {
@@ -99,6 +107,7 @@ function getTables() {
     customers: mysqlCustomers,
     users: mysqlUsers,
     coa: mysqlCoaDocuments,
+    deviations: mysqlDeviations,
   };
 }
 
@@ -1301,6 +1310,72 @@ export async function updateSampleStatus(
       throw new Error(`Rejection reason is required`);
     }
 
+    // Phase 3 — guard sign-off-bound transitions. Each tier must have its
+    // signature row before the corresponding status change is accepted.
+    // Segregation of duties is enforced at signQcSample insert time.
+    if (toStatus === 'reviewed') {
+      // Basic data-integrity check — at least one test recorded.
+      const testedRows = await db
+        .select({ id: tables.tests.id })
+        .from(tables.tests)
+        .where(and(
+          eq(tables.tests.sampleId, id),
+          sql`${tables.tests.testedBy} IS NOT NULL`,
+        ))
+        .limit(1);
+      if (testedRows.length === 0) {
+        throw new Error(
+          `At least one test must be recorded (testedBy IS NOT NULL) before submitting for review`,
+        );
+      }
+    }
+    if (toStatus === 'approved') {
+      // Reviewer signature required, AND reviewer must differ from analyst.
+      const sigRows = await db
+        .select({
+          role: tables.signatures.role,
+          userId: tables.signatures.userId,
+        })
+        .from(tables.signatures)
+        .where(eq(tables.signatures.sampleId, id));
+      const byRole = new Map<string, number>();
+      for (const s of sigRows as any[]) {
+        byRole.set(String(s.role), Number(s.userId));
+      }
+      if (!byRole.has('reviewer')) {
+        throw new Error(
+          `Reviewer signature is required before approval (21 CFR Part 11)`,
+        );
+      }
+      const analystUser = byRole.get('analyst');
+      const reviewerUser = byRole.get('reviewer');
+      if (
+        analystUser != null &&
+        reviewerUser != null &&
+        analystUser === reviewerUser
+      ) {
+        throw new Error(
+          `Segregation of duties: analyst and reviewer must be different users`,
+        );
+      }
+    }
+    if (toStatus === 'released') {
+      // QA release signature required (and approver signature is implied by
+      // the previous transition, since the sample reached 'approved').
+      const sigRows = await db
+        .select({ role: tables.signatures.role })
+        .from(tables.signatures)
+        .where(eq(tables.signatures.sampleId, id));
+      const roles = new Set(
+        (sigRows as any[]).map((s) => String(s.role)),
+      );
+      if (!roles.has('qa_release')) {
+        throw new Error(
+          `QA release signature is required before releasing the sample (21 CFR Part 11)`,
+        );
+      }
+    }
+
     const now = getNow();
     const updates: Record<string, any> = {
       status: toStatus,
@@ -1540,5 +1615,583 @@ export async function deleteTestPanel(
   });
 }
 
+// ============================================================================
+// Phase 3 — 3-tier sign-off (21 CFR Part 11)
+// ============================================================================
+
+/**
+ * Maps a signature role to the auto-transition (if any) it should trigger
+ * after the row is inserted. Phase 3 wires reviewer/approver/qa_release into
+ * the state machine; analyst is captured but does not auto-advance — the
+ * analyst clicks 'Submit for review' explicitly.
+ */
+const ROLE_AUTO_TRANSITION: Record<SignatureRole, SampleAction | null> = {
+  analyst: null,
+  reviewer: 'approve',
+  approver: 'release', // approver→release is wired via qa_release signing in practice
+  qa_release: 'release',
+};
+
+export interface SignQcSampleParams {
+  sampleId: number;
+  role: SignatureRole;
+  userId: number;
+  signatureMeaning: string;
+  notes?: string | null;
+  ipAddress?: string;
+  userAgent?: string;
+  /** When provided, server bcrypt-verifies against users.password. */
+  passwordReentry?: string;
+}
+
+export interface SignQcSampleResult {
+  signatureId: number;
+  sampleId: number;
+  role: SignatureRole;
+  userId: number;
+  signedAt: string | Date;
+  /** Status transition triggered by this signature, if any. */
+  transitionedStatus?: { fromStatus: string; toStatus: string };
+}
+
+/**
+ * Capture an e-signature for a sample at one of the four sign-off tiers.
+ *
+ * Behaviour:
+ *   - Rejects when (sampleId, role) already exists (uniqueness per tier).
+ *   - When passwordReentry is provided, bcrypt-verifies against users.password
+ *     and rejects with "Invalid password" on mismatch.
+ *   - Inserts the signature row with IP + user-agent for the audit trail.
+ *   - Auto-triggers the matching status transition (analyst → no-op,
+ *     reviewer → reviewed→approved, approver → no-op (qa_release fires the
+ *     release), qa_release → approved→released).
+ *   - Segregation-of-duties (analyst != reviewer) is re-checked in
+ *     updateSampleStatus when the auto-transition runs.
+ */
+export async function signQcSample(
+  input: SignQcSampleParams,
+): Promise<SignQcSampleResult> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    // 1. Sample must exist.
+    const [sample] = await db
+      .select({ id: tables.samples.id, status: tables.samples.status })
+      .from(tables.samples)
+      .where(eq(tables.samples.id, input.sampleId))
+      .limit(1);
+    if (!sample) {
+      throw new Error(`Sample ${input.sampleId} not found`);
+    }
+
+    // 2. Reject duplicate signature for (sampleId, role).
+    const existingSigs = await db
+      .select({ id: tables.signatures.id })
+      .from(tables.signatures)
+      .where(and(
+        eq(tables.signatures.sampleId, input.sampleId),
+        eq(tables.signatures.role, input.role),
+      ))
+      .limit(1);
+    if (existingSigs.length > 0) {
+      throw new Error(
+        `Signature for role "${input.role}" already exists on this sample`,
+      );
+    }
+
+    // 3. Optional password re-entry (21 CFR Part 11 §11.200(a)(1)(ii)).
+    if (input.passwordReentry !== undefined && input.passwordReentry !== '') {
+      const [user] = await db
+        .select({ password: tables.users.password })
+        .from(tables.users)
+        .where(eq(tables.users.id, input.userId))
+        .limit(1);
+      if (!user) {
+        throw new Error(`User ${input.userId} not found`);
+      }
+      const userPassword = String(user.password || '');
+      let valid = false;
+      // bcrypt hashes start with $2 — fall back to plain compare for seed
+      // accounts that have unhashed passwords (dev only).
+      if (userPassword.startsWith('$2')) {
+        try {
+          valid = await verifyPassword(input.passwordReentry, userPassword);
+        } catch {
+          valid = false;
+        }
+      } else {
+        valid = userPassword === input.passwordReentry;
+      }
+      if (!valid) {
+        const err = new Error('Invalid password — signature rejected');
+        (err as any).statusCode = 401;
+        throw err;
+      }
+    }
+
+    // 4. Pre-flight segregation-of-duties for reviewer role.
+    if (input.role === 'reviewer') {
+      const [analystSig] = await db
+        .select({ userId: tables.signatures.userId })
+        .from(tables.signatures)
+        .where(and(
+          eq(tables.signatures.sampleId, input.sampleId),
+          eq(tables.signatures.role, 'analyst'),
+        ))
+        .limit(1);
+      if (analystSig && Number(analystSig.userId) === input.userId) {
+        throw new Error(
+          `Segregation of duties: the reviewer must be a different user from the analyst`,
+        );
+      }
+    }
+
+    // 5. Insert.
+    const now = getNow();
+    const insertResult = await db.insert(tables.signatures).values({
+      sampleId: input.sampleId,
+      role: input.role,
+      userId: input.userId,
+      signedAt: now,
+      signatureMeaning: input.signatureMeaning,
+      notes: input.notes ?? null,
+      ipAddress: input.ipAddress ?? null,
+      userAgent: input.userAgent ?? null,
+      createdAt: now,
+    });
+    const signatureId = Number(getInsertId(insertResult));
+
+    // 6. Trigger the matching state transition (best-effort — failures here
+    //    propagate to the caller so the UI can surface the validation error).
+    let transitionedStatus: { fromStatus: string; toStatus: string } | undefined;
+    const action = ROLE_AUTO_TRANSITION[input.role];
+    if (action) {
+      // Re-derive current status (may have changed since the SELECT above
+      // when concurrent requests are landing).
+      const [refreshed] = await db
+        .select({ status: tables.samples.status })
+        .from(tables.samples)
+        .where(eq(tables.samples.id, input.sampleId))
+        .limit(1);
+      const currentStatus = String(refreshed?.status ?? sample.status);
+
+      // Only trigger when the action's target is reachable from the current
+      // status. This makes the auto-transition idempotent: if the sample is
+      // already past this stage, we just skip the state-machine call.
+      const targetStatus = ACTION_TO_STATUS[action];
+      const allowed = ALLOWED_TRANSITIONS[currentStatus] ?? [];
+      if (allowed.includes(targetStatus)) {
+        const updated = await updateSampleStatus(
+          input.sampleId,
+          action,
+          input.userId,
+        );
+        transitionedStatus = {
+          fromStatus: updated.fromStatus,
+          toStatus: updated.toStatus,
+        };
+      }
+    }
+
+    return {
+      signatureId,
+      sampleId: input.sampleId,
+      role: input.role,
+      userId: input.userId,
+      signedAt: now,
+      transitionedStatus,
+    };
+  });
+}
+
+/**
+ * Lightweight list of signatures for a sample — used by the dedicated
+ * GET /api/quality/qc-samples/[id]/signatures endpoint. The full sample
+ * detail already includes signatures via getQcSampleById.
+ */
+export async function listQcSampleSignatures(
+  sampleId: number,
+): Promise<QcSampleSignatureRow[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const rows = await db
+      .select({
+        id: tables.signatures.id,
+        role: tables.signatures.role,
+        userId: tables.signatures.userId,
+        userName: tables.users.name,
+        signedAt: tables.signatures.signedAt,
+        signatureMeaning: tables.signatures.signatureMeaning,
+        notes: tables.signatures.notes,
+      })
+      .from(tables.signatures)
+      .leftJoin(tables.users, eq(tables.signatures.userId, tables.users.id))
+      .where(eq(tables.signatures.sampleId, sampleId))
+      .orderBy(asc(tables.signatures.signedAt));
+    return (rows as any[]).map((s) => ({
+      id: Number(s.id),
+      role: String(s.role),
+      userId: Number(s.userId),
+      userName: s.userName ?? null,
+      signedAt: s.signedAt,
+      signatureMeaning: s.signatureMeaning ?? null,
+      notes: s.notes ?? null,
+    }));
+  });
+}
+
+// ============================================================================
+// Phase 3 — OOS investigation (FDA 21 CFR 211.192)
+// ============================================================================
+
+export interface OosInvestigationDetail {
+  id: number;
+  sampleTestId: number;
+  sampleId: number;
+  sampleNumber: string | null;
+  initiatedBy: number;
+  initiatedByName: string | null;
+  initiatedAt: string | Date;
+  phase1LabErrorCheck: string | null;
+  phase2RootCause: string | null;
+  classification: string | null;
+  retestAuthorized: boolean;
+  closedBy: number | null;
+  closedByName: string | null;
+  closedAt: string | Date | null;
+  conclusion: string | null;
+  capaId: number | null;
+  linkedDeviation: { id: number; deviationNumber: string } | null;
+}
+
+/**
+ * Generate a deviation number `DEV-{YYYY}-{4digit}` for OOS-linked deviations.
+ * Mirrors the wo-execution.service pattern.
+ */
+async function generateDeviationNumber(database: any): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `DEV-${year}-`;
+  const deviationsTable = getTables().deviations;
+  const existing = await database
+    .select({ deviationNumber: deviationsTable.deviationNumber })
+    .from(deviationsTable)
+    .where(like(deviationsTable.deviationNumber, `${prefix}%`))
+    .orderBy(desc(deviationsTable.id))
+    .limit(1);
+  if (existing.length === 0) return `${prefix}0001`;
+  const last = String(existing[0].deviationNumber);
+  const seq = parseInt(last.replace(prefix, ''), 10);
+  const next = (Number.isFinite(seq) ? seq + 1 : 1).toString().padStart(4, '0');
+  return `${prefix}${next}`;
+}
+
+export interface CreateOosInvestigationResult {
+  oosId: number;
+  deviationId: number | null;
+  deviationNumber: string | null;
+}
+
+/**
+ * Initiate an OOS investigation per FDA 21 CFR 211.192.
+ *
+ * Side-effects:
+ *   - Marks the parent qc_samples.status = 'oos' (when transition allowed).
+ *   - When classification === 'manufacturing_error', auto-creates a Deviation
+ *     record (sourceType='qc_oos', sourceId=oosId) and links it via
+ *     qc_oos_investigations.capa_id (we reuse capa_id as the cross-reference
+ *     until a dedicated deviation_id column is added).
+ */
+export async function createOosInvestigation(
+  input: CreateOosInvestigationInput & { initiatedBy: number },
+): Promise<CreateOosInvestigationResult> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    // 1. Sample test must exist + resolve parent sample.
+    const [testRow] = await db
+      .select({
+        id: tables.tests.id,
+        sampleId: tables.tests.sampleId,
+        criteriaId: tables.tests.criteriaId,
+        resultStatus: tables.tests.resultStatus,
+      })
+      .from(tables.tests)
+      .where(eq(tables.tests.id, input.sampleTestId))
+      .limit(1);
+    if (!testRow) {
+      throw new Error(`Sample test ${input.sampleTestId} not found`);
+    }
+    const sampleId = Number(testRow.sampleId);
+
+    // 2. Insert OOS investigation row.
+    const now = getNow();
+    const insertResult = await db.insert(tables.oos).values({
+      sampleTestId: input.sampleTestId,
+      initiatedBy: input.initiatedBy,
+      initiatedAt: now,
+      phase1LabErrorCheck: input.phase1LabErrorCheck ?? null,
+      phase2RootCause: input.phase2RootCause ?? null,
+      classification: input.classification ?? null,
+      retestAuthorized: input.retestAuthorized ?? false,
+      conclusion: input.conclusion ?? null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const oosId = Number(getInsertId(insertResult));
+
+    // 3. Flag parent sample as OOS — only when the current status allows
+    //    the transition. We deliberately don't call updateSampleStatus()
+    //    because flag_oos has its own state-machine guards that aren't
+    //    relevant here; we just stamp the column directly.
+    const [sample] = await db
+      .select({ status: tables.samples.status })
+      .from(tables.samples)
+      .where(eq(tables.samples.id, sampleId))
+      .limit(1);
+    const status = String(sample?.status || '');
+    if (status && status !== 'oos' && status !== 'released' && status !== 'rejected') {
+      await db
+        .update(tables.samples)
+        .set({ status: 'oos', updatedAt: now })
+        .where(eq(tables.samples.id, sampleId));
+    }
+
+    // 4. Auto-create deviation when classification = manufacturing_error.
+    let deviationId: number | null = null;
+    let deviationNumber: string | null = null;
+    if (input.classification === 'manufacturing_error') {
+      try {
+        const deviationsTable = tables.deviations;
+        deviationNumber = await generateDeviationNumber(db);
+        const description = [
+          input.phase2RootCause || input.phase1LabErrorCheck || 'OOS — manufacturing error suspected',
+          '',
+          `Linked QC OOS investigation #${oosId}, sampleTest #${input.sampleTestId}.`,
+        ].join('\n');
+        const insRes = await db.insert(deviationsTable).values({
+          deviationNumber,
+          title: `QC OOS — sample test #${input.sampleTestId}`,
+          description,
+          type: 'OOS',
+          sourceType: 'qc_oos',
+          sourceId: oosId,
+          severity: 'major',
+          status: 'open',
+          reportedBy: input.initiatedBy,
+          reportedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+        deviationId = Number(getInsertId(insRes));
+        // 4a. Cross-link via qc_oos_investigations.capa_id (re-purposed until
+        //     a dedicated deviation_id column is added — Phase 4 schema).
+        await db
+          .update(tables.oos)
+          .set({ capaId: deviationId, updatedAt: now })
+          .where(eq(tables.oos.id, oosId));
+      } catch (err) {
+        // Don't roll back the OOS record — we still want it persisted.
+        console.error('[qc-oos] Failed to auto-create deviation:', err);
+      }
+    }
+
+    return { oosId, deviationId, deviationNumber };
+  });
+}
+
+/**
+ * Update an in-progress OOS investigation. Closed investigations are immutable.
+ */
+export async function updateOosInvestigation(
+  oosId: number,
+  updates: UpdateOosInvestigationInput,
+): Promise<{ updated: boolean }> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const [existing] = await db
+      .select({ id: tables.oos.id, closedAt: tables.oos.closedAt })
+      .from(tables.oos)
+      .where(eq(tables.oos.id, oosId))
+      .limit(1);
+    if (!existing) {
+      throw new Error(`OOS investigation ${oosId} not found`);
+    }
+    if (existing.closedAt != null) {
+      throw new Error(`OOS investigation is closed and cannot be edited`);
+    }
+    const set: Record<string, any> = { updatedAt: getNow() };
+    if (updates.phase1LabErrorCheck !== undefined) set.phase1LabErrorCheck = updates.phase1LabErrorCheck;
+    if (updates.phase2RootCause !== undefined) set.phase2RootCause = updates.phase2RootCause;
+    if (updates.classification !== undefined) set.classification = updates.classification;
+    if (updates.retestAuthorized !== undefined) set.retestAuthorized = updates.retestAuthorized;
+    if (updates.conclusion !== undefined) set.conclusion = updates.conclusion;
+    await db.update(tables.oos).set(set).where(eq(tables.oos.id, oosId));
+    return { updated: true };
+  });
+}
+
+/**
+ * Close an OOS investigation. Caller must supply a non-trivial conclusion.
+ * Retest authorization is tracked separately — closure does NOT auto-create
+ * a follow-up sample test; the operator clicks "เพิ่มการทดสอบ" with an
+ * explicit retest reason.
+ */
+export async function closeOosInvestigation(
+  oosId: number,
+  closedBy: number,
+  conclusion: string,
+): Promise<{ closed: boolean }> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const [existing] = await db
+      .select({ id: tables.oos.id, closedAt: tables.oos.closedAt })
+      .from(tables.oos)
+      .where(eq(tables.oos.id, oosId))
+      .limit(1);
+    if (!existing) {
+      throw new Error(`OOS investigation ${oosId} not found`);
+    }
+    if (existing.closedAt != null) {
+      throw new Error(`OOS investigation is already closed`);
+    }
+    const now = getNow();
+    await db
+      .update(tables.oos)
+      .set({
+        closedBy,
+        closedAt: now,
+        conclusion,
+        updatedAt: now,
+      })
+      .where(eq(tables.oos.id, oosId));
+    return { closed: true };
+  });
+}
+
+/**
+ * Full OOS investigation detail with related sample + linked deviation.
+ */
+export async function getOosInvestigation(
+  oosId: number,
+): Promise<OosInvestigationDetail | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const rows = await db
+      .select({
+        id: tables.oos.id,
+        sampleTestId: tables.oos.sampleTestId,
+        sampleId: tables.tests.sampleId,
+        sampleNumber: tables.samples.sampleNumber,
+        initiatedBy: tables.oos.initiatedBy,
+        initiatedByName: tables.users.name,
+        initiatedAt: tables.oos.initiatedAt,
+        phase1LabErrorCheck: tables.oos.phase1LabErrorCheck,
+        phase2RootCause: tables.oos.phase2RootCause,
+        classification: tables.oos.classification,
+        retestAuthorized: tables.oos.retestAuthorized,
+        closedBy: tables.oos.closedBy,
+        closedAt: tables.oos.closedAt,
+        conclusion: tables.oos.conclusion,
+        capaId: tables.oos.capaId,
+      })
+      .from(tables.oos)
+      .leftJoin(tables.tests, eq(tables.oos.sampleTestId, tables.tests.id))
+      .leftJoin(tables.samples, eq(tables.tests.sampleId, tables.samples.id))
+      .leftJoin(tables.users, eq(tables.oos.initiatedBy, tables.users.id))
+      .where(eq(tables.oos.id, oosId))
+      .limit(1);
+    if (!rows[0]) return null;
+    const r: any = rows[0];
+
+    // closedBy → user name
+    let closedByName: string | null = null;
+    if (r.closedBy != null) {
+      const [u] = await db
+        .select({ name: tables.users.name })
+        .from(tables.users)
+        .where(eq(tables.users.id, Number(r.closedBy)))
+        .limit(1);
+      closedByName = u?.name ?? null;
+    }
+
+    // Linked deviation via capa_id (re-purposed in Phase 3 — see createOosInvestigation).
+    let linkedDeviation: { id: number; deviationNumber: string } | null = null;
+    if (r.capaId != null) {
+      try {
+        const deviationsTable = tables.deviations;
+        const [d] = await db
+          .select({
+            id: deviationsTable.id,
+            deviationNumber: deviationsTable.deviationNumber,
+          })
+          .from(deviationsTable)
+          .where(eq(deviationsTable.id, Number(r.capaId)))
+          .limit(1);
+        if (d) {
+          linkedDeviation = {
+            id: Number(d.id),
+            deviationNumber: String(d.deviationNumber),
+          };
+        }
+      } catch (err) {
+        console.error('[qc-oos] Failed to fetch linked deviation:', err);
+      }
+    }
+
+    return {
+      id: Number(r.id),
+      sampleTestId: Number(r.sampleTestId),
+      sampleId: r.sampleId != null ? Number(r.sampleId) : 0,
+      sampleNumber: r.sampleNumber ?? null,
+      initiatedBy: Number(r.initiatedBy),
+      initiatedByName: r.initiatedByName ?? null,
+      initiatedAt: r.initiatedAt,
+      phase1LabErrorCheck: r.phase1LabErrorCheck ?? null,
+      phase2RootCause: r.phase2RootCause ?? null,
+      classification: r.classification ?? null,
+      retestAuthorized: Boolean(r.retestAuthorized),
+      closedBy: r.closedBy != null ? Number(r.closedBy) : null,
+      closedByName,
+      closedAt: r.closedAt ?? null,
+      conclusion: r.conclusion ?? null,
+      capaId: r.capaId != null ? Number(r.capaId) : null,
+      linkedDeviation,
+    };
+  });
+}
+
+/**
+ * List OOS investigations for a given sample (joined via sample tests).
+ */
+export async function listOosInvestigationsBySample(
+  sampleId: number,
+): Promise<OosInvestigationDetail[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    // Get all test ids for this sample first.
+    const testIdRows = await db
+      .select({ id: tables.tests.id })
+      .from(tables.tests)
+      .where(eq(tables.tests.sampleId, sampleId));
+    const testIds = (testIdRows as any[]).map((r) => Number(r.id));
+    if (testIds.length === 0) return [];
+
+    const oosRows = await db
+      .select({ id: tables.oos.id })
+      .from(tables.oos)
+      .where(inArray(tables.oos.sampleTestId, testIds))
+      .orderBy(desc(tables.oos.id));
+
+    const out: OosInvestigationDetail[] = [];
+    for (const o of oosRows as any[]) {
+      const detail = await getOosInvestigation(Number(o.id));
+      if (detail) out.push(detail);
+    }
+    return out;
+  });
+}
+
 // Re-export — internal helper exposed for downstream COA service in Phase 4.
 export { computeResultStatus, generateSampleNumber };
+// Re-export helper types so downstream consumers can satisfy strict mode.
+export type { SignatureRole, OosClassification };
