@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession, hasPermission, isAdminRole, Permission, Role } from './auth';
+import { getRolePermissionSet } from './auth/permission-resolver';
 
 // Check if running in development mode
 export function isDevelopment(): boolean {
@@ -191,10 +192,20 @@ export async function withAuth(
   if (requiredPermissions && requiredPermissions.length > 0) {
     // Administrator bypasses all permission checks
     if (!isAdminRole(session.role)) {
-      // Collect ALL missing permissions (not just the first) so the admin
-      // can grant them in a single edit, not N round-trips.
+      // Two-source authorization:
+      //   1. Static PERMISSIONS map (legacy, hardcoded in src/lib/auth/index.ts)
+      //   2. DB-backed hr_role_permissions (admin-editable via /hr/roles)
+      // A permission is granted if EITHER source allows it. This lets
+      // admins grant a new permission to a role through the UI without
+      // a code change — and keeps every existing static allow-list as
+      // the safety net so we never accidentally remove access.
+      const dbPerms = await getRolePermissionSet(session.role).catch(
+        () => new Set<string>(),
+      );
       const missing = requiredPermissions.filter(
-        (permission) => !hasPermission(session.role as Role, permission)
+        (permission) =>
+          !hasPermission(session.role as Role, permission) &&
+          !dbPerms.has(permission),
       );
 
       if (missing.length > 0) {
