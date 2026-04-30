@@ -602,6 +602,32 @@ async function resolveApprover(
 // ============================================
 
 /**
+ * Look up an approver's display name + role so error messages can name
+ * the person the operator needs to contact, rather than the generic
+ * "you are not authorized". Returns "name (role)" — falls back to
+ * "user #id" if the row can't be resolved.
+ */
+async function resolveApproverDisplayName(
+  db: any,
+  _tables: ReturnType<typeof getTables>,
+  userId: number | null | undefined,
+): Promise<string> {
+  if (!userId) return 'ผู้อนุมัติที่ระบุไว้';
+  try {
+    const usersTable = getTableRef('users');
+    const [u] = await db
+      .select({ name: usersTable.name, email: usersTable.email, role: usersTable.role })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    if (!u) return `user #${userId}`;
+    const display = u.name || u.email || `user #${userId}`;
+    return u.role ? `${display} (${u.role})` : display;
+  } catch {
+    return `user #${userId}`;
+  }
+}
+
+/**
  * Approve a request step
  */
 export async function approveRequest(
@@ -657,7 +683,13 @@ export async function approveRequest(
         // Check if approverId is a valid delegate
         const isDelegate = await checkDelegation(delegatedStep.assignedTo, approverId, request.documentType);
         if (!isDelegate) {
-          throw new Error('NOT_AUTHORIZED: You are not authorized to approve this request');
+          // Tell the operator WHO can actually approve so they aren't left
+          // guessing — the GMP rule still stands (only assigned approver),
+          // but the UX shouldn't be a dead end.
+          const assigneeInfo = await resolveApproverDisplayName(db, tables, delegatedStep.assignedTo);
+          throw new Error(
+            `NOT_AUTHORIZED: ขั้นตอนนี้ต้องอนุมัติโดย ${assigneeInfo} (หรือผู้ที่ได้รับมอบหมาย) — กรุณาติดต่อผู้รับผิดชอบ`,
+          );
         }
         // Update with delegation info
         await db
@@ -671,7 +703,23 @@ export async function approveRequest(
           })
           .where(eq(tables.requestSteps.id, delegatedStep.id));
       } else {
-        throw new Error('NOT_AUTHORIZED: You are not authorized to approve this request');
+        // No pending step at all for this step order — surface the assignee
+        // by looking up any step at the current order (status not filtered).
+        const [anyStep] = await db
+          .select({ assignedTo: tables.requestSteps.assignedTo })
+          .from(tables.requestSteps)
+          .where(
+            and(
+              eq(tables.requestSteps.requestId, requestId),
+              eq(tables.requestSteps.stepOrder, request.currentStepOrder),
+            ),
+          );
+        const assigneeInfo = anyStep
+          ? await resolveApproverDisplayName(db, tables, anyStep.assignedTo)
+          : 'ผู้อนุมัติที่ระบุไว้';
+        throw new Error(
+          `NOT_AUTHORIZED: ขั้นตอนนี้ต้องอนุมัติโดย ${assigneeInfo} — กรุณาติดต่อผู้รับผิดชอบ`,
+        );
       }
     } else {
       // Mark current step as approved
