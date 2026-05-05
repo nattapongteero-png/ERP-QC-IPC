@@ -166,12 +166,18 @@ export function MaterialReturnDialog({
   // we don't carry over stale state from a previous return.
   useEffect(() => {
     if (!visible || !material) return;
-    const issued = material.weighedQty ?? material.plannedQty ?? 0;
     const planned = material.plannedQty ?? 0;
-    // Default "used" = planned (operator-perceived consumption); "return"
-    // = whatever they over-issued (issued - planned, clamped >= 0). That
-    // gives the operator a sensible starting point they only need to confirm.
-    const defaultUsed = Math.min(planned, issued);
+    const weighed = material.weighedQty ?? 0;
+    // Issued = what was pulled from the lot. Assume the operator drew at
+    // least the larger of (planned, weighed):
+    //   - over-weigh case (weighed > planned): they pulled `weighed`
+    //   - under-weigh case (weighed < planned): they likely pulled `planned`
+    //     and only put `weighed` into the batch — leaving `planned - weighed`
+    //     to return.
+    const issued = Math.max(weighed, planned);
+    // Used = what went into the batch (capped at planned so over-weighing
+    // doesn't pre-fill out-of-recipe consumption).
+    const defaultUsed = Math.min(weighed, planned);
     const defaultReturn = Math.max(0, issued - defaultUsed);
     setForm({
       issuedQty: issued,
