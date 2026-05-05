@@ -36,6 +36,7 @@
   "quality": {
     "qcEntry": "บันทึก QC",
     "coa": "ใบรับรองคุณภาพ",
+    "coaTemplates": "เทมเพลต COA",
     "testPanels": "Test Panels",
     "tests": "การทดสอบ",
     "specs": "ข้อกำหนด",

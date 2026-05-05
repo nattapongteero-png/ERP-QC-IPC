@@ -118,6 +118,7 @@ const navigation: NavItem[] = [
     children: [
       { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
       { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
+      { name: 'COA Templates', href: '/quality/coa/templates', icon: Layers },
       { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       { name: 'Specifications', href: '/quality/specs', icon: FileText },

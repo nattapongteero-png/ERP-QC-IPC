@@ -54,6 +54,8 @@ export interface DxSelectBoxProps<T = string> {
   searchEnabled?: boolean;
   /** Search expression (field to search in) */
   searchExpr?: string | string[];
+  /** Allow users to type values not in the items list (custom entry) */
+  acceptCustomValue?: boolean;
   /** Show clear button */
   showClearButton?: boolean;
   /** Width */
@@ -120,6 +122,7 @@ export function DxSelectBox<T = string>({
   requiredMessage = 'กรุณาเลือกข้อมูล',
   searchEnabled = false,
   searchExpr,
+  acceptCustomValue = false,
   showClearButton = false,
   width,
   height,
@@ -171,6 +174,7 @@ export function DxSelectBox<T = string>({
       readOnly={readOnly}
       searchEnabled={searchEnabled}
       searchExpr={searchExpr || (typeof displayExpr === 'string' ? displayExpr : undefined)}
+      acceptCustomValue={acceptCustomValue}
       showClearButton={showClearButton}
       width={width}
       height={height}

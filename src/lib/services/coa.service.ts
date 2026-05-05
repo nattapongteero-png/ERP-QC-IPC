@@ -1477,3 +1477,87 @@ export async function getIssuedCoaForPublicPdf(
     return getCoaById(Number(row.id));
   });
 }
+
+// ----------------------------------------------------------------------------
+// Phase 5 — Set default template (atomic)
+// ----------------------------------------------------------------------------
+
+/**
+ * Atomically mark `templateId` as the default template for its product
+ * category. Unsets `is_default` on every other template that shares the
+ * same category (or is global, when category is null).
+ *
+ * Throws if the template doesn't exist or is inactive.
+ */
+export async function setDefaultCoaTemplate(
+  templateId: number,
+): Promise<{ id: number; productCategory: string | null }> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const [tpl] = await db
+      .select({
+        id: tables.templates.id,
+        productCategory: tables.templates.productCategory,
+        isActive: tables.templates.isActive,
+      })
+      .from(tables.templates)
+      .where(eq(tables.templates.id, templateId))
+      .limit(1);
+    if (!tpl) throw new Error(`Template ${templateId} not found`);
+    if (!tpl.isActive) {
+      throw new Error(`Template ${templateId} is inactive — cannot set as default`);
+    }
+
+    const now = getNow();
+    const cat = tpl.productCategory as string | null;
+    if (cat) {
+      await db
+        .update(tables.templates)
+        .set({ isDefault: false, updatedAt: now })
+        .where(
+          and(
+            eq(tables.templates.productCategory, cat),
+            eq(tables.templates.isDefault, true),
+          ),
+        );
+    } else {
+      await db
+        .update(tables.templates)
+        .set({ isDefault: false, updatedAt: now })
+        .where(
+          and(
+            sql`${tables.templates.productCategory} IS NULL`,
+            eq(tables.templates.isDefault, true),
+          ),
+        );
+    }
+    await db
+      .update(tables.templates)
+      .set({ isDefault: true, updatedAt: now })
+      .where(eq(tables.templates.id, templateId));
+    return { id: templateId, productCategory: cat ?? null };
+  });
+}
+
+// ----------------------------------------------------------------------------
+// Phase 5 — Distinct product categories (powering template productCategory SelectBox)
+// ----------------------------------------------------------------------------
+
+/**
+ * List all distinct product categories from the items master so the COA
+ * template editor can offer them as a picker. Returns sorted, deduplicated,
+ * non-null values (free-text strings, not enum).
+ */
+export async function listProductCategories(): Promise<string[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const rows = await db
+      .selectDistinct({ category: tables.items.category })
+      .from(tables.items)
+      .orderBy(asc(tables.items.category));
+    const out = (rows as any[])
+      .map((r) => (r.category != null ? String(r.category).trim() : ''))
+      .filter((s) => s.length > 0);
+    return Array.from(new Set(out));
+  });
+}

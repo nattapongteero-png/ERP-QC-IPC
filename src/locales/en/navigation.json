@@ -36,6 +36,7 @@
   "quality": {
     "qcEntry": "QC Entry",
     "coa": "Certificate of Analysis",
+    "coaTemplates": "COA Templates",
     "testPanels": "Test Panels",
     "tests": "Tests",
     "specs": "Specifications",
