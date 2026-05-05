@@ -664,23 +664,15 @@ export default function MaterialWeighingPage() {
                       </div>
                     </div>
                     <div className="flex flex-col sm:items-end items-stretch gap-1 sm:flex-shrink-0">
-                      {/* "คืนของเหลือ" button — shown for any row that has
-                          weighedAt set AND there is operator-perceived excess
-                          (issued/weighed > planned, i.e. operator took out more
-                          than the recipe needed and has some left over). The
-                          button stays visible after a return is submitted so
-                          the operator can return more (if multiple bags) — the
-                          server enforces per-line caps. */}
-                      {material.weighedAt && material.lotId && (() => {
+                      {/* "คืนของเหลือ" button — visible whenever the row has
+                          been weighed AND a source lot is recorded. The dialog
+                          lets the operator declare issued/used/return separately
+                          (issued may exceed weighed if the operator pulled a
+                          larger bag than was put into the batch). Server
+                          enforces per-line caps via materialReturnLineInputSchema. */}
+                      {material.weighedAt && material.lotId && (material.weighedQty ?? 0) > 0 && (() => {
                         const issued = material.weighedQty ?? 0;
                         const planned = material.plannedQty ?? 0;
-                        const excess = issued - planned;
-                        // Subtract any already-returned qty so we don't show
-                        // the button when the entire excess is already returned.
-                        const ret = getReturnSummary(material);
-                        const alreadyReturned = ret?.totalQty ?? 0;
-                        const remainingExcess = excess - alreadyReturned;
-                        if (remainingExcess <= 0.0001) return null;
                         return (
                           <DxButton
                             text="คืนของเหลือ"
