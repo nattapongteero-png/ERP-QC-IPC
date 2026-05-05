@@ -12,7 +12,6 @@
  */
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -337,7 +336,7 @@ export default function TestPanelsAdminPage() {
   ];
 
   return (
-    <MainLayout>
+    <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
           title="Test Panels"
@@ -502,6 +501,6 @@ export default function TestPanelsAdminPage() {
           </div>
         </div>
       </DxPopup>
-    </MainLayout>
+    </>
   );
 }

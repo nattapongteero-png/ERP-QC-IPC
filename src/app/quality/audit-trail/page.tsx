@@ -13,7 +13,6 @@
  */
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -280,7 +279,7 @@ export default function AuditTrailPage() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
           title="Audit Trail"
@@ -512,7 +511,7 @@ export default function AuditTrailPage() {
           )}
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }
 

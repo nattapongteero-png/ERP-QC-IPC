@@ -12,7 +12,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
@@ -171,7 +170,7 @@ export default function QcEntryNewPage() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-4xl">
         <ResponsivePageHeader
           title="ลงทะเบียนตัวอย่าง QC"
@@ -368,6 +367,6 @@ export default function QcEntryNewPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }

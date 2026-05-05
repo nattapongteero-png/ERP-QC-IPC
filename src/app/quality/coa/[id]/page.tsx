@@ -11,7 +11,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -183,17 +182,17 @@ export default function CoaDetailPage() {
 
   if (loading) {
     return (
-      <MainLayout>
+      <>
         <div className="flex items-center justify-center min-h-[40vh]">
           <DxLoadIndicator visible />
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   if (error || !coa) {
     return (
-      <MainLayout>
+      <>
         <div className="p-6">
           <ResponsivePageHeader
             title="COA Not Found"
@@ -210,7 +209,7 @@ export default function CoaDetailPage() {
             />
           </div>
         </div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -223,7 +222,7 @@ export default function CoaDetailPage() {
   const canDownloadOfficial = coa.status === 'issued';
 
   return (
-    <MainLayout>
+    <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
           title={`COA ${coa.coaNumber}`}
@@ -569,7 +568,7 @@ export default function CoaDetailPage() {
           </div>
         </div>
       </DxPopup>
-    </MainLayout>
+    </>
   );
 }
 

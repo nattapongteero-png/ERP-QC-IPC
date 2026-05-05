@@ -21,7 +21,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -721,17 +720,17 @@ export default function QcSampleDetailPage() {
 
   if (loading) {
     return (
-      <MainLayout>
+      <>
         <div className="flex items-center justify-center h-64">
           <DxLoadIndicator />
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   if (error || !detail) {
     return (
-      <MainLayout>
+      <>
         <div className="flex flex-col gap-5 p-4 md:p-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
@@ -749,7 +748,7 @@ export default function QcSampleDetailPage() {
             />
           </div>
         </div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -800,7 +799,7 @@ export default function QcSampleDetailPage() {
   );
 
   return (
-    <MainLayout>
+    <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full print:p-0">
         <div className="print:hidden">
           <ResponsivePageHeader
@@ -1808,6 +1807,6 @@ export default function QcSampleDetailPage() {
           </div>
         </div>
       </DxPopup>
-    </MainLayout>
+    </>
   );
 }

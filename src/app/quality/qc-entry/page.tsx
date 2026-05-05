@@ -11,7 +11,6 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -278,7 +277,7 @@ export default function QcEntryListPage() {
   ];
 
   return (
-    <MainLayout>
+    <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
           title="QC Entry"
@@ -420,6 +419,6 @@ export default function QcEntryListPage() {
           )}
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }
