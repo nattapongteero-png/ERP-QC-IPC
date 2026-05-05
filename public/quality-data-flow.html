@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quality Module — Data Flow & Setup Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --teal-50:#f0fdfa;--teal-100:#ccfbf1;--teal-200:#99f6e4;--teal-400:#2dd4bf;
+      --teal-500:#14b8a6;--teal-600:#0d9488;--teal-700:#0f766e;--teal-800:#115e59;
+      --emerald-500:#10b981;--emerald-600:#059669;--emerald-700:#047857;
+      --amber-100:#fef3c7;--amber-500:#f59e0b;--amber-700:#b45309;
+      --rose-100:#ffe4e6;--rose-500:#f43f5e;--rose-700:#be123c;
+      --indigo-100:#e0e7ff;--indigo-500:#6366f1;--indigo-700:#4338ca;
+      --ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+      --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+      --ink-800:#1e293b;--ink-900:#0f172a;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.05);
+      --shadow-md:0 2px 8px rgba(15,23,42,.06);
+      --shadow-lg:0 6px 20px rgba(15,23,42,.08);
+    }
+    html,body{font-family:'Sarabun',sans-serif;background:var(--ink-50);color:var(--ink-800);line-height:1.6;}
+    body{padding:24px 16px 80px;}
+    .container{max-width:1280px;margin:0 auto;}
+
+    /* Header */
+    .header{background:linear-gradient(135deg,var(--teal-700),var(--emerald-700));color:white;padding:32px 40px;border-radius:16px;margin-bottom:24px;box-shadow:var(--shadow-lg);}
+    .header h1{font-size:28px;font-weight:700;margin-bottom:8px;}
+    .header p{font-size:15px;opacity:.95;}
+    .header .meta{display:flex;gap:24px;margin-top:16px;font-size:13px;opacity:.85;}
+
+    /* Tenant selector */
+    .tenant-bar{background:white;padding:16px 24px;border-radius:12px;margin-bottom:24px;box-shadow:var(--shadow-sm);border:1px solid var(--ink-200);display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .tenant-bar label{font-weight:600;color:var(--ink-700);font-size:14px;}
+    .tenant-bar select{padding:8px 14px;border:1px solid var(--ink-300);border-radius:8px;font-family:inherit;font-size:14px;background:white;cursor:pointer;flex:1;min-width:200px;}
+    .tenant-bar select:focus{outline:2px solid var(--teal-500);outline-offset:1px;}
+    .tenant-bar .tip{font-size:12px;color:var(--ink-500);}
+
+    /* Section */
+    .section{background:white;border-radius:16px;padding:32px;margin-bottom:24px;box-shadow:var(--shadow-sm);border:1px solid var(--ink-200);}
+    .section h2{font-size:22px;font-weight:700;color:var(--ink-900);margin-bottom:8px;display:flex;align-items:center;gap:12px;}
+    .section h2 .num{background:var(--teal-600);color:white;width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;}
+    .section .lead{color:var(--ink-600);margin-bottom:24px;font-size:14px;}
+
+    /* Flow chain */
+    .flow{display:flex;flex-direction:column;gap:12px;}
+    .flow-step{display:grid;grid-template-columns:48px 1fr;gap:16px;align-items:start;}
+    .flow-num{background:var(--ink-100);color:var(--ink-700);font-weight:700;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+    .flow-step.master .flow-num{background:var(--teal-100);color:var(--teal-800);}
+    .flow-step.tx .flow-num{background:var(--amber-100);color:var(--amber-700);}
+    .flow-step.signoff .flow-num{background:var(--rose-100);color:var(--rose-700);}
+    .flow-step.output .flow-num{background:var(--indigo-100);color:var(--indigo-700);}
+
+    .flow-card{background:white;border:1px solid var(--ink-200);border-radius:12px;padding:18px 20px;transition:all .15s;text-decoration:none;color:inherit;display:block;}
+    .flow-card:hover{border-color:var(--teal-500);box-shadow:var(--shadow-md);transform:translateY(-1px);}
+    .flow-card .title{font-weight:600;font-size:16px;color:var(--ink-900);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .flow-card .title .arrow{color:var(--teal-600);font-size:16px;opacity:0;transition:opacity .15s;}
+    .flow-card:hover .title .arrow{opacity:1;}
+    .flow-card .url{font-family:monospace;font-size:12px;color:var(--teal-700);background:var(--teal-50);padding:2px 8px;border-radius:4px;display:inline-block;margin:4px 0 8px;}
+    .flow-card .desc{font-size:13px;color:var(--ink-600);}
+    .flow-card .meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+    .badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;}
+    .badge.master{background:var(--teal-100);color:var(--teal-800);}
+    .badge.tx{background:var(--amber-100);color:var(--amber-700);}
+    .badge.signoff{background:var(--rose-100);color:var(--rose-700);}
+    .badge.output{background:var(--indigo-100);color:var(--indigo-700);}
+    .badge.table{background:var(--ink-100);color:var(--ink-700);font-family:monospace;}
+    .badge.cfr{background:#fee2e2;color:#991b1b;}
+
+    /* Arrow between steps */
+    .flow-arrow{margin-left:24px;color:var(--ink-400);font-size:18px;line-height:1;}
+
+    /* Two-column foundation */
+    .foundation{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:16px;}
+    .foundation-card{background:var(--ink-50);border:1px dashed var(--ink-300);border-radius:10px;padding:14px 16px;text-decoration:none;color:inherit;transition:all .15s;}
+    .foundation-card:hover{border-color:var(--teal-500);background:white;}
+    .foundation-card .title{font-weight:600;color:var(--ink-800);font-size:14px;margin-bottom:2px;}
+    .foundation-card .url{font-family:monospace;font-size:11px;color:var(--ink-500);}
+
+    /* Workflow state machine */
+    .states{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:16px;background:var(--ink-50);border-radius:10px;margin:12px 0;}
+    .state{padding:6px 12px;background:white;border:1px solid var(--ink-300);border-radius:6px;font-size:13px;font-weight:500;color:var(--ink-700);}
+    .state.start{background:var(--ink-100);}
+    .state.review{background:var(--amber-100);color:var(--amber-700);border-color:var(--amber-500);}
+    .state.approved{background:var(--teal-100);color:var(--teal-800);border-color:var(--teal-500);}
+    .state.released{background:#dcfce7;color:#166534;border-color:var(--emerald-500);}
+    .state.terminal{background:var(--rose-100);color:var(--rose-700);border-color:var(--rose-500);}
+    .state.special{background:var(--indigo-100);color:var(--indigo-700);border-color:var(--indigo-500);}
+    .state-arrow{color:var(--ink-400);font-size:14px;}
+
+    /* Note callout */
+    .note{padding:12px 16px;border-radius:8px;font-size:13px;margin:12px 0;border-left:3px solid;}
+    .note.info{background:#eff6ff;border-color:#3b82f6;color:#1e3a8a;}
+    .note.warn{background:#fffbeb;border-color:var(--amber-500);color:var(--amber-700);}
+
+    /* TOC */
+    .toc{background:white;padding:20px 24px;border-radius:12px;margin-bottom:24px;border:1px solid var(--ink-200);}
+    .toc h3{font-size:14px;color:var(--ink-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;}
+    .toc ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;}
+    .toc a{color:var(--teal-700);text-decoration:none;font-size:14px;padding:6px 12px;border-radius:6px;display:block;transition:background .15s;}
+    .toc a:hover{background:var(--teal-50);}
+
+    /* Footer */
+    footer{text-align:center;color:var(--ink-500);font-size:12px;margin-top:40px;padding:24px;}
+
+    /* Responsive */
+    @media (max-width:640px){
+      .header{padding:24px 20px;}
+      .header h1{font-size:22px;}
+      .section{padding:20px;}
+      .flow-step{grid-template-columns:36px 1fr;gap:10px;}
+      .flow-num{width:36px;height:36px;font-size:14px;}
+      .toc ul{grid-template-columns:1fr;}
+    }
+
+    /* Print */
+    @media print{
+      body{background:white;}
+      .tenant-bar{display:none;}
+      .section{page-break-inside:avoid;box-shadow:none;border:1px solid var(--ink-300);}
+      .flow-card{box-shadow:none !important;transform:none !important;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="header">
+      <h1>📋 Quality Module — Data Flow &amp; Setup Guide</h1>
+      <p>กระบวนการบันทึกข้อมูล + การตั้งค่า Master Data ของโมดูล <code>/quality</code></p>
+      <div class="meta">
+        <span>🟢 Master data (ตั้งครั้งเดียว)</span>
+        <span>🟡 Transactional (ทำทุกครั้ง)</span>
+        <span>🔴 Sign-off (21 CFR Part 11 immutable)</span>
+        <span>🟣 Output document</span>
+      </div>
+    </header>
+
+    <div class="tenant-bar">
+      <label for="tenantSel">เลือก tenant สำหรับเปิด link:</label>
+      <select id="tenantSel" onchange="updateLinks(this.value)">
+        <option value="https://herbal-erp-dev.bmscloud.in.th">🛠️ Dev — herbal-erp-dev (port 33021)</option>
+        <option value="https://herbal-erp.bmscloud.in.th">🏢 Main — herbal-erp (port 33020)</option>
+        <option value="https://herbal-erp-arjaro.bmscloud.in.th">🏭 Arjaro (port 33022)</option>
+        <option value="https://herbal-erp-more.bmscloud.in.th">🏭 More (port 33024)</option>
+        <option value="https://herbal-erp-metaherb.bmscloud.in.th">🏭 Metaherb (port 33025)</option>
+        <option value="https://herbal-erp-renunakhon.bmscloud.in.th">🏭 Renunakhon (port 33026)</option>
+        <option value="https://herbal-erp-phonphisai.bmscloud.in.th">🏭 Phonphisai (port 33027)</option>
+        <option value="https://herbal-erp-huaikoeng.bmscloud.in.th">🏭 Huaikoeng (port 33028)</option>
+      </select>
+      <span class="tip">เลือกแล้วทุก link ในหน้านี้จะเปิดที่ tenant นี้</span>
+    </div>
+
+    <nav class="toc">
+      <h3>📑 สารบัญ</h3>
+      <ul>
+        <li><a href="#part1">Part 1 — Master Data Setup (ตั้งค่าครั้งแรก)</a></li>
+        <li><a href="#part2">Part 2 — Daily Data Entry Flow</a></li>
+        <li><a href="#part3">Part 3 — State Machines (สถานะของแต่ละ entity)</a></li>
+        <li><a href="#part4">Part 4 — สรุปทุกหน้า + ตาราง DB</a></li>
+        <li><a href="#part5">Part 5 — Production ↔ Quality Integration</a></li>
+      </ul>
+    </nav>
+
+    <!-- ========== PART 1: MASTER DATA SETUP ========== -->
+    <section class="section" id="part1">
+      <h2><span class="num">1</span>Master Data Setup (ทำครั้งแรก/ก่อนใช้ระบบ)</h2>
+      <p class="lead">
+        ก่อนใช้งาน QC Entry ต้องตั้งค่า master data ตามลำดับด้านล่าง — ทำให้ครบทุกขั้นถึงจะกรอกผลทดสอบ + ออก COA ได้
+      </p>
+
+      <h3 style="font-size:16px;color:var(--ink-700);margin:8px 0 12px;">🏗️ Foundation (data รากฐานก่อน Quality master)</h3>
+      <div class="foundation">
+        <a class="foundation-card" href="/inventory/items" data-path="/inventory/items">
+          <div class="title">📦 Items / Products</div>
+          <div class="url">/inventory/items</div>
+          <div style="font-size:12px;color:var(--ink-500);margin-top:4px;">เพิ่มสินค้าทั้งหมด พร้อมกำหนด <strong>category</strong> (ใช้ link COA template)</div>
+        </a>
+        <a class="foundation-card" href="/sales/customers" data-path="/sales/customers">
+          <div class="title">👤 Customers</div>
+          <div class="url">/sales/customers (Sales module)</div>
+          <div style="font-size:12px;color:var(--ink-500);margin-top:4px;">ลูกค้า — ใช้กับ outgoing-shipment QC + COA email</div>
+        </a>
+        <a class="foundation-card" href="/hr/users" data-path="/hr/users">
+          <div class="title">👥 Users + Roles</div>
+          <div class="url">/hr/users</div>
+          <div style="font-size:12px;color:var(--ink-500);margin-top:4px;">ผู้ใช้ — analyst / reviewer / qa_release ใช้ลงนาม</div>
+        </a>
+      </div>
+
+      <div class="note info">
+        <strong>💡 ลำดับ:</strong> Foundation 3 ตัวข้างบนต้องครบก่อน — ถ้าไม่มี product ใน Items ก็ลงทะเบียน sample ไม่ได้, ไม่มี user ก็เซ็นไม่ได้
+      </div>
+
+      <h3 style="font-size:16px;color:var(--ink-700);margin:24px 0 12px;">🧪 Quality Master Data (ลำดับ 1 → 5)</h3>
+
+      <div class="flow">
+
+        <div class="flow-step master">
+          <div class="flow-num">1</div>
+          <a class="flow-card" href="/quality/test-catalog" data-path="/quality/test-catalog">
+            <div class="title">Test Catalog — แคตตาล็อก test method <span class="arrow">→</span></div>
+            <div class="url">/quality/test-catalog</div>
+            <div class="desc">กำหนด test method มาตรฐาน เช่น "Curcumin assay (HPLC)", "Moisture (KF)", "Microbiology TPC" — มี name / method / unit / normal range / USP-Ph.Eur reference</div>
+            <div class="meta">
+              <span class="badge master">Master</span>
+              <span class="badge table">qc_test_catalog</span>
+            </div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step master">
+          <div class="flow-num">2</div>
+          <a class="flow-card" href="/quality/specs" data-path="/quality/specs">
+            <div class="title">Specifications — ข้อกำหนดต่อสินค้า <span class="arrow">→</span></div>
+            <div class="url">/quality/specs</div>
+            <div class="desc">ระบุ spec range ต่อสินค้า — parameter, min-max หรือ target±%, unit, USP/Ph.Eur ref. 1 สินค้าได้หลาย specs</div>
+            <div class="meta">
+              <span class="badge master">Master</span>
+              <span class="badge table">quality_specs</span>
+            </div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step master">
+          <div class="flow-num">3</div>
+          <a class="flow-card" href="/quality/test-panels" data-path="/quality/test-panels">
+            <div class="title">Test Panels — ชุด test ต่อสินค้า/หมวด <span class="arrow">→</span></div>
+            <div class="url">/quality/test-panels</div>
+            <div class="desc">ผูก test methods → category หรือ product เฉพาะ (เช่น "Capsule QC standard" = Curcumin assay + Moisture + TPC) มี sequence + isRequired</div>
+            <div class="meta">
+              <span class="badge master">Master</span>
+              <span class="badge table">qc_test_panels</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:6px;">📌 ตอน register sample จะ "Apply Panel" → copy panel rows มาเป็น tests เริ่มต้น</div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step master">
+          <div class="flow-num">4</div>
+          <a class="flow-card" href="/quality/coa/templates" data-path="/quality/coa/templates">
+            <div class="title">COA Templates — เทมเพลตใบรับรอง <span class="arrow">→</span></div>
+            <div class="url">/quality/coa/templates</div>
+            <div class="desc">ออกแบบ layout COA ต่อหมวดสินค้า — header/footer text, language (TH/EN/Bilingual), signatory roles, layout flags (Storage/Expiry/Retest/QR)</div>
+            <div class="meta">
+              <span class="badge master">Master</span>
+              <span class="badge table">coa_templates</span>
+              <span class="badge cfr">Phase 5 (วันนี้)</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:6px;">📌 1 category = 1 default template — toggle ใหม่ → default เก่า unset อัตโนมัติ</div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step output">
+          <div class="flow-num">✓</div>
+          <div class="flow-card" style="background:var(--teal-50);border-color:var(--teal-500);">
+            <div class="title" style="color:var(--teal-800);">ระบบพร้อมใช้งาน — เริ่ม register sample ได้เลย</div>
+            <div class="desc">เมื่อ master data ครบ 4 ขั้นข้างบน + foundation (Items/Customers/Users) ระบบพร้อมทำ Daily QC Workflow ใน Part 2</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== PART 2: DATA ENTRY FLOW ========== -->
+    <section class="section" id="part2">
+      <h2><span class="num">2</span>Daily Data Entry Flow (ใช้ทุกครั้งที่มีตัวอย่าง)</h2>
+      <p class="lead">
+        ลำดับการบันทึกตั้งแต่ลงทะเบียนตัวอย่าง → ทดสอบ → ลงนาม → ปล่อย → ออก COA → ส่งลูกค้า
+      </p>
+
+      <div class="flow">
+
+        <div class="flow-step tx">
+          <div class="flow-num">1</div>
+          <a class="flow-card" href="/quality/qc-entry/new" data-path="/quality/qc-entry/new">
+            <div class="title">Register Sample — ลงทะเบียนตัวอย่างใหม่ <span class="arrow">→</span></div>
+            <div class="url">/quality/qc-entry/new</div>
+            <div class="desc">กรอก source (raw_material / wo_batch / customer_return / outgoing_shipment / ...), product, lot#, MFG/EXP/Retest dates, quantity, customer (ถ้า outgoing) → ระบบสร้างเลข <code>QC-YYYY-####</code></div>
+            <div class="meta">
+              <span class="badge tx">Transactional</span>
+              <span class="badge table">qc_samples</span>
+              <span class="badge table">qc_sample_tests (seeded จาก panel)</span>
+            </div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">2</div>
+          <a class="flow-card" href="/quality/qc-entry" data-path="/quality/qc-entry">
+            <div class="title">Apply Test Panel — เพิ่ม tests จาก panel <span class="arrow">→</span></div>
+            <div class="url">/quality/qc-entry/[id]</div>
+            <div class="desc">บนหน้า detail กดปุ่ม "Apply Panel" → ระบบ copy tests จาก qc_test_panels ของสินค้านั้นมาเป็น initial state (ทำซ้ำได้ ผลรวมกัน)</div>
+            <div class="meta">
+              <span class="badge tx">Transactional</span>
+              <span class="badge table">qc_sample_tests</span>
+            </div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">3</div>
+          <a class="flow-card" href="/quality/qc-entry" data-path="/quality/qc-entry">
+            <div class="title">Record Results — บันทึกผลทดสอบ <span class="arrow">→</span></div>
+            <div class="url">/quality/qc-entry/[id]</div>
+            <div class="desc">analyst กรอก result value + unit + conclusion (pass/fail) ต่อแต่ละ test → ถ้า fail ระบบ auto สร้าง deviation</div>
+            <div class="meta">
+              <span class="badge tx">Transactional</span>
+              <span class="badge table">qc_sample_tests.result</span>
+              <span class="badge table">deviations (auto)</span>
+            </div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">4</div>
+          <a class="flow-card" href="/quality/qc-entry" data-path="/quality/qc-entry">
+            <div class="title">Submit for Review — ส่งทบทวน <span class="arrow">→</span></div>
+            <div class="url">/quality/qc-entry/[id]</div>
+            <div class="desc">กดปุ่ม "Submit for Review" → status เปลี่ยน <code>in_test → under_review</code></div>
+            <div class="meta">
+              <span class="badge tx">State transition</span>
+            </div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step signoff">
+          <div class="flow-num">5</div>
+          <a class="flow-card" href="/quality/qc-entry" data-path="/quality/qc-entry">
+            <div class="title">Sign-off (21 CFR Part 11) — ลงนาม 3 ชั้น <span class="arrow">→</span></div>
+            <div class="url">/quality/qc-entry/[id]</div>
+            <div class="desc">
+              <strong>analyst</strong> (ลงนาม Phase 1) → <strong>reviewer</strong> (กด "Approve" → status=approved) → <strong>qa_release</strong> (กด "Release" → status=released)
+            </div>
+            <div class="meta">
+              <span class="badge signoff">Sign-off</span>
+              <span class="badge cfr">21 CFR Part 11</span>
+              <span class="badge table">qc_signatures (immutable)</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:6px;">⚠️ Signatures ลบไม่ได้ — เป็น compliance requirement</div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step output">
+          <div class="flow-num">6</div>
+          <a class="flow-card" href="/quality/qc-entry" data-path="/quality/qc-entry">
+            <div class="title">Generate COA — สร้างใบรับรอง (Phase 4+6) <span class="arrow">→</span></div>
+            <div class="url">/quality/qc-entry/[id] → ปุ่ม "Generate COA"</div>
+            <div class="desc">ตอน sample = released กดปุ่ม Generate COA → ระบบ auto pick template ตาม category (default), copy test results เป็น snapshot, ออกเลข COA</div>
+            <div class="meta">
+              <span class="badge output">Output document</span>
+              <span class="badge table">coa_documents</span>
+              <span class="badge table">coa_test_results (snapshot)</span>
+            </div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step output">
+          <div class="flow-num">7</div>
+          <a class="flow-card" href="/quality/coa" data-path="/quality/coa">
+            <div class="title">COA Review → Approve → Issue <span class="arrow">→</span></div>
+            <div class="url">/quality/coa/[id]</div>
+            <div class="desc">2-tier signature (reviewer + approver) → กด Issue → status=issued → COA ทางการพร้อมส่งลูกค้า</div>
+            <div class="meta">
+              <span class="badge signoff">Sign-off (2-tier)</span>
+              <span class="badge table">coa_signatures (immutable)</span>
+            </div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step output">
+          <div class="flow-num">8</div>
+          <a class="flow-card" href="/quality/coa" data-path="/quality/coa">
+            <div class="title">Download Official PDF + ส่งลูกค้า <span class="arrow">→</span></div>
+            <div class="url">/quality/coa/[id]</div>
+            <div class="desc">กดปุ่ม "ดาวน์โหลด PDF ทางการ" → render Puppeteer → PDF ไม่มี watermark, มี QR + verify URL ฝัง — ส่งให้ลูกค้าผ่าน Outlook/Gmail manual (Phase 8 ในอนาคตจะกดส่งใน-ระบบได้)</div>
+            <div class="meta">
+              <span class="badge output">PDF + QR</span>
+              <span class="badge table">coa_print_history (paper trail)</span>
+            </div>
+          </a>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-step output">
+          <div class="flow-num">9</div>
+          <a class="flow-card" href="/coa/verify" data-path="/coa/verify">
+            <div class="title">Public Verify Portal — ลูกค้าเช็คออนไลน์ (Phase 7) <span class="arrow">→</span></div>
+            <div class="url">/coa/verify/[token] (public — ลูกค้าเข้าจาก QR ใน PDF)</div>
+            <div class="desc">ลูกค้าสแกน QR ใน PDF → เข้าหน้า verify online ดูข้อมูล COA realtime ไม่ต้อง login (ระบบ log การเปิดดูใน coa_print_history)</div>
+            <div class="meta">
+              <span class="badge output">Public read-only</span>
+            </div>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="note warn" style="margin-top:24px;">
+        <strong>🚧 Phase 8 (กำลังพัฒนา):</strong> ปุ่ม "Send Email" + ผูก COA ↔ Sales Order ใน-ระบบ — ตอนนี้ workflow ยังต้องส่ง email manual ผ่าน Outlook/Gmail
+      </div>
+    </section>
+
+    <!-- ========== PART 3: STATE MACHINES ========== -->
+    <section class="section" id="part3">
+      <h2><span class="num">3</span>State Machines — สถานะของแต่ละ entity</h2>
+      <p class="lead">เข้าใจสถานะของ qc_samples และ coa_documents ก่อนจะกรอกข้อมูลได้ไม่ผิด</p>
+
+      <h3 style="font-size:15px;color:var(--ink-700);margin:8px 0;">🟡 QC Sample (qc_samples.status)</h3>
+      <div class="states">
+        <span class="state start">draft</span>
+        <span class="state-arrow">→</span>
+        <span class="state">registered</span>
+        <span class="state-arrow">→</span>
+        <span class="state">in_test</span>
+        <span class="state-arrow">→</span>
+        <span class="state review">under_review</span>
+        <span class="state-arrow">→</span>
+        <span class="state approved">approved</span>
+        <span class="state-arrow">→</span>
+        <span class="state released">released</span>
+      </div>
+      <div class="states">
+        <span class="state">(any)</span>
+        <span class="state-arrow">→</span>
+        <span class="state terminal">rejected</span>
+        <span style="color:var(--ink-500);font-size:13px;">ถ้า fail/reject</span>
+        <span style="margin-left:16px;color:var(--ink-500);font-size:13px;">หรือ</span>
+        <span class="state special">oos</span>
+        <span style="color:var(--ink-500);font-size:13px;">ถ้าผล out-of-spec ต้อง investigate</span>
+      </div>
+
+      <h3 style="font-size:15px;color:var(--ink-700);margin:24px 0 8px;">🟣 COA Document (coa_documents.status)</h3>
+      <div class="states">
+        <span class="state start">draft</span>
+        <span class="state-arrow">→</span>
+        <span class="state review">review</span>
+        <span class="state-arrow">→</span>
+        <span class="state approved">approved</span>
+        <span class="state-arrow">→</span>
+        <span class="state released">issued</span>
+      </div>
+      <div class="states">
+        <span class="state">issued</span>
+        <span class="state-arrow">→</span>
+        <span class="state special">superseded</span>
+        <span style="color:var(--ink-500);font-size:13px;">เมื่อออกใบใหม่แทน</span>
+        <span style="margin-left:16px;color:var(--ink-500);font-size:13px;">หรือ</span>
+        <span class="state terminal">revoked</span>
+        <span style="color:var(--ink-500);font-size:13px;">เพิกถอนพร้อม reason</span>
+      </div>
+
+      <h3 style="font-size:15px;color:var(--ink-700);margin:24px 0 8px;">🔴 Sign-off Matrix (Role → Action → Status)</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead>
+          <tr style="background:var(--ink-100);">
+            <th style="text-align:left;padding:10px;border:1px solid var(--ink-200);">Role</th>
+            <th style="text-align:left;padding:10px;border:1px solid var(--ink-200);">กดปุ่มอะไร</th>
+            <th style="text-align:left;padding:10px;border:1px solid var(--ink-200);">Status เปลี่ยนเป็น</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:10px;border:1px solid var(--ink-200);"><strong>analyst</strong></td><td style="padding:10px;border:1px solid var(--ink-200);">(ลงนาม Phase 1 — lab)</td><td style="padding:10px;border:1px solid var(--ink-200);">(ไม่เปลี่ยน status)</td></tr>
+          <tr><td style="padding:10px;border:1px solid var(--ink-200);"><strong>reviewer</strong></td><td style="padding:10px;border:1px solid var(--ink-200);">"Approve"</td><td style="padding:10px;border:1px solid var(--ink-200);">under_review → <strong>approved</strong></td></tr>
+          <tr><td style="padding:10px;border:1px solid var(--ink-200);"><strong>approver</strong></td><td style="padding:10px;border:1px solid var(--ink-200);">(rare — ส่วนใหญ่ทำผ่าน qa_release)</td><td style="padding:10px;border:1px solid var(--ink-200);">—</td></tr>
+          <tr><td style="padding:10px;border:1px solid var(--ink-200);"><strong>qa_release</strong></td><td style="padding:10px;border:1px solid var(--ink-200);">"Release"</td><td style="padding:10px;border:1px solid var(--ink-200);">approved → <strong>released</strong></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== PART 4: ALL PAGES + TABLES ========== -->
+    <section class="section" id="part4">
+      <h2><span class="num">4</span>หน้าทั้งหมด + ตาราง DB ที่เกี่ยวข้อง</h2>
+      <p class="lead">รวมทุก URL ในโมดูล /quality พร้อมประเภทและตารางที่บันทึก</p>
+
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:var(--teal-700);color:white;">
+            <th style="text-align:left;padding:10px;">Page</th>
+            <th style="text-align:left;padding:10px;">URL</th>
+            <th style="text-align:left;padding:10px;">ประเภท</th>
+            <th style="text-align:left;padding:10px;">DB Table</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📊 Quality Dashboard</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality" data-path="/quality">/quality</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge tx">Read</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">(aggregate)</td></tr>
+
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">🧪 QC Entry — list</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/qc-entry" data-path="/quality/qc-entry">/quality/qc-entry</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge tx">List</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">qc_samples</td></tr>
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">➕ QC Entry — create</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/qc-entry/new" data-path="/quality/qc-entry/new">/quality/qc-entry/new</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge tx">Create</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">qc_samples + qc_sample_tests</td></tr>
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📝 QC Entry — detail / record</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">/quality/qc-entry/[id]</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge tx">Edit</span> <span class="badge signoff">Sign</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">qc_sample_tests, qc_signatures, oos_investigations</td></tr>
+
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📜 COA — list</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/coa" data-path="/quality/coa">/quality/coa</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge output">List</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">coa_documents</td></tr>
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📜 COA — detail / approve / issue</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">/quality/coa/[id]</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge output">Edit</span> <span class="badge signoff">Sign</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">coa_documents, coa_signatures</td></tr>
+
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">🎨 COA Templates — list</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/coa/templates" data-path="/quality/coa/templates">/quality/coa/templates</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge master">Master List</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">coa_templates</td></tr>
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">➕ COA Template — new</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/coa/templates/new" data-path="/quality/coa/templates/new">/quality/coa/templates/new</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge master">Master Create</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">coa_templates</td></tr>
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">✏️ COA Template — edit</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">/quality/coa/templates/[id]</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge master">Master Edit</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">coa_templates</td></tr>
+
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📋 Test Panels</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/test-panels" data-path="/quality/test-panels">/quality/test-panels</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge master">Master CRUD</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">qc_test_panels</td></tr>
+
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">🔬 Tests (cross-sample view)</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/tests" data-path="/quality/tests">/quality/tests</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge tx">Disposition</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">qc_sample_tests (cross)</td></tr>
+
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📚 Test Catalog</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/test-catalog" data-path="/quality/test-catalog">/quality/test-catalog</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge master">Master CRUD</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">qc_test_catalog</td></tr>
+
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📐 Specifications</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/specs" data-path="/quality/specs">/quality/specs</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge master">Master CRUD</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">quality_specs</td></tr>
+
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">⚠️ Deviations</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/deviations" data-path="/quality/deviations">/quality/deviations</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge tx">Investigation</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">deviations</td></tr>
+
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📜 QC Audit Trail (Phase 9)</td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><a href="/quality/audit-trail" data-path="/quality/audit-trail">/quality/audit-trail</a></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);"><span class="badge">Read-only</span></td><td style="padding:8px;border-bottom:1px solid var(--ink-200);">audit_log (cross-cutting)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="font-size:15px;color:var(--ink-700);margin:24px 0 8px;">🗄️ ตาราง DB ที่ตอบคำถาม "บันทึกที่ไหน"</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:var(--ink-100);">
+            <th style="text-align:left;padding:10px;border:1px solid var(--ink-200);">Table</th>
+            <th style="text-align:left;padding:10px;border:1px solid var(--ink-200);">Append-only?</th>
+            <th style="text-align:left;padding:10px;border:1px solid var(--ink-200);">Sign-off?</th>
+            <th style="text-align:left;padding:10px;border:1px solid var(--ink-200);">หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">qc_samples</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">หัว sample updatable until released</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">qc_sample_tests</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">ผลแต่ละ test, แก้ได้จนกว่า release</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">qc_signatures</td><td style="padding:8px;border:1px solid var(--ink-200);">✅ <strong>Immutable</strong></td><td style="padding:8px;border:1px solid var(--ink-200);">✅ analyst/reviewer/qa_release</td><td style="padding:8px;border:1px solid var(--ink-200);"><span class="badge cfr">21 CFR Part 11</span> — ห้ามลบ ห้ามแก้</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">oos_investigations</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">Phase 1 lab error → Phase 2 root cause</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">coa_documents</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">หัว COA, แก้ได้จนกว่า issued</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">coa_test_results</td><td style="padding:8px;border:1px solid var(--ink-200);">✅ <strong>Snapshot</strong></td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">copy from qc_sample_tests at issue time</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">coa_signatures</td><td style="padding:8px;border:1px solid var(--ink-200);">✅ <strong>Immutable</strong></td><td style="padding:8px;border:1px solid var(--ink-200);">✅ 2-tier</td><td style="padding:8px;border:1px solid var(--ink-200);"><span class="badge cfr">21 CFR Part 11</span></td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">coa_templates</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">Master — แก้ไขได้</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">coa_print_history</td><td style="padding:8px;border:1px solid var(--ink-200);">✅ <strong>Append-only</strong></td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">ทุกครั้งที่กด download/print/email</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">qc_test_catalog</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">Master test methods</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">qc_test_panels</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">Master panel-to-product mapping</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">quality_specs</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">Master spec range per product</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">deviations</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">❌</td><td style="padding:8px;border:1px solid var(--ink-200);">Auto-create เมื่อ test fail</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--ink-200);font-family:monospace;">audit_log</td><td style="padding:8px;border:1px solid var(--ink-200);">✅ <strong>Append-only</strong></td><td style="padding:8px;border:1px solid var(--ink-200);">—</td><td style="padding:8px;border:1px solid var(--ink-200);">เก็บทุก insert/update/delete จาก service ของ entity อื่น</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== PART 5: PRODUCTION-QUALITY INTEGRATION ========== -->
+    <section class="section" id="part5">
+      <h2><span class="num">5</span>Production ↔ Quality Integration</h2>
+      <p class="lead">
+        เกือบทุก sub-page ของ Work Order ทำหน้าที่ "บันทึก QC ระหว่างผลิต" — แม้อยู่ใน <code>/production/</code> แต่ data ปลายทาง
+        ไหลเข้าระบบ Quality (ทำให้ trigger deviation, สร้าง qc_sample, ออก COA จาก FG lot ได้)
+      </p>
+
+      <h3 style="font-size:16px;color:var(--ink-700);margin:8px 0 12px;">🔄 ภาพรวมการเชื่อม 2 ทิศทาง</h3>
+      <div style="background:var(--ink-50);padding:20px;border-radius:10px;font-family:monospace;font-size:13px;line-height:1.7;color:var(--ink-700);overflow-x:auto;white-space:pre;">┌─────────────────────────────────────────────────────────┐
+│             Work Order (WO) — /production/work-orders/[id]│
+└────────┬───────────────────────────────────┬────────────┘
+         │                                   │
+         ▼ (sub-pages — บันทึก QC)           ▼ (สร้าง FG lot)
+   ┌──────────────────┐                ┌──────────────┐
+   │ Cleaning         │                │ Items + Lots │
+   │ Material Weigh   │                │ (FG batch)   │
+   │ SOP Execution    │                └──────┬───────┘
+   │ IPC Tests        │                       │
+   │ Env Monitoring   │                       ▼
+   │ Packaging QC     │                ┌────────────────┐
+   │ Finished Insp.   │                │ /quality/      │
+   │ Production Out.  │                │ qc-entry/new   │
+   │ Label Verify     │                │                │
+   └────┬─────────────┘                │ source =       │
+        │                              │ work_order_    │
+        │ ① IPC fail                   │ batch          │
+        │ ② Inspection fail            │                │
+        │                              │ ผูก WO →       │
+        ▼                              │ qc_sample      │
+   ┌──────────────┐                    └────────────────┘
+   │ AUTO-CREATE  │
+   │ deviations   │
+   │ + qc_sample  │
+   │ (linked WO)  │
+   └──────────────┘</div>
+
+      <h3 style="font-size:16px;color:var(--ink-700);margin:24px 0 12px;">🧩 Sub-pages ของ Work Order — บันทึก QC ระหว่างผลิต</h3>
+      <p style="color:var(--ink-600);font-size:13px;margin-bottom:12px;">
+        คลิก URL ในตารางเพื่อเปิดในตัว tenant ที่เลือกด้านบน — sub-pages ใช้ <code>:id</code> เป็น placeholder ของ work_order_id ที่ต้องเปิดจาก WO list ก่อน
+      </p>
+
+      <div class="flow">
+
+        <div class="flow-step master">
+          <div class="flow-num">1</div>
+          <a class="flow-card" href="/production/work-orders" data-path="/production/work-orders">
+            <div class="title">🧹 Cleaning Checklist <span class="arrow">→</span></div>
+            <div class="url">/production/work-orders/[id]/cleaning</div>
+            <div class="desc">ตรวจห้อง + เครื่องจักรสะอาด ก่อนผลิต — Form Section 4, 8, 9 ของ Batch Manufacturing Record</div>
+            <div class="meta">
+              <span class="badge tx">Pre-production</span>
+              <span class="badge table">wo_cleaning</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="flow-step master">
+          <div class="flow-num">2</div>
+          <a class="flow-card" href="/production/line-clearance" data-path="/production/line-clearance">
+            <div class="title">🔓 Line Clearance <span class="arrow">→</span></div>
+            <div class="url">/production/line-clearance</div>
+            <div class="desc">QA อนุมัติ line ก่อนเริ่ม batch — สำคัญตาม GMP requirement (FR-062 in spec)</div>
+            <div class="meta">
+              <span class="badge tx">Pre-production</span>
+              <span class="badge signoff">QA approve</span>
+              <span class="badge table">line_clearance</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">3</div>
+          <a class="flow-card" href="/production/work-orders" data-path="/production/work-orders">
+            <div class="title">⚖️ Material Weighing <span class="arrow">→</span></div>
+            <div class="url">/production/work-orders/[id]/material-weighing</div>
+            <div class="desc">ชั่งวัตถุดิบตาม BOM, verify lot number, ถ้าเกิน tolerance → auto-create material_return — Form Section 5</div>
+            <div class="meta">
+              <span class="badge tx">Production</span>
+              <span class="badge signoff">Checker sign</span>
+              <span class="badge table">wo_material_weighing</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="flow-step signoff">
+          <div class="flow-num">4</div>
+          <a class="flow-card" href="/production/work-orders" data-path="/production/work-orders">
+            <div class="title">▶️ SOP Execution (Phase 2-7) <span class="arrow">→</span></div>
+            <div class="url">/production/work-orders/[id]/sop-execution</div>
+            <div class="desc">รัน steps ตาม SOP + บันทึก parameter + <strong>inline IPC tests</strong> ระหว่าง step — IPC fail → auto-deviation</div>
+            <div class="meta">
+              <span class="badge tx">Production</span>
+              <span class="badge signoff">analyst + reviewer</span>
+              <span class="badge table">wo_sop_execution + qc_sample_tests</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:6px;">⚡ <strong>Trigger:</strong> ถ้า IPC test fail (round 2 หลัง retest) → auto-create deviation + qc_sample (linked WO)</div>
+          </a>
+        </div>
+
+        <div class="flow-step signoff">
+          <div class="flow-num">5</div>
+          <a class="flow-card" href="/production/work-orders" data-path="/production/work-orders">
+            <div class="title">🧪 IPC (In-Process Control) standalone <span class="arrow">→</span></div>
+            <div class="url">/production/work-orders/[id]/ipc</div>
+            <div class="desc">ตรวจคุณภาพระหว่างผลิต (น้ำหนักเม็ด, ความหนา, ความแข็ง ฯลฯ) — สามารถบันทึกแยกจาก SOP ได้</div>
+            <div class="meta">
+              <span class="badge tx">Production</span>
+              <span class="badge signoff">QC analyst</span>
+              <span class="badge table">qc_sample_tests (linked WO)</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:6px;">⚡ <strong>Trigger:</strong> fail (round 2) → auto-deviation</div>
+          </a>
+        </div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">6</div>
+          <a class="flow-card" href="/production/work-orders" data-path="/production/work-orders">
+            <div class="title">🌡️ Environmental Monitoring <span class="arrow">→</span></div>
+            <div class="url">/production/work-orders/[id]/environmental-monitoring</div>
+            <div class="desc">บันทึก temperature + humidity ระหว่างผลิต/บรรจุ — Form Section 7, 10.2</div>
+            <div class="meta">
+              <span class="badge tx">Production</span>
+              <span class="badge table">wo_environmental_monitoring</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:6px;">⚠️ Out-of-range = ต้องสร้าง deviation manual</div>
+          </a>
+        </div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">7</div>
+          <a class="flow-card" href="/production/work-orders" data-path="/production/work-orders">
+            <div class="title">📦 Packaging QC <span class="arrow">→</span></div>
+            <div class="url">/production/work-orders/[id]/packaging-qc?tab=weight (หรือ ?tab=integrity)</div>
+            <div class="desc">ตรวจน้ำหนักบรรจุภัณฑ์ + integrity check — 2 tabs ในหน้าเดียว — Form Section 11, 12</div>
+            <div class="meta">
+              <span class="badge tx">Packaging</span>
+              <span class="badge signoff">Checker sign</span>
+              <span class="badge table">wo_packaging_qc</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:6px;">⚠️ Fail = ต้องสร้าง deviation</div>
+          </a>
+        </div>
+
+        <div class="flow-step signoff">
+          <div class="flow-num">8</div>
+          <a class="flow-card" href="/production/work-orders" data-path="/production/work-orders">
+            <div class="title">✅ Finished Product Inspection <span class="arrow">→</span></div>
+            <div class="url">/production/work-orders/[id]/finished-inspection</div>
+            <div class="desc">15-point inspection checklist สำหรับสินค้าสำเร็จรูป — Form Section 14 (มี re-inspector ด้วย)</div>
+            <div class="meta">
+              <span class="badge tx">Pre-release</span>
+              <span class="badge signoff">inspector + reInspector</span>
+              <span class="badge table">wo_finished_inspection</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="flow-step output">
+          <div class="flow-num">9</div>
+          <a class="flow-card" href="/production/work-orders" data-path="/production/work-orders">
+            <div class="title">📊 Production Output / Yield <span class="arrow">→</span></div>
+            <div class="url">/production/work-orders/[id]/production-output</div>
+            <div class="desc">บันทึกปริมาณผลิตจริง + reject + <strong>สร้าง FG lot</strong> ใน inventory ที่จะถูกใช้เป็น source ของ qc_sample</div>
+            <div class="meta">
+              <span class="badge output">Output</span>
+              <span class="badge signoff">Supervisor approve</span>
+              <span class="badge table">wo_production_output + lots (สร้างใหม่)</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:6px;">⚡ <strong>Hand-off ไป Quality:</strong> FG lot ที่สร้างที่นี่ → ใช้เป็น sourceRefId ใน /quality/qc-entry/new (sourceType='work_order_batch')</div>
+          </a>
+        </div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">10</div>
+          <a class="flow-card" href="/production/label-verification" data-path="/production/label-verification">
+            <div class="title">🏷️ Label Verification <span class="arrow">→</span></div>
+            <div class="url">/production/label-verification</div>
+            <div class="desc">ตรวจ label ก่อนแพ็ค (FDA Phase 6 GMP US14 — Label Verification) — verifier sign-off</div>
+            <div class="meta">
+              <span class="badge tx">Packaging</span>
+              <span class="badge signoff">Verifier sign</span>
+              <span class="badge table">label_verification</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="flow-step output">
+          <div class="flow-num">📑</div>
+          <a class="flow-card" href="/production/batch-records" data-path="/production/batch-records">
+            <div class="title">📑 Batch Records (BMR) <span class="arrow">→</span></div>
+            <div class="url">/production/batch-records</div>
+            <div class="desc">รวบรวมทุกอย่างที่บันทึกในข้อ 1-10 → Batch Manufacturing Record เอกสารทางการ — สามารถ print เป็น PDF audit-ready</div>
+            <div class="meta">
+              <span class="badge output">Compiled doc</span>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px;color:var(--ink-700);margin:32px 0 12px;">🔥 4 Trigger สำคัญ Production → Quality</h3>
+
+      <div style="display:grid;gap:12px;">
+        <div style="background:var(--ink-50);border-left:4px solid var(--rose-500);padding:14px 18px;border-radius:8px;">
+          <div style="font-weight:600;color:var(--ink-900);margin-bottom:4px;">① IPC fail (round 2) → auto-deviation</div>
+          <div style="font-size:13px;color:var(--ink-600);">
+            SOP Execution / IPC page บันทึก fail → retest 1 ครั้ง (ถ้า criteria.maxRetestRounds &gt; 0) → fail อีก → auto-create deviation + qc_sample (linked WO) → ปรากฏใน
+            <a href="/quality/deviations" data-path="/quality/deviations" style="color:var(--teal-700);">/quality/deviations</a> พร้อม source='production'
+          </div>
+        </div>
+
+        <div style="background:var(--ink-50);border-left:4px solid var(--emerald-500);padding:14px 18px;border-radius:8px;">
+          <div style="font-weight:600;color:var(--ink-900);margin-bottom:4px;">② FG Lot สร้าง → ใช้เป็น QC Sample</div>
+          <div style="font-size:13px;color:var(--ink-600);">
+            Production Output page → operator กรอก qty → ระบบสร้าง FG lot → QA ไป
+            <a href="/quality/qc-entry/new" data-path="/quality/qc-entry/new" style="color:var(--teal-700);">/quality/qc-entry/new</a>
+            → เลือก source='work_order_batch' → เลือก lot ที่เพิ่งสร้าง → apply panel → กรอก final QC
+          </div>
+        </div>
+
+        <div style="background:var(--ink-50);border-left:4px solid var(--amber-500);padding:14px 18px;border-radius:8px;">
+          <div style="font-weight:600;color:var(--ink-900);margin-bottom:4px;">③ Material Weighing variance → Material Return</div>
+          <div style="font-size:13px;color:var(--ink-600);">
+            Material Weighing → operator กรอก actual_qty ≠ required (เกิน tolerance) → auto-create material_return record → routed to warehouse inbox
+          </div>
+        </div>
+
+        <div style="background:var(--ink-50);border-left:4px solid var(--indigo-500);padding:14px 18px;border-radius:8px;">
+          <div style="font-weight:600;color:var(--ink-900);margin-bottom:4px;">④ Inspection fail → manual deviation</div>
+          <div style="font-size:13px;color:var(--ink-600);">
+            Finished Inspection → 15 checks → fail บางข้อ → prompt operator กดสร้าง deviation manually → link to
+            <a href="/quality/deviations" data-path="/quality/deviations" style="color:var(--teal-700);">/quality/deviations</a>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px;color:var(--ink-700);margin:32px 0 12px;">👥 Role-based — ใครบันทึกตอนไหน</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:var(--teal-700);color:white;">
+            <th style="text-align:left;padding:10px;">Sub-page</th>
+            <th style="text-align:center;padding:10px;">Operator</th>
+            <th style="text-align:center;padding:10px;">QC</th>
+            <th style="text-align:center;padding:10px;">QA</th>
+            <th style="text-align:center;padding:10px;">Manager</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">🧹 Cleaning</td><td style="text-align:center;">✅</td><td style="text-align:center;">—</td><td style="text-align:center;">—</td><td style="text-align:center;">✅ approve</td></tr>
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">🔓 Line Clearance</td><td style="text-align:center;">—</td><td style="text-align:center;">—</td><td style="text-align:center;">✅ approve</td><td style="text-align:center;">—</td></tr>
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">⚖️ Material Weighing</td><td style="text-align:center;">✅ บันทึก + check</td><td style="text-align:center;">—</td><td style="text-align:center;">—</td><td style="text-align:center;">—</td></tr>
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">▶️ SOP Execution</td><td style="text-align:center;">✅ บันทึก</td><td style="text-align:center;">✅ analyst (IPC)</td><td style="text-align:center;">✅ reviewer</td><td style="text-align:center;">—</td></tr>
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">🧪 IPC standalone</td><td style="text-align:center;">—</td><td style="text-align:center;">✅ บันทึก</td><td style="text-align:center;">✅ reviewer</td><td style="text-align:center;">—</td></tr>
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">🌡️ Env Monitoring</td><td style="text-align:center;">✅ บันทึก</td><td style="text-align:center;">✅ verify</td><td style="text-align:center;">—</td><td style="text-align:center;">—</td></tr>
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📦 Packaging QC</td><td style="text-align:center;">✅ บันทึก</td><td style="text-align:center;">✅ check</td><td style="text-align:center;">—</td><td style="text-align:center;">—</td></tr>
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">✅ Finished Inspection</td><td style="text-align:center;">—</td><td style="text-align:center;">✅ inspector</td><td style="text-align:center;">✅ re-inspector</td><td style="text-align:center;">—</td></tr>
+          <tr><td style="padding:8px;border-bottom:1px solid var(--ink-200);">📊 Production Output</td><td style="text-align:center;">✅ บันทึก</td><td style="text-align:center;">—</td><td style="text-align:center;">—</td><td style="text-align:center;">✅ approve</td></tr>
+          <tr style="background:var(--ink-50);"><td style="padding:8px;border-bottom:1px solid var(--ink-200);">🏷️ Label Verification</td><td style="text-align:center;">—</td><td style="text-align:center;">✅ verifier</td><td style="text-align:center;">—</td><td style="text-align:center;">—</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="font-size:16px;color:var(--ink-700);margin:32px 0 12px;">📝 End-to-End Workflow — ตัวอย่าง 1 batch</h3>
+      <div class="flow">
+
+        <div class="flow-step master">
+          <div class="flow-num">1</div>
+          <a class="flow-card" href="/production/work-orders/new" data-path="/production/work-orders/new">
+            <div class="title">สร้าง Work Order — เลือก BOM, qty, dates <span class="arrow">→</span></div>
+            <div class="url">/production/work-orders/new</div>
+          </a>
+        </div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">2</div>
+          <div class="flow-card" style="background:var(--ink-50);">
+            <div class="title">Pre-production checks: Line Clearance + Cleaning</div>
+            <div style="font-size:13px;color:var(--ink-600);margin-top:4px;">QA อนุมัติ line + บันทึก cleaning</div>
+          </div>
+        </div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">3</div>
+          <div class="flow-card" style="background:var(--ink-50);">
+            <div class="title">Production phase: Material Weighing → SOP Execution → IPC → Env Monitoring</div>
+            <div style="font-size:13px;color:var(--ink-600);margin-top:4px;">⚡ ถ้า IPC fail = auto-deviation</div>
+          </div>
+        </div>
+
+        <div class="flow-step tx">
+          <div class="flow-num">4</div>
+          <div class="flow-card" style="background:var(--ink-50);">
+            <div class="title">Packaging phase: Packaging QC + Label Verification + Finished Inspection</div>
+          </div>
+        </div>
+
+        <div class="flow-step output">
+          <div class="flow-num">5</div>
+          <div class="flow-card" style="background:var(--ink-50);">
+            <div class="title">Production Output → สร้าง FG lot ใน inventory</div>
+          </div>
+        </div>
+
+        <div class="flow-step output">
+          <div class="flow-num">6</div>
+          <a class="flow-card" href="/quality/qc-entry/new" data-path="/quality/qc-entry/new">
+            <div class="title">→ ส่งต่อให้ QA: register sample (source='work_order_batch') <span class="arrow">→</span></div>
+            <div class="url">/quality/qc-entry/new</div>
+            <div style="font-size:13px;color:var(--ink-600);margin-top:4px;">apply panel → กรอกผล final QC → sign-off → release</div>
+          </a>
+        </div>
+
+        <div class="flow-step output">
+          <div class="flow-num">7</div>
+          <a class="flow-card" href="/quality/coa" data-path="/quality/coa">
+            <div class="title">→ Generate COA → Issue → ส่งให้ลูกค้า <span class="arrow">→</span></div>
+            <div class="url">/quality/coa</div>
+          </a>
+        </div>
+      </div>
+
+      <div class="note info" style="margin-top:24px;">
+        <strong>💡 สรุป:</strong> Production module เก็บข้อมูล QC ระหว่างกระบวนการผลิต (in-process) — ส่วน Quality module ทำ <strong>final QC</strong> หลังผลิตเสร็จเพื่อ release lot และออก COA — 2 module ทำงานเป็นทอด ๆ ผ่าน WO id และ FG lot id เป็นกาวเชื่อม
+      </div>
+    </section>
+
+    <footer>
+      📄 Generated by BMS — Quality Module Documentation v1.1<br>
+      💡 เปิดด้วย URL: <code>/quality-data-flow.html</code> บน tenant ใดก็ได้
+    </footer>
+
+  </div>
+
+  <script>
+    // Persist tenant choice + rewrite all relative links
+    function updateLinks(base) {
+      try { localStorage.setItem('herbal_tenant_base', base); } catch (e) {}
+      document.querySelectorAll('[data-path]').forEach(a => {
+        const path = a.getAttribute('data-path');
+        a.setAttribute('href', base + path);
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener');
+      });
+    }
+    // On load: restore previous selection
+    (function init() {
+      try {
+        const saved = localStorage.getItem('herbal_tenant_base');
+        const sel = document.getElementById('tenantSel');
+        if (saved && Array.from(sel.options).some(o => o.value === saved)) {
+          sel.value = saved;
+        }
+        updateLinks(sel.value);
+      } catch (e) {
+        updateLinks('https://herbal-erp-dev.bmscloud.in.th');
+      }
+    })();
+  </script>
+</body>
+</html>
