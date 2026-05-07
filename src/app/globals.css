@@ -322,17 +322,32 @@ a:not([class]):hover {
   color: #3b82f6;
 }
 
-/* Kill the green focus ring around the tab content. The global
-   .dx-state-focused rule in dx.emerald-override.css adds a 2px emerald
-   outline for accessibility, but on this panel it wraps the whole content
-   area on every tab click — louder than helpful for mouse users, and the
-   tab strip itself already shows which tab is active. */
+/* Kill the green focus ring on every focused descendant inside this tab
+   panel — root, tabs strip, individual tab buttons, multiview wrapper,
+   and content panes. The global .dx-state-focused rule in
+   dx.emerald-override.css adds a 2px emerald outline for keyboard
+   accessibility, but on this panel a click lands focus somewhere
+   different each time (whole tab strip, then the wrapper, then a tab),
+   so listing exact selectors plays whack-a-mole. The wildcard form
+   covers every spot the focus can land within the panel. */
 .module-kpi-tabs.dx-state-focused,
-.module-kpi-tabs .dx-tabpanel.dx-state-focused,
-.module-kpi-tabs .dx-multiview-wrapper.dx-state-focused,
-.module-kpi-tabs .dx-multiview-item.dx-state-focused,
-.module-kpi-tabs .dx-multiview-item-content.dx-state-focused {
+.module-kpi-tabs .dx-state-focused,
+.module-kpi-tabs.dx-state-focused::before,
+.module-kpi-tabs.dx-state-focused::after,
+.module-kpi-tabs .dx-state-focused::before,
+.module-kpi-tabs .dx-state-focused::after {
   outline: none !important;
+  box-shadow: none !important;
+}
+/* Some DevExtreme themes draw the focus indicator as a top/left border
+   on the tabs container — neutralize those without touching the active
+   tab's blue underline (which is on .dx-tab-selected, a different
+   class). */
+.module-kpi-tabs .dx-tabs.dx-state-focused,
+.module-kpi-tabs .dx-tabpanel-tabs.dx-state-focused {
+  border-top-color: transparent !important;
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
 }
 
 /* ===========================
