@@ -297,6 +297,16 @@ export default function TestPanelsAdminPage() {
 
   const columns: DxDataGridColumn[] = [
     {
+      caption: 'ลำดับ',
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cell) => (
+        <span className="text-sm text-gray-500">{(cell.rowIndex ?? 0) + 1}</span>
+      ),
+    },
+    {
       dataField: 'productCode',
       caption: 'สินค้า',
       minWidth: 220,

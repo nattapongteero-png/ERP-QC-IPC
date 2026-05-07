@@ -451,6 +451,9 @@ export default function AuditTrailPage() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="w-8 px-3 py-2"></th>
+                      <th className="w-12 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                        ลำดับ
+                      </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                         Timestamp
                       </th>
@@ -472,10 +475,12 @@ export default function AuditTrailPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 bg-white">
-                    {rows.map((r) => (
+                    {rows.map((r, idx) => (
                       <RowFragment
                         key={r.rowKey}
                         row={r}
+                        // Global sequence so the number keeps climbing across pages.
+                        sequenceNumber={(page - 1) * limit + idx + 1}
                         expanded={expandedRow === r.rowKey}
                         onToggle={() =>
                           setExpandedRow(
@@ -559,10 +564,12 @@ export default function AuditTrailPage() {
 
 function RowFragment({
   row,
+  sequenceNumber,
   expanded,
   onToggle,
 }: {
   row: AuditRow;
+  sequenceNumber: number;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -579,6 +586,9 @@ function RowFragment({
           ) : (
             <ChevronRight className="h-4 w-4" />
           )}
+        </td>
+        <td className="px-3 py-2 text-xs text-center text-gray-500 whitespace-nowrap">
+          {sequenceNumber}
         </td>
         <td className="px-3 py-2 text-xs whitespace-nowrap font-mono text-gray-700">
           {formatTimestamp(row.timestamp)}
@@ -616,7 +626,7 @@ function RowFragment({
       </tr>
       {expanded && (
         <tr className="bg-gray-50/50">
-          <td colSpan={7} className="px-6 py-3 border-t border-gray-100">
+          <td colSpan={8} className="px-6 py-3 border-t border-gray-100">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-xs">
               <DetailField label="Source" value={row.source} mono />
               <DetailField label="Action" value={row.actionLabel || row.action} mono />

@@ -157,6 +157,16 @@ export default function CoaListPage() {
 
   const columns: DxDataGridColumn[] = [
     {
+      caption: 'ลำดับ',
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cell) => (
+        <span className="text-sm text-gray-500">{(cell.rowIndex ?? 0) + 1}</span>
+      ),
+    },
+    {
       dataField: 'coaNumber',
       caption: 'COA #',
       width: 180,
