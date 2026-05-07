@@ -6504,6 +6504,33 @@ export const mysqlQcTestPanels = mysqlTable('qc_test_panels', {
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// QC Sample Test Samples — per-sample values + rounds for QC entry tests.
+// Mirror of ipc_test_samples but linked to qc_sample_tests so the QC entry
+// flow supports multi-sample readings (e.g. n=10 average weight) and retest
+// rounds matching what master data on ipc_criteria.sample_size /
+// max_retest_rounds defines.
+export const sqliteQcSampleTestSamples = sqliteTable('qc_sample_test_samples', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleTestId: integer('sample_test_id').notNull().references(() => sqliteQcSampleTests.id),
+  sampleNumber: integer('sample_number').notNull(),
+  testRound: integer('test_round').notNull().default(1),
+  numericValue: real('numeric_value'),
+  textValue: text('text_value'),
+  result: text('result'), // pass, fail
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const mysqlQcSampleTestSamples = mysqlTable('qc_sample_test_samples', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleTestId: int('sample_test_id').notNull().references(() => mysqlQcSampleTests.id),
+  sampleNumber: int('sample_number').notNull(),
+  testRound: int('test_round').notNull().default(1),
+  numericValue: decimal('numeric_value', { precision: 15, scale: 4 }),
+  textValue: mysqlText('text_value'),
+  result: varchar('result', { length: 20 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // QC OOS Investigations — MySQL
 export const mysqlQcOosInvestigations = mysqlTable('qc_oos_investigations', {
   id: int('id').primaryKey().autoincrement(),

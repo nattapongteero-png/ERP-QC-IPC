@@ -18,6 +18,7 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import {
   TestTube,
   Clock,
@@ -113,8 +114,10 @@ function statusBadge(status: string): {
 
 export default function QcEntryListPage() {
   const router = useRouter();
+  const toast = useToast();
   const [rows, setRows] = useState<QcSampleRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [sourceFilter, setSourceFilter] = useState<string>('');
@@ -261,18 +264,62 @@ export default function QcEntryListPage() {
     {
       dataField: '_actions',
       caption: 'การกระทำ',
-      width: 110,
+      width: 160,
       alignment: 'center',
       allowFiltering: false,
       allowSorting: false,
-      cellRender: (cell) => (
-        <DxButton
-          text="View"
-          stylingMode="outlined"
-          type="default"
-          onClick={() => router.push(`/quality/qc-entry/${cell.data.id}`)}
-        />
-      ),
+      cellRender: (cell) => {
+        const sampleId = cell.data.id as number;
+        const sampleNumber = cell.data.sampleNumber as string;
+        // The service refuses to delete samples that have results recorded
+        // (and post-release records are immutable). The button is always
+        // visible so the user can SEE what's blocking — server returns the
+        // reason in the toast.
+        return (
+          <div className="flex justify-center gap-1">
+            <DxButton
+              text="View"
+              stylingMode="outlined"
+              type="default"
+              onClick={() => router.push(`/quality/qc-entry/${sampleId}`)}
+              disabled={deletingId === sampleId}
+            />
+            <DxButton
+              icon="trash"
+              type="danger"
+              stylingMode="text"
+              hint="ลบรายการนี้"
+              onClick={async (e) => {
+                // Stop the row click handler from also navigating to detail.
+                if (e?.event) e.event.stopPropagation();
+                if (!confirm(`ลบ ${sampleNumber} ใช่หรือไม่?`)) return;
+                setDeletingId(sampleId);
+                try {
+                  const res = await fetch(
+                    `/api/quality/qc-samples/${sampleId}`,
+                    { method: 'DELETE' },
+                  );
+                  const data = await res.json();
+                  if (data.success) {
+                    toast.success('ลบแล้ว', sampleNumber);
+                    await fetchSamples();
+                  } else {
+                    toast.error('ลบไม่สำเร็จ', data.error || 'Unknown error');
+                  }
+                } catch (err) {
+                  toast.error(
+                    'ลบไม่สำเร็จ',
+                    err instanceof Error ? err.message : 'Network error',
+                  );
+                } finally {
+                  setDeletingId(null);
+                }
+              }}
+              disabled={deletingId != null}
+            />
+          </div>
+        );
+      },
     },
   ];
 
@@ -415,6 +462,11 @@ export default function QcEntryListPage() {
               pageSize={20}
               height="auto"
               noDataText="ไม่พบข้อมูล"
+              onRowClick={(e) => {
+                if (e?.data?.id) {
+                  router.push(`/quality/qc-entry/${e.data.id}`);
+                }
+              }}
             />
           )}
         </div>

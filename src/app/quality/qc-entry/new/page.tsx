@@ -40,12 +40,27 @@ interface ProductOption {
   nameEn?: string;
   category?: string | null;
   primaryUnit?: string;
+  /** Master-data storage profile (e.g. "ต่ำกว่า 30°C") used to auto-fill the form. */
+  storageCondition?: string | null;
 }
 
 interface CustomerOption {
   id: number;
   code: string;
   name: string;
+}
+
+/** Quarantine inventory lot — minimum fields needed to auto-fill the QC form. */
+interface QuarantineLot {
+  id: number;
+  itemId: number;
+  itemCode: string | null;
+  itemName: string | null;
+  lotNumber: string;
+  quantity: number | string;
+  unit: string;
+  manufacturingDate: string | null;
+  expiryDate: string | null;
 }
 
 export default function QcEntryNewPage() {
@@ -55,11 +70,13 @@ export default function QcEntryNewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [quarantineLots, setQuarantineLots] = useState<QuarantineLot[]>([]);
 
   // Form state
   const [sourceType, setSourceType] = useState<string>('raw_material_lot');
   const [sourceRefText, setSourceRefText] = useState<string>('');
   const [productId, setProductId] = useState<number | null>(null);
+  const [selectedLotId, setSelectedLotId] = useState<number | null>(null);
   const [lotNumber, setLotNumber] = useState<string>('');
   const [manufactureDate, setManufactureDate] = useState<string>('');
   const [expiryDate, setExpiryDate] = useState<string>('');
@@ -78,6 +95,9 @@ export default function QcEntryNewPage() {
   useEffect(() => {
     (async () => {
       try {
+        // Pull all items so we can resolve master-data fields (storageCondition,
+        // primaryUnit) once a product is picked. The dropdown itself is filtered
+        // to products that actually have quarantine lots.
         const res = await fetch('/api/items?limit=500');
         const data = await res.json();
         if (data.success) {
@@ -86,6 +106,20 @@ export default function QcEntryNewPage() {
         }
       } catch {
         // Ignore — selectbox just stays empty.
+      }
+    })();
+    (async () => {
+      try {
+        // Quarantine lots drive both the product list and the lot selector.
+        // status=quarantine is a server-side filter on inventory_lots.
+        const res = await fetch('/api/inventory/lots?status=quarantine&limit=500');
+        const data = await res.json();
+        if (data.success) {
+          const items = (data.data?.items || []) as QuarantineLot[];
+          setQuarantineLots(items);
+        }
+      } catch {
+        // Ignore — empty list means "no products available".
       }
     })();
     (async () => {
@@ -102,15 +136,51 @@ export default function QcEntryNewPage() {
     })();
   }, []);
 
-  const productItems = products.map((p) => ({
-    id: p.id,
-    label: `${p.code} — ${p.nameTh}${p.nameEn ? ' / ' + p.nameEn : ''}`,
-    primaryUnit: p.primaryUnit,
+  // Only show products that have at least one lot in quarantine status.
+  // We dedupe by itemId because a product can have multiple lots in quarantine.
+  const productItems = (() => {
+    const itemIdsWithQuarantine = new Set(quarantineLots.map((l) => l.itemId));
+    return products
+      .filter((p) => itemIdsWithQuarantine.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        label: `${p.code} — ${p.nameTh}${p.nameEn ? ' / ' + p.nameEn : ''}`,
+        primaryUnit: p.primaryUnit,
+      }));
+  })();
+
+  // Lots for the currently-selected product.
+  const lotsForProduct = productId
+    ? quarantineLots.filter((l) => l.itemId === productId)
+    : [];
+
+  const lotItems = lotsForProduct.map((l) => ({
+    id: l.id,
+    label: `${l.lotNumber} — ${Number(l.quantity).toLocaleString()} ${l.unit}${l.expiryDate ? ` (exp ${String(l.expiryDate).slice(0, 10)})` : ''}`,
   }));
+
   const customerItems = customers.map((c) => ({
     id: c.id,
     label: `${c.code} — ${c.name}`,
   }));
+
+  /** Apply a lot's data into the form fields (qty, unit, mfg/exp dates, lot#). */
+  const applyLotToForm = (lot: QuarantineLot | null) => {
+    if (!lot) {
+      setSelectedLotId(null);
+      setLotNumber('');
+      setQuantityReceived(null);
+      setManufactureDate('');
+      setExpiryDate('');
+      return;
+    }
+    setSelectedLotId(lot.id);
+    setLotNumber(lot.lotNumber || '');
+    setQuantityReceived(Number(lot.quantity));
+    setUnit(lot.unit || '');
+    setManufactureDate(lot.manufacturingDate ? String(lot.manufacturingDate).slice(0, 10) : '');
+    setExpiryDate(lot.expiryDate ? String(lot.expiryDate).slice(0, 10) : '');
+  };
 
   const isOutgoing = sourceType === 'outgoing_shipment';
 
@@ -226,7 +296,7 @@ export default function QcEntryNewPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <DxSelectBox
-                  label="สินค้า"
+                  label="สินค้า (เฉพาะที่มี lot สถานะกักกัน)"
                   value={productId}
                   dataSource={productItems}
                   displayExpr="label"
@@ -234,43 +304,98 @@ export default function QcEntryNewPage() {
                   onValueChange={(v) => {
                     const next = v == null ? null : Number(v);
                     setProductId(next);
-                    if (next) {
-                      const p = products.find((x) => x.id === next);
-                      if (p?.primaryUnit && !unit) setUnit(p.primaryUnit);
+                    // Reset lot fields whenever the product changes.
+                    applyLotToForm(null);
+                    if (!next) {
+                      setStorageConditions('');
+                      return;
+                    }
+                    const p = products.find((x) => x.id === next);
+                    // Storage condition is master-data on the item, not on the lot.
+                    if (p?.storageCondition) {
+                      setStorageConditions(p.storageCondition);
+                    }
+                    if (p?.primaryUnit && !unit) setUnit(p.primaryUnit);
+                    // If exactly one lot is in quarantine for this product,
+                    // auto-fill it; otherwise wait for user to pick from the
+                    // lot dropdown surfaced below.
+                    const matchingLots = quarantineLots.filter((l) => l.itemId === next);
+                    if (matchingLots.length === 1) {
+                      applyLotToForm(matchingLots[0]);
                     }
                   }}
                   searchEnabled
                   required
+                  noDataText="ไม่มีสินค้าในสถานะกักกัน"
                 />
+                {productItems.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    ยังไม่มี lot ในสถานะ &quot;กักกัน&quot; — กรุณาตรวจสอบที่ /inventory
+                  </p>
+                )}
               </div>
+
+              {/* Lot selector — appears only when the product has >1 lot in quarantine.
+                  Single-lot products auto-fill silently above. */}
+              {productId && lotsForProduct.length > 1 && (
+                <div className="md:col-span-2">
+                  <DxSelectBox
+                    label={`เลือก Lot (${lotsForProduct.length} lots ในสถานะกักกัน)`}
+                    value={selectedLotId}
+                    dataSource={lotItems}
+                    displayExpr="label"
+                    valueExpr="id"
+                    onValueChange={(v) => {
+                      const next = v == null ? null : Number(v);
+                      const lot = next ? lotsForProduct.find((l) => l.id === next) : null;
+                      applyLotToForm(lot ?? null);
+                    }}
+                    required
+                    placeholder="กรุณาเลือก lot"
+                  />
+                </div>
+              )}
+
+              {/* Single-lot indicator — shows the auto-filled lot for context. */}
+              {productId && lotsForProduct.length === 1 && selectedLotId && (
+                <div className="md:col-span-2 bg-emerald-50 border border-emerald-200 rounded-md p-2 text-xs text-emerald-800">
+                  Lot เดียวในสถานะกักกัน: <strong>{lotsForProduct[0].lotNumber}</strong> — ดึงข้อมูลให้อัตโนมัติ
+                </div>
+              )}
+
               <DxTextBox
                 label="Lot Number"
                 value={lotNumber}
                 onValueChange={setLotNumber}
                 placeholder="เช่น BG-2026-0070"
+                readOnly={selectedLotId != null}
               />
               <div className="grid grid-cols-2 gap-3">
                 <DxNumberBox
                   label="จำนวน"
                   value={quantityReceived}
                   onValueChange={(v) => setQuantityReceived(v ?? null)}
+                  readOnly={selectedLotId != null}
                 />
                 <DxTextBox
                   label="หน่วย"
                   value={unit}
                   onValueChange={setUnit}
                   placeholder="kg, g, capsule..."
+                  readOnly={selectedLotId != null}
                 />
               </div>
               <DxDateBox
                 label="วันที่ผลิต"
                 value={manufactureDate}
                 onValueChange={(v) => setManufactureDate(v || '')}
+                readOnly={selectedLotId != null}
               />
               <DxDateBox
                 label="วันหมดอายุ"
                 value={expiryDate}
                 onValueChange={(v) => setExpiryDate(v || '')}
+                readOnly={selectedLotId != null}
               />
               <DxDateBox
                 label="Retest date"

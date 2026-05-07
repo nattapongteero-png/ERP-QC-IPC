@@ -29,11 +29,48 @@ import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTagBox } from '@/components/ui/dx-tag-box';
 import { DxSwitch } from '@/components/ui/dx-switch';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { TestTube, AlertTriangle, ShieldCheck, AlertOctagon } from 'lucide-react';
+import {
+  TestTube,
+  AlertTriangle,
+  ShieldCheck,
+  AlertOctagon,
+  ChevronDown,
+  ChevronUp,
+  FlaskConical,
+} from 'lucide-react';
 import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
+
+/** Live pass/fail evaluator — mirrors server-side logic for instant UX feedback. */
+function evaluateNumeric(
+  value: number | null,
+  specMin: number | null,
+  specMax: number | null,
+): 'pass' | 'fail' | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  if (specMin == null && specMax == null) return null;
+  if (specMin != null && value < specMin) return 'fail';
+  if (specMax != null && value > specMax) return 'fail';
+  return 'pass';
+}
+
+interface QcSampleTestSampleRow {
+  sampleNumber: number;
+  numericValue: number | null;
+  textValue: string | null;
+  result: 'pass' | 'fail' | null;
+}
+
+interface QcSampleTestRoundRow {
+  roundNumber: number;
+  samples: QcSampleTestSampleRow[];
+  avg: number | null;
+  result: 'pass' | 'fail' | 'pending';
+}
 
 interface QcSampleTestRow {
   id: number;
@@ -42,6 +79,14 @@ interface QcSampleTestRow {
   criteriaCode: string | null;
   criteriaName: string | null;
   criteriaNameTh: string | null;
+  criteriaType: string | null;
+  criteriaSampleSize: number | null;
+  criteriaTolerancePercent: number | null;
+  criteriaMaxRetestRounds: number | null;
+  criteriaAcceptanceStages: string | null;
+  criteriaSpecSpecification: string | null;
+  rounds: QcSampleTestRoundRow[];
+  totalRounds: number;
   sequence: number;
   specMin: number | null;
   specMax: number | null;
@@ -243,9 +288,14 @@ function formatSpec(test: QcSampleTestRow): string {
 
 interface EditState {
   testId: number;
+  /** Single-sample numeric value — used when criteria.sampleSize === 1. */
   numericResult: number | null;
+  /** Per-sample readings — used when criteria.sampleSize > 1. */
+  sampleValues: Array<number | null>;
   textResult: string;
   notes: string;
+  /** Recording target round (1 = first attempt, 2+ = retest). */
+  testRound: number;
 }
 
 export default function QcSampleDetailPage() {
@@ -260,12 +310,22 @@ export default function QcSampleDetailPage() {
   const [working, setWorking] = useState(false);
 
   const [editing, setEditing] = useState<EditState | null>(null);
+  const [expandedTests, setExpandedTests] = useState<Set<number>>(new Set());
+
+  const toggleExpanded = (id: number) => {
+    setExpandedTests((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const [showApplyPanel, setShowApplyPanel] = useState(false);
   const [showAddTest, setShowAddTest] = useState(false);
 
   const [panels, setPanels] = useState<TestPanel[]>([]);
-  const [selectedPanelId, setSelectedPanelId] = useState<number | null>(null);
+  const [selectedPanelIds, setSelectedPanelIds] = useState<number[]>([]);
 
   const [criteria, setCriteria] = useState<IpcCriterion[]>([]);
   const [newCriteriaId, setNewCriteriaId] = useState<number | null>(null);
@@ -373,12 +433,32 @@ export default function QcSampleDetailPage() {
     })();
   }, [showAddTest]);
 
-  const handleStartEdit = (test: QcSampleTestRow) => {
+  /** Build initial editor state for a test, optionally targeting a specific
+   *  retest round. When `targetRound` is omitted, defaults to:
+   *    - existing round number if user is editing the latest round, OR
+   *    - (totalRounds + 1) when starting a fresh retest. */
+  const handleStartEdit = (test: QcSampleTestRow, targetRound?: number) => {
+    const sampleSize = Math.max(1, Number(test.criteriaSampleSize) || 1);
+    const isMultiSample = sampleSize > 1;
+    // Resolve the round we're recording. If the test has rounds, the caller
+    // can either edit an existing round or open a new one (totalRounds+1).
+    const round = targetRound ?? (test.totalRounds === 0 ? 1 : test.totalRounds);
+    const existingRound = test.rounds.find((r) => r.roundNumber === round);
+
+    // Pre-fill sample values from the existing round so retests can edit
+    // earlier readings; otherwise leave the grid empty.
+    const sampleValues: Array<number | null> = Array.from({ length: sampleSize }, (_, i) => {
+      const existing = existingRound?.samples.find((s) => s.sampleNumber === i + 1);
+      return existing?.numericValue ?? null;
+    });
+
     setEditing({
       testId: test.id,
-      numericResult: test.numericResult,
+      numericResult: isMultiSample ? null : (existingRound?.samples[0]?.numericValue ?? test.numericResult),
+      sampleValues,
       textResult: test.textResult ?? '',
       notes: test.notes ?? '',
+      testRound: round,
     });
   };
 
@@ -388,34 +468,57 @@ export default function QcSampleDetailPage() {
     if (!editing || !detail) return;
     const test = detail.tests.find((t) => t.id === editing.testId);
     if (!test) return;
+    const sampleSize = Math.max(1, Number(test.criteriaSampleSize) || 1);
+    const isMultiSample = sampleSize > 1;
+
+    // Build payload — server prefers samples[] when provided, else falls back
+    // to single numericResult/textResult.
+    const payload: Record<string, unknown> = {
+      testId: test.id,
+      criteriaId: test.criteriaId,
+      sequence: test.sequence,
+      specMin: test.specMin,
+      specMax: test.specMax,
+      specTarget: test.specTarget,
+      specText: test.specText,
+      unit: test.unit,
+      testMethod: test.testMethod,
+      notes: editing.notes || null,
+      testRound: editing.testRound,
+    };
+    if (isMultiSample) {
+      payload.samples = editing.sampleValues
+        .map((v, idx) => ({
+          sampleNumber: idx + 1,
+          numericValue: v,
+        }))
+        .filter((s) => s.numericValue != null && Number.isFinite(s.numericValue));
+    } else {
+      payload.numericResult = editing.numericResult;
+      payload.textResult = editing.textResult || null;
+      // Mirror the single value into samples[1] so the round history captures it.
+      if (editing.numericResult != null) {
+        payload.samples = [{ sampleNumber: 1, numericValue: editing.numericResult }];
+      } else if (editing.textResult) {
+        payload.samples = [{ sampleNumber: 1, textValue: editing.textResult }];
+      }
+    }
+
     setWorking(true);
     try {
-      const res = await fetch(
-        `/api/quality/qc-samples/${detail.id}/tests`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            testId: test.id,
-            criteriaId: test.criteriaId,
-            sequence: test.sequence,
-            specMin: test.specMin,
-            specMax: test.specMax,
-            specTarget: test.specTarget,
-            specText: test.specText,
-            unit: test.unit,
-            testMethod: test.testMethod,
-            numericResult: editing.numericResult,
-            textResult: editing.textResult || null,
-            notes: editing.notes || null,
-          }),
-        },
-      );
+      const res = await fetch(`/api/quality/qc-samples/${detail.id}/tests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       const data = await res.json();
       if (!data.success) {
         toast.error('บันทึกไม่สำเร็จ', data.error || 'Unknown error');
       } else {
-        toast.success('บันทึกแล้ว', `Result: ${data.data?.resultStatus || 'pending'}`);
+        toast.success(
+          'บันทึกแล้ว',
+          `Round ${editing.testRound} — Result: ${data.data?.resultStatus || 'pending'}`,
+        );
         setEditing(null);
         await fetchDetail();
       }
@@ -450,31 +553,58 @@ export default function QcSampleDetailPage() {
   };
 
   const handleApplyPanel = async () => {
-    if (!detail || !selectedPanelId) return;
+    if (!detail || selectedPanelIds.length === 0) return;
     setWorking(true);
     try {
-      const res = await fetch(
-        `/api/quality/qc-samples/${detail.id}/apply-panel`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ panelKey: selectedPanelId }),
-        },
-      );
-      const data = await res.json();
-      if (!data.success) {
-        toast.error('Apply panel failed', data.error || 'Unknown error');
-      } else {
+      // Apply each panel sequentially. The API accepts one panelKey per call,
+      // so multi-select fires N requests. We aggregate added/skipped counts
+      // for a single summary toast, and continue past per-panel failures so a
+      // bad panel doesn't block the rest.
+      let totalAdded = 0;
+      let totalSkipped = 0;
+      const failures: string[] = [];
+
+      for (const panelId of selectedPanelIds) {
+        try {
+          const res = await fetch(
+            `/api/quality/qc-samples/${detail.id}/apply-panel`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ panelKey: panelId }),
+            },
+          );
+          const data = await res.json();
+          if (data.success) {
+            totalAdded += data.data?.added ?? 0;
+            totalSkipped += data.data?.skipped ?? 0;
+          } else {
+            failures.push(`panel #${panelId}: ${data.error || 'unknown error'}`);
+          }
+        } catch (err) {
+          failures.push(
+            `panel #${panelId}: ${err instanceof Error ? err.message : 'network error'}`,
+          );
+        }
+      }
+
+      if (failures.length === 0) {
         toast.success(
           'Apply panel สำเร็จ',
-          `เพิ่ม ${data.data?.added ?? 0} รายการ (ข้าม ${data.data?.skipped ?? 0})`,
+          `เพิ่ม ${totalAdded} รายการ (ข้าม ${totalSkipped})`,
         );
         setShowApplyPanel(false);
-        setSelectedPanelId(null);
+        setSelectedPanelIds([]);
         await fetchDetail();
+      } else if (totalAdded > 0) {
+        toast.warning(
+          `Apply สำเร็จบางส่วน — เพิ่ม ${totalAdded} ข้าม ${totalSkipped}`,
+          failures.join('\n'),
+        );
+        await fetchDetail();
+      } else {
+        toast.error('Apply panel failed', failures.join('\n'));
       }
-    } catch (e) {
-      toast.error('Apply panel failed', e instanceof Error ? e.message : 'Network error');
     } finally {
       setWorking(false);
     }
@@ -991,53 +1121,79 @@ export default function QcSampleDetailPage() {
                 disabled={working}
               />
             )}
-            {/* Phase 4 — Generate COA button (visible once sample is released) */}
-            {detail.status === 'released' && !detail.linkedCoa && (
-              <DxButton
-                text="ออก COA (Generate COA)"
-                icon="doc"
-                type="success"
-                onClick={async () => {
-                  setWorking(true);
-                  try {
-                    const res = await fetch('/api/quality/coa', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ sampleId: detail.id }),
-                    });
-                    const data = await res.json();
-                    if (!data.success) {
-                      toast.error(data.error || 'ออก COA ล้มเหลว');
-                      return;
-                    }
-                    toast.success(data.message || 'ออก COA สำเร็จ');
-                    if (data.data?.coaId) {
-                      router.push(`/quality/coa/${data.data.coaId}`);
-                    } else {
-                      await fetchDetail();
-                    }
-                  } catch (e) {
-                    toast.error(
-                      e instanceof Error ? e.message : 'ออก COA ล้มเหลว',
-                    );
-                  } finally {
-                    setWorking(false);
-                  }
-                }}
-                disabled={working}
-              />
-            )}
-            {detail.status === 'released' && detail.linkedCoa && (
-              <DxButton
-                text={`ดู COA: ${detail.linkedCoa.coaNumber}`}
-                icon="doc"
-                stylingMode="outlined"
-                onClick={() =>
-                  router.push(`/quality/coa/${detail.linkedCoa!.id}`)
-                }
-                disabled={working}
-              />
-            )}
+            {/* Phase 4 — Generate / View COA buttons.
+                The service allows multiple COAs per sample as long as no
+                ACTIVE one exists, so we surface "ออก COA" again whenever
+                the latest linkedCoa is revoked / superseded. */}
+            {(() => {
+              if (detail.status !== 'released') return null;
+              const lastCoaStatus = detail.linkedCoa?.status ?? null;
+              const hasActiveCoa =
+                detail.linkedCoa != null &&
+                lastCoaStatus !== 'revoked' &&
+                lastCoaStatus !== 'superseded';
+              const canGenerate = !hasActiveCoa;
+              return (
+                <>
+                  {canGenerate && (
+                    <DxButton
+                      text={
+                        detail.linkedCoa
+                          ? 'ออก COA ใหม่ (Generate new COA)'
+                          : 'ออก COA (Generate COA)'
+                      }
+                      icon="doc"
+                      type="success"
+                      onClick={async () => {
+                        setWorking(true);
+                        try {
+                          const res = await fetch('/api/quality/coa', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sampleId: detail.id }),
+                          });
+                          const data = await res.json();
+                          if (!data.success) {
+                            toast.error(data.error || 'ออก COA ล้มเหลว');
+                            return;
+                          }
+                          toast.success(data.message || 'ออก COA สำเร็จ');
+                          if (data.data?.coaId) {
+                            router.push(`/quality/coa/${data.data.coaId}`);
+                          } else {
+                            await fetchDetail();
+                          }
+                        } catch (e) {
+                          toast.error(
+                            e instanceof Error ? e.message : 'ออก COA ล้มเหลว',
+                          );
+                        } finally {
+                          setWorking(false);
+                        }
+                      }}
+                      disabled={working}
+                    />
+                  )}
+                  {detail.linkedCoa && (
+                    <DxButton
+                      text={`ดู COA: ${detail.linkedCoa.coaNumber}${
+                        lastCoaStatus === 'revoked'
+                          ? ' (revoked)'
+                          : lastCoaStatus === 'superseded'
+                          ? ' (superseded)'
+                          : ''
+                      }`}
+                      icon="doc"
+                      stylingMode="outlined"
+                      onClick={() =>
+                        router.push(`/quality/coa/${detail.linkedCoa!.id}`)
+                      }
+                      disabled={working}
+                    />
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -1058,69 +1214,344 @@ export default function QcSampleDetailPage() {
           </div>
           {detail.tests.length === 0 ? (
             <div className="p-6 text-center text-sm text-gray-500">
+              <FlaskConical className="h-8 w-8 mx-auto mb-2 text-emerald-400" />
               ยังไม่มีรายการทดสอบ — กด &quot;Apply test panel&quot; หรือ &quot;เพิ่มการทดสอบ&quot;
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                      #
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                      Test
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide hidden md:table-cell">
-                      Method
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                      Spec
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                      Result
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                      Status
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide hidden md:table-cell">
-                      Tested by
-                    </th>
-                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide print:hidden">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {detail.tests.map((t) => {
-                    const isEditing = editing?.testId === t.id;
-                    const isReviewed = t.reviewedBy != null;
-                    return (
-                      <tr key={t.id} className={isEditing ? 'bg-cyan-50/40' : ''}>
-                        <td className="px-3 py-2 text-sm text-gray-600">
-                          {t.sequence}
-                        </td>
-                        <td className="px-3 py-2">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {t.criteriaNameTh ||
-                                t.criteriaName ||
-                                `criteria#${t.criteriaId}`}
-                            </p>
-                            <p className="text-xs text-gray-500 font-mono">
-                              {t.criteriaCode || ''}
-                            </p>
+            <div className="space-y-3 p-4">
+              {detail.tests.map((t) => {
+                const isEditing = editing?.testId === t.id;
+                const isReviewed = t.reviewedBy != null;
+                const isExpanded = expandedTests.has(t.id);
+                const hasResult =
+                  t.numericResult != null ||
+                  !!t.textResult ||
+                  t.totalRounds > 0;
+                const isPass = t.resultStatus === 'pass';
+                const isFail = t.resultStatus === 'fail' || t.resultStatus === 'oos';
+                const borderColor = isReviewed
+                  ? 'border-l-emerald-500'
+                  : isPass
+                  ? 'border-l-green-400'
+                  : isFail
+                  ? 'border-l-red-400'
+                  : 'border-l-gray-300';
+
+                // Master-data driven recording config for this test.
+                const sampleSize = Math.max(1, Number(t.criteriaSampleSize) || 1);
+                const isMultiSample = sampleSize > 1;
+                const tolerancePct = Number(t.criteriaTolerancePercent) || 0;
+                // maxRetestRounds = number of retests allowed (separate from
+                // the initial Round 1). Total possible rounds = 1 + retests.
+                const maxRetestRounds = Math.max(0, Number(t.criteriaMaxRetestRounds ?? 0));
+                const canRetest =
+                  t.totalRounds > 0 &&
+                  t.totalRounds <= maxRetestRounds &&
+                  !isReviewed;
+
+                // Live preview for the form being edited.
+                let livePreview: 'pass' | 'fail' | null = null;
+                if (isEditing && editing) {
+                  if (isMultiSample) {
+                    const filled = editing.sampleValues.filter(
+                      (v): v is number => v != null && Number.isFinite(v),
+                    );
+                    if (filled.length === sampleSize) {
+                      const failCount = filled.filter((v) =>
+                        evaluateNumeric(v, t.specMin, t.specMax) === 'fail',
+                      ).length;
+                      const failPct = (failCount / filled.length) * 100;
+                      livePreview = failPct <= tolerancePct ? 'pass' : 'fail';
+                    }
+                  } else {
+                    livePreview = evaluateNumeric(editing.numericResult, t.specMin, t.specMax);
+                  }
+                }
+
+                return (
+                  <Card key={t.id} className={`border-l-4 ${borderColor}`}>
+                    <CardContent className="p-4">
+                      {/* Test Header Row */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => toggleExpanded(t.id)}
+                            className="cursor-pointer pt-1"
+                            aria-label={isExpanded ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด'}
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-gray-400" />
+                            )}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs text-gray-500 font-mono">#{t.sequence}</span>
+                              <span className="font-medium text-gray-900">
+                                {t.criteriaNameTh || t.criteriaName || `criteria#${t.criteriaId}`}
+                              </span>
+                              {resultBadge(t.resultStatus)}
+                              {t.criteriaCode && (
+                                <span className="text-xs text-gray-500 font-mono">
+                                  ({t.criteriaCode})
+                                </span>
+                              )}
+                              {isReviewed && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                  <ShieldCheck className="h-3 w-3" /> Reviewed
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {t.testMethod && <span>{t.testMethod} · </span>}
+                              <span>Spec: {formatSpec(t)}</span>
+                            </div>
+                            {(t.testedByName || t.reviewedByName) && (
+                              <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-3">
+                                {t.testedByName && (
+                                  <span>
+                                    ผู้บันทึก:{' '}
+                                    <strong className="text-gray-700">{t.testedByName}</strong>
+                                    {t.testedAt && (
+                                      <span className="text-gray-400 ml-1">
+                                        ({formatDateTh(t.testedAt)})
+                                      </span>
+                                    )}
+                                  </span>
+                                )}
+                                {t.reviewedByName && (
+                                  <span>
+                                    ผู้ทบทวน:{' '}
+                                    <strong className="text-emerald-700">
+                                      {t.reviewedByName}
+                                    </strong>
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </td>
-                        <td className="px-3 py-2 text-xs text-gray-700 hidden md:table-cell">
-                          {t.testMethod || '—'}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-700">
-                          {formatSpec(t)}
-                        </td>
-                        <td className="px-3 py-2 text-sm">
-                          {isEditing ? (
+                        </div>
+
+                        {/* Result quick-view */}
+                        {hasResult && !isEditing && (
+                          <div className="text-right mr-2">
+                            <div className="text-sm font-medium">
+                              {t.numericResult != null
+                                ? `${Number(t.numericResult).toLocaleString(undefined, { maximumFractionDigits: 4 })}${t.unit ? ` ${t.unit}` : ''}`
+                                : t.textResult || '—'}
+                            </div>
+                            {t.totalRounds > 0 && (
+                              <div className="text-xs text-gray-500">
+                                Round {t.totalRounds}{' '}
+                                {isMultiSample && `(avg, n=${sampleSize})`}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        {!isEditing && !isReviewed && canEditTests && (
+                          <div className="flex gap-2">
+                            {!hasResult ? (
+                              <>
+                                <DxButton
+                                  text="บันทึกผล"
+                                  type="default"
+                                  stylingMode="contained"
+                                  onClick={() => handleStartEdit(t)}
+                                  disabled={working}
+                                />
+                                {/* Delete unrecorded test rows — useful when
+                                    operator picked the wrong criteria via the
+                                    "เพิ่มการทดสอบ" dialog. */}
+                                <DxButton
+                                  icon="trash"
+                                  type="danger"
+                                  stylingMode="text"
+                                  hint="ลบการทดสอบนี้"
+                                  onClick={() => handleDeleteTest(t.id)}
+                                  disabled={working}
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <DxButton
+                                  text={`แก้ไข Round ${t.totalRounds}`}
+                                  icon="edit"
+                                  stylingMode="outlined"
+                                  onClick={() => handleStartEdit(t, t.totalRounds || 1)}
+                                  disabled={working}
+                                />
+                                {canRetest && (
+                                  <DxButton
+                                    text={`+ Round ${t.totalRounds + 1}`}
+                                    type="normal"
+                                    stylingMode="outlined"
+                                    hint={`บันทึกรอบใหม่ (สูงสุด ${maxRetestRounds} รอบ)`}
+                                    onClick={() => handleStartEdit(t, t.totalRounds + 1)}
+                                    disabled={working}
+                                  />
+                                )}
+                                <DxButton
+                                  icon="trash"
+                                  type="danger"
+                                  stylingMode="text"
+                                  hint="ลบการทดสอบนี้"
+                                  onClick={() => handleDeleteTest(t.id)}
+                                  disabled={working}
+                                />
+                              </>
+                            )}
+                          </div>
+                        )}
+                        {isReviewed && (
+                          <span className="text-xs text-gray-400 italic">
+                            reviewed — locked
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Expanded notes / details + per-round history */}
+                      {isExpanded && !isEditing && (
+                        <div className="mt-3 pt-3 border-t text-xs text-gray-600 space-y-2">
+                          {/* Round history */}
+                          {t.rounds.length > 0 && (
                             <div className="space-y-2">
+                              {t.rounds.map((round) => (
+                                <div
+                                  key={round.roundNumber}
+                                  className="border rounded-lg p-2.5 bg-gray-50/50"
+                                >
+                                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                    <span className="text-sm font-semibold text-gray-800">
+                                      Round {round.roundNumber}
+                                    </span>
+                                    {resultBadge(round.result)}
+                                    {round.avg != null && (
+                                      <span className="text-xs text-gray-500">
+                                        Avg:{' '}
+                                        <strong>{round.avg.toFixed(2)}</strong>
+                                        {t.unit ? ` ${t.unit}` : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
+                                    {round.samples.map((s) => (
+                                      <div
+                                        key={s.sampleNumber}
+                                        className={`text-center p-1.5 rounded text-xs ${
+                                          s.result === 'pass'
+                                            ? 'bg-green-50 text-green-700'
+                                            : s.result === 'fail'
+                                            ? 'bg-red-50 text-red-700'
+                                            : 'bg-white text-gray-600 border border-gray-200'
+                                        }`}
+                                      >
+                                        <div className="font-medium">#{s.sampleNumber}</div>
+                                        <div>
+                                          {s.numericValue != null
+                                            ? Number(s.numericValue).toFixed(2)
+                                            : s.textValue || '—'}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {t.notes && (
+                            <div>
+                              <span className="font-medium">หมายเหตุ:</span> {t.notes}
+                            </div>
+                          )}
+                          {!t.notes && !hasResult && (
+                            <p className="text-gray-400">ยังไม่มีผลการทดสอบ</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Inline Record Form */}
+                      {isEditing && editing && (
+                        <div className="mt-3 pt-3 border-t border-emerald-200 bg-emerald-50/50 rounded-lg p-3 space-y-3">
+                          {/* Round indicator */}
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                              Round {editing.testRound}
+                            </span>
+                            {editing.testRound > 1 && (
+                              <span className="text-xs text-gray-500">
+                                (ทดสอบรอบที่ {editing.testRound} จากสูงสุด {maxRetestRounds})
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Spec info card */}
+                          <div className="bg-white border border-emerald-200 rounded-md p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <FlaskConical className="h-4 w-4 text-emerald-600" />
+                              <span className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
+                                Specification
+                              </span>
+                            </div>
+                            <div className="text-sm text-gray-800 font-medium">
+                              {formatSpec(t)}
+                            </div>
+                            {t.testMethod && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Method: {t.testMethod}
+                              </div>
+                            )}
+                            <div className="text-xs text-gray-500 mt-1">
+                              ตัวอย่าง: <strong>{sampleSize}</strong>
+                              {tolerancePct > 0 && (
+                                <> · Tolerance: <strong>±{tolerancePct}%</strong></>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Multi-sample numeric grid (sampleSize > 1) */}
+                          {isMultiSample && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                ผลการทดสอบ ({sampleSize} ตัวอย่าง){t.unit ? ` — หน่วย ${t.unit}` : ''}
+                              </label>
+                              <div className="grid grid-cols-5 gap-2">
+                                {editing.sampleValues.map((val, idx) => {
+                                  // Sequential fill — ต้องกรอก #N ก่อน #N+1 จึงจะเปิดใช้
+                                  const prevFilled =
+                                    idx === 0 || editing.sampleValues[idx - 1] != null;
+                                  return (
+                                    <div key={idx} className={!prevFilled ? 'opacity-40' : ''}>
+                                      <label className="block text-xs text-gray-500 mb-0.5">
+                                        #{idx + 1}
+                                      </label>
+                                      <DxNumberBox
+                                        value={val}
+                                        onValueChange={(v) => {
+                                          if (!editing) return;
+                                          const next = [...editing.sampleValues];
+                                          next[idx] = v ?? null;
+                                          setEditing({ ...editing, sampleValues: next });
+                                        }}
+                                        placeholder="0.00"
+                                        readOnly={!prevFilled}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Single-sample numeric input (sampleSize === 1) */}
+                          {!isMultiSample && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                ผลการทดสอบ (ตัวเลข) {t.unit ? `(${t.unit})` : ''}
+                              </label>
                               <DxNumberBox
                                 value={editing.numericResult ?? null}
                                 onValueChange={(v) =>
@@ -1130,98 +1561,121 @@ export default function QcSampleDetailPage() {
                                       : editing,
                                   )
                                 }
-                                placeholder="ตัวเลข"
+                                placeholder="0.00"
                                 showClearButton
                               />
+                            </div>
+                          )}
+
+                          {/* Text fallback (only when no multi-sample) */}
+                          {!isMultiSample && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                หรือผลแบบข้อความ (ถ้าไม่ใช่ตัวเลข)
+                              </label>
                               <DxTextBox
                                 value={editing.textResult}
                                 onValueChange={(v) =>
                                   setEditing(
-                                    editing
-                                      ? { ...editing, textResult: v }
-                                      : editing,
+                                    editing ? { ...editing, textResult: v } : editing,
                                   )
                                 }
-                                placeholder="ข้อความ (ถ้าไม่ใช่ตัวเลข)"
+                                placeholder="เช่น Pass, ใส, สีเหลืองอ่อน"
                               />
                             </div>
-                          ) : (
-                            <div>
-                              {t.numericResult != null ? (
-                                <span className="font-medium">
-                                  {Number(t.numericResult).toLocaleString(
-                                    undefined,
-                                    { maximumFractionDigits: 4 },
-                                  )}
-                                  {t.unit ? ` ${t.unit}` : ''}
+                          )}
+
+                          {/* Live pass/fail summary bar */}
+                          {(() => {
+                            const filled = isMultiSample
+                              ? editing.sampleValues.filter(
+                                  (v): v is number => v != null && Number.isFinite(v),
+                                ).length
+                              : editing.numericResult != null
+                              ? 1
+                              : 0;
+                            const total = isMultiSample ? sampleSize : 1;
+                            if (filled === 0) return null;
+                            const passCount = isMultiSample
+                              ? editing.sampleValues.filter(
+                                  (v) =>
+                                    v != null && evaluateNumeric(v, t.specMin, t.specMax) === 'pass',
+                                ).length
+                              : livePreview === 'pass'
+                              ? 1
+                              : 0;
+                            const failCount = filled - passCount;
+                            const failPct = filled > 0 ? (failCount / filled) * 100 : 0;
+                            const overallPass = filled === total && failPct <= tolerancePct;
+                            const allFilled = filled === total;
+                            return (
+                              <div
+                                className={`flex items-center justify-between p-2 rounded text-sm font-medium ${
+                                  !allFilled
+                                    ? 'bg-amber-50 text-amber-700'
+                                    : overallPass
+                                    ? 'bg-green-50 text-green-700'
+                                    : 'bg-red-50 text-red-700'
+                                }`}
+                              >
+                                <span>
+                                  ผ่าน {passCount}/{filled} ตัวอย่าง
+                                  {filled > 0 && ` (${(100 - failPct).toFixed(0)}%)`}
                                 </span>
-                              ) : t.textResult ? (
-                                <span className="font-medium">{t.textResult}</span>
-                              ) : (
-                                <span className="text-gray-400">—</span>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {resultBadge(t.resultStatus)}
-                        </td>
-                        <td className="px-3 py-2 text-xs text-gray-600 hidden md:table-cell">
-                          {t.testedByName ? (
-                            <div>
-                              <p>{t.testedByName}</p>
-                              <p className="text-[10px] text-gray-500">
-                                {formatDateTh(t.testedAt)}
-                              </p>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-right print:hidden">
-                          {isReviewed ? (
-                            <span className="text-xs text-gray-400">
-                              reviewed — locked
-                            </span>
-                          ) : isEditing ? (
-                            <div className="flex justify-end gap-1">
-                              <DxButton
-                                icon="check"
-                                type="success"
-                                stylingMode="text"
-                                onClick={handleSaveEdit}
-                                disabled={working}
-                              />
-                              <DxButton
-                                icon="close"
-                                stylingMode="text"
-                                onClick={handleCancelEdit}
-                                disabled={working}
-                              />
-                            </div>
-                          ) : canEditTests ? (
-                            <div className="flex justify-end gap-1">
-                              <DxButton
-                                icon="edit"
-                                stylingMode="text"
-                                onClick={() => handleStartEdit(t)}
-                                disabled={working}
-                              />
-                              <DxButton
-                                icon="trash"
-                                type="danger"
-                                stylingMode="text"
-                                onClick={() => handleDeleteTest(t.id)}
-                                disabled={working}
-                              />
-                            </div>
-                          ) : null}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                                <span className="text-xs">
+                                  {!allFilled
+                                    ? `กรอก ${filled}/${total}`
+                                    : `Tolerance ±${tolerancePct}% — ${overallPass ? 'PASS' : 'FAIL'}`}
+                                </span>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Notes */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              หมายเหตุ
+                            </label>
+                            <DxTextArea
+                              value={editing.notes}
+                              onValueChange={(v) =>
+                                setEditing(editing ? { ...editing, notes: v } : editing)
+                              }
+                              placeholder="ระบุข้อสังเกต / เงื่อนไขการทดสอบ"
+                              height={60}
+                            />
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center justify-end gap-2">
+                            <DxButton
+                              text="ยกเลิก"
+                              stylingMode="text"
+                              onClick={handleCancelEdit}
+                              disabled={working}
+                            />
+                            <DxButton
+                              text={working ? 'กำลังบันทึก...' : 'บันทึก'}
+                              type="success"
+                              stylingMode="contained"
+                              onClick={handleSaveEdit}
+                              disabled={(() => {
+                                if (working) return true;
+                                // Multi-sample: every input must be filled
+                                if (isMultiSample) {
+                                  return editing.sampleValues.some((v) => v == null);
+                                }
+                                // Single: numeric or text must be present
+                                return editing.numericResult == null && !editing.textResult.trim();
+                              })()}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1480,11 +1934,11 @@ export default function QcSampleDetailPage() {
         onHiding={() => {
           if (!working) {
             setShowApplyPanel(false);
-            setSelectedPanelId(null);
+            setSelectedPanelIds([]);
           }
         }}
         title="Apply test panel"
-        width={520}
+        width={560}
         height="auto"
         showCloseButton
       >
@@ -1496,17 +1950,28 @@ export default function QcSampleDetailPage() {
           ) : (
             <>
               <p className="text-sm text-gray-700">
-                เลือก panel-row ที่จะ apply เข้าสู่ตัวอย่างนี้:
+                เลือก panel-row ที่จะ apply เข้าสู่ตัวอย่างนี้
+                <span className="text-xs text-gray-500"> (เลือกได้หลายรายการ)</span>:
               </p>
-              <DxSelectBox
-                value={selectedPanelId}
-                dataSource={panelOptions}
+              <DxTagBox
+                value={selectedPanelIds}
+                dataSource={panelOptions as unknown as Record<string, unknown>[]}
                 displayExpr="label"
                 valueExpr="id"
-                onValueChange={(v) => setSelectedPanelId(v == null ? null : Number(v))}
+                onValueChanged={(e) => {
+                  const next = Array.isArray(e.value) ? (e.value as number[]) : [];
+                  setSelectedPanelIds(next);
+                }}
                 placeholder="เลือก panel"
                 searchEnabled
+                showSelectionControls
               />
+              {selectedPanelIds.length > 0 && (
+                <p className="text-xs text-cyan-700">
+                  เลือกแล้ว <strong>{selectedPanelIds.length}</strong> panel — ระบบจะ apply
+                  ทุก panel เข้าตัวอย่างนี้
+                </p>
+              )}
             </>
           )}
           <div className="flex justify-end gap-2 pt-3 border-t">
@@ -1515,7 +1980,7 @@ export default function QcSampleDetailPage() {
               stylingMode="outlined"
               onClick={() => {
                 setShowApplyPanel(false);
-                setSelectedPanelId(null);
+                setSelectedPanelIds([]);
               }}
               disabled={working}
             />
@@ -1523,7 +1988,7 @@ export default function QcSampleDetailPage() {
               text={working ? 'กำลัง apply...' : 'Apply'}
               type="default"
               onClick={handleApplyPanel}
-              disabled={working || !selectedPanelId}
+              disabled={working || selectedPanelIds.length === 0}
             />
           </div>
         </div>

@@ -116,6 +116,23 @@ export const addOrUpdateTestSchema = z
     textResult: z.string().max(2000).nullable().optional(),
     notes: z.string().max(2000).nullable().optional(),
     attachmentPath: z.string().max(500).nullable().optional(),
+    // Multi-sample readings (e.g. n=10 average weight). When provided, the
+    // service ignores numericResult and computes the average from samples,
+    // storing each individual reading in qc_sample_test_samples for audit.
+    samples: z
+      .array(
+        z.object({
+          sampleNumber: z.number().int().min(1),
+          numericValue: z.number().nullable().optional(),
+          textValue: z.string().max(2000).nullable().optional(),
+          result: z.enum(['pass', 'fail']).nullable().optional(),
+        }),
+      )
+      .nullable()
+      .optional(),
+    // Retest round number (1-based). Defaults to (existing max round + 1) on
+    // insert, or to the round being edited on update.
+    testRound: z.number().int().min(1).nullable().optional(),
   })
   // At least one of (numericResult, textResult) must be present when entering
   // a result, but both can be empty when seeding a panel row with no result yet.

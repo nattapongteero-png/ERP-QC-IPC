@@ -26,7 +26,7 @@
 import { eq, and, desc, asc, gte, lte, like, or, inArray, sql, isNull } from 'drizzle-orm';
 import { executeDbOperation, getInsertId, getAffectedRows } from '../db/db-helper';
 import { isSqlite } from '../db';
-import { getNow, toQueryDate } from '../db/date-utils';
+import { getNow, toQueryDate, toDbDate } from '../db/date-utils';
 import {
   // SQLite tables
   sqliteQcSamples,
@@ -34,6 +34,7 @@ import {
   sqliteQcTestPanels,
   sqliteQcOosInvestigations,
   sqliteQcSampleSignatures,
+  sqliteQcSampleTestSamples,
   sqliteIPCCriteria,
   sqliteItems,
   sqliteCustomers,
@@ -46,6 +47,7 @@ import {
   mysqlQcTestPanels,
   mysqlQcOosInvestigations,
   mysqlQcSampleSignatures,
+  mysqlQcSampleTestSamples,
   mysqlIPCCriteria,
   mysqlItems,
   mysqlCustomers,
@@ -85,6 +87,7 @@ function getTables() {
     return {
       samples: sqliteQcSamples,
       tests: sqliteQcSampleTests,
+      testSamples: sqliteQcSampleTestSamples,
       panels: sqliteQcTestPanels,
       oos: sqliteQcOosInvestigations,
       signatures: sqliteQcSampleSignatures,
@@ -99,6 +102,7 @@ function getTables() {
   return {
     samples: mysqlQcSamples,
     tests: mysqlQcSampleTests,
+    testSamples: mysqlQcSampleTestSamples,
     panels: mysqlQcTestPanels,
     oos: mysqlQcOosInvestigations,
     signatures: mysqlQcSampleSignatures,
@@ -159,6 +163,24 @@ export interface QcSampleListResult {
   limit: number;
 }
 
+/** Single sample reading inside a recorded test round. */
+export interface QcSampleTestSampleRow {
+  sampleNumber: number;
+  numericValue: number | null;
+  textValue: string | null;
+  result: 'pass' | 'fail' | null;
+}
+
+/** One recording round on a test (Round 1, Round 2 retest, ...). */
+export interface QcSampleTestRoundRow {
+  roundNumber: number;
+  samples: QcSampleTestSampleRow[];
+  /** Average of numeric values across the round, when available. */
+  avg: number | null;
+  /** Aggregate pass/fail computed at the time of recording. */
+  result: 'pass' | 'fail' | 'pending';
+}
+
 export interface QcSampleTestRow {
   id: number;
   sampleId: number;
@@ -166,6 +188,13 @@ export interface QcSampleTestRow {
   criteriaCode: string | null;
   criteriaName: string | null;
   criteriaNameTh: string | null;
+  /** Master-data settings drive the recording UI (numeric vs checklist, n samples). */
+  criteriaType: string | null;
+  criteriaSampleSize: number | null;
+  criteriaTolerancePercent: number | null;
+  criteriaMaxRetestRounds: number | null;
+  criteriaAcceptanceStages: string | null;
+  criteriaSpecSpecification: string | null;
   sequence: number;
   specMin: number | null;
   specMax: number | null;
@@ -184,6 +213,10 @@ export interface QcSampleTestRow {
   reviewedAt: string | Date | null;
   notes: string | null;
   attachmentPath: string | null;
+  /** Per-round history with individual sample readings. Empty when no rounds recorded yet. */
+  rounds: QcSampleTestRoundRow[];
+  /** Highest round number recorded so far (0 when no samples saved yet). */
+  totalRounds: number;
 }
 
 export interface QcSampleSignatureRow {
@@ -504,15 +537,15 @@ export async function createQcSample(
       sourceRefText: input.sourceRefText ?? null,
       productId: input.productId,
       lotNumber: input.lotNumber ?? null,
-      manufactureDate: input.manufactureDate || null,
-      expiryDate: input.expiryDate || null,
-      retestDate: input.retestDate || null,
+      manufactureDate: input.manufactureDate ? toDbDate(input.manufactureDate) : null,
+      expiryDate: input.expiryDate ? toDbDate(input.expiryDate) : null,
+      retestDate: input.retestDate ? toDbDate(input.retestDate) : null,
       quantityReceived: input.quantityReceived ?? null,
       unit: input.unit ?? null,
       storageConditions: input.storageConditions ?? null,
       customerId: input.customerId ?? null,
       salesOrderRef: input.salesOrderRef ?? null,
-      receivedDate: input.receivedDate,
+      receivedDate: toDbDate(input.receivedDate),
       receivedBy: input.receivedBy,
       status: 'registered',
       notes: input.notes ?? null,
@@ -605,6 +638,8 @@ export async function getQcSampleById(
     if (!header) return null;
 
     // Tests + criteria join + tested/reviewed user names.
+    // Pulls master-data settings (criteriaType, sampleSize, tolerance, retest)
+    // so the recording UI can adapt to whatever the criteria defines.
     const testRows = await db
       .select({
         id: tables.tests.id,
@@ -613,6 +648,12 @@ export async function getQcSampleById(
         criteriaCode: tables.criteria.code,
         criteriaName: tables.criteria.name,
         criteriaNameTh: tables.criteria.nameTh,
+        criteriaType: tables.criteria.criteriaType,
+        criteriaSampleSize: tables.criteria.sampleSize,
+        criteriaTolerancePercent: tables.criteria.tolerancePercent,
+        criteriaMaxRetestRounds: tables.criteria.maxRetestRounds,
+        criteriaAcceptanceStages: tables.criteria.acceptanceStages,
+        criteriaSpecSpecification: tables.criteria.specification,
         sequence: tables.tests.sequence,
         specMin: tables.tests.specMin,
         specMax: tables.tests.specMax,
@@ -635,6 +676,51 @@ export async function getQcSampleById(
       .where(eq(tables.tests.sampleId, id))
       .orderBy(asc(tables.tests.sequence), asc(tables.tests.id));
 
+    // Per-test sample readings (rounds + per-sample values). Loaded in one
+    // batched query to avoid N+1 against qc_sample_test_samples.
+    const sampleTestIdList = (testRows as any[]).map((t) => Number(t.id));
+    const sampleRows = sampleTestIdList.length > 0
+      ? await db
+          .select({
+            sampleTestId: tables.testSamples.sampleTestId,
+            sampleNumber: tables.testSamples.sampleNumber,
+            testRound: tables.testSamples.testRound,
+            numericValue: tables.testSamples.numericValue,
+            textValue: tables.testSamples.textValue,
+            result: tables.testSamples.result,
+          })
+          .from(tables.testSamples)
+          .where(inArray(tables.testSamples.sampleTestId, sampleTestIdList))
+          .orderBy(
+            asc(tables.testSamples.sampleTestId),
+            asc(tables.testSamples.testRound),
+            asc(tables.testSamples.sampleNumber),
+          )
+      : [];
+
+    // Group samples by (testId → roundNumber → sample[]).
+    const samplesByTest = new Map<number, Map<number, QcSampleTestSampleRow[]>>();
+    for (const r of sampleRows as any[]) {
+      const tid = Number(r.sampleTestId);
+      const round = Number(r.testRound) || 1;
+      let byRound = samplesByTest.get(tid);
+      if (!byRound) {
+        byRound = new Map();
+        samplesByTest.set(tid, byRound);
+      }
+      let arr = byRound.get(round);
+      if (!arr) {
+        arr = [];
+        byRound.set(round, arr);
+      }
+      arr.push({
+        sampleNumber: Number(r.sampleNumber) || 1,
+        numericValue: r.numericValue != null ? Number(r.numericValue) : null,
+        textValue: r.textValue ?? null,
+        result: (r.result === 'pass' || r.result === 'fail') ? r.result : null,
+      });
+    }
+
     // Tested/reviewed names — single-batch lookup.
     const userIds: number[] = [];
     for (const t of testRows as any[]) {
@@ -653,32 +739,64 @@ export async function getQcSampleById(
       }
     }
 
-    const tests: QcSampleTestRow[] = (testRows as any[]).map((t) => ({
-      id: Number(t.id),
-      sampleId: Number(t.sampleId),
-      criteriaId: Number(t.criteriaId),
-      criteriaCode: t.criteriaCode ?? null,
-      criteriaName: t.criteriaName ?? null,
-      criteriaNameTh: t.criteriaNameTh ?? null,
-      sequence: Number(t.sequence) || 1,
-      specMin: t.specMin != null ? Number(t.specMin) : null,
-      specMax: t.specMax != null ? Number(t.specMax) : null,
-      specTarget: t.specTarget != null ? Number(t.specTarget) : null,
-      specText: t.specText ?? null,
-      unit: t.unit ?? null,
-      testMethod: t.testMethod ?? null,
-      numericResult: t.numericResult != null ? Number(t.numericResult) : null,
-      textResult: t.textResult ?? null,
-      resultStatus: String(t.resultStatus || 'pending'),
-      testedBy: t.testedBy != null ? Number(t.testedBy) : null,
-      testedByName: t.testedBy != null ? userMap.get(Number(t.testedBy)) ?? null : null,
-      testedAt: t.testedAt ?? null,
-      reviewedBy: t.reviewedBy != null ? Number(t.reviewedBy) : null,
-      reviewedByName: t.reviewedBy != null ? userMap.get(Number(t.reviewedBy)) ?? null : null,
-      reviewedAt: t.reviewedAt ?? null,
-      notes: t.notes ?? null,
-      attachmentPath: t.attachmentPath ?? null,
-    }));
+    const tests: QcSampleTestRow[] = (testRows as any[]).map((t) => {
+      const tid = Number(t.id);
+      const tolerance = t.criteriaTolerancePercent != null ? Number(t.criteriaTolerancePercent) : 0;
+      const byRound = samplesByTest.get(tid);
+      const rounds: QcSampleTestRoundRow[] = [];
+      if (byRound) {
+        const sortedRoundNums = Array.from(byRound.keys()).sort((a, b) => a - b);
+        for (const r of sortedRoundNums) {
+          const samples = byRound.get(r)!;
+          const numericVals = samples
+            .map((s) => s.numericValue)
+            .filter((v): v is number => v != null && Number.isFinite(v));
+          const avg = numericVals.length > 0
+            ? numericVals.reduce((a, b) => a + b, 0) / numericVals.length
+            : null;
+          rounds.push({
+            roundNumber: r,
+            samples,
+            avg,
+            result: computeRoundResult(samples, tolerance),
+          });
+        }
+      }
+      return {
+        id: tid,
+        sampleId: Number(t.sampleId),
+        criteriaId: Number(t.criteriaId),
+        criteriaCode: t.criteriaCode ?? null,
+        criteriaName: t.criteriaName ?? null,
+        criteriaNameTh: t.criteriaNameTh ?? null,
+        criteriaType: t.criteriaType ?? null,
+        criteriaSampleSize: t.criteriaSampleSize != null ? Number(t.criteriaSampleSize) : null,
+        criteriaTolerancePercent: t.criteriaTolerancePercent != null ? Number(t.criteriaTolerancePercent) : null,
+        criteriaMaxRetestRounds: t.criteriaMaxRetestRounds != null ? Number(t.criteriaMaxRetestRounds) : null,
+        criteriaAcceptanceStages: t.criteriaAcceptanceStages ?? null,
+        criteriaSpecSpecification: t.criteriaSpecSpecification ?? null,
+        sequence: Number(t.sequence) || 1,
+        specMin: t.specMin != null ? Number(t.specMin) : null,
+        specMax: t.specMax != null ? Number(t.specMax) : null,
+        specTarget: t.specTarget != null ? Number(t.specTarget) : null,
+        specText: t.specText ?? null,
+        unit: t.unit ?? null,
+        testMethod: t.testMethod ?? null,
+        numericResult: t.numericResult != null ? Number(t.numericResult) : null,
+        textResult: t.textResult ?? null,
+        resultStatus: String(t.resultStatus || 'pending'),
+        testedBy: t.testedBy != null ? Number(t.testedBy) : null,
+        testedByName: t.testedBy != null ? userMap.get(Number(t.testedBy)) ?? null : null,
+        testedAt: t.testedAt ?? null,
+        reviewedBy: t.reviewedBy != null ? Number(t.reviewedBy) : null,
+        reviewedByName: t.reviewedBy != null ? userMap.get(Number(t.reviewedBy)) ?? null : null,
+        reviewedAt: t.reviewedAt ?? null,
+        notes: t.notes ?? null,
+        attachmentPath: t.attachmentPath ?? null,
+        rounds,
+        totalRounds: rounds.length > 0 ? rounds[rounds.length - 1].roundNumber : 0,
+      };
+    });
 
     // Signatures
     const sigRows = await db
@@ -962,9 +1080,13 @@ export async function updateQcSample(
       'receivedDate',
       'notes',
     ];
+    const dateFields = new Set(['manufactureDate', 'expiryDate', 'retestDate', 'receivedDate']);
     for (const k of allowed) {
       if (updates[k] !== undefined) {
-        set[k] = updates[k];
+        const v = updates[k];
+        set[k] = (dateFields.has(k) && v != null && v !== '')
+          ? toDbDate(v as string | Date)
+          : v;
       }
     }
 
@@ -981,6 +1103,38 @@ export interface AddOrUpdateTestResult {
   testId: number;
   resultStatus: string;
   inserted: boolean;
+}
+
+/** Compute round-level pass/fail from per-sample results + tolerance %. */
+function computeRoundResult(
+  samples: Array<{ result?: 'pass' | 'fail' | null | undefined }>,
+  tolerancePercent: number,
+): 'pass' | 'fail' | 'pending' {
+  const filled = samples.filter((s) => s.result === 'pass' || s.result === 'fail');
+  if (filled.length === 0) return 'pending';
+  const failCount = filled.filter((s) => s.result === 'fail').length;
+  const failPct = (failCount / filled.length) * 100;
+  return failPct <= tolerancePercent ? 'pass' : 'fail';
+}
+
+/** Evaluate a single numeric reading against the spec range. */
+function evaluateSampleResult(
+  numericValue: number | null | undefined,
+  textValue: string | null | undefined,
+  explicitResult: 'pass' | 'fail' | null | undefined,
+  specMin: number | null | undefined,
+  specMax: number | null | undefined,
+): 'pass' | 'fail' | null {
+  if (explicitResult === 'pass' || explicitResult === 'fail') return explicitResult;
+  if (numericValue == null && (textValue == null || textValue === '')) return null;
+  if (numericValue != null && Number.isFinite(numericValue)) {
+    if (specMin == null && specMax == null) return null;
+    if (specMin != null && numericValue < Number(specMin) - SPEC_EPSILON) return 'fail';
+    if (specMax != null && numericValue > Number(specMax) + SPEC_EPSILON) return 'fail';
+    return 'pass';
+  }
+  // Plain text — caller didn't say pass/fail and we can't auto-evaluate.
+  return null;
 }
 
 export async function addOrUpdateTest(
@@ -1014,19 +1168,70 @@ export async function addOrUpdateTest(
     const unit = input.unit ?? criteriaSnap.unit;
     const testMethod = input.testMethod ?? criteriaSnap.testMethod;
 
-    // 3. Compute pass/fail/pending from numericResult vs spec range.
-    const resultStatus = computeResultStatus({
-      numericResult: input.numericResult,
-      textResult: input.textResult,
-      specMin,
-      specMax,
-      specTarget,
-    });
+    // Tolerance + retest config from the criteria master record (used when
+    // multi-sample input is provided).
+    const [criteriaRow] = await db
+      .select({
+        tolerancePercent: tables.criteria.tolerancePercent,
+        maxRetestRounds: tables.criteria.maxRetestRounds,
+      })
+      .from(tables.criteria)
+      .where(eq(tables.criteria.id, input.criteriaId))
+      .limit(1);
+    const tolerancePercent = Number(criteriaRow?.tolerancePercent ?? 0);
+    const maxRetestRounds = Number(criteriaRow?.maxRetestRounds ?? 1);
 
     const now = getNow();
+    const hasSamples = Array.isArray(input.samples) && input.samples.length > 0;
+
+    // When multi-sample readings are supplied, evaluate each sample, derive
+    // the round-level pass/fail from tolerance %, and use the average as the
+    // canonical numericResult on qc_sample_tests.
+    let computedNumericResult: number | null = input.numericResult ?? null;
+    let computedTextResult: string | null = input.textResult ?? null;
+    let computedResultStatus: string;
+    let evaluatedSamples: Array<{
+      sampleNumber: number;
+      numericValue: number | null;
+      textValue: string | null;
+      result: 'pass' | 'fail' | null;
+    }> = [];
+
+    if (hasSamples) {
+      evaluatedSamples = input.samples!.map((s) => ({
+        sampleNumber: s.sampleNumber,
+        numericValue: s.numericValue ?? null,
+        textValue: s.textValue ?? null,
+        result: evaluateSampleResult(
+          s.numericValue,
+          s.textValue,
+          s.result ?? null,
+          specMin ?? null,
+          specMax ?? null,
+        ),
+      }));
+      const numericValues = evaluatedSamples
+        .map((s) => s.numericValue)
+        .filter((v): v is number => v != null && Number.isFinite(v));
+      computedNumericResult =
+        numericValues.length > 0
+          ? numericValues.reduce((a, b) => a + b, 0) / numericValues.length
+          : null;
+      computedResultStatus = computeRoundResult(evaluatedSamples, tolerancePercent);
+    } else {
+      computedResultStatus = computeResultStatus({
+        numericResult: computedNumericResult,
+        textResult: computedTextResult,
+        specMin,
+        specMax,
+        specTarget,
+      });
+    }
+
     const hasResult =
-      (input.numericResult != null && Number.isFinite(input.numericResult)) ||
-      (input.textResult != null && String(input.textResult).trim().length > 0);
+      hasSamples ||
+      (computedNumericResult != null && Number.isFinite(computedNumericResult)) ||
+      (computedTextResult != null && String(computedTextResult).trim().length > 0);
 
     // 4a. Update existing row.
     if (input.testId) {
@@ -1053,6 +1258,55 @@ export async function addOrUpdateTest(
         );
       }
 
+      // Determine the test round we are recording. When samples are supplied:
+      //   - explicit testRound from caller (e.g. editing an existing round) wins
+      //   - otherwise default to (max existing round + 1) — but cap by criteria's
+      //     maxRetestRounds so operators can't bypass the master-data limit.
+      let targetRound = input.testRound ?? null;
+      if (hasSamples) {
+        if (targetRound == null) {
+          const [maxRow] = await db
+            .select({
+              maxRound: sql<number>`COALESCE(MAX(${tables.testSamples.testRound}), 0)`,
+            })
+            .from(tables.testSamples)
+            .where(eq(tables.testSamples.sampleTestId, input.testId));
+          const maxExisting = Number(maxRow?.maxRound ?? 0);
+          targetRound = Math.max(1, maxExisting); // edit latest round by default
+          if (maxExisting === 0) targetRound = 1;
+        }
+        // maxRetestRounds = "number of retests allowed" (per ipc_criteria
+        // semantics — see resolveMaxRetestRounds in wo-execution.service.ts).
+        // Round 1 is the initial test and is always allowed; rounds 2+ are
+        // retests, capped by maxRetestRounds.
+        if (targetRound > 1 && targetRound > maxRetestRounds + 1) {
+          throw new Error(
+            `Round ${targetRound} exceeds the allowed retest count (${maxRetestRounds}) defined on the criteria`,
+          );
+        }
+        // Replace any existing samples for this round to keep the per-round
+        // history clean (avoid orphaned partial readings).
+        await db
+          .delete(tables.testSamples)
+          .where(
+            and(
+              eq(tables.testSamples.sampleTestId, input.testId),
+              eq(tables.testSamples.testRound, targetRound),
+            ),
+          );
+        for (const s of evaluatedSamples) {
+          await db.insert(tables.testSamples).values({
+            sampleTestId: input.testId,
+            sampleNumber: s.sampleNumber,
+            testRound: targetRound,
+            numericValue: s.numericValue,
+            textValue: s.textValue,
+            result: s.result,
+            createdAt: now,
+          });
+        }
+      }
+
       await db
         .update(tables.tests)
         .set({
@@ -1064,9 +1318,9 @@ export async function addOrUpdateTest(
           specText,
           unit,
           testMethod,
-          numericResult: input.numericResult ?? null,
-          textResult: input.textResult ?? null,
-          resultStatus,
+          numericResult: computedNumericResult,
+          textResult: computedTextResult,
+          resultStatus: computedResultStatus,
           testedBy: hasResult ? userId : null,
           testedAt: hasResult ? now : null,
           notes: input.notes ?? null,
@@ -1075,7 +1329,7 @@ export async function addOrUpdateTest(
         })
         .where(eq(tables.tests.id, input.testId));
 
-      return { testId: input.testId, resultStatus, inserted: false };
+      return { testId: input.testId, resultStatus: computedResultStatus, inserted: false };
     }
 
     // 4b. Insert new row.
@@ -1089,9 +1343,9 @@ export async function addOrUpdateTest(
       specText,
       unit,
       testMethod,
-      numericResult: input.numericResult ?? null,
-      textResult: input.textResult ?? null,
-      resultStatus,
+      numericResult: computedNumericResult,
+      textResult: computedTextResult,
+      resultStatus: computedResultStatus,
       testedBy: hasResult ? userId : null,
       testedAt: hasResult ? now : null,
       notes: input.notes ?? null,
@@ -1100,7 +1354,30 @@ export async function addOrUpdateTest(
       updatedAt: now,
     });
     const testId = Number(getInsertId(insertResult));
-    return { testId, resultStatus, inserted: true };
+
+    // When samples were supplied alongside the insert, persist them under
+    // round 1 (or the explicit testRound from the caller).
+    if (hasSamples) {
+      const targetRound = input.testRound ?? 1;
+      if (targetRound > maxRetestRounds) {
+        throw new Error(
+          `Round ${targetRound} exceeds maxRetestRounds (${maxRetestRounds}) defined on the criteria`,
+        );
+      }
+      for (const s of evaluatedSamples) {
+        await db.insert(tables.testSamples).values({
+          sampleTestId: testId,
+          sampleNumber: s.sampleNumber,
+          testRound: targetRound,
+          numericValue: s.numericValue,
+          textValue: s.textValue,
+          result: s.result,
+          createdAt: now,
+        });
+      }
+    }
+
+    return { testId, resultStatus: computedResultStatus, inserted: true };
   });
 }
 
