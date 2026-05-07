@@ -29,7 +29,7 @@
       "description": "Define packaging weight and quality control criteria"
     },
     "ipcCriteria": {
-      "title": "IPC Criteria",
+      "title": "QC & IPC Criteria",
       "description": "Define In-Process Control test criteria for production quality"
     }
   },

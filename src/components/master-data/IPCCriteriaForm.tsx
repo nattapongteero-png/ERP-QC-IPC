@@ -369,14 +369,14 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       style={{ fontFamily: 'var(--font-inter), var(--font-sarabun), system-ui, -apple-system, sans-serif' }}
     >
       <ResponsivePageHeader
-        title={mode === 'edit' ? 'Edit IPC Criteria' : 'New IPC Criteria'}
+        title={mode === 'edit' ? 'Edit QC & IPC Criteria' : 'New QC & IPC Criteria'}
         subtitle={mode === 'edit' ? `Editing ${initialData.name || ''}` : 'สร้างเกณฑ์ควบคุมคุณภาพระหว่างการผลิต (In-Process Control) ตามมาตรฐาน GMP / USP'}
         icon={FlaskConical}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
-          { label: 'IPC Criteria', href: '/master-data/ipc-criteria' },
+          { label: 'QC & IPC Criteria', href: '/master-data/ipc-criteria' },
           { label: mode === 'edit' ? 'Edit' : 'New' },
         ]}
       />

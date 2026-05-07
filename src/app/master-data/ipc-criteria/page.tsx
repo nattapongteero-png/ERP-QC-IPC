@@ -129,7 +129,7 @@ export default function IPCCriteriaPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ipc-criteria'] });
-      toast.success('ลบสำเร็จ', 'IPC Criteria ถูกลบเรียบร้อย');
+      toast.success('ลบสำเร็จ', 'QC & IPC Criteria ถูกลบเรียบร้อย');
     },
     onError: (error: Error) => toast.error('Error', error.message),
   });
@@ -137,7 +137,7 @@ export default function IPCCriteriaPage() {
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       <ResponsivePageHeader
-        title="IPC Criteria"
+        title="QC & IPC Criteria"
         subtitle="In-Process Control test criteria for production quality"
         icon={FlaskConical}
         iconBgColor="bg-emerald-100"
@@ -145,7 +145,7 @@ export default function IPCCriteriaPage() {
         onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
-          { label: 'IPC Criteria' },
+          { label: 'QC & IPC Criteria' },
         ]}
         actions={
           <DxButton text="Add Criteria" icon="plus" type="success" onClick={() => router.push('/master-data/ipc-criteria/new')} />
@@ -231,7 +231,7 @@ export default function IPCCriteriaPage() {
         {isLoading ? (
           <div className="text-center py-8 text-gray-400">กำลังโหลด...</div>
         ) : (criteria || []).length === 0 ? (
-          <div className="text-center py-8 text-gray-400">ยังไม่มีข้อมูล IPC Criteria</div>
+          <div className="text-center py-8 text-gray-400">ยังไม่มีข้อมูล QC & IPC Criteria</div>
         ) : (
           (criteria || []).map((d: IPCCriteria, i: number) => (
             <div key={d.id} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">

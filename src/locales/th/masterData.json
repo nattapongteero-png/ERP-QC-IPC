@@ -29,7 +29,7 @@
       "description": "กำหนดเกณฑ์น้ำหนักและการควบคุมคุณภาพบรรจุภัณฑ์"
     },
     "ipcCriteria": {
-      "title": "เกณฑ์ IPC",
+      "title": "เกณฑ์ QC & IPC",
       "description": "กำหนดเกณฑ์การควบคุมคุณภาพระหว่างผลิต (In-Process Control)"
     }
   },

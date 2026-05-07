@@ -317,7 +317,7 @@ export function ProcedureStepIPCChips({ templateId, procedureStepId }: Props) {
               <div>
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                   <FlaskConical className="h-5 w-5 text-emerald-600" />
-                  เลือก IPC Criteria
+                  เลือก QC & IPC Criteria
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
                   IPC ที่เพิ่มจะแสดงให้ operator กรอกค่าในหน้าบันทึก WO ของขั้นตอนนี้
