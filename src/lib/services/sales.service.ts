@@ -12,11 +12,15 @@ import {
   sqliteSalesDeliveries,
   sqliteItems,
   sqliteInventoryLots,
+  sqliteARInvoices,
+  sqliteJournalEntries,
   mysqlSalesOrders,
   mysqlSalesOrderLines,
   mysqlSalesDeliveries,
   mysqlItems,
   mysqlInventoryLots,
+  mysqlARInvoices,
+  mysqlJournalEntries,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.service';
@@ -51,6 +55,8 @@ function getTables() {
       salesDeliveries: sqliteSalesDeliveries,
       items: sqliteItems,
       lots: sqliteInventoryLots,
+      arInvoices: sqliteARInvoices,
+      journalEntries: sqliteJournalEntries,
     };
   }
   return {
@@ -59,6 +65,8 @@ function getTables() {
     salesDeliveries: mysqlSalesDeliveries,
     items: mysqlItems,
     lots: mysqlInventoryLots,
+    arInvoices: mysqlARInvoices,
+    journalEntries: mysqlJournalEntries,
   };
 }
 
@@ -373,11 +381,13 @@ export interface FulfillmentResult {
   cogsJournalEntryId?: number;
   cogsJournalEntryNumber?: string;
   accountingMessage?: string;
+  accountingFailed?: boolean;
   // AR Invoice integration
   arInvoiceId?: number;
   arInvoiceNumber?: string;
   taxInvoiceNumber?: string;
   arInvoiceMessage?: string;
+  arInvoiceFailed?: boolean;
 }
 
 /**
@@ -552,6 +562,8 @@ export async function fulfillSalesOrderLine(
   let arInvoiceNumber: string | undefined;
   let taxInvoiceNumber: string | undefined;
   let arInvoiceMessage: string | undefined;
+  let accountingFailed = false;
+  let arInvoiceFailed = false;
 
   try {
     // Get unit price from SO line
@@ -569,9 +581,13 @@ export async function fulfillSalesOrderLine(
     // Only create journal entries if there's a price
     if (lineTotal > 0) {
       // Calculate VAT (7%)
+      // SO unit price is VAT-exclusive — VAT is added at shipment when the
+      // tax invoice is issued, so totalAmount must be net + VAT for the
+      // sales JE to balance (Dr. AR = Cr. Sales + Cr. Output VAT).
       const vatCalc = calculateVAT(lineTotal, false);
       const vatAmount = vatCalc.vatAmount;
       const netAmount = vatCalc.baseAmount;
+      const grossAmount = vatCalc.totalAmount;
 
       // Use COGS from the calculated result
       const costOfGoodsSold = cogsResult.totalCost;
@@ -585,7 +601,7 @@ export async function fulfillSalesOrderLine(
           soNumber: so.soNumber,
           customerName: so.customerName,
           shipmentDate: getTodayStr(),
-          totalAmount: lineTotal,
+          totalAmount: grossAmount,
           vatAmount,
           netAmount,
           costOfGoodsSold,
@@ -624,7 +640,7 @@ export async function fulfillSalesOrderLine(
             itemName: itemDetail?.nameTh || itemDetail?.nameEn || 'Unknown',
             quantity: input.quantity,
             unitPrice,
-            totalAmount: lineTotal,
+            totalAmount: grossAmount,
             vatAmount,
             netAmount,
             lotId: input.lotId,
@@ -639,6 +655,7 @@ export async function fulfillSalesOrderLine(
       } catch (arError) {
         console.error('Failed to create AR invoice:', arError);
         arInvoiceMessage = `ไม่สามารถสร้างใบแจ้งหนี้ AR ได้: ${arError instanceof Error ? arError.message : 'Unknown error'}`;
+        arInvoiceFailed = true;
       }
     } else {
       accountingMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างรายการบัญชี';
@@ -648,6 +665,8 @@ export async function fulfillSalesOrderLine(
     // Log error but don't fail the fulfillment
     console.error('Failed to create accounting entries:', accountingError);
     accountingMessage = `ไม่สามารถสร้างรายการบัญชีได้: ${accountingError instanceof Error ? accountingError.message : 'Unknown error'}`;
+    accountingFailed = true;
+    arInvoiceFailed = true;
   }
 
   return {
@@ -659,9 +678,243 @@ export async function fulfillSalesOrderLine(
     cogsJournalEntryId,
     cogsJournalEntryNumber,
     accountingMessage,
+    accountingFailed,
     arInvoiceId,
     arInvoiceNumber,
     taxInvoiceNumber,
     arInvoiceMessage,
+    arInvoiceFailed,
   };
+}
+
+// ============================================================================
+// Retry accounting for an existing shipment
+// ============================================================================
+//
+// Usable when the original fulfill call shipped the goods but the accounting
+// integration failed silently (e.g. the VAT-unbalanced JE bug fixed in
+// 2026-05). Idempotent: skips deliveries that already have a posted sales JE
+// or AR invoice so it's safe to run as a recovery sweep.
+
+export interface RetryAccountingResult {
+  deliveryId: number;
+  deliveryNumber: string;
+  alreadyHadJournal: boolean;
+  alreadyHadInvoice: boolean;
+  salesJournalEntryId?: number;
+  salesJournalEntryNumber?: string;
+  cogsJournalEntryId?: number;
+  cogsJournalEntryNumber?: string;
+  arInvoiceId?: number;
+  arInvoiceNumber?: string;
+  taxInvoiceNumber?: string;
+  message: string;
+}
+
+export async function retryAccountingForDelivery(
+  deliveryId: number,
+  userId: number,
+): Promise<RetryAccountingResult> {
+  const database = (await getDb()) as any;
+  const { salesOrders, salesOrderLines, salesDeliveries, items, arInvoices, journalEntries } =
+    getTables();
+
+  const [delivery] = await database
+    .select()
+    .from(salesDeliveries)
+    .where(eq(salesDeliveries.id, deliveryId));
+  if (!delivery) throw new Error(`Delivery ${deliveryId} not found`);
+
+  const [so] = await database
+    .select()
+    .from(salesOrders)
+    .where(eq(salesOrders.id, delivery.soId));
+  if (!so) throw new Error(`Sales order ${delivery.soId} not found`);
+
+  const [soLine] = await database
+    .select()
+    .from(salesOrderLines)
+    .where(eq(salesOrderLines.id, delivery.soLineId));
+  if (!soLine) throw new Error(`SO line ${delivery.soLineId} not found`);
+
+  const [item] = await database
+    .select()
+    .from(items)
+    .where(eq(items.id, delivery.itemId));
+
+  const existingJournals = await database
+    .select({ id: journalEntries.id })
+    .from(journalEntries)
+    .where(
+      and(
+        eq(journalEntries.sourceType, 'SO_SHIPMENT'),
+        eq(journalEntries.sourceId, deliveryId),
+      ),
+    );
+  const alreadyHadJournal = existingJournals.length > 0;
+
+  const existingInvoices = await database
+    .select({ id: arInvoices.id, invoiceNumber: arInvoices.invoiceNumber })
+    .from(arInvoices)
+    .where(eq(arInvoices.salesOrderId, delivery.soId));
+  const alreadyHadInvoice = existingInvoices.length > 0;
+
+  if (alreadyHadJournal && alreadyHadInvoice) {
+    return {
+      deliveryId,
+      deliveryNumber: delivery.deliveryNumber,
+      alreadyHadJournal,
+      alreadyHadInvoice,
+      message: 'รายการบัญชีและใบกำกับภาษีถูกสร้างไว้แล้ว — ข้าม',
+    };
+  }
+
+  const unitPrice = Number(soLine.unitPrice) || 0;
+  const quantity = Number(delivery.quantity) || 0;
+  const lineTotal = unitPrice * quantity;
+  if (lineTotal <= 0) {
+    return {
+      deliveryId,
+      deliveryNumber: delivery.deliveryNumber,
+      alreadyHadJournal,
+      alreadyHadInvoice,
+      message: 'ไม่มีราคาสินค้า — ไม่ต้องสร้างรายการบัญชี',
+    };
+  }
+
+  const cogsResult = await calculateCOGS(delivery.itemId, quantity, unitPrice);
+  await updateSOLineWithCOGS(delivery.soLineId, cogsResult);
+
+  const vatCalc = calculateVAT(lineTotal, false);
+
+  let salesJournalEntryId: number | undefined;
+  let salesJournalEntryNumber: string | undefined;
+  let cogsJournalEntryId: number | undefined;
+  let cogsJournalEntryNumber: string | undefined;
+  if (!alreadyHadJournal) {
+    const accountingResult = await createSOShipmentJournalEntry(
+      {
+        deliveryId,
+        deliveryNumber: delivery.deliveryNumber,
+        soId: delivery.soId,
+        soNumber: so.soNumber,
+        customerName: so.customerName,
+        shipmentDate: getTodayStr(),
+        totalAmount: vatCalc.totalAmount,
+        vatAmount: vatCalc.vatAmount,
+        netAmount: vatCalc.baseAmount,
+        costOfGoodsSold: cogsResult.totalCost,
+      },
+      userId,
+    );
+    salesJournalEntryId = accountingResult.salesJournalEntryId;
+    salesJournalEntryNumber = accountingResult.salesJournalEntryNumber;
+    cogsJournalEntryId = accountingResult.cogsJournalEntryId;
+    cogsJournalEntryNumber = accountingResult.cogsJournalEntryNumber;
+  }
+
+  let arInvoiceId: number | undefined;
+  let arInvoiceNumber: string | undefined;
+  let taxInvoiceNumber: string | undefined;
+  if (!alreadyHadInvoice) {
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 30);
+    const arResult = await createARInvoiceFromSOShipment(
+      {
+        soId: delivery.soId,
+        soNumber: so.soNumber,
+        customerId: undefined,
+        customerName: so.customerName,
+        shipmentDate: getTodayStr(),
+        dueDate: dueDate.toISOString().split('T')[0],
+        deliveryId,
+        deliveryNumber: delivery.deliveryNumber,
+        itemId: delivery.itemId,
+        itemCode: item?.code || 'Unknown',
+        itemName: item?.nameTh || item?.nameEn || 'Unknown',
+        quantity,
+        unitPrice,
+        totalAmount: vatCalc.totalAmount,
+        vatAmount: vatCalc.vatAmount,
+        netAmount: vatCalc.baseAmount,
+        lotId: delivery.lotId,
+      },
+      userId,
+    );
+    arInvoiceId = arResult.arInvoiceId;
+    arInvoiceNumber = arResult.arInvoiceNumber;
+    taxInvoiceNumber = arResult.taxInvoiceNumber;
+  }
+
+  return {
+    deliveryId,
+    deliveryNumber: delivery.deliveryNumber,
+    alreadyHadJournal,
+    alreadyHadInvoice,
+    salesJournalEntryId,
+    salesJournalEntryNumber,
+    cogsJournalEntryId,
+    cogsJournalEntryNumber,
+    arInvoiceId,
+    arInvoiceNumber,
+    taxInvoiceNumber,
+    message: alreadyHadJournal || alreadyHadInvoice
+      ? 'สร้างรายการบัญชีที่ขาดเรียบร้อย'
+      : 'สร้างรายการบัญชีและใบกำกับภาษีย้อนหลังเรียบร้อย',
+  };
+}
+
+// Sweep recovery: scan all shipped deliveries that are missing accounting
+// artifacts and retry. Returns per-delivery results so the caller can audit.
+export async function retryAccountingForAllPendingDeliveries(
+  userId: number,
+): Promise<{ scanned: number; fixed: number; results: RetryAccountingResult[] }> {
+  const database = (await getDb()) as any;
+  const { salesDeliveries, journalEntries, arInvoices } = getTables();
+
+  const allDeliveries = await database
+    .select({
+      id: salesDeliveries.id,
+      soId: salesDeliveries.soId,
+      status: salesDeliveries.status,
+    })
+    .from(salesDeliveries)
+    .where(eq(salesDeliveries.status, 'shipped'));
+
+  const results: RetryAccountingResult[] = [];
+  let fixed = 0;
+  for (const d of allDeliveries) {
+    const hasJE = await database
+      .select({ id: journalEntries.id })
+      .from(journalEntries)
+      .where(
+        and(
+          eq(journalEntries.sourceType, 'SO_SHIPMENT'),
+          eq(journalEntries.sourceId, d.id),
+        ),
+      )
+      .limit(1);
+    const hasAR = await database
+      .select({ id: arInvoices.id })
+      .from(arInvoices)
+      .where(eq(arInvoices.salesOrderId, d.soId))
+      .limit(1);
+    if (hasJE.length > 0 && hasAR.length > 0) continue;
+
+    try {
+      const r = await retryAccountingForDelivery(d.id, userId);
+      results.push(r);
+      if (!r.alreadyHadJournal || !r.alreadyHadInvoice) fixed += 1;
+    } catch (e) {
+      results.push({
+        deliveryId: d.id,
+        deliveryNumber: '?',
+        alreadyHadJournal: false,
+        alreadyHadInvoice: false,
+        message: `ผิดพลาด: ${e instanceof Error ? e.message : 'unknown'}`,
+      });
+    }
+  }
+
+  return { scanned: allDeliveries.length, fixed, results };
 }

@@ -11,6 +11,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxPopup } from '@/components/ui/dx-popup';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils/cn';
 import {
   ArrowLeft,
@@ -346,6 +347,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   const resolvedParams = use(params);
   const router = useRouter();
   const t = useTranslations('sales');
+  const toast = useToast();
   const [data, setData] = useState<SODetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -430,6 +432,26 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
 
       if (result.success) {
         setShowFulfillModal(false);
+        // Surface partial-success warnings: shipment recorded but the
+        // accounting integration (sales JE / COGS / AR invoice) failed.
+        // Without this the user thinks everything's fine but the books
+        // are silently out of sync.
+        const data = result.data ?? {};
+        if (data.accountingFailed) {
+          toast.error(
+            data.accountingMessage ||
+              'ส่งของสำเร็จแต่สร้างรายการบัญชีไม่ได้ — กรุณาแจ้งฝ่ายบัญชี',
+          );
+        } else if (data.arInvoiceFailed) {
+          toast.error(
+            data.arInvoiceMessage ||
+              'ส่งของสำเร็จแต่ออกใบกำกับภาษีไม่ได้ — กรุณาแจ้งฝ่ายบัญชี',
+          );
+        } else if (data.arInvoiceNumber) {
+          toast.success(
+            `ส่งของและออกใบกำกับภาษี ${data.taxInvoiceNumber || data.arInvoiceNumber} เรียบร้อย`,
+          );
+        }
         fetchSODetail(); // Refresh order data
         fetchDeliveries(); // Refresh delivery history
       } else {
