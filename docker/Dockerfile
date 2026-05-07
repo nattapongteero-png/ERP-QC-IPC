@@ -41,6 +41,23 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Install Alpine's native Chromium for CoA PDF rendering. The bundled
+# @sparticuz/chromium binary is built against glibc (Lambda/Debian) and
+# fails on Alpine's musl with "symbol not found" errors. Using Alpine's
+# chromium package + CHROMIUM_PATH lets puppeteer-core spawn the system
+# binary reliably. Font packages cover Thai + emoji glyphs.
+RUN apk add --no-cache \
+      chromium \
+      nss \
+      freetype \
+      harfbuzz \
+      ca-certificates \
+      ttf-freefont \
+      font-noto \
+      font-noto-thai
+ENV CHROMIUM_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

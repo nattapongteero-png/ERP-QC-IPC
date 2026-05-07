@@ -174,10 +174,27 @@ export async function renderCoaPdf(
     );
   }
 
+  // When running on a system-installed Chromium (CHROMIUM_PATH set in the
+  // Dockerfile for Alpine), the @sparticuz/chromium args (designed for AWS
+  // Lambda — e.g. --single-process) cause `Target closed` crashes. Use
+  // Docker-friendly args in that case; otherwise fall back to sparticuz's.
+  const useSystemChromium = !!process.env.CHROMIUM_PATH;
+  const launchArgs = useSystemChromium
+    ? [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--no-zygote',
+        '--font-render-hinting=none',
+      ]
+    : chromium.args;
+
   let browser: import('puppeteer-core').Browser | null = null;
   try {
     browser = await puppeteer.launch({
-      args: chromium.args,
+      args: launchArgs,
       defaultViewport: { width: 1240, height: 1754 }, // ~A4 at 150dpi
       executablePath,
       headless: true,

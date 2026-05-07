@@ -22,7 +22,7 @@ import { DxTagBox } from '@/components/ui/dx-tag-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { CoaPreview } from '@/components/coa/CoaPreview';
-import { Eye, Save, Star, AlertTriangle } from 'lucide-react';
+import { Eye, Save, Star, AlertTriangle, Upload, X } from 'lucide-react';
 import type { CoaDocumentFull, CoaTemplate } from '@/lib/services/coa.service';
 
 export interface CoaTemplateForm {
@@ -418,15 +418,11 @@ export function CoaTemplateEditor({
 
         {/* Header config */}
         <Section title="ส่วนหัวเอกสาร (Header)">
-          <Field label="โลโก้ (path)">
-            <DxTextBox
-              value={form.headerLogoPath ?? ''}
-              onValueChange={(v) => setField('headerLogoPath', v || null)}
-              placeholder="/uploads/logo.png"
+          <Field label="โลโก้">
+            <LogoUploader
+              value={form.headerLogoPath ?? null}
+              onChange={(v) => setField('headerLogoPath', v)}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              ระบุ path ของไฟล์โลโก้ (ถ้ามี). อัปโหลดไฟล์ผ่าน /api/uploads แยกต่างหาก.
-            </p>
           </Field>
           <Field label="ข้อความหัวเอกสาร (Header text)">
             <DxTextArea
@@ -578,6 +574,121 @@ function SwitchField({
         <p className="text-sm text-gray-800">{label}</p>
         {hint ? <p className="text-xs text-gray-500 mt-0.5">{hint}</p> : null}
       </div>
+    </div>
+  );
+}
+
+/** File upload + preview for the CoA header logo. Hits /api/uploads/coa-logo
+ *  which writes the image under /public/uploads/coa-logos/ and returns the
+ *  public URL path stored in coa_templates.headerLogoPath. */
+function LogoUploader({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (path: string | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const toast = useToast();
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('ไฟล์ไม่รองรับ', 'กรุณาเลือกไฟล์รูปภาพ (PNG, JPG, SVG, WEBP, GIF)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('ไฟล์ใหญ่เกินไป', 'ขนาดต้องไม่เกิน 5MB');
+      return;
+    }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/uploads/coa-logo', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('อัปโหลดไม่สำเร็จ', data.error || 'Unknown error');
+        return;
+      }
+      const path = data.data?.path;
+      if (typeof path !== 'string' || path.length === 0) {
+        toast.error('อัปโหลดไม่สำเร็จ', 'Server did not return a logo path');
+        return;
+      }
+      onChange(path);
+      toast.success('อัปโหลดสำเร็จ', path);
+    } catch (e) {
+      toast.error('อัปโหลดไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+        }}
+      />
+      {value ? (
+        <div className="flex items-start gap-3 p-2 border border-gray-200 rounded-md bg-gray-50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={value}
+            alt="Logo preview"
+            className="h-16 w-16 object-contain bg-white border border-gray-200 rounded"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-gray-700 truncate font-mono" title={value}>
+              {value}
+            </p>
+            <div className="flex gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                <Upload className="h-3 w-3" />
+                {uploading ? 'กำลังอัปโหลด...' : 'เปลี่ยนรูป'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange(null)}
+                disabled={uploading}
+                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+              >
+                <X className="h-3 w-3" />
+                ลบ
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center justify-center gap-2 w-full py-4 border-2 border-dashed border-gray-300 rounded-md text-sm text-gray-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+        >
+          <Upload className="h-4 w-4" />
+          {uploading ? 'กำลังอัปโหลด...' : 'เลือกไฟล์โลโก้จากเครื่อง'}
+        </button>
+      )}
+      <p className="text-xs text-gray-500">
+        รองรับ PNG, JPG, SVG, WEBP, GIF — ขนาดไม่เกิน 5MB
+      </p>
     </div>
   );
 }

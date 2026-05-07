@@ -16,11 +16,17 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSwitch } from '@/components/ui/dx-switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Award, Eye } from 'lucide-react';
+import { Award, Eye, Mail, Link2 } from 'lucide-react';
 import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
+import {
+  CustomerSearchDialog,
+  type Customer,
+} from '@/components/ui/customer-search-dialog';
 
 interface CoaTestResult {
   id: number;
@@ -122,6 +128,20 @@ export default function CoaDetailPage() {
   const [revokeReason, setRevokeReason] = useState('');
   const [supersedeOpen, setSupersedeOpen] = useState(false);
   const [supersedeId, setSupersedeId] = useState<number | null>(null);
+
+  // Phase 8 — link to order
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkCustomer, setLinkCustomer] = useState<Customer | null>(null);
+  const [linkSalesOrderRef, setLinkSalesOrderRef] = useState('');
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+
+  // Phase 8 — email to customer
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState('');
+  const [emailCc, setEmailCc] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailAttachOfficial, setEmailAttachOfficial] = useState(true);
 
   const fetchDetail = useCallback(async () => {
     if (!coaId || !Number.isFinite(coaId)) return;

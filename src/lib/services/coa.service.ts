@@ -1540,6 +1540,256 @@ export async function setDefaultCoaTemplate(
 }
 
 // ----------------------------------------------------------------------------
+// Phase 8 — Customer linkage + Sales-order cross-listing
+// ----------------------------------------------------------------------------
+
+/**
+ * List COA documents that reference a given sales-order ref. Used by the
+ * Sales Order detail page to show "Quality Certificates" attached to the
+ * order so customer-service can hand them off at shipment time.
+ *
+ * Matches `coa_documents.sales_order_ref` against the supplied identifier
+ * as a string (so callers can pass either the SO number "SO-2026-001" or
+ * a numeric id; we cast to string).
+ */
+export async function listCoaForOrder(
+  salesOrderRef: string | number,
+): Promise<CoaListRow[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const ref = String(salesOrderRef ?? '').trim();
+    if (!ref) return [];
+    const rows = await db
+      .select({
+        id: tables.coa.id,
+        coaNumber: tables.coa.coaNumber,
+        sampleId: tables.coa.sampleId,
+        productId: tables.coa.productId,
+        productCode: tables.items.code,
+        productName: tables.items.nameTh,
+        lotNumber: tables.coa.lotNumber,
+        customerId: tables.coa.customerId,
+        customerName: tables.customers.name,
+        issueDate: tables.coa.issueDate,
+        status: tables.coa.status,
+        conclusion: tables.coa.conclusion,
+        createdAt: tables.coa.createdAt,
+      })
+      .from(tables.coa)
+      .leftJoin(tables.items, eq(tables.coa.productId, tables.items.id))
+      .leftJoin(tables.customers, eq(tables.coa.customerId, tables.customers.id))
+      .where(eq(tables.coa.salesOrderRef, ref))
+      .orderBy(desc(tables.coa.id));
+    return (rows as any[]).map((r) => ({
+      id: Number(r.id),
+      coaNumber: String(r.coaNumber),
+      sampleId: Number(r.sampleId),
+      productId: Number(r.productId),
+      productCode: r.productCode ?? null,
+      productName: r.productName ?? null,
+      lotNumber: String(r.lotNumber || ''),
+      customerId: r.customerId != null ? Number(r.customerId) : null,
+      customerName: r.customerName ?? null,
+      issueDate: r.issueDate,
+      status: r.status as CoaStatus,
+      conclusion: r.conclusion as CoaConclusion,
+      createdAt: r.createdAt,
+    }));
+  });
+}
+
+/**
+ * Link a COA to a customer + sales order. Allowed only for COAs that are
+ * already in status='issued' — operators should never re-route a draft
+ * because the printed certificate would already be in transit.
+ */
+export async function linkCoaToOrder(
+  coaId: number,
+  customerId: number | null,
+  salesOrderRef: string | null,
+): Promise<{ updated: boolean }> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const [coa] = await db
+      .select({ id: tables.coa.id, status: tables.coa.status })
+      .from(tables.coa)
+      .where(eq(tables.coa.id, coaId))
+      .limit(1);
+    if (!coa) throw new Error(`COA ${coaId} not found`);
+    if (coa.status !== 'issued') {
+      throw new Error(
+        `Can only link COA when status='issued' (current: ${coa.status})`,
+      );
+    }
+    const now = getNow();
+    await db
+      .update(tables.coa)
+      .set({
+        customerId: customerId ?? null,
+        salesOrderRef: salesOrderRef ?? null,
+        updatedAt: now,
+      })
+      .where(eq(tables.coa.id, coaId));
+    return { updated: true };
+  });
+}
+
+// ----------------------------------------------------------------------------
+// Phase 8 — Email COA to customer
+// ----------------------------------------------------------------------------
+
+export interface EmailCoaInput {
+  coaId: number;
+  recipientEmail: string;
+  ccEmails?: string[];
+  subject?: string;
+  bodyText?: string;
+  attachOfficial: boolean;
+  sentBy: number;
+  ipAddress?: string;
+}
+
+export interface EmailCoaResult {
+  messageId: string | null;
+  deliveredAt: string | Date;
+  /** True if SMTP wasn't configured — caller can show a graceful warning. */
+  smtpUnavailable: boolean;
+}
+
+/**
+ * Send the COA to a customer email.
+ *
+ * SMTP configuration is read from env at call time:
+ *   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM,
+ *   SMTP_SECURE ('true'|'false', default true if port=465)
+ *
+ * If SMTP_HOST is unset, we DO NOT crash — we log a warning and return
+ * `smtpUnavailable: true`. The print history row is still recorded with
+ * the customer email so operators have a paper trail.
+ *
+ * If `attachOfficial` is true and the COA is in status='issued', we render
+ * the official PDF (no watermark) and attach as `COA-{number}.pdf`. If
+ * Chromium isn't available we fall back to "no attachment" but still send
+ * the email with the verify-portal URL embedded in the body.
+ */
+export async function emailCoaToCustomer(
+  input: EmailCoaInput,
+): Promise<EmailCoaResult> {
+  // 1. Load COA
+  const coa = await getCoaById(input.coaId);
+  if (!coa) throw new Error(`COA ${input.coaId} not found`);
+
+  // 2. Build subject + body defaults
+  const subject =
+    input.subject?.trim() ||
+    `Certificate of Analysis — ${coa.coaNumber}`;
+  const verifyUrl =
+    `${(process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:33021').replace(
+      /\/$/,
+      '',
+    )}/coa/verify/${coa.coaNumber}`;
+  const defaultBody =
+    `Dear Customer,\n\n` +
+    `Please find attached the Certificate of Analysis for the following lot:\n\n` +
+    `  Product : ${coa.productName ?? coa.productCode ?? `#${coa.productId}`}\n` +
+    `  Lot     : ${coa.lotNumber}\n` +
+    `  COA No  : ${coa.coaNumber}\n` +
+    `  Issued  : ${coa.issueDate}\n\n` +
+    `You can verify this certificate online at:\n` +
+    `  ${verifyUrl}\n\n` +
+    `Best regards,\nQA Department`;
+  const bodyText = input.bodyText?.trim() || defaultBody;
+
+  // 3. Optionally render official PDF
+  let attachment: { filename: string; content: Buffer } | null = null;
+  if (input.attachOfficial && coa.status === 'issued') {
+    try {
+      const { renderCoaPdf } = await import('@/lib/coa/pdf-renderer');
+      const pdf = await renderCoaPdf(coa, { watermark: null });
+      attachment = {
+        filename: `${coa.coaNumber}.pdf`,
+        content: pdf,
+      };
+    } catch (err) {
+      console.warn(
+        `[coa-email] PDF render failed — sending without attachment: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  // 4. Send via nodemailer if configured
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpFrom = process.env.SMTP_FROM || process.env.SMTP_USER;
+  let messageId: string | null = null;
+  let smtpUnavailable = false;
+
+  if (!smtpHost || !smtpFrom) {
+    console.warn(
+      '[coa-email] SMTP_HOST or SMTP_FROM not configured — email will not be sent. ' +
+        `(coaId=${input.coaId}, to=${input.recipientEmail})`,
+    );
+    smtpUnavailable = true;
+  } else {
+    try {
+      const nm = await import('nodemailer');
+      const port = Number(process.env.SMTP_PORT || 587);
+      const secureEnv = process.env.SMTP_SECURE;
+      const secure =
+        secureEnv != null
+          ? String(secureEnv).toLowerCase() === 'true'
+          : port === 465;
+      const transporter = nm.createTransport({
+        host: smtpHost,
+        port,
+        secure,
+        auth:
+          process.env.SMTP_USER && process.env.SMTP_PASS
+            ? {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+              }
+            : undefined,
+      });
+      const info = await transporter.sendMail({
+        from: smtpFrom,
+        to: input.recipientEmail,
+        cc:
+          input.ccEmails && input.ccEmails.length > 0
+            ? input.ccEmails.join(', ')
+            : undefined,
+        subject,
+        text: bodyText,
+        attachments: attachment ? [attachment] : undefined,
+      });
+      messageId = info.messageId ?? null;
+    } catch (err) {
+      console.error(
+        '[coa-email] sendMail failed:',
+        err instanceof Error ? err.message : err,
+      );
+      smtpUnavailable = true;
+    }
+  }
+
+  // 5. Log to print history regardless of SMTP outcome (paper trail).
+  await logCoaPrint({
+    coaId: input.coaId,
+    printedBy: input.sentBy,
+    printType: 'customer_email',
+    customerEmail: input.recipientEmail,
+    ipAddress: input.ipAddress,
+  });
+
+  return {
+    messageId,
+    deliveredAt: getNow(),
+    smtpUnavailable,
+  };
+}
+
+// ----------------------------------------------------------------------------
 // Phase 5 — Distinct product categories (powering template productCategory SelectBox)
 // ----------------------------------------------------------------------------
 
