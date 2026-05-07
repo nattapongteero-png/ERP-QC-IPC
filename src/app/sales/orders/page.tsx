@@ -844,6 +844,7 @@ export default function SalesOrdersPage() {
               exportFileName="sales-orders"
               columnChooser
               responsiveColumns
+              pageSize={20}
               virtualScrolling={filteredOrders.length > 100}
               height={600}
               mobileHeight={520}
