@@ -497,7 +497,14 @@ export function ItemEditForm({
   }, [item]);
 
   const handleSave = async () => {
-    await onSave(formData);
+    // The API expects the singular field name `storageCondition` (matching the
+    // DB column `storage_condition`). Our form state uses the plural form, so
+    // map at the boundary — without this, the API silently drops the value.
+    const payload = {
+      ...formData,
+      storageCondition: formData.storageConditions,
+    } as ItemFormData & { storageCondition: string };
+    await onSave(payload);
   };
 
   const handleGenerateCode = async () => {
