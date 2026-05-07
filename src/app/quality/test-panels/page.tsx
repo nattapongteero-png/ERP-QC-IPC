@@ -12,17 +12,18 @@
  */
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTagBox } from '@/components/ui/dx-tag-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ListChecks } from 'lucide-react';
+import { ListChecks, Package, CheckCircle2, FolderOpen } from 'lucide-react';
 
 interface TestPanelRow {
   id: number;
@@ -57,7 +58,10 @@ interface FormState {
   id: number | null;
   productId: number | null;
   productCategory: string;
+  /** Single criteria — used when editing an existing row. */
   criteriaId: number | null;
+  /** Multi criteria — used when creating new rows. Each entry creates one row. */
+  criteriaIds: number[];
   isRequired: boolean;
   sequence: number;
   isActive: boolean;
@@ -68,6 +72,7 @@ const EMPTY_FORM: FormState = {
   productId: null,
   productCategory: '',
   criteriaId: null,
+  criteriaIds: [],
   isRequired: true,
   sequence: 1,
   isActive: true,
@@ -167,6 +172,7 @@ export default function TestPanelsAdminPage() {
       productId: row.productId,
       productCategory: row.productCategory ?? '',
       criteriaId: row.criteriaId,
+      criteriaIds: [],
       isRequired: row.isRequired,
       sequence: row.sequence,
       isActive: row.isActive,
@@ -175,41 +181,94 @@ export default function TestPanelsAdminPage() {
   };
 
   const handleSubmit = async () => {
-    if (!form.criteriaId) {
-      toast.error('กรุณาเลือกเกณฑ์ (criteria)');
-      return;
-    }
     if (!form.productId && !form.productCategory) {
       toast.error('กรุณาเลือกสินค้าหรือหมวดหมู่อย่างน้อย 1 อย่าง');
       return;
     }
+    const isNew = form.id == null;
+
+    // Edit mode = single criteria; New mode = multi-select array.
+    if (!isNew && !form.criteriaId) {
+      toast.error('กรุณาเลือกเกณฑ์ (criteria)');
+      return;
+    }
+    if (isNew && form.criteriaIds.length === 0) {
+      toast.error('กรุณาเลือกเกณฑ์ (criteria) อย่างน้อย 1 รายการ');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const payload = {
-        productId: form.productId,
-        productCategory: form.productCategory || null,
-        criteriaId: form.criteriaId,
-        isRequired: form.isRequired,
-        sequence: form.sequence,
-        isActive: form.isActive,
-      };
-      const isNew = form.id == null;
-      const url = isNew
-        ? '/api/quality/test-panels'
-        : `/api/quality/test-panels/${form.id}`;
-      const method = isNew ? 'POST' : 'PUT';
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!data.success) {
-        toast.error('บันทึกไม่สำเร็จ', data.error || 'Unknown error');
+      if (isNew) {
+        // Create one row per selected criteria. Sequence auto-increments
+        // starting from form.sequence so operators don't have to assign each.
+        const startSeq = Math.max(1, Number(form.sequence) || 1);
+        let okCount = 0;
+        const failures: string[] = [];
+
+        for (let i = 0; i < form.criteriaIds.length; i++) {
+          const criteriaId = form.criteriaIds[i];
+          const payload = {
+            productId: form.productId,
+            productCategory: form.productCategory || null,
+            criteriaId,
+            isRequired: form.isRequired,
+            sequence: startSeq + i,
+            isActive: form.isActive,
+          };
+          try {
+            const res = await fetch('/api/quality/test-panels', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (data.success) {
+              okCount++;
+            } else {
+              failures.push(`criteria #${criteriaId}: ${data.error || 'unknown error'}`);
+            }
+          } catch (e) {
+            failures.push(`criteria #${criteriaId}: ${e instanceof Error ? e.message : 'network error'}`);
+          }
+        }
+
+        if (failures.length === 0) {
+          toast.success('เพิ่มแล้ว', `${okCount} รายการ`);
+          setShowForm(false);
+          await fetchPanels();
+        } else if (okCount > 0) {
+          toast.warning(
+            `เพิ่มสำเร็จ ${okCount}/${form.criteriaIds.length}`,
+            failures.join('\n'),
+          );
+          await fetchPanels();
+        } else {
+          toast.error('เพิ่มไม่สำเร็จ', failures.join('\n'));
+        }
       } else {
-        toast.success(isNew ? 'เพิ่มแล้ว' : 'อัปเดตแล้ว');
-        setShowForm(false);
-        await fetchPanels();
+        // Edit existing row — single PUT with single criteriaId.
+        const payload = {
+          productId: form.productId,
+          productCategory: form.productCategory || null,
+          criteriaId: form.criteriaId,
+          isRequired: form.isRequired,
+          sequence: form.sequence,
+          isActive: form.isActive,
+        };
+        const res = await fetch(`/api/quality/test-panels/${form.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          toast.error('บันทึกไม่สำเร็จ', data.error || 'Unknown error');
+        } else {
+          toast.success('อัปเดตแล้ว');
+          setShowForm(false);
+          await fetchPanels();
+        }
       }
     } catch (e) {
       toast.error('บันทึกไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
@@ -358,6 +417,51 @@ export default function TestPanelsAdminPage() {
           }
         />
 
+        {/* KPI strip — quick overview of how panels are distributed across
+            specific products vs category-level fallbacks. */}
+        {(() => {
+          const total = rows.length;
+          const productSpecific = rows.filter((r) => r.productId != null).length;
+          const categoryLevel = rows.filter((r) => r.productId == null && r.productCategory).length;
+          const activeCount = rows.filter((r) => r.isActive).length;
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <StatCard
+                label="Total panel rows"
+                value={total}
+                icon={ListChecks}
+                iconColor="text-cyan-500"
+                accentColor="border-cyan-500"
+                isLoading={loading}
+              />
+              <StatCard
+                label="Product-specific"
+                value={productSpecific}
+                icon={Package}
+                iconColor="text-emerald-500"
+                accentColor="border-emerald-500"
+                isLoading={loading}
+              />
+              <StatCard
+                label="Category-level"
+                value={categoryLevel}
+                icon={FolderOpen}
+                iconColor="text-amber-500"
+                accentColor="border-amber-500"
+                isLoading={loading}
+              />
+              <StatCard
+                label="Active"
+                value={activeCount}
+                icon={CheckCircle2}
+                iconColor="text-green-500"
+                accentColor="border-green-500"
+                isLoading={loading}
+              />
+            </div>
+          );
+        })()}
+
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           {loading ? (
             <div className="p-6 text-center text-gray-500">กำลังโหลด...</div>
@@ -390,6 +494,13 @@ export default function TestPanelsAdminPage() {
               groupPanel
               pageSize={50}
               height="auto"
+              onRowClick={(e) => {
+                // Click row → open edit dialog (single-row mode). Edit/delete
+                // icons in the action column still work for explicit clicks.
+                if (e?.data?.id) {
+                  handleEdit(e.data as TestPanelRow);
+                }
+              }}
               noDataText="ไม่พบข้อมูล"
             />
           )}
@@ -403,7 +514,9 @@ export default function TestPanelsAdminPage() {
           if (!submitting) setShowForm(false);
         }}
         title={form.id ? 'แก้ไข panel-row' : 'เพิ่ม panel-row'}
-        width={560}
+        // Responsive width — fills 95vw on small phones, caps at 560 on tablets
+        // and up so dialogs don't overflow the viewport.
+        width="min(560px, 95vw)"
         height="auto"
         showCloseButton
       >
@@ -444,21 +557,50 @@ export default function TestPanelsAdminPage() {
               }
             />
           </div>
-          <DxSelectBox
-            label="เกณฑ์ (IPC criteria)"
-            value={form.criteriaId}
-            dataSource={criteriaItems}
-            displayExpr="label"
-            valueExpr="id"
-            onValueChange={(v) =>
-              setForm({ ...form, criteriaId: v == null ? null : Number(v) })
-            }
-            searchEnabled
-            required
-          />
+          {/* New mode: multi-select; Edit mode: single. Each criteria = one row. */}
+          {form.id == null ? (
+            <>
+              <DxTagBox
+                label="เกณฑ์ (QC criteria) — เลือกได้หลายรายการ"
+                value={form.criteriaIds}
+                dataSource={criteriaItems as unknown as Record<string, unknown>[]}
+                displayExpr="label"
+                valueExpr="id"
+                onValueChanged={(e) => {
+                  // DevExtreme returns the new selection as an array. Cast safely
+                  // — empty/undefined → []. We don't re-Number the values because
+                  // valueExpr="id" already binds them as numbers from criteriaItems.
+                  const next = Array.isArray(e.value) ? (e.value as number[]) : [];
+                  setForm({ ...form, criteriaIds: next });
+                }}
+                searchEnabled
+                showSelectionControls
+                placeholder="พิมพ์เพื่อค้นหา หรือเลือกหลายรายการได้..."
+              />
+              {form.criteriaIds.length > 0 && (
+                <p className="text-xs text-cyan-700">
+                  จะสร้างทั้งหมด <strong>{form.criteriaIds.length}</strong> รายการ
+                  (ลำดับ {form.sequence}–{form.sequence + form.criteriaIds.length - 1})
+                </p>
+              )}
+            </>
+          ) : (
+            <DxSelectBox
+              label="เกณฑ์ (QC criteria)"
+              value={form.criteriaId}
+              dataSource={criteriaItems}
+              displayExpr="label"
+              valueExpr="id"
+              onValueChange={(v) =>
+                setForm({ ...form, criteriaId: v == null ? null : Number(v) })
+              }
+              searchEnabled
+              required
+            />
+          )}
           <div className="grid grid-cols-2 gap-3">
             <DxNumberBox
-              label="ลำดับ"
+              label={form.id == null ? 'ลำดับเริ่มต้น' : 'ลำดับ'}
               value={form.sequence}
               onValueChange={(v) => setForm({ ...form, sequence: Number(v) || 1 })}
               min={1}
@@ -496,7 +638,12 @@ export default function TestPanelsAdminPage() {
               text={submitting ? 'กำลังบันทึก...' : 'บันทึก'}
               type="default"
               onClick={handleSubmit}
-              disabled={submitting || !form.criteriaId}
+              disabled={
+                submitting ||
+                (form.id == null
+                  ? form.criteriaIds.length === 0
+                  : !form.criteriaId)
+              }
             />
           </div>
         </div>

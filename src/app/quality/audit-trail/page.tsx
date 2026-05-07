@@ -192,7 +192,7 @@ export default function AuditTrailPage() {
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const limit = 50;
+  const [limit, setLimit] = useState(50);
 
   const fetchAudit = useCallback(async () => {
     setLoading(true);
@@ -443,27 +443,30 @@ export default function AuditTrailPage() {
             </div>
           ) : (
             <>
+              {/* Inner table is forced to a min-width so each column stays
+                  legible on narrow screens; the wrapper handles horizontal
+                  scrolling for tablets/phones. */}
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-[900px] w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="w-8 px-3 py-2"></th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                         Timestamp
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                         User
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                         Action
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                         Entity
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Details
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                         IP
                       </th>
                     </tr>
@@ -485,25 +488,60 @@ export default function AuditTrailPage() {
                 </table>
               </div>
 
-              {/* Pager */}
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50 text-sm text-gray-600">
-                <span>
-                  Page {page} of {totalPages} ({total.toLocaleString()} events)
-                </span>
-                <div className="flex items-center gap-2">
+              {/* Pager — page size selector + first/prev/next/last so users
+                  can jump in big audit logs without 100s of clicks. */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50 text-sm text-gray-600 gap-2">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span>
+                    Page {page} of {totalPages} ({total.toLocaleString()} events)
+                  </span>
+                  <label className="flex items-center gap-2 text-xs">
+                    Page size:
+                    <select
+                      value={limit}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      className="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                      <option value={200}>200</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(1)}
+                    disabled={page <= 1}
+                    className="px-2 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
+                    title="หน้าแรก"
+                  >
+                    « First
+                  </button>
                   <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page <= 1}
-                    className="px-3 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
                   >
-                    Prev
+                    ‹ Prev
                   </button>
                   <button
                     onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page >= totalPages}
-                    className="px-3 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
                   >
-                    Next
+                    Next ›
+                  </button>
+                  <button
+                    onClick={() => setPage(totalPages)}
+                    disabled={page >= totalPages}
+                    className="px-2 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
+                    title="หน้าสุดท้าย"
+                  >
+                    Last »
                   </button>
                 </div>
               </div>

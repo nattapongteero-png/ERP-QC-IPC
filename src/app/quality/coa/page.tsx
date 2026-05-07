@@ -368,6 +368,11 @@ export default function CoaListPage() {
               pageSize={20}
               height="auto"
               noDataText="ไม่พบข้อมูล"
+              onRowClick={(e) => {
+                if (e?.data?.id) {
+                  router.push(`/quality/coa/${e.data.id}`);
+                }
+              }}
             />
           )}
         </div>

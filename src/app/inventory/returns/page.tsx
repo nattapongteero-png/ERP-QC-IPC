@@ -22,6 +22,7 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import {
   ArrowDownToLine,
   Inbox,
@@ -92,6 +93,7 @@ function statusBadge(status: string) {
 
 export default function MaterialReturnsInboxPage() {
   const router = useRouter();
+  const toast = useToast();
 
   const [rows, setRows] = useState<ReturnRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,13 +121,15 @@ export default function MaterialReturnsInboxPage() {
         setRows(data.data?.items || []);
       } else {
         setRows([]);
+        toast.error('โหลดข้อมูลไม่สำเร็จ', data.error || 'Unknown error');
       }
-    } catch {
+    } catch (e) {
       setRows([]);
+      toast.error('โหลดข้อมูลไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, dateFrom, dateTo, warehouseFilter]);
+  }, [statusFilter, dateFrom, dateTo, warehouseFilter, toast]);
 
   useEffect(() => {
     fetchReturns();
@@ -393,6 +397,11 @@ export default function MaterialReturnsInboxPage() {
               pageSize={20}
               height="auto"
               noDataText="ไม่พบข้อมูล"
+              onRowClick={(e) => {
+                if (e?.data?.id) {
+                  router.push(`/inventory/returns/${e.data.id}`);
+                }
+              }}
             />
           )}
         </div>

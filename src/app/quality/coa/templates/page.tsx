@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -19,10 +19,9 @@ import {
   Layout,
   CheckCircle2,
   AlertTriangle,
-  Plus,
   Star,
-  Power,
-  Settings as SettingsIcon,
+  Languages,
+  FileText,
 } from 'lucide-react';
 
 interface CoaTemplateRow {
@@ -256,6 +255,50 @@ export default function CoaTemplatesPage() {
           }
         />
 
+        {/* KPI strip — quick overview of how templates are configured. */}
+        {(() => {
+          const total = rows.length;
+          const activeCount = rows.filter((r) => r.isActive).length;
+          const defaultCount = rows.filter((r) => r.isDefault).length;
+          const bilingualCount = rows.filter((r) => r.language === 'bilingual').length;
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <StatCard
+                label="Total templates"
+                value={total}
+                icon={FileText}
+                iconColor="text-emerald-500"
+                accentColor="border-emerald-500"
+                isLoading={loading}
+              />
+              <StatCard
+                label="Active"
+                value={activeCount}
+                icon={CheckCircle2}
+                iconColor="text-green-500"
+                accentColor="border-green-500"
+                isLoading={loading}
+              />
+              <StatCard
+                label="Default"
+                value={defaultCount}
+                icon={Star}
+                iconColor="text-amber-500"
+                accentColor="border-amber-500"
+                isLoading={loading}
+              />
+              <StatCard
+                label="Bilingual (TH/EN)"
+                value={bilingualCount}
+                icon={Languages}
+                iconColor="text-blue-500"
+                accentColor="border-blue-500"
+                isLoading={loading}
+              />
+            </div>
+          );
+        })()}
+
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 md:p-4">
           <DxTextBox
             placeholder="ค้นหา (ชื่อเทมเพลต, หมวดสินค้า)"
@@ -297,6 +340,11 @@ export default function CoaTemplatesPage() {
               headerFilter
               pageSize={20}
               height="auto"
+              onRowClick={(e) => {
+                if (e?.data?.id) {
+                  router.push(`/quality/coa/templates/${e.data.id}`);
+                }
+              }}
               noDataText="ไม่พบข้อมูล"
             />
           )}

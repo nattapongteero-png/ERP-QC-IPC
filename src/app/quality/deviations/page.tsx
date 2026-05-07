@@ -816,6 +816,9 @@ export default function DeviationsPage() {
         exportFileName="deviations"
         columnChooser
         responsiveColumns
+        // 20 records per page — virtualScrolling kicks in only above 100
+        // rows where paging would create excessive Prev/Next clicks.
+        pageSize={20}
         virtualScrolling={filteredDeviations.length > 100}
         height={600}
         mobileHeight={520}
