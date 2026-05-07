@@ -322,6 +322,19 @@ a:not([class]):hover {
   color: #3b82f6;
 }
 
+/* Kill the green focus ring around the tab content. The global
+   .dx-state-focused rule in dx.emerald-override.css adds a 2px emerald
+   outline for accessibility, but on this panel it wraps the whole content
+   area on every tab click — louder than helpful for mouse users, and the
+   tab strip itself already shows which tab is active. */
+.module-kpi-tabs.dx-state-focused,
+.module-kpi-tabs .dx-tabpanel.dx-state-focused,
+.module-kpi-tabs .dx-multiview-wrapper.dx-state-focused,
+.module-kpi-tabs .dx-multiview-item.dx-state-focused,
+.module-kpi-tabs .dx-multiview-item-content.dx-state-focused {
+  outline: none !important;
+}
+
 /* ===========================
    PRINT STYLES - eBMR Document
    =========================== */
