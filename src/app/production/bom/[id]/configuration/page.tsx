@@ -51,7 +51,10 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
   const toast = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingIpcId, setEditingIpcId] = useState<number | null>(null);
-  const [selCriteria, setSelCriteria] = useState<number | null>(null);
+  // Add mode = multi-select bulk add. Edit mode still works on a single
+  // row, so we keep both shapes side by side.
+  const [selectedCriteriaIds, setSelectedCriteriaIds] = useState<number[]>([]);
+  const [criteriaSearch, setCriteriaSearch] = useState('');
   const [sampleSize, setSampleSize] = useState(5);
   const [isCritical, setIsCritical] = useState(false);
   const [phase, setPhase] = useState<IPCPhase>('production');
@@ -79,22 +82,41 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     : allCriteria.filter((c: any) => !configs.some((cfg: any) => cfg.criteriaId === c.id));
 
   const resetForm = () => {
-    setShowForm(false); setEditingIpcId(null); setSelCriteria(null); setSampleSize(5); setIsCritical(false); setPhase('production');
+    setShowForm(false); setEditingIpcId(null);
+    setSelectedCriteriaIds([]); setCriteriaSearch('');
+    setSampleSize(5); setIsCritical(false); setPhase('production');
   };
 
+  // Bulk add: POST one row per selected criterion, each with that
+  // criterion's master defaults for sampleSize / isCritical (operator can
+  // still edit per-row after add). Phase is shared across the batch.
   const addMut = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/production/bom/${bomId}/ipc`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ criteriaId: selCriteria, sampleSize, isCritical, phase }),
-      });
-      const r = await res.json();
-      if (!r.success) throw new Error(r.error);
+      const results = await Promise.all(
+        selectedCriteriaIds.map(async (id) => {
+          const master = allCriteria.find((c: any) => c.id === id) as any;
+          const res = await fetch(`/api/production/bom/${bomId}/ipc`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              criteriaId: id,
+              sampleSize: master?.sampleSize ?? 5,
+              isCritical: master?.isCritical ?? false,
+              phase,
+            }),
+          });
+          return res.json();
+        }),
+      );
+      const failed = results.filter((r) => !r.success);
+      if (failed.length > 0) {
+        throw new Error(`${failed.length}/${results.length} failed: ${failed[0]?.error ?? 'unknown'}`);
+      }
+      return { added: results.length };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['bom-ipc', bomId] });
       resetForm();
-      toast.success('Added', 'IPC criteria added.');
+      toast.success('Added', `เพิ่ม IPC criteria ${data.added} รายการสำเร็จ`);
     },
     onError: (e: Error) => toast.error('Error', e.message),
   });
@@ -131,7 +153,6 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
 
   const openEdit = (cfg: any) => {
     setEditingIpcId(cfg.id);
-    setSelCriteria(cfg.criteriaId);
     setSampleSize(cfg.sampleSize);
     setIsCritical(cfg.isCritical);
     setPhase(((cfg.phase as string) || 'production') as IPCPhase);
@@ -153,22 +174,21 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
           )}
         </div>
 
-        {/* Phase-level vs sub-step-level guidance — without this hint
-            operators sometimes added the same criterion both here and in
-            "SOP Steps → Manage IPC", duplicating quality_test rows in WO
-            execution. The two scopes coexist intentionally. */}
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5 text-xs text-amber-900 leading-relaxed">
-          <p className="font-semibold mb-0.5">เลือกใช้ tab ให้ถูก scope</p>
-          <ul className="list-disc pl-5 space-y-0.5">
+        {/* New workflow: Phase Level is now the master scope for this BOM
+            (must be populated first). SOP Steps reference IPCs from here —
+            cannot bind anything that isn't declared at phase level. */}
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/70 px-3 py-2.5 text-xs text-blue-900 leading-relaxed">
+          <p className="font-semibold mb-0.5">ขั้นตอนการกำหนด IPC สำหรับ BOM นี้</p>
+          <ol className="list-decimal pl-5 space-y-0.5">
             <li>
-              <strong>tab นี้ (IPC — Phase Level):</strong> สำหรับ IPC ที่ผูกกับ <em>phase</em> ทั้ง phase ไม่ระบุ sub-step (เช่น IPC แบบทั่วไปของ Production)
+              <strong>tab นี้ (IPC — Phase Level):</strong> กำหนด IPC criteria ทั้งหมดที่จะใช้ใน BOM นี้ก่อน
             </li>
             <li>
-              <strong>tab &quot;SOP Steps&quot; → ปุ่ม &quot;Manage&quot; ในแต่ละ step:</strong> สำหรับ IPC ที่ผูกกับ sub-step เฉพาะของ procedure (recommended สำหรับ test ที่เกี่ยวข้องกับขั้นตอนใดขั้นตอนหนึ่ง)
+              <strong>tab &quot;SOP Steps&quot; → ปุ่ม &quot;Manage&quot; ในแต่ละ step:</strong> เลือก IPC จากที่กำหนดในข้อ 1 มาผูกกับ step หรือ sub-step เฉพาะ
             </li>
-          </ul>
-          <p className="mt-1.5 text-[11px] text-amber-700">
-            ห้ามใส่ criterion เดียวกันทั้งสอง scope จะทำให้ WO execution บันทึกซ้ำ
+          </ol>
+          <p className="mt-1.5 text-[11px] text-blue-700">
+            IPC ที่ไม่ได้กำหนดในข้อ 1 จะไม่สามารถผูกกับ SOP step ได้
           </p>
         </div>
 
@@ -206,36 +226,125 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
 
         {showForm && (
           <div className="mt-3 border border-emerald-200 bg-emerald-50/50 rounded-lg p-4 space-y-3">
-            {!editingIpcId && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">IPC Criteria *</label>
-                <DxSelectBox
-                  dataSource={available.map((c: any) => ({ id: c.id, display: `${c.code} - ${c.nameTh || c.name}` }))}
-                  displayExpr="display" valueExpr="id" value={selCriteria}
-                  onValueChanged={(e) => {
-                    setSelCriteria(e.value);
-                    const s = allCriteria.find((c: any) => c.id === e.value);
-                    if (s) { setSampleSize(s.sampleSize); setIsCritical(s.isCritical); }
-                  }}
-                  placeholder="Select criteria" searchEnabled
-                />
-              </div>
-            )}
+            {!editingIpcId && (() => {
+              // Filter master list: hide already-configured criteria + apply search.
+              const term = criteriaSearch.trim().toLowerCase();
+              const filtered = (available as any[]).filter((c: any) => {
+                if (!term) return true;
+                return (
+                  (c.code || '').toLowerCase().includes(term) ||
+                  (c.nameTh || '').toLowerCase().includes(term) ||
+                  (c.name || '').toLowerCase().includes(term)
+                );
+              });
+              const allFilteredIds = filtered.map((c: any) => c.id);
+              const allSelected = filtered.length > 0 && filtered.every((c: any) => selectedCriteriaIds.includes(c.id));
+              const toggleAll = () => {
+                if (allSelected) {
+                  setSelectedCriteriaIds((s) => s.filter((id) => !allFilteredIds.includes(id)));
+                } else {
+                  setSelectedCriteriaIds((s) => Array.from(new Set([...s, ...allFilteredIds])));
+                }
+              };
+              return (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    IPC Criteria * <span className="text-xs text-gray-500 font-normal">(ติ๊กเลือกได้หลายตัว)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={criteriaSearch}
+                    onChange={(e) => setCriteriaSearch(e.target.value)}
+                    placeholder="ค้นหา code / ชื่อ..."
+                    className="w-full mb-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-emerald-500 focus:outline-none"
+                  />
+                  <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white">
+                    {filtered.length === 0 ? (
+                      <div className="text-center py-6 text-sm">
+                        {allCriteria.length === 0 ? (
+                          <div className="text-amber-700">
+                            <p className="font-medium mb-1">ยังไม่มี IPC criteria ใน Master Data</p>
+                            <p className="text-xs text-gray-500">กรุณาเพิ่มที่ <strong>Master Data → IPC Criteria</strong> ก่อน</p>
+                          </div>
+                        ) : available.length === 0 ? (
+                          <span className="text-gray-400">IPC criteria ทั้งหมดถูกเพิ่มไปยัง BOM นี้แล้ว</span>
+                        ) : (
+                          <span className="text-gray-400">ไม่พบรายการที่ค้นหา</span>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <label className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50 cursor-pointer hover:bg-gray-100 text-xs font-medium text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onChange={toggleAll}
+                            className="rounded"
+                          />
+                          <span>{allSelected ? 'ยกเลิกการเลือกทั้งหมด' : `เลือกทั้งหมด (${filtered.length})`}</span>
+                        </label>
+                        {filtered.map((c: any) => {
+                          const checked = selectedCriteriaIds.includes(c.id);
+                          return (
+                            <label
+                              key={c.id}
+                              className={`flex items-start gap-2 px-3 py-2 border-b border-gray-100 cursor-pointer hover:bg-emerald-50 ${checked ? 'bg-emerald-50/60' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedCriteriaIds((s) => [...s, c.id]);
+                                  } else {
+                                    setSelectedCriteriaIds((s) => s.filter((id) => id !== c.id));
+                                  }
+                                }}
+                                className="mt-0.5 rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-xs text-emerald-600">{c.code}</span>
+                                  <span className="text-sm font-medium">{c.nameTh || c.name}</span>
+                                  {c.isCritical && (
+                                    <span className="text-[10px] text-red-600 bg-red-50 px-1 py-0.5 rounded">Critical</span>
+                                  )}
+                                </div>
+                                {c.specification && (
+                                  <div className="text-xs text-gray-500">{c.specification}</div>
+                                )}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                  {selectedCriteriaIds.length > 0 && (
+                    <p className="mt-2 text-xs text-emerald-700">
+                      เลือกแล้ว <strong>{selectedCriteriaIds.length}</strong> รายการ — Sample size / Critical จะใช้ค่า default ของแต่ละ criterion (แก้ภายหลังได้)
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
             {editingIpcId && (
-              <div className="text-sm font-medium text-gray-700">
-                Editing: {configs.find((c: any) => c.id === editingIpcId)?.criteriaNameTh || configs.find((c: any) => c.id === editingIpcId)?.criteriaName}
-              </div>
+              <>
+                <div className="text-sm font-medium text-gray-700">
+                  Editing: {configs.find((c: any) => c.id === editingIpcId)?.criteriaNameTh || configs.find((c: any) => c.id === editingIpcId)?.criteriaName}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sample Size</label>
+                    <DxNumberBox value={sampleSize} onValueChanged={(e) => setSampleSize(e.value)} min={1} />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <DxSwitch value={isCritical} onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setIsCritical(e.value)} />
+                    <span className="text-sm">Critical</span>
+                  </div>
+                </div>
+              </>
             )}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sample Size</label>
-                <DxNumberBox value={sampleSize} onValueChanged={(e) => setSampleSize(e.value)} min={1} />
-              </div>
-              <div className="flex items-center gap-2 pt-6">
-                <DxSwitch value={isCritical} onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setIsCritical(e.value)} />
-                <span className="text-sm">Critical</span>
-              </div>
-            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
               <DxSelectBox
@@ -245,15 +354,25 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                 value={phase}
                 onValueChanged={(e) => setPhase(e.value)}
               />
-              <p className="text-xs text-gray-500 mt-1">เลือก phase ที่จะให้ IPC test นี้แสดงใน Execution Dashboard</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {editingIpcId
+                  ? 'เลือก phase ที่จะให้ IPC test นี้แสดงใน Execution Dashboard'
+                  : 'Phase นี้จะใช้กับ IPC ที่เลือกทั้งหมด — สามารถเปลี่ยนทีหลังในแต่ละรายการ'}
+              </p>
             </div>
             <div className="flex justify-end gap-2">
               <DxButton text="Cancel" stylingMode="text" onClick={resetForm} />
               <DxButton
-                text={editingIpcId ? 'Save' : 'Add to BOM'}
+                text={
+                  editingIpcId
+                    ? 'Save'
+                    : (selectedCriteriaIds.length > 0
+                        ? `Add ${selectedCriteriaIds.length} to BOM`
+                        : 'Add to BOM')
+                }
                 type="success"
                 onClick={() => editingIpcId ? editMut.mutate() : addMut.mutate()}
-                disabled={(!editingIpcId && !selCriteria) || addMut.isPending || editMut.isPending}
+                disabled={(!editingIpcId && selectedCriteriaIds.length === 0) || addMut.isPending || editMut.isPending}
               />
             </div>
           </div>
@@ -1472,9 +1591,16 @@ export default function BOMConfigurationPage() {
                 t.id === 0 ? (bomRooms?.length ?? 0)
                 : t.id === 1 ? (bomEquipment?.length ?? 0)
                 : t.id === 2 ? (bomSOPSteps?.length ?? 0)
-                : t.id === 4 ? bomStepIpcLinks.length
+                : t.id === 4 ? (bomIpcConfigs?.length ?? 0)
                 : 0;
-              return { ...t, badge: count > 0 ? count : undefined };
+              // IPC—Phase Level is required setup. When 0, show a "⚠" marker
+              // instead of hiding the badge so the operator notices that this
+              // tab must be configured before they can bind IPC at step level.
+              const badge =
+                t.id === 4
+                  ? (count > 0 ? count : '⚠ 0')
+                  : (count > 0 ? count : undefined);
+              return { ...t, badge };
             })}
             selectedIndex={activeTab}
             onSelectedIndexChange={(idx) => setActiveTab(idx)}
@@ -2248,8 +2374,19 @@ export default function BOMConfigurationPage() {
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">IPC Criterion *</label>
                             {bomPhaseIpcCriteria.length === 0 ? (
-                              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-                                ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้ — กรุณาไปที่ tab &quot;IPC — Phase Level&quot; เพื่อเพิ่ม IPC ก่อน
+                              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2 space-y-2">
+                                <p>ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้</p>
+                                <p className="text-[11px] text-amber-700">ต้องกำหนด IPC ที่ Phase Level ก่อน แล้วจึงเลือกมาผูกกับ SOP step</p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowAddDialog(false);
+                                    setActiveTab(4);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded transition-colors"
+                                >
+                                  ไปที่ Tab IPC — Phase Level ทันที →
+                                </button>
                               </div>
                             ) : (
                               <DxSelectBox
@@ -2733,8 +2870,19 @@ export default function BOMConfigurationPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">IPC Criterion *</label>
                       {bomPhaseIpcCriteria.length === 0 ? (
-                        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-                          ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้ — กรุณาไปที่ tab &quot;IPC — Phase Level&quot; เพื่อเพิ่ม IPC ก่อน แล้วจึงผูกเข้า SOP step
+                        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2.5 space-y-2">
+                          <p>ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้</p>
+                          <p className="text-xs text-amber-700">ต้องกำหนด IPC ที่ Phase Level ก่อน แล้วจึงเลือกมาผูกกับ SOP step</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStepForIPC(null);
+                              setActiveTab(4);
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded transition-colors"
+                          >
+                            ไปที่ Tab IPC — Phase Level ทันที →
+                          </button>
                         </div>
                       ) : (
                         <DxSelectBox
