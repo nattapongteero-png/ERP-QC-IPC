@@ -77,9 +77,9 @@ export async function POST(request: NextRequest) {
         data.code = `ROOM-${String(lastNum + 1).padStart(4, '0')}`;
       }
 
-      // Validate required fields
-      if (!data.name || !data.nameTh || !data.roomType) {
-        return errorResponse('Missing required fields: name, nameTh, roomType');
+      // Validate required fields — name (EN) is optional; nameTh + roomType are mandatory.
+      if (!data.nameTh || !data.roomType) {
+        return errorResponse('Missing required fields: nameTh, roomType');
       }
 
       // Check if code already exists — upsert (update if exists)

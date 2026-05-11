@@ -117,7 +117,7 @@ function ProductionRoomFormInner({ mode, id, initialData, existingRoom }: Produc
   });
 
   const handleSave = () => {
-    if (!formData.code || !formData.name || !formData.nameTh || !formData.roomType) {
+    if (!formData.code || !formData.nameTh || !formData.roomType) {
       toast.error('Validation Error', 'Please fill in all required fields.');
       return;
     }
@@ -193,7 +193,7 @@ function ProductionRoomFormInner({ mode, id, initialData, existingRoom }: Produc
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN)</label>
             <DxTextBox
               value={formData.name || ''}
               onValueChanged={(e) => setFormData({ ...formData, name: e.value })}

@@ -1134,7 +1134,7 @@ export const sqliteHRAuditLog = sqliteTable('hr_audit_log', {
 export const sqliteProductionRooms = sqliteTable('production_rooms', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   code: text('code').notNull().unique(),
-  name: text('name').notNull(),
+  name: text('name'),
   nameTh: text('name_th').notNull(),
   roomType: text('room_type').notNull(), // weighing, mixing, packaging, storage
   description: text('description'),
@@ -4419,7 +4419,7 @@ export const mysqlStockAlertRules = mysqlTable('stock_alert_rules', {
 export const mysqlProductionRooms = mysqlTable('production_rooms', {
   id: int('id').primaryKey().autoincrement(),
   code: varchar('code', { length: 50 }).notNull().unique(),
-  name: varchar('name', { length: 255 }).notNull(),
+  name: varchar('name', { length: 255 }),
   nameTh: varchar('name_th', { length: 255 }).notNull(),
   roomType: varchar('room_type', { length: 50 }).notNull(), // weighing, mixing, packaging, storage
   description: mysqlText('description'),
