@@ -40,6 +40,7 @@ export interface Item {
   primaryUnit: string;
   secondaryUnit?: string | null;
   conversionRate?: number | null;
+  weightUnit?: string | null;
   sellingPrice?: number;
   costPrice?: number;
   category?: string;

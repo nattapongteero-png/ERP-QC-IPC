@@ -992,6 +992,9 @@ export async function calculateBOMCost(
   let totalMaterialCost = 0;
 
   // Get BOM lines with item details
+  // onHand / onHandCost are stored in PRIMARY unit — so if BOM line uses
+  // secondaryUnit or weightUnit we must convert qty back to primary before
+  // multiplying by unitCost (THB / primaryUnit).
   const lines = await database
     .select({
       id: bomLines.id,
@@ -1002,6 +1005,11 @@ export async function calculateBOMCost(
       itemName: items.nameEn,
       onHand: items.onHand,
       onHandCost: items.onHandCost,
+      primaryUnit: items.primaryUnit,
+      secondaryUnit: items.secondaryUnit,
+      weightUnit: items.weightUnit,
+      conversionRate: items.conversionRate,
+      secondaryToWeightRate: items.secondaryToWeightRate,
     })
     .from(bomLines)
     .innerJoin(items, eq(bomLines.itemId, items.id))
@@ -1009,7 +1017,7 @@ export async function calculateBOMCost(
     .orderBy(asc(bomLines.sequence));
 
   for (const line of lines) {
-    // Calculate required quantity
+    // Calculate required quantity (in BOM line unit — what user typed)
     let requiredQty = (Number(line.quantity) * targetQuantity) / Number(bomHeader.batchSize);
 
     // Apply loss allowance if defined
@@ -1017,7 +1025,20 @@ export async function calculateBOMCost(
       requiredQty = requiredQty / (1 - Number(bomHeader.lossAllowance) / 100);
     }
 
-    // Calculate unit cost (average cost from inventory)
+    // Convert to primary unit for cost math:
+    //   primary  → no conversion
+    //   secondary→ qty / conversionRate          (SU per PU, e.g. 100,000 cap/box)
+    //   weight   → qty / secondaryToWeightRate / conversionRate  (g → cap → box)
+    const conversionRate = Number(line.conversionRate) || 0;
+    const secondaryToWeightRate = Number(line.secondaryToWeightRate) || 0;
+    let qtyInPrimary = requiredQty;
+    if (line.unit && line.secondaryUnit && line.unit === line.secondaryUnit && conversionRate > 0) {
+      qtyInPrimary = requiredQty / conversionRate;
+    } else if (line.unit && line.weightUnit && line.unit === line.weightUnit && conversionRate > 0 && secondaryToWeightRate > 0) {
+      qtyInPrimary = requiredQty / secondaryToWeightRate / conversionRate;
+    }
+
+    // Calculate unit cost (average cost from inventory, in THB per primary unit)
     let unitCost = 0;
     let costSource: 'average' | 'last_purchase' | 'no_cost' = 'no_cost';
 
@@ -1029,7 +1050,10 @@ export async function calculateBOMCost(
       costSource = 'average';
     }
 
-    const lineTotalCost = requiredQty * unitCost;
+    // Cost math runs in primary unit. Display unitCost in the line's own unit
+    // so user sees "THB / g" when line.unit is 'g', not "THB / box".
+    const lineTotalCost = qtyInPrimary * unitCost;
+    const unitCostInLineUnit = requiredQty > 0 ? lineTotalCost / requiredQty : 0;
     totalMaterialCost += lineTotalCost;
 
     breakdown.push({
@@ -1038,7 +1062,7 @@ export async function calculateBOMCost(
       itemName: line.itemName || line.itemCode,
       quantity: Math.round(requiredQty * 1000) / 1000,
       unit: line.unit,
-      unitCost: Math.round(unitCost * 100) / 100,
+      unitCost: Math.round(unitCostInLineUnit * 10000) / 10000,
       totalCost: Math.round(lineTotalCost * 100) / 100,
       level: 0,
       costSource,

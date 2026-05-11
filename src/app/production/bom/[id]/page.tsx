@@ -344,10 +344,13 @@ export default function BOMDetailPage() {
     }
   };
 
-  const handleSelectItem = (item: { id: number; code: string; nameTh: string; primaryUnit: string; secondaryUnit?: string | null }) => {
+  const handleSelectItem = (item: { id: number; code: string; nameTh: string; primaryUnit: string; secondaryUnit?: string | null; weightUnit?: string | null }) => {
     const unitOpts = [item.primaryUnit];
-    if (item.secondaryUnit) {
+    if (item.secondaryUnit && item.secondaryUnit !== item.primaryUnit) {
       unitOpts.push(item.secondaryUnit);
+    }
+    if (item.weightUnit && !unitOpts.includes(item.weightUnit)) {
+      unitOpts.push(item.weightUnit);
     }
     setNewLine({
       ...newLine,

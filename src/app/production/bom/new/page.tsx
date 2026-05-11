@@ -136,7 +136,8 @@ export default function NewBOMPage() {
     let counter = lineCounter;
     const newLines: BOMLine[] = selectedItems.map(item => {
       const unitOpts = [item.primaryUnit];
-      if (item.secondaryUnit) unitOpts.push(item.secondaryUnit);
+      if (item.secondaryUnit && item.secondaryUnit !== item.primaryUnit) unitOpts.push(item.secondaryUnit);
+      if (item.weightUnit && !unitOpts.includes(item.weightUnit)) unitOpts.push(item.weightUnit);
       const line: BOMLine = {
         id: counter++,
         itemId: item.id,

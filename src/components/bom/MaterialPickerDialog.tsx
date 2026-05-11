@@ -52,6 +52,7 @@ export interface MaterialItem {
   type?: string;
   primaryUnit: string;
   secondaryUnit?: string | null;
+  weightUnit?: string | null;
   onHand?: number | null;
   minStock?: number | null;
   reorderPoint?: number | null;
