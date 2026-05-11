@@ -63,6 +63,11 @@ interface MaterialLine {
   primaryUnit?: string;
   secondaryUnit?: string;
   conversionRate?: number;
+  // 3-level unit conversion (Step 1) + issuance tracking (Step 2)
+  weightUnit?: string | null;
+  secondaryToWeightRate?: number | null;
+  weightTrackingEnabled?: boolean | number | null;
+  issuedQtySU?: number | null;
   // Water-specific fields
   isWater?: boolean;
   waterDate?: string;
@@ -107,6 +112,8 @@ export default function MaterialWeighingPage() {
   // interfere with each other.
   const [returnMaterial, setReturnMaterial] = useState<MaterialReturnSourceMaterial | null>(null);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
+  // When set, the dialog opens in edit mode (PATCH instead of POST).
+  const [editingReturnId, setEditingReturnId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     weighedQty: 0,
     // Single-select: the DB stores exactly one primary lot id on
@@ -175,6 +182,7 @@ export default function MaterialWeighingPage() {
     returnUnit: string;
     status: string;
     returnNumber: string;
+    returnId: number;
   }
   const { data: returnsForWo } = useQuery<MaterialReturnLineSlim[]>({
     queryKey: ['material-returns', workOrderId],
@@ -207,6 +215,7 @@ export default function MaterialWeighingPage() {
               returnUnit: String(line.returnUnit),
               status: String(detail.status),
               returnNumber: String(detail.returnNumber),
+              returnId: Number(detail.id ?? r.id),
             });
           }
         } catch {
@@ -219,15 +228,35 @@ export default function MaterialWeighingPage() {
     staleTime: 30_000,
   });
 
-  // Helper: aggregate returns per (lotId + itemId) so a row can show
-  // "✓ คืนแล้ว X unit · pending QA" without re-iterating on every render.
+  // Helper: aggregate returns per (lotId + itemId). The "actionable" return id
+  // is whichever line is in 'submitted' status (one in flight at a time per
+  // material in the typical flow). Track 'received' separately so the UI can
+  // show the badge + suppress the button.
   const returnsByLotItem = (() => {
-    const map = new Map<string, { totalQty: number; unit: string; statuses: string[] }>();
+    const map = new Map<string, {
+      totalQty: number;
+      unit: string;
+      statuses: string[];
+      submittedReturnId: number | null;
+      receivedReturnId: number | null;
+    }>();
     for (const ret of returnsForWo ?? []) {
       const key = `${ret.sourceLotId}:${ret.itemId}`;
-      const slot = map.get(key) ?? { totalQty: 0, unit: ret.returnUnit, statuses: [] };
+      const slot = map.get(key) ?? {
+        totalQty: 0,
+        unit: ret.returnUnit,
+        statuses: [],
+        submittedReturnId: null as number | null,
+        receivedReturnId: null as number | null,
+      };
       slot.totalQty += ret.returnQty;
       slot.statuses.push(ret.status);
+      if (ret.status === 'submitted' && slot.submittedReturnId == null) {
+        slot.submittedReturnId = ret.returnId;
+      }
+      if (ret.status === 'received' && slot.receivedReturnId == null) {
+        slot.receivedReturnId = ret.returnId;
+      }
       map.set(key, slot);
     }
     return map;
@@ -384,8 +413,15 @@ export default function MaterialWeighingPage() {
     // is the single source of truth for the checkbox state — no derived
     // array wrapping, so reopening this dialog always shows exactly what
     // the DB has.
+    // When re-editing a previously weighed material, prefer the saved
+    // weighedQty so the operator sees what was last recorded (not the
+    // BOM planned figure).
+    const initialWeighedQty =
+      material.weighedQty != null && Number(material.weighedQty) > 0
+        ? Number(material.weighedQty)
+        : material.plannedQty;
     setFormData({
-      weighedQty: material.plannedQty,
+      weighedQty: initialWeighedQty,
       selectedLotId: material.lotId ?? undefined,
       notes: '',
       waterDate: material.waterDate || toLocalDateStr(new Date()),
@@ -673,26 +709,65 @@ export default function MaterialWeighingPage() {
                       {material.weighedAt && material.lotId && (material.weighedQty ?? 0) > 0 && (() => {
                         const issued = material.weighedQty ?? 0;
                         const planned = material.plannedQty ?? 0;
-                        return (
+                        const summary = getReturnSummary(material);
+                        const isReceived = summary?.receivedReturnId != null;
+                        const submittedId = summary?.submittedReturnId ?? null;
+
+                        // Already received → just show the badge, no button.
+                        if (isReceived) {
+                          return (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {t('execution.materialReturnDialog.badgeReceived')}
+                            </span>
+                          );
+                        }
+
+                        const openDialog = (mode: 'create' | 'edit') => {
+                          setReturnMaterial({
+                            workOrderMaterialId: material.id,
+                            itemId: material.itemId,
+                            itemCode: material.itemCode,
+                            itemName: getDisplayName(material),
+                            unit: material.unit,
+                            plannedQty: planned,
+                            weighedQty: issued,
+                            lotId: material.lotId ?? null,
+                            lotNumber: material.lotNumber ?? null,
+                            // 3-level unit conversion fields (Step 3)
+                            primaryUnit: material.primaryUnit,
+                            secondaryUnit: material.secondaryUnit,
+                            weightUnit: material.weightUnit,
+                            conversionRate: material.conversionRate,
+                            secondaryToWeightRate: material.secondaryToWeightRate != null ? Number(material.secondaryToWeightRate) : null,
+                            weightTrackingEnabled: Boolean(material.weightTrackingEnabled),
+                            issuedQtySU: material.issuedQtySU != null ? Number(material.issuedQtySU) : null,
+                          });
+                          setEditingReturnId(mode === 'edit' ? submittedId : null);
+                          setShowReturnDialog(true);
+                        };
+
+                        return submittedId != null ? (
+                          <div className="flex flex-col gap-1 items-stretch">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                              <Clock className="h-3 w-3" />
+                              {t('execution.materialReturnDialog.badgePending')}
+                            </span>
+                            <DxButton
+                              text={t('execution.materialReturnDialog.buttonEdit')}
+                              icon="edit"
+                              type="normal"
+                              stylingMode="outlined"
+                              onClick={() => openDialog('edit')}
+                            />
+                          </div>
+                        ) : (
                           <DxButton
-                            text="คืนของเหลือ"
+                            text={t('execution.materialReturnDialog.buttonSubmit')}
                             icon="undo"
                             type="normal"
                             stylingMode="outlined"
-                            onClick={() => {
-                              setReturnMaterial({
-                                workOrderMaterialId: material.id,
-                                itemId: material.itemId,
-                                itemCode: material.itemCode,
-                                itemName: getDisplayName(material),
-                                unit: material.unit,
-                                plannedQty: planned,
-                                weighedQty: issued,
-                                lotId: material.lotId ?? null,
-                                lotNumber: material.lotNumber ?? null,
-                              });
-                              setShowReturnDialog(true);
-                            }}
+                            onClick={() => openDialog('create')}
                           />
                         );
                       })()}
@@ -959,19 +1034,22 @@ export default function MaterialWeighingPage() {
         visible={showReturnDialog}
         material={returnMaterial}
         workOrderId={workOrderId}
+        existingReturnId={editingReturnId}
         onClose={() => {
           setShowReturnDialog(false);
           setReturnMaterial(null);
+          setEditingReturnId(null);
         }}
         onSubmitted={(returnNumber) => {
           toast.success(
-            'ส่งคืนวัตถุดิบสำเร็จ',
+            editingReturnId ? 'แก้ไขใบคืนของแล้ว' : 'ส่งคืนวัตถุดิบสำเร็จ',
             returnNumber ? `เลขที่ ${returnNumber} รอ QA ตรวจสอบ` : 'รอ QA ตรวจสอบ',
           );
           queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
           queryClient.invalidateQueries({ queryKey: ['material-returns', workOrderId] });
           setShowReturnDialog(false);
           setReturnMaterial(null);
+          setEditingReturnId(null);
         }}
         onError={(msg) => {
           toast.error('ส่งคืนวัตถุดิบไม่สำเร็จ', msg);

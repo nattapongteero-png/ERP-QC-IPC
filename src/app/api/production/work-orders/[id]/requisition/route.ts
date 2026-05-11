@@ -4,6 +4,8 @@ import { getTableRef, executeDbOperation, getAffectedRows } from '@/lib/db/db-he
 import { successResponse, errorResponse, serverErrorResponse, withAuth } from '@/lib/api-utils';
 import { getNow } from '@/lib/db/date-utils';
 import { realtimeBus } from '@/lib/realtime';
+import { getLotsForPicking, issueMaterial } from '@/lib/services/inventory.service';
+import { calculateIssuance, type UnitConfig } from '@/lib/utils/unit-conversion';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -91,6 +93,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const materials = await executeDbOperation(async (db) => {
         return db
           .select({
+            materialId: workOrderMaterialsTable.id,
             itemId: workOrderMaterialsTable.itemId,
             plannedQuantity: workOrderMaterialsTable.plannedQuantity,
             unit: workOrderMaterialsTable.unit,
@@ -99,6 +102,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             primaryUnit: itemsTable.primaryUnit,
             secondaryUnit: itemsTable.secondaryUnit,
             conversionRate: itemsTable.conversionRate,
+            // 3-level unit conversion (PU → SU → WU)
+            weightUnit: itemsTable.weightUnit,
+            secondaryToWeightRate: itemsTable.secondaryToWeightRate,
+            weightTrackingEnabled: itemsTable.weightTrackingEnabled,
           })
           .from(workOrderMaterialsTable)
           .leftJoin(itemsTable, eq(workOrderMaterialsTable.itemId, itemsTable.id))
@@ -189,6 +196,93 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         });
       }
 
+      // Physical-issuance step (3-level items only).
+      //
+      // For items with weight tracking enabled, the warehouse releases whole
+      // primary units (e.g. 2 boxes for a 1,700-capsule request). Stock is
+      // deducted now so production picks up the physical containers; the later
+      // weighing step will NOT deduct again (verifyMaterialWeight checks
+      // status='issued' and skips). Any unused remainder must come back through
+      // the material-return flow.
+      const issuedSummaries: { itemCode: string; puToIssue: number; pu: string; suIssued: number; su: string }[] = [];
+      for (const mat of materials) {
+        const tracked = mat.weightTrackingEnabled === true || mat.weightTrackingEnabled === 1;
+        const ratio1 = Number(mat.conversionRate);
+        if (!tracked || !Number.isFinite(ratio1) || ratio1 <= 0) continue;
+        if (!mat.primaryUnit || !mat.secondaryUnit) continue;
+
+        // Coerce planned BOM qty into SU.
+        let plannedSU: number;
+        if (mat.unit === mat.secondaryUnit) {
+          plannedSU = Number(mat.plannedQuantity);
+        } else if (mat.unit === mat.primaryUnit) {
+          plannedSU = Number(mat.plannedQuantity) * ratio1;
+        } else {
+          // Unknown BOM unit — skip issuance, fall through to weighing-time deduction.
+          continue;
+        }
+        if (!Number.isFinite(plannedSU) || plannedSU <= 0) continue;
+
+        const config: UnitConfig = {
+          primaryUnit: mat.primaryUnit,
+          secondaryUnit: mat.secondaryUnit,
+          weightUnit: mat.weightUnit,
+          conversionRate: ratio1,
+          secondaryToWeightRate: Number(mat.secondaryToWeightRate) || null,
+          weightTrackingEnabled: true,
+        };
+        const issuance = calculateIssuance(plannedSU, config);
+        const puToIssue = issuance.puToIssue; // qty in PRIMARY unit (= lot.unit)
+
+        // FEFO allocate puToIssue across released lots
+        const { allocated } = await getLotsForPicking(mat.itemId, puToIssue);
+        if (allocated.length === 0) {
+          throw new Error(
+            `วัตถุดิบ ${mat.itemCode} ไม่พอสำหรับปล่อยของ — ต้องการ ${puToIssue} ${mat.primaryUnit}`
+          );
+        }
+
+        const refNumber = wo.woNumber as string;
+        const batchNumber = wo.batchNumber as string;
+        let totalIssuedPU = 0;
+        for (const alloc of allocated) {
+          await issueMaterial(
+            alloc.lotId,
+            alloc.quantity,
+            'WO',
+            workOrderId,
+            refNumber,
+            session.userId,
+            `Material requisition release for ${refNumber}`,
+            { workOrderId, batchNumber }
+          );
+          totalIssuedPU += alloc.quantity;
+        }
+
+        // Mark material row as 'issued' so weighing flow skips deduction.
+        await executeDbOperation(async (db) => {
+          return db
+            .update(workOrderMaterialsTable)
+            .set({
+              status: 'issued',
+              actualQuantity: totalIssuedPU, // primary-unit value (matches verify path)
+              issuedQty: totalIssuedPU * ratio1, // SU equivalent for downstream return-flow math
+              issuedBy: session.userId,
+              issuedAt: getNow(),
+              lotId: allocated[0].lotId,
+            })
+            .where(eq(workOrderMaterialsTable.id, mat.materialId));
+        });
+
+        issuedSummaries.push({
+          itemCode: mat.itemCode || `ID:${mat.itemId}`,
+          puToIssue: totalIssuedPU,
+          pu: mat.primaryUnit,
+          suIssued: totalIssuedPU * ratio1,
+          su: mat.secondaryUnit,
+        });
+      }
+
       // Atomic guard: only update if status is still 'requested'.
       // If another concurrent approval already changed the status, affectedRows = 0
       // and we return a 409 telling the caller to refresh.
@@ -222,8 +316,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
 
       return successResponse(
-        { id: workOrderId, requisitionStatus: 'approved' },
-        'Material requisition approved successfully'
+        { id: workOrderId, requisitionStatus: 'approved', issued: issuedSummaries },
+        issuedSummaries.length > 0
+          ? `อนุมัติและปล่อยของแล้ว — ${issuedSummaries.length} รายการ`
+          : 'Material requisition approved successfully'
       );
     } catch (error) {
       return serverErrorResponse(error);

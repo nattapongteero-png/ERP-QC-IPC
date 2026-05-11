@@ -13,6 +13,10 @@ export interface Item {
   primaryUnit: string;
   secondaryUnit?: string | null;
   conversionRate?: number | null;
+  // 3-level unit conversion: PU → SU → WU
+  weightUnit?: string | null;
+  secondaryToWeightRate?: number | null;
+  weightTrackingEnabled?: boolean;
   shelfLifeDays?: number | null;
   storageCondition?: string | null;
   minStock?: number | null;

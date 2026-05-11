@@ -14,10 +14,15 @@ import {
 } from '@/lib/api-utils';
 import {
   approveMaterialReturn,
+  cancelMaterialReturnApproval,
   getMaterialReturnDetail,
   rejectMaterialReturn,
+  updateMaterialReturn,
 } from '@/lib/services/material-return.service';
-import { approveActionSchema } from '@/lib/validation/material-return';
+import {
+  approveActionSchema,
+  updateMaterialReturnSchema,
+} from '@/lib/validation/material-return';
 
 // GET — full return detail.
 export async function GET(
@@ -43,7 +48,38 @@ export async function GET(
   });
 }
 
-// POST — action endpoint. Body: { action: 'approve' | 'reject', reason?: string }
+// PATCH — edit a submitted return (operator can revise lines before QA approves).
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  return withAuth(request, async () => {
+    try {
+      const { id } = await params;
+      const returnId = Number(id);
+      if (!Number.isFinite(returnId)) {
+        return errorResponse('Invalid return ID');
+      }
+
+      const body = await request.json();
+      const parsed = updateMaterialReturnSchema.safeParse(body);
+      if (!parsed.success) {
+        return errorResponse('Invalid update payload', 400, { errors: parsed.error.issues });
+      }
+
+      const result = await updateMaterialReturn(returnId, parsed.data);
+      return successResponse(result, `แก้ไขใบคืนของแล้ว — ${result.lineIds.length} รายการ`);
+    } catch (error) {
+      console.error('Error updating material return:', error);
+      if (error instanceof Error && error.message) {
+        return errorResponse(error.message, 400);
+      }
+      return serverErrorResponse(error);
+    }
+  });
+}
+
+// POST — action endpoint. Body: { action: 'approve' | 'reject' | 'cancel-approval', reason?: string }
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -72,6 +108,14 @@ export async function POST(
         return successResponse(
           result,
           `Return approved — ${result.newLots.length} lot(s) created, ${result.deviationsCreated.length} deviation(s) opened`,
+        );
+      }
+
+      if (action === 'cancel-approval') {
+        const result = await cancelMaterialReturnApproval(returnId, session.userId);
+        return successResponse(
+          result,
+          `ยกเลิกการรับเข้าคลังแล้ว — ลอตที่ถูกลบ: ${result.removedLotIds.length}`,
         );
       }
 

@@ -13,12 +13,14 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { calculateReturn, type UnitConfig } from '@/lib/utils/unit-conversion';
 
 export type VarianceReason =
   | 'process_loss'
@@ -45,6 +47,19 @@ export interface MaterialReturnSourceMaterial {
   lotNumber: string | null;
   /** Source lot's warehouse — used as default receiving warehouse. */
   lotWarehouseId?: number | null;
+  // ──────────────────────────────────────────────────────────────────────
+  // 3-level unit conversion fields (Step 1/2/3). When `weightTrackingEnabled`
+  // is true, the dialog enables the WU input toggle and auto-computes
+  // used/return quantities via calculateReturn.
+  // ──────────────────────────────────────────────────────────────────────
+  primaryUnit?: string | null;
+  secondaryUnit?: string | null;
+  weightUnit?: string | null;
+  conversionRate?: number | null;        // Ratio1: 1 PU = N SU
+  secondaryToWeightRate?: number | null; // Ratio2: 1 SU = N WU
+  weightTrackingEnabled?: boolean;
+  /** SU actually issued from warehouse at Step 2 approve (overrides weighedQty when set) */
+  issuedQtySU?: number | null;
 }
 
 export interface MaterialReturnDialogProps {
@@ -56,6 +71,8 @@ export interface MaterialReturnDialogProps {
   workOrderId: number;
   /** Default receiving warehouse — falls back to material.lotWarehouseId, then 1. */
   defaultReceivingWarehouseId?: number | null;
+  /** When set, dialog loads the existing return for editing (PATCH instead of POST). */
+  existingReturnId?: number | null;
   /** Called after a successful submit so the parent can invalidate queries. */
   onSubmitted?: (returnNumber: string) => void;
   /** Called on submit error so the parent can toast. */
@@ -100,16 +117,41 @@ function buildDefaultLabel(): string {
   return `RTN-${year}-${tail}-A`;
 }
 
+// Other lines within the same return that we did not edit — sent back
+// untouched in the PATCH payload so the server can rebuild the line set.
+interface PassThroughLine {
+  sourceLotId: number;
+  itemId: number;
+  issuedQty: number;
+  issuedUnit: string;
+  usedQty: number;
+  usedUnit: string;
+  returnQty: number;
+  returnUnit: string;
+  varianceReason: string;
+  varianceExplanation: string | null;
+  containerLabel: string;
+  containerType: string | null;
+  notes: string | null;
+}
+
 export function MaterialReturnDialog({
   visible,
   onClose,
   material,
   workOrderId,
   defaultReceivingWarehouseId,
+  existingReturnId,
   onSubmitted,
   onError,
 }: MaterialReturnDialogProps) {
+  const t = useTranslations('production');
+  const td = (k: string) => t(`execution.materialReturnDialog.${k}`);
   const initialIssued = material?.weighedQty ?? material?.plannedQty ?? 0;
+  const isEdit = !!existingReturnId;
+  // Holds non-edited lines from the existing return (other materials in the
+  // same return). On submit we merge them back so PATCH receives the full set.
+  const [passThroughLines, setPassThroughLines] = useState<PassThroughLine[]>([]);
 
   // Resolved receiving warehouse — falls back to fetching the source lot's
   // warehouse when neither defaultReceivingWarehouseId nor material.lotWarehouseId
@@ -162,23 +204,40 @@ export function MaterialReturnDialog({
     };
   }, [visible, material, defaultReceivingWarehouseId]);
 
+  // ──────────────────────────────────────────────────────────────────────
+  // 3-level weight tracking — only enabled when item.weightTrackingEnabled
+  // and required ratios are present. The dialog then offers a WU input that
+  // auto-derives usedQty (in SU = BOM unit) via calculateReturn.
+  // ──────────────────────────────────────────────────────────────────────
+  const tracked = !!(
+    material?.weightTrackingEnabled &&
+    material?.conversionRate && Number(material.conversionRate) > 0 &&
+    material?.secondaryToWeightRate && Number(material.secondaryToWeightRate) > 0 &&
+    material?.primaryUnit &&
+    material?.secondaryUnit &&
+    material?.weightUnit
+  );
+
+  type InputMode = 'weight' | 'su';
+  const [inputMode, setInputMode] = useState<InputMode>('weight');
+  const [weightUsed, setWeightUsed] = useState<number>(0);
+
   // Reset form whenever the dialog opens for a new material — guarantees
-  // we don't carry over stale state from a previous return.
+  // we don't carry over stale state from a previous return. In edit mode
+  // we additionally fetch the existing return and overwrite defaults with
+  // the persisted line values.
   useEffect(() => {
     if (!visible || !material) return;
     const planned = material.plannedQty ?? 0;
     const weighed = material.weighedQty ?? 0;
-    // Issued = what was pulled from the lot. Assume the operator drew at
-    // least the larger of (planned, weighed):
-    //   - over-weigh case (weighed > planned): they pulled `weighed`
-    //   - under-weigh case (weighed < planned): they likely pulled `planned`
-    //     and only put `weighed` into the batch — leaving `planned - weighed`
-    //     to return.
-    const issued = Math.max(weighed, planned);
-    // Used = what went into the batch (capped at planned so over-weighing
-    // doesn't pre-fill out-of-recipe consumption).
-    const defaultUsed = Math.min(weighed, planned);
+    const issuedFromStep2 = material.issuedQtySU != null ? Number(material.issuedQtySU) : 0;
+    const issued = issuedFromStep2 > 0
+      ? issuedFromStep2
+      : Math.max(weighed, planned);
+    const defaultUsed = Math.min(weighed, issued);
     const defaultReturn = Math.max(0, issued - defaultUsed);
+
+    // Initial seed (will be overwritten in edit mode after fetch resolves).
     setForm({
       issuedQty: issued,
       usedQty: defaultUsed,
@@ -189,14 +248,129 @@ export function MaterialReturnDialog({
       varianceExplanation: '',
       notes: '',
     });
+    setInputMode('weight');
+    if (tracked && material?.secondaryToWeightRate) {
+      setWeightUsed(defaultUsed * Number(material.secondaryToWeightRate));
+    } else {
+      setWeightUsed(0);
+    }
+    setPassThroughLines([]);
     setError(null);
-  }, [visible, material]);
+
+    // Edit mode: fetch the existing return and find the line for this material.
+    if (existingReturnId && material.lotId != null) {
+      let cancelled = false;
+      (async () => {
+        try {
+          const res = await fetch(`/api/inventory/returns/${existingReturnId}`);
+          const data = await res.json();
+          if (cancelled || !data?.success || !data.data?.lines) return;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const lines = data.data.lines as any[];
+          const targetLotId = Number(material.lotId);
+          const targetItemId = Number(material.itemId);
+          const editLine = lines.find(
+            (l) => Number(l.sourceLot?.id ?? l.sourceLotId) === targetLotId
+              && Number(l.itemId) === targetItemId,
+          );
+          const others: PassThroughLine[] = lines
+            .filter((l) => l !== editLine)
+            .map((l) => ({
+              sourceLotId: Number(l.sourceLot?.id ?? l.sourceLotId),
+              itemId: Number(l.itemId),
+              issuedQty: Number(l.issuedQty),
+              issuedUnit: String(l.issuedUnit),
+              usedQty: Number(l.usedQty),
+              usedUnit: String(l.usedUnit),
+              returnQty: Number(l.returnQty),
+              returnUnit: String(l.returnUnit),
+              varianceReason: String(l.varianceReason),
+              varianceExplanation: l.varianceExplanation ?? null,
+              containerLabel: String(l.returnContainerLabel ?? l.containerLabel ?? ''),
+              containerType: l.returnContainerType ?? l.containerType ?? null,
+              notes: l.notes ?? null,
+            }));
+          setPassThroughLines(others);
+          if (editLine) {
+            setForm((prev) => ({
+              ...prev,
+              issuedQty: Number(editLine.issuedQty),
+              usedQty: Number(editLine.usedQty),
+              returnQty: Number(editLine.returnQty),
+              containerLabel: String(editLine.returnContainerLabel ?? prev.containerLabel),
+              containerType: (editLine.returnContainerType as ContainerType) ?? prev.containerType,
+              varianceReason: (editLine.varianceReason as VarianceReason) ?? prev.varianceReason,
+              varianceExplanation: editLine.varianceExplanation ?? '',
+              notes: editLine.notes ?? '',
+            }));
+            if (tracked && material?.secondaryToWeightRate) {
+              setWeightUsed(Number(editLine.usedQty) * Number(material.secondaryToWeightRate));
+            }
+          }
+        } catch {
+          // Leave defaults — operator can still edit and resubmit.
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [visible, material, tracked, existingReturnId]);
 
   const variance = useMemo(() => {
     const v = form.issuedQty - form.usedQty - form.returnQty;
     const pct = form.issuedQty > 0 ? Math.abs(v / form.issuedQty) * 100 : 0;
     return { qty: v, pct };
   }, [form.issuedQty, form.usedQty, form.returnQty]);
+
+  // Derived return preview for weight-tracked items — shows the equivalent
+  // PU value (e.g. 0.25 box) that will become the new RTN lot quantity.
+  const returnPreview = useMemo(() => {
+    if (!tracked || !material) return null;
+    const r1 = Number(material.conversionRate);
+    const r2 = Number(material.secondaryToWeightRate);
+    if (!(r1 > 0) || !(r2 > 0)) return null;
+    try {
+      const config: UnitConfig = {
+        primaryUnit: material.primaryUnit ?? '',
+        secondaryUnit: material.secondaryUnit ?? '',
+        weightUnit: material.weightUnit ?? '',
+        conversionRate: r1,
+        secondaryToWeightRate: r2,
+        weightTrackingEnabled: true,
+      };
+      const usedWU = inputMode === 'weight' ? weightUsed : form.usedQty * r2;
+      if (usedWU < 0 || form.issuedQty <= 0) return null;
+      const r = calculateReturn(usedWU, form.issuedQty, config);
+      return {
+        usedWU,
+        usedSU: r.actualUsedSU,
+        returnedSU: r.returnedSU,
+        returnedPU: r.returnedPU,
+        pu: material.primaryUnit ?? '',
+        su: material.secondaryUnit ?? '',
+        wu: material.weightUnit ?? '',
+      };
+    } catch {
+      return null;
+    }
+  }, [tracked, material, inputMode, weightUsed, form.usedQty, form.issuedQty]);
+
+  // Sync side-effect: when operator types weight (or toggles to weight mode),
+  // derive usedQty/returnQty in SU. Form fields stay the source of truth for submit.
+  useEffect(() => {
+    if (!tracked || !material) return;
+    const r2 = Number(material.secondaryToWeightRate);
+    if (!(r2 > 0)) return;
+    if (inputMode !== 'weight') return;
+    const usedSU = weightUsed / r2;
+    const returnSU = Math.max(0, form.issuedQty - usedSU);
+    setForm((f) =>
+      f.usedQty === usedSU && f.returnQty === returnSU
+        ? f
+        : { ...f, usedQty: usedSU, returnQty: returnSU }
+    );
+  }, [tracked, material, inputMode, weightUsed, form.issuedQty]);
 
   // Soft tolerance hint for badge color — the server is the source of truth
   // for outside-tolerance flag. 3% default per design §3.3.
@@ -247,32 +421,45 @@ export function MaterialReturnDialog({
       return;
     }
 
+    // The current material's edited line — same shape used for both create & edit.
+    const currentLine = {
+      sourceLotId: material.lotId,
+      itemId: material.itemId,
+      issuedQty: form.issuedQty,
+      issuedUnit: material.unit,
+      usedQty: form.usedQty,
+      usedUnit: material.unit,
+      returnQty: form.returnQty,
+      returnUnit: material.unit,
+      varianceReason: form.varianceReason,
+      varianceExplanation: form.varianceExplanation || null,
+      containerLabel: form.containerLabel.trim(),
+      containerType: form.containerType,
+      notes: form.notes || null,
+    };
+
     try {
-      const res = await fetch('/api/inventory/returns', {
-        method: 'POST',
+      const url = isEdit
+        ? `/api/inventory/returns/${existingReturnId}`
+        : '/api/inventory/returns';
+      const method = isEdit ? 'PATCH' : 'POST';
+      const body = isEdit
+        ? {
+            receivingWarehouseId,
+            notes: form.notes || null,
+            lines: [...passThroughLines, currentLine],
+          }
+        : {
+            workOrderId,
+            receivingWarehouseId,
+            notes: form.notes || null,
+            lines: [currentLine],
+          };
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workOrderId,
-          receivingWarehouseId,
-          notes: form.notes || null,
-          lines: [
-            {
-              sourceLotId: material.lotId,
-              itemId: material.itemId,
-              issuedQty: form.issuedQty,
-              issuedUnit: material.unit,
-              usedQty: form.usedQty,
-              usedUnit: material.unit,
-              returnQty: form.returnQty,
-              returnUnit: material.unit,
-              varianceReason: form.varianceReason,
-              varianceExplanation: form.varianceExplanation || null,
-              containerLabel: form.containerLabel.trim(),
-              containerType: form.containerType,
-              notes: form.notes || null,
-            },
-          ],
-        }),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!json.success) {
@@ -300,7 +487,13 @@ export function MaterialReturnDialog({
     <DxPopup
       visible={visible}
       onHiding={onClose}
-      title={material ? `คืนของเหลือ — ${material.itemName}` : 'คืนของเหลือ'}
+      title={
+        material
+          ? `${isEdit ? td('editTitle') : td('title')} — ${material.itemName}`
+          : isEdit
+            ? td('editTitle')
+            : td('title')
+      }
       width={560}
       height="auto"
       maxWidth="95vw"
@@ -315,21 +508,98 @@ export function MaterialReturnDialog({
               <p className="font-mono text-xs text-amber-700">{material?.itemCode}</p>
               <p className="font-medium text-amber-900 truncate">{material?.itemName}</p>
               <p className="text-xs text-amber-700 mt-0.5">
-                Source Lot: <span className="font-mono">{material?.lotNumber || '—'}</span>
+                {td('sourceLot')}: <span className="font-mono">{material?.lotNumber || '—'}</span>
               </p>
             </div>
             <div className="text-right text-xs text-amber-700">
-              <p>Planned: <strong>{material?.plannedQty} {material?.unit}</strong></p>
-              <p>Weighed: <strong>{material?.weighedQty} {material?.unit}</strong></p>
+              <p>{td('planned')}: <strong>{material?.plannedQty} {material?.unit}</strong></p>
+              <p>{td('weighed')}: <strong>{material?.weighedQty} {material?.unit}</strong></p>
             </div>
           </div>
         </div>
+
+        {/* Weight-tracked items: input by weight (WU), auto-derive used/return in SU */}
+        {tracked && material && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-emerald-700">
+                <strong>{td('threeLevelLabel')}:</strong> 1 {material.primaryUnit} = {Number(material.conversionRate).toLocaleString()} {material.secondaryUnit} ; 1 {material.secondaryUnit} = {Number(material.secondaryToWeightRate)} {material.weightUnit}
+              </div>
+              <div className="inline-flex rounded-md overflow-hidden border border-emerald-300 text-xs">
+                <button
+                  type="button"
+                  className={
+                    'px-3 py-1 ' +
+                    (inputMode === 'weight'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-white text-emerald-700')
+                  }
+                  onClick={() => setInputMode('weight')}
+                >
+                  {td('modeWeight')} ({material.weightUnit})
+                </button>
+                <button
+                  type="button"
+                  className={
+                    'px-3 py-1 ' +
+                    (inputMode === 'su'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-white text-emerald-700')
+                  }
+                  onClick={() => setInputMode('su')}
+                >
+                  {td('modeSU')} ({material.secondaryUnit})
+                </button>
+              </div>
+            </div>
+
+            {inputMode === 'weight' && (
+              <div>
+                <label className="block text-xs font-medium text-emerald-800 mb-1">
+                  {td('weightInputLabel')} ({material.weightUnit})
+                </label>
+                <DxNumberBox
+                  value={weightUsed}
+                  onValueChanged={(e) => setWeightUsed(Number(e.value) || 0)}
+                  format="#0.######"
+                  min={0}
+                  max={form.issuedQty * (Number(material.secondaryToWeightRate) || 0)}
+                  showSpinButtons
+                />
+              </div>
+            )}
+
+            {returnPreview && (
+              <div className="text-sm bg-white border border-emerald-200 rounded-lg p-3 space-y-1">
+                <div className="text-emerald-900">
+                  <strong>{td('actualUsed')}:</strong>{' '}
+                  {returnPreview.usedWU.toLocaleString(undefined, { maximumFractionDigits: 4 })} {returnPreview.wu}{' '}
+                  <span className="text-xs text-gray-500">
+                    (= {returnPreview.usedSU.toLocaleString(undefined, { maximumFractionDigits: 3 })} {returnPreview.su})
+                  </span>
+                </div>
+                <div className="text-emerald-900">
+                  <strong>{td('returnToWarehouse')}:</strong>{' '}
+                  <span className="font-semibold">
+                    {returnPreview.returnedPU.toLocaleString(undefined, { maximumFractionDigits: 4 })} {returnPreview.pu}
+                  </span>{' '}
+                  <span className="text-xs text-gray-500">
+                    (= {returnPreview.returnedSU.toLocaleString(undefined, { maximumFractionDigits: 3 })} {returnPreview.su})
+                  </span>
+                  <span className="ml-2 text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700">
+                    {td('zeroCost')}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Quantities row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Issued ({material?.unit})
+              {td('issued')} ({material?.unit})
             </label>
             <DxNumberBox
               value={form.issuedQty}
@@ -341,7 +611,7 @@ export function MaterialReturnDialog({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Used ({material?.unit}) *
+              {td('used')} ({material?.unit}) *
             </label>
             <DxNumberBox
               value={form.usedQty}
@@ -354,7 +624,7 @@ export function MaterialReturnDialog({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Return ({material?.unit}) *
+              {td('returnQty')} ({material?.unit}) *
             </label>
             <DxNumberBox
               value={form.returnQty}
@@ -377,14 +647,14 @@ export function MaterialReturnDialog({
           }
         >
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-700">Variance</span>
+            <span className="text-gray-700">{td('variance')}</span>
             <span className="font-medium">
               {variance.qty.toFixed(4)} {material?.unit} ({variance.pct.toFixed(2)}%)
             </span>
           </div>
           {variance.pct > VARIANCE_HINT_THRESHOLD && (
             <p className="text-xs text-amber-700 mt-1">
-              Variance อาจเกิน tolerance — QA จะตรวจสอบและอาจเปิด deviation
+              {td('varianceWarning')}
             </p>
           )}
         </div>
@@ -393,7 +663,7 @@ export function MaterialReturnDialog({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Container Label *
+              {td('containerLabel')} *
             </label>
             <DxTextBox
               value={form.containerLabel}
@@ -403,7 +673,7 @@ export function MaterialReturnDialog({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Container Type
+              {td('containerType')}
             </label>
             <DxSelectBox<ContainerType>
               value={form.containerType}
@@ -419,7 +689,7 @@ export function MaterialReturnDialog({
         {/* Variance reason */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Variance Reason *
+            {td('varianceReason')} *
           </label>
           <DxSelectBox<VarianceReason>
             value={form.varianceReason}
@@ -436,15 +706,15 @@ export function MaterialReturnDialog({
         {/* Variance explanation — required for "other" / "unaccounted" */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Variance Explanation {explanationRequired && <span className="text-red-500">*</span>}
+            {td('varianceExplanation')} {explanationRequired && <span className="text-red-500">*</span>}
           </label>
           <DxTextArea
             value={form.varianceExplanation}
             onValueChanged={(e) => setForm((f) => ({ ...f, varianceExplanation: String(e.value || '') }))}
             placeholder={
               explanationRequired
-                ? 'จำเป็นต้องระบุเหตุผลสำหรับ Other/Unaccounted'
-                : 'อธิบายเพิ่มเติม (ถ้ามี)'
+                ? td('explanationRequired')
+                : td('explanationOptional')
             }
             height={60}
           />
@@ -452,11 +722,11 @@ export function MaterialReturnDialog({
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{td('notes')}</label>
           <DxTextArea
             value={form.notes}
             onValueChanged={(e) => setForm((f) => ({ ...f, notes: String(e.value || '') }))}
-            placeholder="หมายเหตุเพิ่มเติม"
+            placeholder={td('notesPlaceholder')}
             height={50}
           />
         </div>
@@ -471,13 +741,19 @@ export function MaterialReturnDialog({
         {/* Footer */}
         <div className="flex justify-end gap-2 pt-3 border-t">
           <DxButton
-            text="ยกเลิก"
+            text={td('cancel')}
             stylingMode="outlined"
             onClick={onClose}
             disabled={submitting}
           />
           <DxButton
-            text={submitting ? 'กำลังส่ง...' : 'ส่งคืนวัตถุดิบ'}
+            text={
+              submitting
+                ? td('submitting')
+                : isEdit
+                  ? td('editSubmit')
+                  : td('submit')
+            }
             type="success"
             onClick={handleSubmit}
             disabled={submitting}

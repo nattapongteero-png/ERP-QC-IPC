@@ -100,7 +100,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         'secondaryUnit', 'conversionRate', 'shelfLifeDays', 'storageCondition',
         'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive',
         'tppCode', 'tppName', 'ttmtCode', 'ttmtName', 'drugCode24', 'vmiSyncEnabled',
-        'confidentialityLevel', 'defaultConfidential', 'strength', 'gRegNumber'
+        'confidentialityLevel', 'defaultConfidential', 'strength', 'gRegNumber',
+        // 3-level unit conversion (PU → SU → WU)
+        'weightUnit', 'secondaryToWeightRate', 'weightTrackingEnabled'
       ];
 
       // Map frontend field names to DB column names

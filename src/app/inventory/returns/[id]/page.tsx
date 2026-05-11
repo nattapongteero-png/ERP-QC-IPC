@@ -133,6 +133,7 @@ export default function MaterialReturnDetailPage() {
 
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -190,6 +191,31 @@ export default function MaterialReturnDetailPage() {
     } finally {
       setApproving(false);
       setShowApproveConfirm(false);
+    }
+  };
+
+  const handleCancelApproval = async () => {
+    if (!confirm('ยืนยันยกเลิกการรับเข้าคลัง?\nลอตที่สร้างจะถูกลบ และสถานะจะกลับเป็น "รอตรวจสอบ" ให้ฝ่ายผลิตแก้ไขได้อีกครั้ง')) {
+      return;
+    }
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/inventory/returns/${returnId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel-approval' }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error('ยกเลิกไม่สำเร็จ', data.error || 'Unknown error');
+      } else {
+        toast.success('ยกเลิกการรับเข้าคลังสำเร็จ', 'รายการกลับเป็นสถานะรอตรวจสอบ');
+        await fetchDetail();
+      }
+    } catch (e) {
+      toast.error('ยกเลิกไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -259,6 +285,7 @@ export default function MaterialReturnDetailPage() {
 
   const sInfo = statusInfo(detail.status);
   const canAct = detail.status === 'submitted';
+  const canCancel = detail.status === 'received';
 
   // Aggregate created lots/deviations across lines for the post-approval banner.
   const createdLots = detail.lines.filter((l) => l.returnedLot).map((l) => l.returnedLot!);
@@ -437,6 +464,16 @@ export default function MaterialReturnDetailPage() {
                       disabled={approving || rejecting}
                     />
                   </>
+                )}
+                {canCancel && (
+                  <DxButton
+                    text={cancelling ? 'กำลังยกเลิก...' : 'ยกเลิกการรับเข้าคลัง'}
+                    icon="undo"
+                    type="danger"
+                    stylingMode="outlined"
+                    onClick={handleCancelApproval}
+                    disabled={cancelling}
+                  />
                 )}
               </div>
             }

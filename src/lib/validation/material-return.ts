@@ -61,12 +61,24 @@ export const submitMaterialReturnSchema = z.object({
 });
 
 export const approveActionSchema = z.object({
-  action: z.enum(['approve', 'reject']),
+  action: z.enum(['approve', 'reject', 'cancel-approval']),
   reason: z.string().max(2000).nullable().optional(),
+});
+
+// Update existing material return — used while still in 'submitted' status
+// before QA confirms the receipt. workOrderId/operatorId are immutable so they
+// are not part of the payload; only line content + container info can change.
+export const updateMaterialReturnSchema = z.object({
+  receivingWarehouseId: z.number().int().positive().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  lines: z
+    .array(materialReturnLineInputSchema)
+    .min(1, 'At least one return line is required'),
 });
 
 // Type exports for service-layer consumption
 export type SubmitMaterialReturnInput = z.infer<typeof submitMaterialReturnSchema>;
+export type UpdateMaterialReturnInput = z.infer<typeof updateMaterialReturnSchema>;
 export type MaterialReturnLineInput = z.infer<typeof materialReturnLineInputSchema>;
 export type ApproveActionInput = z.infer<typeof approveActionSchema>;
 export type VarianceReason = z.infer<typeof varianceReasonSchema>;

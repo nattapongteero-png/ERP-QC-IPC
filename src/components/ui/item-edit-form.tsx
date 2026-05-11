@@ -59,6 +59,10 @@ export interface Item {
   primaryUnit: string;
   secondaryUnit: string | null;
   conversionFactor: number | null;
+  // 3-level unit conversion (PU → SU → WU)
+  weightUnit?: string | null;
+  secondaryToWeightRate?: number | null;
+  weightTrackingEnabled?: boolean;
   minStock: number | null;
   maxStock: number | null;
   reorderPoint: number | null;
@@ -93,6 +97,10 @@ export interface ItemFormData {
   primaryUnit: string;
   secondaryUnit: string;
   conversionFactor: number | null;
+  // 3-level unit conversion (PU → SU → WU)
+  weightUnit: string;
+  secondaryToWeightRate: number | null;
+  weightTrackingEnabled: boolean;
   minStock: number | null;
   maxStock: number | null;
   reorderPoint: number | null;
@@ -156,6 +164,9 @@ export const getDefaultFormData = (): ItemFormData => ({
   primaryUnit: 'kg',
   secondaryUnit: '',
   conversionFactor: null,
+  weightUnit: '',
+  secondaryToWeightRate: null,
+  weightTrackingEnabled: false,
   minStock: null,
   maxStock: null,
   reorderPoint: null,
@@ -190,6 +201,10 @@ export const itemToFormData = (item: Item): ItemFormData => {
   primaryUnit: item.primaryUnit,
   secondaryUnit: item.secondaryUnit || '',
   conversionFactor: isNaN(conversionFactor as number) ? null : conversionFactor,
+  weightUnit: item.weightUnit || '',
+  secondaryToWeightRate:
+    item.secondaryToWeightRate != null ? Number(item.secondaryToWeightRate) : null,
+  weightTrackingEnabled: item.weightTrackingEnabled === true,
   minStock: item.minStock != null ? Number(item.minStock) : null,
   maxStock: item.maxStock != null ? Number(item.maxStock) : null,
   reorderPoint: item.reorderPoint != null ? Number(item.reorderPoint) : null,
@@ -950,6 +965,69 @@ export function ItemEditForm({
                       </div>
                     </div>
                   )}
+
+                  {/* Weight tracking (3rd level) — for items issued by SU but consumed by weight */}
+                  <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                    <DxCheckBox
+                      text="เปิดใช้งานหน่วยชั่ง (Weight Unit) — สำหรับการเบิกจ่ายเป็นน้ำหนัก"
+                      value={formData.weightTrackingEnabled}
+                      onValueChange={(v) => updateFormData('weightTrackingEnabled', v)}
+                      disabled={!formData.secondaryUnit || !formData.conversionFactor}
+                    />
+                    {formData.weightTrackingEnabled && (
+                      <>
+                        <div className="grid grid-cols-2 gap-5 mt-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              หน่วยชั่ง (Weight Unit)
+                            </label>
+                            <DxSelectBox
+                              items={unitOptionsWithNone}
+                              value={formData.weightUnit}
+                              onValueChange={(value) => updateFormData('weightUnit', value)}
+                              valueExpr="value"
+                              displayExpr="label"
+                              disabled={unitsLoading}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              เช่น g (กรัม), ml (มิลลิลิตร)
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              อัตราแปลง (1 {unitOptions.find(u => u.value === formData.secondaryUnit)?.label || formData.secondaryUnit || 'SU'} = ? {unitOptions.find(u => u.value === formData.weightUnit)?.label || formData.weightUnit || 'WU'})
+                            </label>
+                            <DxNumberBox
+                              value={formData.secondaryToWeightRate}
+                              onValueChange={(value) => updateFormData('secondaryToWeightRate', value)}
+                              placeholder="เช่น 0.1"
+                              disabled={!formData.weightUnit}
+                              format="#,##0.######"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              น้ำหนักต่อ 1 หน่วยรอง
+                            </p>
+                          </div>
+                        </div>
+
+                        {formData.weightUnit && formData.secondaryToWeightRate && formData.conversionFactor && (
+                          <div className="mt-4 bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
+                            <div className="p-2 bg-emerald-100 rounded-lg">
+                              <Info className="h-4 w-4 text-emerald-600" />
+                            </div>
+                            <div className="text-sm text-emerald-700">
+                              <span className="font-semibold">3-Level conversion:</span>{' '}
+                              1 {unitOptions.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit}
+                              {' = '}
+                              {formData.conversionFactor.toLocaleString()} {unitOptions.find(u => u.value === formData.secondaryUnit)?.label || formData.secondaryUnit}
+                              {' = '}
+                              {(formData.conversionFactor * formData.secondaryToWeightRate).toLocaleString(undefined, { maximumFractionDigits: 4 })} {unitOptions.find(u => u.value === formData.weightUnit)?.label || formData.weightUnit}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </SectionCard>
 

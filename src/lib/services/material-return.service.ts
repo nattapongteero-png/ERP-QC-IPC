@@ -53,7 +53,7 @@ import {
   mysqlDeviations,
 } from '../db/schema';
 
-import type { SubmitMaterialReturnInput, MaterialReturnLineInput } from '../validation/material-return';
+import type { SubmitMaterialReturnInput, UpdateMaterialReturnInput, MaterialReturnLineInput } from '../validation/material-return';
 
 // ----------------------------------------------------------------------------
 // Constants
@@ -496,6 +496,262 @@ export async function submitMaterialReturn(
 }
 
 // ----------------------------------------------------------------------------
+// 1b. updateMaterialReturn — operator can revise lines while status='submitted'
+//     (i.e. before QA confirms receipt). Implementation strategy: delete the
+//     existing lines and insert fresh ones — line edits are coarse-grained
+//     (issued/used/return/variance) and recomputing tolerance is cheap.
+// ----------------------------------------------------------------------------
+
+export interface UpdateMaterialReturnResult {
+  returnId: number;
+  returnNumber: string;
+  status: 'submitted';
+  lineIds: number[];
+  outsideToleranceCount: number;
+}
+
+export async function updateMaterialReturn(
+  returnId: number,
+  input: UpdateMaterialReturnInput,
+): Promise<UpdateMaterialReturnResult> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    // 1. Load + guard status. Edits are only allowed while QA hasn't acted yet.
+    const [header] = await db
+      .select()
+      .from(tables.materialReturns)
+      .where(eq(tables.materialReturns.id, returnId))
+      .limit(1);
+    if (!header) {
+      throw new Error(`Material return ${returnId} not found`);
+    }
+    if (header.status !== 'submitted') {
+      throw new Error(
+        `Cannot edit material return ${header.returnNumber} — status="${header.status}" (only 'submitted' is editable)`,
+      );
+    }
+
+    // 2. Validate items + lots (mirror submitMaterialReturn).
+    const itemIds = Array.from(new Set(input.lines.map((l) => l.itemId)));
+    const itemRows = await db
+      .select({
+        id: tables.items.id,
+        code: tables.items.code,
+        category: tables.items.category,
+        primaryUnit: tables.items.primaryUnit,
+        secondaryUnit: tables.items.secondaryUnit,
+      })
+      .from(tables.items)
+      .where(inArray(tables.items.id, itemIds));
+    const itemMap = new Map<number, typeof itemRows[number]>();
+    for (const it of itemRows) itemMap.set(Number(it.id), it);
+
+    const sourceLotIds = Array.from(new Set(input.lines.map((l) => l.sourceLotId)));
+    const lotRows = await db
+      .select({
+        id: tables.lots.id,
+        itemId: tables.lots.itemId,
+        lotNumber: tables.lots.lotNumber,
+      })
+      .from(tables.lots)
+      .where(inArray(tables.lots.id, sourceLotIds));
+    const lotMap = new Map<number, typeof lotRows[number]>();
+    for (const lot of lotRows) lotMap.set(Number(lot.id), lot);
+
+    for (const line of input.lines) {
+      const item = itemMap.get(line.itemId);
+      if (!item) throw new Error(`Item ${line.itemId} not found`);
+      const lot = lotMap.get(line.sourceLotId);
+      if (!lot) throw new Error(`Source lot ${line.sourceLotId} not found`);
+      if (Number(lot.itemId) !== line.itemId) {
+        throw new Error(
+          `Lot ${line.sourceLotId} (lot ${lot.lotNumber}) belongs to item ${lot.itemId}, not ${line.itemId}`,
+        );
+      }
+      const allowedUnits = [item.primaryUnit, item.secondaryUnit]
+        .filter((u): u is string => !!u)
+        .map((u) => u.toLowerCase());
+      if (!allowedUnits.includes(line.returnUnit.toLowerCase())) {
+        throw new Error(
+          `Return unit "${line.returnUnit}" is not valid for item ${item.code}`,
+        );
+      }
+    }
+
+    // 3. Recompute variance.
+    const tolerancePerItem = new Map<number, number>();
+    for (const itemId of itemIds) {
+      const item = itemMap.get(itemId);
+      const tol = await resolveTolerancePct(db, itemId, item?.category ?? null);
+      tolerancePerItem.set(itemId, tol);
+    }
+    const computedLines = input.lines.map((line) => ({
+      line,
+      computed: computeVariance(line, tolerancePerItem.get(line.itemId) ?? DEFAULT_TOLERANCE_PCT),
+    }));
+
+    const now = getNow();
+
+    // 4. Update header (notes, optional receiving warehouse, updatedAt).
+    const headerSet: Record<string, unknown> = { notes: input.notes ?? null, updatedAt: now };
+    if (input.receivingWarehouseId) {
+      headerSet.receivingWarehouseId = input.receivingWarehouseId;
+    }
+    await db.update(tables.materialReturns).set(headerSet).where(eq(tables.materialReturns.id, returnId));
+
+    // 5. Wipe + reinsert lines. Each line carries its own returnedLotId only
+    //    after approval, so deleting submitted lines is safe (no FK cascade
+    //    concern — lots haven't been created yet).
+    await db.delete(tables.materialReturnLines).where(eq(tables.materialReturnLines.returnId, returnId));
+
+    const lineIds: number[] = [];
+    let outsideCount = 0;
+    for (const { line, computed } of computedLines) {
+      const lineInsert = await db.insert(tables.materialReturnLines).values({
+        returnId,
+        sourceLotId: line.sourceLotId,
+        itemId: line.itemId,
+        issuedQty: line.issuedQty,
+        issuedUnit: line.issuedUnit,
+        usedQty: line.usedQty,
+        usedUnit: line.usedUnit,
+        returnQty: line.returnQty,
+        returnUnit: line.returnUnit,
+        expectedVarianceQty: line.expectedVarianceQty ?? null,
+        varianceQty: computed.varianceQty,
+        variancePct: computed.variancePct,
+        varianceReason: line.varianceReason,
+        varianceExplanation: line.varianceExplanation ?? null,
+        isOutsideTolerance: computed.isOutsideTolerance,
+        returnContainerLabel: line.containerLabel,
+        returnContainerType: line.containerType ?? null,
+        notes: line.notes ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      lineIds.push(Number(getInsertId(lineInsert)));
+      if (computed.isOutsideTolerance) outsideCount++;
+    }
+
+    return {
+      returnId,
+      returnNumber: header.returnNumber as string,
+      status: 'submitted' as const,
+      lineIds,
+      outsideToleranceCount: outsideCount,
+    };
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 1c. cancelMaterialReturnApproval — QA/warehouse can revert a 'received'
+//     return back to 'submitted' so production can edit it again.
+//     Refuses if the new RTN lot has any subsequent transactions (already
+//     reissued/consumed) — at that point a manual deviation is required.
+// ----------------------------------------------------------------------------
+
+export interface CancelApprovalResult {
+  returnId: number;
+  returnNumber: string;
+  status: 'submitted';
+  removedLotIds: number[];
+}
+
+export async function cancelMaterialReturnApproval(
+  returnId: number,
+  cancelledBy: number,
+): Promise<CancelApprovalResult> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    const [header] = await db
+      .select()
+      .from(tables.materialReturns)
+      .where(eq(tables.materialReturns.id, returnId))
+      .limit(1);
+    if (!header) {
+      throw new Error(`Material return ${returnId} not found`);
+    }
+    if (header.status !== 'received') {
+      throw new Error(
+        `Cannot cancel approval — return ${header.returnNumber} is not in 'received' status (current: '${header.status}')`,
+      );
+    }
+
+    const lines = await db
+      .select()
+      .from(tables.materialReturnLines)
+      .where(eq(tables.materialReturnLines.returnId, returnId));
+
+    const newLotIds = (lines as Array<{ returnedLotId: number | null }>)
+      .map((l) => l.returnedLotId)
+      .filter((id): id is number => id != null);
+
+    // Refuse if any returned lot already has activity beyond the initial
+    // 'return' transaction (would corrupt downstream balances if we delete it).
+    if (newLotIds.length > 0) {
+      const txns = await db
+        .select({
+          lotId: tables.transactions.lotId,
+          transactionType: tables.transactions.transactionType,
+        })
+        .from(tables.transactions)
+        .where(inArray(tables.transactions.lotId, newLotIds));
+      for (const t of txns as Array<{ lotId: number; transactionType: string }>) {
+        if (t.transactionType !== 'return') {
+          throw new Error(
+            `ไม่สามารถยกเลิกการรับเข้าคลังได้ — ลอตที่คืน (id=${t.lotId}) มีการเคลื่อนไหวต่อแล้ว`,
+          );
+        }
+      }
+    }
+
+    // 1. Delete return + variance_adjustment transactions tied to this return.
+    await db
+      .delete(tables.transactions)
+      .where(and(
+        eq(tables.transactions.referenceType, 'material_return'),
+        eq(tables.transactions.referenceId, returnId),
+      ));
+
+    // 2. Delete the new RTN lots (FK from return_lines.returnedLotId is
+    //    nullable, so we null them first to break the chain).
+    if (newLotIds.length > 0) {
+      await db
+        .update(tables.materialReturnLines)
+        .set({ returnedLotId: null })
+        .where(eq(tables.materialReturnLines.returnId, returnId));
+      await db
+        .delete(tables.lots)
+        .where(inArray(tables.lots.id, newLotIds));
+    }
+
+    // 3. Revert header.
+    const now = getNow();
+    await db
+      .update(tables.materialReturns)
+      .set({
+        status: 'submitted',
+        approvedBy: null,
+        approvedAt: null,
+        notes: header.notes
+          ? `${header.notes}\n[ยกเลิกการรับเข้าคลังโดย user ${cancelledBy} เมื่อ ${now}]`
+          : `[ยกเลิกการรับเข้าคลังโดย user ${cancelledBy} เมื่อ ${now}]`,
+        updatedAt: now,
+      })
+      .where(eq(tables.materialReturns.id, returnId));
+
+    return {
+      returnId,
+      returnNumber: header.returnNumber as string,
+      status: 'submitted' as const,
+      removedLotIds: newLotIds,
+    };
+  });
+}
+
+// ----------------------------------------------------------------------------
 // 2. approveMaterialReturn
 // ----------------------------------------------------------------------------
 
@@ -590,6 +846,10 @@ export async function approveMaterialReturn(
         code: tables.items.code,
         nameTh: tables.items.nameTh,
         category: tables.items.category,
+        primaryUnit: tables.items.primaryUnit,
+        secondaryUnit: tables.items.secondaryUnit,
+        conversionRate: tables.items.conversionRate,
+        weightTrackingEnabled: tables.items.weightTrackingEnabled,
       })
       .from(tables.items)
       .where(inArray(tables.items.id, itemIds));
@@ -611,8 +871,21 @@ export async function approveMaterialReturn(
       }
       const item = itemMap.get(Number(line.itemId));
 
-      const returnQty = Number(line.returnQty);
+      const returnQtyRaw = Number(line.returnQty);
       const varianceQty = Number(line.varianceQty);
+
+      // 3-level conversion at lot creation: when item is weight-tracked AND the
+      // return was recorded in SU (= BOM unit = secondary unit), convert to PU
+      // so the new RTN lot is stored in the same primary unit as other lots
+      // (e.g. 250 cap → 0.25 box). Non-tracked items keep BOM unit unchanged.
+      const itemR1 = item?.conversionRate != null ? Number(item.conversionRate) : 0;
+      const isWeightTracked = !!item?.weightTrackingEnabled
+        && itemR1 > 0
+        && !!item?.primaryUnit
+        && !!item?.secondaryUnit;
+      const returnInSU = isWeightTracked && line.returnUnit === item?.secondaryUnit;
+      const returnQty = returnInSU ? returnQtyRaw / itemR1 : returnQtyRaw;
+      const lotUnit = returnInSU ? (item!.primaryUnit as string) : line.returnUnit;
 
       // 3a. Create new returned lot inheriting from source.
       const newLotNumber = await generateReturnedLotNumber(db);
@@ -624,7 +897,7 @@ export async function approveMaterialReturn(
         locationId: null,
         quantity: returnQty,
         reservedQuantity: 0,
-        unit: line.returnUnit,
+        unit: lotUnit,
         // Quarantine on receipt — QC re-test policy is configurable later.
         status: 'quarantine',
         manufacturingDate: sourceLot.manufacturingDate ?? null,
@@ -661,7 +934,7 @@ export async function approveMaterialReturn(
         lotId: newLotId,
         transactionType: 'return',
         quantity: returnQty,
-        unit: line.returnUnit,
+        unit: lotUnit,
         referenceType: 'material_return',
         referenceId: returnId,
         referenceNumber: header.returnNumber,

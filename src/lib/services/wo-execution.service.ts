@@ -1156,6 +1156,12 @@ export async function getWOMaterials(workOrderId: number) {
         primaryUnit: tables.items.primaryUnit,
         secondaryUnit: tables.items.secondaryUnit,
         conversionRate: tables.items.conversionRate,
+        // 3-level unit conversion (PU → SU → WU)
+        weightUnit: tables.items.weightUnit,
+        secondaryToWeightRate: tables.items.secondaryToWeightRate,
+        weightTrackingEnabled: tables.items.weightTrackingEnabled,
+        // SU actually deducted at requisition approve (Step 2)
+        issuedQtySU: tables.workOrderMaterials.issuedQty,
         // Lot details (from LEFT JOIN)
         lotNumber: tables.inventoryLots.lotNumber,
       })

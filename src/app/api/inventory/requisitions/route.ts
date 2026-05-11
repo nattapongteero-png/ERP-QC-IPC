@@ -112,6 +112,10 @@ export async function GET(request: NextRequest) {
             itemUnit: itemsTable.primaryUnit,
             secondaryUnit: itemsTable.secondaryUnit,
             conversionRate: itemsTable.conversionRate,
+            // 3-level unit conversion (PU → SU → WU)
+            weightUnit: itemsTable.weightUnit,
+            secondaryToWeightRate: itemsTable.secondaryToWeightRate,
+            weightTrackingEnabled: itemsTable.weightTrackingEnabled,
             status: workOrderMaterialsTable.status,
             onHand: itemsTable.onHand,
             stockAtApproval: workOrderMaterialsTable.stockAtApproval,

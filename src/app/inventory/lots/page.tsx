@@ -26,6 +26,7 @@ import type { DataGridTypes } from 'devextreme-react/data-grid';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { calculateIssuance, type UnitConfig } from '@/lib/utils/unit-conversion';
 import { cn } from '@/lib/utils/cn';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 
@@ -621,6 +622,13 @@ export default function LotsPage() {
     } else if (quickFilter === 'finished_goods') {
       result = result.filter((lot) => lot.itemType === 'finished_good' || lot.itemType === 'finished_goods');
     }
+
+    // Sort by latest received date first (lots without a date go to the end).
+    result = [...result].sort((a, b) => {
+      const aTime = a.receivedDate ? new Date(a.receivedDate).getTime() : Number.NEGATIVE_INFINITY;
+      const bTime = b.receivedDate ? new Date(b.receivedDate).getTime() : Number.NEGATIVE_INFINITY;
+      return bTime - aTime;
+    });
 
     // Tag with display row number (mirrors /inventory/items).
     return result.map((lot, index) => ({ ...lot, _rowNumber: index + 1 }));
@@ -2267,29 +2275,24 @@ function RequisitionTab() {
                     <th className="pb-2">รหัสสินค้า</th>
                     <th className="pb-2">ชื่อวัตถุดิบ</th>
                     <th className="pb-2 text-right">จำนวนที่ต้องการ</th>
+                    <th className="pb-2 text-right">จำนวนที่ต้องจ่าย</th>
                     <th className="pb-2 text-right">คงเหลือในคลัง</th>
                   </tr>
                 </thead>
                 <tbody>
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {req.materials.map((mat: any, idx: number) => {
-                    // Snapshot vs live stock rules:
-                    // - Pending/requested: show current `releasedAvailable`
-                    //   (user is deciding now — they need real data)
-                    // - Approved WITH snapshot: show stockAtApproval (frozen)
-                    // - Approved WITHOUT snapshot (legacy rows): show "—"
-                    //   and a warning tag. We do NOT fall back to live stock
-                    //   because it would silently rewrite history every time
-                    //   another transaction updates the item's balance.
                     const isApproved = req.requisitionStatus === 'approved';
                     const hasSnapshot = mat.stockAtApproval != null;
+
+                    // Raw stock in PU (lots are stored in primary unit)
+                    const havePU = Number(mat.releasedAvailable ?? mat.onHand) || 0;
 
                     let available: number | null;
                     if (isApproved) {
                       available = hasSnapshot ? Number(mat.stockAtApproval) : null;
                     } else {
-                      available = Number(mat.releasedAvailable ?? mat.onHand) || 0;
-                      // Convert available stock (primaryUnit) to material unit if different
+                      available = havePU;
                       if (mat.unit && mat.secondaryUnit && mat.conversionRate &&
                           mat.unit === mat.secondaryUnit && Number(mat.conversionRate) > 0) {
                         available = available * Number(mat.conversionRate);
@@ -2298,15 +2301,107 @@ function RequisitionTab() {
                     const planned = Number(mat.plannedQuantity) || 0;
                     const isShort = available !== null && available < planned;
                     const unit = mat.unit || mat.itemUnit || '';
+
+                    // Compute issuance plan (PU to release) for weight-tracked items.
+                    // BOM unit must be either the item's secondary or primary unit; otherwise we bail.
+                    let planPU: { puToIssue: number; pu: string; su: string; remainderSU: number } | null = null;
+                    let availableSU: number | null = null;
+                    const tracked = mat.weightTrackingEnabled === true || mat.weightTrackingEnabled === 1;
+                    const ratio1 = Number(mat.conversionRate);
+                    if (tracked && Number.isFinite(ratio1) && ratio1 > 0 && mat.itemUnit && mat.secondaryUnit) {
+                      let plannedSU: number | null = null;
+                      if (mat.unit === mat.secondaryUnit) plannedSU = planned;
+                      else if (mat.unit === mat.itemUnit) plannedSU = planned * ratio1;
+                      if (plannedSU != null && plannedSU > 0) {
+                        try {
+                          const config: UnitConfig = {
+                            primaryUnit: mat.itemUnit,
+                            secondaryUnit: mat.secondaryUnit,
+                            weightUnit: mat.weightUnit,
+                            conversionRate: ratio1,
+                            secondaryToWeightRate: Number(mat.secondaryToWeightRate) || null,
+                            weightTrackingEnabled: true,
+                          };
+                          const r = calculateIssuance(plannedSU, config);
+                          planPU = {
+                            puToIssue: r.puToIssue,
+                            pu: mat.itemUnit,
+                            su: mat.secondaryUnit,
+                            remainderSU: r.remainderSU,
+                          };
+                          if (!isApproved) {
+                            availableSU = havePU * ratio1;
+                          } else if (available != null) {
+                            // Snapshot is in BOM unit — when BOM=SU, snapshot already
+                            // represents the SU equivalent; otherwise treat as PU.
+                            availableSU = mat.unit === mat.secondaryUnit
+                              ? available
+                              : available * ratio1;
+                          }
+                        } catch {
+                          // calculateIssuance threw — leave plan null
+                        }
+                      }
+                    }
+
                     return (
                       <tr key={idx} className="border-t border-gray-200">
                         <td className="py-1.5 font-mono text-xs">{mat.itemCode}</td>
                         <td className="py-1.5">{mat.itemName}</td>
-                        <td className="py-1.5 text-right">{Number(mat.plannedQuantity).toLocaleString()} {unit}</td>
+                        <td className="py-1.5 text-right">{planned.toLocaleString()} {unit}</td>
+                        <td className="py-1.5 text-right">
+                          {planPU ? (
+                            <div>
+                              <span className="font-semibold text-emerald-700">
+                                {planPU.puToIssue.toLocaleString()} {planPU.pu}
+                              </span>
+                              {planPU.remainderSU > 0 && (
+                                <div className="text-xs text-amber-700">
+                                  เหลือหน้างาน {planPU.remainderSU.toLocaleString()} {planPU.su}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            // No 3-level setup → issue exactly what was requested.
+                            <span className="font-semibold text-emerald-700">
+                              {planned.toLocaleString()} {unit}
+                            </span>
+                          )}
+                        </td>
                         <td className={`py-1.5 text-right font-medium ${
                           available === null ? 'text-gray-400' : (isShort ? 'text-red-600' : 'text-green-600')
                         }`}>
-                          {available === null ? '—' : available.toLocaleString()}{available !== null && ` ${unit}`}
+                          {(() => {
+                            // For weight-tracked items, always render PU on the main line
+                            // so it matches what the warehouse actually pulls. Live = use the
+                            // raw lot balance; approved = derive from snapshot which is in BOM unit.
+                            if (planPU) {
+                              let displayPU: number | null = null;
+                              if (!isApproved) {
+                                displayPU = havePU;
+                              } else if (available !== null) {
+                                displayPU = mat.unit === mat.secondaryUnit
+                                  ? available / ratio1   // snapshot saved in SU → convert
+                                  : available;            // snapshot saved in PU
+                              }
+                              if (displayPU !== null) {
+                                return (
+                                  <>
+                                    {displayPU.toLocaleString(undefined, { maximumFractionDigits: 4 })} {planPU.pu}
+                                    <div className="text-xs text-gray-500 font-normal">
+                                      = {(displayPU * ratio1).toLocaleString()} {planPU.su}
+                                    </div>
+                                  </>
+                                );
+                              }
+                            }
+                            // Fallback (no 3-level config or snapshot missing).
+                            return (
+                              <>
+                                {available === null ? '—' : available.toLocaleString()}{available !== null && ` ${unit}`}
+                              </>
+                            );
+                          })()}
                           {isApproved && hasSnapshot && (
                             <span className="ml-1 text-xs text-gray-400">(ณ วันอนุมัติ)</span>
                           )}

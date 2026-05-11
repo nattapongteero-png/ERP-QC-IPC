@@ -83,6 +83,12 @@ export const sqliteItems = sqliteTable('items', {
   primaryUnit: text('primary_unit').notNull(),
   secondaryUnit: text('secondary_unit'),
   conversionRate: real('conversion_rate'),
+  // 3-level unit conversion (PU → SU → WU)
+  // Why: pharma items are stored in PU (กล่อง) but produced/issued by SU (แคปซูล)
+  // and consumed by weight (กรัม). Weighed-issuance flow needs WU → SU back-conversion.
+  weightUnit: text('weight_unit'), // WU label e.g. 'g'
+  secondaryToWeightRate: real('secondary_to_weight_rate'), // Ratio2: 1 SU = ? WU
+  weightTrackingEnabled: integer('weight_tracking_enabled', { mode: 'boolean' }).notNull().default(false),
   shelfLifeDays: integer('shelf_life_days'),
   storageCondition: text('storage_condition'),
   minStock: real('min_stock').default(0),
@@ -393,6 +399,9 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   status: text('status').notNull().default('pending'), // pending, issued, returned
   issuedBy: integer('issued_by').references(() => sqliteUsers.id),
   issuedAt: text('issued_at'),
+  // SU actually deducted at requisition approve (for weight-tracked items, = puToIssue × Ratio1).
+  // Non-null = stock was already physically released to production; weighing must NOT deduct again.
+  issuedQty: real('issued_qty'),
   // Phase 3: Enhanced material weighing fields (BMPR Form)
   bomLineId: integer('bom_line_id').references(() => sqliteBOMLines.id), // Reference to BOM formula
   weighedQty: real('weighed_qty'), // Actual weight recorded
@@ -1581,6 +1590,10 @@ export const mysqlItems = mysqlTable('items', {
   primaryUnit: varchar('primary_unit', { length: 50 }).notNull(),
   secondaryUnit: varchar('secondary_unit', { length: 50 }),
   conversionRate: decimal('conversion_rate', { precision: 10, scale: 4 }),
+  // 3-level unit conversion (PU → SU → WU)
+  weightUnit: varchar('weight_unit', { length: 50 }), // WU label e.g. 'g'
+  secondaryToWeightRate: decimal('secondary_to_weight_rate', { precision: 10, scale: 4 }), // Ratio2: 1 SU = ? WU
+  weightTrackingEnabled: mysqlBoolean('weight_tracking_enabled').notNull().default(false),
   shelfLifeDays: int('shelf_life_days'),
   storageCondition: varchar('storage_condition', { length: 255 }),
   minStock: decimal('min_stock', { precision: 15, scale: 4 }).default('0'),
@@ -1891,6 +1904,8 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   issuedBy: int('issued_by').references(() => mysqlUsers.id),
   issuedAt: datetime('issued_at'),
+  // SU actually deducted at requisition approve (for weight-tracked items, = puToIssue × Ratio1).
+  issuedQty: decimal('issued_qty', { precision: 15, scale: 4 }),
   // Phase 3: Enhanced material weighing fields (BMPR Form)
   bomLineId: int('bom_line_id').references(() => mysqlBOMLines.id), // Reference to BOM formula
   weighedQty: decimal('weighed_qty', { precision: 15, scale: 4 }), // Actual weight recorded
