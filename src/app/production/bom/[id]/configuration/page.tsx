@@ -538,9 +538,9 @@ export default function BOMConfigurationPage() {
     },
   });
 
-  // Master IPC criteria list (active only) for the linker dialog dropdown.
-  // Reused at the page level (in addition to the existing IPCConfigSection
-  // which has its own copy under the IPC tab).
+  // Master IPC criteria list (active only) — used for dictionary lookups
+  // (display name, master defaults) when an existing link references a
+  // criterion that may no longer be in phase-level config.
   const { data: ipcCriteriaMaster = [] } = useQuery<any[]>({
     queryKey: ['ipc-criteria-active'],
     queryFn: async () => {
@@ -549,6 +549,29 @@ export default function BOMConfigurationPage() {
       return d.success ? d.data : [];
     },
   });
+
+  // Phase-level IPC configs for THIS BOM. Drives which IPC criteria appear
+  // in SOP-step / sub-step linker dropdowns — operators may only bind IPC
+  // tests that have been pre-declared at the BOM phase level (in the
+  // "IPC — Phase Level" tab).
+  const { data: bomIpcConfigs = [] } = useQuery<any[]>({
+    queryKey: ['bom-ipc', bomId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/bom/${bomId}/ipc`);
+      const d = await res.json();
+      return d.success ? d.data : [];
+    },
+  });
+
+  // IPC criteria that are eligible to bind into SOP steps — derived from
+  // ipcCriteriaMaster ∩ bomIpcConfigs.criteriaId. Stable identity via memo
+  // so DxSelectBox doesn't see fresh dataSource on every render.
+  const bomPhaseIpcCriteria = useMemo(() => {
+    const allowedIds = new Set<number>(
+      (bomIpcConfigs as any[]).map((c) => Number(c.criteriaId))
+    );
+    return (ipcCriteriaMaster as any[]).filter((c: any) => allowedIds.has(Number(c.id)));
+  }, [ipcCriteriaMaster, bomIpcConfigs]);
 
   // Fetch Master Data for dropdowns
   const { data: rooms } = useQuery<ProductionRoom[]>({
@@ -1995,7 +2018,8 @@ export default function BOMConfigurationPage() {
                       .filter((p) => p.tempId !== pendingIpcEditingId)
                       .map((p) => p.criteriaId)
                   );
-                  const availablePendingCriteria = ipcCriteriaMaster.filter((c: any) => !criteriaUsedForThisSlot.has(c.id));
+                  // Selection list = IPCs declared at THIS BOM's phase level only.
+                  const availablePendingCriteria = bomPhaseIpcCriteria.filter((c: any) => !criteriaUsedForThisSlot.has(c.id));
 
                   const openPendingForm = (subStepId: number | null) => {
                     // Pre-fill defaults; sentinel -1 = whole-step.
@@ -2223,26 +2247,32 @@ export default function BOMConfigurationPage() {
 
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">IPC Criterion *</label>
-                            <DxSelectBox
-                              dataSource={availablePendingCriteria.map((c: any) => ({
-                                id: c.id,
-                                display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
-                              }))}
-                              displayExpr="display"
-                              valueExpr="id"
-                              value={pendingIpcForm.criteriaId}
-                              onValueChanged={(e) => {
-                                const picked = ipcCriteriaMaster.find((c: any) => c.id === e.value) as any;
-                                setPendingIpcForm((f) => ({
-                                  ...f,
-                                  criteriaId: e.value,
-                                  sampleSize: picked?.sampleSize ?? f.sampleSize,
-                                  isCritical: picked?.isCritical ?? f.isCritical,
-                                }));
-                              }}
-                              placeholder="เลือก IPC criterion"
-                              searchEnabled
-                            />
+                            {bomPhaseIpcCriteria.length === 0 ? (
+                              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                                ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้ — กรุณาไปที่ tab &quot;IPC — Phase Level&quot; เพื่อเพิ่ม IPC ก่อน
+                              </div>
+                            ) : (
+                              <DxSelectBox
+                                dataSource={availablePendingCriteria.map((c: any) => ({
+                                  id: c.id,
+                                  display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
+                                }))}
+                                displayExpr="display"
+                                valueExpr="id"
+                                value={pendingIpcForm.criteriaId}
+                                onValueChanged={(e) => {
+                                  const picked = ipcCriteriaMaster.find((c: any) => c.id === e.value) as any;
+                                  setPendingIpcForm((f) => ({
+                                    ...f,
+                                    criteriaId: e.value,
+                                    sampleSize: picked?.sampleSize ?? f.sampleSize,
+                                    isCritical: picked?.isCritical ?? f.isCritical,
+                                  }));
+                                }}
+                                placeholder="เลือก IPC criterion"
+                                searchEnabled
+                              />
+                            )}
                           </div>
 
                           <div className="grid grid-cols-3 gap-2">
@@ -2489,12 +2519,22 @@ export default function BOMConfigurationPage() {
           {selectedStepForIPC && (() => {
             const stepLinks = bomStepIpcLinks.filter((l: any) => l.bomStepId === selectedStepForIPC.id);
             const linkedCriteriaIds = new Set(stepLinks.map((l: any) => l.criteriaId));
-            // When editing, keep current criterion in the dropdown so it
-            // shows up; otherwise filter out already-linked ones.
-            const availableCriteria = ipcCriteriaMaster.filter((c: any) =>
+            const editingLink = editingIpcLinkId ? stepLinks.find((l: any) => l.id === editingIpcLinkId) : null;
+            // Selection source = phase-level IPCs of THIS BOM. If editing a
+            // legacy link whose criterion is no longer in phase config,
+            // keep it visible so the dropdown still shows the current value.
+            const phaseIpcsForLinker = (() => {
+              if (editingLink && !bomPhaseIpcCriteria.some((c: any) => c.id === editingLink.criteriaId)) {
+                const fromMaster = ipcCriteriaMaster.find((c: any) => c.id === editingLink.criteriaId);
+                if (fromMaster) return [...bomPhaseIpcCriteria, fromMaster];
+              }
+              return bomPhaseIpcCriteria;
+            })();
+            // When editing, show all phase-level IPCs; otherwise filter out
+            // ones already linked to this step.
+            const availableCriteria = phaseIpcsForLinker.filter((c: any) =>
               editingIpcLinkId ? true : !linkedCriteriaIds.has(c.id)
             );
-            const editingLink = editingIpcLinkId ? stepLinks.find((l: any) => l.id === editingIpcLinkId) : null;
 
             // Group existing IPC links by procedureStepId (sub-step). null
             // = not tied to any specific sub-step ("whole step" IPCs).
@@ -2692,28 +2732,34 @@ export default function BOMConfigurationPage() {
                   {!editingIpcLinkId && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">IPC Criterion *</label>
-                      <DxSelectBox
-                        dataSource={availableCriteria.map((c: any) => ({
-                          id: c.id,
-                          display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
-                        }))}
-                        displayExpr="display"
-                        valueExpr="id"
-                        value={ipcLinkForm.criteriaId}
-                        onValueChanged={(e) => {
-                          const picked = ipcCriteriaMaster.find((c: any) => c.id === e.value);
-                          // Pre-fill sampleSize/critical from master defaults so
-                          // the operator doesn't have to retype them.
-                          setIpcLinkForm((f) => ({
-                            ...f,
-                            criteriaId: e.value,
-                            sampleSize: picked?.sampleSize ?? f.sampleSize,
-                            isCritical: picked?.isCritical ?? f.isCritical,
-                          }));
-                        }}
-                        placeholder="Select IPC criterion"
-                        searchEnabled
-                      />
+                      {bomPhaseIpcCriteria.length === 0 ? (
+                        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                          ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้ — กรุณาไปที่ tab &quot;IPC — Phase Level&quot; เพื่อเพิ่ม IPC ก่อน แล้วจึงผูกเข้า SOP step
+                        </div>
+                      ) : (
+                        <DxSelectBox
+                          dataSource={availableCriteria.map((c: any) => ({
+                            id: c.id,
+                            display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
+                          }))}
+                          displayExpr="display"
+                          valueExpr="id"
+                          value={ipcLinkForm.criteriaId}
+                          onValueChanged={(e) => {
+                            const picked = ipcCriteriaMaster.find((c: any) => c.id === e.value);
+                            // Pre-fill sampleSize/critical from master defaults so
+                            // the operator doesn't have to retype them.
+                            setIpcLinkForm((f) => ({
+                              ...f,
+                              criteriaId: e.value,
+                              sampleSize: picked?.sampleSize ?? f.sampleSize,
+                              isCritical: picked?.isCritical ?? f.isCritical,
+                            }));
+                          }}
+                          placeholder="Select IPC criterion"
+                          searchEnabled
+                        />
+                      )}
                     </div>
                   )}
                   {editingIpcLinkId && editingLink && (
