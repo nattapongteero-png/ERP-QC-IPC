@@ -1295,28 +1295,42 @@ export default function WorkOrderDetailPage() {
                   </thead>
                   <tbody>
                     {ebmr.materials.map((mat: any, index: number) => {
-                      // plannedQty is stored in the BOM line's unit (mat.unit),
-                      // not the item's primary unit. e.g. ผงขมิ้น primary='kg'
-                      // but BOM line unit='g' → planned 7500 must read "7,500 g"
-                      // not "7,500 kg". itemUnit (= primaryUnit) is the fallback
-                      // when BOM line didn't override the unit.
+                      // Both plannedQty and weighedQty are stored in the BOM line's
+                      // unit (mat.unit); itemUnit (= item primaryUnit) is only a
+                      // fallback when the BOM line didn't override it.
                       const displayUnit = mat.unit || mat.itemUnit;
+
+                      // "Actual" = what the operator actually weighed/consumed.
+                      // Do NOT fall back to actualQuantity (the issued/released
+                      // qty in primary unit) — that mixes units and produced the
+                      // misleading "8.0000" reading with a wrong variance sign.
+                      // If weighing hasn't happened yet, leave the cell empty.
+                      const weighed = mat.weighedQty;
+                      const hasWeighed = weighed !== null && weighed !== undefined;
+                      const plannedNum = Number(mat.plannedQty);
+                      const variance = hasWeighed ? Number(weighed) - plannedNum : null;
+                      const variancePct = hasWeighed && plannedNum > 0
+                        ? (variance! / plannedNum) * 100
+                        : null;
+
                       return (
                       <tr key={index}>
                         <td className="border p-2 text-gray-900">{mat.itemCode}</td>
                         <td className="border p-2 text-gray-900">{mat.itemName}</td>
                         <td className="border p-2 text-gray-900">{mat.lotNumber || '-'}</td>
                         <td className="border p-2 text-right text-gray-900">{mat.plannedQty} {displayUnit}</td>
-                        <td className="border p-2 text-right text-gray-900">{mat.actualQty || '-'}</td>
                         <td className="border p-2 text-right text-gray-900">
-                          {mat.variance !== null ? (
+                          {hasWeighed ? <>{weighed} {displayUnit}</> : <span className="text-gray-400">ยังไม่ได้ชั่ง</span>}
+                        </td>
+                        <td className="border p-2 text-right text-gray-900">
+                          {hasWeighed ? (
                             <>
-                              <span className={mat.variance > 0 ? 'text-red-600' : mat.variance < 0 ? 'text-green-600' : ''}>
-                                {mat.variance > 0 ? '+' : ''}{mat.variance} {displayUnit}
+                              <span className={variance! > 0 ? 'text-red-600' : variance! < 0 ? 'text-green-600' : ''}>
+                                {variance! > 0 ? '+' : ''}{variance} {displayUnit}
                               </span>
-                              {Number(mat.plannedQty) > 0 && (
+                              {variancePct !== null && (
                                 <span className="text-xs text-gray-500 ml-1">
-                                  ({((mat.variance / Number(mat.plannedQty)) * 100).toFixed(2)}%)
+                                  ({variancePct.toFixed(2)}%)
                                 </span>
                               )}
                             </>
