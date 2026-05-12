@@ -145,6 +145,40 @@ function planIssuance(mat: MaterialRow): {
   }
 }
 
+/**
+ * Stock-sufficiency check for one material row.
+ *
+ * releasedAvailable comes back from the API in PRIMARY unit (it sums
+ * inventory_lots which are always stored in primary). plannedQuantity is
+ * in the BOM line's own unit — could be primary, secondary, or weight.
+ * Raw `available < planned` is wrong whenever those units differ: e.g.
+ * 11.2 box of capsules vs planned 170,000 cap → 11.2 < 170000 reads as
+ * "insufficient" even though 11.2 box = 1,120,000 cap is plenty.
+ *
+ * We coerce planned into primary unit using the conversion chain
+ * (SU → PU via conversionRate; WU → SU → PU via secondaryToWeightRate
+ * then conversionRate) and compare in primary.
+ */
+function plannedInPrimary(mat: MaterialRow): number {
+  const planned = Number(mat.plannedQuantity);
+  if (!Number.isFinite(planned)) return 0;
+
+  const ratio1 = Number(mat.conversionRate);
+  const ratio2 = Number(mat.secondaryToWeightRate);
+
+  if (mat.unit === mat.itemUnit) return planned;
+  if (mat.unit === mat.secondaryUnit && ratio1 > 0) return planned / ratio1;
+  if (mat.unit === mat.weightUnit && ratio1 > 0 && ratio2 > 0) {
+    return planned / ratio2 / ratio1;
+  }
+  // Unknown unit pairing — fall back to raw value rather than guess.
+  return planned;
+}
+
+function isInsufficient(mat: MaterialRow): boolean {
+  return Number(mat.releasedAvailable) < plannedInPrimary(mat);
+}
+
 export default function MaterialRequisitionsInboxPage() {
   const toast = useToast();
   const [rows, setRows] = useState<RequisitionRow[]>([]);
@@ -191,9 +225,7 @@ export default function MaterialRequisitionsInboxPage() {
     const requested = rows.filter((r) => r.requisitionStatus === 'requested').length;
     const approved = rows.filter((r) => r.requisitionStatus === 'approved').length;
     const insufficient = rows.filter((r) =>
-      r.materials.some(
-        (m) => Number(m.releasedAvailable) < Number(m.plannedQuantity)
-      )
+      r.materials.some(isInsufficient)
     ).length;
     return { requested, approved, insufficient };
   }, [rows]);
@@ -314,9 +346,7 @@ export default function MaterialRequisitionsInboxPage() {
           <div className="space-y-3">
             {filteredRows.map((req) => {
               const isOpen = expanded.has(req.workOrderId);
-              const insufficient = req.materials.some(
-                (m) => Number(m.releasedAvailable) < Number(m.plannedQuantity)
-              );
+              const insufficient = req.materials.some(isInsufficient);
               return (
                 <div
                   key={req.workOrderId}
@@ -384,7 +414,10 @@ export default function MaterialRequisitionsInboxPage() {
                               const plan = planIssuance(mat);
                               const need = Number(mat.plannedQuantity);
                               const have = Number(mat.releasedAvailable);
-                              const enough = have >= need;
+                              // Compare in primary unit — have is already
+                              // primary; coerce planned via plannedInPrimary()
+                              // so the colour matches the badge logic.
+                              const enough = have >= plannedInPrimary(mat);
                               const ratio1 = Number(mat.conversionRate);
                               const haveSU =
                                 plan && Number.isFinite(ratio1) && ratio1 > 0
