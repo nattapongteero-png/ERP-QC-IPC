@@ -1294,18 +1294,25 @@ export default function WorkOrderDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {ebmr.materials.map((mat: any, index: number) => (
+                    {ebmr.materials.map((mat: any, index: number) => {
+                      // plannedQty is stored in the BOM line's unit (mat.unit),
+                      // not the item's primary unit. e.g. ผงขมิ้น primary='kg'
+                      // but BOM line unit='g' → planned 7500 must read "7,500 g"
+                      // not "7,500 kg". itemUnit (= primaryUnit) is the fallback
+                      // when BOM line didn't override the unit.
+                      const displayUnit = mat.unit || mat.itemUnit;
+                      return (
                       <tr key={index}>
                         <td className="border p-2 text-gray-900">{mat.itemCode}</td>
                         <td className="border p-2 text-gray-900">{mat.itemName}</td>
                         <td className="border p-2 text-gray-900">{mat.lotNumber || '-'}</td>
-                        <td className="border p-2 text-right text-gray-900">{mat.plannedQty} {mat.itemUnit}</td>
+                        <td className="border p-2 text-right text-gray-900">{mat.plannedQty} {displayUnit}</td>
                         <td className="border p-2 text-right text-gray-900">{mat.actualQty || '-'}</td>
                         <td className="border p-2 text-right text-gray-900">
                           {mat.variance !== null ? (
                             <>
                               <span className={mat.variance > 0 ? 'text-red-600' : mat.variance < 0 ? 'text-green-600' : ''}>
-                                {mat.variance > 0 ? '+' : ''}{mat.variance} {mat.itemUnit}
+                                {mat.variance > 0 ? '+' : ''}{mat.variance} {displayUnit}
                               </span>
                               {Number(mat.plannedQty) > 0 && (
                                 <span className="text-xs text-gray-500 ml-1">
@@ -1316,7 +1323,8 @@ export default function WorkOrderDetailPage() {
                           ) : '-'}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </CardContent>
