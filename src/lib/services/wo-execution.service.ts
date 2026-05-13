@@ -1972,6 +1972,27 @@ export async function getWOIPCTests(workOrderId: number) {
     const lotIds = await findWOLotIds(db, tables, workOrderId);
     if (lotIds.length === 0) return [];
 
+    // Build the set of valid sample numbers from the *current* BOM IPC config.
+    // initializeWOIPCTests keys each quality_test row by `IPC-${sequence}`, so
+    // when BOM criteria are added/removed/reordered the older sequence numbers
+    // become orphans in the DB. Filter them out at read-time rather than
+    // deleting (preserves audit trail) so the page only shows the live set.
+    const [wo] = await db
+      .select({ bomId: tables.workOrders.bomId })
+      .from(tables.workOrders)
+      .where(eq(tables.workOrders.id, workOrderId));
+    let validSampleNumbers: Set<string> | null = null;
+    if (wo?.bomId) {
+      const ipcConfig = await getBOMIPCConfig(wo.bomId);
+      if (ipcConfig.length > 0) {
+        validSampleNumbers = new Set(
+          ipcConfig.map((c: { sequence?: number | null }, i: number) =>
+            `IPC-${c.sequence || (i + 1)}`,
+          ),
+        );
+      }
+    }
+
     // Get quality_tests with testType = 'in_process' for these lots
     const tests = await db
       .select({
@@ -2014,9 +2035,19 @@ export async function getWOIPCTests(workOrderId: number) {
       )
       .orderBy(asc(tables.qualityTests.id));
 
+    // Drop orphaned rows whose sample_number is no longer present in the
+    // current BOM IPC config (see comment at top of this function). When the
+    // BOM is empty/missing we leave the data untouched so a misconfigured WO
+    // doesn't silently show an empty list.
+    const filteredTests = validSampleNumbers
+      ? tests.filter((t: { sampleNumber: string | null }) =>
+          t.sampleNumber != null && validSampleNumbers!.has(t.sampleNumber),
+        )
+      : tests;
+
     // Collect user IDs for name resolution
     const userIds = new Set<number>();
-    for (const t of tests) {
+    for (const t of filteredTests) {
       if (t.testedBy) userIds.add(t.testedBy);
       if (t.approvedBy) userIds.add(t.approvedBy);
     }
@@ -2034,7 +2065,7 @@ export async function getWOIPCTests(workOrderId: number) {
 
     // Get samples for each test + resolve testName + user names + group by round
     const testsWithSamples = await Promise.all(
-      tests.map(async (test: any) => {
+      filteredTests.map(async (test: any) => {
         const samples = await db
           .select()
           .from(tables.ipcTestSamples)
