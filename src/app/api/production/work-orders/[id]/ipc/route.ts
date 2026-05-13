@@ -66,14 +66,15 @@ export async function GET(
 // POST /api/production/work-orders/[id]/ipc - Initialize or record IPC tests
 //
 // Per-action authorization (GMP roles):
-//   - initialize / record  → production:write   (operator records what they measure)
-//   - approve              → quality:approve    (QA confirms — dual-control)
-// Using a single withAuth gate with AND-logic across both permissions would
-// lock out the PRODUCTION role entirely from recording IPC, which is the
-// shop-floor's job. See feature/017-ipc-criteria-redesign for context.
+//   - initialize  → production:write   (admin/manager/production sets up tests)
+//   - record      → no extra perm      (matches inline SOP-step recording — any
+//                                       authenticated shop-floor user can record
+//                                       what they actually measured)
+//   - approve     → quality:approve    (QA confirms — dual-control)
 function permsForAction(action: string): Array<'production:write' | 'quality:approve'> {
   if (action === 'approve') return ['quality:approve'];
-  return ['production:write'];
+  if (action === 'record') return []; // auth only, parity with sop-execution record_ipc
+  return ['production:write']; // initialize (and unknown) require shop-floor write perm
 }
 
 interface IPCPostBody {
