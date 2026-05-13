@@ -286,7 +286,7 @@ function LineClearanceContent() {
                 verifiedAt={undefined}
                 onPerform={handlePerform}
                 onVerify={handleVerify}
-                isPerformer={lineClearanceData.status === 'not_started' || lineClearanceData.status === 'rejected'}
+                isPerformer={lineClearanceData.status === 'not_started' || lineClearanceData.status === 'pending' || lineClearanceData.status === 'rejected'}
                 isVerifier={lineClearanceData.status === 'performed'}
                 readOnly={lineClearanceData.status === 'verified'}
               />
