@@ -1,19 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api-utils';
+import { NextResponse } from 'next/server';
 import { Workbook } from 'exceljs';
 
 /**
  * GET /api/admin/system-tor
  *
  * Generates the system Terms of Reference (TOR) for Herbal Medicine ERP
- * as a multi-sheet Excel workbook, on the fly. Anyone with a valid session
- * can download — TOR content is a project artefact, not operational data.
+ * as a multi-sheet Excel workbook, on the fly. Public endpoint — TOR is
+ * project documentation, not operational data; the standalone viewer
+ * (public/system-tor-herbal-erp.html) links here as a Download button.
  *
  * Filename: herbal-erp-tor-YYYYMMDD.xlsx
  */
-export async function GET(request: NextRequest) {
-  return withAuth(request, async () => {
-    const wb = new Workbook();
+export async function GET() {
+  const wb = new Workbook();
     wb.creator = 'Herbal Medicine ERP';
     wb.created = new Date();
     wb.title = 'TOR — Herbal Medicine ERP';
@@ -382,13 +381,12 @@ export async function GET(request: NextRequest) {
     const yyyymmdd = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const filename = `herbal-erp-tor-${yyyymmdd}.xlsx`;
 
-    return new NextResponse(buffer, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-store',
-      },
-    });
+  return new NextResponse(buffer, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store',
+    },
   });
 }
