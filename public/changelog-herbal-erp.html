@@ -352,6 +352,9 @@
 
 <script>
 var DATA=[
+  // ==================== 13 พฤษภาคม 2569 ====================
+  {module:'Admin',menu:'TOR เอกสารฉบับสมบูรณ์ (Markdown) + endpoint ดาวน์โหลด',sub:'เอกสาร Terms of Reference 20 หมวด สำหรับ Herbal ERP ทั้งระบบ — เพิ่ม API ดาวน์โหลด .md',type:'feat',desc:'สร้าง docs/SYSTEM-TOR.md (1,357 บรรทัด) ครอบคลุม: บทนำ, วัตถุประสงค์, User Personas, Business Processes (P2P/O2C/Production/QC), Functional Requirements 11 modules, NFR, Architecture, 21 CFR Part 11, UX/UI, Project Plan 12 เดือน, Risk Register, SLA, Vendor Qualifications, Evaluation, Financial Terms + endpoint GET /api/admin/system-tor-doc (force download / inline=1) — ใช้คู่กับ /api/admin/system-tor (Excel)',date:'13 พ.ค. 69',startTime:'14:50',endTime:'14:55',prompt:'ทำหน้าที่เป็น IT PM/SA เขียน TOR Herbal ERP ทั้งระบบ'},
+
   // ==================== 11 พฤษภาคม 2569 ====================
   {module:'Production',menu:'BOM — เพิ่มหน่วยชั่งใน dropdown',sub:'ถ้า item ตั้ง weightUnit ไว้ ตอนทำ BOM dropdown หน่วยจะมี 3 ตัวเลือก (หน่วยหลัก + หน่วยรอง + หน่วยชั่ง)',type:'feat',desc:'หน้า BOM (ทั้ง /new และ /[id]) — เพิ่ม weightUnit เข้า dropdown หน่วยของ BOM line: ถ้า item มี weightUnit (เช่น g) จะแสดง 3 ตัวเลือก [box, cap, g], ถ้าไม่มีก็เหลือ 2 เหมือนเดิม + dedup กรณีหน่วยซ้ำ. ใช้กับ MaterialPickerDialog และ ItemSearchDialog',date:'11 พ.ค. 69',startTime:'11:00',endTime:'11:20',prompt:'ถ้าหน่วยชั่งกำหนดไว้ ให้เพิ่มเข้า dropdown ตอนทำ BOM'},
 
