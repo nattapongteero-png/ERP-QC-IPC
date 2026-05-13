@@ -64,10 +64,49 @@ export async function GET(
 }
 
 // POST /api/production/work-orders/[id]/ipc - Initialize or record IPC tests
+//
+// Per-action authorization (GMP roles):
+//   - initialize / record  → production:write   (operator records what they measure)
+//   - approve              → quality:approve    (QA confirms — dual-control)
+// Using a single withAuth gate with AND-logic across both permissions would
+// lock out the PRODUCTION role entirely from recording IPC, which is the
+// shop-floor's job. See feature/017-ipc-criteria-redesign for context.
+function permsForAction(action: string): Array<'production:write' | 'quality:approve'> {
+  if (action === 'approve') return ['quality:approve'];
+  return ['production:write'];
+}
+
+interface IPCPostBody {
+  action?: string;
+  qualityTestId?: number;
+  numericResult?: number;
+  result?: string;
+  notes?: string;
+  testRound?: number;
+  disposition?: string;
+  samples?: Array<{
+    sampleNumber: number;
+    numericValue?: number;
+    textValue?: string;
+    result?: string;
+  }>;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Peek the action before delegating to withAuth so the permission gate
+  // reflects what the caller is actually trying to do. The body is consumed
+  // here and forwarded to the handler to avoid re-parsing.
+  let data: IPCPostBody;
+  try {
+    data = (await request.json()) as IPCPostBody;
+  } catch {
+    return errorResponse('Invalid JSON body');
+  }
+  const action = data.action ?? '';
+
   return withAuth(request, async (session) => {
     try {
       const { id } = await params;
@@ -76,9 +115,6 @@ export async function POST(
       if (isNaN(workOrderId)) {
         return errorResponse('Invalid work order ID');
       }
-
-      const data = await request.json();
-      const action = data.action;
 
       // Action: Initialize IPC tests from BOM config
       if (action === 'initialize') {
@@ -176,5 +212,5 @@ export async function POST(
       console.error('Error in IPC operation:', error);
       return serverErrorResponse(error);
     }
-  }, ['production:write', 'quality:write']);
+  }, permsForAction(action));
 }
