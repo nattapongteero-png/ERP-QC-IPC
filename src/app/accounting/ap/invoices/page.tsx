@@ -12,6 +12,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -86,6 +87,8 @@ interface FormData {
   dueDate: string;
   receivedDate: string;
   description: string;
+  vatRate: number;
+  vatAmountOverride: number | null; // null = auto-calculate, number = manual override
   lines: {
     description: string;
     glAccountId: number | null;
@@ -93,6 +96,11 @@ interface FormData {
     unitPrice: number;
   }[];
 }
+
+const VAT_RATE_OPTIONS = [
+  { value: 0, label: 'VAT 0%' },
+  { value: 7, label: 'VAT 7%' },
+];
 
 // API functions
 async function fetchAPInvoices(filters?: { status?: string }): Promise<APInvoice[]> {
@@ -105,10 +113,10 @@ async function fetchAPInvoices(filters?: { status?: string }): Promise<APInvoice
 }
 
 async function fetchVendors(): Promise<Vendor[]> {
-  const res = await fetch('/api/vendors?isActive=true');
+  const res = await fetch('/api/vendors?isActive=true&limit=1000');
   if (!res.ok) throw new Error('Failed to fetch vendors');
   const json = await res.json();
-  return json.data;
+  return json.data?.items || json.data || [];
 }
 
 async function fetchGLAccounts(): Promise<GLAccount[]> {
@@ -143,9 +151,11 @@ async function approveInvoice(id: number): Promise<APInvoice> {
 }
 
 export default function APInvoicesPage() {
+  const t = useTranslations('accounting');
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<number | null>(null);
   const [formData, setFormData] = useState<FormData>({
     invoiceNumber: '',
     vendorId: null,
@@ -153,6 +163,8 @@ export default function APInvoicesPage() {
     dueDate: '',
     receivedDate: new Date().toISOString().split('T')[0],
     description: '',
+    vatRate: 7,
+    vatAmountOverride: null,
     lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
   });
 
@@ -197,6 +209,48 @@ export default function APInvoicesPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/accounting/ap-invoices/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to delete invoice');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ap-invoices'] });
+      notify('ลบใบแจ้งหนี้สำเร็จ', 'success', 3000);
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถลบใบแจ้งหนี้ได้', 'error', 4000);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await fetch(`/api/accounting/ap-invoices/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to update invoice');
+      }
+      return (await res.json()).data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ap-invoices'] });
+      notify('แก้ไขใบแจ้งหนี้สำเร็จ', 'success', 3000);
+      setIsDialogOpen(false);
+      setEditingInvoiceId(null);
+      resetForm();
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถแก้ไขใบแจ้งหนี้ได้', 'error', 4000);
+    },
+  });
+
   // Handlers
   const resetForm = useCallback(() => {
     setFormData({
@@ -206,17 +260,21 @@ export default function APInvoicesPage() {
       dueDate: '',
       receivedDate: new Date().toISOString().split('T')[0],
       description: '',
+      vatRate: 7,
+      vatAmountOverride: null,
       lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
     });
   }, []);
 
   const handleOpenDialog = useCallback(() => {
     resetForm();
+    setEditingInvoiceId(null);
     setIsDialogOpen(true);
   }, [resetForm]);
 
   const handleCloseDialog = useCallback(() => {
     setIsDialogOpen(false);
+    setEditingInvoiceId(null);
   }, []);
 
   const handleSave = useCallback(() => {
@@ -234,16 +292,24 @@ export default function APInvoicesPage() {
       return;
     }
 
-    createMutation.mutate({
+    const payload = {
       invoiceNumber: formData.invoiceNumber,
       vendorId: formData.vendorId,
       invoiceDate: formData.invoiceDate,
       dueDate: formData.dueDate,
       receivedDate: formData.receivedDate,
       description: formData.description || null,
+      vatRate: formData.vatRate,
+      vatAmountOverride: formData.vatAmountOverride,
       lines: validLines,
-    });
-  }, [formData, createMutation]);
+    };
+
+    if (editingInvoiceId) {
+      updateMutation.mutate({ id: editingInvoiceId, data: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
+  }, [formData, createMutation, updateMutation, editingInvoiceId]);
 
   const handleApprove = useCallback(
     async (invoice: APInvoice) => {
@@ -256,6 +322,48 @@ export default function APInvoicesPage() {
       }
     },
     [approveMutation]
+  );
+
+  const handleEdit = useCallback(async (invoice: APInvoice) => {
+    try {
+      const res = await fetch(`/api/accounting/ap-invoices/${invoice.id}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      const detail = json.data;
+      setFormData({
+        invoiceNumber: detail.invoiceNumber || '',
+        vendorId: detail.vendorId || null,
+        invoiceDate: detail.invoiceDate ? detail.invoiceDate.split('T')[0] : '',
+        dueDate: detail.dueDate ? detail.dueDate.split('T')[0] : '',
+        receivedDate: detail.receivedDate ? detail.receivedDate.split('T')[0] : '',
+        description: detail.description || '',
+        vatRate: detail.vatAmount > 0 ? 7 : 0,
+        vatAmountOverride: null,
+        lines: (detail.lines || []).map((l: any) => ({
+          description: l.description || '',
+          glAccountId: l.glAccountId || null,
+          quantity: l.quantity || 1,
+          unitPrice: l.unitPrice || 0,
+        })),
+      });
+      setEditingInvoiceId(invoice.id);
+      setIsDialogOpen(true);
+    } catch (err: any) {
+      notify(err.message || 'ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้', 'error', 4000);
+    }
+  }, []);
+
+  const handleDelete = useCallback(
+    async (invoice: APInvoice) => {
+      const result = await confirm(
+        `คุณต้องการลบใบแจ้งหนี้ ${invoice.invoiceNumber} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้`,
+        'ยืนยันการลบ'
+      );
+      if (result) {
+        deleteMutation.mutate(invoice.id);
+      }
+    },
+    [deleteMutation]
   );
 
   const addLine = useCallback(() => {
@@ -287,8 +395,9 @@ export default function APInvoicesPage() {
   }, [formData.lines]);
 
   const vatAmount = useMemo(() => {
-    return Math.round(lineTotal * 0.07 * 100) / 100;
-  }, [lineTotal]);
+    if (formData.vatAmountOverride !== null) return formData.vatAmountOverride;
+    return Math.round(lineTotal * (formData.vatRate / 100) * 100) / 100;
+  }, [lineTotal, formData.vatRate, formData.vatAmountOverride]);
 
   // Status badge render using AccountingStatusBadge
   const statusCellRender = useCallback((cellData: any) => {
@@ -313,13 +422,29 @@ export default function APInvoicesPage() {
       return (
         <div style={{ display: 'flex', gap: '4px' }}>
           {invoice.status === 'draft' && (
-            <Button
-              text="อนุมัติ"
-              type="success"
-              stylingMode="outlined"
-              height={24}
-              onClick={() => handleApprove(invoice)}
-            />
+            <>
+              <Button
+                icon="edit"
+                hint="แก้ไข"
+                stylingMode="text"
+                height={28}
+                onClick={() => handleEdit(invoice)}
+              />
+              <Button
+                icon="trash"
+                hint="ลบ"
+                stylingMode="text"
+                height={28}
+                onClick={() => handleDelete(invoice)}
+              />
+              <Button
+                text="อนุมัติ"
+                type="success"
+                stylingMode="outlined"
+                height={24}
+                onClick={() => handleApprove(invoice)}
+              />
+            </>
           )}
           {['posted', 'partial'].includes(invoice.status) && (
             <Button
@@ -333,7 +458,7 @@ export default function APInvoicesPage() {
         </div>
       );
     },
-    [handleApprove]
+    [handleApprove, handleEdit, handleDelete]
   );
 
   // Calculate stats
@@ -350,13 +475,24 @@ export default function APInvoicesPage() {
     return { total, pending, outstanding, paid, totalAmount, outstandingAmount };
   }, [invoices]);
 
+  // Add row sequence numbers for the grid
+  const invoicesWithRowNumber = useMemo(
+    () => invoices.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [invoices]
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" data-testid="ap-invoices-page">
       {/* Professional Header */}
       <AccountingPageHeader
-        title="ใบแจ้งหนี้ซื้อ"
-        subtitle="AP Invoices"
+        title={t('accountsPayable.bills.title')}
+        subtitle={t('accountsPayable.title')}
         icon="receipt"
+        onBack={() => window.location.href = '/accounting/ap'}
+        breadcrumbs={[
+          { label: 'Accounts Payable', href: '/accounting/ap' },
+          { label: t('accountsPayable.bills.title') },
+        ]}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['ap-invoices'] })}
         actions={
           <Button
@@ -431,7 +567,7 @@ export default function APInvoicesPage() {
         {/* Data Grid */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ap-invoices-grid">
         <DataGrid
-          dataSource={invoices}
+          dataSource={invoicesWithRowNumber}
           keyExpr="id"
           showBorders={true}
           showRowLines={true}
@@ -463,6 +599,20 @@ export default function APInvoicesPage() {
             <Item name="columnChooserButton" location="after" />
           </Toolbar>
 
+          <Column
+            dataField="_rowNumber"
+            caption={t('items.grid.columns.rowNum')}
+            width={60}
+            alignment="center"
+            allowFiltering={false}
+            allowSorting={false}
+            allowGrouping={false}
+            cellRender={(cellInfo) => (
+              <span className="text-gray-500 text-sm font-medium">
+                {cellInfo.data._rowNumber}
+              </span>
+            )}
+          />
           <Column dataField="invoiceNumber" caption="เลขที่ใบแจ้งหนี้" width={150} />
           <Column dataField="vendorId" caption="ผู้จำหน่าย" width={150} visible={false} />
           <Column dataField="invoiceDate" caption="วันที่" dataType="date" width={110} />
@@ -494,7 +644,7 @@ export default function APInvoicesPage() {
           />
           <Column
             caption="การดำเนินการ"
-            width={150}
+            width={200}
             cellRender={actionsCellRender}
             allowFiltering={false}
             allowSorting={false}
@@ -508,11 +658,11 @@ export default function APInvoicesPage() {
         </DataGrid>
         </div>
 
-        {/* Add Invoice Dialog */}
+        {/* Add/Edit Invoice Dialog */}
         <Popup
           visible={isDialogOpen}
           onHiding={handleCloseDialog}
-          title="เพิ่มใบแจ้งหนี้ซื้อ"
+          title={editingInvoiceId ? 'แก้ไขใบแจ้งหนี้ซื้อ' : 'เพิ่มใบแจ้งหนี้ซื้อ'}
           width={800}
           height="auto"
           showCloseButton={true}
@@ -671,11 +821,35 @@ export default function APInvoicesPage() {
                   <td className="border"></td>
                 </tr>
                 <tr className="bg-gray-50">
-                  <td colSpan={4} className="border p-2 text-right">
-                    VAT 7%
+                  <td colSpan={3} className="border p-2 text-right">
+                    VAT
                   </td>
-                  <td className="border p-2 text-right">
-                    {vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  <td className="border p-1 text-center">
+                    <select
+                      className="w-full border rounded px-2 py-1 text-sm text-center bg-white"
+                      value={formData.vatRate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vatRate: Number(e.target.value), vatAmountOverride: null }))}
+                      data-testid="vat-rate-select"
+                    >
+                      <option value={0}>0%</option>
+                      <option value={7}>7%</option>
+                    </select>
+                  </td>
+                  <td className="border p-1 text-right">
+                    <input
+                      type="number"
+                      className="w-full border rounded px-2 py-1 text-sm text-right bg-white"
+                      value={formData.vatAmountOverride !== null ? formData.vatAmountOverride : vatAmount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vatAmountOverride: Number(e.target.value) || 0 }))}
+                      onBlur={() => {
+                        if (formData.vatAmountOverride !== null && formData.vatAmountOverride === vatAmount) {
+                          setFormData(prev => ({ ...prev, vatAmountOverride: null }));
+                        }
+                      }}
+                      step="0.01"
+                      min="0"
+                      data-testid="vat-amount-input"
+                    />
                   </td>
                   <td className="border"></td>
                 </tr>
@@ -696,10 +870,10 @@ export default function APInvoicesPage() {
           <div className="mt-6 flex justify-end gap-2">
             <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} elementAttr={{ 'data-testid': 'ap-cancel-btn' }} />
             <Button
-              text="บันทึก"
+              text={editingInvoiceId ? 'บันทึกการแก้ไข' : 'บันทึก'}
               type="success"
               onClick={handleSave}
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || updateMutation.isPending}
               elementAttr={{ 'data-testid': 'ap-save-btn' }}
             />
           </div>

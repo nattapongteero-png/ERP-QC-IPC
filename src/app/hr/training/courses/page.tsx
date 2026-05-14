@@ -5,6 +5,7 @@
 // Updated Task 5: Template Pattern Alignment - Page-based navigation
 
 import { useState, useCallback, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -33,6 +34,7 @@ async function fetchCourses(): Promise<TrainingCourse[]> {
 }
 
 export default function TrainingCoursesPage() {
+  const t = useTranslations('hr');
   const router = useRouter();
   const [gridHeight, setGridHeight] = useState(600);
 
@@ -112,11 +114,11 @@ export default function TrainingCoursesPage() {
   );
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto" data-testid="hr-courses-page">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto" data-testid="hr-courses-page" data-title={t('training.courses.title')}>
       {/* T034: ResponsivePageHeader */}
       <ResponsivePageHeader
-        title="หลักสูตรอบรม"
-        subtitle={`Training Courses Catalog • ${courseList.length} หลักสูตร`}
+        title={t('training.courses.title')}
+        subtitle={t('training.courses.description')}
         icon={BookOpen}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"

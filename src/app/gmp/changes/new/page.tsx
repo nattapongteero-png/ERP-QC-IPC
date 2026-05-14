@@ -14,6 +14,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Form } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
@@ -74,6 +75,7 @@ async function createChangeRequest(data: ChangeRequestCreate): Promise<{ id: num
 
 export default function NewChangeRequestPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const [formData, setFormData] = useState<FormData>({
     title: '',
     changeType: 'process',
@@ -272,10 +274,10 @@ export default function NewChangeRequestPage() {
                 <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
                   <FileEdit className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                New Change Request
+                {t('changes.actions.newChange')}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Create a new change control request
+                {t('changes.description')}
               </p>
             </div>
             <div className="flex items-center gap-3">

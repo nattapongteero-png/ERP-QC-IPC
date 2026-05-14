@@ -21,6 +21,7 @@ import {
   type VmiSyncHistory,
 } from '@/lib/db/schema';
 import { decrypt, isValidCiphertext } from '@/lib/crypto/encrypt';
+import { getNow } from '../db/date-utils';
 import type {
   VmiSyncType,
   VmiSyncTriggerType,
@@ -122,12 +123,11 @@ interface PortalConfig {
 // ============================================
 
 export class VmiSyncService {
-  private readonly isSqlite: boolean;
   private readonly BATCH_SIZE = 100;
 
-  constructor() {
-    this.isSqlite = isSqlite();
-    console.log('[VMI Sync] Service initialized, using', this.isSqlite ? 'SQLite' : 'MySQL');
+  // Bug L2: use getter instead of caching isSqlite at construction time
+  private get isSqlite(): boolean {
+    return isSqlite();
   }
 
   private log(message: string, data?: unknown) {
@@ -1201,7 +1201,7 @@ export class VmiSyncService {
     const { items, priceOffers } = this.getTables();
 
     // Get current date for filtering active offers
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     // Build conditions for items
     const itemConditions = [
@@ -1259,7 +1259,7 @@ export class VmiSyncService {
     const db = (await this.getDb()) as any;
     const { syncHistory } = this.getTables();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     const [result] = await db
       .insert(syncHistory)
@@ -1299,7 +1299,7 @@ export class VmiSyncService {
     const db = (await this.getDb()) as any;
     const { syncHistory } = this.getTables();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     await db
       .update(syncHistory)
@@ -1325,6 +1325,47 @@ export class VmiSyncService {
       duration: data.duration,
       errors: data.errors,
     };
+  }
+
+  /**
+   * Record order poll result to sync history
+   */
+  async recordOrderPollHistory(data: {
+    ordersReceived: number;
+    errors?: Array<{ portalId: number; error: string }>;
+    errorPortalIds: Set<number>;
+  }): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
+    const { portals, syncHistory } = this.getTables();
+
+    // Get all enabled portals with order polling
+    const records = await db
+      .select({ id: portals.id })
+      .from(portals)
+      .where(and(eq(portals.isEnabled, true), eq(portals.orderPollingEnabled, true)));
+
+    const now = getNow();
+
+    for (const portal of records) {
+      const portalError = data.errors?.find((e: { portalId: number }) => e.portalId === portal.id);
+      const status = portalError ? 'failed' : 'completed';
+
+      await db
+        .insert(syncHistory)
+        .values({
+          portalId: portal.id,
+          syncType: 'orders',
+          triggerType: 'scheduled',
+          status,
+          itemsTotal: portalError ? 0 : data.ordersReceived,
+          itemsProcessed: portalError ? 0 : data.ordersReceived,
+          itemsFailed: portalError ? 1 : 0,
+          errorDetails: portalError ? JSON.stringify([{ error: portalError.error }]) : '[]',
+          startedAt: now,
+          completedAt: now,
+        } as Record<string, unknown>);
+    }
   }
 }
 

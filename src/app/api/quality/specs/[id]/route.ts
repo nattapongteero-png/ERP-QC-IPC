@@ -69,6 +69,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             result: testsTable.result,
             numericResult: testsTable.numericResult,
             status: testsTable.status,
+            // Spec snapshot at time of recording
+            specMinValue: testsTable.specMinValue,
+            specMaxValue: testsTable.specMaxValue,
+            specSpecification: testsTable.specSpecification,
+            specUnit: testsTable.specUnit,
             createdAt: testsTable.createdAt,
           })
           .from(testsTable)

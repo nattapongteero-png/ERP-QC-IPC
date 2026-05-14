@@ -3,6 +3,7 @@
 import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { PageHeader } from '@/components/ui/page-header';
 import { LineClearanceForm } from '@/components/production/line-clearance-form';
 import { DxButton } from '@/components/ui/dx-button';
@@ -49,6 +50,7 @@ function LineClearanceContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const t = useTranslations('production');
 
   const workOrderIdParam = searchParams.get('workOrderId');
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<number | null>(
@@ -203,13 +205,13 @@ function LineClearanceContent() {
   return (
     <div className="space-y-6">
         <PageHeader
-          title="Line Clearance"
-          description="Complete line clearance verification before production start (FR-062)"
+          title={t('lineClearance.title')}
+          description={t('lineClearance.description')}
           actions={
             <DxButton
               text="Back to Work Orders"
               icon="arrowleft"
-              onClick={() => router.push('/production/work-orders')}
+              onClick={() => router.push(selectedWorkOrderId ? `/production/work-orders/${selectedWorkOrderId}` : '/production/work-orders')}
               type="normal"
               stylingMode="outlined"
             />
@@ -284,7 +286,7 @@ function LineClearanceContent() {
                 verifiedAt={undefined}
                 onPerform={handlePerform}
                 onVerify={handleVerify}
-                isPerformer={lineClearanceData.status === 'not_started' || lineClearanceData.status === 'rejected'}
+                isPerformer={lineClearanceData.status === 'not_started' || lineClearanceData.status === 'pending' || lineClearanceData.status === 'rejected'}
                 isVerifier={lineClearanceData.status === 'performed'}
                 readOnly={lineClearanceData.status === 'verified'}
               />

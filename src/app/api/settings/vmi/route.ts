@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { getSession, hasPermission, type Role } from '@/lib/auth';
 import {
   vmiPortalConfigService,
@@ -21,46 +22,49 @@ import { vmiPortalConfigCreateSchema } from '@/lib/validation/vmi-portal';
  * List all VMI portal configurations
  */
 export async function GET(request: NextRequest) {
-  try {
-    // Check authentication
-    const session = await getSession();
-    if (!session) {
+  return withAuth(request, async (session) => {
+    try {
+      // Check authentication
+      const session = await getSession();
+      if (!session) {
+        return NextResponse.json(
+          { success: false, error: 'Authentication required' },
+          { status: 401 }
+        );
+      }
+
+      // Check permission
+      if (!hasPermission(session.role as Role, 'vmi-settings:read')) {
+        return NextResponse.json(
+          { success: false, error: 'Permission denied' },
+          { status: 403 }
+        );
+      }
+
+      // Get all portal configurations
+      const portals = await vmiPortalConfigService.list();
+
+      return NextResponse.json({
+        success: true,
+        data: portals,
+      });
+    } catch (error) {
+      console.error('[VMI Settings API] Error listing portals:', error);
+
+      if (error instanceof VmiPortalConfigError) {
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: error.httpStatus }
+        );
+      }
+
       return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
+        { success: false, error: 'Internal server error' },
+        { status: 500 }
       );
     }
 
-    // Check permission
-    if (!hasPermission(session.role as Role, 'vmi-settings:read')) {
-      return NextResponse.json(
-        { success: false, error: 'Permission denied' },
-        { status: 403 }
-      );
-    }
-
-    // Get all portal configurations
-    const portals = await vmiPortalConfigService.list();
-
-    return NextResponse.json({
-      success: true,
-      data: portals,
-    });
-  } catch (error) {
-    console.error('[VMI Settings API] Error listing portals:', error);
-
-    if (error instanceof VmiPortalConfigError) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: error.httpStatus }
-      );
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 /**
@@ -69,74 +73,77 @@ export async function GET(request: NextRequest) {
  * Create new VMI portal configuration
  */
 export async function POST(request: NextRequest) {
-  try {
-    // Check authentication
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
+  return withAuth(request, async (session) => {
+    try {
+      // Check authentication
+      const session = await getSession();
+      if (!session) {
+        return NextResponse.json(
+          { success: false, error: 'Authentication required' },
+          { status: 401 }
+        );
+      }
+
+      // Check permission
+      if (!hasPermission(session.role as Role, 'vmi-settings:write')) {
+        return NextResponse.json(
+          { success: false, error: 'Permission denied' },
+          { status: 403 }
+        );
+      }
+
+      // Parse and validate request body
+      const body = await request.json();
+      const validationResult = vmiPortalConfigCreateSchema.safeParse(body);
+
+      if (!validationResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Validation failed',
+            details: validationResult.error.issues,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Create portal configuration
+      const portal = await vmiPortalConfigService.create(
+        validationResult.data,
+        session.userId
       );
-    }
 
-    // Check permission
-    if (!hasPermission(session.role as Role, 'vmi-settings:write')) {
-      return NextResponse.json(
-        { success: false, error: 'Permission denied' },
-        { status: 403 }
-      );
-    }
-
-    // Parse and validate request body
-    const body = await request.json();
-    const validationResult = vmiPortalConfigCreateSchema.safeParse(body);
-
-    if (!validationResult.success) {
       return NextResponse.json(
         {
-          success: false,
-          error: 'Validation failed',
-          details: validationResult.error.issues,
+          success: true,
+          data: portal,
+          message: 'Portal configuration created successfully',
         },
-        { status: 400 }
+        { status: 201 }
       );
-    }
+    } catch (error) {
+      console.error('[VMI Settings API] Error creating portal:', error);
 
-    // Create portal configuration
-    const portal = await vmiPortalConfigService.create(
-      validationResult.data,
-      session.userId
-    );
+      if (error instanceof VmiPortalConfigError) {
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: error.httpStatus }
+        );
+      }
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: portal,
-        message: 'Portal configuration created successfully',
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('[VMI Settings API] Error creating portal:', error);
+      // Handle unique constraint violation
+      if (error instanceof Error && error.message.includes('UNIQUE')) {
+        return NextResponse.json(
+          { success: false, error: 'Portal with this name already exists' },
+          { status: 409 }
+        );
+      }
 
-    if (error instanceof VmiPortalConfigError) {
       return NextResponse.json(
-        { success: false, error: error.message },
-        { status: error.httpStatus }
+        { success: false, error: 'Internal server error' },
+        { status: 500 }
       );
     }
 
-    // Handle unique constraint violation
-    if (error instanceof Error && error.message.includes('UNIQUE')) {
-      return NextResponse.json(
-        { success: false, error: 'Portal with this name already exists' },
-        { status: 409 }
-      );
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
+  });
 }

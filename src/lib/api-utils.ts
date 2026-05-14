@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getSession, hasPermission, Permission, Role } from './auth';
+import { getSession, hasPermission, isAdminRole, Permission, Role } from './auth';
+import { getRolePermissionSet } from './auth/permission-resolver';
 
 // Check if running in development mode
 export function isDevelopment(): boolean {
@@ -138,6 +139,44 @@ export function serverErrorResponse(error: unknown, context?: string): NextRespo
   return NextResponse.json(response, { status: 500 });
 }
 
+/**
+ * Build a descriptive forbidden response body that tells the caller EXACTLY
+ * which permission they are missing plus a Thai message admins can act on.
+ *
+ * Rationale: the original generic "You do not have permission to perform this
+ * action" gave no indication of which permission to grant. When a user hit
+ * it they had to dig through code or contact dev — now both the user and the
+ * admin see the missing permission code right in the error toast.
+ */
+function buildMissingPermissionResponse(
+  missing: string[],
+  userRole: string | null | undefined,
+  path?: string,
+): NextResponse<ApiResponse> {
+  const missingList = missing.join(', ');
+  const roleLabel = userRole || 'unknown';
+  // Bilingual message — Thai first (primary audience), English for logs.
+  const thaiMsg = `ไม่มีสิทธิ์ทำรายการนี้ — role "${roleLabel}" ขาด permission: ${missingList}. กรุณาติดต่อผู้ดูแลระบบเพิ่มสิทธิ์ใน HR → Roles`;
+  const response: ApiResponse = {
+    success: false,
+    error: thaiMsg,
+    // Structured fields for frontend toast + bug reporting
+    ...(({
+      missingPermissions: missing,
+      userRole: roleLabel,
+      actionHint: 'เพิ่มสิทธิ์นี้ให้ role ใน /hr/roles หรือเปลี่ยน user ให้เป็น role ที่มีสิทธิ์',
+    } as unknown) as Record<string, unknown>),
+  };
+  if (isDevelopment()) {
+    response.debug = {
+      message: `Missing permissions: ${missingList}`,
+      path,
+      timestamp: new Date().toISOString(),
+    };
+  }
+  return NextResponse.json(response, { status: 403 });
+}
+
 // Middleware helper for protected routes
 export async function withAuth(
   request: Request,
@@ -145,21 +184,41 @@ export async function withAuth(
   requiredPermissions?: Permission[]
 ): Promise<NextResponse> {
   const session = await getSession();
-  
+
   if (!session) {
     return unauthorizedResponse('Please login to continue');
   }
-  
+
   if (requiredPermissions && requiredPermissions.length > 0) {
-    const hasAllPermissions = requiredPermissions.every(permission =>
-      hasPermission(session.role as Role, permission)
-    );
-    
-    if (!hasAllPermissions) {
-      return forbiddenResponse('You do not have permission to perform this action');
+    // Administrator bypasses all permission checks
+    if (!isAdminRole(session.role)) {
+      // Two-source authorization:
+      //   1. Static PERMISSIONS map (legacy, hardcoded in src/lib/auth/index.ts)
+      //   2. DB-backed hr_role_permissions (admin-editable via /hr/roles)
+      // A permission is granted if EITHER source allows it. This lets
+      // admins grant a new permission to a role through the UI without
+      // a code change — and keeps every existing static allow-list as
+      // the safety net so we never accidentally remove access.
+      const dbPerms = await getRolePermissionSet(session.role).catch(
+        () => new Set<string>(),
+      );
+      const missing = requiredPermissions.filter(
+        (permission) =>
+          !hasPermission(session.role as Role, permission) &&
+          !dbPerms.has(permission),
+      );
+
+      if (missing.length > 0) {
+        const url = new URL(request.url);
+        return buildMissingPermissionResponse(
+          missing,
+          session.role,
+          `${request.method} ${url.pathname}`,
+        );
+      }
     }
   }
-  
+
   return handler(session);
 }
 
@@ -182,7 +241,7 @@ export interface PaginatedResponse<T> {
 export function getPaginationParams(searchParams: URLSearchParams): PaginationParams {
   return {
     page: Math.max(1, parseInt(searchParams.get('page') || '1')),
-    limit: Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20'))),
+    limit: Math.min(1000, Math.max(1, parseInt(searchParams.get('limit') || '20'))),
     sortBy: searchParams.get('sortBy') || undefined,
     sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
   };

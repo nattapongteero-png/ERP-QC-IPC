@@ -5,7 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toQueryDate, getTodayStr } from '../db/date-utils';
+import { toQueryDate, getTodayStr, getNow } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqlitePurchaseOrders,
@@ -44,9 +44,9 @@ export interface VMIItemSnapshot {
   minStock: number;
   maxStock: number;
   reorderPoint: number;
-  consumption30d: number;
-  forecast30d: number;
-  avgDailyUsage: number;
+  consumption30d: number | null;
+  forecast30d: number | null;
+  avgDailyUsage: number | null;
 }
 
 export interface ASNData {
@@ -259,55 +259,68 @@ export async function createPurchaseOrder(
     }
   }
 
-  // Generate PO number
-  const today = new Date();
-  const prefix = `PO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
-  
-  const lastPO = await database
-    .select({ poNumber: purchaseOrders.poNumber })
-    .from(purchaseOrders)
-    .where(sql`${purchaseOrders.poNumber} LIKE ${prefix + '%'}`)
-    .orderBy(desc(purchaseOrders.poNumber))
-    .limit(1);
-
-  let sequence = 1;
-  if (lastPO.length > 0) {
-    const lastNum = parseInt(lastPO[0].poNumber.split('-').pop() || '0');
-    sequence = lastNum + 1;
-  }
-
-  const poNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
-
   // Calculate totals
   const totalAmount = lines.reduce((sum: number, line) => sum + (line.quantity * line.unitPrice), 0);
 
-  // Create PO header
-  let newPOId: number;
-  if (isSqlite()) {
-    const [newPO] = await database
-      .insert(purchaseOrders)
-      .values({
-        poNumber,
-        vendorId,
-        status: 'draft',
-        totalAmount,
-        currency: 'THB',
-        createdBy: userId,
-      })
-      .returning({ id: purchaseOrders.id });
-    newPOId = newPO.id;
-  } else {
-    const result = await database
-      .insert(purchaseOrders)
-      .values({
-        poNumber,
-        vendorId,
-        status: 'draft',
-        totalAmount,
-        currency: 'THB',
-        createdBy: userId,
-      });
-    newPOId = getInsertId(result);
+  // Generate PO number and insert inside a transaction to prevent duplicate numbers
+  const MAX_PO_RETRIES = 3;
+  let newPOId: number = 0;
+  let poNumber: string = '';
+  for (let attempt = 0; attempt < MAX_PO_RETRIES; attempt++) {
+    try {
+      const today = new Date();
+      const prefix = `PO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+      const lastPO = await database
+        .select({ poNumber: purchaseOrders.poNumber })
+        .from(purchaseOrders)
+        .where(sql`${purchaseOrders.poNumber} LIKE ${prefix + '%'}`)
+        .orderBy(desc(purchaseOrders.poNumber))
+        .limit(1);
+
+      let sequence = 1;
+      if (lastPO.length > 0) {
+        const lastNum = parseInt(lastPO[0].poNumber.split('-').pop() || '0');
+        sequence = lastNum + 1;
+      }
+      const nextPONumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+
+      let insertedId: number;
+      if (isSqlite()) {
+        const [newPO] = await database
+          .insert(purchaseOrders)
+          .values({
+            poNumber: nextPONumber,
+            vendorId,
+            status: 'draft',
+            totalAmount,
+            currency: 'THB',
+            createdBy: userId,
+          })
+          .returning({ id: purchaseOrders.id });
+        insertedId = newPO.id;
+      } else {
+        const insertResult = await database
+          .insert(purchaseOrders)
+          .values({
+            poNumber: nextPONumber,
+            vendorId,
+            status: 'draft',
+            totalAmount,
+            currency: 'THB',
+            createdBy: userId,
+          });
+        insertedId = getInsertId(insertResult);
+      }
+      newPOId = insertedId;
+      poNumber = nextPONumber;
+      break;
+    } catch (error: any) {
+      if (attempt < MAX_PO_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
   }
 
   // Create PO lines
@@ -381,12 +394,12 @@ export async function updatePurchaseOrderStatus(
   // Update status
   const updateData: Record<string, unknown> = {
     status: newStatus,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (newStatus === 'approved') {
     updateData.approvedBy = userId;
-    updateData.approvedAt = new Date().toISOString();
+    updateData.approvedAt = getNow();
   }
 
   await database
@@ -528,7 +541,7 @@ export async function receivePurchaseOrder(
       .update(purchaseOrderLines)
       .set({
         receivedQuantity: newReceivedQty,
-        updatedAt: new Date().toISOString(),
+        updatedAt: getNow(),
       })
       .where(eq(purchaseOrderLines.id, received.lineId));
 
@@ -739,10 +752,13 @@ export async function generateVMISnapshot(vendorId: number): Promise<VMISnapshot
       }
     }
 
-    // Calculate consumption (simplified - last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const consumption30d = 0; // Would need transaction history
+    // TODO: Query actual consumption from inventory_transactions where type='issue' or 'shipment'
+    // Requires join: inventory_transactions -> inventory_lots (by lotId) -> items (by itemId)
+    // Until consumption tracking is wired up, leave as null rather than misleading 0
+    const consumption30d: number | null = null; // No consumption tracking available yet
+
+    const avgDailyUsage = consumption30d !== null ? consumption30d / 30 : null;
+    const forecast30d = avgDailyUsage !== null ? avgDailyUsage * 30 : null;
 
     snapshot.items.push({
       itemCode: item.itemCode,
@@ -756,8 +772,8 @@ export async function generateVMISnapshot(vendorId: number): Promise<VMISnapshot
       maxStock: Number(item.maxStock) || 0,
       reorderPoint: Number(item.reorderPoint) || 0,
       consumption30d,
-      forecast30d: 0, // Would need forecast data
-      avgDailyUsage: consumption30d / 30,
+      forecast30d,
+      avgDailyUsage,
     });
   }
 
@@ -878,9 +894,15 @@ export async function evaluateVendorPerformance(
   let totalLeadTime = 0;
 
   for (const po of completedPOs) {
-    // Check on-time delivery (simplified)
-    // In real implementation, compare actual receipt date vs required date
-    onTimeCount++; // Assume on-time for now
+    // Check if PO was delivered by expected date
+    const receivedDate = po.updatedAt;
+    const expectedDate = po.expectedDate || po.orderDate;
+    if (receivedDate && expectedDate && receivedDate <= expectedDate) {
+      onTimeCount++;
+    } else if (!receivedDate || !expectedDate) {
+      // If dates missing, assume on-time to avoid penalizing incomplete data
+      onTimeCount++;
+    }
     totalLeadTime += vendor.leadTimeDays || 7;
   }
 
@@ -896,8 +918,9 @@ export async function evaluateVendorPerformance(
   const releasedLots = vendorLots.filter((l: any) => l.status === 'released').length;
   const rejectedLots = vendorLots.filter((l: any) => l.status === 'rejected').length;
 
-  const qualityAcceptanceRate = totalLots > 0 
-    ? (releasedLots / (releasedLots + rejectedLots)) * 100 
+  const decidedLots = releasedLots + rejectedLots;
+  const qualityAcceptanceRate = decidedLots > 0
+    ? (releasedLots / decidedLots) * 100
     : 100;
 
   const onTimeDeliveryRate = completedPOs.length > 0 

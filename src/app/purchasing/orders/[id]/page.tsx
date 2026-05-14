@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
+import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,7 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils/cn';
 import {
-  Send, Package, DollarSign,
+  Send, Package, DollarSign, AlertTriangle,
   Clock, CheckCircle, AlertCircle, Truck, FileText,
   Building2, User, Phone, Mail,
   Edit2, Trash2,
@@ -24,6 +24,34 @@ import {
 } from 'lucide-react';
 import { DocumentAttachment } from '@/components/ui/document-attachment';
 import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
+import { useCurrentUser } from '@/hooks/use-current-user';
+
+// VAT rate for Thailand (7%)
+const VAT_RATE = 0.07;
+
+// Roles that can submit a Draft PO (→ pending_approval)
+const PO_SUBMIT_ROLES = ['PROCUREMENT', 'PROCUREMENT_MANAGER', 'admin', 'manager', 'purchasing'];
+
+// Roles that can approve a Submitted PO (→ approved)
+const PO_APPROVE_ROLES = ['PROCUREMENT_MANAGER', 'admin', 'manager'];
+
+// Step bar — maps backend status → workflow step index (1..4), or -1 for cancelled
+const STATUS_STEP: Record<string, number> = {
+  draft: 1,
+  pending_approval: 2,
+  approved: 3,
+  sent: 4,
+  partial: 4,
+  received: 4,
+  cancelled: -1,
+};
+
+const WORKFLOW_STEPS: { key: string; label: string }[] = [
+  { key: 'draft', label: 'ร่าง (Draft)' },
+  { key: 'submitted', label: 'ส่งอนุมัติ (Submitted)' },
+  { key: 'approved', label: 'อนุมัติแล้ว (Approved)' },
+  { key: 'completed', label: 'เสร็จสิ้น (Completed)' },
+];
 
 interface WarehouseItem {
   id: number;
@@ -200,9 +228,25 @@ const STATUS_OPTIONS = [
 export default function PurchaseOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('purchasing');
   const [data, setData] = useState<PODetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'lines' | 'receiving' | 'lots'>('overview');
+  // VAT display preference, persisted across sessions per browser.
+  //   'split'     — show ยอดก่อน VAT / VAT 7% / ยอดรวมสุทธิ (3 lines)
+  //   'inclusive' — show only ยอดรวม (รวม VAT) (1 line)
+  // Different operators prefer different views — สรรพากร reports want
+  // split, while quick-glance ordering wants inclusive.
+  const [vatDisplayMode, setVatDisplayMode] = useState<'split' | 'inclusive'>(() => {
+    if (typeof window === 'undefined') return 'split';
+    const stored = window.localStorage.getItem('po-vat-display-mode');
+    return stored === 'inclusive' ? 'inclusive' : 'split';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('po-vat-display-mode', vatDisplayMode);
+    }
+  }, [vatDisplayMode]);
 
   // Edit states
   const [isEditingPO, setIsEditingPO] = useState(false);
@@ -234,6 +278,8 @@ export default function PurchaseOrderDetailPage() {
   const [selectedLine, setSelectedLine] = useState<POLine | null>(null);
   const [receiveForm, setReceiveForm] = useState({
     lotNumber: '',
+    vendorLotNumber: '',
+    manufacturingDate: '',
     quantity: 0,
     expiryDate: '',
     warehouseId: '',
@@ -245,8 +291,21 @@ export default function PurchaseOrderDetailPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [items, setItems] = useState<Item[]>([]);
 
+  // Delete PO state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingPO, setDeletingPO] = useState(false);
+
   // Audit log dialog
   const [showAuditLog, setShowAuditLog] = useState(false);
+
+  // Current user (for role-gated Submit / Approve buttons)
+  const { data: currentUser } = useCurrentUser();
+  const userRole = currentUser?.role || '';
+  const canSubmit = PO_SUBMIT_ROLES.includes(userRole);
+  const canApprove = PO_APPROVE_ROLES.includes(userRole);
+
+  // Status transition state
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const fetchPODetail = useCallback(async () => {
     try {
@@ -412,8 +471,18 @@ export default function PurchaseOrderDetailPage() {
   // Handle receive
   const handleReceive = (line: POLine) => {
     setSelectedLine(line);
+    // Auto-generate lot number: [ItemCode]-[YYMMDD]-[Running]
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const running = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+    const autoLot = `${line.itemCode}-${yy}${mm}${dd}-${running}`;
+
     setReceiveForm({
-      lotNumber: `LOT-${Date.now()}`,
+      lotNumber: autoLot,
+      vendorLotNumber: '',
+      manufacturingDate: '',
       quantity: line.pendingQty,
       expiryDate: '',
       warehouseId: warehouses.length > 0 ? warehouses[0].id.toString() : '',
@@ -422,7 +491,7 @@ export default function PurchaseOrderDetailPage() {
   };
 
   const submitReceive = async () => {
-    if (!selectedLine || !receiveForm.quantity || !receiveForm.expiryDate || !receiveForm.warehouseId) return;
+    if (!selectedLine || !receiveForm.quantity || !receiveForm.expiryDate || !receiveForm.warehouseId || !receiveForm.vendorLotNumber || !receiveForm.manufacturingDate) return;
 
     setIsSubmitting(true);
     try {
@@ -432,6 +501,8 @@ export default function PurchaseOrderDetailPage() {
         body: JSON.stringify({
           lineId: selectedLine.id,
           lotNumber: receiveForm.lotNumber,
+          vendorLotNumber: receiveForm.vendorLotNumber,
+          manufacturingDate: receiveForm.manufacturingDate,
           quantity: receiveForm.quantity,
           expiryDate: receiveForm.expiryDate,
           warehouseId: parseInt(receiveForm.warehouseId),
@@ -447,6 +518,49 @@ export default function PurchaseOrderDetailPage() {
       console.error('Failed to receive:', error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Transition PO status (Submit / Approve)
+  const transitionStatus = async (nextStatus: 'pending_approval' | 'approved', confirmMsg: string) => {
+    if (!confirm(confirmMsg)) return;
+    setIsTransitioning(true);
+    try {
+      const response = await fetch(`/api/purchasing/orders/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        fetchPODetail();
+      } else {
+        alert(result.error || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error('Failed to transition status:', error);
+      alert('Failed to update status');
+    } finally {
+      setIsTransitioning(false);
+    }
+  };
+
+  // Delete PO
+  const handleDeletePO = async () => {
+    setDeletingPO(true);
+    try {
+      const response = await fetch(`/api/purchasing/orders/${params.id}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (result.success) {
+        setShowDeleteModal(false);
+        router.push('/purchasing/orders');
+      } else {
+        alert(result.error || 'Failed to delete PO');
+      }
+    } catch {
+      alert('Failed to delete PO');
+    } finally {
+      setDeletingPO(false);
     }
   };
 
@@ -761,7 +875,7 @@ export default function PurchaseOrderDetailPage() {
 
   if (loading) {
     return (
-      <MainLayout>
+      <>
         <div className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="h-9 w-20 bg-gray-200 rounded animate-pulse" />
@@ -774,13 +888,13 @@ export default function PurchaseOrderDetailPage() {
           </div>
           <div className="h-96 bg-gray-200 rounded animate-pulse" />
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!data) {
     return (
-      <MainLayout>
+      <>
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
           <p className="text-gray-500 mb-4">ไม่พบข้อมูล Purchase Order</p>
@@ -792,20 +906,29 @@ export default function PurchaseOrderDetailPage() {
             onClick={() => router.push('/purchasing/orders')}
           />
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   const { purchaseOrder: po, lines, receivedLots, summary } = data;
   const statusConfig = getStatusConfig(po.status);
 
+  // Financial summary (dynamically recomputed from current lines)
+  const subtotal = lines.reduce((sum, l) => sum + (Number(l.lineTotal) || 0), 0);
+  const vatAmount = subtotal * VAT_RATE;
+  const grandTotal = subtotal + vatAmount;
+
+  // Workflow step (1..4 or -1 for cancelled)
+  const currentStep = STATUS_STEP[po.status] ?? 1;
+  const isCancelled = currentStep === -1;
+
   return (
-    <MainLayout>
+    <>
       <div className="space-y-4">
         {/* Header */}
         <PageHeader
-          title={`PO: ${po.poNumber}`}
-          description={`ผู้ขาย: ${po.vendorName} • สถานะ: ${statusConfig.labelTh}`}
+          title={`${t('orders.detail.title')}: ${po.poNumber}`}
+          description={`${t('orders.detail.vendor')}: ${po.vendorName} • ${t('orders.detail.status')}: ${statusConfig.labelTh}`}
           backButton={
             <DxButton
               icon="back"
@@ -837,6 +960,38 @@ export default function PurchaseOrderDetailPage() {
                 stylingMode="outlined"
                 onClick={() => window.print()}
               />
+              {po.status === 'draft' && (
+                <DxButton
+                  text="ลบใบ PO"
+                  icon="trash"
+                  type="danger"
+                  stylingMode="outlined"
+                  onClick={() => setShowDeleteModal(true)}
+                  data-testid="delete-po-btn"
+                />
+              )}
+              {po.status === 'draft' && canSubmit && (
+                <DxButton
+                  text={isTransitioning ? 'กำลังส่ง...' : 'ส่งอนุมัติ (Submit)'}
+                  icon="upload"
+                  type="default"
+                  stylingMode="contained"
+                  disabled={isTransitioning || lines.length === 0}
+                  onClick={() => transitionStatus('pending_approval', `ต้องการส่ง PO ${po.poNumber} เพื่อขออนุมัติ?`)}
+                  data-testid="po-submit-btn"
+                />
+              )}
+              {po.status === 'pending_approval' && canApprove && (
+                <DxButton
+                  text={isTransitioning ? 'กำลังอนุมัติ...' : 'อนุมัติ (Approve)'}
+                  icon="check"
+                  type="success"
+                  stylingMode="contained"
+                  disabled={isTransitioning}
+                  onClick={() => transitionStatus('approved', `ยืนยันอนุมัติ PO ${po.poNumber}?`)}
+                  data-testid="po-approve-btn"
+                />
+              )}
               {po.status === 'approved' && (
                 <DxButton
                   text="ส่งให้ผู้ขาย"
@@ -848,16 +1003,88 @@ export default function PurchaseOrderDetailPage() {
           }
         />
 
+        {/* Workflow Step Bar */}
+        <Card className="!p-4">
+          {isCancelled ? (
+            <div className="flex items-center justify-center gap-2 py-2 text-red-600">
+              <XCircle className="h-5 w-5" />
+              <span className="font-semibold">PO ถูกยกเลิก (Cancelled)</span>
+            </div>
+          ) : (
+            <div className="flex items-center" data-testid="po-workflow-steps">
+              {WORKFLOW_STEPS.map((step, idx) => {
+                const stepNum = idx + 1;
+                const isDone = stepNum < currentStep;
+                const isActive = stepNum === currentStep;
+                return (
+                  <div key={step.key} className="flex items-center flex-1 last:flex-initial">
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className={cn(
+                          'flex items-center justify-center w-9 h-9 rounded-full border-2 font-semibold text-sm transition-colors',
+                          isDone && 'bg-green-500 border-green-500 text-white',
+                          isActive && 'bg-blue-500 border-blue-500 text-white ring-4 ring-blue-100',
+                          !isDone && !isActive && 'bg-white border-gray-300 text-gray-400'
+                        )}
+                      >
+                        {isDone ? <CheckCircle className="h-5 w-5" /> : stepNum}
+                      </div>
+                      <span
+                        className={cn(
+                          'text-xs font-medium text-center whitespace-nowrap',
+                          isActive && 'text-blue-600',
+                          isDone && 'text-green-600',
+                          !isDone && !isActive && 'text-gray-400'
+                        )}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                    {idx < WORKFLOW_STEPS.length - 1 && (
+                      <div
+                        className={cn(
+                          'flex-1 h-0.5 mx-2 mb-5 transition-colors',
+                          isDone ? 'bg-green-500' : 'bg-gray-200'
+                        )}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card className="!p-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
                 <DollarSign className="h-5 w-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-xs text-gray-500">ยอดรวม</p>
-                <p className="text-lg font-bold text-blue-600">{formatCurrency(summary.totalAmount)}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <p className="text-xs text-gray-500">
+                    {vatDisplayMode === 'split' ? 'ยอดรวมสุทธิ (รวม VAT)' : 'ยอดรวม (รวม VAT)'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setVatDisplayMode((m) => (m === 'split' ? 'inclusive' : 'split'))}
+                    className="text-[10px] text-gray-500 hover:text-blue-600 underline decoration-dotted"
+                    title="สลับโหมดแสดง VAT"
+                  >
+                    {vatDisplayMode === 'split' ? 'รวม VAT' : 'แยก VAT'}
+                  </button>
+                </div>
+                <p className="text-lg font-bold text-blue-600" data-testid="po-card-grand-total">
+                  {formatCurrency(grandTotal)}
+                </p>
+                {vatDisplayMode === 'split' && (
+                  <p className="text-[11px] text-gray-500 leading-tight">
+                    ก่อน VAT <span className="font-medium text-gray-700" data-testid="po-card-subtotal">{formatCurrency(subtotal)}</span>
+                    {' '}· VAT {(VAT_RATE * 100).toFixed(0)}% <span className="font-medium text-gray-700" data-testid="po-card-vat">{formatCurrency(vatAmount)}</span>
+                  </p>
+                )}
               </div>
             </div>
           </Card>
@@ -968,7 +1195,8 @@ export default function PurchaseOrderDetailPage() {
                     <DxButton
                       text="แก้ไขข้อมูล"
                       icon="edit"
-                      type="default"
+                      type="normal"
+                      stylingMode="text"
                       onClick={startEditPO}
                     />
                   ) : null}
@@ -1062,10 +1290,27 @@ export default function PurchaseOrderDetailPage() {
                             <dt className="text-gray-500">วันที่คาดว่าจะได้รับ</dt>
                             <dd className="font-medium">{formatDate(po.expectedDate)}</dd>
                           </div>
-                          <div>
-                            <dt className="text-gray-500">ยอดรวม</dt>
-                            <dd className="font-bold text-blue-600">{formatCurrency(summary.totalAmount)}</dd>
-                          </div>
+                          {vatDisplayMode === 'split' ? (
+                            <>
+                              <div>
+                                <dt className="text-gray-500">ยอดก่อน VAT (Subtotal)</dt>
+                                <dd className="font-medium text-gray-900">{formatCurrency(subtotal)}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-gray-500">VAT {(VAT_RATE * 100).toFixed(0)}%</dt>
+                                <dd className="font-medium text-gray-900">{formatCurrency(vatAmount)}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-gray-500">ยอดรวมสุทธิ (รวม VAT)</dt>
+                                <dd className="font-bold text-blue-600">{formatCurrency(grandTotal)}</dd>
+                              </div>
+                            </>
+                          ) : (
+                            <div>
+                              <dt className="text-gray-500">ยอดรวม (รวม VAT)</dt>
+                              <dd className="font-bold text-blue-600">{formatCurrency(grandTotal)}</dd>
+                            </div>
+                          )}
                           <div>
                             <dt className="text-gray-500">จำนวนรายการ</dt>
                             <dd className="font-medium">{summary.lineCount} รายการ</dd>
@@ -1163,6 +1408,59 @@ export default function PurchaseOrderDetailPage() {
                   export
                   exportFileName={`PO-${po.poNumber}-lines`}
                 />
+
+                {/* Summary Block — toggles with vatDisplayMode */}
+                {lines.length > 0 && (
+                  <div className="flex justify-end" data-testid="po-summary-block">
+                    <div className="w-full md:w-96 border rounded-lg overflow-hidden">
+                      <div className="flex justify-between items-center px-4 py-1.5 bg-gray-100 border-b">
+                        <span className="text-[11px] text-gray-500">โหมดแสดง</span>
+                        <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white">
+                          <button
+                            type="button"
+                            onClick={() => setVatDisplayMode('split')}
+                            className={`px-2.5 py-1 text-[11px] ${vatDisplayMode === 'split' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                          >
+                            แยก VAT
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setVatDisplayMode('inclusive')}
+                            className={`px-2.5 py-1 text-[11px] border-l border-gray-300 ${vatDisplayMode === 'inclusive' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                          >
+                            รวม VAT
+                          </button>
+                        </div>
+                      </div>
+                      {vatDisplayMode === 'split' && (
+                        <>
+                          <div className="flex justify-between items-center px-4 py-2.5 bg-gray-50 border-b">
+                            <span className="text-sm text-gray-600">ยอดรวม (Subtotal)</span>
+                            <span className="font-medium text-gray-900" data-testid="po-subtotal">
+                              {formatCurrency(subtotal)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center px-4 py-2.5 bg-white border-b">
+                            <span className="text-sm text-gray-600">
+                              ภาษีมูลค่าเพิ่ม (VAT {(VAT_RATE * 100).toFixed(0)}%)
+                            </span>
+                            <span className="font-medium text-gray-900" data-testid="po-vat">
+                              {formatCurrency(vatAmount)}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                      <div className="flex justify-between items-center px-4 py-3 bg-blue-50">
+                        <span className="text-sm font-semibold text-blue-900">
+                          {vatDisplayMode === 'split' ? 'ยอดสุทธิ (Grand Total)' : 'ยอดรวม (รวม VAT)'}
+                        </span>
+                        <span className="text-lg font-bold text-blue-700" data-testid="po-grand-total">
+                          {formatCurrency(grandTotal)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1227,7 +1525,7 @@ export default function PurchaseOrderDetailPage() {
                 value={lineForm.itemId}
                 onValueChange={(v) => {
                   const item = items.find((i) => i.id === v);
-                  setLineForm({ ...lineForm, itemId: v, unit: item?.unitName || '' });
+                  setLineForm(prev => ({ ...prev, itemId: v, unit: item?.unitName || prev.unit }));
                 }}
                 searchEnabled
                 placeholder="เลือกสินค้า"
@@ -1240,7 +1538,7 @@ export default function PurchaseOrderDetailPage() {
                 </label>
                 <DxNumberBox
                   value={lineForm.quantity}
-                  onValueChange={(v) => setLineForm({ ...lineForm, quantity: v || 0 })}
+                  onValueChange={(v) => setLineForm(prev => ({ ...prev, quantity: v || 0 }))}
                   min={0}
                   step={1}
                 />
@@ -1256,7 +1554,7 @@ export default function PurchaseOrderDetailPage() {
               </label>
               <DxNumberBox
                 value={lineForm.unitPrice}
-                onValueChange={(v) => setLineForm({ ...lineForm, unitPrice: v || 0 })}
+                onValueChange={(v) => setLineForm(prev => ({ ...prev, unitPrice: v || 0 }))}
                 min={0}
                 step={0.01}
                 format="#,##0.00"
@@ -1266,7 +1564,7 @@ export default function PurchaseOrderDetailPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
               <DxTextArea
                 value={lineForm.notes}
-                onValueChange={(v) => setLineForm({ ...lineForm, notes: v })}
+                onValueChange={(v) => setLineForm(prev => ({ ...prev, notes: v }))}
                 height={60}
               />
             </div>
@@ -1347,15 +1645,6 @@ export default function PurchaseOrderDetailPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      เลข Lot <span className="text-red-500">*</span>
-                    </label>
-                    <DxTextBox
-                      value={receiveForm.lotNumber}
-                      onValueChange={(v) => setReceiveForm({ ...receiveForm, lotNumber: v })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       จำนวนที่รับ <span className="text-red-500">*</span>
                     </label>
                     <DxNumberBox
@@ -1365,17 +1654,65 @@ export default function PurchaseOrderDetailPage() {
                       max={selectedLine.pendingQty}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      วันหมดอายุ <span className="text-red-500">*</span>
-                    </label>
-                    <DxDateBox
-                      value={receiveForm.expiryDate}
-                      onValueChange={(v) => setReceiveForm({ ...receiveForm, expiryDate: v || '' })}
-                      min={new Date()}
-                    />
+                </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mt-2">
+                  <p className="text-sm font-semibold text-blue-800 mb-2">ข้อมูล Lot จาก Supplier</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vendor Lot No. <span className="text-red-500">*</span>
+                      </label>
+                      <DxTextBox
+                        value={receiveForm.vendorLotNumber}
+                        onValueChange={(v) => setReceiveForm({ ...receiveForm, vendorLotNumber: v })}
+                        placeholder="เลข Lot/Batch จาก Supplier"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        วันผลิต (Mfg Date) <span className="text-red-500">*</span>
+                      </label>
+                      <DxDateBox
+                        value={receiveForm.manufacturingDate}
+                        onValueChange={(v) => setReceiveForm({ ...receiveForm, manufacturingDate: v || '' })}
+                        max={new Date()}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        วันหมดอายุ (Exp Date) <span className="text-red-500">*</span>
+                      </label>
+                      <DxDateBox
+                        value={receiveForm.expiryDate}
+                        onValueChange={(v) => setReceiveForm({ ...receiveForm, expiryDate: v || '' })}
+                        min={receiveForm.manufacturingDate ? new Date(receiveForm.manufacturingDate) : new Date()}
+                      />
+                    </div>
                   </div>
                 </div>
+
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg mt-2">
+                  <p className="text-sm font-semibold text-gray-800 mb-2">Lot ในระบบ (Auto-generate)</p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      System Lot Number
+                    </label>
+                    <DxTextBox
+                      value={receiveForm.lotNumber}
+                      onValueChange={(v) => setReceiveForm({ ...receiveForm, lotNumber: v })}
+                      readOnly
+                    />
+                    <p className="text-xs text-gray-500 mt-1">ระบบสร้างอัตโนมัติ: [ItemCode]-[YYMMDD]-[Running]</p>
+                  </div>
+                </div>
+
+                {(!receiveForm.vendorLotNumber || !receiveForm.manufacturingDate || !receiveForm.expiryDate) && (
+                  <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    กรุณากรอกให้ครบ: Vendor Lot No., วันผลิต, วันหมดอายุ
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-4 border-t">
                   <DxButton
@@ -1391,12 +1728,44 @@ export default function PurchaseOrderDetailPage() {
                     icon="check"
                     type="success"
                     onClick={submitReceive}
-                    disabled={isSubmitting || !receiveForm.quantity || !receiveForm.expiryDate || !receiveForm.warehouseId}
+                    disabled={isSubmitting || !receiveForm.quantity || !receiveForm.expiryDate || !receiveForm.warehouseId || !receiveForm.vendorLotNumber || !receiveForm.manufacturingDate}
                     width="50%"
                   />
                 </div>
               </div>
             )}
+          </div>
+        </DxPopup>
+
+        {/* Delete PO Modal */}
+        <DxPopup
+          visible={showDeleteModal}
+          onHiding={() => setShowDeleteModal(false)}
+          title="ลบใบสั่งซื้อ (Delete PO)"
+          width={400}
+          height={220}
+          showCloseButton={true}
+        >
+          <div className="p-4">
+            <p className="text-sm text-gray-600 mb-4">
+              คุณต้องการลบใบสั่งซื้อ <strong>{po.poNumber}</strong> ใช่หรือไม่? การลบจะไม่สามารถย้อนกลับได้
+            </p>
+            <div className="flex gap-2 justify-end mt-6">
+              <DxButton
+                text="ปิด"
+                type="normal"
+                onClick={() => setShowDeleteModal(false)}
+              />
+              <DxButton
+                text={deletingPO ? 'กำลังลบ...' : 'ยืนยันลบ'}
+                type="danger"
+                stylingMode="contained"
+                icon="trash"
+                onClick={handleDeletePO}
+                disabled={deletingPO}
+                data-testid="confirm-delete-po-btn"
+              />
+            </div>
           </div>
         </DxPopup>
 
@@ -1419,6 +1788,6 @@ export default function PurchaseOrderDetailPage() {
           }}
         />
       </div>
-    </MainLayout>
+    </>
   );
 }

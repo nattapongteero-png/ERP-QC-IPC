@@ -4,6 +4,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -59,6 +60,7 @@ async function updateSessionStatus(id: number, action: 'complete' | 'cancel'): P
 }
 
 export default function TrainingSessionsPage() {
+  const t = useTranslations('hr');
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -146,11 +148,11 @@ export default function TrainingSessionsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto" data-title={t('training.sessions.title')}>
       {/* T037: ResponsivePageHeader */}
       <ResponsivePageHeader
-        title="การจัดอบรม"
-        subtitle={`Training Sessions • ${sessions.length} รายการ`}
+        title={t('training.sessions.title')}
+        subtitle={t('training.sessions.description')}
         icon={CalendarDays}
         iconBgColor="bg-green-100"
         iconColor="text-green-600"

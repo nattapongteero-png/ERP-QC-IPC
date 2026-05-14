@@ -216,44 +216,50 @@ describe('DeviationsPage', () => {
     it('renders the page header correctly', () => {
       render(<DeviationsPage />);
 
-      expect(screen.getByText('ความเบี่ยงเบน')).toBeInTheDocument();
-      expect(screen.getByText('ติดตามและจัดการความเบี่ยงเบนและ CAPA')).toBeInTheDocument();
+      // Title from i18n: t('nonConformance.title') = 'Non-Conformance'
+      expect(screen.getByText('Non-Conformance')).toBeInTheDocument();
+      // Subtitle from i18n: t('nonConformance.description') = 'Manage non-conformance reports'
+      expect(screen.getByText('Manage non-conformance reports')).toBeInTheDocument();
     });
 
     it('renders stat cards', () => {
       render(<DeviationsPage />);
 
-      expect(screen.getByTestId('stat-card-ความเบี่ยงเบนทั้งหมด')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-กำลังดำเนินการ')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-กำลังสอบสวน')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-วิกฤต')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-เกินกำหนด')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-อัตราแก้ไข')).toBeInTheDocument();
+      // Stat card testids from English i18n labels
+      expect(screen.getByTestId('stat-card-total-deviations')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-in-progress')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-investigating')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-critical')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-overdue')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-resolution-rate')).toBeInTheDocument();
     });
 
     it('renders action buttons', () => {
       render(<DeviationsPage />);
 
       expect(screen.getByTestId('dx-button-refresh')).toBeInTheDocument();
-      expect(screen.getByText('รายงานความเบี่ยงเบน')).toBeInTheDocument();
+      // Button from i18n: t('deviations.actions.report') = 'Report Deviation'
+      expect(screen.getByText('Report Deviation')).toBeInTheDocument();
     });
 
     it('renders filter controls', () => {
       render(<DeviationsPage />);
 
       expect(screen.getByTestId('dx-text-box')).toBeInTheDocument();
-      expect(screen.getByTestId('dx-select-box-สถานะ')).toBeInTheDocument();
-      expect(screen.getByTestId('dx-select-box-ระดับ')).toBeInTheDocument();
-      expect(screen.getByTestId('dx-select-box-แหล่งที่มา')).toBeInTheDocument();
+      // Select box testids from English placeholder text (lowercased)
+      expect(screen.getByTestId('dx-select-box-status')).toBeInTheDocument();
+      expect(screen.getByTestId('dx-select-box-severity')).toBeInTheDocument();
+      expect(screen.getByTestId('dx-select-box-source')).toBeInTheDocument();
     });
 
     it('renders view mode toggle buttons', () => {
       render(<DeviationsPage />);
 
       // Check for view toggle buttons (hidden on mobile, visible on md+)
-      expect(screen.getByTitle('Grid View')).toBeInTheDocument();
-      expect(screen.getByTitle('Cards View')).toBeInTheDocument();
-      expect(screen.getByTitle('Analytics View')).toBeInTheDocument();
+      // View mode buttons from i18n: t('common.viewGrid') = 'Grid view' etc.
+      expect(screen.getByTitle('Grid view')).toBeInTheDocument();
+      expect(screen.getByTitle('Cards view')).toBeInTheDocument();
+      expect(screen.getByTitle('Analytics view')).toBeInTheDocument();
     });
   });
 
@@ -297,7 +303,8 @@ describe('DeviationsPage', () => {
       render(<DeviationsPage />);
 
       expect(screen.getByTestId('empty-state')).toBeInTheDocument();
-      expect(screen.getByText('ไม่พบความเบี่ยงเบน')).toBeInTheDocument();
+      // From i18n: t('deviations.emptyState.title') = 'No deviations found'
+      expect(screen.getByText('No deviations found')).toBeInTheDocument();
     });
 
     it('calculates statistics correctly', () => {
@@ -312,7 +319,7 @@ describe('DeviationsPage', () => {
       // Check stat values
       // total: 4, open: 1, investigating: 1, resolved: 1, closed: 1
       // critical (not closed): 1, activeTotal: 2, resolutionRate: 50%
-      const totalCard = screen.getByTestId('stat-card-ความเบี่ยงเบนทั้งหมด');
+      const totalCard = screen.getByTestId('stat-card-total-deviations');
       expect(totalCard).toHaveTextContent('4');
     });
   });
@@ -343,7 +350,7 @@ describe('DeviationsPage', () => {
 
       render(<DeviationsPage />);
 
-      const statusSelect = screen.getByTestId('dx-select-box-สถานะ');
+      const statusSelect = screen.getByTestId('dx-select-box-status');
       fireEvent.change(statusSelect, { target: { value: 'open' } });
 
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1 rows');
@@ -358,7 +365,7 @@ describe('DeviationsPage', () => {
 
       render(<DeviationsPage />);
 
-      const severitySelect = screen.getByTestId('dx-select-box-ระดับ');
+      const severitySelect = screen.getByTestId('dx-select-box-severity');
       fireEvent.change(severitySelect, { target: { value: 'critical' } });
 
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1 rows');
@@ -373,7 +380,7 @@ describe('DeviationsPage', () => {
 
       render(<DeviationsPage />);
 
-      const sourceSelect = screen.getByTestId('dx-select-box-แหล่งที่มา');
+      const sourceSelect = screen.getByTestId('dx-select-box-source');
       fireEvent.change(sourceSelect, { target: { value: 'production' } });
 
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('2 rows');
@@ -388,10 +395,10 @@ describe('DeviationsPage', () => {
 
       render(<DeviationsPage />);
 
-      const severitySelect = screen.getByTestId('dx-select-box-ระดับ');
+      const severitySelect = screen.getByTestId('dx-select-box-severity');
       fireEvent.change(severitySelect, { target: { value: 'minor' } });
 
-      const statusSelect = screen.getByTestId('dx-select-box-สถานะ');
+      const statusSelect = screen.getByTestId('dx-select-box-status');
       fireEvent.change(statusSelect, { target: { value: 'closed' } });
 
       expect(screen.getByTestId('grid-row-count')).toHaveTextContent('1 rows');
@@ -408,7 +415,7 @@ describe('DeviationsPage', () => {
 
       render(<DeviationsPage />);
 
-      const cardsButton = screen.getByTitle('Cards View');
+      const cardsButton = screen.getByTitle('Cards view');
       fireEvent.click(cardsButton);
 
       // In cards view, we should see charts
@@ -424,7 +431,7 @@ describe('DeviationsPage', () => {
 
       render(<DeviationsPage />);
 
-      const analyticsButton = screen.getByTitle('Analytics View');
+      const analyticsButton = screen.getByTitle('Analytics view');
       fireEvent.click(analyticsButton);
 
       // Should show analytics content with charts
@@ -441,9 +448,9 @@ describe('DeviationsPage', () => {
       render(<DeviationsPage />);
 
       // Switch to cards first
-      fireEvent.click(screen.getByTitle('Cards View'));
+      fireEvent.click(screen.getByTitle('Cards view'));
       // Then back to grid
-      fireEvent.click(screen.getByTitle('Grid View'));
+      fireEvent.click(screen.getByTitle('Grid view'));
 
       expect(screen.getByTestId('dx-data-grid')).toBeInTheDocument();
     });
@@ -453,7 +460,8 @@ describe('DeviationsPage', () => {
     it('navigates to new deviation page', () => {
       render(<DeviationsPage />);
 
-      const addButton = screen.getByText('รายงานความเบี่ยงเบน');
+      // Button from i18n: t('deviations.actions.report') = 'Report Deviation'
+      const addButton = screen.getByText('Report Deviation');
       fireEvent.click(addButton);
 
       expect(mockPush).toHaveBeenCalledWith('/quality/deviations/new');
@@ -487,7 +495,7 @@ describe('DeviationsPage', () => {
       render(<DeviationsPage />);
 
       // Should show alert because there's 1 critical deviation that's not closed
-      expect(screen.getByText(/ความเบี่ยงเบนวิกฤตต้องการการดำเนินการ/)).toBeInTheDocument();
+      expect(screen.getByText(/critical deviations require action/)).toBeInTheDocument();
     });
 
     it('does not show critical alert when no critical deviations', () => {
@@ -500,7 +508,7 @@ describe('DeviationsPage', () => {
 
       render(<DeviationsPage />);
 
-      expect(screen.queryByText(/ความเบี่ยงเบนวิกฤตต้องการการดำเนินการ/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/critical deviations require action/)).not.toBeInTheDocument();
     });
   });
 
@@ -515,7 +523,7 @@ describe('DeviationsPage', () => {
       render(<DeviationsPage />);
 
       // Switch to cards view
-      fireEvent.click(screen.getByTitle('Cards View'));
+      fireEvent.click(screen.getByTitle('Cards view'));
 
       // Should render 3 pie charts (status, severity, source)
       expect(screen.getAllByTestId('pie-chart').length).toBe(3);
@@ -531,10 +539,10 @@ describe('DeviationsPage', () => {
       render(<DeviationsPage />);
 
       // Switch to cards view
-      fireEvent.click(screen.getByTitle('Cards View'));
+      fireEvent.click(screen.getByTitle('Cards view'));
 
-      // Should show "ไม่มีข้อมูล" messages
-      expect(screen.getAllByText('ไม่มีข้อมูล').length).toBeGreaterThan(0);
+      // Should show "No data" messages
+      expect(screen.getAllByText('No data').length).toBeGreaterThan(0);
     });
   });
 

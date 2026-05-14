@@ -7,6 +7,7 @@
  */
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
@@ -30,6 +31,7 @@ import SelectBox from 'devextreme-react/select-box';
 import TextBox from 'devextreme-react/text-box';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent } from '@/components/ui/card';
+import { ResponsivePageHeader } from '@/components/shared';
 import type { ApprovalFlowWithDetails, DocumentType } from '@/types/approval-workflow';
 
 // Page header component similar to TemplatePageHeader
@@ -78,25 +80,14 @@ function PageHeader({
   );
 }
 
-const documentTypeLabels: Record<DocumentType, string> = {
-  purchase_requisition: 'Purchase Requisition',
-  purchase_order: 'Purchase Order',
-  ap_invoice: 'AP Invoice',
-  ar_invoice: 'AR Invoice',
-  payment: 'Payment',
-  credit_note: 'Credit Note',
-  debit_note: 'Debit Note',
-};
-
-const documentTypeOptions = [
-  { value: '', label: 'All Document Types' },
-  ...Object.entries(documentTypeLabels).map(([value, label]) => ({ value, label })),
-];
-
-const statusOptions = [
-  { value: '', label: 'All Status' },
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
+const DOCUMENT_TYPES: DocumentType[] = [
+  'purchase_requisition',
+  'purchase_order',
+  'ap_invoice',
+  'ar_invoice',
+  'payment',
+  'credit_note',
+  'debit_note',
 ];
 
 async function fetchFlows(params?: { documentType?: string; isActive?: string }): Promise<ApprovalFlowWithDetails[]> {
@@ -119,6 +110,7 @@ async function deleteFlow(id: number): Promise<void> {
 }
 
 export default function ApprovalWorkflowsPage() {
+  const t = useTranslations('settings');
   const router = useRouter();
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = React.useState('');
@@ -126,6 +118,20 @@ export default function ApprovalWorkflowsPage() {
   const [statusFilter, setStatusFilter] = React.useState('');
   const [selectedFlow, setSelectedFlow] = React.useState<ApprovalFlowWithDetails | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+
+  const documentTypeOptions = React.useMemo(() => [
+    { value: '', label: t('approvalWorkflows.allDocumentTypes') },
+    ...DOCUMENT_TYPES.map((dt) => ({
+      value: dt,
+      label: t(`approvalWorkflows.documentTypes.${dt}`),
+    })),
+  ], [t]);
+
+  const statusOptions = React.useMemo(() => [
+    { value: '', label: t('approvalWorkflows.allStatus') },
+    { value: 'active', label: t('approvalWorkflows.active') },
+    { value: 'inactive', label: t('approvalWorkflows.inactive') },
+  ], [t]);
 
   const { data: flowsData = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ['approval-flows', documentTypeFilter, statusFilter],
@@ -139,7 +145,7 @@ export default function ApprovalWorkflowsPage() {
     mutationFn: deleteFlow,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approval-flows'] });
-      notify('Workflow deleted successfully', 'success', 3000);
+      notify(t('approvalWorkflows.deleteSuccess'), 'success', 3000);
       setShowDeleteConfirm(false);
       setSelectedFlow(null);
     },
@@ -183,13 +189,13 @@ export default function ApprovalWorkflowsPage() {
             : 'bg-gray-100 text-gray-800'
         }`}
       >
-        {cellData.data.isActive ? 'Active' : 'Inactive'}
+        {cellData.data.isActive ? t('approvalWorkflows.active') : t('approvalWorkflows.inactive')}
       </span>
     );
   };
 
   const renderDocumentTypeCell = (cellData: { data: ApprovalFlowWithDetails }) => {
-    return <span>{documentTypeLabels[cellData.data.documentType as DocumentType]}</span>;
+    return <span>{t(`approvalWorkflows.documentTypes.${cellData.data.documentType}`)}</span>;
   };
 
   const renderActionsCell = (cellData: { data: ApprovalFlowWithDetails }) => {
@@ -201,7 +207,7 @@ export default function ApprovalWorkflowsPage() {
             router.push(`/settings/approval-workflows/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="View"
+          title={t('approvalWorkflows.view')}
           data-testid={`view-btn-${cellData.data.id}`}
         >
           <Eye className="h-4 w-4" />
@@ -212,7 +218,7 @@ export default function ApprovalWorkflowsPage() {
             router.push(`/settings/approval-workflows/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="Edit"
+          title={t('approvalWorkflows.edit')}
           data-testid={`edit-btn-${cellData.data.id}`}
         >
           <Edit className="h-4 w-4" />
@@ -223,7 +229,7 @@ export default function ApprovalWorkflowsPage() {
             handleDelete(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Delete"
+          title={t('approvalWorkflows.delete')}
           data-testid={`delete-btn-${cellData.data.id}`}
         >
           <Trash2 className="h-4 w-4" />
@@ -233,23 +239,32 @@ export default function ApprovalWorkflowsPage() {
   };
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       {/* Header */}
-      <PageHeader
-        title="Approval Workflows"
-        subtitle="Manage approval workflows for different document types"
+      <ResponsivePageHeader
+        title={t('approvalWorkflows.title')}
+        subtitle={t('approvalWorkflows.description')}
         icon={GitBranch}
-        iconClassName="from-purple-500 to-pink-600"
-        onRefresh={() => refetch()}
-        isRefreshing={isFetching}
+        iconBgColor="bg-purple-100"
+        iconColor="text-purple-600"
         actions={
-          <Button
-            text="New Workflow"
-            icon="add"
-            type="success"
-            onClick={() => router.push('/settings/approval-workflows/new')}
-            data-testid="new-workflow-btn"
-          />
+          <>
+            <Button
+              icon={isFetching ? 'spindown' : 'refresh'}
+              stylingMode="outlined"
+              hint="Refresh"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              data-testid="refresh-btn"
+            />
+            <Button
+              text={t('approvalWorkflows.newWorkflow')}
+              icon="add"
+              type="success"
+              onClick={() => router.push('/settings/approval-workflows/new')}
+              data-testid="new-workflow-btn"
+            />
+          </>
         }
       />
 
@@ -259,14 +274,14 @@ export default function ApprovalWorkflowsPage() {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">{t('approvalWorkflows.confirmDelete')}</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete &quot;{selectedFlow.name}&quot;? This action cannot be undone.
+                  {t('approvalWorkflows.confirmDeleteMessage', { name: selectedFlow.name })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text={t('vmiPortalEdit.cancel')}
                   stylingMode="outlined"
                   onClick={() => {
                     setShowDeleteConfirm(false);
@@ -274,7 +289,7 @@ export default function ApprovalWorkflowsPage() {
                   }}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  text={deleteMutation.isPending ? t('approvalWorkflows.deleting') : t('approvalWorkflows.delete')}
                   icon={deleteMutation.isPending ? 'spindown' : 'trash'}
                   type="danger"
                   onClick={confirmDelete}
@@ -294,14 +309,14 @@ export default function ApprovalWorkflowsPage() {
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Filters:</span>
+                <span className="text-sm font-medium text-gray-700">{t('approvalWorkflows.filters')}</span>
               </div>
               <div className="w-56">
                 <TextBox
                   value={searchText}
                   onValueChanged={(e) => setSearchText(e.value || '')}
                   valueChangeEvent="keyup"
-                  placeholder="Search workflows..."
+                  placeholder={t('approvalWorkflows.searchPlaceholder')}
                   showClearButton
                   mode="search"
                   data-testid="search-input"
@@ -314,7 +329,7 @@ export default function ApprovalWorkflowsPage() {
                   valueExpr="value"
                   value={documentTypeFilter}
                   onValueChanged={(e) => setDocumentTypeFilter(e.value)}
-                  placeholder="Document Type"
+                  placeholder={t('approvalWorkflows.documentType')}
                   data-testid="document-type-filter"
                 />
               </div>
@@ -325,13 +340,13 @@ export default function ApprovalWorkflowsPage() {
                   valueExpr="value"
                   value={statusFilter}
                   onValueChanged={(e) => setStatusFilter(e.value)}
-                  placeholder="Status"
+                  placeholder={t('approvalWorkflows.grid.status')}
                   data-testid="status-filter"
                 />
               </div>
               {(searchText || documentTypeFilter || statusFilter) && (
                 <Button
-                  text="Clear"
+                  text={t('approvalWorkflows.clear')}
                   stylingMode="text"
                   onClick={() => {
                     setSearchText('');
@@ -346,15 +361,15 @@ export default function ApprovalWorkflowsPage() {
             {/* Compact Statistics */}
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-md">
-                <span className="text-gray-500">Total:</span>
+                <span className="text-gray-500">{t('approvalWorkflows.total')}:</span>
                 <span className="font-semibold text-gray-900">{flowsData.length}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-md">
-                <span className="text-green-600">Active:</span>
+                <span className="text-green-600">{t('approvalWorkflows.active')}:</span>
                 <span className="font-semibold text-green-700">{flows.filter((f) => f.isActive).length}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-md">
-                <span className="text-gray-500">Inactive:</span>
+                <span className="text-gray-500">{t('approvalWorkflows.inactive')}:</span>
                 <span className="font-semibold text-gray-700">{flows.filter((f) => !f.isActive).length}</span>
               </div>
             </div>
@@ -389,36 +404,36 @@ export default function ApprovalWorkflowsPage() {
               showNavigationButtons
             />
 
-            <Column dataField="id" caption="ID" width={70} />
-            <Column dataField="name" caption="Name" minWidth={200} />
+            <Column dataField="id" caption={t('approvalWorkflows.grid.id')} width={70} />
+            <Column dataField="name" caption={t('approvalWorkflows.grid.name')} minWidth={200} />
             <Column
               dataField="documentType"
-              caption="Document Type"
+              caption={t('approvalWorkflows.grid.documentType')}
               width={180}
               cellRender={renderDocumentTypeCell}
             />
-            <Column dataField="priority" caption="Priority" width={80} alignment="center" />
+            <Column dataField="priority" caption={t('approvalWorkflows.grid.priority')} width={80} alignment="center" />
             <Column
               dataField="isActive"
-              caption="Status"
+              caption={t('approvalWorkflows.grid.status')}
               width={100}
               cellRender={renderStatusCell}
               alignment="center"
             />
             <Column
-              caption="Rules"
+              caption={t('approvalWorkflows.grid.rules')}
               width={80}
               calculateCellValue={(data: ApprovalFlowWithDetails) => data.rules?.length || 0}
               alignment="center"
             />
             <Column
-              caption="Steps"
+              caption={t('approvalWorkflows.grid.steps')}
               width={80}
               calculateCellValue={(data: ApprovalFlowWithDetails) => data.steps?.length || 0}
               alignment="center"
             />
             <Column
-              caption="Actions"
+              caption={t('approvalWorkflows.grid.actions')}
               width={120}
               cellRender={renderActionsCell}
               allowFiltering={false}

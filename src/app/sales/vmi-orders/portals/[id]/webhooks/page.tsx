@@ -12,6 +12,7 @@
 import { useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -196,6 +197,7 @@ async function fetchDeliveries(
 export default function VmiWebhooksPage({ params }: PageProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations('sales');
   const { id } = use(params);
   const portalId = parseInt(id, 10);
 
@@ -788,7 +790,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                  <p className="text-sm text-gray-500">Total Webhooks</p>
+                  <p className="text-sm text-gray-500">{t('webhooks.totalWebhooks')}</p>
                 </div>
               </div>
             </CardContent>

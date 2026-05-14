@@ -22,6 +22,7 @@ import type {
   ComplaintCategory,
   ComplaintSeverity,
 } from '@/types/complaints';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 // ============================================
 // Types
@@ -116,7 +117,7 @@ export function ComplaintForm({
 
   // Form state
   const [formData, setFormData] = useState<FormData>({
-    receivedDate: complaint?.receivedDate || new Date().toISOString().split('T')[0],
+    receivedDate: complaint?.receivedDate || toLocalDateStr(new Date()),
     source: complaint?.source || 'customer',
     customerName: complaint?.customerName || '',
     customerContact: complaint?.customerContact || '',
@@ -265,7 +266,7 @@ export function ComplaintForm({
             onValueChange={(value) =>
               setFormData((prev) => ({
                 ...prev,
-                receivedDate: value ? new Date(value).toISOString().split('T')[0] : '',
+                receivedDate: value ? toLocalDateStr(new Date(value)) : '',
               }))
             }
             type="date"

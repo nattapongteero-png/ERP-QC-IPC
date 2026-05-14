@@ -303,7 +303,9 @@ export async function calculateWorkOrderVariances(
     // In a real system, we would get actual material costs from work order consumption
     // For now, we simulate with a simple calculation
     const standardMaterialTotal = standardCost.materialCost * quantityProduced;
-    const actualMaterialTotal = standardMaterialTotal * (1 + (Math.random() - 0.5) * 0.1); // Simulated variance
+    // TODO: Query actual material consumption from work_order_materials table
+    // For now, use standard as actual (zero variance) rather than fabricating random data
+    const actualMaterialTotal = standardMaterialTotal;
     const mpvAmount = actualMaterialTotal - standardMaterialTotal;
 
     const mpvRecord: any = {
@@ -324,8 +326,10 @@ export async function calculateWorkOrderVariances(
     variances.push({ ...mpvRecord, id: mpvId, varianceTypeName: VARIANCE_LABELS.mpv });
 
     // Calculate Material Usage Variance (MUV)
+    // TODO: MUV requires actual material consumption data from work_order_materials
+    // For now, use standard qty = actual qty (zero variance) rather than incorrect formula
     const standardQty = Number(workOrder.quantityPlanned) || quantityProduced;
-    const actualQty = quantityProduced;
+    const actualQty = standardQty; // Zero variance until real consumption tracking
     const unitMaterialCost = standardCost.materialCost;
     const muvAmount = (actualQty - standardQty) * unitMaterialCost;
 
@@ -348,7 +352,8 @@ export async function calculateWorkOrderVariances(
 
     // Calculate Labor Rate Variance (LRV)
     const standardLaborTotal = standardCost.laborCost * quantityProduced;
-    const actualLaborTotal = standardLaborTotal * (1 + (Math.random() - 0.5) * 0.08); // Simulated variance
+    // TODO: Query actual labor cost from work_order_operations table
+    const actualLaborTotal = standardLaborTotal;
     const lrvAmount = actualLaborTotal - standardLaborTotal;
 
     const lrvRecord: any = {
@@ -370,7 +375,8 @@ export async function calculateWorkOrderVariances(
 
     // Calculate Labor Efficiency Variance (LEV)
     const standardHoursTotal = standardCost.standardHours * quantityProduced;
-    const actualHoursTotal = standardHoursTotal * (1 + (Math.random() - 0.5) * 0.12); // Simulated variance
+    // TODO: Query actual hours from work_order_operations table
+    const actualHoursTotal = standardHoursTotal;
     const levAmount = (actualHoursTotal - standardHoursTotal) * standardCost.standardLaborRate;
 
     const levRecord: any = {

@@ -135,7 +135,7 @@ describe('Credit Notes List Page', () => {
     render(<CreditNotesPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('page-title')).toHaveTextContent('Credit Notes');
+      expect(screen.getByTestId('page-title')).toHaveTextContent('Accounting');
     });
   });
 

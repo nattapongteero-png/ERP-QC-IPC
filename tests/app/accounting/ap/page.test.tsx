@@ -147,10 +147,10 @@ describe('AP Dashboard Page', () => {
     renderWithProviders(<APDashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Accounts Payable Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Accounts Payable')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Manage vendor invoices and payments')).toBeInTheDocument();
+    expect(screen.getByText('Manage supplier bills and payments')).toBeInTheDocument();
   });
 
   it('displays KPI cards with correct metrics', async () => {
@@ -299,7 +299,7 @@ describe('AP Dashboard Page', () => {
 
     // Page should still render without crashing
     await waitFor(() => {
-      expect(screen.getByText('Accounts Payable Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Accounts Payable')).toBeInTheDocument();
     });
   });
 

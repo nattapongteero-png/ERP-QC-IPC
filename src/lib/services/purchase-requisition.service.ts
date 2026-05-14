@@ -3,7 +3,7 @@
  * Part of 011-accounting-spec-gap
  */
 
-import { eq, and, or, like, gte, lte, desc, asc, sql, isNull } from 'drizzle-orm';
+import { eq, and, or, like, gte, lte, desc, asc, sql, isNull, inArray } from 'drizzle-orm';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb } from '../db/date-utils';
 import { submitForApproval, approveRequest, rejectRequest } from './approval-workflow.service';
@@ -69,6 +69,7 @@ export async function generatePRNumber(): Promise<string> {
 
 /**
  * Create a new Purchase Requisition
+ * PR number generation and insert are wrapped in a transaction to prevent duplicates.
  */
 export async function createPR(
   data: PRCreateInput,
@@ -76,27 +77,56 @@ export async function createPR(
 ): Promise<number> {
   return executeDbOperation(async (db) => {
     const tables = getTables();
-    const prNumber = await generatePRNumber();
     const now = getNow();
 
-    const result = await db.insert(tables.requisitions).values({
-      prNumber,
-      requesterId: data.requesterId,
-      departmentId: data.departmentId || null,
-      status: 'draft',
-      priority: data.priority || 'normal',
-      requiredDate: data.requiredDate ? toDbDate(data.requiredDate) : null,
-      description: data.description || null,
-      justification: data.justification || null,
-      costCenterId: data.costCenterId || null,
-      projectId: data.projectId || null,
-      totalAmount: 0,
-      createdBy,
-      createdAt: now,
-      updatedAt: now,
-    });
+    const MAX_RETRIES = 3;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const year = new Date().getFullYear();
+        const prefix = `PR${year}-`;
 
-    return getInsertId(result);
+        const existing = await db
+          .select({ prNumber: tables.requisitions.prNumber })
+          .from(tables.requisitions)
+          .where(like(tables.requisitions.prNumber, `${prefix}%`))
+          .orderBy(desc(tables.requisitions.id))
+          .limit(1);
+
+        let prNumber: string;
+        if (existing.length === 0) {
+          prNumber = `${prefix}0001`;
+        } else {
+          const lastNumber = existing[0].prNumber;
+          const sequence = parseInt(lastNumber.replace(prefix, ''), 10);
+          prNumber = `${prefix}${(sequence + 1).toString().padStart(4, '0')}`;
+        }
+
+        const insertResult = await db.insert(tables.requisitions).values({
+          prNumber,
+          requesterId: data.requesterId,
+          departmentId: data.departmentId || null,
+          status: 'draft',
+          priority: data.priority || 'normal',
+          requiredDate: data.requiredDate ? toDbDate(data.requiredDate) : null,
+          description: data.description || null,
+          justification: data.justification || null,
+          costCenterId: data.costCenterId || null,
+          projectId: data.projectId || null,
+          totalAmount: 0,
+          createdBy,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        return getInsertId(insertResult);
+      } catch (error: any) {
+        if (attempt < MAX_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error('Failed to generate unique PR number after maximum retries');
   });
 }
 
@@ -161,6 +191,22 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
       }
     }
 
+    // Lookup item codes for lines that have itemId
+    const itemIds = lines
+      .map((l: any) => l.itemId)
+      .filter((id: unknown): id is number => id != null);
+    const itemCodeMap: Record<number, string> = {};
+    if (itemIds.length > 0) {
+      const itemsTable = getTableRef('items');
+      const itemsResult = await db
+        .select({ id: itemsTable.id, code: itemsTable.code })
+        .from(itemsTable)
+        .where(inArray(itemsTable.id, itemIds));
+      for (const item of itemsResult) {
+        itemCodeMap[item.id] = item.code;
+      }
+    }
+
     return {
       ...pr,
       requesterName,
@@ -185,7 +231,7 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
         prId: line.prId,
         lineNumber: line.lineNumber,
         itemId: line.itemId,
-        itemCode: null, // Database doesn't store itemCode separately
+        itemCode: line.itemId ? (itemCodeMap[line.itemId] || null) : null,
         description: line.description || '',
         quantity: Number(line.quantity) || 0,
         unitOfMeasure: line.unit || '', // Map unit -> unitOfMeasure
@@ -241,30 +287,21 @@ export async function listPRs(filter: PRListFilter): Promise<PRListResponse> {
     }
 
     // Get total count
-    const countQuery = db
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const countResult = await db
       .select({ count: sql<number>`count(*)` })
-      .from(tables.requisitions);
-
-    if (conditions.length > 0) {
-      countQuery.where(and(...conditions));
-    }
-
-    const countResult = await countQuery;
+      .from(tables.requisitions)
+      .where(whereClause);
     const total = Number(countResult[0]?.count || 0);
 
     // Get data with pagination
-    const dataQuery = db
+    const data = await db
       .select()
       .from(tables.requisitions)
+      .where(whereClause)
       .orderBy(desc(tables.requisitions.createdAt))
       .limit(limit)
       .offset(offset);
-
-    if (conditions.length > 0) {
-      dataQuery.where(and(...conditions));
-    }
-
-    const data = await dataQuery;
 
     return {
       data: data as PurchaseRequisition[],
@@ -422,7 +459,7 @@ export async function updatePRLine(
 
     const currentLine = lineResult[0];
     const newQuantity = data.quantity ?? currentLine.quantity;
-    const newUnitPrice = data.estimatedUnitPrice ?? currentLine.estimatedUnitPrice;
+    const newUnitPrice = data.estimatedUnitPrice ?? currentLine.estimatedPrice;
     const estimatedAmount = newQuantity * newUnitPrice;
 
     await db
@@ -432,8 +469,8 @@ export async function updatePRLine(
         ...(data.itemCode !== undefined && { itemCode: data.itemCode }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.quantity !== undefined && { quantity: data.quantity }),
-        ...(data.unitOfMeasure !== undefined && { unitOfMeasure: data.unitOfMeasure }),
-        ...(data.estimatedUnitPrice !== undefined && { estimatedUnitPrice: data.estimatedUnitPrice }),
+        ...(data.unitOfMeasure !== undefined && { unit: data.unitOfMeasure }),
+        ...(data.estimatedUnitPrice !== undefined && { estimatedPrice: data.estimatedUnitPrice }),
         estimatedAmount,
         ...(data.suggestedVendorId !== undefined && { suggestedVendorId: data.suggestedVendorId }),
         ...(data.notes !== undefined && { notes: data.notes }),
@@ -474,6 +511,35 @@ export async function deletePRLine(prId: number, lineId: number): Promise<void> 
 
     // Recalculate total
     await recalculatePRTotal(prId);
+  });
+}
+
+/**
+ * Delete an entire PR and its lines (draft only)
+ */
+export async function deletePR(prId: number): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    const prResult = await db
+      .select({ status: tables.requisitions.status })
+      .from(tables.requisitions)
+      .where(eq(tables.requisitions.id, prId))
+      .limit(1);
+
+    if (prResult.length === 0) {
+      throw new Error('PR_NOT_FOUND');
+    }
+
+    if (prResult[0].status !== 'draft') {
+      throw new Error('PR_NOT_DELETABLE');
+    }
+
+    // Delete lines first (foreign key)
+    await db.delete(tables.lines).where(eq(tables.lines.prId, prId));
+
+    // Delete PR header
+    await db.delete(tables.requisitions).where(eq(tables.requisitions.id, prId));
   });
 }
 
@@ -598,12 +664,28 @@ export async function approvePR(
       throw new Error('PR_NOT_PENDING_APPROVAL');
     }
 
-    if (!pr.approvalRequestId) {
+    // Look up approval request from approval_requests table
+    const approvalRequests = getTableRef('approvalRequests');
+    const arResult = await db
+      .select({ id: approvalRequests.id })
+      .from(approvalRequests)
+      .where(
+        and(
+          eq(approvalRequests.documentType, 'purchase_requisition'),
+          eq(approvalRequests.documentId, prId),
+          eq(approvalRequests.status, 'pending')
+        )
+      )
+      .limit(1);
+
+    if (arResult.length === 0) {
       throw new Error('NO_APPROVAL_REQUEST');
     }
 
+    const approvalRequestId = arResult[0].id;
+
     // Approve in workflow
-    const result = await approveRequest(pr.approvalRequestId, approverId, comments);
+    const result = await approveRequest(approvalRequestId, approverId, comments);
 
     // Check if fully approved
     if (result.isFullyApproved) {
@@ -657,12 +739,28 @@ export async function rejectPR(
       throw new Error('PR_NOT_PENDING_APPROVAL');
     }
 
-    if (!pr.approvalRequestId) {
+    // Look up approval request from approval_requests table
+    const approvalRequests = getTableRef('approvalRequests');
+    const arResult = await db
+      .select({ id: approvalRequests.id })
+      .from(approvalRequests)
+      .where(
+        and(
+          eq(approvalRequests.documentType, 'purchase_requisition'),
+          eq(approvalRequests.documentId, prId),
+          eq(approvalRequests.status, 'pending')
+        )
+      )
+      .limit(1);
+
+    if (arResult.length === 0) {
       throw new Error('NO_APPROVAL_REQUEST');
     }
 
+    const approvalRequestId = arResult[0].id;
+
     // Reject in workflow
-    await rejectRequest(pr.approvalRequestId, approverId, reason);
+    await rejectRequest(approvalRequestId, approverId, reason);
 
     // Update PR status
     const now = getNow();
@@ -746,69 +844,80 @@ export async function convertPRToPO(
       throw new Error('NO_LINES_TO_CONVERT');
     }
 
-    // Generate PO number
-    const year = new Date().getFullYear();
-    const poPrefix = `PO${year}-`;
-    const lastPO = await db
-      .select({ poNumber: tables.purchaseOrders.poNumber })
-      .from(tables.purchaseOrders)
-      .where(like(tables.purchaseOrders.poNumber, `${poPrefix}%`))
-      .orderBy(desc(tables.purchaseOrders.id))
-      .limit(1);
-
-    let poNumber: string;
-    if (lastPO.length === 0) {
-      poNumber = `${poPrefix}0001`;
-    } else {
-      const seq = parseInt(lastPO[0].poNumber.replace(poPrefix, ''), 10);
-      poNumber = `${poPrefix}${(seq + 1).toString().padStart(4, '0')}`;
-    }
-
     // Calculate PO total
     let poTotal = 0;
     for (const line of lines) {
-      poTotal += line.estimatedAmount || 0;
+      poTotal += Number(line.lineTotal) || 0;
     }
 
     const now = getNow();
 
-    // Create PO
-    const poResult = await db.insert(tables.purchaseOrders).values({
-      poNumber,
-      vendorId: input.vendorId,
-      status: 'draft',
-      prId: input.prId,
-      totalAmount: poTotal,
-      deliveryDate: input.deliveryDate ? toDbDate(input.deliveryDate) : null,
-      deliveryAddress: input.deliveryAddress || null,
-      paymentTerms: input.paymentTerms || null,
-      notes: input.notes || null,
-      createdBy,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // Generate PO number and create PO header in a transaction to prevent duplicates
+    const MAX_PO_RETRIES = 3;
+    let poNumber: string = '';
+    let poId: number = 0;
+    for (let attempt = 0; attempt < MAX_PO_RETRIES; attempt++) {
+      try {
+        const year = new Date().getFullYear();
+        const poPrefix = `PO${year}-`;
+        const lastPO = await db
+          .select({ poNumber: tables.purchaseOrders.poNumber })
+          .from(tables.purchaseOrders)
+          .where(like(tables.purchaseOrders.poNumber, `${poPrefix}%`))
+          .orderBy(desc(tables.purchaseOrders.id))
+          .limit(1);
 
-    const poId = getInsertId(poResult);
+        let nextPONumber: string;
+        if (lastPO.length === 0) {
+          nextPONumber = `${poPrefix}0001`;
+        } else {
+          const seq = parseInt(lastPO[0].poNumber.replace(poPrefix, ''), 10);
+          nextPONumber = `${poPrefix}${(seq + 1).toString().padStart(4, '0')}`;
+        }
+
+        const poResult = await db.insert(tables.purchaseOrders).values({
+          poNumber: nextPONumber,
+          vendorId: input.vendorId,
+          status: 'draft',
+          prId: input.prId,
+          totalAmount: poTotal,
+          deliveryDate: input.deliveryDate ? toDbDate(input.deliveryDate) : null,
+          deliveryAddress: input.deliveryAddress || null,
+          paymentTerms: input.paymentTerms || null,
+          notes: input.notes || null,
+          createdBy,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        poId = getInsertId(poResult);
+        poNumber = nextPONumber;
+        break;
+      } catch (error: any) {
+        if (attempt < MAX_PO_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+          continue;
+        }
+        throw error;
+      }
+    }
 
     // Create PO lines and update PR lines
     let poLineNumber = 0;
     for (const prLine of lines) {
       poLineNumber++;
 
-      // Create PO line
+      // Create PO line (map PR line fields to PO line schema)
+      const qty = Number(prLine.quantity) || 0;
+      const price = Number(prLine.estimatedPrice) || 0;
       const poLineResult = await db.insert(tables.purchaseOrderLines).values({
         poId,
-        lineNumber: poLineNumber,
         itemId: prLine.itemId,
-        itemCode: prLine.itemCode,
-        description: prLine.description,
-        quantity: prLine.quantity,
-        unitOfMeasure: prLine.unitOfMeasure,
-        unitPrice: prLine.estimatedUnitPrice,
-        amount: prLine.estimatedAmount,
-        prLineId: prLine.id,
+        quantity: qty,
+        unit: prLine.unit || 'pcs',
+        unitPrice: price,
+        totalPrice: qty * price,
+        notes: prLine.description || null,
         createdAt: now,
-        updatedAt: now,
       });
 
       const poLineId = getInsertId(poLineResult);
@@ -817,10 +926,8 @@ export async function convertPRToPO(
       await db
         .update(tables.lines)
         .set({
-          status: 'full_po',
-          convertedPoId: poId,
+          status: 'converted',
           convertedPoLineId: poLineId,
-          updatedAt: now,
         })
         .where(eq(tables.lines.id, prLine.id));
     }
@@ -899,21 +1006,17 @@ export async function getPRDashboard(userId?: number): Promise<PRDashboardSummar
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Draft count
-    const draftQuery = db
-      .select({ count: sql<number>`count(*)` })
-      .from(tables.requisitions)
-      .where(eq(tables.requisitions.status, 'draft'));
-
-    if (userId) {
-      draftQuery.where(
-        and(
+    const draftWhereClause = userId
+      ? and(
           eq(tables.requisitions.status, 'draft'),
           eq(tables.requisitions.requesterId, userId)
         )
-      );
-    }
+      : eq(tables.requisitions.status, 'draft');
 
-    const draftResult = await draftQuery;
+    const draftResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tables.requisitions)
+      .where(draftWhereClause);
     const draftCount = Number(draftResult[0]?.count || 0);
 
     // Pending approval count

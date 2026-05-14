@@ -1,0 +1,113 @@
+{
+  "page": {
+    "title": "การดูแลระบบ",
+    "description": "จัดการการตั้งค่าระบบ"
+  },
+  "confidentialGroups": {
+    "title": "กลุ่มสิทธิ์การเข้าถึงข้อมูลลับ",
+    "subtitle": "จัดการกลุ่มสิทธิ์การเข้าถึงเพื่อปกป้องข้อมูลลับของ BOM",
+    "description": "จัดการกลุ่มความลับและสมาชิก",
+    "addGroup": "เพิ่มกลุ่ม",
+    "search": "ค้นหา:",
+    "searchPlaceholder": "ค้นหาตามรหัส ชื่อ หรือคำอธิบาย...",
+    "clear": "ล้าง",
+    "totalGroups": "กลุ่มทั้งหมด:",
+    "totalMembers": "สมาชิกทั้งหมด:",
+    "columns": {
+      "id": "ID",
+      "code": "รหัส",
+      "name": "ชื่อ",
+      "description": "คำอธิบาย",
+      "members": "สมาชิก",
+      "created": "สร้างเมื่อ",
+      "actions": "จัดการ"
+    },
+    "form": {
+      "createTitle": "สร้างกลุ่มสิทธิ์",
+      "editTitle": "แก้ไขกลุ่มสิทธิ์",
+      "codeLabel": "รหัส",
+      "codeRequired": "กรุณาระบุรหัส",
+      "codeFormat": "รหัสต้องเป็นตัวอักษรพิมพ์ใหญ่ ตัวเลข และขีดล่างเท่านั้น",
+      "codePlaceholder": "เช่น RND_TEAM, PRODUCTION_MGMT",
+      "codeHint": "ตัวอักษรพิมพ์ใหญ่ ตัวเลข และขีดล่างเท่านั้น",
+      "nameLabel": "ชื่อ",
+      "nameRequired": "กรุณาระบุชื่อ",
+      "namePlaceholder": "เช่น ทีม R&D, ฝ่ายจัดการการผลิต",
+      "descriptionLabel": "คำอธิบาย",
+      "descriptionMaxLength": "คำอธิบายต้องไม่เกิน 500 ตัวอักษร",
+      "descriptionPlaceholder": "คำอธิบายกลุ่มสิทธิ์ (ไม่บังคับ)",
+      "saving": "กำลังบันทึก...",
+      "save": "บันทึก",
+      "cancel": "ยกเลิก"
+    },
+    "toast": {
+      "createSuccess": "สร้างกลุ่มสำเร็จ",
+      "updateSuccess": "อัปเดตกลุ่มสำเร็จ",
+      "deleteSuccess": "ลบกลุ่มสำเร็จ"
+    },
+    "deleteDialog": {
+      "title": "ลบกลุ่มสิทธิ์",
+      "message": "คุณแน่ใจว่าต้องการลบ \"{name}\" หรือไม่? การดำเนินการนี้ไม่สามารถยกเลิกได้และจะลบสมาชิกทั้งหมดออก",
+      "deleting": "กำลังลบ...",
+      "confirm": "ลบ"
+    },
+    "actions": {
+      "manageMembers": "จัดการสมาชิก",
+      "edit": "แก้ไข",
+      "delete": "ลบ"
+    },
+    "members": {
+      "title": "สมาชิกกลุ่ม",
+      "subtitle": "จัดการสมาชิกของ {code}",
+      "description": "จัดการสมาชิกในกลุ่มความลับ",
+      "titleWithName": "สมาชิกกลุ่ม - {name}",
+      "addMember": "เพิ่มสมาชิก",
+      "membersCount": "สมาชิก",
+      "invalidGroup": "กลุ่มไม่ถูกต้อง",
+      "invalidGroupId": "ID กลุ่มไม่ถูกต้อง",
+      "loading": "กำลังโหลด...",
+      "breadcrumb": {
+        "admin": "แอดมิน",
+        "confidentialGroups": "กลุ่มความลับ",
+        "members": "สมาชิก"
+      },
+      "groupInfo": {
+        "groupCode": "รหัสกลุ่ม:",
+        "name": "ชื่อ:",
+        "description": "คำอธิบาย:"
+      },
+      "columns": {
+        "userId": "ID ผู้ใช้",
+        "userName": "ชื่อผู้ใช้",
+        "email": "อีเมล",
+        "addedAt": "เพิ่มเมื่อ",
+        "addedBy": "เพิ่มโดย",
+        "actions": "จัดการ"
+      },
+      "addDialog": {
+        "title": "เพิ่มสมาชิกในกลุ่ม",
+        "selectUser": "เลือกผู้ใช้",
+        "searchPlaceholder": "ค้นหาและเลือกผู้ใช้...",
+        "noUsers": "ผู้ใช้ทั้งหมดเป็นสมาชิกของกลุ่มนี้แล้ว",
+        "noDataText": "ไม่มีผู้ใช้ที่สามารถเพิ่มได้",
+        "selectedInfo": "ผู้ใช้ที่เลือกจะถูกเพิ่มใน",
+        "adding": "กำลังเพิ่ม...",
+        "add": "เพิ่ม",
+        "cancel": "ยกเลิก"
+      },
+      "removeDialog": {
+        "title": "ลบสมาชิก",
+        "message": "คุณแน่ใจว่าต้องการลบ \"{name}\" ออกจากกลุ่มนี้หรือไม่?",
+        "removing": "กำลังลบ...",
+        "confirm": "ลบ"
+      },
+      "toast": {
+        "addSuccess": "เพิ่มสมาชิกสำเร็จ",
+        "removeSuccess": "ลบสมาชิกสำเร็จ"
+      },
+      "actions": {
+        "removeMember": "ลบสมาชิก"
+      }
+    }
+  }
+}

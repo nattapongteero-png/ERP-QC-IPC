@@ -39,6 +39,8 @@ export async function GET(
             expiryDate: lots.expiryDate,
             receivedDate: lots.receivedDate,
             vendorId: lots.vendorId,
+            vendorLotNumber: lots.vendorLotNumber,
+            cost: lots.cost,
             poNumber: lots.poNumber,
             coaNumber: lots.coaNumber,
             createdAt: lots.createdAt,
@@ -117,16 +119,26 @@ export async function GET(
         performedByName: t.performedBy ? userMap.get(t.performedBy) || 'Unknown' : null,
       }));
 
-      // Get QC tests for this lot
+      // Get QC tests for this lot (full detail)
       const qcTests = await executeDbOperation(async (db) => {
         return db
           .select({
             id: qualityTests.id,
+            specId: qualityTests.specId,
             sampleNumber: qualityTests.sampleNumber,
             testType: qualityTests.testType,
             status: qualityTests.status,
             result: qualityTests.result,
+            numericResult: qualityTests.numericResult,
+            specMinValue: qualityTests.specMinValue,
+            specMaxValue: qualityTests.specMaxValue,
+            specSpecification: qualityTests.specSpecification,
+            specUnit: qualityTests.specUnit,
+            disposition: qualityTests.disposition,
+            notes: qualityTests.notes,
             testedBy: qualityTests.testedBy,
+            approvedBy: qualityTests.approvedBy,
+            approvedAt: qualityTests.approvedAt,
             testDate: qualityTests.testDate,
             createdAt: qualityTests.createdAt,
           })
@@ -135,19 +147,36 @@ export async function GET(
           .orderBy(desc(qualityTests.createdAt));
       });
 
-      // Get tester names
-      const testerIds = [...new Set(qcTests.map((t: { testedBy: number | null }) => t.testedBy).filter(Boolean))] as number[];
-      let testerMap: Map<number, string> = new Map();
-      if (testerIds.length > 0) {
-        const testerList = await executeDbOperation(async (db) => {
+      // Resolve user names for tester and approver
+      const qcUserIds = new Set<number>();
+      qcTests.forEach((t: any) => {
+        if (t.testedBy) qcUserIds.add(t.testedBy);
+        if (t.approvedBy) qcUserIds.add(t.approvedBy);
+      });
+      let qcUserMap: Map<number, string> = new Map();
+      if (qcUserIds.size > 0) {
+        const qcUserList = await executeDbOperation(async (db) => {
           return db.select({ id: users.id, name: users.name }).from(users);
         });
-        testerMap = new Map(testerList.map((u: { id: number; name: string }) => [u.id, u.name]));
+        qcUserMap = new Map(qcUserList.map((u: { id: number; name: string }) => [u.id, u.name]));
       }
 
-      const enrichedQcTests = qcTests.map((t: { testedBy: number | null; [key: string]: unknown }) => ({
+      // Also join with quality_specs to get test name
+      const qualitySpecs = getTableRef('qualitySpecs');
+      const specMap = new Map<number, string>();
+      const specIds = [...new Set(qcTests.map((t: any) => t.specId).filter(Boolean))] as number[];
+      if (specIds.length > 0) {
+        const specList = await executeDbOperation(async (db) => {
+          return db.select({ id: qualitySpecs.id, testName: qualitySpecs.testName }).from(qualitySpecs);
+        });
+        specList.forEach((s: any) => specMap.set(s.id, s.testName));
+      }
+
+      const enrichedQcTests = qcTests.map((t: any) => ({
         ...t,
-        testedByName: t.testedBy ? testerMap.get(t.testedBy) || 'Unknown' : null,
+        testName: t.specId ? specMap.get(t.specId) || null : null,
+        testedByName: t.testedBy ? qcUserMap.get(t.testedBy) || null : null,
+        approvedByName: t.approvedBy ? qcUserMap.get(t.approvedBy) || null : null,
       }));
 
       // Get work orders that used this lot (traceability)
@@ -244,6 +273,9 @@ export async function PUT(
       if (body.manufacturingDate !== undefined) updateData.manufacturingDate = parseDbDate(body.manufacturingDate);
       if (body.expiryDate !== undefined) updateData.expiryDate = parseDbDate(body.expiryDate);
       if (body.coaNumber !== undefined) updateData.coaNumber = body.coaNumber || null;
+      if (body.vendorLotNumber !== undefined) updateData.vendorLotNumber = body.vendorLotNumber || null;
+      if (body.quantity !== undefined) updateData.quantity = parseFloat(body.quantity) || 0;
+      if (body.cost !== undefined) updateData.cost = body.cost ? parseFloat(body.cost) : null;
 
       await executeDbOperation(async (db) => {
         return db.update(lots).set(updateData).where(eq(lots.id, parseInt(id)));

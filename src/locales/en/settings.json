@@ -1,0 +1,305 @@
+{
+  "page": {
+    "title": "Settings",
+    "description": "System settings and configuration"
+  },
+  "general": {
+    "title": "General",
+    "description": "General system settings",
+    "companyName": "Company Name",
+    "companyLogo": "Company Logo",
+    "timezone": "Timezone",
+    "dateFormat": "Date Format",
+    "currency": "Currency"
+  },
+  "users": {
+    "title": "Users",
+    "description": "Manage users and permissions",
+    "table": {
+      "columns": {
+        "username": "Username",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "lastLogin": "Last Login"
+      }
+    },
+    "actions": {
+      "addUser": "Add User",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "resetPassword": "Reset Password"
+    }
+  },
+  "roles": {
+    "title": "Roles",
+    "description": "Manage roles and access permissions"
+  },
+  "security": {
+    "title": "Security",
+    "description": "Security settings",
+    "passwordPolicy": "Password Policy",
+    "sessionTimeout": "Session Timeout",
+    "twoFactor": "Two-Factor Authentication"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Notification settings",
+    "email": "Email",
+    "inApp": "In-App",
+    "sms": "SMS"
+  },
+  "integrations": {
+    "title": "Integrations",
+    "description": "Manage external system integrations"
+  },
+  "backup": {
+    "title": "Backup",
+    "description": "Data backup and recovery"
+  },
+  "toast": {
+    "save": {
+      "success": "Settings saved successfully",
+      "error": "Failed to save settings"
+    }
+  },
+  "settingsPage": {
+    "saving": "Saving...",
+    "saveSettings": "Save Settings",
+    "saveSuccess": "Settings saved successfully",
+    "saveError": "Failed to save settings"
+  },
+  "company": {
+    "title": "Company Information",
+    "nameEn": "Company Name (English)",
+    "nameTh": "Company Name (Thai)",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email"
+  },
+  "regulatory": {
+    "title": "Regulatory Information",
+    "taxId": "Tax ID",
+    "fdaLicense": "FDA License Number",
+    "gmpCertificate": "GMP Certificate Number"
+  },
+  "prefixes": {
+    "title": "Document Prefixes",
+    "lotPrefix": "Lot Number Prefix",
+    "poPrefix": "PO Number Prefix",
+    "soPrefix": "SO Number Prefix",
+    "woPrefix": "Work Order Prefix"
+  },
+  "confidentiality": {
+    "title": "Confidentiality Settings",
+    "description": "Configure BOM confidentiality bypass roles",
+    "back": "Back",
+    "saveChanges": "Save Changes",
+    "aboutTitle": "About Confidentiality Bypass Roles",
+    "aboutDescription": "Users with bypass roles can view all confidential BOM items regardless of access grants. This is useful for administrators and senior management who need full visibility.",
+    "bypassRoles": "Bypass Roles",
+    "selectRolesDescription": "Select which roles should have automatic access to all confidential BOM items. The Administrator role is always included and cannot be removed.",
+    "rolesCanBypass": "roles can bypass confidentiality",
+    "role": "role",
+    "roles": "roles",
+    "required": "Required",
+    "loadError": "Failed to load settings",
+    "accessGroups": "Access Control Groups",
+    "accessGroupsDescription": "Manage confidential access groups to grant specific users access to confidential BOM items without giving them bypass roles.",
+    "manageGroups": "Manage Access Groups",
+    "adminCannotRemove": "Administrator role cannot be removed from bypass roles",
+    "saveSuccess": "Bypass roles saved successfully",
+    "saveError": "Failed to save bypass roles",
+    "roleLabels": {
+      "ADMIN": "Administrator",
+      "MANAGER": "Manager",
+      "SUPERVISOR": "Supervisor",
+      "OPERATOR": "Operator",
+      "QA": "Quality Assurance",
+      "RND": "R&D",
+      "PRODUCTION": "Production",
+      "WAREHOUSE": "Warehouse",
+      "PURCHASING": "Purchasing",
+      "SALES": "Sales",
+      "ACCOUNTING": "Accounting",
+      "USER": "User"
+    },
+    "roleDescriptions": {
+      "ADMIN": "Full system access",
+      "MANAGER": "Department management",
+      "SUPERVISOR": "Team supervision",
+      "OPERATOR": "Daily operations",
+      "QA": "Quality control",
+      "RND": "Research and development",
+      "PRODUCTION": "Manufacturing",
+      "WAREHOUSE": "Inventory management",
+      "PURCHASING": "Procurement",
+      "SALES": "Sales operations",
+      "ACCOUNTING": "Financial operations",
+      "USER": "Basic user"
+    }
+  },
+  "securityConfidentiality": {
+    "title": "Security & Confidentiality",
+    "confidentialityLink": "Confidentiality Settings",
+    "confidentialityDescription": "Configure bypass roles and access control for confidential BOM items"
+  },
+  "vmiSettings": {
+    "title": "VMI Portal Settings",
+    "description": "Manage connections to external VMI (Vendor Managed Inventory) portals. This system acts as the vendor/supplier, syncing inventory and receiving orders from hospital customers.",
+    "backToSettings": "Back to Settings",
+    "vmiPortals": "VMI Portals",
+    "aboutTitle": "About VMI Integration",
+    "whatIsVmi": "What is VMI?",
+    "whatIsVmiDescription": "Vendor Managed Inventory allows you to manage inventory levels at your customer's locations. When hospitals need supplies, orders are automatically generated based on consumption and inventory thresholds.",
+    "howItWorks": "How it works:",
+    "inventorySync": "Inventory Sync: Push your current stock levels to the portal",
+    "itemsSync": "Items Sync: Update the product catalog on the portal",
+    "pricesSync": "Prices Sync: Keep pricing information current",
+    "orderPolling": "Order Polling: Receive new orders from the portal automatically",
+    "gettingStarted": "Getting Started:",
+    "gettingStartedDescription": "Click \"Add Portal\" to configure a new VMI portal connection. You'll need the portal URL, your vendor ID, and an API key from the hospital's VMI system.",
+    "vmiPortalConnections": "VMI Portal Connections",
+    "vmiPortalDescription": "Manage Vendor Managed Inventory portal connections for hospital customers"
+  },
+  "vmiPortalEdit": {
+    "newTitle": "New VMI Portal",
+    "editTitle": "Edit: {name}",
+    "newDescription": "Configure a new VMI portal connection",
+    "editDescription": "Edit VMI portal configuration settings",
+    "portalNotFound": "Portal Not Found",
+    "error": "Error",
+    "backToPortals": "Back to VMI Portals",
+    "cancel": "Cancel",
+    "portalSettings": "Portal Settings",
+    "portalName": "Portal Name",
+    "vendorId": "Vendor ID",
+    "portalUrl": "Portal URL",
+    "apiKey": "API Key",
+    "apiKeyEdit": "API Key (leave blank to keep existing)",
+    "status": "Status",
+    "enablePortal": "Enable this portal connection",
+    "syncSettings": "Sync Settings",
+    "inventorySyncLabel": "Inventory Sync",
+    "itemsSyncLabel": "Items Sync",
+    "pricesSyncLabel": "Prices Sync",
+    "orderPollingLabel": "Order Polling",
+    "enable": "Enable",
+    "intervalMinutes": "Interval (minutes)",
+    "syncGuide": "Sync Interval Guide",
+    "syncGuide5to15": "5-15 min: Real-time sync (high API usage)",
+    "syncGuide30to60": "30-60 min: Frequent updates (recommended for inventory)",
+    "syncGuide1440": "1440 min (24h): Daily sync (recommended for items/prices)",
+    "testConnection": "Test Connection",
+    "testing": "Testing...",
+    "saveConfig": "Save Configuration",
+    "saving": "Saving...",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "connectionSuccess": "Connection Successful",
+    "connectionFailed": "Connection Failed",
+    "latency": "Latency: {ms}ms",
+    "vendor": "Vendor: {name}",
+    "lastPoll": "Last Poll: {time}",
+    "lastInventorySync": "Last Inventory Sync: {time}",
+    "saveThenTest": "Please save the portal configuration first before testing the connection.",
+    "saveSuccess": "Saved successfully",
+    "saveError": "Failed to save portal configuration",
+    "loadError": "Failed to load portal configuration",
+    "validation": {
+      "nameRequired": "Portal name is required",
+      "nameMaxLength": "Portal name must be at most 100 characters",
+      "vendorIdRequired": "Vendor ID is required",
+      "vendorIdMaxLength": "Vendor ID must be at most 50 characters",
+      "urlRequired": "Portal URL is required",
+      "urlHttps": "Portal URL must start with https://",
+      "apiKeyRequired": "API key is required",
+      "apiKeyMaxLength": "API key must be at most 500 characters"
+    }
+  },
+  "approvalWorkflows": {
+    "title": "Approval Workflows",
+    "description": "Manage approval workflows for different document types",
+    "newWorkflow": "New Workflow",
+    "confirmDelete": "Confirm Delete",
+    "confirmDeleteMessage": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+    "deleting": "Deleting...",
+    "deleteSuccess": "Workflow deleted successfully",
+    "filters": "Filters:",
+    "searchPlaceholder": "Search workflows...",
+    "documentType": "Document Type",
+    "allDocumentTypes": "All Document Types",
+    "allStatus": "All Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "clear": "Clear",
+    "total": "Total",
+    "grid": {
+      "id": "ID",
+      "name": "Name",
+      "documentType": "Document Type",
+      "priority": "Priority",
+      "status": "Status",
+      "rules": "Rules",
+      "steps": "Steps",
+      "actions": "Actions"
+    },
+    "documentTypes": {
+      "purchase_requisition": "Purchase Requisition",
+      "purchase_order": "Purchase Order",
+      "ap_invoice": "AP Invoice",
+      "ar_invoice": "AR Invoice",
+      "payment": "Payment",
+      "credit_note": "Credit Note",
+      "debit_note": "Debit Note"
+    },
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "workflowTest": {
+    "title": "Workflow Test",
+    "subtitle": "End-to-end ERP process testing with real-time visualization",
+    "configure": "Configure",
+    "clear": "Clear",
+    "cancel": "Cancel",
+    "running": "Running...",
+    "runBasicTest": "Run Basic Workflow Test"
+  },
+  "matchingTolerances": {
+    "title": "Matching Tolerances",
+    "description": "Configure tolerance thresholds for 3-way matching validation",
+    "newTolerance": "New Tolerance",
+    "confirmDelete": "Confirm Delete",
+    "confirmDeleteMessage": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+    "deleting": "Deleting...",
+    "deleteSuccess": "Tolerance deleted successfully",
+    "aboutTitle": "About 3-Way Matching",
+    "aboutDescription": "3-way matching compares Purchase Orders, Goods Receipts, and Invoices to ensure accuracy. Tolerances define acceptable variance thresholds. Variances exceeding tolerances will generate exceptions requiring manual approval.",
+    "filters": "Filters:",
+    "searchPlaceholder": "Search tolerances...",
+    "allTypes": "All Types",
+    "allStatus": "All Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "clear": "Clear",
+    "total": "Total",
+    "grid": {
+      "name": "Name",
+      "type": "Type",
+      "method": "Method",
+      "value": "Value",
+      "priority": "Priority",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "types": {
+      "quantity": "Quantity",
+      "price": "Price",
+      "amount": "Amount"
+    },
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete"
+  }
+}

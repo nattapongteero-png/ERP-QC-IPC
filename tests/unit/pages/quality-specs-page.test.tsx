@@ -229,14 +229,16 @@ describe('QualitySpecsPage', () => {
         expect(screen.getByTestId('page-header')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('Quality Specifications')).toBeInTheDocument();
+      // Title from i18n: t('specifications.title') = 'Specifications'
+      expect(screen.getByText('Specifications')).toBeInTheDocument();
     });
 
     it('should render the page header with correct subtitle', async () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByText('ข้อกำหนดคุณภาพ - Specification Management')).toBeInTheDocument();
+        // Subtitle from i18n: t('specifications.description') = 'Manage quality specifications'
+        expect(screen.getByText('Manage quality specifications')).toBeInTheDocument();
       });
     });
 
@@ -255,12 +257,13 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-card-ข้อกำหนดทั้งหมด')).toBeInTheDocument();
-        expect(screen.getByTestId('stat-card-ใช้งาน')).toBeInTheDocument();
+        // Stat card testids from English i18n labels
+        expect(screen.getByTestId('stat-card-total-specs')).toBeInTheDocument();
+        expect(screen.getByTestId('stat-card-active')).toBeInTheDocument();
         expect(screen.getByTestId('stat-card-critical')).toBeInTheDocument();
         expect(screen.getByTestId('stat-card-non-critical')).toBeInTheDocument();
-        expect(screen.getByTestId('stat-card-ไม่ใช้งาน')).toBeInTheDocument();
-        expect(screen.getByTestId('stat-card-สินค้าที่มี-spec')).toBeInTheDocument();
+        expect(screen.getByTestId('stat-card-inactive')).toBeInTheDocument();
+        expect(screen.getByTestId('stat-card-items-with-specs')).toBeInTheDocument();
       });
     });
 
@@ -268,7 +271,7 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        const totalCard = screen.getByTestId('stat-card-ข้อกำหนดทั้งหมด');
+        const totalCard = screen.getByTestId('stat-card-total-specs');
         expect(totalCard).toHaveTextContent('4');
       });
     });
@@ -277,7 +280,7 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        const activeCard = screen.getByTestId('stat-card-ใช้งาน');
+        const activeCard = screen.getByTestId('stat-card-active');
         expect(activeCard).toHaveTextContent('3'); // 3 active specs
       });
     });
@@ -295,7 +298,7 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        const inactiveCard = screen.getByTestId('stat-card-ไม่ใช้งาน');
+        const inactiveCard = screen.getByTestId('stat-card-inactive');
         expect(inactiveCard).toHaveTextContent('1'); // 1 inactive spec
       });
     });
@@ -304,7 +307,7 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        const itemsCard = screen.getByTestId('stat-card-สินค้าที่มี-spec');
+        const itemsCard = screen.getByTestId('stat-card-items-with-specs');
         expect(itemsCard).toHaveTextContent('3'); // 3 unique items
       });
     });
@@ -315,9 +318,10 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByText('Grid')).toBeInTheDocument();
-        expect(screen.getByText('Cards')).toBeInTheDocument();
-        expect(screen.getByText('Analytics')).toBeInTheDocument();
+        // View mode labels from i18n: t('common.viewGrid/viewCards/viewAnalytics')
+        expect(screen.getByText('Grid view')).toBeInTheDocument();
+        expect(screen.getByText('Cards view')).toBeInTheDocument();
+        expect(screen.getByText('Analytics view')).toBeInTheDocument();
       });
     });
 
@@ -336,11 +340,11 @@ describe('QualitySpecsPage', () => {
         expect(screen.getByTestId('dx-data-grid')).toBeInTheDocument();
       });
 
-      const cardsButton = screen.getByText('Cards');
+      const cardsButton = screen.getByText('Cards view');
       fireEvent.click(cardsButton);
 
       await waitFor(() => {
-        expect(screen.getByText('สินค้าที่มีข้อกำหนดมากที่สุด')).toBeInTheDocument();
+        expect(screen.getByText('Items with Most Specifications')).toBeInTheDocument();
       });
     });
 
@@ -351,12 +355,12 @@ describe('QualitySpecsPage', () => {
         expect(screen.getByTestId('dx-data-grid')).toBeInTheDocument();
       });
 
-      const analyticsButton = screen.getByText('Analytics');
+      const analyticsButton = screen.getByText('Analytics view');
       fireEvent.click(analyticsButton);
 
       await waitFor(() => {
-        expect(screen.getByText('การกระจายตามสถานะ')).toBeInTheDocument();
-        expect(screen.getByText('การกระจายตามความสำคัญ')).toBeInTheDocument();
+        expect(screen.getByText('Distribution by Status')).toBeInTheDocument();
+        expect(screen.getByText('Distribution by Criticality')).toBeInTheDocument();
       });
     });
   });
@@ -374,7 +378,7 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByTestId('select-สถานะ')).toBeInTheDocument();
+        expect(screen.getByTestId('select-status')).toBeInTheDocument();
       });
     });
 
@@ -382,7 +386,7 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByTestId('select-ประเภท')).toBeInTheDocument();
+        expect(screen.getByTestId('select-type')).toBeInTheDocument();
       });
     });
   });
@@ -400,7 +404,8 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByText('4 ข้อกำหนด')).toBeInTheDocument();
+        // From i18n: t('specs.grid.specsCount', { count: 4 }) = '4 specifications'
+        expect(screen.getByText('4 specifications')).toBeInTheDocument();
       });
     });
   });
@@ -409,18 +414,18 @@ describe('QualitySpecsPage', () => {
     it('should render top items section', async () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
-      const cardsButton = screen.getByText('Cards');
+      const cardsButton = screen.getByText('Cards view');
       fireEvent.click(cardsButton);
 
       await waitFor(() => {
-        expect(screen.getByText('สินค้าที่มีข้อกำหนดมากที่สุด')).toBeInTheDocument();
+        expect(screen.getByText('Items with Most Specifications')).toBeInTheDocument();
       });
     });
 
     it('should render spec cards', async () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
-      const cardsButton = screen.getByText('Cards');
+      const cardsButton = screen.getByText('Cards view');
       fireEvent.click(cardsButton);
 
       await waitFor(() => {
@@ -434,7 +439,7 @@ describe('QualitySpecsPage', () => {
     it('should render pie charts', async () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
-      const analyticsButton = screen.getByText('Analytics');
+      const analyticsButton = screen.getByText('Analytics view');
       fireEvent.click(analyticsButton);
 
       await waitFor(() => {
@@ -446,47 +451,47 @@ describe('QualitySpecsPage', () => {
     it('should render status summary section', async () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
-      const analyticsButton = screen.getByText('Analytics');
+      const analyticsButton = screen.getByText('Analytics view');
       fireEvent.click(analyticsButton);
 
       await waitFor(() => {
-        expect(screen.getByText('สรุปสถานะ')).toBeInTheDocument();
+        expect(screen.getByText('Status Summary')).toBeInTheDocument();
       });
     });
 
     it('should render critical summary section', async () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
-      const analyticsButton = screen.getByText('Analytics');
+      const analyticsButton = screen.getByText('Analytics view');
       fireEvent.click(analyticsButton);
 
       await waitFor(() => {
-        expect(screen.getByText('สรุปความสำคัญ')).toBeInTheDocument();
+        expect(screen.getByText('Criticality Summary')).toBeInTheDocument();
       });
     });
 
     it('should render quick actions section', async () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
-      const analyticsButton = screen.getByText('Analytics');
+      const analyticsButton = screen.getByText('Analytics view');
       fireEvent.click(analyticsButton);
 
       await waitFor(() => {
         expect(screen.getByText('Quick Actions')).toBeInTheDocument();
-        expect(screen.getByText('เพิ่มข้อกำหนดใหม่')).toBeInTheDocument();
-        expect(screen.getByText('สร้างการทดสอบใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Specification')).toBeInTheDocument();
+        expect(screen.getByText('Create New Test')).toBeInTheDocument();
       });
     });
 
     it('should render top items table', async () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
-      const analyticsButton = screen.getByText('Analytics');
+      const analyticsButton = screen.getByText('Analytics view');
       fireEvent.click(analyticsButton);
 
       await waitFor(() => {
-        // There should be two "สินค้าที่มีข้อกำหนดมากที่สุด" - one as chart title and one as table title
-        const topItemsHeaders = screen.getAllByText('สินค้าที่มีข้อกำหนดมากที่สุด');
+        // There should be two "Items with Most Specifications" - one as chart title and one as table title
+        const topItemsHeaders = screen.getAllByText('Items with Most Specifications');
         expect(topItemsHeaders.length).toBeGreaterThanOrEqual(1);
       });
     });
@@ -508,14 +513,14 @@ describe('QualitySpecsPage', () => {
     it('should navigate to new test page from quick actions', async () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
-      const analyticsButton = screen.getByText('Analytics');
+      const analyticsButton = screen.getByText('Analytics view');
       fireEvent.click(analyticsButton);
 
       await waitFor(() => {
-        expect(screen.getByText('สร้างการทดสอบใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Create New Test')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('สร้างการทดสอบใหม่'));
+      fireEvent.click(screen.getByText('Create New Test'));
 
       expect(mockPush).toHaveBeenCalledWith('/quality/tests/new');
     });
@@ -528,7 +533,7 @@ describe('QualitySpecsPage', () => {
       render(<QualitySpecsPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        const totalCard = screen.getByTestId('stat-card-ข้อกำหนดทั้งหมด');
+        const totalCard = screen.getByTestId('stat-card-total-specs');
         expect(totalCard).toHaveTextContent('0');
       });
     });

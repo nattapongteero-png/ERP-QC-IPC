@@ -6,6 +6,7 @@
  * FR-053: Pending QC Release
  */
 
+import { useTranslations } from 'next-intl';
 import { KpiCard } from './kpi-card';
 import { Clock } from 'lucide-react';
 import type { PendingQcRelease } from '@/lib/services/audit-dashboard-service';
@@ -16,25 +17,26 @@ interface PendingQcCardProps {
 }
 
 export function PendingQcCard({ data, onClick }: PendingQcCardProps) {
+  const t = useTranslations('dashboard.auditCards.pendingQc');
   const hasLongWait = data.items.some((item) => item.daysWaiting > 7);
   const status = hasLongWait ? 'warning' : data.count > 0 ? 'normal' : 'normal';
 
   return (
     <KpiCard
-      title="Pending QC Release"
+      title={t('title')}
       value={data.count}
-      subtitle="lots"
+      subtitle={t('subtitle')}
       icon={<Clock className="w-5 h-5 text-amber-600" />}
       status={status}
       onClick={onClick}
     >
       {data.items.length > 0 && (
         <div className="text-xs text-gray-500">
-          Oldest: {Math.max(...data.items.map((i) => i.daysWaiting))} days waiting
+          {t('oldestDays', { days: Math.max(...data.items.map((i) => i.daysWaiting)) })}
         </div>
       )}
       {data.count === 0 && (
-        <div className="text-xs text-green-600">No items pending</div>
+        <div className="text-xs text-green-600">{t('noItems')}</div>
       )}
     </KpiCard>
   );

@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -69,6 +71,7 @@ interface BOMDetail {
   yieldTarget: number;
   lossAllowance: number;
   theoreticalYield: number;
+  fillWeightMg: number | null;
   effectiveDate: string;
   expiryDate: string;
   createdAt: string;
@@ -81,6 +84,10 @@ export default function BOMDetailPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations('production');
+
+  // Use translation for page title
+  const pageTitle = t('bomDetail.title');
   const [bom, setBom] = useState<BOMDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
@@ -113,6 +120,7 @@ export default function BOMDetailPage() {
     yieldTarget: 0,
     lossAllowance: 0,
     theoreticalYield: 0,
+    fillWeightMg: 0,
     effectiveDate: '',
     expiryDate: '',
   });
@@ -148,6 +156,7 @@ export default function BOMDetailPage() {
     itemCode: '',
     itemName: '',
     itemUnit: '',
+    unitOptions: [] as string[],
     quantity: 0,
     isOptional: false,
     notes: '',
@@ -211,11 +220,12 @@ export default function BOMDetailPage() {
         setEditForm({
           name: result.data.name || '',
           version: result.data.version || '',
-          batchSize: result.data.batchSize || 0,
+          batchSize: Number(result.data.batchSize) || 0,
           batchUnit: result.data.batchUnit || '',
-          yieldTarget: result.data.yieldTarget || 0,
-          lossAllowance: result.data.lossAllowance || 0,
-          theoreticalYield: result.data.theoreticalYield || 0,
+          yieldTarget: Number(result.data.yieldTarget) || 0,
+          lossAllowance: Number(result.data.lossAllowance) || 0,
+          theoreticalYield: Number(result.data.theoreticalYield) || 0,
+          fillWeightMg: Number(result.data.fillWeightMg) || 0,
           effectiveDate: result.data.effectiveDate?.split('T')[0] || '',
           expiryDate: result.data.expiryDate?.split('T')[0] || '',
         });
@@ -242,6 +252,7 @@ export default function BOMDetailPage() {
           yieldTarget: editForm.yieldTarget || null,
           lossAllowance: editForm.lossAllowance || null,
           theoreticalYield: editForm.theoreticalYield || null,
+          fillWeightMg: editForm.fillWeightMg || null,
           effectiveDate: editForm.effectiveDate || null,
           expiryDate: editForm.expiryDate || null,
         }),
@@ -333,13 +344,21 @@ export default function BOMDetailPage() {
     }
   };
 
-  const handleSelectItem = (item: { id: number; code: string; nameTh: string; primaryUnit: string }) => {
+  const handleSelectItem = (item: { id: number; code: string; nameTh: string; primaryUnit: string; secondaryUnit?: string | null; weightUnit?: string | null }) => {
+    const unitOpts = [item.primaryUnit];
+    if (item.secondaryUnit && item.secondaryUnit !== item.primaryUnit) {
+      unitOpts.push(item.secondaryUnit);
+    }
+    if (item.weightUnit && !unitOpts.includes(item.weightUnit)) {
+      unitOpts.push(item.weightUnit);
+    }
     setNewLine({
       ...newLine,
       itemId: item.id,
       itemCode: item.code,
       itemName: item.nameTh,
       itemUnit: item.primaryUnit,
+      unitOptions: unitOpts,
     });
     setItemSearchOpen(false);
   };
@@ -367,6 +386,7 @@ export default function BOMDetailPage() {
           itemCode: '',
           itemName: '',
           itemUnit: '',
+          unitOptions: [],
           quantity: 0,
           isOptional: false,
           notes: '',
@@ -385,7 +405,7 @@ export default function BOMDetailPage() {
   const openEditLineDialog = (line: BOMLine) => {
     setEditingLine(line);
     setEditLineForm({
-      quantity: line.quantity || 0,
+      quantity: Number(line.quantity) || 0,
       isOptional: line.isOptional || false,
       notes: line.notes || '',
     });
@@ -553,7 +573,7 @@ export default function BOMDetailPage() {
         if (line.isHidden) {
           return <span className="text-gray-400">-</span>;
         }
-        return <span>{line.quantity?.toLocaleString()} {line.unit}</span>;
+        return <span>{Number(line.quantity).toLocaleString()} {line.unit}</span>;
       },
     },
     {
@@ -792,7 +812,7 @@ export default function BOMDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Batch Size</p>
-                <p className="text-2xl font-bold text-blue-600">{bom.batchSize?.toLocaleString() || 0}</p>
+                <p className="text-2xl font-bold text-blue-600">{Number(bom.batchSize).toLocaleString() || 0}</p>
                 <p className="text-xs text-gray-500">{bom.batchUnit}</p>
               </div>
             </CardContent>
@@ -801,7 +821,7 @@ export default function BOMDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Theoretical Yield</p>
-                <p className="text-2xl font-bold text-purple-600">{bom.theoreticalYield?.toLocaleString() || '-'}</p>
+                <p className="text-2xl font-bold text-purple-600">{Number(bom.theoreticalYield).toLocaleString() || '-'}</p>
                 <p className="text-xs text-gray-500">{bom.productUnit}</p>
               </div>
             </CardContent>
@@ -966,6 +986,7 @@ export default function BOMDetailPage() {
                       itemCode: '',
                       itemName: '',
                       itemUnit: '',
+                      unitOptions: [],
                       quantity: 0,
                       isOptional: false,
                       notes: '',
@@ -1077,6 +1098,24 @@ export default function BOMDetailPage() {
                 onValueChange={(value) => setEditForm({ ...editForm, theoreticalYield: value || 0 })}
                 format="#,##0.###"
               />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                น้ำหนักต่อหน่วยย่อย (mg/capsule)
+              </label>
+              <DxNumberBox
+                value={editForm.fillWeightMg}
+                onValueChange={(value) => setEditForm({ ...editForm, fillWeightMg: value || 0 })}
+                format="#,##0.####"
+              />
+              <p className="text-xs text-gray-500 mt-0.5">
+                ใช้คำนวณ Bulk Yield จากน้ำหนักที่ชั่งได้ — เช่น 600 mg/capsule (API 500 + Excipient 100)
+              </p>
+            </div>
+            <div>
+              {/* Placeholder for grid balance — keep empty to preserve 2-column layout */}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -1279,11 +1318,20 @@ export default function BOMDetailPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-              <DxTextBox
-                value={newLine.itemUnit}
-                readOnly
-                className="bg-gray-50"
-              />
+              {newLine.unitOptions.length > 1 ? (
+                <DxSelectBox
+                  value={newLine.itemUnit}
+                  onValueChange={(value) => setNewLine({ ...newLine, itemUnit: value })}
+                  items={newLine.unitOptions.map(u => ({ value: u, label: u }))}
+                  width="100%"
+                />
+              ) : (
+                <DxTextBox
+                  value={newLine.itemUnit}
+                  readOnly
+                  className="bg-gray-50"
+                />
+              )}
             </div>
           </div>
           <div>
@@ -1325,7 +1373,8 @@ export default function BOMDetailPage() {
         onSelect={handleSelectItem}
         title="Select Material"
         showPrice="cost"
-        filterType="raw_material"
+        excludeType="finished_goods"
+        allowCreate
       />
 
       {/* Edit Line Dialog */}

@@ -7,13 +7,16 @@ import {
 } from '@/lib/api-utils';
 import {
   getWOMaterials,
-  getWOCleaningLogs,
+  getCleaningRequirements,
   getWOSOPExecution,
   getWOEnvironmentalLogs,
   getWOPackagingWeightLogs,
   getWOPackagingIntegrityLogs,
   getWOFinishedInspection,
+  getWOIPCTests,
 } from '@/lib/services/wo-execution.service';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { eq, inArray } from 'drizzle-orm';
 
 // GET /api/production/work-orders/[id]/execution-summary
 export async function GET(
@@ -36,24 +39,30 @@ export async function GET(
         productionCleaning,
         postProductionCleaning,
         prePackagingCleaning,
+        packagingCleaning,
         sopExecutions,
+        preProductionEnvLogs,
         productionEnvLogs,
         packagingEnvLogs,
         packagingWeightLogs,
         packagingIntegrityLogs,
         finishedInspection,
+        ipcTests,
       ] = await Promise.all([
         getWOMaterials(workOrderId),
-        getWOCleaningLogs(workOrderId, 'pre_production'),
-        getWOCleaningLogs(workOrderId, 'production'),
-        getWOCleaningLogs(workOrderId, 'post_production'),
-        getWOCleaningLogs(workOrderId, 'pre_packaging'),
+        getCleaningRequirements(workOrderId, 'pre_production'),
+        getCleaningRequirements(workOrderId, 'production'),
+        getCleaningRequirements(workOrderId, 'post_production'),
+        getCleaningRequirements(workOrderId, 'pre_packaging'),
+        getCleaningRequirements(workOrderId, 'packaging'),
         getWOSOPExecution(workOrderId),
+        getWOEnvironmentalLogs(workOrderId, 'pre_production'),
         getWOEnvironmentalLogs(workOrderId, 'production'),
         getWOEnvironmentalLogs(workOrderId, 'packaging'),
         getWOPackagingWeightLogs(workOrderId),
         getWOPackagingIntegrityLogs(workOrderId),
         getWOFinishedInspection(workOrderId),
+        getWOIPCTests(workOrderId),
       ]);
 
       // Calculate material weighing status
@@ -63,25 +72,44 @@ export async function GET(
         verified: materials.filter((m: any) => m.verifiedAt).length,
       };
 
-      // Calculate pre-production cleaning status
+      // Cleaning data comes from getCleaningRequirements which returns the
+      // BOM-required items (rooms + equipment) each with optional cleaningLog.
+      // Total = items required by BOM, completed = items with isClean log,
+      // verified = items with verifiedAt timestamp on their log.
       const preProductionCleaningStatus = {
         total: preProductionCleaning.length,
-        completed: preProductionCleaning.filter((l: any) => l.isClean).length,
-        verified: preProductionCleaning.filter((l: any) => l.verifiedAt).length,
+        completed: preProductionCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
+        verified: preProductionCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
       };
 
-      // Calculate production cleaning status
       const productionCleaningStatus = {
         total: productionCleaning.length,
-        completed: productionCleaning.filter((l: any) => l.isClean).length,
-        verified: productionCleaning.filter((l: any) => l.verifiedAt).length,
+        completed: productionCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
+        verified: productionCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
       };
 
-      // Calculate SOP execution status
+      // Calculate SOP execution status (overall + per-phase breakdown).
+      // Per-phase counts let the dashboard render one SOP card per phase
+      // that actually has steps configured in the BOM.
       const sopExecution = {
         total: sopExecutions.length,
         completed: sopExecutions.filter((s: any) => s.isCompleted).length,
         verified: sopExecutions.filter((s: any) => s.verifiedAt).length,
+      };
+      const sopByPhase: Record<string, { total: number; completed: number; verified: number }> = {};
+      for (const s of sopExecutions as any[]) {
+        const p = s.phase || 'production';
+        if (!sopByPhase[p]) sopByPhase[p] = { total: 0, completed: 0, verified: 0 };
+        sopByPhase[p].total += 1;
+        if (s.isCompleted) sopByPhase[p].completed += 1;
+        if (s.verifiedAt) sopByPhase[p].verified += 1;
+      }
+
+      // Calculate pre-production environmental status
+      const preProductionEnvironmental = {
+        total: preProductionEnvLogs.length > 0 ? preProductionEnvLogs.length : 0,
+        recorded: preProductionEnvLogs.length,
+        normal: preProductionEnvLogs.filter((l: any) => l.isNormal).length,
       };
 
       // Calculate production environmental status
@@ -91,18 +119,22 @@ export async function GET(
         normal: productionEnvLogs.filter((l: any) => l.isNormal).length,
       };
 
-      // Calculate post-production cleaning status
       const postProductionCleaningStatus = {
         total: postProductionCleaning.length,
-        completed: postProductionCleaning.filter((l: any) => l.isClean).length,
-        verified: postProductionCleaning.filter((l: any) => l.verifiedAt).length,
+        completed: postProductionCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
+        verified: postProductionCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
       };
 
-      // Calculate pre-packaging cleaning status
       const prePackagingCleaningStatus = {
         total: prePackagingCleaning.length,
-        completed: prePackagingCleaning.filter((l: any) => l.isClean).length,
-        verified: prePackagingCleaning.filter((l: any) => l.verifiedAt).length,
+        completed: prePackagingCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
+        verified: prePackagingCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
+      };
+
+      const packagingCleaningStatus = {
+        total: packagingCleaning.length,
+        completed: packagingCleaning.filter((r: any) => r.cleaningLog?.isClean).length,
+        verified: packagingCleaning.filter((r: any) => r.cleaningLog?.verifiedAt).length,
       };
 
       // Calculate packaging weight status
@@ -137,18 +169,127 @@ export async function GET(
           : 'pending',
       };
 
+      // Fetch production output status and WO status from work order
+      const woData = await executeDbOperation(async (db) => {
+        const workOrders = getTableRef('workOrders');
+        const rows = await db
+          .select({
+            status: workOrders.status,
+            actualQuantity: workOrders.actualQuantity,
+            yieldPercentage: workOrders.yieldPercentage,
+            bulkOutputQty: workOrders.bulkOutputQty,
+            bulkOutputRecordedAt: workOrders.bulkOutputRecordedAt,
+            finishedOutputQty: workOrders.finishedOutputQty,
+            finishedOutputRecordedAt: workOrders.finishedOutputRecordedAt,
+          })
+          .from(workOrders)
+          .where(eq(workOrders.id, workOrderId))
+          .limit(1);
+        return rows[0] || null;
+      });
+
+      const bulkOutput = {
+        recorded: woData?.bulkOutputQty !== null && woData?.bulkOutputQty !== undefined,
+        quantity: woData?.bulkOutputQty ? Number(woData.bulkOutputQty) : null,
+        recordedAt: woData?.bulkOutputRecordedAt || null,
+      };
+
+      const finishedOutput = {
+        recorded: woData?.finishedOutputQty !== null && woData?.finishedOutputQty !== undefined,
+        quantity: woData?.finishedOutputQty ? Number(woData.finishedOutputQty) : null,
+        recordedAt: woData?.finishedOutputRecordedAt || null,
+      };
+
+      // Backwards-compat alias — legacy consumers read productionOutput.recorded
+      const productionOutput = {
+        recorded: finishedOutput.recorded || (woData?.actualQuantity !== null && woData?.actualQuantity !== undefined),
+        actualQuantity: woData?.actualQuantity ? Number(woData.actualQuantity) : null,
+        yieldPercent: woData?.yieldPercentage ? Number(woData.yieldPercentage) : null,
+      };
+
+      // Fetch requisition fields from work order
+      const woReqResult = await executeDbOperation(async (db) => {
+        const workOrders = getTableRef('workOrders');
+        return db.select({
+          requisitionStatus: workOrders.requisitionStatus,
+          requisitionRequestedBy: workOrders.requisitionRequestedBy,
+          requisitionRequestedAt: workOrders.requisitionRequestedAt,
+          requisitionApprovedBy: workOrders.requisitionApprovedBy,
+          requisitionApprovedAt: workOrders.requisitionApprovedAt,
+        }).from(workOrders).where(eq(workOrders.id, workOrderId));
+      });
+
+      // Resolve user names for requestedBy / approvedBy
+      const reqRow = woReqResult[0];
+      const reqUserIds: number[] = [];
+      if (reqRow?.requisitionRequestedBy) reqUserIds.push(reqRow.requisitionRequestedBy);
+      if (reqRow?.requisitionApprovedBy) reqUserIds.push(reqRow.requisitionApprovedBy);
+
+      const reqUserMap = new Map<number, string>();
+      if (reqUserIds.length > 0) {
+        const usersTable = getTableRef('users');
+        const userRows = await executeDbOperation(async (db) =>
+          db.select({ id: usersTable.id, name: usersTable.name })
+            .from(usersTable)
+            .where(inArray(usersTable.id, reqUserIds))
+        );
+        for (const u of userRows) reqUserMap.set(u.id, u.name);
+      }
+
+      const materialRequisition = {
+        status: reqRow?.requisitionStatus || 'none',
+        requestedBy: reqRow?.requisitionRequestedBy || null,
+        requestedAt: reqRow?.requisitionRequestedAt || null,
+        approvedBy: reqRow?.requisitionApprovedBy || null,
+        approvedAt: reqRow?.requisitionApprovedAt || null,
+        requestedByName: reqRow?.requisitionRequestedBy
+          ? (reqUserMap.get(reqRow.requisitionRequestedBy) || null)
+          : null,
+        approvedByName: reqRow?.requisitionApprovedBy
+          ? (reqUserMap.get(reqRow.requisitionApprovedBy) || null)
+          : null,
+      };
+
+      // Calculate IPC (In-Process Control) status — overall + per-phase.
+      const ipcTestList = Array.isArray(ipcTests) ? ipcTests : [];
+      const ipc = {
+        total: ipcTestList.length,
+        completed: ipcTestList.filter((t: any) => t.status === 'pass' || t.status === 'fail').length,
+        approved: ipcTestList.filter((t: any) => t.approvedBy != null).length,
+      };
+      const ipcByPhase: Record<string, { total: number; completed: number; approved: number }> = {};
+      for (const t of ipcTestList as any[]) {
+        const p = t.ipcPhase || 'production';
+        if (!ipcByPhase[p]) ipcByPhase[p] = { total: 0, completed: 0, approved: 0 };
+        ipcByPhase[p].total += 1;
+        if (t.status === 'pass' || t.status === 'fail') ipcByPhase[p].completed += 1;
+        if (t.approvedBy != null) ipcByPhase[p].approved += 1;
+      }
+
       const summary = {
+        workOrderStatus: woData?.status || 'planned',
+        materialRequisition,
         materialWeighing,
         preProductionCleaning: preProductionCleaningStatus,
+        preProductionEnvironmental,
         productionCleaning: productionCleaningStatus,
         sopExecution,
+        // Per-phase SOP counts; missing phases simply absent (dashboard hides card).
+        sopByPhase,
         productionEnvironmental,
+        productionOutput,
+        bulkOutput,
+        finishedOutput,
         postProductionCleaning: postProductionCleaningStatus,
         prePackagingCleaning: prePackagingCleaningStatus,
+        packagingCleaning: packagingCleaningStatus,
         packagingWeight,
         packagingIntegrity,
         packagingEnvironmental,
         finishedInspection: finishedInspectionStatus,
+        ipc,
+        // Per-phase IPC counts; same render rule as sopByPhase.
+        ipcByPhase,
       };
 
       return successResponse(summary);

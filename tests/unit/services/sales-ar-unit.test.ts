@@ -1,0 +1,413 @@
+/**
+ * Sales + Accounts Receivable Unit Tests
+ *
+ * Tests the service-level functions in the Sales-to-Cash flow:
+ * 1. Sales Order creation with ATP check
+ * 2. AR Invoice CRUD (create, confirm, delete)
+ * 3. AR Payment (receipt) recording
+ * 4. Journal entry creation during AR confirmation
+ * 5. Receipt journal entry (DR Bank, CR AR)
+ * 6. Invoice status transitions (draft -> posted -> partial -> paid)
+ * 7. GL balance verification at each step
+ * 8. Output VAT tracking
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import * as schema from '@/lib/db/schema';
+import { generateCreateTableSql } from '../../helpers/schema-sync';
+import {
+  seedGLAccountTypes,
+  seedGLAccounts,
+  seedFiscalYearAndPeriods,
+  seedCustomers,
+  ACCT_TEST_IDS,
+  verifyTrialBalance,
+  getAccountBalance,
+} from '../../helpers/seed-accounting';
+
+const { getTestDb, setTestDb } = vi.hoisted(() => {
+  let _testDb: any = null;
+  return {
+    getTestDb: () => _testDb,
+    setTestDb: (db: any) => { _testDb = db; },
+  };
+});
+
+let testSqlite: Database.Database;
+
+vi.mock('@/lib/db', () => ({
+  isSqlite: () => true,
+  getDb: async () => getTestDb(),
+  getSqliteDb: () => getTestDb(),
+  schema,
+}));
+
+vi.mock('@/lib/audit', () => ({
+  createAuditLog: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@/lib/services/inventory.service', () => ({
+  getLotsForPicking: vi.fn(() => Promise.resolve([])),
+  reserveLots: vi.fn(() => Promise.resolve()),
+  issueMaterial: vi.fn(() => Promise.resolve()),
+  receiveMaterial: vi.fn(() => Promise.resolve(1)),
+}));
+
+vi.mock('@/lib/services/unit-cost.service', () => ({
+  calculateCOGS: vi.fn(() => Promise.resolve({ unitCost: 50, totalCost: 500, marginAmount: 500, marginPercent: 50 })),
+  updateSOLineWithCOGS: vi.fn(() => Promise.resolve()),
+  recalculateWAC: vi.fn(() => Promise.resolve({ success: true })),
+  updateItemLastPurchase: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@/lib/services/matching.service', () => ({
+  runMatching: vi.fn(() => Promise.resolve({ success: true, status: 'matched', exceptions: [] })),
+}));
+
+import {
+  createARInvoice,
+  getARInvoiceById,
+  listARInvoices,
+  confirmARInvoice,
+  recordARPayment,
+  deleteARInvoice,
+} from '@/lib/services/accounting.service';
+
+import {
+  checkATP,
+  createSalesOrder,
+} from '@/lib/services/sales.service';
+
+const REQUIRED_TABLES = [
+  schema.sqliteGLAccountTypes, schema.sqliteGLAccounts,
+  schema.sqliteFiscalYears, schema.sqliteFiscalPeriods,
+  schema.sqliteJournalEntries, schema.sqliteJournalLines,
+  schema.sqliteVendors, schema.sqliteCustomers,
+  schema.sqliteAPInvoices, schema.sqliteAPInvoiceLines,
+  schema.sqliteARInvoices, schema.sqliteARInvoiceLines,
+  schema.sqlitePayments, schema.sqlitePaymentAllocations,
+  schema.sqliteVATTransactions, schema.sqliteUsers, schema.sqliteAuditTrail,
+  schema.sqliteItems, schema.sqliteWarehouses,
+  schema.sqliteInventoryLots, schema.sqliteInventoryTransactions,
+  schema.sqliteSalesOrders, schema.sqliteSalesOrderLines, schema.sqliteSalesDeliveries,
+];
+
+describe('Sales + AR Unit Tests', () => {
+  beforeEach(() => {
+    testSqlite = new Database(':memory:');
+    testSqlite.pragma('journal_mode = WAL');
+    const testDb = drizzle(testSqlite, { schema });
+    setTestDb(testDb);
+
+    for (const table of REQUIRED_TABLES) {
+      try { testSqlite.exec(generateCreateTableSql(table)); } catch { /* skip */ }
+    }
+
+    seedGLAccountTypes(testSqlite);
+    seedGLAccounts(testSqlite);
+    seedFiscalYearAndPeriods(testSqlite);
+    seedCustomers(testSqlite);
+
+    testSqlite.exec("INSERT OR IGNORE INTO users (id, name, email, password, role, is_active) VALUES (1, 'Sales User', 'sales@test.com', 'hash', 'sales', 1)");
+
+    testSqlite.exec(`
+      INSERT OR IGNORE INTO items (id, code, name_th, name_en, type, category, primary_unit, is_active, on_hand, on_hand_cost, created_at, updated_at) VALUES
+        (20, 'FG-HERB-001', 'ยาสมุนไพร A', 'Herbal Medicine A', 'finished_goods', 'products', 'box', 1, 100, 5000, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (21, 'FG-HERB-002', 'ยาสมุนไพร B', 'Herbal Medicine B', 'finished_goods', 'products', 'bottle', 1, 50, 2500, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `);
+
+    testSqlite.exec("INSERT OR IGNORE INTO warehouses (id, code, name, type, is_active, created_at, updated_at) VALUES (1, 'WH-MAIN', 'Main Warehouse', 'main', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+
+    testSqlite.exec(`
+      INSERT OR IGNORE INTO inventory_lots (id, item_id, lot_number, warehouse_id, quantity, reserved_quantity, unit, status, expiry_date, received_date, created_at, updated_at) VALUES
+        (100, 20, 'LOT-FG001-001', 1, 80, 10, 'box', 'released', '2027-01-01', '2025-01-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (101, 20, 'LOT-FG001-002', 1, 20, 0, 'box', 'released', '2027-06-01', '2025-01-05', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (102, 21, 'LOT-FG002-001', 1, 50, 5, 'bottle', 'released', '2027-03-01', '2025-01-10', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `);
+  });
+
+  afterEach(() => {
+    if (testSqlite) testSqlite.close();
+    vi.clearAllMocks();
+  });
+
+  async function createTestARInvoice(overrides?: Partial<{
+    invoiceNumber: string; taxInvoiceNumber: string; customerId: number;
+    lines: Array<{ description: string; glAccountId: number; quantity: number; unitPrice: number }>;
+  }>) {
+    return createARInvoice({
+      invoiceNumber: overrides?.invoiceNumber || 'AR-TEST-001',
+      taxInvoiceNumber: overrides?.taxInvoiceNumber || 'T-TEST-001',
+      customerId: overrides?.customerId || ACCT_TEST_IDS.CUSTOMER_1,
+      invoiceDate: '2025-01-15', dueDate: '2025-02-15',
+      lines: overrides?.lines || [
+        { description: 'Herbal Medicine sale', glAccountId: ACCT_TEST_IDS.SALES_REVENUE, quantity: 10, unitPrice: 500 },
+      ],
+    }, 1);
+  }
+
+  // ============================================
+  // 1. Sales Order & ATP
+  // ============================================
+  describe('Sales Order & ATP', () => {
+    it('should check ATP with sufficient stock', async () => {
+      const atp = await checkATP(20, 50);
+      expect(atp.itemCode).toBe('FG-HERB-001');
+      expect(atp.availableNow).toBe(90); // 100 on-hand - 10 reserved
+      expect(atp.canFulfill).toBe(true);
+      expect(atp.shortfall).toBe(0);
+    });
+
+    it('should detect shortfall', async () => {
+      const atp = await checkATP(20, 95);
+      expect(atp.canFulfill).toBe(false);
+      expect(atp.shortfall).toBe(5);
+    });
+
+    it('should calculate ATP breakdown', async () => {
+      const atp = await checkATP(21, 10);
+      expect(atp.breakdown.onHand).toBe(50);
+      expect(atp.breakdown.reserved).toBe(5);
+      expect(atp.availableNow).toBe(45);
+    });
+
+    it('should throw for non-existent item', async () => {
+      await expect(checkATP(9999, 10)).rejects.toThrow('not found');
+    });
+
+    it('should create sales order', async () => {
+      const result = await createSalesOrder(
+        { name: 'Customer Alpha' },
+        [{ itemId: 20, quantity: 10, unitPrice: 500, requiredDate: '2025-02-01' }],
+        1
+      );
+      expect(result.orderId).toBeGreaterThan(0);
+      expect(result.atpResults).toHaveLength(1);
+
+      const so = testSqlite.prepare('SELECT so_number, customer_name, status, total_amount FROM sales_orders WHERE id = ?').get(result.orderId) as any;
+      expect(so.so_number).toMatch(/^SO-/);
+      expect(so.customer_name).toBe('Customer Alpha');
+      expect(so.status).toBe('draft');
+      expect(so.total_amount).toBe(5000);
+    });
+
+    it('should create SO with multiple lines', async () => {
+      const result = await createSalesOrder(
+        { name: 'Customer Beta' },
+        [
+          { itemId: 20, quantity: 5, unitPrice: 500, requiredDate: '2025-02-01' },
+          { itemId: 21, quantity: 3, unitPrice: 800, requiredDate: '2025-02-01' },
+        ],
+        1
+      );
+      const lines = testSqlite.prepare('SELECT * FROM sales_order_lines WHERE so_id = ?').all(result.orderId);
+      expect(lines).toHaveLength(2);
+    });
+
+    it('should reject SO without customer name', async () => {
+      await expect(createSalesOrder({ name: '' }, [{ itemId: 20, quantity: 1, unitPrice: 100, requiredDate: '2025-02-01' }], 1)).rejects.toThrow('Customer name');
+    });
+  });
+
+  // ============================================
+  // 2. AR Invoice Creation
+  // ============================================
+  describe('AR Invoice Creation', () => {
+    it('should create with correct VAT', async () => {
+      const inv = await createTestARInvoice();
+      expect(inv.status).toBe('draft');
+      expect(inv.subtotal).toBe(5000);
+      expect(inv.vatAmount).toBe(350);
+      expect(inv.totalAmount).toBe(5350);
+    });
+
+    it('should create with multiple lines', async () => {
+      const inv = await createTestARInvoice({
+        lines: [
+          { description: 'A', glAccountId: ACCT_TEST_IDS.SALES_REVENUE, quantity: 5, unitPrice: 1000 },
+          { description: 'B', glAccountId: ACCT_TEST_IDS.SALES_REVENUE, quantity: 10, unitPrice: 200 },
+        ],
+      });
+      expect(inv.lines!).toHaveLength(2);
+      expect(inv.subtotal).toBe(7000);
+      expect(inv.totalAmount).toBe(7490);
+    });
+
+    it('should retrieve by ID', async () => {
+      const created = await createTestARInvoice();
+      const retrieved = await getARInvoiceById(created.id);
+      expect(retrieved.invoiceNumber).toBe('AR-TEST-001');
+    });
+
+    it('should list with filter', async () => {
+      await createTestARInvoice({ invoiceNumber: 'AR-L1', taxInvoiceNumber: 'T-L1' });
+      await createTestARInvoice({ invoiceNumber: 'AR-L2', taxInvoiceNumber: 'T-L2' });
+      const list = await listARInvoices({ customerId: ACCT_TEST_IDS.CUSTOMER_1 });
+      expect(list.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should throw for non-existent', async () => {
+      await expect(getARInvoiceById(99999)).rejects.toThrow('not found');
+    });
+  });
+
+  // ============================================
+  // 3. AR Invoice Confirmation
+  // ============================================
+  describe('AR Invoice Confirmation', () => {
+    it('should confirm and create journal entry', async () => {
+      const inv = await createTestARInvoice();
+      const confirmed = await confirmARInvoice(inv.id, 1);
+      expect(confirmed.status).toBe('posted');
+      expect(confirmed.journalEntryId).toBeDefined();
+    });
+
+    it('should create correct JE lines (DR AR, CR Revenue, CR VAT)', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+
+      const lines = testSqlite.prepare(`
+        SELECT jl.gl_account_id, jl.debit, jl.credit FROM journal_lines jl
+        JOIN journal_entries je ON jl.journal_entry_id = je.id WHERE je.source_id = ?
+      `).all(inv.id) as Array<{ gl_account_id: number; debit: number; credit: number }>;
+
+      expect(lines.find(l => l.gl_account_id === ACCT_TEST_IDS.AR_DOMESTIC)!.debit).toBe(5350);
+      expect(lines.find(l => l.gl_account_id === ACCT_TEST_IDS.SALES_REVENUE)!.credit).toBe(5000);
+      expect(lines.find(l => l.gl_account_id === ACCT_TEST_IDS.OUTPUT_VAT)!.credit).toBe(350);
+    });
+
+    it('should auto-post journal entry', async () => {
+      const inv = await createTestARInvoice();
+      const confirmed = await confirmARInvoice(inv.id, 1);
+      const je = testSqlite.prepare('SELECT status FROM journal_entries WHERE id = ?').get(confirmed.journalEntryId) as any;
+      expect(je.status).toBe('posted');
+    });
+
+    it('should create output VAT transaction', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      const vatTx = testSqlite.prepare('SELECT * FROM vat_transactions WHERE ar_invoice_id = ?').get(inv.id) as any;
+      expect(vatTx.transaction_type).toBe('output');
+      expect(Number(vatTx.vat_amount)).toBe(350);
+    });
+
+    it('should maintain balanced trial balance', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      expect(verifyTrialBalance(testSqlite).isBalanced).toBe(true);
+    });
+
+    it('should reject confirming non-draft', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      await expect(confirmARInvoice(inv.id, 1)).rejects.toThrow("status 'posted'");
+    });
+  });
+
+  // ============================================
+  // 4. AR Payment (Receipt)
+  // ============================================
+  describe('AR Payment (Receipt)', () => {
+    it('should record full receipt', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      const { payment, invoice: paid } = await recordARPayment(inv.id, { paymentDate: '2025-02-01', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 5350 }, 1);
+      expect(payment.paymentNumber).toMatch(/^RC-/);
+      expect(paid.status).toBe('paid');
+      expect(paid.paidAmount).toBe(5350);
+    });
+
+    it('should support partial receipts', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      const { invoice: p1 } = await recordARPayment(inv.id, { paymentDate: '2025-01-20', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 3000 }, 1);
+      expect(p1.status).toBe('partial');
+      const { invoice: p2 } = await recordARPayment(inv.id, { paymentDate: '2025-01-25', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 2350 }, 1);
+      expect(p2.status).toBe('paid');
+    });
+
+    it('should create receipt JE (DR Bank, CR AR)', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      const { payment } = await recordARPayment(inv.id, { paymentDate: '2025-02-01', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 5350 }, 1);
+
+      const lines = testSqlite.prepare('SELECT gl_account_id, debit, credit FROM journal_lines WHERE journal_entry_id = ?').all(payment.journalEntryId) as Array<{ gl_account_id: number; debit: number; credit: number }>;
+      expect(lines.find(l => l.gl_account_id === ACCT_TEST_IDS.BANK)!.debit).toBe(5350);
+      expect(lines.find(l => l.gl_account_id === ACCT_TEST_IDS.AR_DOMESTIC)!.credit).toBe(5350);
+    });
+
+    it('should reject exceeding outstanding', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      await expect(recordARPayment(inv.id, { paymentDate: '2025-02-01', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 99999 }, 1)).rejects.toThrow('exceeds outstanding');
+    });
+
+    it('should reject receipt for draft', async () => {
+      const inv = await createTestARInvoice();
+      await expect(recordARPayment(inv.id, { paymentDate: '2025-02-01', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 5350 }, 1)).rejects.toThrow("status 'draft'");
+    });
+
+    it('should maintain balanced trial balance', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      await recordARPayment(inv.id, { paymentDate: '2025-02-01', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 5350 }, 1);
+      expect(verifyTrialBalance(testSqlite).isBalanced).toBe(true);
+    });
+  });
+
+  // ============================================
+  // 5. AR Invoice Delete
+  // ============================================
+  describe('AR Invoice Delete', () => {
+    it('should delete draft', async () => {
+      const inv = await createTestARInvoice();
+      await deleteARInvoice(inv.id, 1);
+      expect(testSqlite.prepare('SELECT id FROM ar_invoices WHERE id = ?').get(inv.id)).toBeUndefined();
+    });
+
+    it('should reject deleting confirmed', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      await expect(deleteARInvoice(inv.id, 1)).rejects.toThrow('draft');
+    });
+  });
+
+  // ============================================
+  // 6. GL Balance Verification
+  // ============================================
+  describe('GL Balance Verification', () => {
+    it('should show AR increase after confirmation', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      expect(getAccountBalance(testSqlite, ACCT_TEST_IDS.AR_DOMESTIC)).toBe(5350);
+    });
+
+    it('should show revenue credit after confirmation', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      expect(getAccountBalance(testSqlite, ACCT_TEST_IDS.SALES_REVENUE)).toBe(-5000);
+    });
+
+    it('should zero AR after full receipt', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      await recordARPayment(inv.id, { paymentDate: '2025-02-01', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 5350 }, 1);
+      expect(getAccountBalance(testSqlite, ACCT_TEST_IDS.AR_DOMESTIC)).toBe(0);
+    });
+
+    it('should show bank increase after receipt', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      await recordARPayment(inv.id, { paymentDate: '2025-02-01', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 5350 }, 1);
+      expect(getAccountBalance(testSqlite, ACCT_TEST_IDS.BANK)).toBe(5350);
+    });
+
+    it('should show output VAT liability', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      expect(getAccountBalance(testSqlite, ACCT_TEST_IDS.OUTPUT_VAT)).toBe(-350);
+    });
+  });
+});

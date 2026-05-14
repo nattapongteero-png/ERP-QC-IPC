@@ -10,7 +10,7 @@
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ApprovalChain } from '@/components/shared/ApprovalChain';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Calendar, User, CheckCircle, XCircle, Clock, ArrowUp } from 'lucide-react';
+import { FileText, Calendar, User, CheckCircle, XCircle, Clock, ArrowUp, Download, Paperclip } from 'lucide-react';
 import type { DocumentVersion, DocumentVersionStatus } from '@/types/documents';
 
 // ============================================
@@ -163,6 +163,34 @@ export function DocumentVersionHistory({
                   </span>
                 </div>
               </div>
+
+              {/* File Info & Download */}
+              {(version.fileName || version.filePath || version.hasFileData) && (
+                <div className="mt-2 flex items-center justify-between bg-muted/30 rounded-md px-2 py-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
+                    <Paperclip className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{version.fileName || version.filePath?.split('/').pop() || 'file'}</span>
+                    {version.fileSize && (
+                      <span className="text-muted-foreground/60">
+                        ({version.fileSize > 1048576
+                          ? `${(version.fileSize / 1048576).toFixed(1)} MB`
+                          : `${Math.round(version.fileSize / 1024)} KB`})
+                      </span>
+                    )}
+                  </div>
+                  {isCurrent && (
+                    <a
+                      href={`/api/documents/versions/${version.id}/file`}
+                      className="flex items-center gap-1 text-xs text-primary hover:underline flex-shrink-0 ml-2"
+                      onClick={(e) => e.stopPropagation()}
+                      download
+                    >
+                      <Download className="h-3 w-3" />
+                      Download
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Change Description */}
               {version.changeDescription && (

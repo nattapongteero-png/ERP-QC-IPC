@@ -140,7 +140,7 @@ export const prListFilterSchema = z.object({
   toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+  limit: z.coerce.number().int().min(1).max(1000).optional().default(20),
 });
 
 // Export types

@@ -1,0 +1,260 @@
+{
+  "page": {
+    "title": "VMI",
+    "description": "Vendor Managed Inventory - การจัดการสินค้าคงคลังโดยผู้ขาย"
+  },
+  "dashboard": {
+    "title": "VMI Integration",
+    "subtitle": "Vendor Managed Inventory - เชื่อมต่อกับระบบโรงพยาบาล",
+    "manageSync": "จัดการ Sync",
+    "viewOrders": "ดูคำสั่งซื้อ",
+    "connectedPortals": "Portal ที่เชื่อมต่อ",
+    "pendingOrders": "คำสั่งซื้อรอดำเนินการ",
+    "shippedToday": "ส่งวันนี้",
+    "urgentOrders": "คำสั่งซื้อเร่งด่วน"
+  },
+  "orderStatus": {
+    "pending": "รอยืนยัน",
+    "confirmed": "ยืนยันแล้ว",
+    "processing": "กำลังจัดเตรียม",
+    "shippedToday": "ส่งวันนี้",
+    "delivered": "ส่งมอบแล้ว",
+    "unmatched": "รอจับคู่สินค้า"
+  },
+  "syncStatus": {
+    "title": "สถานะการ Sync",
+    "inventoryTitle": "Inventory",
+    "itemsTitle": "Items",
+    "pricesTitle": "Prices",
+    "inventory": "สต็อกสินค้า",
+    "items": "รายการสินค้า",
+    "prices": "ราคาสินค้า",
+    "unknown": "ไม่ทราบ",
+    "completed": "สำเร็จ",
+    "running": "กำลังทำงาน",
+    "failed": "ล้มเหลว",
+    "partial": "บางส่วน",
+    "hasIssues": "มีปัญหา",
+    "never": "ไม่เคย",
+    "justNow": "เมื่อสักครู่",
+    "minutesAgo": "{count} นาทีที่แล้ว",
+    "hoursAgo": "{count} ชั่วโมงที่แล้ว",
+    "daysAgo": "{count} วันที่แล้ว"
+  },
+  "portals": {
+    "title": "VMI Portals",
+    "subtitle": "เชื่อมต่อโรงพยาบาล",
+    "activePortals": "พอร์ทัลที่ใช้งาน"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "manageOrders": "จัดการคำสั่งซื้อ",
+    "manageOrdersDescription": "ดูและจัดการ VMI Orders",
+    "viewList": "ดูรายการ",
+    "syncManagement": "Sync Management",
+    "syncDescription": "จัดการการ Sync ข้อมูล",
+    "goToSync": "ไปที่หน้า Sync",
+    "portalSettings": "Portal Settings",
+    "portalSettingsDescription": "ตั้งค่าการเชื่อมต่อ Portal",
+    "settings": "ตั้งค่า",
+    "itemMapping": "Item Mapping",
+    "itemMappingDescription": "จับคู่รหัสสินค้า",
+    "manageItems": "จัดการสินค้า",
+    "inventoryLots": "Inventory Lots",
+    "lotsDescription": "จัดการ Lot สินค้า",
+    "viewLots": "ดู Lots",
+    "hospitalPartners": "Hospital Partners",
+    "partnersDescription": "จัดการคู่ค้าโรงพยาบาล"
+  },
+  "alerts": {
+    "unmatchedTitle": "รายการรอจับคู่สินค้า",
+    "unmatchedDescription": "มี {count} รายการที่ต้องจับคู่รหัสสินค้าก่อนดำเนินการ",
+    "urgentTitle": "คำสั่งซื้อเร่งด่วน",
+    "urgentDescription": "มี {count} คำสั่งซื้อที่ต้องดำเนินการเร่งด่วน",
+    "viewItems": "ดูรายการ"
+  },
+  "agreements": {
+    "title": "ข้อตกลง VMI",
+    "description": "จัดการข้อตกลง VMI กับผู้ขาย",
+    "table": {
+      "columns": {
+        "agreementNumber": "เลขที่ข้อตกลง",
+        "supplier": "ผู้ขาย",
+        "item": "สินค้า",
+        "minLevel": "ระดับต่ำสุด",
+        "maxLevel": "ระดับสูงสุด",
+        "status": "สถานะ"
+      }
+    }
+  },
+  "replenishment": {
+    "title": "การเติมสินค้า",
+    "description": "จัดการการเติมสินค้าอัตโนมัติ"
+  },
+  "consignment": {
+    "title": "สินค้าฝากขาย",
+    "description": "จัดการสินค้าฝากขายจากผู้ขาย"
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "description": "จัดการ Webhook สำหรับการแจ้งเตือน"
+  },
+  "toast": {
+    "createAgreement": {
+      "success": "สร้างข้อตกลง VMI สำเร็จ",
+      "error": "ไม่สามารถสร้างข้อตกลง VMI ได้"
+    }
+  },
+  "sync": {
+    "syncSuffix": "Sync",
+    "breadcrumb": {
+      "portal": "VMI Portal",
+      "synchronization": "Synchronization"
+    },
+    "header": {
+      "title": "VMI Synchronization",
+      "subtitle": "จัดการการซิงค์ข้อมูลไปยัง VMI Portal",
+      "totalSyncs": "ทั้งหมด",
+      "successfulToday": "สำเร็จวันนี้",
+      "failedToday": "ล้มเหลววันนี้",
+      "running": "กำลังทำงาน",
+      "refresh": "รีเฟรช",
+      "portalSettings": "ตั้งค่า Portal"
+    },
+    "syncTypes": {
+      "inventory": {
+        "label": "Inventory",
+        "name": "สินค้าคงคลัง",
+        "description": "ส่งระดับสต็อกปัจจุบันไปยัง VMI Portal"
+      },
+      "items": {
+        "label": "Items",
+        "name": "รายการสินค้า",
+        "description": "อัปเดตแคตตาล็อกสินค้าพร้อมรหัส TPP/TTMT"
+      },
+      "prices": {
+        "label": "Prices",
+        "name": "ราคา",
+        "description": "ส่งข้อมูลราคาปัจจุบัน"
+      },
+      "orders": {
+        "label": "Orders",
+        "name": "คำสั่งซื้อ",
+        "description": "ดึงคำสั่งซื้อจาก VMI Portal"
+      }
+    },
+    "status": {
+      "running": "กำลังทำงาน",
+      "completed": "สำเร็จ",
+      "partial": "บางส่วน",
+      "failed": "ล้มเหลว"
+    },
+    "trigger": {
+      "manual": "Manual",
+      "scheduled": "Scheduled",
+      "threshold": "Threshold",
+      "auto": "Auto"
+    },
+    "time": {
+      "justNow": "เมื่อสักครู่",
+      "minutesAgo": "{count} นาทีที่แล้ว",
+      "hoursAgo": "{count} ชั่วโมงที่แล้ว",
+      "daysAgo": "{count} วันที่แล้ว"
+    },
+    "card": {
+      "noHistory": "ยังไม่มีประวัติการซิงค์",
+      "syncing": "กำลังซิงค์...",
+      "syncLabel": "ซิงค์{label}",
+      "noItemsToSync": "ไม่พบรายการที่ต้องซิงค์",
+      "syncSuccess": "ซิงค์สำเร็จ {processed} รายการ",
+      "syncSuccessWithFailures": "ซิงค์สำเร็จ {processed} รายการ, ล้มเหลว {failed}",
+      "failedSuffix": "ล้มเหลว"
+    },
+    "syncAll": {
+      "title": "ซิงค์ทั้งหมด",
+      "description": "ซิงค์ข้อมูลทุกประเภทตามลำดับ: Inventory → Items → Prices",
+      "button": "ซิงค์ทั้งหมด",
+      "syncing": "กำลังซิงค์..."
+    },
+    "help": {
+      "title": "ไม่พบรายการที่ต้องซิงค์?",
+      "intro": "ในการซิงค์รายการไปยัง VMI Portal คุณต้อง:",
+      "step1Label": "กำหนดค่า VMI Portal",
+      "step1Detail": "ตั้งค่าการเชื่อมต่ออย่างน้อย 1 portal ใน",
+      "step1Link": "ตั้งค่า → VMI Portals",
+      "step2Label": "เปิดใช้งาน VMI Sync บนสินค้า",
+      "step2Detail": "ไปที่",
+      "step2Link": "คลังสินค้า → รายการสินค้า",
+      "step2Suffix": "และเปิดใช้งาน \"VMI Sync Enabled\"",
+      "step3Label": "เพิ่มรหัสมาตรฐาน VMI",
+      "step3Detail": "เพิ่มรหัส TPP/TTMT ในส่วน VMI Standard Codes"
+    },
+    "history": {
+      "title": "ประวัติการซิงค์",
+      "subtitle": "คลิกที่แถวเพื่อดูรายละเอียดเพิ่มเติม",
+      "refreshHint": "รีเฟรช",
+      "loadError": "ไม่สามารถโหลดประวัติการซิงค์",
+      "empty": "ไม่มีประวัติการซิงค์",
+      "emptyHint": "เริ่มการซิงค์ข้อมูลจากการ์ดด้านบนเพื่อดูประวัติที่นี่",
+      "searchPlaceholder": "ค้นหา...",
+      "filterButton": "ตัวกรอง",
+      "filterHint": "แสดง/ซ่อนตัวกรอง",
+      "pagerInfoText": "หน้า {0} จาก {1} ({2} รายการ)",
+      "totalSummary": "รวม: {0} รายการ",
+      "failedSuffix": "ล้มเหลว",
+      "columns": {
+        "syncType": "ประเภท",
+        "status": "สถานะ",
+        "trigger": "Trigger",
+        "progress": "ความคืบหน้า",
+        "startedAt": "เวลาเริ่มต้น",
+        "duration": "ระยะเวลา",
+        "portal": "Portal"
+      },
+      "headerFilter": {
+        "inventory": "สินค้าคงคลัง",
+        "items": "รายการสินค้า",
+        "prices": "ราคา",
+        "completed": "สำเร็จ",
+        "failed": "ล้มเหลว",
+        "partial": "บางส่วน",
+        "running": "กำลังทำงาน",
+        "manual": "Manual",
+        "scheduled": "Scheduled",
+        "auto": "Auto"
+      }
+    },
+    "masterDetail": {
+      "syncInfo": "ข้อมูลการซิงค์",
+      "syncId": "Sync ID:",
+      "portalId": "Portal ID:",
+      "duration": "ระยะเวลา:",
+      "results": "ผลลัพธ์",
+      "processed": "ประมวลผลแล้ว:",
+      "failed": "ล้มเหลว:",
+      "total": "ทั้งหมด:",
+      "itemsUnit": "รายการ",
+      "executedBy": "ผู้ดำเนินการ",
+      "trigger": "Trigger:",
+      "by": "โดย:",
+      "system": "System",
+      "errorMessage": "Error Message"
+    },
+    "mobileCard": {
+      "errorLabel": "Error:"
+    },
+    "info": {
+      "title": "เกี่ยวกับ VMI Synchronization",
+      "syncSuffix": "Sync",
+      "autoSyncLabel": "Auto Sync:",
+      "autoSyncDescription": "ระบบจะซิงค์อัตโนมัติทุก 15 นาที ทั้งแบบ Client-side และ Server-side (Vercel Cron)"
+    }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

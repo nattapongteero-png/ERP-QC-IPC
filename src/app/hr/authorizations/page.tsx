@@ -5,7 +5,9 @@
 // Redesigned with KPIs, DataGrid, Cards, and Analytics views
 
 import React, { useState, useCallback, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -63,42 +65,37 @@ import type {
   EmployeeWithDetails,
 } from '@/types/hr';
 
-// Authorization type configuration with colors and icons
+// Authorization type configuration with colors and icons (translation-driven)
 const AUTH_TYPE_CONFIG: Record<
   AuthorizationType,
-  { label: string; labelEn: string; color: string; bgColor: string; borderColor: string }
+  { translationKey: string; color: string; bgColor: string; borderColor: string }
 > = {
   batch_release: {
-    label: 'ปล่อยผ่านชุด',
-    labelEn: 'Batch Release',
+    translationKey: 'batchRelease',
     color: 'text-green-700',
     bgColor: 'bg-green-50',
     borderColor: 'border-green-500',
   },
   sop_approval: {
-    label: 'อนุมัติ SOP',
-    labelEn: 'SOP Approval',
+    translationKey: 'sopApproval',
     color: 'text-blue-700',
     bgColor: 'bg-blue-50',
     borderColor: 'border-blue-500',
   },
   deviation_approval: {
-    label: 'อนุมัติ Deviation',
-    labelEn: 'Deviation Approval',
+    translationKey: 'deviationApproval',
     color: 'text-orange-700',
     bgColor: 'bg-orange-50',
     borderColor: 'border-orange-500',
   },
   change_control_approval: {
-    label: 'อนุมัติ Change Control',
-    labelEn: 'Change Control',
+    translationKey: 'changeControlApproval',
     color: 'text-purple-700',
     bgColor: 'bg-purple-50',
     borderColor: 'border-purple-500',
   },
   capa_approval: {
-    label: 'อนุมัติ CAPA',
-    labelEn: 'CAPA Approval',
+    translationKey: 'capaApproval',
     color: 'text-red-700',
     bgColor: 'bg-red-50',
     borderColor: 'border-red-500',
@@ -149,11 +146,11 @@ async function createDelegation(data: {
   return result.data;
 }
 
-// Format date helper
-function formatDate(dateString: string | null): string {
+// Format date helper (locale-aware)
+function formatDate(dateString: string | null, locale: string): string {
   if (!dateString) return '-';
   try {
-    return new Date(dateString).toLocaleDateString('th-TH', {
+    return new Date(dateString).toLocaleDateString(locale === 'th' ? 'th-TH' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -163,24 +160,23 @@ function formatDate(dateString: string | null): string {
   }
 }
 
-// Get authorization status
+// Get authorization status (returns status key — label is resolved at render time)
 function getAuthStatus(auth: AuthorizationWithDetails): {
   status: 'active' | 'expired' | 'pending' | 'revoked';
-  label: string;
   variant: 'success' | 'secondary' | 'warning' | 'destructive';
 } {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr(new Date());
 
   if (!auth.isActive) {
-    return { status: 'revoked', label: 'ถูกยกเลิก', variant: 'destructive' };
+    return { status: 'revoked', variant: 'destructive' };
   }
   if (auth.effectiveTo && auth.effectiveTo < today) {
-    return { status: 'expired', label: 'หมดอายุ', variant: 'secondary' };
+    return { status: 'expired', variant: 'secondary' };
   }
   if (auth.effectiveFrom > today) {
-    return { status: 'pending', label: 'รอเริ่มต้น', variant: 'warning' };
+    return { status: 'pending', variant: 'warning' };
   }
-  return { status: 'active', label: 'มีผล', variant: 'success' };
+  return { status: 'active', variant: 'success' };
 }
 
 // Generate gradient color based on code hash
@@ -196,6 +192,8 @@ function getGradientForType(authType: AuthorizationType): string {
 }
 
 export default function AuthorizationsPage() {
+  const t = useTranslations('hr');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -217,7 +215,7 @@ export default function AuthorizationsPage() {
   const [newDelegation, setNewDelegation] = useState({
     delegateId: undefined as number | undefined,
     reason: '',
-    effectiveFrom: new Date().toISOString().split('T')[0],
+    effectiveFrom: toLocalDateStr(new Date()),
     effectiveTo: '',
   });
 
@@ -270,17 +268,17 @@ export default function AuthorizationsPage() {
 
     // By type distribution
     const byTypeDistribution = Object.entries(AUTH_TYPE_CONFIG).map(([type, config]) => ({
-      name: config.label,
+      name: t(`authorizations.types.${config.translationKey}`),
       type: type as AuthorizationType,
       count: authorizations.filter((a) => a.authType === type && a.isActive).length,
     })).filter((item) => item.count > 0);
 
     // Status distribution
     const statusDistribution = [
-      { name: 'มีผล', count: active, color: '#10b981' },
-      { name: 'รอเริ่มต้น', count: pending, color: '#f59e0b' },
-      { name: 'หมดอายุ', count: expired, color: '#6b7280' },
-      { name: 'ถูกยกเลิก', count: revoked, color: '#ef4444' },
+      { name: t('authorizations.status.active'), count: active, color: '#10b981' },
+      { name: t('authorizations.status.pending'), count: pending, color: '#f59e0b' },
+      { name: t('authorizations.status.expired'), count: expired, color: '#6b7280' },
+      { name: t('authorizations.status.revoked'), count: revoked, color: '#ef4444' },
     ].filter((s) => s.count > 0);
 
     // Total delegations
@@ -292,8 +290,8 @@ export default function AuthorizationsPage() {
     // Expiring soon (within 30 days)
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    const expiringToday = thirtyDaysFromNow.toISOString().split('T')[0];
-    const today = new Date().toISOString().split('T')[0];
+    const expiringToday = toLocalDateStr(thirtyDaysFromNow);
+    const today = toLocalDateStr(new Date());
     const expiringSoon = authorizations.filter((a) => {
       if (!a.isActive || !a.effectiveTo) return false;
       return a.effectiveTo >= today && a.effectiveTo <= expiringToday;
@@ -311,15 +309,17 @@ export default function AuthorizationsPage() {
       employeesWithAuth,
       expiringSoon,
     };
-  }, [authorizations]);
+  }, [authorizations, t]);
 
   // Filtered data
   const filteredAuthorizations = useMemo(() => {
     return authorizations.filter((auth) => {
+      const authConfig = AUTH_TYPE_CONFIG[auth.authType];
+      const authLabel = authConfig ? t(`authorizations.types.${authConfig.translationKey}`) : '';
       const matchesSearch =
         !searchText ||
         auth.employeeName?.toLowerCase().includes(searchText.toLowerCase()) ||
-        AUTH_TYPE_CONFIG[auth.authType]?.label.toLowerCase().includes(searchText.toLowerCase());
+        authLabel.toLowerCase().includes(searchText.toLowerCase());
 
       const matchesType = !authTypeFilter || auth.authType === authTypeFilter;
 
@@ -327,18 +327,18 @@ export default function AuthorizationsPage() {
       const matchesStatus = !statusFilter || status.status === statusFilter;
 
       return matchesSearch && matchesType && matchesStatus;
-    });
-  }, [authorizations, searchText, authTypeFilter, statusFilter]);
+    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+  }, [authorizations, searchText, authTypeFilter, statusFilter, t]);
 
   // Mutations
   const revokeMutation = useMutation({
     mutationFn: revokeAuthorization,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'authorizations'] });
-      toast.success('ยกเลิกสิทธิ์สำเร็จ');
+      toast.success(t('authorizations.toast.revokeSuccess'));
     },
     onError: () => {
-      toast.error('ไม่สามารถยกเลิกสิทธิ์ได้');
+      toast.error(t('authorizations.toast.revokeError'));
     },
   });
 
@@ -348,10 +348,10 @@ export default function AuthorizationsPage() {
       queryClient.invalidateQueries({ queryKey: ['hr', 'authorizations'] });
       setShowDelegatePopup(false);
       resetNewDelegation();
-      toast.success('มอบอำนาจสำเร็จ');
+      toast.success(t('authorizations.toast.delegateSuccess'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถมอบอำนาจได้');
+      toast.error(error.message || t('authorizations.toast.delegateError'));
     },
   });
 
@@ -359,7 +359,7 @@ export default function AuthorizationsPage() {
     setNewDelegation({
       delegateId: undefined,
       reason: '',
-      effectiveFrom: new Date().toISOString().split('T')[0],
+      effectiveFrom: toLocalDateStr(new Date()),
       effectiveTo: '',
     });
     setSelectedAuth(null);
@@ -392,17 +392,24 @@ export default function AuthorizationsPage() {
   };
 
   // Options for filters
-  const authTypeOptions = Object.entries(AUTH_TYPE_CONFIG).map(([value, config]) => ({
-    value,
-    text: config.label,
-  }));
+  const authTypeOptions = useMemo(
+    () =>
+      Object.entries(AUTH_TYPE_CONFIG).map(([value, config]) => ({
+        value,
+        text: t(`authorizations.types.${config.translationKey}`),
+      })),
+    [t]
+  );
 
-  const statusOptions = [
-    { value: 'active', text: 'มีผล' },
-    { value: 'pending', text: 'รอเริ่มต้น' },
-    { value: 'expired', text: 'หมดอายุ' },
-    { value: 'revoked', text: 'ถูกยกเลิก' },
-  ];
+  const statusOptions = useMemo(
+    () => [
+      { value: 'active', text: t('authorizations.status.active') },
+      { value: 'pending', text: t('authorizations.status.pending') },
+      { value: 'expired', text: t('authorizations.status.expired') },
+      { value: 'revoked', text: t('authorizations.status.revoked') },
+    ],
+    [t]
+  );
 
   // Cell renderers
   const renderAuthTypeCell = (cellData: { value: AuthorizationType }) => {
@@ -410,14 +417,14 @@ export default function AuthorizationsPage() {
     if (!config) return cellData.value;
     return (
       <span className={`font-medium ${config.color}`}>
-        {config.label}
+        {t(`authorizations.types.${config.translationKey}`)}
       </span>
     );
   };
 
   const renderStatusCell = (cellData: { data: AuthorizationWithDetails }) => {
-    const { label, variant } = getAuthStatus(cellData.data);
-    return <Badge variant={variant}>{label}</Badge>;
+    const { status, variant } = getAuthStatus(cellData.data);
+    return <Badge variant={variant}>{t(`authorizations.status.${status}`)}</Badge>;
   };
 
   const renderDelegationsCell = (cellData: { data: AuthorizationWithDetails }) => {
@@ -426,7 +433,7 @@ export default function AuthorizationsPage() {
     return (
       <Badge variant="default" className="text-xs">
         <Users className="h-3 w-3 mr-1" />
-        {count} มอบอำนาจ
+        {t('authorizations.delegationsCount', { 0: count })}
       </Badge>
     );
   };
@@ -439,18 +446,18 @@ export default function AuthorizationsPage() {
       <div className="flex gap-1">
         <DxButton
           icon="group"
-          hint="มอบอำนาจ"
+          hint={t('authorizations.delegate')}
           type="default"
           stylingMode="text"
           onClick={() => openDelegatePopup(auth)}
         />
         <DxButton
           icon="close"
-          hint="ยกเลิกสิทธิ์"
+          hint={t('authorizations.revokeHint')}
           type="danger"
           stylingMode="text"
           onClick={() => {
-            if (confirm('ต้องการยกเลิกสิทธิ์นี้หรือไม่?')) {
+            if (confirm(t('authorizations.revokeConfirm'))) {
               revokeMutation.mutate(auth.id);
             }
           }}
@@ -463,20 +470,20 @@ export default function AuthorizationsPage() {
     <div className="p-4 md:p-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="สิทธิ์อนุมัติ"
-        subtitle="Authorization Management Dashboard"
+        title={t('authorizations.title')}
+        subtitle={t('authorizations.description')}
         icon={ShieldCheck}
         iconBgColor="bg-indigo-100"
         iconColor="text-indigo-600"
-        breadcrumbs={[{ label: 'HR', href: '/hr' }, { label: 'สิทธิ์อนุมัติ' }]}
+        breadcrumbs={[{ label: 'HR', href: '/hr' }, { label: t('authorizations.breadcrumb') }]}
         actions={
           <div className="flex items-center gap-2">
-            <DxButton icon="refresh" onClick={handleRefresh} hint="รีเฟรชข้อมูล" />
+            <DxButton icon="refresh" onClick={handleRefresh} hint={t('common.refreshHint')} />
             <DxButton
               icon="filter"
               onClick={() => setShowFilters(!showFilters)}
               type={showFilters ? 'default' : 'normal'}
-              hint="ตัวกรอง"
+              hint={t('common.filter')}
             />
           </div>
         }
@@ -485,7 +492,7 @@ export default function AuthorizationsPage() {
       {/* KPI Stats Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
         <StatCard
-          label="สิทธิ์ทั้งหมด"
+          label={t('authorizations.stats.total')}
           value={analytics.total}
           icon={ShieldCheck}
           iconColor="text-indigo-600"
@@ -493,7 +500,7 @@ export default function AuthorizationsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="มีผลบังคับใช้"
+          label={t('authorizations.stats.active')}
           value={analytics.active}
           icon={CheckCircle}
           iconColor="text-green-600"
@@ -501,7 +508,7 @@ export default function AuthorizationsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="รอเริ่มต้น"
+          label={t('authorizations.stats.pending')}
           value={analytics.pending}
           icon={Clock}
           iconColor="text-amber-600"
@@ -509,20 +516,20 @@ export default function AuthorizationsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ใกล้หมดอายุ"
+          label={t('authorizations.stats.expiringSoon')}
           value={analytics.expiringSoon}
           icon={AlertTriangle}
           iconColor="text-orange-600"
           accentColor="border-orange-500"
           trend={
             analytics.expiringSoon > 0
-              ? { direction: 'up', value: 'ภายใน 30 วัน' }
+              ? { direction: 'up', value: t('authorizations.stats.expiringSoonTrend') }
               : undefined
           }
           isLoading={isLoading}
         />
         <StatCard
-          label="การมอบอำนาจ"
+          label={t('authorizations.stats.delegations')}
           value={analytics.totalDelegations}
           icon={Users}
           iconColor="text-purple-600"
@@ -530,7 +537,7 @@ export default function AuthorizationsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="พนักงานที่มีสิทธิ์"
+          label={t('authorizations.stats.employeesWithAuth')}
           value={analytics.employeesWithAuth}
           icon={User}
           iconColor="text-blue-600"
@@ -542,7 +549,7 @@ export default function AuthorizationsPage() {
       {/* View Mode Switcher and Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-lg border border-gray-200">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500 mr-2">มุมมอง:</span>
+          <span className="text-sm text-gray-500 mr-2">{t('common.viewMode')}</span>
           <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode('grid')}
@@ -551,7 +558,7 @@ export default function AuthorizationsPage() {
                   ? 'bg-indigo-100 text-indigo-600'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
-              title="มุมมองตาราง"
+              title={t('authorizations.viewMode.grid')}
             >
               <List className="h-5 w-5" />
             </button>
@@ -562,7 +569,7 @@ export default function AuthorizationsPage() {
                   ? 'bg-indigo-100 text-indigo-600'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
-              title="มุมมองการ์ด"
+              title={t('authorizations.viewMode.cards')}
             >
               <Grid3X3 className="h-5 w-5" />
             </button>
@@ -573,7 +580,7 @@ export default function AuthorizationsPage() {
                   ? 'bg-indigo-100 text-indigo-600'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
-              title="มุมมองวิเคราะห์"
+              title={t('authorizations.viewMode.analytics')}
             >
               <PieChartIcon className="h-5 w-5" />
             </button>
@@ -581,7 +588,7 @@ export default function AuthorizationsPage() {
         </div>
 
         <DxButton
-          text="มอบสิทธิ์ใหม่"
+          text={t('authorizations.grantNew')}
           icon="add"
           type="default"
           stylingMode="contained"
@@ -595,48 +602,48 @@ export default function AuthorizationsPage() {
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-gray-700 flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              ตัวกรองข้อมูล
+              {t('common.dataFilters')}
             </h3>
             <button
               onClick={clearFilters}
               className="text-sm text-indigo-600 hover:text-indigo-700"
             >
-              ล้างตัวกรอง
+              {t('common.clearFilters')}
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-gray-500 mb-1">ค้นหา</label>
+              <label className="block text-sm text-gray-500 mb-1">{t('authorizations.filters.search')}</label>
               <TextBox
                 value={searchText}
                 onValueChanged={(e) => setSearchText(e.value || '')}
-                placeholder="ชื่อพนักงาน, ประเภทสิทธิ์..."
+                placeholder={t('authorizations.filters.searchPlaceholder')}
                 showClearButton
                 mode="search"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-500 mb-1">ประเภทสิทธิ์</label>
+              <label className="block text-sm text-gray-500 mb-1">{t('authorizations.filters.authType')}</label>
               <SelectBox
                 dataSource={authTypeOptions}
                 value={authTypeFilter}
                 onValueChanged={(e) => setAuthTypeFilter(e.value)}
                 displayExpr="text"
                 valueExpr="value"
-                placeholder="ทุกประเภท"
+                placeholder={t('authorizations.filters.authTypePlaceholder')}
                 showClearButton
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-500 mb-1">สถานะ</label>
+              <label className="block text-sm text-gray-500 mb-1">{t('authorizations.filters.status')}</label>
               <SelectBox
                 dataSource={statusOptions}
                 value={statusFilter}
                 onValueChanged={(e) => setStatusFilter(e.value)}
                 displayExpr="text"
                 valueExpr="value"
-                placeholder="ทุกสถานะ"
+                placeholder={t('authorizations.filters.statusPlaceholder')}
                 showClearButton
               />
             </div>
@@ -648,6 +655,7 @@ export default function AuthorizationsPage() {
       {viewMode === 'grid' && (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <DataGrid
+            key={locale}
             dataSource={filteredAuthorizations}
             keyExpr="id"
             showBorders={false}
@@ -659,56 +667,70 @@ export default function AuthorizationsPage() {
             hoverStateEnabled
             loadPanel={{ enabled: isLoading }}
           >
-            <SearchPanel visible placeholder="ค้นหา..." />
+            <SearchPanel visible placeholder={t('common.search')} />
             <HeaderFilter visible />
             <FilterRow visible />
             <Grouping autoExpandAll={false} />
             <GroupPanel visible />
             <ColumnChooser enabled mode="select" />
-            <StateStoring enabled type="localStorage" storageKey="hr_authorizations_grid" />
+            <StateStoring enabled type="localStorage" storageKey="hr_authorizations_grid_v2" />
             <Scrolling mode="virtual" />
             <Export enabled />
 
-            <Column dataField="employeeName" caption="พนักงาน" minWidth={180} allowGrouping />
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
+            <Column dataField="employeeName" caption={t('authorizations.columns.employee')} minWidth={180} allowGrouping />
             <Column
               dataField="authType"
-              caption="ประเภทสิทธิ์"
+              caption={t('authorizations.columns.authType')}
               width={180}
               cellRender={renderAuthTypeCell}
               allowGrouping
             />
             <Column
               dataField="effectiveFrom"
-              caption="วันที่เริ่ม"
+              caption={t('authorizations.columns.effectiveFrom')}
               width={120}
-              calculateCellValue={(rowData) => formatDate(rowData.effectiveFrom)}
+              calculateCellValue={(rowData) => formatDate(rowData.effectiveFrom, locale)}
             />
             <Column
               dataField="effectiveTo"
-              caption="วันที่สิ้นสุด"
+              caption={t('authorizations.columns.effectiveTo')}
               width={120}
-              calculateCellValue={(rowData) => formatDate(rowData.effectiveTo)}
+              calculateCellValue={(rowData) => formatDate(rowData.effectiveTo, locale)}
             />
             <Column
-              caption="สถานะ"
+              caption={t('authorizations.columns.status')}
               width={110}
               cellRender={renderStatusCell}
               alignment="center"
               allowGrouping
             />
             <Column
-              caption="มอบอำนาจ"
+              caption={t('authorizations.columns.delegations')}
               width={120}
               cellRender={renderDelegationsCell}
               alignment="center"
             />
             <Column
               dataField="grantedByName"
-              caption="ผู้มอบสิทธิ์"
+              caption={t('authorizations.columns.grantedBy')}
               width={150}
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('authorizations.columns.actions')}
               width={100}
               cellRender={renderActionsCell}
               alignment="center"
@@ -751,7 +773,7 @@ export default function AuthorizationsPage() {
                     )}`}
                   />
                   <h3 className="font-semibold text-gray-700">
-                    {config.label}{' '}
+                    {t(`authorizations.types.${config.translationKey}`)}{' '}
                     <span className="text-gray-400 font-normal">({typeAuths.length})</span>
                   </h3>
                 </div>
@@ -779,34 +801,34 @@ export default function AuthorizationsPage() {
                             >
                               {auth.employeeName?.charAt(0) || '?'}
                             </div>
-                            <Badge variant={status.variant}>{status.label}</Badge>
+                            <Badge variant={status.variant}>{t(`authorizations.status.${status.status}`)}</Badge>
                           </div>
 
                           {/* Employee Name */}
                           <h4 className="font-semibold text-gray-900 mb-1">
-                            {auth.employeeName || 'Unknown'}
+                            {auth.employeeName || t('authorizations.unknown')}
                           </h4>
-                          <p className="text-xs text-gray-500 mb-3">{config.labelEn}</p>
+                          <p className="text-xs text-gray-500 mb-3">{t(`authorizations.typesEn.${config.translationKey}`)}</p>
 
                           {/* Details */}
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center gap-2 text-gray-600">
                               <Calendar className="h-4 w-4 text-gray-400" />
                               <span>
-                                {formatDate(auth.effectiveFrom)}
-                                {auth.effectiveTo && ` - ${formatDate(auth.effectiveTo)}`}
+                                {formatDate(auth.effectiveFrom, locale)}
+                                {auth.effectiveTo && ` - ${formatDate(auth.effectiveTo, locale)}`}
                               </span>
                             </div>
                             {auth.delegations && auth.delegations.length > 0 && (
                               <div className="flex items-center gap-2 text-gray-600">
                                 <Users className="h-4 w-4 text-gray-400" />
-                                <span>{auth.delegations.length} มอบอำนาจ</span>
+                                <span>{t('authorizations.delegationsCount', { 0: auth.delegations.length })}</span>
                               </div>
                             )}
                             {auth.grantedByName && (
                               <div className="flex items-center gap-2 text-gray-600">
                                 <User className="h-4 w-4 text-gray-400" />
-                                <span className="truncate">โดย {auth.grantedByName}</span>
+                                <span className="truncate">{t('authorizations.grantedBy')} {auth.grantedByName}</span>
                               </div>
                             )}
                           </div>
@@ -814,7 +836,7 @@ export default function AuthorizationsPage() {
                           {/* Actions */}
                           <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
                             <DxButton
-                              text="มอบอำนาจ"
+                              text={t('authorizations.delegate')}
                               icon="group"
                               type="default"
                               stylingMode="outlined"
@@ -822,11 +844,11 @@ export default function AuthorizationsPage() {
                             />
                             <DxButton
                               icon="close"
-                              hint="ยกเลิก"
+                              hint={t('authorizations.revoke')}
                               type="danger"
                               stylingMode="text"
                               onClick={() => {
-                                if (confirm('ต้องการยกเลิกสิทธิ์นี้หรือไม่?')) {
+                                if (confirm(t('authorizations.revokeConfirm'))) {
                                   revokeMutation.mutate(auth.id);
                                 }
                               }}
@@ -844,7 +866,7 @@ export default function AuthorizationsPage() {
           {filteredAuthorizations.filter((a) => a.isActive).length === 0 && (
             <div className="text-center py-12 text-gray-500">
               <ShieldCheck className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>ไม่พบสิทธิ์อนุมัติที่ตรงกับเงื่อนไข</p>
+              <p>{t('authorizations.noMatch')}</p>
             </div>
           )}
         </div>
@@ -859,10 +881,11 @@ export default function AuthorizationsPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-indigo-600" />
-                การกระจายตามประเภทสิทธิ์
+                {t('authorizations.analytics.byTypeTitle')}
               </h3>
               {analytics.byTypeDistribution.length > 0 ? (
                 <PieChart
+                  key={locale}
                   dataSource={analytics.byTypeDistribution}
                   type="doughnut"
                   palette={['#10b981', '#3b82f6', '#f97316', '#8b5cf6', '#ef4444']}
@@ -884,13 +907,13 @@ export default function AuthorizationsPage() {
                     enabled
                     format="fixedPoint"
                     customizeTooltip={(pointInfo: { argumentText?: string; valueText?: string }) => ({
-                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} สิทธิ์`,
+                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} ${t('authorizations.analytics.authSuffix')}`,
                     })}
                   />
                 </PieChart>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-gray-400">
-                  ไม่มีข้อมูลสิทธิ์ที่มีผล
+                  {t('authorizations.noActiveAuth')}
                 </div>
               )}
             </div>
@@ -899,10 +922,11 @@ export default function AuthorizationsPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Activity className="h-5 w-5 text-emerald-600" />
-                สถานะสิทธิ์อนุมัติ
+                {t('authorizations.analytics.byStatusTitle')}
               </h3>
               {analytics.statusDistribution.length > 0 ? (
                 <PieChart
+                  key={locale}
                   dataSource={analytics.statusDistribution}
                   type="doughnut"
                   palette="Material"
@@ -924,13 +948,13 @@ export default function AuthorizationsPage() {
                     enabled
                     format="fixedPoint"
                     customizeTooltip={(pointInfo: { argumentText?: string; valueText?: string }) => ({
-                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} รายการ`,
+                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} ${t('authorizations.analytics.itemSuffix')}`,
                     })}
                   />
                 </PieChart>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-gray-400">
-                  ไม่มีข้อมูล
+                  {t('authorizations.noData')}
                 </div>
               )}
             </div>
@@ -942,23 +966,23 @@ export default function AuthorizationsPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Activity className="h-4 w-4 text-indigo-600" />
-                สรุปตามสถานะ
+                {t('authorizations.analytics.summaryByStatus')}
               </h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">มีผลบังคับใช้</span>
+                  <span className="text-sm text-gray-600">{t('authorizations.summary.active')}</span>
                   <span className="font-semibold text-green-600">{analytics.active}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">รอเริ่มต้น</span>
+                  <span className="text-sm text-gray-600">{t('authorizations.summary.pending')}</span>
                   <span className="font-semibold text-amber-600">{analytics.pending}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">หมดอายุ</span>
+                  <span className="text-sm text-gray-600">{t('authorizations.summary.expired')}</span>
                   <span className="font-semibold text-gray-600">{analytics.expired}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">ถูกยกเลิก</span>
+                  <span className="text-sm text-gray-600">{t('authorizations.summary.revoked')}</span>
                   <span className="font-semibold text-red-600">{analytics.revoked}</span>
                 </div>
               </div>
@@ -968,7 +992,7 @@ export default function AuthorizationsPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <FileCheck className="h-4 w-4 text-green-600" />
-                สรุปตามประเภท
+                {t('authorizations.analytics.summaryByType')}
               </h4>
               <div className="space-y-3">
                 {Object.entries(AUTH_TYPE_CONFIG).map(([type, config]) => {
@@ -977,7 +1001,7 @@ export default function AuthorizationsPage() {
                   ).length;
                   return (
                     <div key={type} className="flex justify-between items-center">
-                      <span className={`text-sm ${config.color}`}>{config.label}</span>
+                      <span className={`text-sm ${config.color}`}>{t(`authorizations.types.${config.translationKey}`)}</span>
                       <span className="font-semibold text-gray-700">{count}</span>
                     </div>
                   );
@@ -989,17 +1013,17 @@ export default function AuthorizationsPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <GitBranch className="h-4 w-4 text-purple-600" />
-                การมอบอำนาจ
+                {t('authorizations.analytics.delegationsTitle')}
               </h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">การมอบอำนาจทั้งหมด</span>
+                  <span className="text-sm text-gray-600">{t('authorizations.analytics.totalDelegations')}</span>
                   <span className="font-semibold text-purple-600">
                     {analytics.totalDelegations}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">สิทธิ์ที่มีการมอบอำนาจ</span>
+                  <span className="text-sm text-gray-600">{t('authorizations.analytics.delegatedRights')}</span>
                   <span className="font-semibold text-gray-700">
                     {authorizations.filter((a) => a.delegations && a.delegations.length > 0).length}
                   </span>
@@ -1011,11 +1035,11 @@ export default function AuthorizationsPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <ArrowRight className="h-4 w-4 text-emerald-600" />
-                ดำเนินการด่วน
+                {t('authorizations.analytics.quickActions')}
               </h4>
               <div className="space-y-2">
                 <DxButton
-                  text="มอบสิทธิ์ใหม่"
+                  text={t('authorizations.grantNew')}
                   icon="add"
                   type="default"
                   stylingMode="outlined"
@@ -1023,7 +1047,7 @@ export default function AuthorizationsPage() {
                   onClick={() => router.push('/hr/authorizations/new')}
                 />
                 <DxButton
-                  text="ดูสิทธิ์ใกล้หมดอายุ"
+                  text={t('authorizations.analytics.viewExpiring')}
                   icon="warning"
                   type="normal"
                   stylingMode="outlined"
@@ -1042,7 +1066,7 @@ export default function AuthorizationsPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-indigo-600" />
-              จำนวนสิทธิ์ตามประเภท
+              {t('authorizations.analytics.countByType')}
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {Object.entries(AUTH_TYPE_CONFIG).map(([type, config]) => {
@@ -1055,7 +1079,7 @@ export default function AuthorizationsPage() {
                     className={`text-center p-4 rounded-lg ${config.bgColor} border-l-4 ${config.borderColor}`}
                   >
                     <div className={`text-2xl font-bold ${config.color}`}>{count}</div>
-                    <div className="text-sm text-gray-600">{config.label}</div>
+                    <div className="text-sm text-gray-600">{t(`authorizations.types.${config.translationKey}`)}</div>
                   </div>
                 );
               })}
@@ -1068,7 +1092,7 @@ export default function AuthorizationsPage() {
       <Popup
         visible={showDelegatePopup}
         onHiding={() => setShowDelegatePopup(false)}
-        title="มอบอำนาจ"
+        title={t('authorizations.delegatePopup.title')}
         width={500}
         height="auto"
         showCloseButton
@@ -1076,10 +1100,10 @@ export default function AuthorizationsPage() {
         <div className="p-4 space-y-4">
           {selectedAuth && (
             <div className="bg-gray-50 rounded-lg p-3 mb-4">
-              <p className="text-sm text-gray-500">มอบอำนาจจาก</p>
+              <p className="text-sm text-gray-500">{t('authorizations.delegatePopup.delegateFrom')}</p>
               <p className="font-medium">{selectedAuth.employeeName}</p>
               <p className="text-sm text-gray-500 mt-1">
-                สิทธิ์: {AUTH_TYPE_CONFIG[selectedAuth.authType]?.label}
+                {t('authorizations.delegatePopup.authority')}: {AUTH_TYPE_CONFIG[selectedAuth.authType] ? t(`authorizations.types.${AUTH_TYPE_CONFIG[selectedAuth.authType].translationKey}`) : ''}
               </p>
             </div>
           )}
@@ -1091,15 +1115,15 @@ export default function AuthorizationsPage() {
             }
             value={newDelegation.delegateId}
             onValueChanged={(e) => setNewDelegation((prev) => ({ ...prev, delegateId: e.value }))}
-            label="ผู้รับมอบอำนาจ"
+            label={t('authorizations.delegatePopup.delegateTo')}
             labelMode="floating"
             searchEnabled
-            placeholder="เลือกพนักงาน..."
+            placeholder={t('authorizations.delegatePopup.selectEmployee')}
           />
           <TextBox
             value={newDelegation.reason}
             onValueChanged={(e) => setNewDelegation((prev) => ({ ...prev, reason: e.value || '' }))}
-            label="เหตุผล (ไม่บังคับ)"
+            label={t('authorizations.delegatePopup.reason')}
             labelMode="floating"
           />
           <div className="grid grid-cols-2 gap-4">
@@ -1111,7 +1135,7 @@ export default function AuthorizationsPage() {
                   effectiveFrom: value || prev.effectiveFrom,
                 }))
               }
-              label="วันที่เริ่มต้น"
+              label={t('authorizations.delegatePopup.effectiveFrom')}
             />
             <DxDateBox
               value={newDelegation.effectiveTo || ''}
@@ -1121,7 +1145,7 @@ export default function AuthorizationsPage() {
                   effectiveTo: value || '',
                 }))
               }
-              label="วันที่สิ้นสุด"
+              label={t('authorizations.delegatePopup.effectiveTo')}
               showClearButton
             />
           </div>
@@ -1130,7 +1154,7 @@ export default function AuthorizationsPage() {
           widget="dxButton"
           location="after"
           options={{
-            text: 'มอบอำนาจ',
+            text: t('authorizations.delegatePopup.submit'),
             type: 'default',
             stylingMode: 'contained',
             icon: 'user',
@@ -1145,7 +1169,7 @@ export default function AuthorizationsPage() {
           widget="dxButton"
           location="after"
           options={{
-            text: 'ยกเลิก',
+            text: t('authorizations.delegatePopup.cancel'),
             type: 'default',
             stylingMode: 'outlined',
             onClick: () => setShowDelegatePopup(false),

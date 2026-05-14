@@ -6,6 +6,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -27,6 +29,7 @@ interface LineItem {
 }
 
 export default function NewCreditDebitNotePage() {
+  const t = useTranslations('accounting');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -40,7 +43,7 @@ export default function NewCreditDebitNotePage() {
     referenceInvoiceId: 0,
     customerId: 0,
     vendorId: 0,
-    noteDate: new Date().toISOString().split('T')[0],
+    noteDate: toLocalDateStr(new Date()),
     reasonCode: '' as ReasonCode | '',
     reasonDescription: '',
     vatRate: 0.07,
@@ -212,7 +215,7 @@ export default function NewCreditDebitNotePage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            New Credit/Debit Note
+            {t('page.title')}
           </h1>
           <p className="text-gray-600">Create a new credit or debit note</p>
         </div>
@@ -305,7 +308,7 @@ export default function NewCreditDebitNotePage() {
                 onValueChanged={(e) =>
                   setFormData({
                     ...formData,
-                    noteDate: e.value?.toISOString().split('T')[0] || '',
+                    noteDate: e.value ? toLocalDateStr(e.value) : '',
                   })
                 }
                 type="date"

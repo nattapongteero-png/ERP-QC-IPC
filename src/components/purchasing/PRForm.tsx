@@ -13,6 +13,7 @@ import { TextArea } from 'devextreme-react/text-area';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { PRLineGrid } from './PRLineGrid';
 import type { PRWithLines, PRLineInput, PRPriority } from '@/types/purchase-requisition';
 
@@ -45,6 +46,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
   const [justification, setJustification] = useState(initialData?.justification || '');
   const [lines, setLines] = useState<PRLineInput[]>(
     initialData?.lines.map((l) => ({
+      id: l.id,
       itemId: l.itemId || undefined,
       itemCode: l.itemCode || undefined,
       description: l.description,
@@ -54,6 +56,10 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
       suggestedVendorId: l.suggestedVendorId || undefined,
       notes: l.notes || undefined,
     })) || []
+  );
+  // Track original line IDs for detecting deletions in edit mode
+  const [originalLineIds] = useState<number[]>(
+    initialData?.lines.map((l) => l.id) || []
   );
   const [currentPrId, setCurrentPrId] = useState<number | null>(prId || null);
   const [prNumber, setPrNumber] = useState(initialData?.prNumber || '');
@@ -77,7 +83,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
           body: JSON.stringify({
             requesterId: 1, // TODO: Get from session
             priority,
-            requiredDate: requiredDate?.toISOString().split('T')[0],
+            requiredDate: requiredDate ? toLocalDateStr(requiredDate) : undefined,
             description,
             justification,
           }),
@@ -106,13 +112,13 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
 
         router.push(`/purchasing/requisitions/${createResult.id}`);
       } else if (currentPrId) {
-        // Update PR
+        // Update PR header
         const updateResponse = await fetch(`/api/purchasing/requisitions/${currentPrId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             priority,
-            requiredDate: requiredDate?.toISOString().split('T')[0] || null,
+            requiredDate: requiredDate ? toLocalDateStr(requiredDate) : null,
             description,
             justification,
           }),
@@ -122,13 +128,69 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         if (!updateResult.success) {
           throw new Error(updateResult.error);
         }
+
+        // Update existing lines
+        const existingLines = lines.filter((l) => l.id);
+        for (const line of existingLines) {
+          const lineResponse = await fetch(`/api/purchasing/requisitions/${currentPrId}/lines`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lineId: line.id,
+              description: line.description,
+              quantity: line.quantity,
+              unitOfMeasure: line.unitOfMeasure,
+              estimatedUnitPrice: line.estimatedUnitPrice,
+              itemCode: line.itemCode,
+              notes: line.notes,
+            }),
+          });
+
+          const lineResult = await lineResponse.json();
+          if (!lineResult.success) {
+            throw new Error(lineResult.error);
+          }
+        }
+
+        // Add new lines (no id)
+        const newLines = lines.filter((l) => !l.id);
+        if (newLines.length > 0) {
+          const addResponse = await fetch(`/api/purchasing/requisitions/${currentPrId}/lines`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lines: newLines }),
+          });
+
+          const addResult = await addResponse.json();
+          if (!addResult.success) {
+            throw new Error(addResult.error);
+          }
+        }
+
+        // Delete removed lines
+        const currentLineIds = lines.filter((l) => l.id).map((l) => l.id!);
+        const deletedLineIds = originalLineIds.filter((id) => !currentLineIds.includes(id));
+        for (const lineId of deletedLineIds) {
+          const deleteResponse = await fetch(
+            `/api/purchasing/requisitions/${currentPrId}/lines?lineId=${lineId}`,
+            { method: 'DELETE' }
+          );
+
+          const deleteResult = await deleteResponse.json();
+          if (!deleteResult.success) {
+            throw new Error(deleteResult.error);
+          }
+        }
+
+        // Reload to show updated data
+        router.refresh();
       }
     } catch (err: any) {
       setError(err.message || 'Failed to save PR');
     } finally {
       setSaving(false);
     }
-  }, [mode, currentPrId, priority, requiredDate, description, justification, lines, router]);
+  }, [mode, currentPrId, priority, requiredDate, description, justification, lines, originalLineIds, router]);
 
   const handleSubmitForApproval = useCallback(async () => {
     if (!currentPrId) {

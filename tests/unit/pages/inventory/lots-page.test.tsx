@@ -60,8 +60,8 @@ describe('LotsPage', () => {
       renderWithProviders(<LotsPage />);
 
       await waitFor(() => {
-        // Thai description
-        expect(screen.getByText('จัดการ Lot/Batch สินค้าคงคลัง')).toBeInTheDocument();
+        // Description comes from i18n: t('lots.description') = 'Manage Lot/Batch inventory'
+        expect(screen.getByText('Manage Lot/Batch inventory')).toBeInTheDocument();
       });
     });
 
@@ -71,8 +71,8 @@ describe('LotsPage', () => {
       renderWithProviders(<LotsPage />);
 
       await waitFor(() => {
-        // Thai text for "Create New Lot"
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        // Button text comes from i18n: t('lots.addLot') = 'Add New Lot'
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
     });
 
@@ -83,10 +83,10 @@ describe('LotsPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('All')).toBeInTheDocument();
-        // Thai status labels
-        expect(screen.getByText('กักกัน')).toBeInTheDocument(); // Quarantine
-        expect(screen.getByText('ปล่อยแล้ว')).toBeInTheDocument(); // Released
-        expect(screen.getByText('ปฏิเสธ')).toBeInTheDocument(); // Rejected
+        // Status labels come from i18n
+        expect(screen.getByText('Quarantine')).toBeInTheDocument();
+        expect(screen.getByText('Released')).toBeInTheDocument();
+        expect(screen.getByText('Rejected')).toBeInTheDocument();
       });
     });
 
@@ -107,8 +107,8 @@ describe('LotsPage', () => {
       renderWithProviders(<LotsPage />);
 
       await waitFor(() => {
-        // Thai placeholder text
-        expect(screen.getByPlaceholderText('ค้นหาด้วยเลขที่ Lot หรือสินค้า...')).toBeInTheDocument();
+        // Placeholder comes from i18n: t('lots.searchPlaceholder') = 'Search by lot number or item...'
+        expect(screen.getByPlaceholderText('Search by lot number or item...')).toBeInTheDocument();
       });
     });
   });

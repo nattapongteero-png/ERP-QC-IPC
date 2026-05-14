@@ -1,0 +1,113 @@
+{
+  "page": {
+    "title": "Administration",
+    "description": "Manage system settings"
+  },
+  "confidentialGroups": {
+    "title": "Confidential Access Groups",
+    "subtitle": "Manage access groups for BOM confidentiality protection",
+    "description": "Manage confidential groups and members",
+    "addGroup": "Add Group",
+    "search": "Search:",
+    "searchPlaceholder": "Search by code, name, or description...",
+    "clear": "Clear",
+    "totalGroups": "Total Groups:",
+    "totalMembers": "Total Members:",
+    "columns": {
+      "id": "ID",
+      "code": "Code",
+      "name": "Name",
+      "description": "Description",
+      "members": "Members",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "form": {
+      "createTitle": "Create Access Group",
+      "editTitle": "Edit Access Group",
+      "codeLabel": "Code",
+      "codeRequired": "Code is required",
+      "codeFormat": "Code must be uppercase alphanumeric with underscores only",
+      "codePlaceholder": "e.g., RND_TEAM, PRODUCTION_MGMT",
+      "codeHint": "Uppercase letters, numbers, and underscores only",
+      "nameLabel": "Name",
+      "nameRequired": "Name is required",
+      "namePlaceholder": "e.g., R&D Team, Production Management",
+      "descriptionLabel": "Description",
+      "descriptionMaxLength": "Description must be 500 characters or less",
+      "descriptionPlaceholder": "Optional description of the access group",
+      "saving": "Saving...",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "createSuccess": "Group created successfully",
+      "updateSuccess": "Group updated successfully",
+      "deleteSuccess": "Group deleted successfully"
+    },
+    "deleteDialog": {
+      "title": "Delete Access Group",
+      "message": "Are you sure you want to delete \"{name}\"? This action cannot be undone and will remove all member assignments.",
+      "deleting": "Deleting...",
+      "confirm": "Delete"
+    },
+    "actions": {
+      "manageMembers": "Manage Members",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "members": {
+      "title": "Group Members",
+      "subtitle": "Manage members of {code}",
+      "description": "Manage members in confidential group",
+      "titleWithName": "Group Members - {name}",
+      "addMember": "Add Member",
+      "membersCount": "members",
+      "invalidGroup": "Invalid Group",
+      "invalidGroupId": "Invalid group ID",
+      "loading": "Loading...",
+      "breadcrumb": {
+        "admin": "Admin",
+        "confidentialGroups": "Confidential Groups",
+        "members": "Members"
+      },
+      "groupInfo": {
+        "groupCode": "Group Code:",
+        "name": "Name:",
+        "description": "Description:"
+      },
+      "columns": {
+        "userId": "User ID",
+        "userName": "User Name",
+        "email": "Email",
+        "addedAt": "Added At",
+        "addedBy": "Added By",
+        "actions": "Actions"
+      },
+      "addDialog": {
+        "title": "Add Member to Group",
+        "selectUser": "Select User",
+        "searchPlaceholder": "Search and select a user...",
+        "noUsers": "All users are already members of this group.",
+        "noDataText": "No users available",
+        "selectedInfo": "Selected user will be added to",
+        "adding": "Adding...",
+        "add": "Add",
+        "cancel": "Cancel"
+      },
+      "removeDialog": {
+        "title": "Remove Member",
+        "message": "Are you sure you want to remove \"{name}\" from this group?",
+        "removing": "Removing...",
+        "confirm": "Remove"
+      },
+      "toast": {
+        "addSuccess": "Member added successfully",
+        "removeSuccess": "Member removed successfully"
+      },
+      "actions": {
+        "removeMember": "Remove Member"
+      }
+    }
+  }
+}

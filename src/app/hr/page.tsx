@@ -4,7 +4,9 @@
 // Feature: 007-hr-personnel-management
 
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import {
   Network,
   Users,
@@ -55,100 +57,103 @@ async function fetchHRStats(): Promise<{
   }
 }
 
-const modules = [
+const moduleConfig = [
   {
-    title: 'โครงสร้างองค์กร',
-    titleEn: 'Organization',
+    key: 'organization',
     href: '/hr/org',
-    description: 'จัดการโครงสร้างหน่วยงานและผังองค์กร',
     icon: Network,
     color: 'text-blue-600 bg-blue-100',
   },
   {
-    title: 'พนักงาน',
-    titleEn: 'Employees',
+    key: 'employees',
     href: '/hr/employees',
-    description: 'ทะเบียนพนักงานและประวัติการทำงาน',
     icon: Users,
     color: 'text-emerald-600 bg-emerald-100',
   },
   {
-    title: 'ตำแหน่งงาน',
-    titleEn: 'Positions',
+    key: 'positions',
     href: '/hr/positions',
-    description: 'จัดการตำแหน่งและ Job Description',
     icon: ClipboardList,
     color: 'text-violet-600 bg-violet-100',
   },
   {
-    title: 'การอบรม',
-    titleEn: 'Training',
+    key: 'training',
     href: '/hr/training',
-    description: 'หลักสูตร รอบอบรม และ Competency Matrix',
     icon: GraduationCap,
     color: 'text-amber-600 bg-amber-100',
   },
   {
-    title: 'สิทธิ์อนุมัติ',
-    titleEn: 'Authorizations',
+    key: 'authorizations',
     href: '/hr/authorizations',
-    description: 'การให้สิทธิ์และมอบหมายอำนาจ',
     icon: Shield,
     color: 'text-red-600 bg-red-100',
   },
   {
-    title: 'สุขภาพพนักงาน',
-    titleEn: 'Health Records',
+    key: 'healthRecords',
     href: '/hr/health-records',
-    description: 'ผลตรวจสุขภาพและการติดตาม',
     icon: HeartPulse,
     color: 'text-pink-600 bg-pink-100',
   },
   {
-    title: 'บทบาท/สิทธิ์',
-    titleEn: 'Roles',
+    key: 'roles',
     href: '/hr/roles',
-    description: 'จัดการบทบาทและสิทธิ์ระบบ',
     icon: UserCheck,
     color: 'text-cyan-600 bg-cyan-100',
   },
   {
-    title: 'การแจ้งเตือน',
-    titleEn: 'Notifications',
+    key: 'notifications',
     href: '/hr/notifications',
-    description: 'แจ้งเตือนการอบรมและสุขภาพ',
     icon: Bell,
     color: 'text-orange-600 bg-orange-100',
   },
   {
-    title: 'Audit Trail',
-    titleEn: 'Audit Log',
+    key: 'audit',
     href: '/hr/audit',
-    description: 'ประวัติการเปลี่ยนแปลงข้อมูล HR',
     icon: History,
     color: 'text-gray-600 bg-gray-100',
   },
 ];
 
-const quickActions = [
-  { label: 'เพิ่มพนักงานใหม่', href: '/hr/employees?action=new', icon: Users },
-  { label: 'สร้างหลักสูตร', href: '/hr/training/courses?action=new', icon: GraduationCap },
-  { label: 'ดู Competency Matrix', href: '/hr/training/matrix', icon: LayoutGrid },
-  { label: 'ตรวจสอบการแจ้งเตือน', href: '/hr/notifications', icon: Bell },
+const quickActionsConfig = [
+  { translationKey: 'addEmployee', href: '/hr/employees?action=new', icon: Users },
+  { translationKey: 'createCourse', href: '/hr/training/courses?action=new', icon: GraduationCap },
+  { translationKey: 'viewMatrix', href: '/hr/training/matrix', icon: LayoutGrid },
+  { translationKey: 'checkNotifications', href: '/hr/notifications', icon: Bell },
 ];
 
 export default function HRDashboardPage() {
+  const t = useTranslations('hr');
   const { data: stats, isLoading } = useQuery({
     queryKey: ['hr-dashboard-stats'],
     queryFn: fetchHRStats,
     refetchInterval: 60000, // Refresh every minute
   });
 
+  const modules = useMemo(
+    () =>
+      moduleConfig.map((m) => ({
+        ...m,
+        title: t(`dashboard.modules.${m.key}.title`),
+        titleEn: t(`dashboard.modules.${m.key}.titleEn`),
+        description: t(`dashboard.modules.${m.key}.description`),
+      })),
+    [t]
+  );
+
+  const quickActions = useMemo(
+    () =>
+      quickActionsConfig.map((a) => ({
+        ...a,
+        label: t(`dashboard.quickActions.${a.translationKey}`),
+      })),
+    [t]
+  );
+
   return (
     <div className="p-4 md:p-6 space-y-6 md:space-y-8" data-testid="hr-dashboard">
       <ResponsivePageHeader
-        title="ระบบบริหารงานบุคคล"
-        subtitle="HR/Personnel Management Module"
+        title={t('page.title')}
+        subtitle={t('page.description')}
         icon={Users}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
@@ -156,7 +161,7 @@ export default function HRDashboardPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="hr-stat-cards">
         <StatCard
-          label="รอดำเนินการ"
+          label={t('dashboard.statCards.pendingNotifications')}
           value={stats?.pendingNotifications || 0}
           icon={Bell}
           iconColor="text-emerald-500"
@@ -166,7 +171,7 @@ export default function HRDashboardPage() {
         />
 
         <StatCard
-          label="อบรมใกล้หมดอายุ"
+          label={t('dashboard.statCards.expiringTraining')}
           value={stats?.expiringTraining || 0}
           icon={Clock}
           iconColor="text-yellow-500"
@@ -181,7 +186,7 @@ export default function HRDashboardPage() {
         />
 
         <StatCard
-          label="กิจกรรมวันนี้"
+          label={t('dashboard.statCards.todayActivities')}
           value="-"
           icon={TrendingUp}
           iconColor="text-blue-500"
@@ -190,7 +195,7 @@ export default function HRDashboardPage() {
         />
 
         <StatCard
-          label="ต้องดำเนินการ"
+          label={t('dashboard.statCards.actionRequired')}
           value={
             (stats?.pendingNotifications || 0) > 0
               ? stats?.pendingNotifications || 0
@@ -210,7 +215,9 @@ export default function HRDashboardPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow p-4" data-testid="hr-quick-actions">
-        <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">การดำเนินการด่วน</h2>
+        <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">
+          {t('dashboard.quickActions.title')}
+        </h2>
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 md:gap-3">
           {quickActions.map((action) => (
             <Link
@@ -226,7 +233,9 @@ export default function HRDashboardPage() {
       </div>
 
       <div data-testid="hr-module-cards">
-        <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">โมดูล HR</h2>
+        <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">
+          {t('dashboard.modules.title')}
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {modules.map((module) => (
             <Link

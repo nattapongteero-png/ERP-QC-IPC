@@ -1,0 +1,56 @@
+{
+  "page": {
+    "title": "Reports",
+    "description": "View, create, and manage report templates"
+  },
+  "inventory": {
+    "title": "Inventory Reports",
+    "stockSummary": "Stock Summary",
+    "stockMovement": "Stock Movement",
+    "expiryReport": "Expiry Report",
+    "lotTracking": "Lot Tracking"
+  },
+  "production": {
+    "title": "Production Reports",
+    "productionSummary": "Production Summary",
+    "batchHistory": "Batch History",
+    "yieldAnalysis": "Yield Analysis"
+  },
+  "quality": {
+    "title": "Quality Reports",
+    "inspectionSummary": "Inspection Summary",
+    "nonConformance": "Non-Conformance",
+    "trendAnalysis": "Trend Analysis"
+  },
+  "financial": {
+    "title": "Financial Reports",
+    "balanceSheet": "Balance Sheet",
+    "incomeStatement": "Income Statement",
+    "cashFlow": "Cash Flow"
+  },
+  "actions": {
+    "generate": "Generate Report",
+    "export": "Export",
+    "print": "Print",
+    "schedule": "Schedule",
+    "newReport": "New Report",
+    "dismiss": "Dismiss"
+  },
+  "overview": {
+    "title": "Overview",
+    "totalTemplates": "Total Templates",
+    "published": "Published",
+    "drafts": "Drafts",
+    "categories": "Categories"
+  },
+  "mobile": {
+    "filterByCategory": "Filter by Category"
+  },
+  "filters": {
+    "dateRange": "Date Range",
+    "fromDate": "From Date",
+    "toDate": "To Date",
+    "category": "Category",
+    "department": "Department"
+  }
+}

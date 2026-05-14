@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getTableRef, executeDbOperation, dbDate, getInsertId, parseDbDate } from '@/lib/db/db-helper';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { withAuth, successResponse, errorResponse, serverErrorResponse } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
 import { recalculateItemOnHand } from '@/lib/services/inventory.service';
@@ -14,10 +14,18 @@ export async function POST(
       const { id } = await params;
       const poId = parseInt(id);
       const body = await request.json();
-      const { lineId, lotNumber, quantity, expiryDate, warehouseId } = body;
+      const { lineId, lotNumber, vendorLotNumber, manufacturingDate, quantity, expiryDate, warehouseId } = body;
 
       if (!lineId || !lotNumber || !quantity || !expiryDate || !warehouseId) {
         return errorResponse('Line ID, lot number, quantity, expiry date, and warehouse are required');
+      }
+
+      if (!vendorLotNumber) {
+        return errorResponse('Vendor Lot No. is required — กรุณาระบุเลข Lot/Batch จาก Supplier');
+      }
+
+      if (!manufacturingDate) {
+        return errorResponse('Manufacturing Date is required — กรุณาระบุวันผลิต');
       }
 
       if (quantity <= 0) {
@@ -57,7 +65,7 @@ export async function POST(
 
       const po = poResult[0];
 
-      // Get PO line with item info
+      // Get PO line with item info and unit price
       const lineResult = await executeDbOperation(async (db) => {
         return db
           .select({
@@ -66,6 +74,7 @@ export async function POST(
             quantity: purchaseOrderLines.quantity,
             receivedQuantity: purchaseOrderLines.receivedQuantity,
             unit: purchaseOrderLines.unit,
+            unitPrice: purchaseOrderLines.unitPrice,
             itemUnit: items.primaryUnit,
           })
           .from(purchaseOrderLines)
@@ -90,15 +99,19 @@ export async function POST(
         return errorResponse(`Cannot receive more than pending quantity (${pendingQty})`);
       }
 
-      // Create inventory lot
+      // Create inventory lot with cost from PO line
+      const unitCost = Number(line.unitPrice) || 0;
       const lotResult = await executeDbOperation(async (db) => {
         return db.insert(inventoryLots).values({
           lotNumber,
+          vendorLotNumber: vendorLotNumber || null,
           itemId: line.itemId,
           warehouseId: warehouseId,
           quantity: receiveQuantity,
           unit: line.unit || line.itemUnit || 'unit',
-          status: 'released',
+          status: 'quarantine',
+          cost: unitCost > 0 ? unitCost : null,
+          manufacturingDate: manufacturingDate ? parseDbDate(manufacturingDate) : null,
           expiryDate: parseDbDate(expiryDate),
           receivedDate: dbDate(),
           poNumber: po.poNumber,
@@ -108,6 +121,35 @@ export async function POST(
       });
 
       const lotId = getInsertId(lotResult);
+
+      // Snapshot balance after lot creation
+      const inventoryTransactions = getTableRef('inventoryTransactions');
+      const inventoryLotsRef = getTableRef('inventoryLots');
+      const [itemBalanceRow] = await executeDbOperation(async (db) => {
+        return db.select({ total: sql`COALESCE(SUM(${inventoryLotsRef.quantity}), 0)` })
+          .from(inventoryLotsRef)
+          .where(eq(inventoryLotsRef.itemId, line.itemId));
+      });
+      const itemBalanceAfter = Number(itemBalanceRow?.total) || 0;
+
+      // Create inventory transaction record for receiving
+      await executeDbOperation(async (db) => {
+        return db.insert(inventoryTransactions).values({
+          lotId: Number(lotId),
+          transactionType: 'receive',
+          quantity: receiveQuantity,
+          unit: line.unit || line.itemUnit || 'unit',
+          referenceType: 'purchase_order',
+          referenceId: poId,
+          referenceNumber: po.poNumber,
+          toWarehouseId: warehouseId,
+          reason: `Received from ${po.poNumber}`,
+          performedBy: session.userId,
+          balanceAfter: receiveQuantity,
+          itemBalanceAfter,
+          createdAt: dbDate(),
+        });
+      });
 
       // Update PO line received quantity
       const newReceivedQty = lineReceivedQuantity + receiveQuantity;

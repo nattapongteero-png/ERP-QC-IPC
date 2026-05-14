@@ -26,24 +26,40 @@ interface SOPTemplate {
 }
 
 const categories = [
+  { value: 'line_clearance', label: 'Line Clearance' },
+  { value: 'dispensing', label: 'Dispensing' },
   { value: 'preparation', label: 'Preparation' },
-  { value: 'weighing', label: 'Weighing' },
+  { value: 'milling', label: 'Milling / Grinding' },
+  { value: 'sieving', label: 'Sieving' },
+  { value: 'drying', label: 'Drying' },
+  { value: 'blending', label: 'Blending / Mixing' },
   { value: 'mixing', label: 'Mixing' },
   { value: 'heating', label: 'Heating' },
   { value: 'cooling', label: 'Cooling' },
+  { value: 'filling', label: 'Filling' },
   { value: 'packaging', label: 'Packaging' },
+  { value: 'ipc', label: 'In-Process Control' },
+  { value: 'weighing', label: 'Weighing' },
   { value: 'cleaning', label: 'Cleaning' },
   { value: 'inspection', label: 'Inspection' },
   { value: 'other', label: 'Other' },
 ];
 
 const categoryColors: Record<string, { bg: string; text: string }> = {
+  line_clearance: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+  dispensing: { bg: 'bg-blue-100', text: 'text-blue-800' },
   preparation: { bg: 'bg-amber-100', text: 'text-amber-800' },
-  weighing: { bg: 'bg-blue-100', text: 'text-blue-800' },
+  milling: { bg: 'bg-stone-100', text: 'text-stone-800' },
+  sieving: { bg: 'bg-lime-100', text: 'text-lime-800' },
+  drying: { bg: 'bg-orange-100', text: 'text-orange-800' },
+  blending: { bg: 'bg-violet-100', text: 'text-violet-800' },
   mixing: { bg: 'bg-purple-100', text: 'text-purple-800' },
   heating: { bg: 'bg-red-100', text: 'text-red-800' },
   cooling: { bg: 'bg-cyan-100', text: 'text-cyan-800' },
+  filling: { bg: 'bg-emerald-100', text: 'text-emerald-800' },
   packaging: { bg: 'bg-green-100', text: 'text-green-800' },
+  ipc: { bg: 'bg-rose-100', text: 'text-rose-800' },
+  weighing: { bg: 'bg-sky-100', text: 'text-sky-800' },
   cleaning: { bg: 'bg-teal-100', text: 'text-teal-800' },
   inspection: { bg: 'bg-indigo-100', text: 'text-indigo-800' },
   other: { bg: 'bg-gray-100', text: 'text-gray-800' },
@@ -96,23 +112,11 @@ export default function SOPTemplatesPage() {
     const colors = categoryColors[category] || categoryColors.other;
     const label = categories.find((c) => c.value === category)?.label || category;
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
-        <ClipboardList className="h-3 w-3" />
+      <span className={`dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
+        <ClipboardList className="h-3 w-3 flex-shrink-0" />
         {label}
       </span>
     );
-  };
-
-  const parseParameters = (params?: string) => {
-    if (!params) return null;
-    try {
-      const parsed = JSON.parse(params);
-      return Object.entries(parsed)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(', ');
-    } catch {
-      return params;
-    }
   };
 
   return (
@@ -124,6 +128,7 @@ export default function SOPTemplatesPage() {
         icon={FileText}
         iconBgColor="bg-amber-100"
         iconColor="text-amber-600"
+        onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
           { label: 'SOP Templates' },
@@ -141,29 +146,29 @@ export default function SOPTemplatesPage() {
       {/* Data Grid */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <DxDataGrid
-          dataSource={templates || []}
+          dataSource={(templates || []).map((t, i) => ({ ...t, _rowNumber: i + 1 }))}
           keyExpr="id"
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
-          height={500}
+          height="auto"
           width="100%"
           columnAutoWidth
         >
           <DxSearchPanel visible placeholder="Search templates..." width={200} />
-          <DxPaging defaultPageSize={15} />
+          <DxPaging defaultPageSize={20} />
 
-          <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
+          <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
+            <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
+          )} />
+          <DxColumn dataField="code" caption="Code" minWidth={140} cellRender={(cell) => (
             <span className="font-mono font-medium text-amber-700">{cell.value}</span>
           )} />
-          <DxColumn dataField="name" caption="Name (EN)" minWidth={150} />
-          <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />
-          <DxColumn dataField="category" caption="Category" width={130} cellRender={(cell) => renderCategoryBadge(cell.value)} />
-          <DxColumn dataField="defaultParameters" caption="Default Parameters" minWidth={200} cellRender={(cell) => (
-            <span className="text-gray-600 text-sm">{parseParameters(cell.value) || '-'}</span>
-          )} />
+          <DxColumn dataField="name" caption="Name (EN)" minWidth={200} />
+          <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={200} />
+          <DxColumn dataField="category" caption="Category" minWidth={160} cellRender={(cell) => renderCategoryBadge(cell.value)} />
           <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />
@@ -184,7 +189,7 @@ export default function SOPTemplatesPage() {
                 <Edit className="h-4 w-4" />
               </button>
               <button
-                onClick={() => deleteMutation.mutate((cell.data as SOPTemplate).id)}
+                onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as SOPTemplate).nameTh || (cell.data as SOPTemplate).name} หรือไม่?`)) deleteMutation.mutate((cell.data as SOPTemplate).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Deactivate"
               >

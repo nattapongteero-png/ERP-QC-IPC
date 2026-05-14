@@ -8,7 +8,10 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader } from '@/components/shared';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -111,10 +114,14 @@ export default function FinishedInspectionPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const t = useTranslations('production');
+
+  // Use translation for page title
+  const pageTitle = t('execution.finishedInspection');
   const workOrderId = Number(params.id);
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showInspectDialog, setShowInspectDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [createForm, setCreateForm] = useState({
     sampleQtyForTest: 50,
     sampleQtyForRetention: 3,
@@ -126,6 +133,7 @@ export default function FinishedInspectionPage() {
     });
     return initial;
   });
+  const [categoryRemarks, setCategoryRemarks] = useState<Record<string, string>>({});
   const [inspectNotes, setInspectNotes] = useState('');
 
   // Fetch Work Order basic info
@@ -150,6 +158,16 @@ export default function FinishedInspectionPage() {
     },
   });
 
+  // Realtime sync — when another user records / verifies / re-inspects on
+  // the same WO, refresh both the inspection record and the WO header
+  // (status flips when inspection passes).
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    if (data.section !== 'finished-inspection' && data.section !== 'status') return;
+    queryClient.invalidateQueries({ queryKey: ['wo-finished-inspection', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
+  });
+
   // Create inspection mutation
   const createInspectionMutation = useMutation({
     mutationFn: async (data: typeof createForm) => {
@@ -157,7 +175,7 @@ export default function FinishedInspectionPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sampleDate: new Date().toISOString().split('T')[0],
+          sampleDate: toLocalDateStr(new Date()),
           ...data,
         }),
       });
@@ -177,7 +195,7 @@ export default function FinishedInspectionPage() {
 
   // Update inspection (submit checklist) mutation
   const updateInspectionMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: { checklistResults: Record<string, boolean>; notes?: string } }) => {
+    mutationFn: async ({ id, data }: { id: number; data: { checklistResults: Record<string, boolean>; notes?: string; isDraft?: boolean } }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/finished-inspection`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -189,8 +207,8 @@ export default function FinishedInspectionPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-finished-inspection', workOrderId] });
-      toast.success('Inspection Completed', 'Inspection checklist has been submitted.');
-      setShowInspectDialog(false);
+      toast.success('Inspection Saved', 'Inspection checklist has been saved.');
+      setIsEditing(false);
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -218,21 +236,61 @@ export default function FinishedInspectionPage() {
     },
   });
 
-  const handleOpenInspectDialog = () => {
-    if (inspection?.checklistResults) {
+  const handleStartEditing = () => {
+    if (inspection?.checklistResults && Object.keys(inspection.checklistResults).length > 0) {
       setChecklistResults(inspection.checklistResults);
+    } else {
+      const initial: Record<string, boolean> = {};
+      allChecklistItems.forEach(item => { initial[item.key] = true; });
+      setChecklistResults(initial);
     }
     setInspectNotes(inspection?.notes || '');
-    setShowInspectDialog(true);
+    // Parse category remarks from notes if exists
+    const remarks: Record<string, string> = {};
+    if (inspection?.notes) {
+      try {
+        const parsed = JSON.parse(inspection.notes);
+        if (typeof parsed === 'object' && parsed.categoryRemarks) {
+          Object.assign(remarks, parsed.categoryRemarks);
+        }
+      } catch { /* notes is plain text, not JSON */ }
+    }
+    setCategoryRemarks(remarks);
+    setIsEditing(true);
   };
 
-  const handleSubmitInspection = () => {
+  const buildNotesWithRemarks = () => {
+    const hasRemarks = Object.values(categoryRemarks).some(v => v.trim());
+    if (!inspectNotes && !hasRemarks) return undefined;
+    const parts: string[] = [];
+    if (inspectNotes) parts.push(inspectNotes);
+    if (hasRemarks) {
+      for (const [cat, remark] of Object.entries(categoryRemarks)) {
+        if (remark.trim()) parts.push(`[${cat}] ${remark}`);
+      }
+    }
+    return parts.join('\n');
+  };
+
+  const handleSaveDraft = () => {
     if (!inspection) return;
     updateInspectionMutation.mutate({
       id: inspection.id,
       data: {
         checklistResults,
-        notes: inspectNotes || undefined,
+        notes: buildNotesWithRemarks(),
+        isDraft: true,
+      },
+    });
+  };
+
+  const handleConfirmInspection = () => {
+    if (!inspection) return;
+    updateInspectionMutation.mutate({
+      id: inspection.id,
+      data: {
+        checklistResults,
+        notes: buildNotesWithRemarks(),
       },
     });
   };
@@ -322,7 +380,7 @@ export default function FinishedInspectionPage() {
           </CardContent>
         </Card>
       ) : (
-        // Show inspection details
+        // Show inspection details with inline checklist
         <>
           {/* Status Card */}
           <Card className={`border-2 ${
@@ -348,132 +406,225 @@ export default function FinishedInspectionPage() {
                             {statusInfo.label}
                           </span>
                           <p className="text-sm text-gray-600 mt-1">
-                            Sampled: {new Date(inspection.sampleDate).toLocaleDateString()} by {inspection.samplerName}
+                            สุ่มตัวอย่าง: {new Date(inspection.sampleDate).toLocaleDateString('th-TH')} โดย {inspection.samplerName || `User#${inspection.samplerId}`}
                           </p>
                         </div>
                       </>
                     );
                   })()}
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Samples</p>
-                  <p className="text-lg font-medium">
-                    Test: {inspection.sampleQtyForTest} | Retention: {inspection.sampleQtyForRetention}
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Samples</p>
+                    <p className="text-lg font-medium">
+                      Test: {inspection.sampleQtyForTest} | Retention: {inspection.sampleQtyForRetention}
+                    </p>
+                  </div>
+                  {!isEditing && inspection.status !== 'passed' && (
+                    <DxButton text="Edit Checklist" icon="edit" stylingMode="outlined" onClick={handleStartEditing} />
+                  )}
+                  {!isEditing && inspection.status === 'passed' && workOrder.status !== 'completed' && (
+                    <DxButton text="Re-edit" icon="edit" stylingMode="outlined" onClick={handleStartEditing} />
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Inspection Results */}
-          {inspection.checklistResults && Object.keys(inspection.checklistResults).length > 0 ? (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium">Inspection Results</h3>
-                  <div className="text-sm text-gray-600">
-                    {getPassCount(inspection.checklistResults)}/{allChecklistItems.length} Passed
+          {/* Inline Checklist — Editing Mode */}
+          {(isEditing || (!inspection.checklistResults || Object.keys(inspection.checklistResults).length === 0)) ? (() => {
+            // Auto-enter edit mode if checklist is empty
+            if (!isEditing && (!inspection.checklistResults || Object.keys(inspection.checklistResults).length === 0)) {
+              // Will enter edit mode on mount via effect-like pattern
+              setTimeout(() => handleStartEditing(), 0);
+              return null;
+            }
+            const passCount = getPassCount(checklistResults);
+            return (
+              <>
+                {/* Summary bar */}
+                <div className={`rounded-lg p-4 ${passCount === allChecklistItems.length ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {passCount === allChecklistItems.length ? (
+                        <><CheckCircle2 className="h-5 w-5 text-green-600" /><span className="font-medium text-green-800">All 15 checks passed</span></>
+                      ) : (
+                        <><AlertCircle className="h-5 w-5 text-amber-600" /><span className="font-medium text-amber-800">{passCount}/{allChecklistItems.length} passed — {allChecklistItems.length - passCount} item(s) need attention</span></>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  {checklistCategories.map((category) => {
-                    const CategoryIcon = category.icon;
-                    return (
-                      <div key={category.name}>
-                        <h4 className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                          <CategoryIcon className="h-4 w-4" />
-                          {category.name}
-                        </h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {category.items.map((item) => {
-                            const passed = inspection.checklistResults[item.key];
-                            return (
-                              <div
-                                key={item.key}
-                                className={`flex items-center gap-2 p-2 rounded ${
-                                  passed ? 'bg-green-50' : 'bg-red-50'
-                                }`}
-                              >
-                                {passed ? (
+                {/* Checklist categories */}
+                {checklistCategories.map((category) => {
+                  const CategoryIcon = category.icon;
+                  const catPassCount = category.items.filter(i => checklistResults[i.key]).length;
+                  return (
+                    <Card key={category.name}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="flex items-center gap-2 font-medium text-gray-800">
+                            <CategoryIcon className="h-5 w-5" />
+                            {category.name}
+                          </h4>
+                          <span className={`text-sm px-2 py-0.5 rounded ${catPassCount === category.items.length ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {catPassCount}/{category.items.length} Pass
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {category.items.map((item) => (
+                            <div key={item.key} className={`flex items-center justify-between p-3 rounded-lg border ${checklistResults[item.key] ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                              <div className="flex items-center gap-2">
+                                {checklistResults[item.key] ? (
                                   <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
                                 ) : (
                                   <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
                                 )}
-                                <span className={`text-sm ${passed ? 'text-green-800' : 'text-red-800'}`}>
-                                  {item.label}
-                                </span>
+                                <span className="text-sm text-gray-700">{item.label}</span>
                               </div>
-                            );
-                          })}
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-medium ${checklistResults[item.key] ? 'text-green-700' : 'text-red-700'}`}>
+                                  {checklistResults[item.key] ? 'Pass' : 'Fail'}
+                                </span>
+                                <DxSwitch
+                                  value={checklistResults[item.key] ?? true}
+                                  onValueChanged={(e: SwitchTypes.ValueChangedEvent) =>
+                                    setChecklistResults({ ...checklistResults, [item.key]: e.value ?? true })
+                                  }
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        {/* Per-category remarks */}
+                        <div className="mt-3">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Remarks — {category.name}</label>
+                          <DxTextArea
+                            value={categoryRemarks[category.name] || ''}
+                            onValueChanged={(e) => setCategoryRemarks({ ...categoryRemarks, [category.name]: e.value })}
+                            placeholder={`Remarks for ${category.name}...`}
+                            height={50}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
 
-                {inspection.notes && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700"><strong>Notes:</strong> {inspection.notes}</p>
+                {/* General notes */}
+                <Card>
+                  <CardContent className="p-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">General Notes</label>
+                    <DxTextArea
+                      value={inspectNotes}
+                      onValueChanged={(e) => setInspectNotes(e.value)}
+                      placeholder="Overall observations or remarks..."
+                      height={80}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Action buttons: Save Draft / Confirm */}
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <p className="text-sm text-blue-800">
+                      Inspector digital signature will be recorded automatically (user login + timestamp).
+                    </p>
+                    <div className="flex gap-2">
+                      <DxButton text="Cancel" stylingMode="outlined" onClick={() => setIsEditing(false)} />
+                      <DxButton
+                        text="Save Draft"
+                        type="normal"
+                        stylingMode="outlined"
+                        onClick={handleSaveDraft}
+                        disabled={updateInspectionMutation.isPending}
+                      />
+                      <DxButton
+                        text="Confirm Inspection"
+                        type="success"
+                        onClick={handleConfirmInspection}
+                        disabled={updateInspectionMutation.isPending}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            );
+          })() : (
+            // Read-only view after confirmed
+            <>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium">Inspection Results</h3>
+                    <div className="text-sm text-gray-600">
+                      {getPassCount(inspection.checklistResults)}/{allChecklistItems.length} Passed
+                    </div>
                   </div>
-                )}
 
-                {/* Inspector info */}
-                {inspection.inspectorName && (
-                  <div className="mt-4 text-sm text-gray-600 flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <UserCheck className="h-4 w-4" />
-                      Inspected by {inspection.inspectorName}
-                    </span>
-                    <span>{new Date(inspection.inspectedAt!).toLocaleString()}</span>
+                  <div className="space-y-6">
+                    {checklistCategories.map((category) => {
+                      const CategoryIcon = category.icon;
+                      return (
+                        <div key={category.name}>
+                          <h4 className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <CategoryIcon className="h-4 w-4" />
+                            {category.name}
+                          </h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {category.items.map((item) => {
+                              const passed = inspection.checklistResults[item.key];
+                              return (
+                                <div key={item.key} className={`flex items-center gap-2 p-2 rounded ${passed ? 'bg-green-50' : 'bg-red-50'}`}>
+                                  {passed ? (
+                                    <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                  ) : (
+                                    <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                                  )}
+                                  <span className={`text-sm ${passed ? 'text-green-800' : 'text-red-800'}`}>{item.label}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
 
-                {inspection.reInspectorName && (
-                  <div className="mt-2 text-sm text-blue-600 flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <UserCheck className="h-4 w-4" />
-                      Re-inspected by {inspection.reInspectorName}
-                    </span>
-                    <span>{new Date(inspection.reInspectedAt!).toLocaleString()}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            // Inspection created but checklist not filled
-            <Card>
-              <CardContent className="p-8 text-center">
-                <AlertCircle className="h-12 w-12 text-amber-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Inspection In Progress</h3>
-                <p className="text-gray-500 mb-6">
-                  Complete the 15-point inspection checklist.
-                </p>
-                <DxButton
-                  text="Complete Inspection"
-                  type="success"
-                  onClick={handleOpenInspectDialog}
-                />
-              </CardContent>
-            </Card>
-          )}
+                  {inspection.notes && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-700 whitespace-pre-line"><strong>Notes:</strong> {inspection.notes}</p>
+                    </div>
+                  )}
 
-          {/* Action buttons */}
-          {inspection.status === 'failed' && !inspection.reInspectedAt && (
-            <Card className="border-amber-200">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-amber-800">
-                  <AlertCircle className="h-5 w-5" />
-                  <span>Inspection failed. Re-inspection may be required.</span>
-                </div>
-                <DxButton
-                  text="Record Re-inspection"
-                  type="default"
-                  onClick={() => reInspectMutation.mutate(inspection.id)}
-                  disabled={reInspectMutation.isPending}
-                />
-              </CardContent>
-            </Card>
+                  {(inspection.inspectorId || inspection.inspectorName) && (
+                    <div className="mt-4 text-sm text-gray-600 flex items-center gap-4">
+                      <span className="flex items-center gap-1"><UserCheck className="h-4 w-4" /> ผู้ตรวจ: {inspection.inspectorName || `User#${inspection.inspectorId}`}</span>
+                      {inspection.inspectedAt && <span>{new Date(inspection.inspectedAt).toLocaleString('th-TH')}</span>}
+                    </div>
+                  )}
+
+                  {(inspection.reInspectorId || inspection.reInspectorName) && (
+                    <div className="mt-2 text-sm text-blue-600 flex items-center gap-4">
+                      <span className="flex items-center gap-1"><UserCheck className="h-4 w-4" /> ผู้ตรวจซ้ำ: {inspection.reInspectorName || `User#${inspection.reInspectorId}`}</span>
+                      {inspection.reInspectedAt && <span>{new Date(inspection.reInspectedAt).toLocaleString('th-TH')}</span>}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {inspection.status === 'failed' && !inspection.reInspectedAt && (
+                <Card className="border-amber-200">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-amber-800">
+                      <AlertCircle className="h-5 w-5" />
+                      <span>Inspection failed. Re-inspection may be required.</span>
+                    </div>
+                    <DxButton text="Record Re-inspection" type="default" onClick={() => reInspectMutation.mutate(inspection.id)} disabled={reInspectMutation.isPending} />
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </>
       )}
@@ -534,94 +685,7 @@ export default function FinishedInspectionPage() {
         </div>
       </DxPopup>
 
-      {/* Inspection Checklist Dialog */}
-      <DxPopup
-        visible={showInspectDialog}
-        onHiding={() => setShowInspectDialog(false)}
-        title="Inspection Checklist (15 Points)"
-        width={700}
-        height="auto"
-        showCloseButton
-        dragEnabled={false}
-      >
-        <div className="p-4 space-y-6 max-h-[70vh] overflow-y-auto">
-          {checklistCategories.map((category) => {
-            const CategoryIcon = category.icon;
-            return (
-              <div key={category.name} className="bg-gray-50 rounded-lg p-4">
-                <h4 className="flex items-center gap-2 font-medium text-gray-800 mb-3">
-                  <CategoryIcon className="h-5 w-5" />
-                  {category.name}
-                </h4>
-                <div className="space-y-2">
-                  {category.items.map((item) => (
-                    <div
-                      key={item.key}
-                      className="flex items-center justify-between p-2 bg-white rounded border"
-                    >
-                      <span className="text-sm text-gray-700">{item.label}</span>
-                      <DxSwitch
-                        value={checklistResults[item.key] ?? true}
-                        onValueChanged={(e: SwitchTypes.ValueChangedEvent) =>
-                          setChecklistResults({ ...checklistResults, [item.key]: e.value ?? true })
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Summary */}
-          <div className={`rounded-lg p-4 ${
-            getPassCount(checklistResults) === allChecklistItems.length
-              ? 'bg-green-50 border border-green-200'
-              : 'bg-red-50 border border-red-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {getPassCount(checklistResults) === allChecklistItems.length ? (
-                  <>
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    <span className="font-medium text-green-800">All checks passed</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-5 w-5 text-red-600" />
-                    <span className="font-medium text-red-800">
-                      {allChecklistItems.length - getPassCount(checklistResults)} items failed
-                    </span>
-                  </>
-                )}
-              </div>
-              <span className="text-sm">
-                {getPassCount(checklistResults)}/{allChecklistItems.length}
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <DxTextArea
-              value={inspectNotes}
-              onValueChanged={(e) => setInspectNotes(e.value)}
-              placeholder="Any observations or remarks..."
-              height={80}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowInspectDialog(false)} />
-            <DxButton
-              text="Submit Inspection"
-              type="success"
-              onClick={handleSubmitInspection}
-              disabled={updateInspectionMutation.isPending}
-            />
-          </div>
-        </div>
-      </DxPopup>
+      {/* Old checklist dialog removed — now inline on page */}
     </div>
   );
 }

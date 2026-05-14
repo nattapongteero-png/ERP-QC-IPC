@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import DataGrid, { Column, Summary, TotalItem, ColumnChooser, Export, Grouping, GroupPanel } from 'devextreme-react/data-grid';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -24,7 +25,8 @@ async function fetchTrialBalance(asOfDate: string): Promise<TrialBalanceReport> 
 }
 
 function TrialBalanceContent() {
-  const { language, t, formatCurrency } = useReportLanguage();
+  const t = useTranslations('accounting');
+  const { language, t: reportT, formatCurrency } = useReportLanguage();
   const [asOfDate, setAsOfDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const { data, isLoading, refetch } = useQuery({
@@ -92,7 +94,7 @@ function TrialBalanceContent() {
   }, []);
 
   return (
-    <div className="p-6" data-testid="trial-balance-page">
+    <div className="p-6" data-testid="trial-balance-page" data-title={t('page.title')}>
       <ReportHeader
         titleKey="trialBalance"
         subtitle={`${t('asOfDate')}: ${asOfDate}`}

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { approveRequest } from '@/lib/services/approval-workflow.service';
 
 interface RouteContext {
@@ -11,36 +12,39 @@ interface RouteContext {
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  try {
-    const { id } = await context.params;
-    const requestId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await context.params;
+      const requestId = parseInt(id, 10);
 
-    if (isNaN(requestId)) {
+      if (isNaN(requestId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid request ID' },
+          { status: 400 }
+        );
+      }
+
+      // Get optional comments from body
+      let comments;
+      try {
+        const body = await request.json();
+        comments = body.comments;
+      } catch {
+        // No body provided
+      }
+
+      // TODO: Get actual user ID from session
+      const userId = session.userId;
+
+      const result = await approveRequest(requestId, userId, comments);
+      return NextResponse.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Error approving request:', error);
       return NextResponse.json(
-        { success: false, error: 'Invalid request ID' },
-        { status: 400 }
+        { success: false, error: (error as Error).message },
+        { status: 500 }
       );
     }
 
-    // Get optional comments from body
-    let comments;
-    try {
-      const body = await request.json();
-      comments = body.comments;
-    } catch {
-      // No body provided
-    }
-
-    // TODO: Get actual user ID from session
-    const userId = 1;
-
-    const result = await approveRequest(requestId, userId, comments);
-    return NextResponse.json({ success: true, data: result });
-  } catch (error) {
-    console.error('Error approving request:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  });
 }

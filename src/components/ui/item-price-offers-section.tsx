@@ -9,6 +9,7 @@ import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import {
   DollarSign,
   Pencil,
@@ -94,7 +95,7 @@ function getDefaultFormData(): PriceOfferFormData {
     packPrice: null,
     moq: null,
     leadTimeDays: null,
-    effectiveDate: new Date().toISOString().split('T')[0],
+    effectiveDate: toLocalDateStr(new Date()),
     expiryDate: null,
     isActive: true,
   };
@@ -237,12 +238,24 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
     setFormError(null);
 
     // Validate
-    if (!formData.unitPrice || formData.unitPrice <= 0) {
-      setFormError('Unit price must be greater than 0');
+    if (formData.unitPrice === null || formData.unitPrice === undefined) {
+      setFormError('กรุณาระบุราคาต่อหน่วย (Unit Price is required)');
+      return;
+    }
+    if (formData.unitPrice < 0) {
+      setFormError('ราคาต่อหน่วยต้องไม่ติดลบ (Unit price cannot be negative)');
+      return;
+    }
+    if (formData.unitPrice === 0) {
+      setFormError('ราคาต่อหน่วยต้องมากกว่า 0 (Unit price must be greater than 0)');
+      return;
+    }
+    if (formData.packPrice !== null && formData.packPrice !== undefined && formData.packPrice < 0) {
+      setFormError('ราคาต่อแพ็คต้องไม่ติดลบ (Pack price cannot be negative)');
       return;
     }
     if (!formData.effectiveDate) {
-      setFormError('Effective date is required');
+      setFormError('กรุณาระบุวันที่มีผล (Effective date is required)');
       return;
     }
 
@@ -444,7 +457,6 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
                 value={formData.unitPrice}
                 onValueChange={(value) => updateFormData('unitPrice', value)}
                 format="#,##0.00"
-                min={0.01}
                 placeholder="0.00"
               />
             </div>
@@ -454,7 +466,6 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
                 value={formData.packPrice}
                 onValueChange={(value) => updateFormData('packPrice', value)}
                 format="#,##0.00"
-                min={0}
                 placeholder="0.00"
               />
             </div>

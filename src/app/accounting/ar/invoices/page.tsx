@@ -12,6 +12,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -90,6 +91,8 @@ interface FormData {
   invoiceDate: string;
   dueDate: string;
   description: string;
+  vatRate: number;
+  vatAmountOverride: number | null;
   lines: {
     description: string;
     glAccountId: number | null;
@@ -118,10 +121,10 @@ async function fetchARInvoices(filters?: { status?: string }): Promise<ARInvoice
 }
 
 async function fetchCustomers(): Promise<Customer[]> {
-  const res = await fetch('/api/customers?isActive=true');
+  const res = await fetch('/api/customers?isActive=true&limit=500');
   if (!res.ok) throw new Error('Failed to fetch customers');
   const json = await res.json();
-  return json.data;
+  return json.data?.items || json.data || [];
 }
 
 async function fetchGLAccounts(): Promise<GLAccount[]> {
@@ -145,6 +148,8 @@ async function createARInvoice(data: {
   invoiceDate: string;
   dueDate: string;
   description?: string | null;
+  vatRate?: number;
+  vatAmountOverride?: number | null;
   lines: { description: string; glAccountId: number; quantity: number; unitPrice: number }[];
 }): Promise<ARInvoice> {
   const res = await fetch('/api/accounting/ar-invoices', {
@@ -194,9 +199,11 @@ async function receivePayment(
 }
 
 export default function ARInvoicesPage() {
+  const t = useTranslations('accounting');
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<number | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<ARInvoice | null>(null);
   const [formData, setFormData] = useState<FormData>({
@@ -205,6 +212,8 @@ export default function ARInvoicesPage() {
     invoiceDate: new Date().toISOString().split('T')[0],
     dueDate: '',
     description: '',
+    vatRate: 7,
+    vatAmountOverride: null,
     lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
   });
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
@@ -276,6 +285,48 @@ export default function ARInvoicesPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/accounting/ar-invoices/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to delete invoice');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
+      notify('ลบใบแจ้งหนี้สำเร็จ', 'success', 3000);
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถลบใบแจ้งหนี้ได้', 'error', 4000);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await fetch(`/api/accounting/ar-invoices/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to update invoice');
+      }
+      return (await res.json()).data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
+      notify('แก้ไขใบแจ้งหนี้สำเร็จ', 'success', 3000);
+      setIsDialogOpen(false);
+      setEditingInvoiceId(null);
+      resetForm();
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถแก้ไขใบแจ้งหนี้ได้', 'error', 4000);
+    },
+  });
+
   // Handlers
   const resetForm = useCallback(() => {
     setFormData({
@@ -284,17 +335,21 @@ export default function ARInvoicesPage() {
       invoiceDate: new Date().toISOString().split('T')[0],
       dueDate: '',
       description: '',
+      vatRate: 7,
+      vatAmountOverride: null,
       lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
     });
   }, []);
 
   const handleOpenDialog = useCallback(() => {
     resetForm();
+    setEditingInvoiceId(null);
     setIsDialogOpen(true);
   }, [resetForm]);
 
   const handleCloseDialog = useCallback(() => {
     setIsDialogOpen(false);
+    setEditingInvoiceId(null);
   }, []);
 
   const handleSave = useCallback(() => {
@@ -312,20 +367,28 @@ export default function ARInvoicesPage() {
       return;
     }
 
-    createMutation.mutate({
+    const payload = {
       invoiceNumber: formData.invoiceNumber,
       customerId: formData.customerId,
       invoiceDate: formData.invoiceDate,
       dueDate: formData.dueDate,
       description: formData.description || null,
+      vatRate: formData.vatRate,
+      vatAmountOverride: formData.vatAmountOverride,
       lines: validLines.map((l) => ({
         description: l.description,
         glAccountId: l.glAccountId!,
         quantity: l.quantity,
         unitPrice: l.unitPrice,
       })),
-    });
-  }, [formData, createMutation]);
+    };
+
+    if (editingInvoiceId) {
+      updateMutation.mutate({ id: editingInvoiceId, data: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
+  }, [formData, createMutation, updateMutation, editingInvoiceId]);
 
   const handleConfirm = useCallback(
     async (invoice: ARInvoice) => {
@@ -340,6 +403,47 @@ export default function ARInvoicesPage() {
       }
     },
     [confirmMutation]
+  );
+
+  const handleEdit = useCallback(async (invoice: ARInvoice) => {
+    try {
+      const res = await fetch(`/api/accounting/ar-invoices/${invoice.id}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      const detail = json.data;
+      setFormData({
+        invoiceNumber: detail.invoiceNumber || '',
+        customerId: detail.customerId || null,
+        invoiceDate: detail.invoiceDate ? detail.invoiceDate.split('T')[0] : '',
+        dueDate: detail.dueDate ? detail.dueDate.split('T')[0] : '',
+        description: detail.description || '',
+        vatRate: detail.vatAmount > 0 ? 7 : 0,
+        vatAmountOverride: null,
+        lines: (detail.lines || []).map((l: any) => ({
+          description: l.description || '',
+          glAccountId: l.glAccountId || null,
+          quantity: l.quantity || 1,
+          unitPrice: l.unitPrice || 0,
+        })),
+      });
+      setEditingInvoiceId(invoice.id);
+      setIsDialogOpen(true);
+    } catch (err: any) {
+      notify(err.message || 'ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้', 'error', 4000);
+    }
+  }, []);
+
+  const handleDelete = useCallback(
+    async (invoice: ARInvoice) => {
+      const result = await confirm(
+        `คุณต้องการลบใบแจ้งหนี้ ${invoice.invoiceNumber} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้`,
+        'ยืนยันการลบ'
+      );
+      if (result) {
+        deleteMutation.mutate(invoice.id);
+      }
+    },
+    [deleteMutation]
   );
 
   const handleOpenPaymentDialog = useCallback((invoice: ARInvoice) => {
@@ -414,8 +518,9 @@ export default function ARInvoicesPage() {
   }, [formData.lines]);
 
   const vatAmount = useMemo(() => {
-    return Math.round(lineTotal * 0.07 * 100) / 100;
-  }, [lineTotal]);
+    if (formData.vatAmountOverride !== null) return formData.vatAmountOverride;
+    return Math.round(lineTotal * (formData.vatRate / 100) * 100) / 100;
+  }, [lineTotal, formData.vatRate, formData.vatAmountOverride]);
 
   // Status badge render using AccountingStatusBadge
   const statusCellRender = useCallback((cellData: { value: string }) => {
@@ -440,13 +545,29 @@ export default function ARInvoicesPage() {
       return (
         <div style={{ display: 'flex', gap: '4px' }}>
           {invoice.status === 'draft' && (
-            <Button
-              text="ยืนยัน"
-              type="success"
-              stylingMode="outlined"
-              height={24}
-              onClick={() => handleConfirm(invoice)}
-            />
+            <>
+              <Button
+                icon="edit"
+                hint="แก้ไข"
+                stylingMode="text"
+                height={28}
+                onClick={() => handleEdit(invoice)}
+              />
+              <Button
+                icon="trash"
+                hint="ลบ"
+                stylingMode="text"
+                height={28}
+                onClick={() => handleDelete(invoice)}
+              />
+              <Button
+                text="ยืนยัน"
+                type="success"
+                stylingMode="outlined"
+                height={24}
+                onClick={() => handleConfirm(invoice)}
+              />
+            </>
           )}
           {['posted', 'partial'].includes(invoice.status) && (
             <Button
@@ -460,7 +581,7 @@ export default function ARInvoicesPage() {
         </div>
       );
     },
-    [handleConfirm, handleOpenPaymentDialog]
+    [handleConfirm, handleEdit, handleDelete, handleOpenPaymentDialog]
   );
 
   // Calculate stats
@@ -477,13 +598,24 @@ export default function ARInvoicesPage() {
     return { total, pending, outstanding, paid, totalAmount, outstandingAmount };
   }, [invoices]);
 
+  // Add row sequence numbers for the grid
+  const invoicesWithRowNumber = useMemo(
+    () => invoices.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [invoices]
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" data-testid="ar-invoices-page">
       {/* Professional Header */}
       <AccountingPageHeader
-        title="ใบแจ้งหนี้ขาย"
-        subtitle="AR Invoices / Tax Invoices"
+        title={t('accountsReceivable.invoices.title')}
+        subtitle={t('accountsReceivable.title')}
         icon="dollar-sign"
+        onBack={() => window.location.href = '/accounting/ar'}
+        breadcrumbs={[
+          { label: 'Accounts Receivable', href: '/accounting/ar' },
+          { label: t('accountsReceivable.invoices.title') },
+        ]}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['ar-invoices'] })}
         actions={
           <Button
@@ -558,7 +690,7 @@ export default function ARInvoicesPage() {
         {/* Data Grid */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ar-invoices-grid">
         <DataGrid
-          dataSource={invoices}
+          dataSource={invoicesWithRowNumber}
           keyExpr="id"
           showBorders={true}
           showRowLines={true}
@@ -590,6 +722,20 @@ export default function ARInvoicesPage() {
             <Item name="columnChooserButton" location="after" />
           </Toolbar>
 
+          <Column
+            dataField="_rowNumber"
+            caption={t('items.grid.columns.rowNum')}
+            width={60}
+            alignment="center"
+            allowFiltering={false}
+            allowSorting={false}
+            allowGrouping={false}
+            cellRender={(cellInfo) => (
+              <span className="text-gray-500 text-sm font-medium">
+                {cellInfo.data._rowNumber}
+              </span>
+            )}
+          />
           <Column dataField="invoiceNumber" caption="เลขที่ใบแจ้งหนี้" width={150} />
           <Column dataField="taxInvoiceNumber" caption="เลขที่ใบกำกับภาษี" width={160} />
           <Column dataField="customerId" caption="ลูกค้า" width={150} visible={false} />
@@ -622,7 +768,7 @@ export default function ARInvoicesPage() {
           />
           <Column
             caption="การดำเนินการ"
-            width={150}
+            width={200}
             cellRender={actionsCellRender}
             allowFiltering={false}
             allowSorting={false}
@@ -640,7 +786,7 @@ export default function ARInvoicesPage() {
         <Popup
           visible={isDialogOpen}
           onHiding={handleCloseDialog}
-          title="สร้างใบแจ้งหนี้ขาย"
+          title={editingInvoiceId ? 'แก้ไขใบแจ้งหนี้ขาย' : 'สร้างใบแจ้งหนี้ขาย'}
           width={800}
           height="auto"
           showCloseButton={true}
@@ -791,11 +937,35 @@ export default function ARInvoicesPage() {
                   <td className="border"></td>
                 </tr>
                 <tr className="bg-gray-50">
-                  <td colSpan={4} className="border p-2 text-right">
-                    VAT 7%
+                  <td colSpan={3} className="border p-2 text-right">
+                    VAT
                   </td>
-                  <td className="border p-2 text-right">
-                    {vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  <td className="border p-1 text-center">
+                    <select
+                      className="w-full border rounded px-2 py-1 text-sm text-center bg-white"
+                      value={formData.vatRate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vatRate: Number(e.target.value), vatAmountOverride: null }))}
+                      data-testid="vat-rate-select"
+                    >
+                      <option value={0}>0%</option>
+                      <option value={7}>7%</option>
+                    </select>
+                  </td>
+                  <td className="border p-1 text-right">
+                    <input
+                      type="number"
+                      className="w-full border rounded px-2 py-1 text-sm text-right bg-white"
+                      value={formData.vatAmountOverride !== null ? formData.vatAmountOverride : vatAmount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vatAmountOverride: Number(e.target.value) || 0 }))}
+                      onBlur={() => {
+                        if (formData.vatAmountOverride !== null && formData.vatAmountOverride === vatAmount) {
+                          setFormData(prev => ({ ...prev, vatAmountOverride: null }));
+                        }
+                      }}
+                      step="0.01"
+                      min="0"
+                      data-testid="vat-amount-input"
+                    />
                   </td>
                   <td className="border"></td>
                 </tr>
@@ -816,10 +986,10 @@ export default function ARInvoicesPage() {
             <div className="mt-6 flex justify-end gap-2">
               <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} elementAttr={{ 'data-testid': 'ar-cancel-btn' }} />
               <Button
-                text="บันทึก"
+                text={editingInvoiceId ? 'บันทึกการแก้ไข' : 'บันทึก'}
                 type="success"
                 onClick={handleSave}
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || updateMutation.isPending}
                 elementAttr={{ 'data-testid': 'ar-save-btn' }}
               />
             </div>

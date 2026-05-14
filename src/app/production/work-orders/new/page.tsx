@@ -58,6 +58,7 @@ const priorityOptions = [
 function NewWorkOrderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const bomIdParam = searchParams.get('bomId');
   const [isLoading, setIsLoading] = useState(false);
   const [initialBomLoaded, setInitialBomLoaded] = useState(false);
@@ -75,6 +76,7 @@ function NewWorkOrderContent() {
     priority: '5',
     plannedStartDate: '',
     plannedEndDate: '',
+    deliveryDate: '',
     notes: '',
   });
 
@@ -218,6 +220,7 @@ function NewWorkOrderContent() {
           priority: parseInt(formData.priority),
           plannedStartDate: formData.plannedStartDate || null,
           plannedEndDate: formData.plannedEndDate || null,
+          deliveryDate: formData.deliveryDate || null,
           notes: formData.notes || null,
         }),
       });
@@ -459,6 +462,24 @@ function NewWorkOrderContent() {
                       }
                       min={formData.plannedStartDate || undefined}
                       placeholder="เลือกวันสิ้นสุด"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Delivery Date (วันที่ส่งมอบ)
+                    </label>
+                    <DxDateBox
+                      value={formData.deliveryDate}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, deliveryDate: value || '' }))
+                      }
+                      min={formData.plannedEndDate || undefined}
+                      disabled={!formData.plannedStartDate || !formData.plannedEndDate}
+                      placeholder={
+                        !formData.plannedStartDate || !formData.plannedEndDate
+                          ? 'กรุณาระบุวันเริ่มต้นและวันสิ้นสุดก่อน'
+                          : 'เลือกวันส่งมอบ'
+                      }
                     />
                   </div>
                 </div>

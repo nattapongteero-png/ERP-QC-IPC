@@ -1,12 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxPopup } from '@/components/ui/dx-popup';
+import { DxDataGrid } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
@@ -23,12 +28,17 @@ interface BOMLine {
   itemName: string;
   quantity: number;
   unit: string;
+  unitOptions: string[]; // Available units for this item (primary + secondary)
   isOptional: boolean;
   notes: string;
 }
 
 export default function NewBOMPage() {
   const router = useRouter();
+  const t = useTranslations('production');
+
+  // Use translation for page title
+  const pageTitle = t('newBOM.title');
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -46,18 +56,64 @@ export default function NewBOMPage() {
 
   // Dialog state
   const [productDialogOpen, setProductDialogOpen] = useState(false);
-  const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
+  const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
+  const [materialItems, setMaterialItems] = useState<Item[]>([]);
+  const [materialItemsLoading, setMaterialItemsLoading] = useState(false);
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
+  // materialGridRef removed - tracking selection via onSelectionChanged state
 
   // Line counter for temporary IDs
   const [lineCounter, setLineCounter] = useState(1);
 
+  // Fetch all inventory items (exclude finished_goods) for material picker
+  const loadMaterialItems = useCallback(async () => {
+    setMaterialItemsLoading(true);
+    try {
+      const res = await fetch('/api/items?limit=500&activeOnly=true');
+      const data = await res.json();
+      if (data.success) {
+        const allItems: Item[] = (data.data?.items || data.data || []);
+        // Filter: exclude finished_goods and already-added items
+        const existingIds = new Set(lines.map(l => l.itemId));
+        const filtered = allItems.filter(
+          (item: Item) => item.type !== 'finished_goods' && !existingIds.has(item.id)
+        );
+        setMaterialItems(filtered);
+      }
+    } catch (err) {
+      console.error('Failed to load items:', err);
+    } finally {
+      setMaterialItemsLoading(false);
+    }
+  }, [lines]);
+
   // Handle product selection from ItemSearchDialog
-  const handleSelectProduct = (item: Item) => {
+  const handleSelectProduct = async (item: Item) => {
     setSelectedProduct(item);
     setBatchUnit(item.primaryUnit);
-    // Auto-generate BOM code based on product code
     if (!code) {
-      setCode(`BOM-${item.code}`);
+      // Generate unique BOM code by checking existing codes
+      const baseCode = `BOM-${item.code}`;
+      try {
+        const res = await fetch(`/api/bom?search=${encodeURIComponent(baseCode)}&limit=100`);
+        const data = await res.json();
+        const existingCodes = new Set(
+          (data.data?.items || []).map((b: { code: string }) => b.code)
+        );
+        if (!existingCodes.has(baseCode)) {
+          setCode(baseCode);
+        } else {
+          // Find next available version number
+          let ver = 2;
+          while (existingCodes.has(`${baseCode}-V${ver}`)) {
+            ver++;
+          }
+          setCode(`${baseCode}-V${ver}`);
+        }
+      } catch {
+        // Fallback: append timestamp to guarantee uniqueness
+        setCode(`${baseCode}-${Date.now().toString(36).slice(-4).toUpperCase()}`);
+      }
     }
     if (!name) {
       setName(`BOM for ${item.nameTh}`);
@@ -65,28 +121,41 @@ export default function NewBOMPage() {
     setProductDialogOpen(false);
   };
 
-  // Handle material/ingredient selection from ItemSearchDialog
-  const handleAddMaterial = (item: Item) => {
-    // Check if item already exists in lines
-    if (lines.some(line => line.itemId === item.id)) {
-      alert('This item is already in the BOM');
-      return;
-    }
+  // Handle open material picker
+  const handleOpenMaterialPicker = () => {
+    setSelectedMaterialIds([]);
+    loadMaterialItems();
+    setMaterialPickerOpen(true);
+  };
 
-    const newLine: BOMLine = {
-      id: lineCounter,
-      itemId: item.id,
-      itemCode: item.code,
-      itemName: item.nameTh,
-      quantity: 0,
-      unit: item.primaryUnit,
-      isOptional: false,
-      notes: '',
-    };
+  // Handle confirm add selected materials
+  const handleConfirmAddMaterials = () => {
+    const selectedItems = materialItems.filter(item => selectedMaterialIds.includes(item.id));
+    if (selectedItems.length === 0) return;
 
-    setLines([...lines, newLine]);
-    setLineCounter(lineCounter + 1);
-    setMaterialDialogOpen(false);
+    let counter = lineCounter;
+    const newLines: BOMLine[] = selectedItems.map(item => {
+      const unitOpts = [item.primaryUnit];
+      if (item.secondaryUnit && item.secondaryUnit !== item.primaryUnit) unitOpts.push(item.secondaryUnit);
+      if (item.weightUnit && !unitOpts.includes(item.weightUnit)) unitOpts.push(item.weightUnit);
+      const line: BOMLine = {
+        id: counter++,
+        itemId: item.id,
+        itemCode: item.code,
+        itemName: item.nameTh,
+        quantity: 0,
+        unit: item.primaryUnit,
+        unitOptions: unitOpts,
+        isOptional: false,
+        notes: '',
+      };
+      return line;
+    });
+
+    setLines(prev => [...prev, ...newLines]);
+    setLineCounter(counter);
+    setMaterialPickerOpen(false);
+    setSelectedMaterialIds([]);
   };
 
   const handleUpdateLine = (id: number, field: keyof BOMLine, value: string | number | boolean) => {
@@ -99,23 +168,37 @@ export default function NewBOMPage() {
     setLines(lines.filter(line => line.id !== id));
   };
 
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [invalidLineIds, setInvalidLineIds] = useState<Set<number>>(new Set());
+
   const handleSubmit = async () => {
-    if (!code || !name || !selectedProduct || !batchSize || !batchUnit) {
-      alert('Please fill in all required fields');
-      return;
-    }
+    const errors: string[] = [];
+    const badLineIds = new Set<number>();
+
+    if (!selectedProduct) errors.push('กรุณาเลือกสินค้า (Product)');
+    if (!code) errors.push('กรุณาระบุรหัส BOM (BOM Code)');
+    if (!batchSize) errors.push('กรุณาระบุขนาดชุดผลิต (Batch Size)');
+    if (!batchUnit) errors.push('กรุณาระบุหน่วยชุดผลิต (Batch Unit)');
+    if (!name) errors.push('กรุณาระบุชื่อ BOM (BOM Name)');
 
     if (lines.length === 0) {
-      alert('Please add at least one material to the BOM');
-      return;
+      errors.push('กรุณาเพิ่มวัตถุดิบอย่างน้อย 1 รายการ');
+    } else {
+      lines.forEach(line => {
+        if (!line.quantity || line.quantity <= 0) {
+          badLineIds.add(line.id);
+        }
+      });
+      if (badLineIds.size > 0) {
+        errors.push(`กรุณาระบุจำนวน (Quantity) ให้ครบทุกรายการวัตถุดิบ (${badLineIds.size} รายการยังไม่ระบุ)`);
+      }
     }
 
-    // Validate all lines have quantities
-    const invalidLines = lines.filter(line => !line.quantity || line.quantity <= 0);
-    if (invalidLines.length > 0) {
-      alert('Please enter valid quantities for all materials');
-      return;
-    }
+    setValidationErrors(errors);
+    setInvalidLineIds(badLineIds);
+
+    if (errors.length > 0) return;
 
     setSaving(true);
     try {
@@ -125,7 +208,7 @@ export default function NewBOMPage() {
         body: JSON.stringify({
           code,
           name,
-          productId: selectedProduct.id,
+          productId: selectedProduct!.id,
           version,
           batchSize: parseFloat(batchSize),
           batchUnit,
@@ -328,7 +411,7 @@ export default function NewBOMPage() {
                     icon="plus"
                     type="normal"
                     stylingMode="outlined"
-                    onClick={() => setMaterialDialogOpen(true)}
+                    onClick={handleOpenMaterialPicker}
                   />
                 </div>
               </CardHeader>
@@ -351,24 +434,41 @@ export default function NewBOMPage() {
                       </thead>
                       <tbody>
                         {lines.map((line, index) => (
-                          <tr key={line.id} className="border-b hover:bg-gray-50">
+                          <tr key={line.id} className={`border-b hover:bg-gray-50 ${invalidLineIds.has(line.id) ? 'bg-red-50 border-red-200' : ''}`}>
                             <td className="px-4 py-2 text-center">{index + 1}</td>
                             <td className="px-4 py-2">
                               <p className="font-medium">{line.itemCode}</p>
                               <p className="text-sm text-gray-500">{line.itemName}</p>
                             </td>
                             <td className="px-4 py-2">
-                              <DxTextBox
-                                value={line.quantity?.toString() || ''}
-                                onValueChange={(value) => handleUpdateLine(line.id, 'quantity', parseFloat(value) || 0)}
-                                width={100}
+                              <DxNumberBox
+                                value={line.quantity || 0}
+                                onValueChange={(value) => {
+                                  handleUpdateLine(line.id, 'quantity', value || 0);
+                                  // Clear error for this line when user enters a value
+                                  if (value && value > 0) {
+                                    setInvalidLineIds(prev => {
+                                      const next = new Set(prev);
+                                      next.delete(line.id);
+                                      return next;
+                                    });
+                                  }
+                                }}
+                                format="#,##0.####"
+                                min={0}
+                                step={0.1}
+                                width={120}
                               />
+                              {invalidLineIds.has(line.id) && (
+                                <p className="text-xs text-red-500 mt-0.5">กรุณาระบุจำนวน</p>
+                              )}
                             </td>
                             <td className="px-4 py-2">
-                              <DxTextBox
+                              <DxSelectBox
                                 value={line.unit}
                                 onValueChange={(value) => handleUpdateLine(line.id, 'unit', value)}
-                                width={80}
+                                items={line.unitOptions.map(u => ({ value: u, label: u }))}
+                                width={100}
                               />
                             </td>
                             <td className="px-4 py-2">
@@ -432,6 +532,17 @@ export default function NewBOMPage() {
                   <Badge variant="secondary">Draft</Badge>
                 </div>
 
+                {validationErrors.length > 0 && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm font-semibold text-red-700 mb-1">กรุณาแก้ไขข้อมูลก่อนบันทึก:</p>
+                    <ul className="text-sm text-red-600 space-y-0.5">
+                      {validationErrors.map((err, i) => (
+                        <li key={i}>• {err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="pt-4 border-t space-y-2">
                   <DxButton
                     text={saving ? 'Creating...' : 'Create BOM'}
@@ -439,7 +550,7 @@ export default function NewBOMPage() {
                     type="success"
                     width="100%"
                     onClick={handleSubmit}
-                    disabled={saving || !code || !name || !selectedProduct || !batchSize || lines.length === 0}
+                    disabled={saving}
                   />
                   <DxButton
                     text="Cancel"
@@ -461,17 +572,98 @@ export default function NewBOMPage() {
         onSelect={handleSelectProduct}
         title="Select Product"
         filterType="finished_goods"
+        allowCreate
       />
 
-      {/* Material Selection Dialog */}
-      <ItemSearchDialog
-        open={materialDialogOpen}
-        onOpenChange={setMaterialDialogOpen}
-        onSelect={handleAddMaterial}
-        title="Select Material"
-        excludeType="finished_goods"
-        excludeIds={lines.map(l => l.itemId)}
-      />
+      {/* Multi-Select Material Picker Dialog */}
+      <DxPopup
+        visible={materialPickerOpen}
+        onHiding={() => setMaterialPickerOpen(false)}
+        title="เลือกวัตถุดิบ — Select Materials"
+        width={900}
+        height={600}
+        showCloseButton
+      >
+        <div className="flex flex-col h-full p-4 gap-3">
+          <p className="text-sm text-gray-500">
+            เลือกวัตถุดิบที่ต้องการเพิ่มใน BOM (เลือกได้หลายรายการ) แล้วกด &quot;เพิ่มรายการที่เลือก&quot;
+          </p>
+
+          {materialItemsLoading ? (
+            <div className="flex items-center justify-center flex-1">
+              <div className="text-center text-gray-400">
+                <div className="animate-spin h-8 w-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full mx-auto mb-2" />
+                <p>กำลังโหลดรายการ...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0">
+              <DxDataGrid
+                dataSource={materialItems}
+                keyExpr="id"
+                showBorders
+                columnAutoWidth
+                height="100%"
+                paging={false}
+                virtualScrolling
+                selection="multiple"
+                selectedRowKeys={selectedMaterialIds}
+                onSelectionChanged={(e) => {
+                  const keys = e.selectedRowKeys as number[];
+                  setSelectedMaterialIds(keys);
+                }}
+                searchPanel
+                filterRow
+                columns={[
+                  { dataField: 'code', caption: 'Item Code', width: 140 },
+                  { dataField: 'nameTh', caption: 'ชื่อวัตถุดิบ' },
+                  { dataField: 'type', caption: 'ประเภท', width: 120,
+                    cellRender: (cellData) => {
+                      const typeLabels: Record<string, string> = {
+                        raw_material: 'วัตถุดิบ',
+                        packaging: 'บรรจุภัณฑ์',
+                        wip: 'งานระหว่างทำ',
+                        extract: 'สารสกัด',
+                        consumable: 'วัสดุสิ้นเปลือง',
+                      };
+                      return <span>{typeLabels[cellData.value as string] || cellData.value}</span>;
+                    },
+                  },
+                  { dataField: 'primaryUnit', caption: 'หน่วย', width: 80 },
+                  { dataField: 'onHand', caption: 'คงเหลือ', width: 100, dataType: 'number', format: '#,##0.##',
+                    cellRender: (cellData) => {
+                      const qty = Number(cellData.value) || 0;
+                      const color = qty <= 0 ? 'text-red-600' : qty <= (Number(cellData.data?.reorderPoint) || 0) ? 'text-amber-600' : 'text-green-600';
+                      return <span className={`font-medium ${color}`}>{qty.toLocaleString()}</span>;
+                    },
+                  },
+                ]}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-3 border-t">
+            <span className="text-sm text-gray-500">
+              เลือกแล้ว {selectedMaterialIds.length} รายการ
+            </span>
+            <div className="flex gap-2">
+              <DxButton
+                text="ยกเลิก"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => setMaterialPickerOpen(false)}
+              />
+              <DxButton
+                text={`เพิ่มรายการที่เลือก (${selectedMaterialIds.length})`}
+                icon="plus"
+                type="success"
+                onClick={handleConfirmAddMaterials}
+                disabled={selectedMaterialIds.length === 0}
+              />
+            </div>
+          </div>
+        </div>
+      </DxPopup>
     </div>
   );
 }

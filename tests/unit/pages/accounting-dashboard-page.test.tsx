@@ -1,15 +1,13 @@
 /**
  * Unit Tests for Accounting Dashboard Page
- * Tests the redesigned Accounting Dashboard with:
- * - KPI cards (Cash Balance, AR, AP, Net Income)
- * - Financial Position pie chart
- * - Cash Flow trend chart
- * - AP/AR Aging bar chart
- * - Quick access grid
- * - Alerts section
+ * Tests the Executive Accounting Dashboard with:
+ * - Header with period selector
+ * - Executive KPI cards
+ * - Charts (Revenue/Expenses trend, Expense breakdown)
+ * - Quick links by category
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // Mock Next.js navigation
@@ -21,104 +19,99 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock dashboard metrics data
+// Mock next/link
+vi.mock('next/link', () => ({
+  default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
+    <a href={href} {...props}>{children}</a>
+  ),
+}));
+
+// Mock executive metrics data
 const mockMetrics = {
-  totalAccounts: 45,
-  totalAssets: 5000000,
-  totalLiabilities: 2000000,
-  totalEquity: 3000000,
-  cashBalance: 1500000,
-  apBalance: 800000,
-  arBalance: 1200000,
-  pendingJournalEntries: 3,
-  currentPeriod: 'December 2024',
-  periodStatus: 'open',
-  overdueAP: 50000,
-  overdueAR: 75000,
-  upcomingMaintenance: 2,
-  fixedAssetCount: 15,
-  equipmentCount: 8,
-  revenueYtd: 10000000,
-  expensesYtd: 8000000,
-  netIncomeYtd: 2000000,
-  cashFlowTrend: [
-    { month: 'Jan', inflow: 500000, outflow: 400000 },
-    { month: 'Feb', inflow: 600000, outflow: 350000 },
-    { month: 'Mar', inflow: 550000, outflow: 450000 },
-  ],
-  apAgingBuckets: { current: 400000, days30: 200000, days60: 100000, days90: 50000, over90: 50000 },
-  arAgingBuckets: { current: 600000, days30: 300000, days60: 150000, days90: 75000, over90: 75000 },
-  recentTransactions: [],
+  workingCapital: { id: 'working-capital', label: 'Working Capital', value: 3000000, format: 'currency', trend: 'up', trendValue: 5, sparklineData: [] },
+  currentRatio: { id: 'current-ratio', label: 'Current Ratio', value: 2.5, format: 'ratio', trend: 'up', trendValue: 0.2, sparklineData: [] },
+  quickRatio: { id: 'quick-ratio', label: 'Quick Ratio', value: 1.8, format: 'ratio', trend: 'neutral', trendValue: 0, sparklineData: [] },
+  dso: { id: 'dso', label: 'DSO', value: 45, format: 'days', trend: 'down', trendValue: -3, sparklineData: [] },
+  grossProfitMargin: { id: 'gross-profit-margin', label: 'Gross Profit Margin', value: 0.35, format: 'percent', trend: 'up', trendValue: 2, sparklineData: [500000] },
+  operatingCashFlow: { id: 'operating-cash-flow', label: 'Operating Cash Flow', value: 800000, format: 'currency', trend: 'up', trendValue: 10, sparklineData: [] },
+  dpo: { id: 'dpo', label: 'DPO', value: 30, format: 'days', trend: 'neutral', trendValue: 0, sparklineData: [] },
+  inventoryTurnover: { id: 'inventory-turnover', label: 'Inventory Turnover', value: 6.5, format: 'ratio', trend: 'up', trendValue: 0.5, sparklineData: [] },
 };
 
 // Mock fetch for API calls
 vi.stubGlobal('fetch', vi.fn(() =>
   Promise.resolve({
     ok: true,
-    json: () => Promise.resolve({ data: [] }),
+    json: () => Promise.resolve({ data: mockMetrics }),
   })
 ));
 
 // Mock TanStack Query
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(() => ({
-    data: mockMetrics,
-    isLoading: false,
-    refetch: vi.fn(),
-  })),
+  useQuery: vi.fn(({ queryKey }) => {
+    if (queryKey[0] === 'executive-metrics') {
+      return {
+        data: mockMetrics,
+        isLoading: false,
+        refetch: vi.fn(),
+      };
+    }
+    if (queryKey[0] === 'executive-alerts') {
+      return {
+        data: [],
+        isLoading: false,
+        refetch: vi.fn(),
+      };
+    }
+    return {
+      data: undefined,
+      isLoading: false,
+      refetch: vi.fn(),
+    };
+  }),
 }));
 
-// Mock recharts
-vi.mock('recharts', () => ({
-  ResponsiveContainer: vi.fn(({ children }) => (
-    <div data-testid="responsive-container">{children}</div>
-  )),
-  AreaChart: vi.fn(({ children }) => <div data-testid="area-chart">{children}</div>),
-  Area: vi.fn(() => null),
-  XAxis: vi.fn(() => null),
-  YAxis: vi.fn(() => null),
-  CartesianGrid: vi.fn(() => null),
-  Tooltip: vi.fn(() => null),
-  PieChart: vi.fn(({ children }) => <div data-testid="pie-chart">{children}</div>),
-  Pie: vi.fn(() => null),
-  Cell: vi.fn(() => null),
-  BarChart: vi.fn(({ children }) => <div data-testid="bar-chart">{children}</div>),
-  Bar: vi.fn(() => null),
-  Legend: vi.fn(() => null),
-}));
-
-vi.mock('@/components/ui/kpi-card', () => ({
-  KPICard: vi.fn(({ label, value, subtitle }) => (
-    <div data-testid={`kpi-card-${label.replace(/\s+/g, '-').toLowerCase()}`}>
-      <span data-testid="kpi-label">{label}</span>
-      <span data-testid="kpi-value">{value}</span>
-      {subtitle && <span data-testid="kpi-subtitle">{subtitle}</span>}
+// Mock @/components/accounting
+vi.mock('@/components/accounting', () => ({
+  ExecutiveKPICard: vi.fn(({ kpi }) => (
+    <div data-testid={`kpi-${kpi.id}`}>
+      <span>{kpi.label}</span>
+      <span>{kpi.value}</span>
     </div>
   )),
-  KPICardSkeleton: vi.fn(() => (
+  ExecutiveKPICardSkeleton: vi.fn(() => (
     <div data-testid="kpi-skeleton">Loading...</div>
   )),
-}));
-
-vi.mock('@/components/accounting', () => ({
-  AccountingPageHeader: vi.fn(({ title, subtitle, currentPeriod, periodStatus, onRefresh }) => (
-    <div data-testid="accounting-page-header">
-      <h1>{title || 'Accounting Dashboard'}</h1>
-      <p>{subtitle}</p>
-      {currentPeriod && <span>{currentPeriod}</span>}
-      {periodStatus && <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-700">{periodStatus === 'open' ? 'เปิด' : 'ปิด'}</span>}
-      {onRefresh && <button data-testid="refresh-button" onClick={onRefresh}>Refresh</button>}
+  ExecutiveAlertBar: vi.fn(({ alerts }) => (
+    <div data-testid="alert-bar">
+      {alerts.map((alert: { id: string; message: string }) => (
+        <div key={alert.id}>{alert.message}</div>
+      ))}
     </div>
   )),
-  AccountingKPICard: vi.fn(({ label, value, subtitle }) => (
-    <div data-testid={`accounting-kpi-${label.replace(/\s+/g, '-').toLowerCase()}`}>
-      <span>{label}</span>
-      <span>{value}</span>
-      {subtitle && <span>{subtitle}</span>}
-    </div>
+  ExecutiveAlertBarSkeleton: vi.fn(() => (
+    <div data-testid="alert-bar-skeleton">Loading alerts...</div>
+  )),
+  AccountingPageHeader: vi.fn(({ title }) => (
+    <div data-testid="accounting-page-header"><h1>{title}</h1></div>
+  )),
+  AccountingKPICard: vi.fn(({ label }) => (
+    <div data-testid={`accounting-kpi-${label}`}>{label}</div>
   )),
   AccountingKPICardSkeleton: vi.fn(() => (
     <div data-testid="accounting-kpi-skeleton">Loading...</div>
+  )),
+}));
+
+// Mock charts
+vi.mock('@/components/accounting/charts', () => ({
+  RevenueExpensesTrend: vi.fn(({ data }) => (
+    <div data-testid="revenue-expenses-trend">
+      <span>{data?.length || 0} months</span>
+    </div>
+  )),
+  ExpenseBreakdownChart: vi.fn(() => (
+    <div data-testid="expense-breakdown-chart">Chart</div>
   )),
 }));
 
@@ -140,8 +133,8 @@ vi.mock('@/components/ui/card', () => ({
 
 // Mock Button component
 vi.mock('@/components/ui/button', () => ({
-  Button: vi.fn(({ children, onClick }) => (
-    <button data-testid="button" onClick={onClick}>{children}</button>
+  Button: vi.fn(({ children, onClick, ...props }) => (
+    <button data-testid={props['data-testid'] || 'button'} onClick={onClick}>{children}</button>
   )),
 }));
 
@@ -158,279 +151,162 @@ describe('Accounting Dashboard Page', () => {
     it('should render the page header with correct title', () => {
       render(<AccountingDashboardPage />);
 
-      expect(screen.getByText('Accounting Dashboard')).toBeInTheDocument();
-      expect(screen.getByText('Financial management and reporting')).toBeInTheDocument();
+      expect(screen.getByText('Executive Accounting Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Financial insights and actionable metrics')).toBeInTheDocument();
     });
 
-    it('should render the current period badge', () => {
+    it('should render period selector', () => {
       render(<AccountingDashboardPage />);
 
-      expect(screen.getByText('December 2024')).toBeInTheDocument();
-      expect(screen.getByText('เปิด')).toBeInTheDocument();
+      expect(screen.getByTestId('period-selector')).toBeInTheDocument();
+      expect(screen.getByTestId('period-mtd')).toBeInTheDocument();
+      expect(screen.getByTestId('period-qtd')).toBeInTheDocument();
+      expect(screen.getByTestId('period-ytd')).toBeInTheDocument();
     });
 
     it('should render refresh button', () => {
       render(<AccountingDashboardPage />);
 
-      expect(screen.getByText('Refresh')).toBeInTheDocument();
+      expect(screen.getByTestId('refresh-button')).toBeInTheDocument();
+    });
+
+    it('should render accounting dashboard container', () => {
+      render(<AccountingDashboardPage />);
+
+      expect(screen.getByTestId('accounting-dashboard')).toBeInTheDocument();
     });
   });
 
   describe('KPI Cards', () => {
-    it('should render Cash Balance KPI card', () => {
+    it('should render Financial Health KPI cards', () => {
       render(<AccountingDashboardPage />);
 
-      const kpiCard = screen.getByTestId('kpi-cash-balance');
-      expect(kpiCard).toBeInTheDocument();
-      expect(kpiCard).toHaveTextContent('Cash Balance');
-      expect(kpiCard).toHaveTextContent('Available cash');
+      expect(screen.getByText('Financial Health')).toBeInTheDocument();
+      // KPI cards from Row 1
+      expect(screen.getByTestId('kpi-working-capital')).toBeInTheDocument();
+      expect(screen.getByTestId('kpi-current-ratio')).toBeInTheDocument();
+      expect(screen.getByTestId('kpi-quick-ratio')).toBeInTheDocument();
+      expect(screen.getByTestId('kpi-dso')).toBeInTheDocument();
     });
 
-    it('should render Accounts Receivable KPI card', () => {
+    it('should render Business Performance KPI cards', () => {
       render(<AccountingDashboardPage />);
 
-      const kpiCard = screen.getByTestId('kpi-ar-balance');
-      expect(kpiCard).toBeInTheDocument();
-      expect(kpiCard).toHaveTextContent('Accounts Receivable');
-      expect(kpiCard).toHaveTextContent('Due from customers');
-    });
-
-    it('should render Accounts Payable KPI card', () => {
-      render(<AccountingDashboardPage />);
-
-      const kpiCard = screen.getByTestId('kpi-ap-balance');
-      expect(kpiCard).toBeInTheDocument();
-      expect(kpiCard).toHaveTextContent('Accounts Payable');
-      expect(kpiCard).toHaveTextContent('Due to vendors');
-    });
-
-    it('should render Net Income KPI card', () => {
-      render(<AccountingDashboardPage />);
-
-      const kpiCard = screen.getByTestId('kpi-net-income');
-      expect(kpiCard).toBeInTheDocument();
-      expect(kpiCard).toHaveTextContent('Net Income');
-      expect(kpiCard).toHaveTextContent('Year to date');
+      expect(screen.getByText('Business Performance')).toBeInTheDocument();
+      // KPI cards from Row 2
+      expect(screen.getByTestId('kpi-gross-profit-margin')).toBeInTheDocument();
+      expect(screen.getByTestId('kpi-operating-cash-flow')).toBeInTheDocument();
+      expect(screen.getByTestId('kpi-dpo')).toBeInTheDocument();
+      expect(screen.getByTestId('kpi-inventory-turnover')).toBeInTheDocument();
     });
   });
 
-  describe('Alerts Section', () => {
-    it('should render alerts section when there are overdue items', () => {
+  describe('Charts Section', () => {
+    it('should render Revenue Expenses Trend chart', () => {
       render(<AccountingDashboardPage />);
 
-      expect(screen.getByText('Action Required')).toBeInTheDocument();
+      expect(screen.getByTestId('revenue-expenses-trend')).toBeInTheDocument();
     });
 
-    it('should display overdue AP alert', () => {
+    it('should render Expense Breakdown chart', () => {
       render(<AccountingDashboardPage />);
 
-      expect(screen.getByText('AP Overdue (90+ days)')).toBeInTheDocument();
-    });
-
-    it('should display overdue AR alert', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('AR Overdue (90+ days)')).toBeInTheDocument();
-    });
-
-    it('should display maintenance due alert', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('Maintenance due soon')).toBeInTheDocument();
-      expect(screen.getByText('2 items')).toBeInTheDocument();
+      expect(screen.getByTestId('expense-breakdown-chart')).toBeInTheDocument();
     });
   });
 
-  describe('Financial Charts', () => {
-    it('should render Financial Position section', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('Financial Position')).toBeInTheDocument();
-    });
-
-    it('should render pie chart for balance sheet', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
-    });
-
-    it('should render Cash Flow Trend section', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('Cash Flow Trend')).toBeInTheDocument();
-    });
-
-    it('should render area chart for cash flow', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
-    });
-
-    it('should render AP/AR Aging section', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('Receivables & Payables Aging')).toBeInTheDocument();
-    });
-
-    it('should render bar chart for aging', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
-    });
-  });
-
-  describe('Balance Sheet Summary', () => {
-    it('should display Total Assets', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('Total Assets')).toBeInTheDocument();
-    });
-
-    it('should display Total Liabilities', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('Total Liabilities')).toBeInTheDocument();
-    });
-
-    it('should display Total Equity', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('Total Equity')).toBeInTheDocument();
-    });
-  });
-
-  describe('Quick Access Grid', () => {
+  describe('Quick Links', () => {
     it('should render Quick Access section', () => {
       render(<AccountingDashboardPage />);
 
       expect(screen.getByText('Quick Access')).toBeInTheDocument();
     });
 
-    it('should render Chart of Accounts link', () => {
+    it('should render Financial Statements group', () => {
       render(<AccountingDashboardPage />);
 
-      expect(screen.getByText('Chart of Accounts')).toBeInTheDocument();
-      expect(screen.getByText('Manage GL accounts and categories')).toBeInTheDocument();
+      expect(screen.getByText('Financial Statements')).toBeInTheDocument();
+      expect(screen.getByText('Trial Balance')).toBeInTheDocument();
+      expect(screen.getByText('Balance Sheet')).toBeInTheDocument();
+      expect(screen.getByText('Income Statement')).toBeInTheDocument();
     });
 
-    it('should render Journal Entries link', () => {
+    it('should render Receivables group', () => {
       render(<AccountingDashboardPage />);
 
-      expect(screen.getByText('Journal Entries')).toBeInTheDocument();
-      expect(screen.getByText('Create and post journal entries')).toBeInTheDocument();
-    });
-
-    it('should render AP Invoices link', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('AP Invoices')).toBeInTheDocument();
-      expect(screen.getByText('Manage vendor invoices and payments')).toBeInTheDocument();
-    });
-
-    it('should render AR Invoices link', () => {
-      render(<AccountingDashboardPage />);
-
+      expect(screen.getByText('Receivables')).toBeInTheDocument();
       expect(screen.getByText('AR Invoices')).toBeInTheDocument();
-      expect(screen.getByText('Track customer invoices and collections')).toBeInTheDocument();
+      expect(screen.getByText('AR Aging')).toBeInTheDocument();
     });
 
-    it('should render Fixed Assets link', () => {
+    it('should render Payables group', () => {
       render(<AccountingDashboardPage />);
 
-      // There are multiple "Fixed Assets" texts (quick access + footer)
-      const fixedAssetsTexts = screen.getAllByText('Fixed Assets');
-      expect(fixedAssetsTexts.length).toBeGreaterThan(0);
-      expect(screen.getByText('Asset register and depreciation')).toBeInTheDocument();
+      expect(screen.getByText('Payables')).toBeInTheDocument();
+      expect(screen.getByText('AP Invoices')).toBeInTheDocument();
+      expect(screen.getByText('AP Aging')).toBeInTheDocument();
     });
 
-    it('should render Equipment link', () => {
+    it('should render Assets & Operations group', () => {
       render(<AccountingDashboardPage />);
 
-      // There are multiple "Equipment" texts (quick access + footer)
-      const equipmentTexts = screen.getAllByText('Equipment');
-      expect(equipmentTexts.length).toBeGreaterThan(0);
-      expect(screen.getByText('Equipment tracking and maintenance')).toBeInTheDocument();
-    });
-
-    it('should render Reports link', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('Reports')).toBeInTheDocument();
-      expect(screen.getByText('Financial statements and analysis')).toBeInTheDocument();
-    });
-
-    it('should render Period Close link', () => {
-      render(<AccountingDashboardPage />);
-
+      expect(screen.getByText('Assets & Operations')).toBeInTheDocument();
+      const fixedAssetsLinks = screen.getAllByText('Fixed Assets');
+      expect(fixedAssetsLinks.length).toBeGreaterThan(0);
+      expect(screen.getByText('Equipment')).toBeInTheDocument();
       expect(screen.getByText('Period Close')).toBeInTheDocument();
-      expect(screen.getByText('Manage fiscal period closings')).toBeInTheDocument();
+    });
+
+    it('should render quick links with correct hrefs', () => {
+      render(<AccountingDashboardPage />);
+
+      const trialBalanceLink = screen.getByText('Trial Balance').closest('a');
+      expect(trialBalanceLink).toHaveAttribute('href', '/accounting/reports/trial-balance');
+
+      const arInvoicesLink = screen.getByText('AR Invoices').closest('a');
+      expect(arInvoicesLink).toHaveAttribute('href', '/accounting/ar/invoices');
+
+      const periodCloseLink = screen.getByText('Period Close').closest('a');
+      expect(periodCloseLink).toHaveAttribute('href', '/accounting/period-close');
     });
   });
 
-  describe('System Overview Footer', () => {
-    it('should display GL Accounts count', () => {
+  describe('Period Selector Interaction', () => {
+    it('should switch to MTD period', () => {
       render(<AccountingDashboardPage />);
 
-      expect(screen.getByText('GL Accounts')).toBeInTheDocument();
-      expect(screen.getByText('45')).toBeInTheDocument();
+      const mtdButton = screen.getByTestId('period-mtd');
+      fireEvent.click(mtdButton);
+
+      // After clicking, MTD button should have active styling (blue)
+      expect(mtdButton).toHaveClass('bg-blue-600');
     });
 
-    it('should display Fixed Assets count', () => {
+    it('should have YTD active by default', () => {
       render(<AccountingDashboardPage />);
 
-      const fixedAssetsLabels = screen.getAllByText('Fixed Assets');
-      expect(fixedAssetsLabels.length).toBeGreaterThan(0);
-    });
-
-    it('should display Equipment count', () => {
-      render(<AccountingDashboardPage />);
-
-      const equipmentLabels = screen.getAllByText('Equipment');
-      expect(equipmentLabels.length).toBeGreaterThan(0);
-    });
-
-    it('should display Pending JE count', () => {
-      render(<AccountingDashboardPage />);
-
-      expect(screen.getByText('Pending JE')).toBeInTheDocument();
+      const ytdButton = screen.getByTestId('period-ytd');
+      expect(ytdButton).toHaveClass('bg-blue-600');
     });
   });
 
-  describe('Loading State', () => {
-    it('should show loading skeletons when data is loading', async () => {
-      // Mock loading state
-      const mockUseQuery = vi.fn(() => ({
-        data: undefined,
-        isLoading: true,
-        refetch: vi.fn(),
-      }));
-
-      vi.doMock('@tanstack/react-query', () => ({
-        useQuery: mockUseQuery,
-      }));
-
-      // Since we can't easily re-import with changed mocks,
-      // we just verify the structure exists
+  describe('Refresh Button', () => {
+    it('should call refetch when refresh button clicked', () => {
       render(<AccountingDashboardPage />);
 
-      // The component should still render without errors
-      expect(screen.getByText('Accounting Dashboard')).toBeInTheDocument();
+      const refreshButton = screen.getByTestId('refresh-button');
+      fireEvent.click(refreshButton);
+
+      // Just verify button exists and can be clicked without error
+      expect(refreshButton).toBeInTheDocument();
     });
   });
 
-  describe('Accessibility', () => {
-    it('should have accessible heading structure', () => {
+  describe('No Alerts State', () => {
+    it('should not render alert bar when no alerts', () => {
       render(<AccountingDashboardPage />);
 
-      const mainHeading = screen.getByRole('heading', { name: 'Accounting Dashboard' });
-      expect(mainHeading).toBeInTheDocument();
-    });
-
-    it('should render quick access links with proper href', () => {
-      render(<AccountingDashboardPage />);
-
-      const chartOfAccountsLink = screen.getByText('Chart of Accounts').closest('a');
-      expect(chartOfAccountsLink).toHaveAttribute('href', '/accounting/chart-of-accounts');
+      expect(screen.queryByTestId('alert-bar')).not.toBeInTheDocument();
     });
   });
 });

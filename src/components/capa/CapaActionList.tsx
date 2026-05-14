@@ -14,17 +14,16 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxTextBox } from '@/components/ui/dx-text-box';
 import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Plus,
   User,
   Calendar,
   Shield,
 } from 'lucide-react';
 import type { CapaAction, CapaActionCreate, CapaActionStatus, CapaActionType } from '@/types/capa';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 // ============================================
 // Types
@@ -84,11 +83,13 @@ async function verifyAction(capaId: number, actionId: number): Promise<CapaActio
   return result.data;
 }
 
-async function fetchUsers(): Promise<{ id: number; displayName: string }[]> {
-  const response = await fetch('/api/users');
+async function fetchUsers(): Promise<{ id: number; name: string }[]> {
+  const response = await fetch('/api/users?limit=100');
   const result = await response.json();
   if (!result.success) return [];
-  return result.data || [];
+  // API returns paginated response with items array
+  const items = result.data?.items || result.data || [];
+  return Array.isArray(items) ? items : [];
 }
 
 // ============================================
@@ -107,7 +108,7 @@ export function CapaActionList({
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [selectedAction, setSelectedAction] = useState<CapaAction | null>(null);
   const [completionNotes, setCompletionNotes] = useState('');
-  const [users, setUsers] = useState<{ id: number; displayName: string }[]>([]);
+  const [users, setUsers] = useState<{ id: number; name: string }[]>([]);
 
   const [newAction, setNewAction] = useState<NewActionForm>({
     description: '',
@@ -363,7 +364,7 @@ export function CapaActionList({
           <div className="space-y-2">
             <label className="text-sm font-medium">Assignee</label>
             <DxSelectBox
-              items={users.map((u) => ({ value: u.id, label: u.displayName }))}
+              items={users.map((u) => ({ value: u.id, label: u.name }))}
               value={newAction.assigneeId}
               valueExpr="value"
               displayExpr="label"
@@ -379,7 +380,7 @@ export function CapaActionList({
               onValueChange={(value) =>
                 setNewAction((prev) => ({
                   ...prev,
-                  dueDate: value ? new Date(value).toISOString().split('T')[0] : '',
+                  dueDate: value ? toLocalDateStr(new Date(value)) : '',
                 }))
               }
               type="date"

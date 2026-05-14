@@ -113,7 +113,7 @@ describe('GmpDocumentsDashboardPage', () => {
       renderWithProviders(<GmpDocumentsDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('GMP Document Control')).toBeInTheDocument();
+        expect(screen.getByText('GMP Document Management')).toBeInTheDocument();
       });
     });
 
@@ -123,7 +123,7 @@ describe('GmpDocumentsDashboardPage', () => {
       renderWithProviders(<GmpDocumentsDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Manage controlled documents/)).toBeInTheDocument();
+        expect(screen.getByText(/Manage GMP documents/)).toBeInTheDocument();
       });
     });
 
@@ -291,7 +291,7 @@ describe('GmpDocumentsDashboardPage', () => {
       renderWithProviders(<GmpDocumentsDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('GMP Document Control')).toBeInTheDocument();
+        expect(screen.getByText('GMP Document Management')).toBeInTheDocument();
       });
     });
 
@@ -323,7 +323,7 @@ describe('GmpDocumentsDashboardPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('GMP Document Control')).toBeInTheDocument();
+        expect(screen.getByText('GMP Document Management')).toBeInTheDocument();
       });
     });
 
@@ -364,7 +364,7 @@ describe('GmpDocumentsDashboardPage', () => {
       renderWithProviders(<GmpDocumentsDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('GMP Document Control')).toBeInTheDocument();
+        expect(screen.getByText('GMP Document Management')).toBeInTheDocument();
       });
 
       // Wait a bit for approvals data to load

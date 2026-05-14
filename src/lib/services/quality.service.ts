@@ -5,7 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toQueryDate } from '../db/date-utils';
+import { toQueryDate, getNow } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteQualityTests,
@@ -232,7 +232,7 @@ export async function createQCTestRequest(
           sampleSize: samplingPlan.sampleSize,
           status: 'pending',
           requestedBy: userId,
-          requestedAt: new Date().toISOString(),
+          requestedAt: getNow(),
         })
         .returning({ id: tests.id });
       newTestId = newTest.id;
@@ -246,7 +246,7 @@ export async function createQCTestRequest(
           sampleSize: samplingPlan.sampleSize,
           status: 'pending',
           requestedBy: userId,
-          requestedAt: new Date().toISOString(),
+          requestedAt: getNow(),
         });
       newTestId = getInsertId(result);
     }
@@ -336,7 +336,7 @@ export async function recordTestResult(
               severity: 'major',
               status: 'open',
               reportedBy: userId,
-              reportedAt: new Date().toISOString(),
+              reportedAt: getNow(),
             })
             .returning({ id: deviations.id });
           deviationId = deviation.id;
@@ -351,7 +351,7 @@ export async function recordTestResult(
               severity: 'major',
               status: 'open',
               reportedBy: userId,
-              reportedAt: new Date().toISOString(),
+              reportedAt: getNow(),
             });
           deviationId = getInsertId(result);
         }
@@ -367,7 +367,7 @@ export async function recordTestResult(
       result: resultText,
       status: testStatus === 'pass' ? 'passed' : 'failed',
       testedBy: userId,
-      testedAt: new Date().toISOString(),
+      testedAt: getNow(),
     })
     .where(eq(tests.id, testId));
 
@@ -679,7 +679,7 @@ export async function createDeviation(
         status: 'open',
         description,
         reportedBy: userId,
-        reportedAt: new Date().toISOString(),
+        reportedAt: getNow(),
       })
       .returning({ id: deviations.id });
     deviationId = deviation.id;
@@ -695,7 +695,7 @@ export async function createDeviation(
         status: 'open',
         description,
         reportedBy: userId,
-        reportedAt: new Date().toISOString(),
+        reportedAt: getNow(),
       });
     deviationId = getInsertId(result);
   }
@@ -752,7 +752,7 @@ export async function updateDeviationInvestigation(
       responsiblePerson,
       dueDate,
       status: 'investigation',
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(deviations.id, deviationId));
 
@@ -806,8 +806,8 @@ export async function closeDeviation(
       status: 'closed',
       closureNotes,
       closedBy: userId,
-      closedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      closedAt: getNow(),
+      updatedAt: getNow(),
     })
     .where(eq(deviations.id, deviationId));
 

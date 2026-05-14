@@ -80,7 +80,8 @@ describe('TrainingDashboardPage', () => {
       renderWithProviders(<TrainingDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ระบบจัดการการอบรม')).toBeInTheDocument();
+        // Title comes from i18n: t('training.title') = 'Training'
+        expect(screen.getByText('Training')).toBeInTheDocument();
       });
     });
 
@@ -90,7 +91,8 @@ describe('TrainingDashboardPage', () => {
       renderWithProviders(<TrainingDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Training Management Dashboard/)).toBeInTheDocument();
+        // Subtitle comes from i18n: t('training.description') = 'Manage training programs'
+        expect(screen.getByText(/Manage training programs/)).toBeInTheDocument();
       });
     });
 
@@ -188,7 +190,8 @@ describe('TrainingDashboardPage', () => {
       renderWithProviders(<TrainingDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ระบบจัดการการอบรม')).toBeInTheDocument();
+        // Title comes from i18n: t('training.title') = 'Training'
+        expect(screen.getByText('Training')).toBeInTheDocument();
       });
     });
 
@@ -201,7 +204,8 @@ describe('TrainingDashboardPage', () => {
       renderWithProviders(<TrainingDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ระบบจัดการการอบรม')).toBeInTheDocument();
+        // Title comes from i18n: t('training.title') = 'Training'
+        expect(screen.getByText('Training')).toBeInTheDocument();
       });
     });
 
@@ -223,7 +227,8 @@ describe('TrainingDashboardPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('ระบบจัดการการอบรม')).toBeInTheDocument();
+        // Title comes from i18n: t('training.title') = 'Training'
+        expect(screen.getByText('Training')).toBeInTheDocument();
       });
     });
 

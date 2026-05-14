@@ -1,0 +1,246 @@
+{
+  "page": {
+    "title": "Cost Management",
+    "description": "Manage costs and cost analysis"
+  },
+  "dashboard": {
+    "title": "Cost Management",
+    "subtitle": "Executive dashboard for cost control and margin analysis",
+    "periodOptions": {
+      "this_month": "This Month",
+      "last_month": "Last Month",
+      "this_quarter": "This Quarter",
+      "last_quarter": "Last Quarter",
+      "ytd": "Year to Date"
+    },
+    "quickLinks": {
+      "landedCosts": {
+        "title": "Landed Costs",
+        "description": "Allocate freight and duties"
+      },
+      "workCenters": {
+        "title": "Work Centers",
+        "description": "Configure labor rates"
+      },
+      "reports": {
+        "title": "Cost Reports",
+        "description": "View detailed reports"
+      }
+    }
+  },
+  "landedCosts": {
+    "page": {
+      "title": "Landed Costs",
+      "description": "Allocate freight, duty, and other costs to purchase receipts"
+    },
+    "stats": {
+      "total": "Total",
+      "draft": "Draft",
+      "allocated": "Allocated",
+      "posted": "Posted",
+      "totalValue": "Total Value"
+    },
+    "empty": {
+      "title": "No landed cost documents yet",
+      "description": "Get started by creating a new landed cost document to allocate freight and duties"
+    },
+    "loading": "Loading data...",
+    "retry": "Retry",
+    "search": {
+      "placeholder": "Search document, PO, or invoice number..."
+    },
+    "filter": {
+      "all": "All",
+      "draft": "Draft",
+      "allocated": "Allocated",
+      "posted": "Posted"
+    },
+    "grid": {
+      "title": "Landed Cost Documents",
+      "columns": {
+        "documentNumber": "Document No.",
+        "referenceNumber": "PO Number",
+        "invoiceNumber": "Invoice No.",
+        "status": "Status",
+        "totalAmount": "Total Amount",
+        "created": "Created",
+        "posted": "Posted"
+      },
+      "mobile": {
+        "poPrefix": "PO",
+        "invoicePrefix": "Inv"
+      },
+      "pagerInfo": "Showing {from}-{to} of {total}"
+    },
+    "actions": {
+      "new": "New Landed Cost"
+    },
+    "status": {
+      "draft": "Draft",
+      "allocated": "Allocated",
+      "posted": "Posted"
+    },
+    "errors": {
+      "loadFailed": "Failed to load landed costs"
+    }
+  },
+  "workCenters": {
+    "page": {
+      "title": "Work Centers",
+      "description": "Configure production work centers with labor and overhead rates"
+    },
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "inactive": "Inactive",
+      "avgTotalRate": "Avg Total Rate/hr"
+    },
+    "empty": {
+      "title": "No work centers yet",
+      "description": "Get started by creating a work center to define labor and overhead rates"
+    },
+    "search": {
+      "placeholder": "Search by code or name..."
+    },
+    "filter": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "grid": {
+      "title": "Work Center List",
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "nameEn": "Name (English)",
+        "nameTh": "Name (Thai)",
+        "orgUnit": "Org Unit",
+        "laborRate": "Labor Rate",
+        "overheadRate": "Overhead Rate",
+        "machineRate": "Machine Rate",
+        "totalRate": "Total Rate",
+        "capacity": "Capacity (hrs/day)",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "pagerInfo": "Showing {from}-{to} of {total}"
+    },
+    "actions": {
+      "new": "New Work Center",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete this work center?"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "toast": {
+      "deleteSuccess": "Work center deleted successfully",
+      "deleteError": "Failed to delete work center"
+    },
+    "errors": {
+      "loadFailed": "Failed to load work centers",
+      "loading": "Loading work centers...",
+      "retry": "Retry"
+    }
+  },
+  "reports": {
+    "costSummary": {
+      "title": "Cost Summary",
+      "description": "Detailed cost summary report",
+      "stats": {
+        "totalItems": "Total Items",
+        "totalValue": "Total On-Hand Value",
+        "avgWac": "Average WAC",
+        "outOfStock": "Out of Stock"
+      },
+      "empty": {
+        "title": "No data matches current filters",
+        "description": "Try changing the filter or clearing search conditions"
+      },
+      "actions": {
+        "exportExcel": "Download Excel",
+        "clearFilters": "Clear Filters"
+      },
+      "filters": {
+        "title": "Filters",
+        "itemType": "Item Type",
+        "search": "Search",
+        "searchPlaceholder": "Search by code or name...",
+        "allTypes": "All Types",
+        "rawMaterial": "Raw Material",
+        "finishedGoods": "Finished Goods",
+        "packaging": "Packaging",
+        "consumable": "Consumable",
+        "wip": "Work In Process"
+      },
+      "itemTypes": {
+        "raw_material": "Raw Material",
+        "finished_goods": "Finished Goods",
+        "packaging": "Packaging",
+        "consumable": "Consumable",
+        "wip": "Work In Process"
+      },
+      "grid": {
+        "title": "Item Cost Summary",
+        "columns": {
+          "code": "Code",
+          "name": "Name",
+          "type": "Type",
+          "uom": "UOM",
+          "onHand": "On Hand",
+          "wac": "WAC",
+          "value": "Value",
+          "stdCost": "Std Cost",
+          "lastPOCost": "Last PO Cost",
+          "fullCost": "Full Cost"
+        },
+        "total": "Total",
+        "pagerInfo": "Showing {from}-{to} of {total}",
+        "worksheetName": "Cost Summary"
+      },
+      "loading": "Loading...",
+      "error": "Failed to load report data"
+    }
+  },
+  "unitCost": {
+    "title": "Unit Cost",
+    "description": "Calculate and manage product unit costs"
+  },
+  "productCost": {
+    "title": "Product Cost",
+    "description": "Analyze product costs",
+    "table": {
+      "columns": {
+        "productCode": "Product Code",
+        "productName": "Product Name",
+        "materialCost": "Material Cost",
+        "laborCost": "Labor Cost",
+        "overheadCost": "Overhead Cost",
+        "totalCost": "Total Cost"
+      }
+    }
+  },
+  "analysis": {
+    "title": "Analysis",
+    "description": "Analyze cost structure"
+  },
+  "variance": {
+    "title": "Cost Variance",
+    "description": "Analyze actual vs standard cost variance"
+  },
+  "toast": {
+    "calculate": {
+      "success": "Cost calculated successfully",
+      "error": "Failed to calculate cost"
+    }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

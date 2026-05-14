@@ -19,6 +19,7 @@ import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import { CSVImportDialog } from './CSVImportDialog';
 import type { BankStatement, BankStatementCreateInput } from '@/types/bank-reconciliation';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 interface BankAccount {
   id: number;
@@ -45,7 +46,7 @@ interface FormData {
 
 const defaultFormData: FormData = {
   bankAccountId: 0,
-  statementDate: new Date().toISOString().split('T')[0],
+  statementDate: toLocalDateStr(new Date()),
   startDate: '',
   endDate: '',
   openingBalance: 0,
@@ -108,7 +109,7 @@ async function deleteStatement(id: number): Promise<void> {
 function formatDateForApi(date: Date | string | null): string {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toISOString().split('T')[0];
+  return toLocalDateStr(d);
 }
 
 // Helper to parse date string to display

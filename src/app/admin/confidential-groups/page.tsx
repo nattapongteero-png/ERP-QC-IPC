@@ -9,6 +9,7 @@
 import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   ShieldCheck,
   Filter,
@@ -30,6 +31,7 @@ import TextBox from 'devextreme-react/text-box';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxPopup, DxConfirmDialog } from '@/components/ui/dx-popup';
+import { ResponsivePageHeader } from '@/components/shared';
 import type { ConfidentialAccessGroup } from '@/types/confidentiality';
 
 // Page header component
@@ -138,6 +140,7 @@ const initialFormData: GroupFormData = {
 export default function ConfidentialAccessGroupsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations('admin');
   const [searchText, setSearchText] = React.useState('');
   const [selectedGroup, setSelectedGroup] = React.useState<ConfidentialAccessGroup | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
@@ -157,7 +160,7 @@ export default function ConfidentialAccessGroupsPage() {
     mutationFn: createGroup,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['confidential-access-groups'] });
-      notify('Group created successfully', 'success', 3000);
+      notify(t('confidentialGroups.toast.createSuccess'), 'success', 3000);
       closeFormDialog();
     },
     onError: (error: Error) => {
@@ -170,7 +173,7 @@ export default function ConfidentialAccessGroupsPage() {
     mutationFn: ({ id, data }: { id: number; data: Partial<GroupFormData> }) => updateGroup(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['confidential-access-groups'] });
-      notify('Group updated successfully', 'success', 3000);
+      notify(t('confidentialGroups.toast.updateSuccess'), 'success', 3000);
       closeFormDialog();
     },
     onError: (error: Error) => {
@@ -183,7 +186,7 @@ export default function ConfidentialAccessGroupsPage() {
     mutationFn: deleteGroup,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['confidential-access-groups'] });
-      notify('Group deleted successfully', 'success', 3000);
+      notify(t('confidentialGroups.toast.deleteSuccess'), 'success', 3000);
       setShowDeleteConfirm(false);
       setSelectedGroup(null);
     },
@@ -231,26 +234,26 @@ export default function ConfidentialAccessGroupsPage() {
     setFormErrors({});
   };
 
-  const validateForm = (): boolean => {
+  const validateForm = React.useCallback((): boolean => {
     const errors: Partial<Record<keyof GroupFormData, string>> = {};
 
     if (!formData.code.trim()) {
-      errors.code = 'Code is required';
+      errors.code = t('confidentialGroups.form.codeRequired');
     } else if (!/^[A-Z0-9_]+$/.test(formData.code)) {
-      errors.code = 'Code must be uppercase alphanumeric with underscores only';
+      errors.code = t('confidentialGroups.form.codeFormat');
     }
 
     if (!formData.name.trim()) {
-      errors.name = 'Name is required';
+      errors.name = t('confidentialGroups.form.nameRequired');
     }
 
     if (formData.description && formData.description.length > 500) {
-      errors.description = 'Description must be 500 characters or less';
+      errors.description = t('confidentialGroups.form.descriptionMaxLength');
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  };
+  }, [formData, t]);
 
   const handleSubmit = () => {
     if (!validateForm()) return;
@@ -309,7 +312,7 @@ export default function ConfidentialAccessGroupsPage() {
     });
   };
 
-  const renderActionsCell = (cellData: { data: ConfidentialAccessGroup }) => {
+  const renderActionsCell = React.useCallback((cellData: { data: ConfidentialAccessGroup }) => {
     return (
       <div className="flex items-center gap-1">
         <button
@@ -318,7 +321,7 @@ export default function ConfidentialAccessGroupsPage() {
             handleManageMembers(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="Manage Members"
+          title={t('confidentialGroups.actions.manageMembers')}
           data-testid={`members-btn-${cellData.data.id}`}
         >
           <Users className="h-4 w-4" />
@@ -329,7 +332,7 @@ export default function ConfidentialAccessGroupsPage() {
             openEditDialog(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="Edit"
+          title={t('confidentialGroups.actions.edit')}
           data-testid={`edit-btn-${cellData.data.id}`}
         >
           <Edit className="h-4 w-4" />
@@ -340,35 +343,45 @@ export default function ConfidentialAccessGroupsPage() {
             handleDelete(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Delete"
+          title={t('confidentialGroups.actions.delete')}
           data-testid={`delete-btn-${cellData.data.id}`}
         >
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
     );
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       {/* Header */}
-      <PageHeader
-        title="Confidential Access Groups"
-        subtitle="Manage access groups for BOM confidentiality protection"
+      <ResponsivePageHeader
+        title={t('confidentialGroups.title')}
+        subtitle={t('confidentialGroups.subtitle')}
         icon={ShieldCheck}
-        iconClassName="from-amber-500 to-orange-600"
-        onRefresh={() => refetch()}
-        isRefreshing={isFetching}
+        iconBgColor="bg-amber-100"
+        iconColor="text-amber-600"
         actions={
-          <Button
-            text="Add Group"
-            icon="add"
-            type="success"
-            onClick={openCreateDialog}
-            data-testid="add-group-btn"
-          />
+          <>
+            <Button
+              icon={isFetching ? 'spindown' : 'refresh'}
+              stylingMode="outlined"
+              hint="Refresh"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              data-testid="refresh-btn"
+            />
+            <Button
+              text={t('confidentialGroups.addGroup')}
+              icon="add"
+              type="success"
+              onClick={openCreateDialog}
+              data-testid="add-group-btn"
+            />
+          </>
         }
       />
 
@@ -380,14 +393,14 @@ export default function ConfidentialAccessGroupsPage() {
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Search:</span>
+                <span className="text-sm font-medium text-gray-700">{t('confidentialGroups.search')}</span>
               </div>
               <div className="w-64">
                 <TextBox
                   value={searchText}
                   onValueChanged={(e) => setSearchText(e.value || '')}
                   valueChangeEvent="keyup"
-                  placeholder="Search by code, name, or description..."
+                  placeholder={t('confidentialGroups.searchPlaceholder')}
                   showClearButton
                   mode="search"
                   data-testid="search-input"
@@ -395,7 +408,7 @@ export default function ConfidentialAccessGroupsPage() {
               </div>
               {searchText && (
                 <Button
-                  text="Clear"
+                  text={t('confidentialGroups.clear')}
                   stylingMode="text"
                   onClick={() => setSearchText('')}
                   data-testid="clear-search-btn"
@@ -406,11 +419,11 @@ export default function ConfidentialAccessGroupsPage() {
             {/* Statistics */}
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-md">
-                <span className="text-gray-500">Total Groups:</span>
+                <span className="text-gray-500">{t('confidentialGroups.totalGroups')}</span>
                 <span className="font-semibold text-gray-900">{groupsData.length}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 rounded-md">
-                <span className="text-blue-600">Total Members:</span>
+                <span className="text-blue-600">{t('confidentialGroups.totalMembers')}</span>
                 <span className="font-semibold text-blue-700">
                   {groupsData.reduce((sum, g) => sum + (g.memberCount || 0), 0)}
                 </span>
@@ -446,25 +459,25 @@ export default function ConfidentialAccessGroupsPage() {
               showNavigationButtons
             />
 
-            <Column dataField="id" caption="ID" width={70} />
-            <Column dataField="code" caption="Code" width={150} />
-            <Column dataField="name" caption="Name" minWidth={200} />
-            <Column dataField="description" caption="Description" minWidth={250} />
+            <Column dataField="id" caption={t('confidentialGroups.columns.id')} width={70} />
+            <Column dataField="code" caption={t('confidentialGroups.columns.code')} width={150} />
+            <Column dataField="name" caption={t('confidentialGroups.columns.name')} minWidth={200} />
+            <Column dataField="description" caption={t('confidentialGroups.columns.description')} minWidth={250} />
             <Column
               dataField="memberCount"
-              caption="Members"
+              caption={t('confidentialGroups.columns.members')}
               width={100}
               cellRender={renderMemberCountCell}
               alignment="center"
             />
             <Column
               dataField="createdAt"
-              caption="Created"
+              caption={t('confidentialGroups.columns.created')}
               width={120}
               cellRender={renderDateCell}
             />
             <Column
-              caption="Actions"
+              caption={t('confidentialGroups.columns.actions')}
               width={140}
               cellRender={renderActionsCell}
               allowFiltering={false}
@@ -479,7 +492,7 @@ export default function ConfidentialAccessGroupsPage() {
       <DxPopup
         visible={showFormDialog}
         onVisibleChange={setShowFormDialog}
-        title={isEditMode ? 'Edit Access Group' : 'Create Access Group'}
+        title={isEditMode ? t('confidentialGroups.form.editTitle') : t('confidentialGroups.form.createTitle')}
         width={500}
         height="auto"
         showCloseButton
@@ -489,7 +502,7 @@ export default function ConfidentialAccessGroupsPage() {
             toolbar: 'bottom',
             location: 'after',
             options: {
-              text: isSubmitting ? 'Saving...' : 'Save',
+              text: isSubmitting ? t('confidentialGroups.form.saving') : t('confidentialGroups.form.save'),
               type: 'success',
               onClick: handleSubmit,
             },
@@ -499,7 +512,7 @@ export default function ConfidentialAccessGroupsPage() {
             toolbar: 'bottom',
             location: 'after',
             options: {
-              text: 'Cancel',
+              text: t('confidentialGroups.form.cancel'),
               stylingMode: 'outlined',
               onClick: closeFormDialog,
             },
@@ -509,7 +522,7 @@ export default function ConfidentialAccessGroupsPage() {
         <div className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Code <span className="text-red-500">*</span>
+              {t('confidentialGroups.form.codeLabel')} <span className="text-red-500">*</span>
             </label>
             <TextBox
               value={formData.code}
@@ -518,7 +531,7 @@ export default function ConfidentialAccessGroupsPage() {
                 setFormData((prev) => ({ ...prev, code: value }));
                 if (formErrors.code) setFormErrors((prev) => ({ ...prev, code: undefined }));
               }}
-              placeholder="e.g., RND_TEAM, PRODUCTION_MGMT"
+              placeholder={t('confidentialGroups.form.codePlaceholder')}
               maxLength={50}
               disabled={isEditMode}
               data-testid="code-input"
@@ -528,14 +541,14 @@ export default function ConfidentialAccessGroupsPage() {
             )}
             {!isEditMode && (
               <p className="mt-1 text-xs text-gray-500">
-                Uppercase letters, numbers, and underscores only
+                {t('confidentialGroups.form.codeHint')}
               </p>
             )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name <span className="text-red-500">*</span>
+              {t('confidentialGroups.form.nameLabel')} <span className="text-red-500">*</span>
             </label>
             <TextBox
               value={formData.name}
@@ -543,7 +556,7 @@ export default function ConfidentialAccessGroupsPage() {
                 setFormData((prev) => ({ ...prev, name: e.value || '' }));
                 if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: undefined }));
               }}
-              placeholder="e.g., R&D Team, Production Management"
+              placeholder={t('confidentialGroups.form.namePlaceholder')}
               maxLength={100}
               data-testid="name-input"
             />
@@ -554,7 +567,7 @@ export default function ConfidentialAccessGroupsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
+              {t('confidentialGroups.form.descriptionLabel')}
             </label>
             <TextBox
               value={formData.description}
@@ -562,7 +575,7 @@ export default function ConfidentialAccessGroupsPage() {
                 setFormData((prev) => ({ ...prev, description: e.value || '' }));
                 if (formErrors.description) setFormErrors((prev) => ({ ...prev, description: undefined }));
               }}
-              placeholder="Optional description of the access group"
+              placeholder={t('confidentialGroups.form.descriptionPlaceholder')}
               maxLength={500}
               data-testid="description-input"
             />
@@ -581,9 +594,9 @@ export default function ConfidentialAccessGroupsPage() {
           setShowDeleteConfirm(false);
           setSelectedGroup(null);
         }}
-        title="Delete Access Group"
-        message={`Are you sure you want to delete "${selectedGroup?.name}"? This action cannot be undone and will remove all member assignments.`}
-        confirmText={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+        title={t('confidentialGroups.deleteDialog.title')}
+        message={t('confidentialGroups.deleteDialog.message', { name: selectedGroup?.name || '' })}
+        confirmText={deleteMutation.isPending ? t('confidentialGroups.deleteDialog.deleting') : t('confidentialGroups.deleteDialog.confirm')}
         confirmType="danger"
       />
     </div>

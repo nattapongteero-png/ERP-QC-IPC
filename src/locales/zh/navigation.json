@@ -1,0 +1,22 @@
+{
+  "modules": {
+    "dashboard": "仪表板",
+    "accounting": "会计",
+    "inventory": "库存",
+    "production": "生产",
+    "purchasing": "采购",
+    "sales": "销售",
+    "quality": "质量",
+    "gmp": "GMP",
+    "hr": "人力资源",
+    "reports": "报表",
+    "settings": "设置",
+    "admin": "管理"
+  },
+  "header": {
+    "profile": "个人资料",
+    "logout": "退出登录",
+    "settings": "设置",
+    "notifications": "通知"
+  }
+}

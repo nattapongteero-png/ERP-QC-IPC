@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { and, eq } from 'drizzle-orm';
 import {
   successResponse,
   errorResponse,
@@ -10,9 +11,10 @@ import {
   addBOMEnvironmentalCondition,
   removeBOMEnvironmentalCondition,
 } from '@/lib/services/bom-configuration.service';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 
 // Valid phases for environmental conditions
-const VALID_PHASES = ['production', 'packaging'];
+const VALID_PHASES = ['pre_production', 'production', 'pre_packaging', 'packaging'];
 
 // GET /api/production/bom/[id]/environmental-conditions - Get environmental conditions for BOM
 export async function GET(
@@ -74,9 +76,36 @@ export async function POST(
         return errorResponse(`Invalid phase. Must be one of: ${VALID_PHASES.join(', ')}`);
       }
 
+      // Resolve bomRoomId: caller can pass it explicitly, otherwise auto-link
+      // to an existing bom_room with the same (bomId, phase). Rejecting orphans
+      // keeps this table tied to the room master and prevents the legacy
+      // behaviour that left bomRoomId=NULL and caused drifted/ghost entries.
+      let bomRoomId: number | undefined = data.bomRoomId ? Number(data.bomRoomId) : undefined;
+      if (!bomRoomId) {
+        const bomRoomsTable = getTableRef('bOMRooms');
+        const candidates = await executeDbOperation(async (db) => {
+          return db
+            .select({ id: bomRoomsTable.id })
+            .from(bomRoomsTable)
+            .where(and(eq(bomRoomsTable.bomId, bomId), eq(bomRoomsTable.phase, data.phase)));
+        });
+        if (candidates.length === 0) {
+          return errorResponse(
+            `No room configured for phase '${data.phase}' in this BOM. Add a room first before linking an environmental condition.`,
+          );
+        }
+        if (candidates.length > 1) {
+          return errorResponse(
+            `Multiple rooms configured for phase '${data.phase}'. Please pass 'bomRoomId' to specify which room this condition applies to.`,
+          );
+        }
+        bomRoomId = candidates[0].id as number;
+      }
+
       const condition = await addBOMEnvironmentalCondition({
         bomId,
         conditionId: data.conditionId,
+        bomRoomId,
         phase: data.phase,
       });
 

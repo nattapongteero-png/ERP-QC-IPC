@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -112,7 +113,11 @@ const booleanOptions = [
 export default function BatchRecordDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('production');
   const id = params.id as string;
+
+  // Use translation for page title
+  const pageTitle = t('batchRecords.title');
 
   const [record, setRecord] = useState<BatchRecordDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);

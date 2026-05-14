@@ -9,6 +9,7 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { AuditList } from '@/components/internal-audit';
@@ -83,6 +84,7 @@ async function completeAudit(auditId: number): Promise<void> {
 
 function AuditsPageContent() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -199,8 +201,8 @@ function AuditsPageContent() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Internal Audits"
-        subtitle={planId ? `Audits for Plan #${planId}` : 'All internal audits'}
+        title={t('internalAudit.audits.title')}
+        subtitle={planId ? `Audits for Plan #${planId}` : t('internalAudit.audits.description')}
         onBack={() => router.push('/gmp/internal-audit')}
         actions={
           <DxButton

@@ -15,12 +15,20 @@ import {
   sqliteDocumentApprovals,
   sqliteUsers,
   sqliteHROrgUnits,
+  sqliteHRTrainingCourses,
   mysqlDocumentTypes,
   mysqlDocuments,
   mysqlDocumentVersions,
   mysqlDocumentApprovals,
   mysqlUsers,
   mysqlHROrgUnits,
+  mysqlHRTrainingCourses,
+  sqliteHRTrainingRecords,
+  mysqlHRTrainingRecords,
+  sqliteHRNotifications,
+  mysqlHRNotifications,
+  sqliteHREmployees,
+  mysqlHREmployees,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 
@@ -115,6 +123,10 @@ function getTables() {
       approvals: sqliteDocumentApprovals,
       users: sqliteUsers,
       orgUnits: sqliteHROrgUnits,
+      trainingCourses: sqliteHRTrainingCourses,
+      trainingRecords: sqliteHRTrainingRecords,
+      notifications: sqliteHRNotifications,
+      employees: sqliteHREmployees,
     };
   }
   return {
@@ -124,6 +136,10 @@ function getTables() {
     approvals: mysqlDocumentApprovals,
     users: mysqlUsers,
     orgUnits: mysqlHROrgUnits,
+    trainingCourses: mysqlHRTrainingCourses,
+    trainingRecords: mysqlHRTrainingRecords,
+    notifications: mysqlHRNotifications,
+    employees: mysqlHREmployees,
   };
 }
 
@@ -220,6 +236,7 @@ export async function createDocument(
     title: data.title,
     typeId: data.typeId,
     departmentId: data.departmentId || null,
+    trainingCourseId: data.trainingCourseId || null,
     status: 'draft',
     retentionYears,
     createdBy: userId,
@@ -264,7 +281,7 @@ export async function createDocument(
  * Get document by ID with full details
  */
 export async function getDocumentById(id: number): Promise<DocumentDetails | null> {
-  const { documents, documentTypes, versions, approvals, users, orgUnits } = getTables();
+  const { documents, documentTypes, versions, approvals, users, orgUnits, trainingCourses } = getTables();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
 
@@ -284,6 +301,9 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
       retentionYears: documents.retentionYears,
       createdBy: documents.createdBy,
       createdByName: users.name,
+      trainingCourseId: documents.trainingCourseId,
+      trainingCourseName: trainingCourses.name,
+      trainingCourseCode: trainingCourses.code,
       createdAt: documents.createdAt,
       updatedAt: documents.updatedAt,
     })
@@ -291,6 +311,7 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
     .leftJoin(documentTypes, eq(documents.typeId, documentTypes.id))
     .leftJoin(orgUnits, eq(documents.departmentId, orgUnits.id))
     .leftJoin(users, eq(documents.createdBy, users.id))
+    .leftJoin(trainingCourses, eq(documents.trainingCourseId, trainingCourses.id))
     .where(eq(documents.id, id));
 
   if (!doc) {
@@ -362,6 +383,9 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
     currentVersionId: doc.currentVersionId,
     status: doc.status as DocumentStatus,
     retentionYears: doc.retentionYears,
+    trainingCourseId: doc.trainingCourseId || null,
+    trainingCourseName: doc.trainingCourseName || undefined,
+    trainingCourseCode: doc.trainingCourseCode || undefined,
     createdBy: doc.createdBy!,
     createdByName: doc.createdByName || undefined,
     createdAt: doc.createdAt,
@@ -475,6 +499,7 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
       currentVersionNumber: d.currentVersionNumber || undefined,
       status: d.status as DocumentStatus,
       retentionYears: d.retentionYears,
+      trainingCourseId: d.trainingCourseId || null,
       createdBy: d.createdBy!,
       createdByName: d.createdByName || undefined,
       // Handle Date objects from MySQL
@@ -518,6 +543,7 @@ export async function updateDocument(
 
   if (data.title !== undefined) updateData.title = data.title;
   if (data.departmentId !== undefined) updateData.departmentId = data.departmentId;
+  if (data.trainingCourseId !== undefined) updateData.trainingCourseId = data.trainingCourseId;
 
   await database
     .update(documents)
@@ -534,6 +560,56 @@ export async function updateDocument(
   });
 
   return true;
+}
+
+/**
+ * Delete a draft document and all its versions/approvals
+ * Only documents with status 'draft' can be deleted.
+ */
+export async function deleteDocument(
+  id: number,
+  userId: number
+): Promise<void> {
+  const { documents, versions, approvals } = getTables();
+  const database = (await getDb()) as any;
+
+  const [doc] = await database
+    .select({ id: documents.id, status: documents.status, documentNumber: documents.documentNumber, title: documents.title })
+    .from(documents)
+    .where(eq(documents.id, id));
+
+  if (!doc) {
+    throw new Error(`Document ${id} not found`);
+  }
+
+  if (doc.status !== 'draft') {
+    throw new Error('Only draft documents can be deleted');
+  }
+
+  // Get all version IDs for this document
+  const docVersions = await database
+    .select({ id: versions.id })
+    .from(versions)
+    .where(eq(versions.documentId, id));
+
+  // Delete approvals for all versions
+  for (const v of docVersions) {
+    await database.delete(approvals).where(eq(approvals.versionId, v.id));
+  }
+
+  // Delete all versions
+  await database.delete(versions).where(eq(versions.documentId, id));
+
+  // Delete the document
+  await database.delete(documents).where(eq(documents.id, id));
+
+  await createAuditLog({
+    userId,
+    action: 'DELETE',
+    tableName: 'documents',
+    recordId: id,
+    oldValue: { documentNumber: doc.documentNumber, title: doc.title },
+  });
 }
 
 /**
@@ -635,7 +711,87 @@ export async function createVersion(
     },
   });
 
+  // Check if document is linked to a training course → create re-training alerts
+  if (doc.trainingCourseId) {
+    try {
+      await createRetrainingAlerts(
+        database,
+        doc.trainingCourseId,
+        data.documentId,
+        doc.documentNumber || `Doc #${data.documentId}`,
+        doc.title || '',
+        newVersionNumber
+      );
+    } catch (err) {
+      // Don't fail version creation if alerts fail
+      console.error('Failed to create re-training alerts:', err);
+    }
+  }
+
   return { id: newVersion.id, versionNumber: newVersionNumber };
+}
+
+/**
+ * Create re-training notifications for employees who completed
+ * a training course linked to an updated document
+ */
+async function createRetrainingAlerts(
+  database: ReturnType<typeof Object>,
+  courseId: number,
+  documentId: number,
+  documentNumber: string,
+  documentTitle: string,
+  newVersion: string
+): Promise<void> {
+  const { trainingRecords, notifications, employees, trainingCourses } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = database as any;
+
+  // Get course name
+  const [course] = await db
+    .select({ name: trainingCourses.name, code: trainingCourses.code })
+    .from(trainingCourses)
+    .where(eq(trainingCourses.id, courseId))
+    .limit(1);
+
+  const courseName = course ? `${course.code} - ${course.name}` : `Course #${courseId}`;
+
+  // Find employees who completed this training course
+  const trainedEmployees = await db
+    .select({
+      employeeId: trainingRecords.employeeId,
+      employeeName: employees.firstName,
+    })
+    .from(trainingRecords)
+    .leftJoin(employees, eq(trainingRecords.employeeId, employees.id))
+    .where(
+      and(
+        eq(trainingRecords.courseId, courseId),
+        eq(trainingRecords.result, 'pass')
+      )
+    );
+
+  if (trainedEmployees.length === 0) return;
+
+  // Deduplicate by employeeId
+  const uniqueEmployeeIds = [...new Set(trainedEmployees.map((r: { employeeId: number }) => r.employeeId))];
+
+  const nowStr = formatDateForDb();
+  const notificationValues = uniqueEmployeeIds.map((empId) => ({
+    employeeId: empId as number,
+    type: 'retraining_required',
+    title: `เอกสาร ${documentNumber} มีการอัปเดตเวอร์ชัน - ต้อง Re-training`,
+    message: `เอกสาร "${documentTitle}" ได้อัปเดตเป็นเวอร์ชัน ${newVersion} กรุณาเข้ารับการอบรมหลักสูตร "${courseName}" อีกครั้ง`,
+    referenceType: 'document',
+    referenceId: documentId,
+    isRead: false,
+    createdAt: nowStr,
+  }));
+
+  // Batch insert notifications
+  if (notificationValues.length > 0) {
+    await db.insert(notifications).values(notificationValues);
+  }
 }
 
 /**
@@ -1190,6 +1346,47 @@ export async function getVersionFileData(
 /**
  * Update file data for an existing version
  */
+/**
+ * Delete file data from a document version (draft versions only)
+ */
+export async function deleteVersionFile(
+  versionId: number,
+  userId: number
+): Promise<boolean> {
+  const { versions } = getTables();
+  const database = (await getDb()) as any;
+
+  const [ver] = await database
+    .select({ id: versions.id, status: versions.status, fileName: versions.fileName })
+    .from(versions)
+    .where(eq(versions.id, versionId));
+
+  if (!ver) throw new Error('Version not found');
+  if (ver.status !== 'draft') throw new Error('Can only delete files from draft versions');
+
+  await database
+    .update(versions)
+    .set({
+      fileData: null,
+      fileName: null,
+      fileSize: null,
+      mimeType: null,
+      filePath: null,
+    })
+    .where(eq(versions.id, versionId));
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'document_versions',
+    recordId: versionId,
+    oldValue: { fileName: ver.fileName },
+    newValue: { action: 'file_deleted' },
+  });
+
+  return true;
+}
+
 export async function updateVersionFileData(
   versionId: number,
   fileData: Buffer | Uint8Array,

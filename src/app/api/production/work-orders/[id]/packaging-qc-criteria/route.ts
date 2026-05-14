@@ -24,8 +24,8 @@ export async function GET(
 
       // Get tables
       const workOrders = getTableRef('workOrders');
-      const bomPackagingQC = getTableRef('bomPackagingQC');
-      const packagingQCCriteria = getTableRef('packagingQCCriteria');
+      const bomPackagingQC = getTableRef('BOMPackagingQC');
+      const packagingQCCriteria = getTableRef('PackagingQCCriteria');
 
       // Get work order's BOM ID
       const workOrder = await executeDbOperation(async (db) => {

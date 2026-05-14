@@ -202,7 +202,7 @@ describe('Dashboard Page E2E', () => {
       render(<DashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ภาพรวมระบบบริหารจัดการการผลิตยาสมุนไพร')).toBeInTheDocument();
+        expect(screen.getByText('Overview of the Herbal Medicine Manufacturing System')).toBeInTheDocument();
       });
     });
   });
@@ -492,7 +492,6 @@ describe('Dashboard Page E2E', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Recent Work Orders')).toBeInTheDocument();
-        expect(screen.getByText('ใบสั่งผลิตล่าสุด')).toBeInTheDocument();
       });
     });
 
@@ -513,7 +512,6 @@ describe('Dashboard Page E2E', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Inventory by Status')).toBeInTheDocument();
-        expect(screen.getByText('สถานะสินค้าคงคลัง')).toBeInTheDocument();
       });
     });
 
@@ -531,8 +529,7 @@ describe('Dashboard Page E2E', () => {
       render(<DashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Inventory by Warehouse Type')).toBeInTheDocument();
-        expect(screen.getByText('สินค้าคงคลังแยกตามประเภทคลัง')).toBeInTheDocument();
+        expect(screen.getByText('Warehouse Overview')).toBeInTheDocument();
       });
     });
 

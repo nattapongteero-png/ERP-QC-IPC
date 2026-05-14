@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -20,6 +20,7 @@ function generateVendorCode(): string {
 
 export default function NewVendorPage() {
   const router = useRouter();
+  const t = useTranslations('purchasing');
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
     code: '',
@@ -72,11 +73,10 @@ export default function NewVendorPage() {
   };
 
   return (
-    <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title="New Vendor"
-          description="สร้างผู้ขายใหม่"
+          title={t('vendors.newTitle')}
+          description={t('vendors.newDescription')}
           actions={
             <div className="flex gap-2">
               <DxButton
@@ -211,6 +211,5 @@ export default function NewVendorPage() {
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
   );
 }

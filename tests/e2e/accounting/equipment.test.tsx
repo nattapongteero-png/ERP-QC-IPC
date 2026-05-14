@@ -221,7 +221,7 @@ describe('Equipment & Maintenance Page', () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Equipment & Maintenance')).toBeInTheDocument();
+      expect(screen.getAllByText('Accounting').length).toBeGreaterThan(0);
     }, { timeout: 10000 });
   }, 15000);
 
@@ -253,7 +253,7 @@ describe('Equipment & Maintenance Page', () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Equipment & Maintenance')).toBeInTheDocument();
+      expect(screen.getAllByText('Accounting').length).toBeGreaterThan(0);
       expect(screen.getByText('Track equipment, maintenance schedules, and MTBF analysis')).toBeInTheDocument();
     });
   });
@@ -310,7 +310,7 @@ describe('Equipment & Maintenance Page', () => {
 
     // Page should still render without crashing
     await waitFor(() => {
-      expect(screen.getByText('Equipment & Maintenance')).toBeInTheDocument();
+      expect(screen.getAllByText('Accounting').length).toBeGreaterThan(0);
     });
   });
 

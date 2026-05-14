@@ -3,7 +3,9 @@
 // Template Dashboard - DevExtreme Charts Showcase
 // Comprehensive demo of DevExtreme chart components for ERP dashboards
 
+import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import {
   LayoutGrid,
@@ -92,26 +94,29 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: '#EF4444',
 };
 
-// Demo workflow data for funnel chart
-const workflowData = [
-  { stage: 'Created', count: 100 },
-  { stage: 'In Review', count: 80 },
-  { stage: 'Approved', count: 65 },
-  { stage: 'Active', count: 50 },
-  { stage: 'Completed', count: 35 },
-];
-
-// Demo performance data for polar chart
-const performanceData = [
-  { category: 'Quality', score: 85 },
-  { category: 'Speed', score: 70 },
-  { category: 'Accuracy', score: 90 },
-  { category: 'Efficiency', score: 75 },
-  { category: 'Cost', score: 60 },
-  { category: 'Safety', score: 95 },
-];
-
 export default function TemplateDashboardPage() {
+  const t = useTranslations('template.dashboard');
+  const locale = useLocale();
+
+  // Demo workflow data for funnel chart
+  const workflowData = React.useMemo(() => [
+    { stage: t('workflowStages.created'), count: 100 },
+    { stage: t('workflowStages.inReview'), count: 80 },
+    { stage: t('workflowStages.approved'), count: 65 },
+    { stage: t('workflowStages.active'), count: 50 },
+    { stage: t('workflowStages.completed'), count: 35 },
+  ], [t]);
+
+  // Demo performance data for polar chart
+  const performanceData = React.useMemo(() => [
+    { category: t('performance.quality'), score: 85 },
+    { category: t('performance.speed'), score: 70 },
+    { category: t('performance.accuracy'), score: 90 },
+    { category: t('performance.efficiency'), score: 75 },
+    { category: t('performance.cost'), score: 60 },
+    { category: t('performance.safety'), score: 95 },
+  ], [t]);
+
   const { data: metrics, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['template-dashboard'],
     queryFn: fetchDashboardMetrics,
@@ -140,25 +145,25 @@ export default function TemplateDashboardPage() {
   const draftPercentage = metrics ? Math.round((metrics.draftItems / Math.max(metrics.totalItems, 1)) * 100) : 0;
 
   // Generate sparkline data from trend
-  const sparklineData = trendChartData.map(t => t.count);
-  const valueSparklineData = trendChartData.map(t => t.value / 10000); // Scale down for display
+  const sparklineData = trendChartData.map(d => d.count);
+  const valueSparklineData = trendChartData.map(d => d.value / 10000); // Scale down for display
 
   // Bar gauge data for multiple metrics
   const barGaugeValues = [activePercentage, draftPercentage, 100 - activePercentage - draftPercentage];
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       {/* Header */}
       <TemplatePageHeader
-        title="Template Dashboard"
-        subtitle="DevExtreme Charts Showcase - ERP Module Demo"
+        title={t('title')}
+        subtitle={t('subtitle')}
         icon={LayoutGrid}
         iconClassName="from-blue-500 to-indigo-600"
         onRefresh={() => refetch()}
         isRefreshing={isFetching}
         actions={
           <Button
-            text="New Item"
+            text={t('newItem')}
             icon="add"
             type="success"
             onClick={() => window.location.href = '/template/items/new'}
@@ -182,9 +187,9 @@ export default function TemplateDashboardPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Total Items</p>
+                    <p className="text-sm font-medium text-gray-500">{t('kpi.totalItems')}</p>
                     <p className="text-3xl font-bold text-gray-900 mt-1">{metrics?.totalItems || 0}</p>
-                    <p className="text-xs text-gray-400 mt-1">All items in system</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('kpi.totalItemsDescription')}</p>
                   </div>
                   <div className="p-2.5 rounded-xl bg-blue-100">
                     <Layers className="h-6 w-6 text-blue-600" />
@@ -212,9 +217,9 @@ export default function TemplateDashboardPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Active Items</p>
+                    <p className="text-sm font-medium text-gray-500">{t('kpi.activeItems')}</p>
                     <p className="text-3xl font-bold text-green-600 mt-1">{metrics?.activeItems || 0}</p>
-                    <p className="text-xs text-gray-400 mt-1">{activePercentage}% of total</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('kpi.activeItemsPercent', { percent: activePercentage })}</p>
                   </div>
                   <div className="p-2.5 rounded-xl bg-green-100">
                     <CheckCircle className="h-6 w-6 text-green-600" />
@@ -241,9 +246,9 @@ export default function TemplateDashboardPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Draft Items</p>
+                    <p className="text-sm font-medium text-gray-500">{t('kpi.draftItems')}</p>
                     <p className="text-3xl font-bold text-gray-600 mt-1">{metrics?.draftItems || 0}</p>
-                    <p className="text-xs text-gray-400 mt-1">Pending review</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('kpi.draftItemsDescription')}</p>
                   </div>
                   <div className="p-2.5 rounded-xl bg-gray-100">
                     <FileEdit className="h-6 w-6 text-gray-600" />
@@ -267,9 +272,9 @@ export default function TemplateDashboardPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Total Value</p>
+                    <p className="text-sm font-medium text-gray-500">{t('kpi.totalValue')}</p>
                     <p className="text-2xl font-bold text-emerald-600 mt-1">{formatCompactCurrency(metrics?.totalValue || 0)}</p>
-                    <p className="text-xs text-gray-400 mt-1">Portfolio value</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('kpi.totalValueDescription')}</p>
                   </div>
                   <div className="p-2.5 rounded-xl bg-emerald-100">
                     <TrendingUp className="h-6 w-6 text-emerald-600" />
@@ -298,17 +303,18 @@ export default function TemplateDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Gauge className="h-5 w-5 text-green-500" />
-              Active Items Rate
+              {t('cards.activeRate')}
             </CardTitle>
-            <CardDescription>Percentage of active items</CardDescription>
+            <CardDescription>{t('cards.activeRateDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
             {isLoading ? (
               <div className="h-[200px] flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
+                <div className="animate-pulse text-gray-400">{t('loading')}</div>
               </div>
             ) : (
               <CircularGauge
+                key={locale}
                 id="active-rate-gauge"
                 value={activePercentage}
               >
@@ -331,18 +337,19 @@ export default function TemplateDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Target className="h-5 w-5 text-blue-500" />
-              Monthly Target
+              {t('cards.monthlyTarget')}
             </CardTitle>
-            <CardDescription>Progress towards 100 items goal</CardDescription>
+            <CardDescription>{t('cards.monthlyTargetDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="h-[200px] flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
+                <div className="animate-pulse text-gray-400">{t('loading')}</div>
               </div>
             ) : (
               <div className="h-[200px] flex items-center justify-center">
                 <LinearGauge
+                  key={locale}
                   id="target-gauge"
                   value={metrics?.totalItems || 0}
                 >
@@ -367,17 +374,18 @@ export default function TemplateDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Activity className="h-5 w-5 text-purple-500" />
-              Status Distribution
+              {t('cards.statusDistribution')}
             </CardTitle>
-            <CardDescription>Active / Draft / Archived</CardDescription>
+            <CardDescription>{t('cards.statusDistributionDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
             {isLoading ? (
               <div className="h-[200px] flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
+                <div className="animate-pulse text-gray-400">{t('loading')}</div>
               </div>
             ) : (
               <BarGauge
+                key={locale}
                 id="status-bar-gauge"
                 values={barGaugeValues}
                 startValue={0}
@@ -391,7 +399,7 @@ export default function TemplateDashboardPage() {
                   verticalAlignment="bottom"
                   horizontalAlignment="center"
                   customizeText={(arg: { item: { index?: number } }) => {
-                    const labels = ['Active', 'Draft', 'Archived'];
+                    const labels = [t('statuses.active'), t('statuses.draft'), t('statuses.archived')];
                     return labels[arg.item.index ?? 0];
                   }}
                 />
@@ -408,17 +416,18 @@ export default function TemplateDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <PieChartIcon className="h-5 w-5 text-blue-500" />
-              Items by Status
+              {t('cards.itemsByStatus')}
             </CardTitle>
-            <CardDescription>Doughnut chart visualization</CardDescription>
+            <CardDescription>{t('cards.itemsByStatusDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
+                <div className="animate-pulse text-gray-400">{t('loading')}</div>
               </div>
             ) : statusChartData.length > 0 ? (
               <PieChart
+                key={locale}
                 id="status-pie-chart"
                 dataSource={statusChartData}
                 type="doughnut"
@@ -447,7 +456,7 @@ export default function TemplateDashboardPage() {
               </PieChart>
             ) : (
               <div className="h-[280px] flex items-center justify-center text-gray-400">
-                No data available
+                {t('noData')}
               </div>
             )}
           </CardContent>
@@ -458,17 +467,18 @@ export default function TemplateDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-orange-500" />
-              Items by Priority
+              {t('cards.itemsByPriority')}
             </CardTitle>
-            <CardDescription>Horizontal bar chart</CardDescription>
+            <CardDescription>{t('cards.itemsByPriorityDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
+                <div className="animate-pulse text-gray-400">{t('loading')}</div>
               </div>
             ) : priorityChartData.length > 0 ? (
               <Chart
+                key={locale}
                 id="priority-bar-chart"
                 dataSource={priorityChartData}
                 rotated={true}
@@ -482,7 +492,7 @@ export default function TemplateDashboardPage() {
                   cornerRadius={4}
                 />
                 <ChartSeries
-                  name="Count"
+                  name={t('chartSeries.count')}
                   color="#F97316"
                   hoverMode="allArgumentPoints"
                 />
@@ -496,13 +506,13 @@ export default function TemplateDashboardPage() {
                 <ChartTooltip
                   enabled={true}
                   customizeTooltip={(arg: { argumentText?: string; valueText?: string }) => ({
-                    text: `${arg.argumentText ?? ''}: ${arg.valueText ?? ''} items`,
+                    text: `${arg.argumentText ?? ''}: ${arg.valueText ?? ''} ${t('chartSeries.items').toLowerCase()}`,
                   })}
                 />
               </Chart>
             ) : (
               <div className="h-[280px] flex items-center justify-center text-gray-400">
-                No data available
+                {t('noData')}
               </div>
             )}
           </CardContent>
@@ -513,17 +523,18 @@ export default function TemplateDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-emerald-500" />
-              Monthly Trend
+              {t('cards.monthlyTrend')}
             </CardTitle>
-            <CardDescription>Spline area chart with gradient</CardDescription>
+            <CardDescription>{t('cards.monthlyTrendDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
+                <div className="animate-pulse text-gray-400">{t('loading')}</div>
               </div>
             ) : trendChartData.length > 0 ? (
               <Chart
+                key={locale}
                 id="trend-spline-chart"
                 dataSource={trendChartData}
               >
@@ -534,13 +545,13 @@ export default function TemplateDashboardPage() {
                 />
                 <ChartSeries
                   valueField="count"
-                  name="Items"
+                  name={t('chartSeries.items')}
                   color="#10B981"
                   opacity={0.4}
                 />
                 <ChartSeries
                   valueField="value"
-                  name="Value (x1000)"
+                  name={t('chartSeries.valueScaled')}
                   color="#3B82F6"
                   opacity={0.3}
                   axis="valueAxis"
@@ -566,7 +577,7 @@ export default function TemplateDashboardPage() {
               </Chart>
             ) : (
               <div className="h-[280px] flex items-center justify-center text-gray-400">
-                No data available
+                {t('noData')}
               </div>
             )}
           </CardContent>
@@ -580,12 +591,13 @@ export default function TemplateDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Activity className="h-5 w-5 text-indigo-500" />
-              Workflow Pipeline
+              {t('cards.workflowPipeline')}
             </CardTitle>
-            <CardDescription>Funnel chart showing item lifecycle stages</CardDescription>
+            <CardDescription>{t('cards.workflowPipelineDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Funnel
+              key={locale}
               id="workflow-funnel"
               dataSource={workflowData}
               argumentField="stage"
@@ -608,7 +620,7 @@ export default function TemplateDashboardPage() {
               <FunnelTooltip
                 enabled={true}
                 customizeTooltip={(info: { item: { argument?: string | number | Date; value?: number; percent?: number } }) => ({
-                  text: `${info.item.argument ?? ''}\nCount: ${info.item.value ?? 0}\nConversion: ${((info.item.percent ?? 0) * 100).toFixed(1)}%`,
+                  text: `${info.item.argument ?? ''}\n${t('chartSeries.count')}: ${info.item.value ?? 0}\n${t('chartSeries.conversion')}: ${((info.item.percent ?? 0) * 100).toFixed(1)}%`,
                 })}
               />
             </Funnel>
@@ -620,12 +632,13 @@ export default function TemplateDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Target className="h-5 w-5 text-cyan-500" />
-              Performance Metrics
+              {t('cards.performanceMetrics')}
             </CardTitle>
-            <CardDescription>Polar/Radar chart for multi-dimensional analysis</CardDescription>
+            <CardDescription>{t('cards.performanceMetricsDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <PolarChart
+              key={locale}
               id="performance-polar"
               dataSource={performanceData}
             >
@@ -634,7 +647,7 @@ export default function TemplateDashboardPage() {
               <PolarSeries
                 valueField="score"
                 argumentField="category"
-                name="Score"
+                name={t('chartSeries.score')}
                 color="#06B6D4"
               >
                 <Point visible={true} size={8} color="#06B6D4" />
@@ -664,17 +677,18 @@ export default function TemplateDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <FolderTree className="h-5 w-5 text-purple-500" />
-              Category Analysis
+              {t('cards.categoryAnalysis')}
             </CardTitle>
-            <CardDescription>Stacked bar showing items and value by category</CardDescription>
+            <CardDescription>{t('cards.categoryAnalysisDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
+                <div className="animate-pulse text-gray-400">{t('loading')}</div>
               </div>
             ) : categoryChartData.length > 0 ? (
               <Chart
+                key={locale}
                 id="category-stacked-chart"
                 dataSource={categoryChartData}
               >
@@ -686,13 +700,13 @@ export default function TemplateDashboardPage() {
                 />
                 <ChartSeries
                   valueField="count"
-                  name="Items Count"
+                  name={t('chartSeries.itemsCount')}
                   color="#8B5CF6"
                   barWidth={25}
                 />
                 <ChartSeries
                   valueField="value"
-                  name="Value (THB)"
+                  name={t('chartSeries.valueThb')}
                   color="#EC4899"
                   barWidth={25}
                   axis="valueAxis"
@@ -700,8 +714,8 @@ export default function TemplateDashboardPage() {
                 <ArgumentAxis>
                   <Grid visible={false} />
                 </ArgumentAxis>
-                <ValueAxis name="countAxis" position="left" title="Items" />
-                <ValueAxis name="valueAxis" position="right" title="Value" />
+                <ValueAxis name="countAxis" position="left" title={t('chartSeries.itemsAxis')} />
+                <ValueAxis name="valueAxis" position="right" title={t('chartSeries.valueAxis')} />
                 <ChartLegend
                   visible={true}
                   verticalAlignment="bottom"
@@ -711,7 +725,7 @@ export default function TemplateDashboardPage() {
               </Chart>
             ) : (
               <div className="h-[280px] flex items-center justify-center text-gray-400">
-                No categories found
+                {t('noCategories')}
               </div>
             )}
           </CardContent>
@@ -723,18 +737,18 @@ export default function TemplateDashboardPage() {
             <div>
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Clock className="h-5 w-5 text-gray-500" />
-                Recent Items
+                {t('cards.recentItems')}
               </CardTitle>
-              <CardDescription>Latest items added to the system</CardDescription>
+              <CardDescription>{t('cards.recentItemsDescription')}</CardDescription>
             </div>
             <Link href="/template/items" className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-              View all <ChevronRight className="h-4 w-4" />
+              {t('viewAll')} <ChevronRight className="h-4 w-4" />
             </Link>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
+                <div className="animate-pulse text-gray-400">{t('loading')}</div>
               </div>
             ) : (metrics?.recentItems?.length || 0) > 0 ? (
               <div className="space-y-3">
@@ -758,9 +772,9 @@ export default function TemplateDashboardPage() {
             ) : (
               <div className="h-[280px] flex flex-col items-center justify-center text-gray-400">
                 <Package className="h-12 w-12 mb-2 opacity-50" />
-                <p>No items found</p>
+                <p>{t('noItemsFound')}</p>
                 <Link href="/template/items/new" className="mt-2 text-sm text-blue-600 hover:text-blue-700">
-                  Create your first item
+                  {t('createFirstItem')}
                 </Link>
               </div>
             )}
@@ -770,13 +784,13 @@ export default function TemplateDashboardPage() {
 
       {/* Quick Access Grid */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Access</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('quickAccess')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { name: 'All Items', href: '/template/items', icon: Package, desc: 'View and manage all items', color: 'bg-blue-50 text-blue-600' },
-            { name: 'New Item', href: '/template/items/new', icon: Plus, desc: 'Create a new item', color: 'bg-green-50 text-green-600' },
-            { name: 'Categories', href: '/template/categories', icon: FolderTree, desc: 'Manage categories', color: 'bg-purple-50 text-purple-600' },
-            { name: 'Reports', href: '/template/reports', icon: TrendingUp, desc: 'View analytics', color: 'bg-amber-50 text-amber-600' },
+            { name: t('quickLinks.allItems'), href: '/template/items', icon: Package, desc: t('quickLinks.allItemsDescription'), color: 'bg-blue-50 text-blue-600' },
+            { name: t('quickLinks.newItem'), href: '/template/items/new', icon: Plus, desc: t('quickLinks.newItemDescription'), color: 'bg-green-50 text-green-600' },
+            { name: t('quickLinks.categories'), href: '/template/categories', icon: FolderTree, desc: t('quickLinks.categoriesDescription'), color: 'bg-purple-50 text-purple-600' },
+            { name: t('quickLinks.reports'), href: '/template/reports', icon: TrendingUp, desc: t('quickLinks.reportsDescription'), color: 'bg-amber-50 text-amber-600' },
           ].map((link) => (
             <Link
               key={link.href}
@@ -798,22 +812,22 @@ export default function TemplateDashboardPage() {
       {/* Chart Types Reference */}
       <Card className="bg-gradient-to-br from-slate-50 to-blue-50">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">DevExtreme Charts Reference</CardTitle>
-          <CardDescription>This dashboard demonstrates the following chart types available in DevExtreme React</CardDescription>
+          <CardTitle className="text-lg font-semibold">{t('chartsReference')}</CardTitle>
+          <CardDescription>{t('chartsReferenceDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {[
-              { name: 'Sparkline', types: 'Area, Bar, Line, WinLoss' },
-              { name: 'Circular Gauge', types: 'With range indicators' },
-              { name: 'Linear Gauge', types: 'Horizontal progress' },
-              { name: 'Bar Gauge', types: 'Multi-value circular' },
-              { name: 'Pie/Doughnut', types: 'With labels & legend' },
-              { name: 'Bar Chart', types: 'Horizontal bars' },
-              { name: 'Spline Area', types: 'Multi-series, dual axis' },
-              { name: 'Funnel', types: 'Pipeline visualization' },
-              { name: 'Polar/Radar', types: 'Performance metrics' },
-              { name: 'Stacked Bar', types: 'Category comparison' },
+              { name: t('chartTypes.sparkline'), types: t('chartTypes.sparklineDescription') },
+              { name: t('chartTypes.circularGauge'), types: t('chartTypes.circularGaugeDescription') },
+              { name: t('chartTypes.linearGauge'), types: t('chartTypes.linearGaugeDescription') },
+              { name: t('chartTypes.barGauge'), types: t('chartTypes.barGaugeDescription') },
+              { name: t('chartTypes.pieDoughnut'), types: t('chartTypes.pieDoughnutDescription') },
+              { name: t('chartTypes.barChart'), types: t('chartTypes.barChartDescription') },
+              { name: t('chartTypes.splineArea'), types: t('chartTypes.splineAreaDescription') },
+              { name: t('chartTypes.funnel'), types: t('chartTypes.funnelDescription') },
+              { name: t('chartTypes.polarRadar'), types: t('chartTypes.polarRadarDescription') },
+              { name: t('chartTypes.stackedBar'), types: t('chartTypes.stackedBarDescription') },
             ].map((chart) => (
               <div key={chart.name} className="p-3 bg-white rounded-lg border border-gray-100">
                 <p className="font-medium text-gray-900 text-sm">{chart.name}</p>

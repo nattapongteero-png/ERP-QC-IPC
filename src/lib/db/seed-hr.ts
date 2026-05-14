@@ -984,35 +984,104 @@ const defaultAppRoles = [
 
 // Default App Permissions (สิทธิ์ในระบบ)
 const defaultAppPermissions = [
-  // HR Permissions
-  { code: 'hr:read', name: 'HR View', module: 'HR', description: 'View HR data' },
-  { code: 'hr:write', name: 'HR Edit', module: 'HR', description: 'Edit HR data' },
-  { code: 'hr:admin', name: 'HR Admin', module: 'HR', description: 'Full HR administration' },
-  { code: 'hr:health_staff', name: 'HR Health Staff', module: 'HR', description: 'Manage health records' },
+  // ═══════════════════ HR Module ═══════════════════
+  { code: 'hr:read', name: 'HR View', module: 'HR', description: 'ดูข้อมูลพนักงาน/ตำแหน่ง/อบรม' },
+  { code: 'hr:write', name: 'HR Edit', module: 'HR', description: 'แก้ไขข้อมูล HR' },
+  { code: 'hr:admin', name: 'HR Admin', module: 'HR', description: 'ดูแลระบบ HR ทั้งหมด + จัดการ Role/Permission' },
+  { code: 'hr:health_staff', name: 'HR Health Staff', module: 'HR', description: 'จัดการข้อมูลสุขภาพพนักงาน (ข้อมูลลับ)' },
 
-  // Production Permissions
-  { code: 'production:read', name: 'Production View', module: 'Production', description: 'View production data' },
-  { code: 'production:write', name: 'Production Edit', module: 'Production', description: 'Edit production data' },
-  { code: 'production:approve', name: 'Production Approve', module: 'Production', description: 'Approve production records' },
+  // ═══════════════════ Production Module ═══════════════════
+  { code: 'production:read', name: 'Production View', module: 'Production', description: 'ดูข้อมูลการผลิต + BOM + Work Orders' },
+  { code: 'production:write', name: 'Production Edit', module: 'Production', description: 'สร้าง/แก้ไข Work Orders + BOM' },
+  { code: 'production:approve', name: 'Production Approve', module: 'Production', description: 'อนุมัติใบเบิก + release WO' },
+  { code: 'production:execute', name: 'Production Execute', module: 'Production', description: 'ปฏิบัติงานจริง (weighing, operations, IPC)' },
+  { code: 'production:complete', name: 'Production Complete', module: 'Production', description: 'ปิด Work Order + บันทึก FG receipt' },
 
-  // Quality Permissions
-  { code: 'quality:read', name: 'Quality View', module: 'Quality', description: 'View quality data' },
-  { code: 'quality:write', name: 'Quality Edit', module: 'Quality', description: 'Edit quality data' },
-  { code: 'quality:approve', name: 'Quality Approve', module: 'Quality', description: 'Approve quality records' },
+  // ═══════════════════ Quality Module ═══════════════════
+  { code: 'quality:read', name: 'Quality View', module: 'Quality', description: 'ดูข้อมูล QC / Specs / Deviations' },
+  { code: 'quality:write', name: 'Quality Edit', module: 'Quality', description: 'สร้าง/แก้ไข QC Tests + Specs' },
+  { code: 'quality:approve', name: 'Quality Approve', module: 'Quality', description: 'อนุมัติผล QC / Specifications' },
+  { code: 'quality:release', name: 'Quality Release Lot', module: 'Quality', description: 'ปล่อย Lot (Quarantine → Released) — GMP critical' },
+  { code: 'quality:deviation', name: 'Quality Deviation', module: 'Quality', description: 'จัดการ Deviation / OOS / CAPA initiation' },
 
-  // Inventory Permissions
-  { code: 'inventory:read', name: 'Inventory View', module: 'Inventory', description: 'View inventory data' },
-  { code: 'inventory:write', name: 'Inventory Edit', module: 'Inventory', description: 'Edit inventory data' },
-  { code: 'inventory:adjust', name: 'Inventory Adjust', module: 'Inventory', description: 'Adjust inventory' },
+  // ═══════════════════ Inventory Module ═══════════════════
+  { code: 'inventory:read', name: 'Inventory View', module: 'Inventory', description: 'ดูข้อมูลสต๊อก / Lots / Warehouses' },
+  { code: 'inventory:write', name: 'Inventory Edit', module: 'Inventory', description: 'สร้าง/แก้ไข Lots / Warehouses / Items' },
+  { code: 'inventory:adjust', name: 'Inventory Adjust', module: 'Inventory', description: 'ปรับสต๊อก (stock take, write-off) — ตรวจสอบได้' },
+  { code: 'inventory:transfer', name: 'Inventory Transfer', module: 'Inventory', description: 'โอนสต๊อกระหว่างคลัง' },
+  { code: 'inventory:requisition', name: 'Inventory Requisition', module: 'Inventory', description: 'อนุมัติใบเบิกวัตถุดิบ' },
 
-  // Purchasing Permissions
-  { code: 'purchasing:read', name: 'Purchasing View', module: 'Purchasing', description: 'View purchasing data' },
-  { code: 'purchasing:write', name: 'Purchasing Edit', module: 'Purchasing', description: 'Create/edit purchase orders' },
-  { code: 'purchasing:approve', name: 'Purchasing Approve', module: 'Purchasing', description: 'Approve purchase orders' },
+  // ═══════════════════ Purchasing Module ═══════════════════
+  { code: 'purchasing:read', name: 'Purchasing View', module: 'Purchasing', description: 'ดู PO / PR / Vendors' },
+  { code: 'purchasing:write', name: 'Purchasing Edit', module: 'Purchasing', description: 'สร้าง/แก้ไข PR + PO' },
+  { code: 'purchasing:approve', name: 'Purchasing Approve', module: 'Purchasing', description: 'อนุมัติ PR + PO ตาม workflow' },
+  { code: 'purchasing:receive', name: 'Purchasing Receive', module: 'Purchasing', description: 'บันทึกรับเข้าวัตถุดิบ (GR)' },
+  { code: 'purchasing:vendor', name: 'Purchasing Vendor', module: 'Purchasing', description: 'จัดการข้อมูลผู้ขาย (Vendors)' },
 
-  // Sales Permissions
-  { code: 'sales:read', name: 'Sales View', module: 'Sales', description: 'View sales data' },
-  { code: 'sales:write', name: 'Sales Edit', module: 'Sales', description: 'Create/edit sales orders' },
+  // ═══════════════════ Sales Module ═══════════════════
+  { code: 'sales:read', name: 'Sales View', module: 'Sales', description: 'ดู SO / DO / Invoice / Customers' },
+  { code: 'sales:write', name: 'Sales Edit', module: 'Sales', description: 'สร้าง/แก้ไข Sales Orders' },
+  { code: 'sales:approve', name: 'Sales Approve', module: 'Sales', description: 'อนุมัติ SO / Credit Limit' },
+  { code: 'sales:invoice', name: 'Sales Invoice', module: 'Sales', description: 'ออกใบกำกับภาษี + DO' },
+  { code: 'sales:customer', name: 'Sales Customer', module: 'Sales', description: 'จัดการข้อมูลลูกค้า' },
+
+  // ═══════════════════ Accounting Module ═══════════════════
+  { code: 'accounting:read', name: 'Accounting View', module: 'Accounting', description: 'ดู AP / AR / Journal / Reports' },
+  { code: 'accounting:write', name: 'Accounting Edit', module: 'Accounting', description: 'สร้าง/แก้ไข Invoices + Journal Entries' },
+  { code: 'accounting:approve', name: 'Accounting Approve', module: 'Accounting', description: 'อนุมัติ Payment / Credit Note' },
+  { code: 'accounting:close', name: 'Accounting Period Close', module: 'Accounting', description: 'ปิดงวดบัญชี (Period Close)' },
+  { code: 'accounting:reconcile', name: 'Accounting Bank Rec', module: 'Accounting', description: 'กระทบยอดธนาคาร (Bank Reconciliation)' },
+  { code: 'accounting:matching', name: 'Accounting 3-Way Match', module: 'Accounting', description: '3-Way Matching (PO-GR-Invoice)' },
+  { code: 'accounting:assets', name: 'Accounting Fixed Assets', module: 'Accounting', description: 'จัดการ Fixed Assets + Depreciation' },
+
+  // ═══════════════════ GMP Module ═══════════════════
+  { code: 'gmp:read', name: 'GMP View', module: 'GMP', description: 'ดูเอกสาร GMP / CAPA / Complaints' },
+  { code: 'gmp:write', name: 'GMP Edit', module: 'GMP', description: 'สร้าง/แก้ไขเอกสาร GMP' },
+  { code: 'gmp:approve', name: 'GMP Approve', module: 'GMP', description: 'อนุมัติ Change Control / CAPA / Documents' },
+  { code: 'gmp:audit', name: 'GMP Internal Audit', module: 'GMP', description: 'ดำเนินการ Internal Audit' },
+  { code: 'gmp:complaint', name: 'GMP Complaint', module: 'GMP', description: 'จัดการข้อร้องเรียนลูกค้า' },
+  { code: 'gmp:recall', name: 'GMP Recall', module: 'GMP', description: 'ดำเนินการเรียกคืนสินค้า (Recall)' },
+  { code: 'gmp:sanitation', name: 'GMP Sanitation', module: 'GMP', description: 'บันทึกการทำความสะอาด / กำจัดแมลง' },
+  { code: 'gmp:stability', name: 'GMP Stability', module: 'GMP', description: 'ศึกษาความคงตัวของผลิตภัณฑ์' },
+  { code: 'gmp:pqr', name: 'GMP PQR', module: 'GMP', description: 'จัดทำ Product Quality Review' },
+
+  // ═══════════════════ Master Data Module ═══════════════════
+  { code: 'master_data:read', name: 'Master Data View', module: 'Master Data', description: 'ดู IPC Criteria / Rooms / Equipment / SOP' },
+  { code: 'master_data:write', name: 'Master Data Edit', module: 'Master Data', description: 'สร้าง/แก้ไข Master Data (IPC, Rooms, Equipment, SOP, Packaging QC, Env. Conditions)' },
+
+  // ═══════════════════ Cost Management Module ═══════════════════
+  { code: 'cost:read', name: 'Cost View', module: 'Cost', description: 'ดูต้นทุน / Landed Cost / Work Centers' },
+  { code: 'cost:write', name: 'Cost Edit', module: 'Cost', description: 'สร้าง/แก้ไข Landed Cost + Work Centers' },
+  { code: 'cost:approve', name: 'Cost Post', module: 'Cost', description: 'Post Landed Cost เข้าบัญชี' },
+
+  // ═══════════════════ VMI Module ═══════════════════
+  { code: 'vmi:read', name: 'VMI View', module: 'VMI', description: 'ดูคำสั่งซื้อ VMI / Sync Status' },
+  { code: 'vmi:write', name: 'VMI Edit', module: 'VMI', description: 'จัดการ VMI Orders + Portal Settings' },
+  { code: 'vmi:sync', name: 'VMI Manual Sync', module: 'VMI', description: 'Trigger manual sync (items/prices/inventory)' },
+
+  // ═══════════════════ Reports Module ═══════════════════
+  { code: 'reports:read', name: 'Reports View', module: 'Reports', description: 'ดูรายงานทั้งระบบ' },
+  { code: 'reports:create', name: 'Reports Create Template', module: 'Reports', description: 'สร้าง/แก้ไข Report Templates' },
+  { code: 'reports:publish', name: 'Reports Publish', module: 'Reports', description: 'Publish Report Template ให้ใช้ได้ทั้งองค์กร' },
+
+  // ═══════════════════ Settings Module (System Config) ═══════════════════
+  { code: 'settings:read', name: 'Settings View', module: 'Settings', description: 'ดูการตั้งค่าระบบ' },
+  { code: 'settings:write', name: 'Settings Edit', module: 'Settings', description: 'แก้ไขการตั้งค่า (Company, Approval Workflow, Matching Tolerance)' },
+
+  // ═══════════════════ User Management ═══════════════════
+  { code: 'users:read', name: 'Users View', module: 'User Management', description: 'ดูรายชื่อผู้ใช้งาน' },
+  { code: 'users:write', name: 'Users Edit', module: 'User Management', description: 'สร้าง/แก้ไข User + รีเซ็ตรหัสผ่าน' },
+  { code: 'users:admin', name: 'Users Admin', module: 'User Management', description: 'กำหนด Role ให้ User + ปิด/เปิดใช้งานบัญชี' },
+
+  // ═══════════════════ Admin (System) ═══════════════════
+  { code: 'admin:confidential', name: 'Admin Confidential Groups', module: 'Admin', description: 'จัดการกลุ่มข้อมูลลับ (Confidential Access Groups)' },
+  { code: 'admin:system', name: 'Admin System', module: 'Admin', description: 'สิทธิ์ดูแลระบบระดับสูงสุด (super admin)' },
+  { code: 'admin:audit_trail', name: 'Admin Audit Trail', module: 'Admin', description: 'ดู Audit Trail ทั้งระบบ' },
+
+  // ═══════════════════ Issues (Bug Tracker) ═══════════════════
+  { code: 'issues:read', name: 'Issues View', module: 'Issues', description: 'ดูรายการ Issues / Bug Tracker' },
+  { code: 'issues:write', name: 'Issues Report', module: 'Issues', description: 'แจ้งปัญหา/ข้อเสนอแนะ' },
+  { code: 'issues:resolve', name: 'Issues Resolve', module: 'Issues', description: 'Triage + ปิด Issues (สำหรับ dev/QA team)' },
 ];
 
 /**
@@ -1250,24 +1319,57 @@ async function seedAppRoles(isSqlite: boolean): Promise<number> {
 }
 
 /**
- * Seed app permissions if table is empty
+ * Upsert app permissions — insert any code that doesn't exist yet, leave
+ * existing codes untouched. This lets us add new menu/action permissions
+ * over time without resetting existing role assignments.
+ *
+ * Unlike the org units/positions/roles seeders which skip when the table
+ * has any row, this function always runs and only inserts missing codes.
+ * That way the permission catalog stays in sync with `defaultAppPermissions`
+ * as the app grows (new modules → new permissions → new checkboxes appear
+ * in /hr/roles/[id] form on the next server start).
  */
 async function seedAppPermissions(isSqlite: boolean): Promise<number> {
   const tableName = 'hr_app_permissions';
-  const isEmpty = await isTableEmpty(tableName, isSqlite);
-
-  if (!isEmpty) {
-    console.log(`[HR Seed] Table ${tableName} already has data, skipping seed`);
-    return 0;
-  }
-
-  console.log(`[HR Seed] Seeding ${tableName} with ${defaultAppPermissions.length} default values...`);
 
   try {
     const permissionsTable = isSqlite ? schema.sqliteHRAppPermissions : schema.mysqlHRAppPermissions;
     const db = isSqlite ? getSqliteDb() : await getMysqlDb();
 
-    for (const permission of defaultAppPermissions) {
+    // Fetch existing codes so we only insert the delta.
+    let existingCodes = new Set<string>();
+    try {
+      if (isSqlite) {
+        const rows = await getSqliteDb().all(
+          sql.raw(`SELECT code FROM "${tableName}"`),
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        existingCodes = new Set((rows as any[]).map((r) => r.code as string));
+      } else {
+        const [rows] = await (await getMysqlDb()).execute(
+          sql.raw(`SELECT code FROM \`${tableName}\``),
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        existingCodes = new Set((rows as unknown as any[]).map((r) => r.code as string));
+      }
+    } catch {
+      // Table might not exist yet — fall through and let the INSERT attempt
+      // surface a clearer error. In practice schema-sync creates it first.
+    }
+
+    const missing = defaultAppPermissions.filter((p) => !existingCodes.has(p.code));
+    if (missing.length === 0) {
+      console.log(
+        `[HR Seed] ${tableName}: all ${defaultAppPermissions.length} permission codes already present, nothing to add`,
+      );
+      return 0;
+    }
+
+    console.log(
+      `[HR Seed] ${tableName}: inserting ${missing.length} new permission(s) (out of ${defaultAppPermissions.length} defined)`,
+    );
+
+    for (const permission of missing) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (db as any).insert(permissionsTable).values({
         code: permission.code,
@@ -1277,10 +1379,10 @@ async function seedAppPermissions(isSqlite: boolean): Promise<number> {
       });
     }
 
-    console.log(`[HR Seed] Successfully seeded ${defaultAppPermissions.length} app permissions`);
-    return defaultAppPermissions.length;
+    console.log(`[HR Seed] Successfully added ${missing.length} new app permission(s)`);
+    return missing.length;
   } catch (error) {
-    console.error(`[HR Seed] Failed to seed ${tableName}:`, error);
+    console.error(`[HR Seed] Failed to upsert ${tableName}:`, error);
     return 0;
   }
 }

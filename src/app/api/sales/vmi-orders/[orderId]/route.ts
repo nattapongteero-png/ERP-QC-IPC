@@ -12,8 +12,8 @@ import { VmiSalesOrderService } from '@/lib/services/vmi-sales-order.service';
 import { z } from 'zod';
 
 const updateOrderSchema = z.object({
-  notes: z.string().optional(),
-  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+  customerId: z.number().int().positive().optional(),
+  localStatus: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']).optional(),
 });
 
 /**
@@ -83,7 +83,7 @@ export async function PUT(
 
     const service = new VmiSalesOrderService();
 
-    // Verify order exists
+    // Verify order exists before update
     const order = await service.getOrderById(id);
     if (!order) {
       return NextResponse.json({
@@ -92,26 +92,11 @@ export async function PUT(
       }, { status: 404 });
     }
 
-    // Update order using raw database update
-    const { isSqlite, getDb } = await import('@/lib/db');
-    const { sqliteVmiSalesOrders, mysqlVmiSalesOrders } = await import('@/lib/db/schema');
-    const { eq } = await import('drizzle-orm');
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const database = (await getDb()) as any;
-    const ordersTable = isSqlite() ? sqliteVmiSalesOrders : mysqlVmiSalesOrders;
-
-    // Note: notes and priority fields are not in the current schema
-    // Only updating updatedAt for now - TODO: add notes/priority to schema if needed
-    await database
-      .update(ordersTable)
-      .set({
-        updatedAt: new Date(),
-      })
-      .where(eq(ordersTable.id, id));
-
-    // Get updated order
-    const updatedOrder = await service.getOrderById(id);
+    // Update order via service (only DB-supported fields)
+    const updatedOrder = await service.updateOrder(id, {
+      customerId: data.customerId,
+      localStatus: data.localStatus,
+    });
 
     return NextResponse.json({
       success: true,

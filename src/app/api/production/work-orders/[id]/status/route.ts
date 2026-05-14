@@ -9,6 +9,12 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { publishWorkOrderChanged } from '@/lib/realtime';
+import {
+  canRelease,
+  canStartProduction,
+  canCompleteProduction,
+} from '@/lib/services/production-gate.service';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -17,7 +23,8 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
   planned: ['released', 'cancelled'],
   released: ['in_progress', 'cancelled'],
   in_progress: ['completed', 'cancelled'],
-  completed: [],
+  completed: ['closed'],
+  closed: [],
   cancelled: [],
 };
 
@@ -35,7 +42,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       const body = await request.json();
       const { status, actualQuantity, yieldPercentage, notes } = body;
 
-      const validStatuses = ['planned', 'released', 'in_progress', 'completed', 'cancelled'];
+      const validStatuses = ['planned', 'released', 'in_progress', 'completed', 'closed', 'cancelled'];
       if (!status || !validStatuses.includes(status)) {
         return errorResponse(`Status must be one of: ${validStatuses.join(', ')}`);
       }
@@ -63,6 +70,26 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return errorResponse(`Cannot change status from '${oldWO.status}' to '${status}'`);
       }
 
+      // Gate validation — check prerequisites for each transition
+      if (status !== 'cancelled') {
+        let gateResult = null;
+
+        if (status === 'released') {
+          gateResult = await canRelease(workOrderId);
+        } else if (status === 'in_progress') {
+          gateResult = await canStartProduction(workOrderId);
+        } else if (status === 'completed') {
+          gateResult = await canCompleteProduction(workOrderId);
+        }
+
+        if (gateResult && !gateResult.canProceed) {
+          const blockerList = gateResult.blockers.map((b, i) => `${i + 1}. ${b}`).join('\n');
+          return errorResponse(
+            `ไม่สามารถเปลี่ยนสถานะเป็น ${status} ได้ เนื่องจากยังทำขั้นตอนไม่ครบ:\n${blockerList}`
+          );
+        }
+      }
+
       // Build update data
       const updateData: Record<string, unknown> = {
         status,
@@ -75,6 +102,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
       if (status === 'completed') {
         updateData.actualEndDate = dbDate();
+        // eBMR "Produced By" signature — capture on completion transition
+        updateData.completedBy = session.userId;
+        updateData.completedAt = dbDate();
         if (actualQuantity !== undefined) {
           updateData.actualQuantity = actualQuantity;
         }
@@ -105,6 +135,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ipAddress: getClientIP(request),
       });
 
+      publishWorkOrderChanged(workOrderId, 'status', session.userId, status);
       return successResponse({ id: workOrderId, status }, `Work order status updated to ${status}`);
     } catch (error) {
       return serverErrorResponse(error);

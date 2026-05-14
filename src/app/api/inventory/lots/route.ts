@@ -30,10 +30,19 @@ export async function GET(request: NextRequest) {
       // Build conditions
       const conditions: (SQL | undefined)[] = [];
       if (search) {
+        // Search across lot number, batch number, AND item identifiers so
+        // users can find a lot by typing the product code or Thai/English
+        // item name in addition to the lot/batch numbers. All matches are
+        // OR'd together; the main query already inner-joins the items table,
+        // so these `like` expressions resolve correctly inside `where(...)`.
+        const pattern = `%${search}%`;
         conditions.push(
           or(
-            like(lotsTable.lotNumber, `%${search}%`),
-            like(lotsTable.batchNumber, `%${search}%`)
+            like(lotsTable.lotNumber, pattern),
+            like(lotsTable.batchNumber, pattern),
+            like(itemsTable.code, pattern),
+            like(itemsTable.nameTh, pattern),
+            like(itemsTable.nameEn, pattern),
           )
         );
       }
@@ -49,9 +58,14 @@ export async function GET(request: NextRequest) {
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-      // Get total count
+      // Get total count. We join items here too because the search filter
+      // may reference items.code / items.nameTh / items.nameEn — without the
+      // join, Drizzle would throw "column not in scope" for those fields.
       const total = await executeDbOperation(async (db) => {
-        let countQuery = db.select({ count: sql`count(*)` }).from(lotsTable);
+        let countQuery = db
+          .select({ count: sql`count(*)` })
+          .from(lotsTable)
+          .leftJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id));
         if (whereClause) {
           countQuery = countQuery.where(whereClause);
         }
@@ -77,8 +91,11 @@ export async function GET(request: NextRequest) {
             itemId: lotsTable.itemId,
             itemCode: itemsTable.code,
             itemName: itemsTable.nameTh,
+            itemType: itemsTable.type,
             warehouseId: lotsTable.warehouseId,
             warehouseName: warehousesTable.name,
+            vendorLotNumber: lotsTable.vendorLotNumber,
+            cost: lotsTable.cost,
             createdAt: lotsTable.createdAt,
             // Phase 4: GMP Compliance fields
             manufacturerName: lotsTable.manufacturerName,
@@ -121,6 +138,8 @@ export async function POST(request: NextRequest) {
         manufacturingDate,
         expiryDate,
         vendorId,
+        vendorLotNumber,
+        cost,
         poNumber,
         coaNumber,
         // Phase 4: GMP Compliance fields (FR-055, FR-056)
@@ -161,6 +180,8 @@ export async function POST(request: NextRequest) {
           expiryDate: parsedExpDate,
           receivedDate: dbDate(),
           vendorId: vendorId || null,
+          vendorLotNumber: vendorLotNumber || null,
+          cost: cost ? parseFloat(cost) : null,
           poNumber: poNumber || null,
           coaNumber: coaNumber || null,
           // Phase 4: GMP Compliance fields
@@ -179,7 +200,15 @@ export async function POST(request: NextRequest) {
 
       const lotId = getInsertId(result);
 
-      // Create receive transaction
+      // Snapshot balance after lot creation
+      const lotsTableRef = getTableRef('inventoryLots');
+      const [itemBalRow] = await executeDbOperation(async (db) => {
+        return db.select({ total: sql`COALESCE(SUM(${lotsTableRef.quantity}), 0)` })
+          .from(lotsTableRef)
+          .where(eq(lotsTableRef.itemId, itemId));
+      });
+
+      // Create receive transaction with balance snapshot
       await executeDbOperation(async (db) => {
         return db.insert(transactionsTable).values({
           lotId: Number(lotId),
@@ -194,6 +223,8 @@ export async function POST(request: NextRequest) {
           reason: null,
           performedBy: session.userId,
           approvedBy: null,
+          balanceAfter: quantity,
+          itemBalanceAfter: Number(itemBalRow?.total) || 0,
           createdAt: dbDate(),
         });
       });

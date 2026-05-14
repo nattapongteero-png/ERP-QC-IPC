@@ -1,0 +1,1123 @@
+{
+  "page": {
+    "title": "GMP",
+    "description": "การปฏิบัติตาม Good Manufacturing Practice"
+  },
+  "compliance": {
+    "title": "การปฏิบัติตามข้อกำหนด",
+    "description": "ติดตามสถานะการปฏิบัติตามข้อกำหนด GMP"
+  },
+  "stability": {
+    "title": "ความเสถียร",
+    "pageTitle": "โปรแกรมความเสถียร",
+    "description": "จัดการการศึกษาความเสถียรของผลิตภัณฑ์",
+    "subtitle": "GMP หมวด 7.4 - แดชบอร์ดจัดการทดสอบความเสถียร",
+    "dashboard": {
+      "title": "แดชบอร์ดความเสถียร",
+      "activeStudies": "การศึกษาที่กำลังดำเนินการ",
+      "completedStudies": "การศึกษาที่เสร็จสิ้น",
+      "onHoldStudies": "การศึกษาที่หยุดชั่วคราว",
+      "overdueSamples": "ตัวอย่างที่เกินกำหนด",
+      "upcomingSamples": "ตัวอย่างที่กำลังจะมาถึง",
+      "oosThisMonth": "OOS เดือนนี้",
+      "completedThisMonth": "เสร็จสิ้นเดือนนี้",
+      "dueIn30Days": "ครบกำหนดใน 30 วัน",
+      "testsThisMonth": "ทดสอบเดือนนี้",
+      "productsTracked": "ผลิตภัณฑ์ที่ติดตาม",
+      "activeByType": "การศึกษาที่ดำเนินการตามประเภท",
+      "byStatus": "การศึกษาตามสถานะ",
+      "programSummary": "สรุปโปรแกรม",
+      "topProducts": "ผลิตภัณฑ์อันดับต้น",
+      "samplesTested": "ตัวอย่างที่ทดสอบ (6 เดือนล่าสุด)",
+      "totalStudies": "การศึกษาทั้งหมด",
+      "oosDetected": "ตรวจพบ OOS",
+      "noStudyData": "ไม่มีข้อมูลการศึกษา",
+      "noActivityData": "ไม่มีข้อมูลกิจกรรม"
+    },
+    "status": {
+      "active": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "onHold": "หยุดชั่วคราว",
+      "cancelled": "ยกเลิก"
+    },
+    "studyType": {
+      "longTerm": "ระยะยาว",
+      "accelerated": "เร่งรัด",
+      "intermediate": "ระยะกลาง"
+    },
+    "storage": {
+      "longTerm": "25°C / 60%RH",
+      "accelerated": "40°C / 75%RH",
+      "intermediate": "30°C / 65%RH"
+    },
+    "actions": {
+      "newStudy": "สร้างการศึกษาใหม่",
+      "viewStudy": "ดูการศึกษา",
+      "refresh": "รีเฟรช",
+      "enrollBatch": "ลงทะเบียนแบทช์",
+      "viewAll": "ดูทั้งหมด",
+      "newProtocol": "โปรโตคอลใหม่",
+      "addTimepoint": "เพิ่มจุดเวลา",
+      "saveProtocol": "บันทึกโปรโตคอล",
+      "cancel": "ยกเลิก",
+      "putOnHold": "หยุดชั่วคราว",
+      "resume": "ดำเนินการต่อ",
+      "completeStudy": "เสร็จสิ้นการศึกษา",
+      "viewInvestigations": "ดูการสอบสวน"
+    },
+    "tabs": {
+      "allStudies": "การศึกษาทั้งหมด",
+      "active": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "onHold": "หยุดชั่วคราว",
+      "sampleSchedule": "ตารางตัวอย่าง",
+      "trends": "แนวโน้ม"
+    },
+    "alerts": {
+      "overdueTitle": "ตัวอย่างที่เกินกำหนด",
+      "overdueDescription": "{count} ตัวอย่างต้องดำเนินการทันที",
+      "upcomingTitle": "ตัวอย่างที่กำลังจะถึง",
+      "upcomingDescription": "{count} ตัวอย่างครบกำหนดภายใน 30 วัน",
+      "oosTitle": "การแจ้งเตือน OOS",
+      "oosDescription": "ตรวจพบผล {count} รายการที่ไม่เป็นไปตามข้อกำหนดเดือนนี้ ตรวจสอบการศึกษาที่ได้รับผลกระทบและเริ่มการสอบสวนตามความจำเป็น",
+      "overdue": "เกินกำหนด",
+      "daysOverdue": "เกิน {days} วัน",
+      "daysRemaining": "{days} วัน"
+    },
+    "studies": {
+      "title": "การศึกษาความเสถียร",
+      "description": "การศึกษาแบทช์ที่ลงทะเบียนและตารางตัวอย่าง",
+      "filterByStatus": "กรองตามสถานะ...",
+      "noStudies": "ไม่พบการศึกษาความเสถียร",
+      "enrollFirst": "ลงทะเบียนแบทช์เพื่อเริ่มติดตามความเสถียร",
+      "studyProgress": "ความคืบหน้าการศึกษา",
+      "tested": "ทดสอบแล้ว",
+      "remaining": "เหลือ",
+      "failedToLoad": "ไม่สามารถโหลดการศึกษา",
+      "studies": "การศึกษา",
+      "tryDifferentFilter": "ลองเปลี่ยนคำค้นหาหรือเลือกแท็บอื่น"
+    },
+    "trends": {
+      "title": "แนวโน้มความเสถียร",
+      "description": "ภาพรวมของตัวชี้วัดและแนวโน้มโปรแกรมความเสถียร",
+      "studiesByProduct": "การศึกษาตามผลิตภัณฑ์",
+      "complete": "เสร็จสิ้น",
+      "activeCount": "{count} กำลังดำเนินการ",
+      "completedCount": "{count} เสร็จสิ้น",
+      "failedToLoad": "ไม่สามารถโหลดแนวโน้ม"
+    },
+    "protocols": {
+      "title": "โปรโตคอลความเสถียร",
+      "description": "โปรโตคอลมาตรฐานสำหรับโปรแกรมทดสอบความเสถียร",
+      "filterByStatus": "กรองตามสถานะ...",
+      "noProtocols": "ไม่พบโปรโตคอล",
+      "noProtocolsFiltered": "ไม่มีโปรโตคอลสถานะ \"{status}\"",
+      "createFirst": "สร้างโปรโตคอลความเสถียรแรกเพื่อเริ่มต้น",
+      "createProtocol": "สร้างโปรโตคอล",
+      "failedToLoad": "ไม่สามารถโหลดโปรโตคอล"
+    },
+    "newProtocol": {
+      "title": "สร้างโปรโตคอลความเสถียร",
+      "description": "กำหนดโปรโตคอลมาตรฐานใหม่สำหรับการทดสอบความเสถียร",
+      "basicInfo": "ข้อมูลพื้นฐาน",
+      "protocolName": "ชื่อโปรโตคอล",
+      "protocolNamePlaceholder": "เช่น การทดสอบความเสถียรระยะยาวยาเม็ดสมุนไพร",
+      "product": "ผลิตภัณฑ์",
+      "selectProduct": "เลือกผลิตภัณฑ์...",
+      "studyType": "ประเภทการศึกษา",
+      "storageCondition": "สภาวะการเก็บรักษา",
+      "selectCondition": "เลือกสภาวะ...",
+      "samplingTimepoints": "จุดเวลาการสุ่มตัวอย่าง",
+      "selectProductFirst": "เลือกผลิตภัณฑ์ก่อนเพื่อกำหนดจุดเวลาและการทดสอบ",
+      "timepointsHelp": "กำหนดจุดเวลาการสุ่มตัวอย่างเป็นเดือนจากเริ่มต้นการศึกษา (เช่น 0, 1, 3, 6, 12, 18, 24) เลือกการทดสอบที่จะทำในแต่ละจุดเวลา",
+      "timepointMonths": "จุดเวลา (เดือน)",
+      "testsRequired": "การทดสอบที่ต้องการ",
+      "selectTests": "เลือกการทดสอบ...",
+      "durationMonths": "ระยะเวลา (เดือน)",
+      "validationMessage": "กรุณากรอกข้อมูลที่จำเป็นทั้งหมดและเพิ่มอย่างน้อยหนึ่งจุดเวลา"
+    },
+    "studyDetail": {
+      "lot": "ล็อต",
+      "start": "เริ่มต้น",
+      "chamber": "ห้องเก็บ",
+      "createdBy": "สร้างโดย",
+      "notAssigned": "ยังไม่ได้กำหนด",
+      "unknown": "ไม่ทราบ",
+      "unknownProduct": "ผลิตภัณฑ์ไม่ทราบ",
+      "viewProtocol": "ดูโปรโตคอล"
+    },
+    "columns": {
+      "protocolNumber": "หมายเลขโปรโตคอล",
+      "protocolName": "ชื่อโปรโตคอล",
+      "product": "ผลิตภัณฑ์",
+      "storageCondition": "สภาวะการเก็บรักษา",
+      "studyType": "ประเภทการศึกษา",
+      "duration": "ระยะเวลา (เดือน)",
+      "status": "สถานะ",
+      "approvedBy": "อนุมัติโดย",
+      "created": "สร้างเมื่อ"
+    },
+    "studyList": {
+      "columns": {
+        "studyNumber": "เลขที่การศึกษา",
+        "productLot": "ผลิตภัณฑ์ / ล็อต",
+        "protocol": "โปรโตคอล",
+        "startDate": "วันเริ่มต้น",
+        "timepoint": "จุดทดสอบ",
+        "nextDue": "ครบกำหนดถัดไป",
+        "oos": "OOS",
+        "status": "สถานะ"
+      },
+      "statusLabels": {
+        "active": "กำลังดำเนินการ",
+        "completed": "เสร็จสิ้น",
+        "cancelled": "ยกเลิก",
+        "on_hold": "พักไว้"
+      },
+      "typeLabels": {
+        "long_term": "ระยะยาว",
+        "accelerated": "เร่งรัด",
+        "intermediate": "ระยะกลาง"
+      }
+    },
+    "search": {
+      "placeholder": "ค้นหาเลขที่การศึกษา, ผลิตภัณฑ์, ล็อต, โปรโตคอล..."
+    },
+    "mobile": {
+      "start": "เริ่ม",
+      "timepoint": "จุดทดสอบ",
+      "timepointSuffix": "ด",
+      "next": "ถัดไป",
+      "oosLabel": "OOS",
+      "viewStudyDetails": "ดูรายละเอียดการศึกษา",
+      "daysOverdueSuffix": "วัน เกินกำหนด",
+      "daysSuffix": "วัน"
+    },
+    "chart": {
+      "testsCompletedLegend": "จำนวนทดสอบเสร็จ",
+      "samplesTestedSuffix": "ตัวอย่างที่ทดสอบ",
+      "thisMonth": "เดือนนี้"
+    }
+  },
+  "capa": {
+    "title": "CAPA",
+    "pageTitle": "การจัดการ CAPA",
+    "description": "การแก้ไขและป้องกัน",
+    "status": {
+      "open": "เปิด",
+      "inProgress": "กำลังดำเนินการ",
+      "pendingApproval": "รอการอนุมัติ",
+      "closed": "ปิด",
+      "overdue": "เกินกำหนด"
+    },
+    "priority": {
+      "critical": "วิกฤต",
+      "high": "สูง",
+      "medium": "ปานกลาง",
+      "low": "ต่ำ"
+    },
+    "actions": {
+      "newCapa": "สร้าง CAPA ใหม่",
+      "viewCapa": "ดู CAPA",
+      "editCapa": "แก้ไข CAPA",
+      "refresh": "รีเฟรช"
+    },
+    "dashboard": {
+      "totalOpen": "CAPA ที่เปิดอยู่",
+      "overdue": "เกินกำหนด",
+      "dueThisWeek": "กำหนดสัปดาห์นี้",
+      "completedThisMonth": "เสร็จสิ้นเดือนนี้"
+    },
+    "new": {
+      "title": "สร้าง CAPA ใหม่",
+      "subtitle": "สร้างการดำเนินการแก้ไข/ป้องกัน",
+      "fromDeviation": "สร้าง CAPA จากความเบี่ยงเบน",
+      "fromComplaint": "สร้าง CAPA จากข้อร้องเรียน",
+      "fromAuditFinding": "สร้าง CAPA จากข้อค้นพบการตรวจสอบ",
+      "linkedTo": "เชื่อมโยงกับ {number}",
+      "placeholder": "ใช้ไดอะล็อกเพื่อสร้าง CAPA ใหม่..."
+    },
+    "search": {
+      "placeholder": "ค้นหา CAPA..."
+    },
+    "table": {
+      "columns": {
+        "capaNumber": "เลขที่ CAPA",
+        "title": "ชื่อเรื่อง",
+        "source": "แหล่งที่มา",
+        "type": "ประเภท",
+        "priority": "ความสำคัญ",
+        "status": "สถานะ",
+        "risk": "ความเสี่ยง",
+        "actions": "การดำเนินการ",
+        "owner": "ผู้รับผิดชอบ",
+        "dueDate": "กำหนดส่ง",
+        "created": "สร้างเมื่อ"
+      }
+    },
+    "buttons": {
+      "newCapa": "สร้าง CAPA ใหม่",
+      "showAll": "แสดงทั้งหมด"
+    },
+    "empty": {
+      "title": "ยังไม่มี CAPA",
+      "description": "สร้างการดำเนินการแก้ไข/ป้องกันรายการแรกเพื่อเริ่มติดตามปัญหาคุณภาพ สาเหตุ และประสิทธิผลของการดำเนินการ"
+    },
+    "noResults": {
+      "title": "ไม่พบ CAPA ที่ตรงกับตัวกรองนี้",
+      "description": "ลองล้างตัวกรองเพื่อดู CAPA ทั้งหมด"
+    },
+    "stats": {
+      "openCapas": "CAPA ที่เปิดอยู่",
+      "overdue": "เกินกำหนด",
+      "pendingApproval": "รอการอนุมัติ",
+      "closedThisMonth": "ปิดในเดือนนี้"
+    },
+    "tabs": {
+      "all": "CAPA ทั้งหมด",
+      "active": "กำลังดำเนินการ",
+      "overdue": "เกินกำหนด",
+      "pendingApproval": "รอการอนุมัติ",
+      "closed": "ปิดแล้ว"
+    },
+    "charts": {
+      "statusDistribution": "การกระจายสถานะ",
+      "priorityDistribution": "การกระจายความสำคัญ",
+      "riskMatrixTitle": "เมทริกซ์ความเสี่ยง (ICH Q9)",
+      "noDataAvailable": "ไม่มีข้อมูล",
+      "statusLabels": {
+        "open": "เปิด",
+        "investigation": "สืบสวน",
+        "action_pending": "รอดำเนินการ",
+        "verification": "ตรวจสอบยืนยัน",
+        "pending_approval": "รออนุมัติ",
+        "closed": "ปิด",
+        "cancelled": "ยกเลิก"
+      }
+    },
+    "riskMatrix": {
+      "low": "ต่ำ (1-4)",
+      "medium": "ปานกลาง (5-9)",
+      "high": "สูง (10-16)",
+      "critical": "วิกฤต (17-25)",
+      "severity": {
+        "negligible": "น้อยมาก",
+        "minor": "น้อย",
+        "moderate": "ปานกลาง",
+        "major": "สูง",
+        "critical": "วิกฤต"
+      },
+      "probability": {
+        "rare": "น้อยมาก",
+        "unlikely": "ไม่น่าเกิด",
+        "possible": "อาจเกิด",
+        "likely": "น่าจะเกิด",
+        "certain": "เกิดแน่นอน"
+      }
+    },
+    "riskLevels": {
+      "na": "ไม่มีข้อมูล",
+      "low": "ต่ำ",
+      "medium": "ปานกลาง",
+      "high": "สูง",
+      "critical": "วิกฤต"
+    },
+    "sourceTypes": {
+      "deviation": "ความเบี่ยงเบน",
+      "complaint": "ข้อร้องเรียน",
+      "audit_finding": "ข้อค้นพบการตรวจสอบ",
+      "other": "อื่นๆ"
+    },
+    "masterDetail": {
+      "rootCause": "สาเหตุหลัก",
+      "notAnalyzed": "ยังไม่ได้วิเคราะห์",
+      "impactAssessment": "การประเมินผลกระทบ",
+      "scope": "ขอบเขต",
+      "patientImpact": "ผลกระทบต่อผู้ป่วย",
+      "regulatoryRequired": "ต้องรายงานหน่วยงาน",
+      "approvalStatus": "สถานะการอนุมัติ",
+      "notSubmitted": "ยังไม่ส่ง",
+      "yes": "ใช่",
+      "no": "ไม่ใช่",
+      "notAvailable": "ไม่มีข้อมูล"
+    },
+    "priorityLabels": {
+      "low": "ต่ำ",
+      "medium": "ปานกลาง",
+      "high": "สูง",
+      "critical": "วิกฤต"
+    },
+    "resultCount": "แสดง CAPA {count} รายการ",
+    "resultCountSingular": "แสดง CAPA {count} รายการ",
+    "mobile": {
+      "viewDetails": "ดูรายละเอียด"
+    }
+  },
+  "complaints": {
+    "title": "ข้อร้องเรียน",
+    "pageTitle": "การจัดการข้อร้องเรียน",
+    "description": "จัดการข้อร้องเรียนจากลูกค้า",
+    "status": {
+      "all": "ทั้งหมด",
+      "new": "ใหม่",
+      "received": "รับเรื่องแล้ว",
+      "under_investigation": "กำลังตรวจสอบ",
+      "underInvestigation": "กำลังสอบสวน",
+      "resolved": "แก้ไขแล้ว",
+      "closed": "ปิด"
+    },
+    "search": {
+      "placeholder": "ค้นหาเลขที่ข้อร้องเรียน, ลูกค้า, สินค้า..."
+    },
+    "table": {
+      "columns": {
+        "complaintNumber": "เลขที่ข้อร้องเรียน",
+        "customer": "ลูกค้า",
+        "product": "สินค้า",
+        "severity": "ความรุนแรง",
+        "status": "สถานะ",
+        "receivedDate": "วันที่รับ",
+        "actions": "จัดการ"
+      }
+    },
+    "severity": {
+      "critical": "วิกฤต",
+      "major": "ร้ายแรง",
+      "minor": "เล็กน้อย"
+    },
+    "actions": {
+      "newComplaint": "บันทึกข้อร้องเรียนใหม่",
+      "viewComplaint": "ดูข้อร้องเรียน",
+      "investigate": "สอบสวน",
+      "refresh": "รีเฟรช",
+      "backToList": "กลับไปรายการ",
+      "openForm": "เปิดแบบฟอร์ม"
+    },
+    "trends": {
+      "title": "แนวโน้มข้อร้องเรียน",
+      "description": "วิเคราะห์แนวโน้มข้อร้องเรียน"
+    },
+    "new": {
+      "title": "บันทึกข้อร้องเรียนใหม่",
+      "subtitle": "สร้างบันทึกข้อร้องเรียนจากลูกค้า",
+      "breadcrumb": "ข้อร้องเรียนใหม่",
+      "heading": "สร้างข้อร้องเรียนใหม่",
+      "description": "บันทึกข้อร้องเรียนจากลูกค้าเพื่อติดตามและสอบสวนปัญหาคุณภาพ"
+    },
+    "empty": {
+      "title": "ยังไม่มีข้อร้องเรียน",
+      "description": "บันทึกข้อร้องเรียนจากลูกค้าเพื่อติดตามและสอบสวนปัญหาคุณภาพ"
+    },
+    "noResults": {
+      "title": "ไม่พบข้อร้องเรียนที่ตรงกับเงื่อนไข",
+      "description": "ลองเปลี่ยนคำค้นหาหรือเลือกแท็บอื่น"
+    },
+    "stats": {
+      "totalOpen": "เปิดอยู่ทั้งหมด",
+      "investigating": "กำลังตรวจสอบ",
+      "critical": "วิกฤต",
+      "resolved": "แก้ไขแล้ว"
+    },
+    "alerts": {
+      "criticalCountSingle": "มีข้อร้องเรียนวิกฤต {count} รายการที่ต้องการความสนใจ",
+      "criticalCountMany": "มีข้อร้องเรียนวิกฤต {count} รายการที่ต้องการความสนใจ",
+      "criticalSubtitle": "ตรวจสอบและมอบหมายผู้ตรวจสอบทันที"
+    },
+    "charts": {
+      "bySeverity": "ตามความรุนแรง",
+      "byStatus": "ตามสถานะ",
+      "byCategory": "ตามประเภท",
+      "quickSummary": "สรุปด่วน",
+      "monthlyTrend": "แนวโน้มรายเดือน",
+      "productsWithMostComplaints": "สินค้าที่มีข้อร้องเรียนมากที่สุด",
+      "noData": "ไม่มีข้อมูล",
+      "complaintsLegend": "ข้อร้องเรียน",
+      "complaintsCountSuffix": "ข้อร้องเรียน",
+      "tooltipComplaintsSuffix": "ข้อร้องเรียน"
+    },
+    "summary": {
+      "totalComplaints": "ข้อร้องเรียนทั้งหมด",
+      "allRecords": "ทุกรายการ",
+      "minorSeverity": "ความรุนแรงเล็กน้อย",
+      "lowRisk": "ความเสี่ยงต่ำ",
+      "majorSeverity": "ความรุนแรงร้ายแรง",
+      "mediumRisk": "ความเสี่ยงปานกลาง",
+      "criticalSeverity": "ความรุนแรงวิกฤต",
+      "highRisk": "ความเสี่ยงสูง"
+    },
+    "columns": {
+      "complaintNumber": "เลขที่ข้อร้องเรียน",
+      "subject": "หัวข้อ",
+      "customer": "ลูกค้า",
+      "category": "ประเภท",
+      "severity": "ความรุนแรง",
+      "status": "สถานะ",
+      "received": "วันที่รับ"
+    },
+    "categories": {
+      "quality": "คุณภาพ",
+      "efficacy": "ประสิทธิภาพ",
+      "safety": "ความปลอดภัย",
+      "packaging": "บรรจุภัณฑ์",
+      "labeling": "ฉลาก",
+      "other": "อื่นๆ"
+    },
+    "noDataText": "ไม่พบข้อร้องเรียน",
+    "regulatoryTag": "ต้องรายงานหน่วยงาน",
+    "lotPrefix": "ล็อต",
+    "viewDetails": "ดูรายละเอียด"
+  },
+  "documents": {
+    "title": "เอกสาร",
+    "pageTitle": "การจัดการเอกสาร GMP",
+    "description": "จัดการเอกสาร GMP",
+    "status": {
+      "draft": "ร่าง",
+      "active": "ใช้งานอยู่",
+      "pendingReview": "รอตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "obsolete": "ล้าสมัย",
+      "archived": "จัดเก็บ"
+    },
+    "type": {
+      "sop": "SOP",
+      "form": "แบบฟอร์ม",
+      "specification": "ข้อกำหนด",
+      "protocol": "โปรโตคอล"
+    },
+    "actions": {
+      "newDocument": "สร้างเอกสารใหม่",
+      "viewDocument": "ดูเอกสาร",
+      "editDocument": "แก้ไขเอกสาร",
+      "refresh": "รีเฟรช",
+      "view": "ดู",
+      "edit": "แก้ไข",
+      "delete": "ลบ"
+    },
+    "stats": {
+      "total": "เอกสารทั้งหมด",
+      "active": "ใช้งานอยู่",
+      "draft": "ร่าง",
+      "pendingApproval": "รออนุมัติ",
+      "upForReview": "ถึงเวลาทบทวน",
+      "obsoleteArchived": "ล้าสมัย / จัดเก็บ",
+      "documentTypes": "ประเภทเอกสาร"
+    },
+    "table": {
+      "columns": {
+        "documentNumber": "เลขที่เอกสาร",
+        "title": "ชื่อเอกสาร",
+        "type": "ประเภท",
+        "department": "แผนก",
+        "version": "เวอร์ชัน",
+        "status": "สถานะ",
+        "createdBy": "ผู้สร้าง",
+        "lastUpdated": "อัปเดตล่าสุด",
+        "actions": "จัดการ"
+      }
+    },
+    "search": {
+      "placeholder": "ค้นหาเลขที่เอกสาร, ชื่อ, ประเภท, แผนก..."
+    },
+    "charts": {
+      "statusDistribution": "การกระจายสถานะ",
+      "documentsByType": "เอกสารแยกตามประเภท",
+      "statusLabels": {
+        "draft": "ร่าง",
+        "active": "ใช้งานอยู่",
+        "obsolete": "ล้าสมัย",
+        "archived": "จัดเก็บ"
+      }
+    },
+    "typeCodes": {
+      "SOP": "ขั้นตอนการปฏิบัติงานมาตรฐาน",
+      "POL": "นโยบาย",
+      "FORM": "แบบฟอร์ม/บันทึก",
+      "WI": "วิธีปฏิบัติงาน",
+      "SPEC": "ข้อกำหนด",
+      "MAN": "คู่มือ",
+      "PRO": "โปรโตคอล",
+      "RPT": "แม่แบบรายงาน",
+      "LOG": "แม่แบบสมุดบันทึก",
+      "CHK": "รายการตรวจสอบ"
+    },
+    "noResultsTitle": "ไม่พบเอกสารที่ตรงกับเงื่อนไข",
+    "noResultsDescription": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองอื่น",
+    "tabs": {
+      "all": "เอกสารทั้งหมด",
+      "active": "ใช้งานอยู่",
+      "draft": "ร่าง",
+      "pendingReview": "รอตรวจสอบ",
+      "obsoleteArchived": "ล้าสมัย/จัดเก็บ"
+    },
+    "noDataAvailable": "ไม่มีข้อมูล",
+    "tooltips": {
+      "viewDocument": "ดูเอกสาร",
+      "editDocument": "แก้ไขเอกสาร",
+      "deleteDraft": "ลบเอกสารร่าง"
+    }
+  },
+  "internalAudit": {
+    "title": "การตรวจสอบภายใน",
+    "pageTitle": "การตรวจสอบภายใน GMP",
+    "description": "จัดการการตรวจสอบภายในตามมาตรฐาน GMP",
+    "status": {
+      "planned": "วางแผนแล้ว",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "cancelled": "ยกเลิก"
+    },
+    "actions": {
+      "scheduleAudit": "กำหนดการตรวจสอบ",
+      "viewAudit": "ดูการตรวจสอบ",
+      "conductAudit": "ดำเนินการตรวจสอบ",
+      "refresh": "รีเฟรช",
+      "auditPlans": "แผนการตรวจสอบ",
+      "clearFilter": "ล้างตัวกรอง"
+    },
+    "stats": {
+      "totalAudits": "การตรวจสอบทั้งหมด",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "openFindings": "ข้อค้นพบที่เปิดอยู่"
+    },
+    "table": {
+      "columns": {
+        "auditNumber": "เลขที่การตรวจสอบ",
+        "scope": "ขอบเขต",
+        "type": "ประเภท",
+        "gmpChapters": "หมวด GMP",
+        "scheduled": "วันที่กำหนด",
+        "leadAuditor": "ผู้ตรวจสอบหลัก",
+        "status": "สถานะ",
+        "findings": "ข้อค้นพบ",
+        "actions": "จัดการ"
+      }
+    },
+    "search": {
+      "placeholder": "ค้นหาการตรวจสอบ..."
+    },
+    "empty": {
+      "title": "ยังไม่มีการตรวจสอบ",
+      "description": "เริ่มจัดการโปรแกรมตรวจสอบภายใน GMP โดยกำหนดการตรวจสอบแรก"
+    },
+    "noResults": {
+      "title": "ไม่พบการตรวจสอบที่ตรงกับเงื่อนไข",
+      "description": "ลองเลือกแท็บสถานะอื่นเพื่อดูการตรวจสอบเพิ่มเติม"
+    },
+    "audits": {
+      "title": "รายการตรวจสอบ",
+      "description": "รายการการตรวจสอบภายในทั้งหมด"
+    },
+    "findings": {
+      "title": "ข้อค้นพบ",
+      "description": "รายการข้อค้นพบจากการตรวจสอบ"
+    },
+    "plans": {
+      "title": "แผนการตรวจสอบ",
+      "description": "แผนการตรวจสอบประจำปี"
+    },
+    "statusLabels": {
+      "scheduled": "กำหนดแล้ว",
+      "in_progress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "cancelled": "ยกเลิก"
+    },
+    "findingCategories": {
+      "observation": "ข้อสังเกต",
+      "minor": "ระดับเล็กน้อย",
+      "major": "ระดับร้ายแรง",
+      "critical": "ระดับวิกฤต"
+    },
+    "tabs": {
+      "all": "ทั้งหมด"
+    },
+    "quickStats": {
+      "planned": "ที่วางแผน",
+      "completionRate": "อัตราสำเร็จ",
+      "totalFindings": "ข้อค้นพบทั้งหมด",
+      "avgClosure": "เวลาปิดเฉลี่ย",
+      "scheduled": "กำหนดแล้ว",
+      "gmpChapters": "หมวด GMP"
+    },
+    "activePlan": {
+      "auditsCompleted": "เสร็จแล้ว {completed} จาก {total} การตรวจสอบ",
+      "viewPlan": "ดูแผน"
+    },
+    "sections": {
+      "auditsByStatus": "การตรวจสอบตามสถานะ",
+      "auditStatusDistribution": "การกระจายสถานะการตรวจสอบ",
+      "findingsByCategory": "ข้อค้นพบตามประเภท",
+      "gmpChapterCoverage": "ความครอบคลุมหมวด GMP ({year})",
+      "chaptersAudited": "{audited} / {total} หมวดที่ตรวจสอบแล้ว",
+      "findingsSummary": "สรุปข้อค้นพบ",
+      "quickActions": "ดำเนินการด่วน",
+      "actionRequired": "ต้องดำเนินการ"
+    },
+    "noData": {
+      "audit": "ไม่มีข้อมูลการตรวจสอบ",
+      "findings": "ไม่มีข้อมูลข้อค้นพบ",
+      "chapter": "ไม่มีข้อมูลความครอบคลุมของหมวด"
+    },
+    "quickActions": {
+      "auditPlans": "แผนการตรวจสอบ",
+      "auditPlansDescription": "จัดการแผนประจำปี",
+      "allAudits": "การตรวจสอบทั้งหมด",
+      "allAuditsDescription": "ดูและติดตามการตรวจสอบ",
+      "findingsCapa": "ข้อค้นพบและ CAPA",
+      "findingsCapaDescription": "จัดการข้อค้นพบ"
+    },
+    "actionRequiredAlert": {
+      "message": "มีข้อค้นพบ {count} รายการที่ต้องการความสนใจ",
+      "includingCritical": "รวมถึง {count} รายการระดับวิกฤต!",
+      "button": "ดูข้อค้นพบที่เปิดอยู่"
+    },
+    "findingsList": {
+      "totalFindings": "ข้อค้นพบทั้งหมด",
+      "openFindings": "ข้อค้นพบที่เปิดอยู่",
+      "findings": "ข้อค้นพบ",
+      "openSuffix": "เปิด",
+      "auditsCount": "การตรวจสอบ"
+    },
+    "chart": {
+      "findingsLegend": "ข้อค้นพบ"
+    },
+    "tooltips": {
+      "viewDetails": "ดูรายละเอียด",
+      "moreActions": "ดำเนินการเพิ่มเติม"
+    },
+    "mobile": {
+      "view": "ดู",
+      "refresh": "รีเฟรช"
+    },
+    "totalLabel": "รวม",
+    "daysSuffix": "วัน",
+    "notAvailable": "ไม่มี",
+    "percentOfTotal": "% จากทั้งหมด"
+  },
+  "recalls": {
+    "title": "การเรียกคืน",
+    "pageTitle": "การจัดการการเรียกคืน",
+    "description": "จัดการกระบวนการเรียกคืนผลิตภัณฑ์",
+    "status": {
+      "initiated": "เริ่มต้น",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "closed": "ปิด"
+    },
+    "class": {
+      "classI": "ระดับ I (ร้ายแรงมาก)",
+      "classII": "ระดับ II (ร้ายแรง)",
+      "classIII": "ระดับ III (เล็กน้อย)"
+    },
+    "actions": {
+      "initiateRecall": "เริ่มการเรียกคืน",
+      "viewRecall": "ดูการเรียกคืน",
+      "updateStatus": "อัปเดตสถานะ",
+      "refresh": "รีเฟรช"
+    },
+    "new": {
+      "title": "เริ่มการเรียกคืนผลิตภัณฑ์",
+      "subtitle": "Thai FDA GMP หมวด 9 - การเริ่มต้นเรียกคืน",
+      "warningTitle": "การเริ่มเรียกคืนผลิตภัณฑ์",
+      "warningDescription": "การเรียกคืนผลิตภัณฑ์เป็นการดำเนินการที่ร้ายแรงซึ่งจะแจ้งลูกค้าที่ได้รับผลกระทบทั้งหมดและอาจต้องรายงานต่อหน่วยงานกำกับดูแล กรุณาตรวจสอบความจำเป็นในการเรียกคืนก่อนดำเนินการ"
+    },
+    "buttons": {
+      "mockDrill": "ซ้อมจำลอง",
+      "viewCritical": "ดูรายการสำคัญ",
+      "runMockDrill": "ดำเนินการซ้อม",
+      "initiateRecall": "เริ่มการเรียกคืน"
+    },
+    "search": {
+      "placeholder": "ค้นหาเลขที่เรียกคืน, ผลิตภัณฑ์, ผู้ประสานงาน...",
+      "enterLotId": "ใส่รหัส Lot..."
+    },
+    "empty": {
+      "title": "ยังไม่มีการเรียกคืน",
+      "description": "เริ่มการเรียกคืนผลิตภัณฑ์เมื่อพบปัญหาคุณภาพที่ต้องแจ้งลูกค้าและเรียกเก็บสินค้า"
+    },
+    "noResults": {
+      "title": "ไม่พบการเรียกคืนที่ตรงกับเงื่อนไข",
+      "description": "ลองเปลี่ยนคำค้นหาหรือแท็บอื่น"
+    },
+    "stats": {
+      "totalRecalls": "เรียกคืนทั้งหมด",
+      "active": "กำลังดำเนินการ",
+      "classICritical": "Class I (วิกฤต)",
+      "avgEffectiveness": "ประสิทธิผลเฉลี่ย"
+    },
+    "tabs": {
+      "all": "การเรียกคืนทั้งหมด",
+      "initiated": "เริ่มต้นแล้ว",
+      "in_progress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "closed": "ปิด"
+    },
+    "classLabels": {
+      "class_i": "Class I",
+      "class_ii": "Class II",
+      "class_iii": "Class III"
+    },
+    "classLegend": {
+      "classI": "Class I (วิกฤต)",
+      "classII": "Class II (ร้ายแรง)",
+      "classIII": "Class III (เล็กน้อย)"
+    },
+    "statusLabels": {
+      "initiated": "เริ่มต้นแล้ว",
+      "in_progress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "closed": "ปิด"
+    },
+    "charts": {
+      "byRecallClass": "ตามระดับการเรียกคืน",
+      "byStatus": "ตามสถานะ",
+      "activeRecallsMatrix": "เมทริกซ์การเรียกคืนที่กำลังดำเนินการ",
+      "matrixHeaderInitiated": "เริ่มต้นแล้ว",
+      "matrixHeaderInProgress": "กำลังดำเนินการ",
+      "matrixHeaderCompleted": "เสร็จสิ้น",
+      "noActiveRecalls": "ไม่มีการเรียกคืนที่กำลังดำเนินการ",
+      "noDataAvailable": "ไม่มีข้อมูล",
+      "legendCount": "จำนวน",
+      "effectivenessSuffix": "ประสิทธิผล"
+    },
+    "alerts": {
+      "classIActiveSingle": "มี Class I Recall ที่กำลังดำเนินการ {count} รายการ",
+      "classIActiveMany": "มี Class I Recall ที่กำลังดำเนินการ {count} รายการ",
+      "classIActiveSubtitle": "การเรียกคืนวิกฤตต้องได้รับความสนใจทันที และรายงานหน่วยงานกำกับดูแลภายใน 24 ชั่วโมง"
+    },
+    "columns": {
+      "recallNumber": "เลขที่เรียกคืน",
+      "class": "ระดับ",
+      "product": "สินค้า",
+      "status": "สถานะ",
+      "recovery": "อัตราเก็บคืน",
+      "quantity": "จำนวน",
+      "coordinator": "ผู้ประสานงาน",
+      "initiated": "เริ่มต้นเมื่อ"
+    },
+    "classIAria": "Class I",
+    "recallsCountSuffix": "รายการ",
+    "noDataText": "ไม่พบการเรียกคืน",
+    "dialogs": {
+      "initiateTitle": "เริ่มการเรียกคืนใหม่",
+      "mockDrillTitle": "ซ้อมการเรียกคืน"
+    },
+    "mockDrill": {
+      "lotIdLabel": "เลขที่ล็อตที่ต้องการตรวจสอบ",
+      "customersIdentified": "ลูกค้าที่ระบุได้",
+      "unitsDistributed": "หน่วยที่กระจายออกไป"
+    },
+    "viewRecall": "ดูการเรียกคืน"
+  },
+  "sanitation": {
+    "title": "สุขาภิบาล",
+    "pageTitle": "การจัดการสุขาภิบาล",
+    "description": "จัดการกิจกรรมสุขาภิบาลและความสะอาด",
+    "status": {
+      "scheduled": "กำหนดแล้ว",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "overdue": "เกินกำหนด",
+      "upcoming": "ใกล้ถึง"
+    },
+    "actions": {
+      "scheduleCleaning": "กำหนดการทำความสะอาด",
+      "logCleaning": "บันทึกการทำความสะอาด",
+      "refresh": "รีเฟรช",
+      "schedules": "ตารางเวลา",
+      "recordLog": "บันทึกการทำความสะอาด",
+      "viewTasks": "ดูงานที่ต้องทำ",
+      "viewAllLogs": "ดูบันทึกทั้งหมด",
+      "record": "บันทึก"
+    },
+    "stats": {
+      "complianceRate": "อัตราการปฏิบัติตาม",
+      "completed": "เสร็จสิ้น",
+      "pending": "รอดำเนินการ",
+      "overdue": "เกินกำหนด",
+      "missed": "พลาด",
+      "pestFindings": "พบสัตว์พาหะ"
+    },
+    "alerts": {
+      "overdueTasks": "มีงานสุขาภิบาลเกินกำหนด {count} งาน",
+      "overdueAction": "กรุณาทำงานที่เกินกำหนดโดยเร็วเพื่อรักษามาตรฐาน GMP"
+    },
+    "charts": {
+      "complianceByArea": "การปฏิบัติตามตามพื้นที่",
+      "pestActivity": "กิจกรรมสัตว์พาหะ",
+      "pestActivityNoData": "ไม่มีข้อมูลสัตว์พาหะ",
+      "quickSummary": "สรุปด่วน",
+      "overallCompliance": "อัตราการปฏิบัติตามรวม",
+      "thisPeriod": "ช่วงนี้",
+      "noAreaData": "ไม่มีข้อมูลพื้นที่",
+      "complianceTrend": "แนวโน้มการปฏิบัติตาม",
+      "noData": "ไม่มีข้อมูล"
+    },
+    "quickActions": {
+      "schedulesTitle": "ตารางเวลา",
+      "schedulesDescription": "จัดการตารางและความถี่การทำความสะอาด",
+      "logsTitle": "บันทึกสุขาภิบาล",
+      "logsDescription": "ดูและบันทึกกิจกรรมสุขาภิบาล",
+      "pestTitle": "การควบคุมสัตว์พาหะ",
+      "pestDescription": "บันทึกและติดตามการควบคุมสัตว์พาหะ",
+      "trendsTitle": "แนวโน้มและการวิเคราะห์",
+      "trendsDescription": "ดูแนวโน้มและสถิติการปฏิบัติตาม"
+    },
+    "pendingTasks": "งานที่รอดำเนินการ",
+    "logs": {
+      "title": "บันทึกสุขาภิบาล",
+      "description": "บันทึกกิจกรรมสุขาภิบาลประจำวัน"
+    },
+    "pestControl": {
+      "title": "การควบคุมสัตว์พาหะ",
+      "description": "บันทึกและติดตามกิจกรรมควบคุมสัตว์พาหะ"
+    },
+    "schedules": {
+      "title": "ตารางเวลา",
+      "description": "ตารางเวลาทำความสะอาดและสุขาภิบาล"
+    },
+    "trends": {
+      "title": "แนวโน้มสุขาภิบาล",
+      "description": "วิเคราะห์แนวโน้มข้อมูลสุขาภิบาล"
+    }
+  },
+  "changes": {
+    "title": "การเปลี่ยนแปลง",
+    "pageTitle": "การควบคุมการเปลี่ยนแปลง",
+    "description": "จัดการคำขอเปลี่ยนแปลงและกระบวนการอนุมัติ",
+    "subtitle": "ติดตามคำขอเปลี่ยนแปลงกระบวนการ อุปกรณ์ และเอกสารพร้อมการอนุมัติ",
+    "status": {
+      "draft": "ร่าง",
+      "submitted": "ส่งแล้ว",
+      "pending_review": "รอตรวจสอบ",
+      "underReview": "กำลังตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "rejected": "ปฏิเสธ",
+      "implemented": "นำไปใช้แล้ว",
+      "closed": "ปิดแล้ว"
+    },
+    "impact": {
+      "major": "ร้ายแรง",
+      "minor": "เล็กน้อย"
+    },
+    "priority": {
+      "low": "ต่ำ",
+      "medium": "ปานกลาง",
+      "high": "สูง",
+      "urgent": "เร่งด่วน"
+    },
+    "type": {
+      "process": "กระบวนการ",
+      "equipment": "อุปกรณ์",
+      "document": "เอกสาร",
+      "supplier": "ซัพพลายเออร์",
+      "formula": "สูตร",
+      "other": "อื่นๆ"
+    },
+    "actions": {
+      "newChange": "สร้างคำขอเปลี่ยนแปลง",
+      "viewChange": "ดูคำขอ",
+      "approveChange": "อนุมัติ",
+      "rejectChange": "ปฏิเสธ",
+      "refresh": "รีเฟรช",
+      "analytics": "วิเคราะห์ข้อมูล"
+    },
+    "stats": {
+      "totalChanges": "คำขอทั้งหมด",
+      "pendingReview": "รอตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "implemented": "นำไปใช้แล้ว",
+      "urgentCount": "เร่งด่วน"
+    },
+    "tabs": {
+      "all": "ทั้งหมด",
+      "draft": "ร่าง",
+      "pending_review": "รอตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "implemented": "นำไปใช้แล้ว",
+      "closed": "ปิดแล้ว",
+      "rejected": "ปฏิเสธ"
+    },
+    "table": {
+      "columns": {
+        "changeNumber": "เลขที่คำขอ",
+        "title": "ชื่อเรื่อง",
+        "type": "ประเภท",
+        "priority": "ความสำคัญ",
+        "status": "สถานะ",
+        "owner": "ผู้รับผิดชอบ",
+        "targetDate": "วันที่เป้าหมาย",
+        "created": "วันที่สร้าง",
+        "actions": "การดำเนินการ"
+      }
+    },
+    "search": {
+      "placeholder": "ค้นหาเลขที่คำขอ ชื่อเรื่อง หรือผู้รับผิดชอบ..."
+    },
+    "empty": {
+      "title": "ยังไม่มีคำขอเปลี่ยนแปลง",
+      "description": "เริ่มต้นสร้างคำขอเปลี่ยนแปลงแรกเพื่อติดตามการอนุมัติและการดำเนินการ"
+    },
+    "noResults": {
+      "title": "ไม่พบคำขอที่ตรงกับเงื่อนไข",
+      "description": "ลองปรับคำค้นหาหรือเลือกแท็บอื่น"
+    },
+    "resultCount": "{count} จาก {total}",
+    "overdue": "เกินกำหนด"
+  },
+  "contracts": {
+    "title": "สัญญา",
+    "pageTitle": "สัญญาการผลิต",
+    "description": "GMP หมวด 8 - สัญญาการผลิตและบริการห้องปฏิบัติการ",
+    "status": {
+      "active": "มีผล",
+      "expired": "หมดอายุ",
+      "terminated": "ยกเลิก",
+      "pending": "รอดำเนินการ",
+      "pendingRenewal": "รอต่ออายุ"
+    },
+    "type": {
+      "manufacturer": "ผู้ผลิต",
+      "laboratory": "ห้องปฏิบัติการ",
+      "both": "ทั้งสองประเภท",
+      "distributor": "ผู้จัดจำหน่าย"
+    },
+    "actions": {
+      "newContract": "สร้างสัญญาใหม่",
+      "viewContract": "ดูสัญญา",
+      "renewContract": "ต่ออายุสัญญา",
+      "refresh": "รีเฟรช"
+    },
+    "stats": {
+      "totalContracts": "สัญญาทั้งหมด",
+      "active": "มีผล",
+      "expiringSoon": "ใกล้หมดอายุ",
+      "auditsOverdue": "ตรวจสอบเกินกำหนด",
+      "totalBatches": "แบทช์ทั้งหมด",
+      "thisMonth": "เดือนนี้"
+    },
+    "tabs": {
+      "all": "สัญญาทั้งหมด",
+      "active": "มีผล",
+      "expired": "หมดอายุ",
+      "pending": "รอดำเนินการ"
+    },
+    "sections": {
+      "expiringSoon": "ใกล้หมดอายุ (90 วัน)",
+      "overdueAudits": "การตรวจสอบที่เกินกำหนด",
+      "byStatus": "ตามสถานะ",
+      "byType": "ตามประเภท",
+      "activeByType": "ที่มีผลตามประเภท",
+      "activitySummary": "สรุปกิจกรรม",
+      "contractActivity": "กิจกรรมสัญญา (6 เดือนล่าสุด)",
+      "topContractors": "ผู้รับจ้างอันดับต้นตามกิจกรรม"
+    },
+    "labels": {
+      "manufacturers": "ผู้ผลิต",
+      "laboratories": "ห้องปฏิบัติการ",
+      "bothServices": "บริการทั้งสอง",
+      "production": "การผลิต",
+      "testing": "การทดสอบ",
+      "fullService": "บริการครบวงจร",
+      "needsRenewal": "ต้องต่ออายุ",
+      "allTime": "ทั้งหมด",
+      "manufacturing": "การผลิต",
+      "qcQa": "QC/QA",
+      "packaging": "บรรจุภัณฑ์",
+      "packOut": "บรรจุออก",
+      "contracts": "สัญญา",
+      "batches": "แบทช์",
+      "batchesProcessed": "แบทช์ที่ประมวลผล",
+      "overdue": "เกินกำหนด",
+      "due": "กำหนด"
+    },
+    "empty": {
+      "noContracts": "ไม่มีสัญญา",
+      "noData": "ไม่มีข้อมูล"
+    }
+  },
+  "pqr": {
+    "title": "PQR",
+    "pageTitle": "Product Quality Review",
+    "description": "จัดการรายงานทบทวนคุณภาพผลิตภัณฑ์ประจำปี",
+    "status": {
+      "draft": "ร่าง",
+      "underReview": "กำลังตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "published": "เผยแพร่แล้ว"
+    },
+    "actions": {
+      "generatePqr": "สร้าง PQR",
+      "viewPqr": "ดู PQR",
+      "approvePqr": "อนุมัติ PQR",
+      "refresh": "รีเฟรช"
+    },
+    "generate": {
+      "title": "สร้างรายงาน PQR",
+      "description": "สร้างรายงานทบทวนคุณภาพผลิตภัณฑ์"
+    }
+  },
+  "audits": {
+    "title": "การตรวจสอบ",
+    "description": "จัดการการตรวจสอบ GMP",
+    "table": {
+      "columns": {
+        "auditNumber": "เลขที่ตรวจสอบ",
+        "type": "ประเภท",
+        "scheduledDate": "วันที่กำหนด",
+        "status": "สถานะ",
+        "findings": "ข้อค้นพบ",
+        "auditor": "ผู้ตรวจสอบ"
+      }
+    },
+    "actions": {
+      "scheduleAudit": "กำหนดการตรวจสอบ",
+      "conductAudit": "ดำเนินการตรวจสอบ",
+      "viewAudit": "ดูการตรวจสอบ"
+    }
+  },
+  "training": {
+    "title": "การฝึกอบรม",
+    "description": "จัดการการฝึกอบรม GMP"
+  },
+  "toast": {
+    "createAudit": {
+      "success": "สร้างการตรวจสอบสำเร็จ",
+      "error": "ไม่สามารถสร้างการตรวจสอบได้"
+    },
+    "createStudy": {
+      "success": "สร้างการศึกษาสำเร็จ",
+      "error": "ไม่สามารถสร้างการศึกษาได้"
+    },
+    "createCapa": {
+      "success": "สร้าง CAPA สำเร็จ",
+      "error": "ไม่สามารถสร้าง CAPA ได้"
+    },
+    "save": {
+      "success": "บันทึกสำเร็จ",
+      "error": "ไม่สามารถบันทึกได้"
+    }
+  },
+  "common": {
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "noData": "ไม่พบข้อมูล",
+    "retry": "ลองอีกครั้ง",
+    "goBack": "ย้อนกลับ",
+    "allStatus": "สถานะทั้งหมด",
+    "clearFilters": "ล้างตัวกรอง",
+    "cancel": "ยกเลิก",
+    "close": "ปิด",
+    "save": "บันทึก",
+    "refresh": "รีเฟรช",
+    "actions": "จัดการ"
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

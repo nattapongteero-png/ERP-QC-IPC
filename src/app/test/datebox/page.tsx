@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 
 /**
@@ -14,6 +14,20 @@ import { DxDateBox } from '@/components/ui/dx-date-box';
  * 5. Form integration
  */
 export default function DateBoxTestPage() {
+  const [isDev, setIsDev] = useState(false);
+
+  useEffect(() => {
+    setIsDev(process.env.NODE_ENV === 'development');
+  }, []);
+
+  if (!isDev) {
+    return <div className="p-8 text-center">This page is only available in development mode.</div>;
+  }
+
+  return <DateBoxTestContent />;
+}
+
+function DateBoxTestContent() {
   // Basic date states
   const [basicDate, setBasicDate] = useState<string>('');
   const [prefilledDate, setPrefilledDate] = useState<string>('2025-12-21');

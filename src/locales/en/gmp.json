@@ -1,0 +1,1123 @@
+{
+  "page": {
+    "title": "GMP",
+    "description": "Good Manufacturing Practice compliance"
+  },
+  "compliance": {
+    "title": "Compliance",
+    "description": "Track GMP compliance status"
+  },
+  "stability": {
+    "title": "Stability",
+    "pageTitle": "Stability Program",
+    "description": "Manage product stability studies",
+    "subtitle": "GMP Chapter 7.4 - Stability Testing Management Dashboard",
+    "dashboard": {
+      "title": "Stability Dashboard",
+      "activeStudies": "Active Studies",
+      "completedStudies": "Completed Studies",
+      "onHoldStudies": "On Hold Studies",
+      "overdueSamples": "Overdue Samples",
+      "upcomingSamples": "Upcoming Samples",
+      "oosThisMonth": "OOS This Month",
+      "completedThisMonth": "Completed This Month",
+      "dueIn30Days": "Due in 30 Days",
+      "testsThisMonth": "Tests This Month",
+      "productsTracked": "Products Tracked",
+      "activeByType": "Active Studies by Type",
+      "byStatus": "Studies by Status",
+      "programSummary": "Program Summary",
+      "topProducts": "Top Products",
+      "samplesTested": "Samples Tested (Last 6 Months)",
+      "totalStudies": "Total Studies",
+      "oosDetected": "OOS Detected",
+      "noStudyData": "No study data",
+      "noActivityData": "No activity data"
+    },
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "onHold": "On Hold",
+      "cancelled": "Cancelled"
+    },
+    "studyType": {
+      "longTerm": "Long Term",
+      "accelerated": "Accelerated",
+      "intermediate": "Intermediate"
+    },
+    "storage": {
+      "longTerm": "25°C / 60%RH",
+      "accelerated": "40°C / 75%RH",
+      "intermediate": "30°C / 65%RH"
+    },
+    "actions": {
+      "newStudy": "New Study",
+      "viewStudy": "View Study",
+      "refresh": "Refresh",
+      "enrollBatch": "Enroll Batch",
+      "viewAll": "View All",
+      "newProtocol": "New Protocol",
+      "addTimepoint": "Add Timepoint",
+      "saveProtocol": "Save Protocol",
+      "cancel": "Cancel",
+      "putOnHold": "Put On Hold",
+      "resume": "Resume",
+      "completeStudy": "Complete Study",
+      "viewInvestigations": "View Investigations"
+    },
+    "tabs": {
+      "allStudies": "All Studies",
+      "active": "Active",
+      "completed": "Completed",
+      "onHold": "On Hold",
+      "sampleSchedule": "Sample Schedule",
+      "trends": "Trends"
+    },
+    "alerts": {
+      "overdueTitle": "Overdue Samples",
+      "overdueDescription": "{count} samples require immediate attention",
+      "upcomingTitle": "Upcoming Samples",
+      "upcomingDescription": "{count} samples due within 30 days",
+      "oosTitle": "OOS Alert",
+      "oosDescription": "{count} out-of-specification result(s) detected this month. Review affected studies and initiate investigations as needed.",
+      "overdue": "overdue",
+      "daysOverdue": "{days}d overdue",
+      "daysRemaining": "{days}d"
+    },
+    "studies": {
+      "title": "Stability Studies",
+      "description": "Enrolled batch studies and sample schedules",
+      "filterByStatus": "Filter by status...",
+      "noStudies": "No stability studies found",
+      "enrollFirst": "Enroll a batch to start tracking stability",
+      "studyProgress": "Study Progress",
+      "tested": "Tested",
+      "remaining": "Remaining",
+      "failedToLoad": "Failed to load studies",
+      "studies": "studies",
+      "tryDifferentFilter": "Try changing your search term or selecting a different tab."
+    },
+    "trends": {
+      "title": "Stability Trends",
+      "description": "Overview of stability program metrics and trends",
+      "studiesByProduct": "Studies by Product",
+      "complete": "Complete",
+      "activeCount": "{count} active",
+      "completedCount": "{count} completed",
+      "failedToLoad": "Failed to load trends"
+    },
+    "protocols": {
+      "title": "Stability Protocols",
+      "description": "Standardized protocols for stability testing programs",
+      "filterByStatus": "Filter by status...",
+      "noProtocols": "No protocols found",
+      "noProtocolsFiltered": "No protocols with status \"{status}\"",
+      "createFirst": "Create your first stability protocol to get started",
+      "createProtocol": "Create Protocol",
+      "failedToLoad": "Failed to load protocols"
+    },
+    "newProtocol": {
+      "title": "Create Stability Protocol",
+      "description": "Define a new standardized protocol for stability testing",
+      "basicInfo": "Basic Information",
+      "protocolName": "Protocol Name",
+      "protocolNamePlaceholder": "e.g., Herbal Tablet Long-term Stability",
+      "product": "Product",
+      "selectProduct": "Select product...",
+      "studyType": "Study Type",
+      "storageCondition": "Storage Condition",
+      "selectCondition": "Select condition...",
+      "samplingTimepoints": "Sampling Timepoints",
+      "selectProductFirst": "Select a product first to configure timepoints and tests",
+      "timepointsHelp": "Define sampling timepoints in months from study start (e.g., 0, 1, 3, 6, 12, 18, 24). Select which tests to perform at each timepoint.",
+      "timepointMonths": "Timepoint (Months)",
+      "testsRequired": "Tests Required",
+      "selectTests": "Select tests...",
+      "durationMonths": "Duration (months)",
+      "validationMessage": "Please complete all required fields and add at least one timepoint."
+    },
+    "studyDetail": {
+      "lot": "Lot",
+      "start": "Start",
+      "chamber": "Chamber",
+      "createdBy": "Created by",
+      "notAssigned": "Not assigned",
+      "unknown": "Unknown",
+      "unknownProduct": "Unknown Product",
+      "viewProtocol": "View Protocol"
+    },
+    "columns": {
+      "protocolNumber": "Protocol Number",
+      "protocolName": "Protocol Name",
+      "product": "Product",
+      "storageCondition": "Storage Condition",
+      "studyType": "Study Type",
+      "duration": "Duration (months)",
+      "status": "Status",
+      "approvedBy": "Approved By",
+      "created": "Created"
+    },
+    "studyList": {
+      "columns": {
+        "studyNumber": "Study #",
+        "productLot": "Product / Lot",
+        "protocol": "Protocol",
+        "startDate": "Start Date",
+        "timepoint": "Timepoint",
+        "nextDue": "Next Due",
+        "oos": "OOS",
+        "status": "Status"
+      },
+      "statusLabels": {
+        "active": "Active",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "on_hold": "On Hold"
+      },
+      "typeLabels": {
+        "long_term": "Long Term",
+        "accelerated": "Accelerated",
+        "intermediate": "Intermediate"
+      }
+    },
+    "search": {
+      "placeholder": "Search study number, product, lot, protocol..."
+    },
+    "mobile": {
+      "start": "Start",
+      "timepoint": "Timepoint",
+      "timepointSuffix": "M",
+      "next": "Next",
+      "oosLabel": "OOS",
+      "viewStudyDetails": "View study details",
+      "daysOverdueSuffix": "d overdue",
+      "daysSuffix": "d"
+    },
+    "chart": {
+      "testsCompletedLegend": "Tests Completed",
+      "samplesTestedSuffix": "samples tested",
+      "thisMonth": "this month"
+    }
+  },
+  "capa": {
+    "title": "CAPA",
+    "pageTitle": "CAPA Management",
+    "description": "Corrective and Preventive Actions",
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "pendingApproval": "Pending Approval",
+      "closed": "Closed",
+      "overdue": "Overdue"
+    },
+    "priority": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "actions": {
+      "newCapa": "New CAPA",
+      "viewCapa": "View CAPA",
+      "editCapa": "Edit CAPA",
+      "refresh": "Refresh"
+    },
+    "dashboard": {
+      "totalOpen": "Open CAPAs",
+      "overdue": "Overdue",
+      "dueThisWeek": "Due This Week",
+      "completedThisMonth": "Completed This Month"
+    },
+    "new": {
+      "title": "Create New CAPA",
+      "subtitle": "Create a new Corrective/Preventive Action",
+      "fromDeviation": "Create CAPA from Deviation",
+      "fromComplaint": "Create CAPA from Complaint",
+      "fromAuditFinding": "Create CAPA from Audit Finding",
+      "linkedTo": "Linked to {number}",
+      "placeholder": "Use the dialog to create a new CAPA..."
+    },
+    "search": {
+      "placeholder": "Search CAPAs..."
+    },
+    "table": {
+      "columns": {
+        "capaNumber": "CAPA #",
+        "title": "Title",
+        "source": "Source",
+        "type": "Type",
+        "priority": "Priority",
+        "status": "Status",
+        "risk": "Risk",
+        "actions": "Actions",
+        "owner": "Owner",
+        "dueDate": "Due Date",
+        "created": "Created"
+      }
+    },
+    "buttons": {
+      "newCapa": "New CAPA",
+      "showAll": "Show All"
+    },
+    "empty": {
+      "title": "No CAPAs yet",
+      "description": "Create your first Corrective / Preventive Action to begin tracking quality issues, root causes, and action effectiveness."
+    },
+    "noResults": {
+      "title": "No CAPAs match this filter",
+      "description": "Try clearing the active tab filter to see all CAPAs."
+    },
+    "stats": {
+      "openCapas": "Open CAPAs",
+      "overdue": "Overdue",
+      "pendingApproval": "Pending Approval",
+      "closedThisMonth": "Closed This Month"
+    },
+    "tabs": {
+      "all": "All CAPAs",
+      "active": "Active",
+      "overdue": "Overdue",
+      "pendingApproval": "Pending Approval",
+      "closed": "Closed"
+    },
+    "charts": {
+      "statusDistribution": "Status Distribution",
+      "priorityDistribution": "Priority Distribution",
+      "riskMatrixTitle": "Risk Matrix (ICH Q9)",
+      "noDataAvailable": "No data available",
+      "statusLabels": {
+        "open": "Open",
+        "investigation": "Investigation",
+        "action_pending": "Action Pending",
+        "verification": "Verification",
+        "pending_approval": "Pending Approval",
+        "closed": "Closed",
+        "cancelled": "Cancelled"
+      }
+    },
+    "riskMatrix": {
+      "low": "Low (1-4)",
+      "medium": "Medium (5-9)",
+      "high": "High (10-16)",
+      "critical": "Critical (17-25)",
+      "severity": {
+        "negligible": "Negligible",
+        "minor": "Minor",
+        "moderate": "Moderate",
+        "major": "Major",
+        "critical": "Critical"
+      },
+      "probability": {
+        "rare": "Rare",
+        "unlikely": "Unlikely",
+        "possible": "Possible",
+        "likely": "Likely",
+        "certain": "Certain"
+      }
+    },
+    "riskLevels": {
+      "na": "N/A",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "sourceTypes": {
+      "deviation": "Deviation",
+      "complaint": "Complaint",
+      "audit_finding": "Audit Finding",
+      "other": "Other"
+    },
+    "masterDetail": {
+      "rootCause": "Root Cause",
+      "notAnalyzed": "Not analyzed yet",
+      "impactAssessment": "Impact Assessment",
+      "scope": "Scope",
+      "patientImpact": "Patient Impact",
+      "regulatoryRequired": "Regulatory Required",
+      "approvalStatus": "Approval Status",
+      "notSubmitted": "Not submitted",
+      "yes": "Yes",
+      "no": "No",
+      "notAvailable": "N/A"
+    },
+    "priorityLabels": {
+      "low": "LOW",
+      "medium": "MEDIUM",
+      "high": "HIGH",
+      "critical": "CRITICAL"
+    },
+    "resultCount": "{count} CAPAs shown",
+    "resultCountSingular": "{count} CAPA shown",
+    "mobile": {
+      "viewDetails": "View Details"
+    }
+  },
+  "complaints": {
+    "title": "Complaints",
+    "pageTitle": "Complaint Management",
+    "description": "Manage customer complaints",
+    "status": {
+      "all": "All",
+      "new": "New",
+      "received": "Received",
+      "under_investigation": "Investigating",
+      "underInvestigation": "Under Investigation",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "search": {
+      "placeholder": "Search complaint #, customer, product..."
+    },
+    "table": {
+      "columns": {
+        "complaintNumber": "Complaint #",
+        "customer": "Customer",
+        "product": "Product",
+        "severity": "Severity",
+        "status": "Status",
+        "receivedDate": "Received",
+        "actions": "Actions"
+      }
+    },
+    "severity": {
+      "critical": "Critical",
+      "major": "Major",
+      "minor": "Minor"
+    },
+    "actions": {
+      "newComplaint": "New Complaint",
+      "viewComplaint": "View Complaint",
+      "investigate": "Investigate",
+      "refresh": "Refresh",
+      "backToList": "Back to List",
+      "openForm": "Open Form"
+    },
+    "trends": {
+      "title": "Complaint Trends",
+      "description": "Analyze complaint trends"
+    },
+    "new": {
+      "title": "Register New Complaint",
+      "subtitle": "Create a new customer complaint record",
+      "breadcrumb": "New Complaint",
+      "heading": "Create a New Complaint",
+      "description": "Register a new customer complaint to track and investigate quality issues."
+    },
+    "empty": {
+      "title": "No complaints yet",
+      "description": "Register a new customer complaint to track and investigate quality issues."
+    },
+    "noResults": {
+      "title": "No matching complaints",
+      "description": "Try changing your search term or selecting a different tab."
+    },
+    "stats": {
+      "totalOpen": "Total Open",
+      "investigating": "Investigating",
+      "critical": "Critical",
+      "resolved": "Resolved"
+    },
+    "alerts": {
+      "criticalCountSingle": "{count} critical complaint requires attention",
+      "criticalCountMany": "{count} critical complaints require attention",
+      "criticalSubtitle": "Review and assign investigators immediately"
+    },
+    "charts": {
+      "bySeverity": "By Severity",
+      "byStatus": "By Status",
+      "byCategory": "By Category",
+      "quickSummary": "Quick Summary",
+      "monthlyTrend": "Monthly Trend",
+      "productsWithMostComplaints": "Products with Most Complaints",
+      "noData": "No data",
+      "complaintsLegend": "Complaints",
+      "complaintsCountSuffix": "complaints",
+      "tooltipComplaintsSuffix": "complaints"
+    },
+    "summary": {
+      "totalComplaints": "Total Complaints",
+      "allRecords": "All Records",
+      "minorSeverity": "Minor Severity",
+      "lowRisk": "Low Risk",
+      "majorSeverity": "Major Severity",
+      "mediumRisk": "Medium Risk",
+      "criticalSeverity": "Critical Severity",
+      "highRisk": "High Risk"
+    },
+    "columns": {
+      "complaintNumber": "Complaint #",
+      "subject": "Subject",
+      "customer": "Customer",
+      "category": "Category",
+      "severity": "Severity",
+      "status": "Status",
+      "received": "Received"
+    },
+    "categories": {
+      "quality": "Quality",
+      "efficacy": "Efficacy",
+      "safety": "Safety",
+      "packaging": "Packaging",
+      "labeling": "Labeling",
+      "other": "Other"
+    },
+    "noDataText": "No complaints found",
+    "regulatoryTag": "Regulatory",
+    "lotPrefix": "Lot",
+    "viewDetails": "View Details"
+  },
+  "documents": {
+    "title": "Documents",
+    "pageTitle": "GMP Document Management",
+    "description": "Manage GMP documents",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "pendingReview": "Pending Review",
+      "approved": "Approved",
+      "obsolete": "Obsolete",
+      "archived": "Archived"
+    },
+    "type": {
+      "sop": "SOP",
+      "form": "Form",
+      "specification": "Specification",
+      "protocol": "Protocol"
+    },
+    "actions": {
+      "newDocument": "New Document",
+      "viewDocument": "View Document",
+      "editDocument": "Edit Document",
+      "refresh": "Refresh",
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "stats": {
+      "total": "Total Documents",
+      "active": "Active",
+      "draft": "Draft",
+      "pendingApproval": "Pending Approval",
+      "upForReview": "Up for Review",
+      "obsoleteArchived": "Obsolete / Archived",
+      "documentTypes": "Document Types"
+    },
+    "table": {
+      "columns": {
+        "documentNumber": "Document No.",
+        "title": "Title",
+        "type": "Type",
+        "department": "Department",
+        "version": "Version",
+        "status": "Status",
+        "createdBy": "Created By",
+        "lastUpdated": "Last Updated",
+        "actions": "Actions"
+      }
+    },
+    "search": {
+      "placeholder": "Search document number, title, type, department..."
+    },
+    "charts": {
+      "statusDistribution": "Status Distribution",
+      "documentsByType": "Documents by Type",
+      "statusLabels": {
+        "draft": "Draft",
+        "active": "Active",
+        "obsolete": "Obsolete",
+        "archived": "Archived"
+      }
+    },
+    "typeCodes": {
+      "SOP": "SOP",
+      "POL": "Policy",
+      "FORM": "Form/Record",
+      "WI": "Work Instruction",
+      "SPEC": "Specification",
+      "MAN": "Manual",
+      "PRO": "Protocol",
+      "RPT": "Report Template",
+      "LOG": "Log Book Template",
+      "CHK": "Checklist"
+    },
+    "noResultsTitle": "No matching documents",
+    "noResultsDescription": "Try changing your search term or selecting a different filter",
+    "tabs": {
+      "all": "All Documents",
+      "active": "Active",
+      "draft": "Draft",
+      "pendingReview": "Pending Review",
+      "obsoleteArchived": "Obsolete/Archived"
+    },
+    "noDataAvailable": "No data available",
+    "tooltips": {
+      "viewDocument": "View document",
+      "editDocument": "Edit document",
+      "deleteDraft": "Delete draft document"
+    }
+  },
+  "internalAudit": {
+    "title": "Internal Audit",
+    "pageTitle": "GMP Internal Audit",
+    "description": "Manage internal audits according to GMP standards",
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "actions": {
+      "scheduleAudit": "Schedule Audit",
+      "viewAudit": "View Audit",
+      "conductAudit": "Conduct Audit",
+      "refresh": "Refresh",
+      "auditPlans": "Audit Plans",
+      "clearFilter": "Clear Filter"
+    },
+    "stats": {
+      "totalAudits": "Total Audits",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "openFindings": "Open Findings"
+    },
+    "table": {
+      "columns": {
+        "auditNumber": "Audit #",
+        "scope": "Scope",
+        "type": "Type",
+        "gmpChapters": "GMP Chapters",
+        "scheduled": "Scheduled",
+        "leadAuditor": "Lead Auditor",
+        "status": "Status",
+        "findings": "Findings",
+        "actions": "Actions"
+      }
+    },
+    "search": {
+      "placeholder": "Search audits..."
+    },
+    "empty": {
+      "title": "No audits yet",
+      "description": "Start managing your internal GMP audit program by scheduling the first audit."
+    },
+    "noResults": {
+      "title": "No audits match this filter",
+      "description": "Try a different status tab to see more audits."
+    },
+    "audits": {
+      "title": "Audit List",
+      "description": "List of all internal audits"
+    },
+    "findings": {
+      "title": "Findings",
+      "description": "List of audit findings"
+    },
+    "plans": {
+      "title": "Audit Plans",
+      "description": "Annual audit plans"
+    },
+    "statusLabels": {
+      "scheduled": "Scheduled",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "findingCategories": {
+      "observation": "Observation",
+      "minor": "Minor",
+      "major": "Major",
+      "critical": "Critical"
+    },
+    "tabs": {
+      "all": "All"
+    },
+    "quickStats": {
+      "planned": "Planned",
+      "completionRate": "Completion Rate",
+      "totalFindings": "Total Findings",
+      "avgClosure": "Avg Closure",
+      "scheduled": "Scheduled",
+      "gmpChapters": "GMP Chapters"
+    },
+    "activePlan": {
+      "auditsCompleted": "{completed} of {total} audits completed",
+      "viewPlan": "View Plan"
+    },
+    "sections": {
+      "auditsByStatus": "Audits by Status",
+      "auditStatusDistribution": "Audit Status Distribution",
+      "findingsByCategory": "Findings by Category",
+      "gmpChapterCoverage": "GMP Chapter Coverage ({year})",
+      "chaptersAudited": "{audited} / {total} chapters audited",
+      "findingsSummary": "Findings Summary",
+      "quickActions": "Quick Actions",
+      "actionRequired": "Action Required"
+    },
+    "noData": {
+      "audit": "No audit data",
+      "findings": "No findings data",
+      "chapter": "No chapter coverage data"
+    },
+    "quickActions": {
+      "auditPlans": "Audit Plans",
+      "auditPlansDescription": "Manage annual plans",
+      "allAudits": "All Audits",
+      "allAuditsDescription": "View and track audits",
+      "findingsCapa": "Findings & CAPA",
+      "findingsCapaDescription": "Manage findings"
+    },
+    "actionRequiredAlert": {
+      "message": "{count} finding(s) need attention.",
+      "includingCritical": "Including {count} critical!",
+      "button": "View Open Findings"
+    },
+    "findingsList": {
+      "totalFindings": "Total Findings",
+      "openFindings": "Open Findings",
+      "findings": "findings",
+      "openSuffix": "open",
+      "auditsCount": "audits"
+    },
+    "chart": {
+      "findingsLegend": "Findings"
+    },
+    "tooltips": {
+      "viewDetails": "View Details",
+      "moreActions": "More Actions"
+    },
+    "mobile": {
+      "view": "View",
+      "refresh": "Refresh"
+    },
+    "totalLabel": "Total",
+    "daysSuffix": "d",
+    "notAvailable": "N/A",
+    "percentOfTotal": "% of total"
+  },
+  "recalls": {
+    "title": "Recalls",
+    "pageTitle": "Recall Management",
+    "description": "Manage product recall processes",
+    "status": {
+      "initiated": "Initiated",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed"
+    },
+    "class": {
+      "classI": "Class I (Most Serious)",
+      "classII": "Class II (Serious)",
+      "classIII": "Class III (Minor)"
+    },
+    "actions": {
+      "initiateRecall": "Initiate Recall",
+      "viewRecall": "View Recall",
+      "updateStatus": "Update Status",
+      "refresh": "Refresh"
+    },
+    "new": {
+      "title": "Initiate Product Recall",
+      "subtitle": "Thai FDA GMP Chapter 9 - Recall Initiation",
+      "warningTitle": "Product Recall Initiation",
+      "warningDescription": "A product recall is a serious action that will notify all affected customers and may require regulatory reporting. Ensure you have verified the need for a recall before proceeding."
+    },
+    "buttons": {
+      "mockDrill": "Mock Drill",
+      "viewCritical": "View Critical",
+      "runMockDrill": "Run Mock Drill",
+      "initiateRecall": "Initiate Recall"
+    },
+    "search": {
+      "placeholder": "Search recalls by number, product, coordinator...",
+      "enterLotId": "Enter lot ID..."
+    },
+    "empty": {
+      "title": "No Recalls Yet",
+      "description": "Initiate a product recall when a quality issue requires customer notification and product recovery."
+    },
+    "noResults": {
+      "title": "No recalls match your filters",
+      "description": "Try adjusting your search or switching to a different tab."
+    },
+    "stats": {
+      "totalRecalls": "Total Recalls",
+      "active": "Active",
+      "classICritical": "Class I (Critical)",
+      "avgEffectiveness": "Avg Effectiveness"
+    },
+    "tabs": {
+      "all": "All Recalls",
+      "initiated": "Initiated",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed"
+    },
+    "classLabels": {
+      "class_i": "Class I",
+      "class_ii": "Class II",
+      "class_iii": "Class III"
+    },
+    "classLegend": {
+      "classI": "Class I (Critical)",
+      "classII": "Class II (Major)",
+      "classIII": "Class III (Minor)"
+    },
+    "statusLabels": {
+      "initiated": "Initiated",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed"
+    },
+    "charts": {
+      "byRecallClass": "By Recall Class",
+      "byStatus": "By Status",
+      "activeRecallsMatrix": "Active Recalls Matrix",
+      "matrixHeaderInitiated": "Initiated",
+      "matrixHeaderInProgress": "In Progress",
+      "matrixHeaderCompleted": "Completed",
+      "noActiveRecalls": "No active recalls",
+      "noDataAvailable": "No data available",
+      "legendCount": "Count",
+      "effectivenessSuffix": "eff."
+    },
+    "alerts": {
+      "classIActiveSingle": "{count} Active Class I Recall",
+      "classIActiveMany": "{count} Active Class I Recalls",
+      "classIActiveSubtitle": "Critical recalls require immediate attention and regulatory reporting within 24 hours"
+    },
+    "columns": {
+      "recallNumber": "Recall #",
+      "class": "Class",
+      "product": "Product",
+      "status": "Status",
+      "recovery": "Recovery",
+      "quantity": "Qty",
+      "coordinator": "Coordinator",
+      "initiated": "Initiated"
+    },
+    "classIAria": "Class I",
+    "recallsCountSuffix": "recalls",
+    "noDataText": "No recalls found",
+    "dialogs": {
+      "initiateTitle": "Initiate New Recall",
+      "mockDrillTitle": "Mock Recall Drill"
+    },
+    "mockDrill": {
+      "lotIdLabel": "Lot ID to Trace",
+      "customersIdentified": "Customers Identified",
+      "unitsDistributed": "Units Distributed"
+    },
+    "viewRecall": "View Recall"
+  },
+  "sanitation": {
+    "title": "Sanitation",
+    "pageTitle": "Sanitation Management",
+    "description": "Manage sanitation and cleaning activities",
+    "status": {
+      "scheduled": "Scheduled",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "overdue": "Overdue",
+      "upcoming": "Upcoming"
+    },
+    "actions": {
+      "scheduleCleaning": "Schedule Cleaning",
+      "logCleaning": "Log Cleaning",
+      "refresh": "Refresh",
+      "schedules": "Schedules",
+      "recordLog": "Record Log",
+      "viewTasks": "View Tasks",
+      "viewAllLogs": "View All Logs",
+      "record": "Record"
+    },
+    "stats": {
+      "complianceRate": "Compliance Rate",
+      "completed": "Completed",
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "missed": "Missed",
+      "pestFindings": "Pest Findings"
+    },
+    "alerts": {
+      "overdueTasks": "{count} Overdue Sanitation Task{plural}",
+      "overdueAction": "Please complete overdue tasks immediately to maintain GMP compliance."
+    },
+    "charts": {
+      "complianceByArea": "Compliance by Area",
+      "pestActivity": "Pest Activity",
+      "pestActivityNoData": "No pest data",
+      "quickSummary": "Quick Summary",
+      "overallCompliance": "Overall Compliance",
+      "thisPeriod": "This Period",
+      "noAreaData": "No area data available",
+      "complianceTrend": "Compliance Trend",
+      "noData": "No data"
+    },
+    "quickActions": {
+      "schedulesTitle": "Schedules",
+      "schedulesDescription": "Manage cleaning schedules and frequencies",
+      "logsTitle": "Sanitation Logs",
+      "logsDescription": "View and record sanitation activities",
+      "pestTitle": "Pest Control",
+      "pestDescription": "Record and track pest control services",
+      "trendsTitle": "Trends & Analytics",
+      "trendsDescription": "View compliance trends and statistics"
+    },
+    "pendingTasks": "Pending Tasks",
+    "logs": {
+      "title": "Sanitation Logs",
+      "description": "Daily sanitation activity logs"
+    },
+    "pestControl": {
+      "title": "Pest Control",
+      "description": "Record and track pest control activities"
+    },
+    "schedules": {
+      "title": "Schedules",
+      "description": "Cleaning and sanitation schedules"
+    },
+    "trends": {
+      "title": "Sanitation Trends",
+      "description": "Analyze sanitation data trends"
+    }
+  },
+  "changes": {
+    "title": "Changes",
+    "pageTitle": "Change Control",
+    "description": "Manage change requests and approval processes",
+    "subtitle": "Track process, equipment, and document change requests with approvals",
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "pending_review": "Pending Review",
+      "underReview": "Under Review",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "implemented": "Implemented",
+      "closed": "Closed"
+    },
+    "impact": {
+      "major": "Major",
+      "minor": "Minor"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "type": {
+      "process": "Process",
+      "equipment": "Equipment",
+      "document": "Document",
+      "supplier": "Supplier",
+      "formula": "Formula",
+      "other": "Other"
+    },
+    "actions": {
+      "newChange": "New Change Request",
+      "viewChange": "View Request",
+      "approveChange": "Approve",
+      "rejectChange": "Reject",
+      "refresh": "Refresh",
+      "analytics": "Analytics"
+    },
+    "stats": {
+      "totalChanges": "Total Changes",
+      "pendingReview": "Pending Review",
+      "approved": "Approved",
+      "implemented": "Implemented",
+      "urgentCount": "Urgent"
+    },
+    "tabs": {
+      "all": "All",
+      "draft": "Draft",
+      "pending_review": "Pending Review",
+      "approved": "Approved",
+      "implemented": "Implemented",
+      "closed": "Closed",
+      "rejected": "Rejected"
+    },
+    "table": {
+      "columns": {
+        "changeNumber": "Change No.",
+        "title": "Title",
+        "type": "Type",
+        "priority": "Priority",
+        "status": "Status",
+        "owner": "Owner",
+        "targetDate": "Target Date",
+        "created": "Created",
+        "actions": "Actions"
+      }
+    },
+    "search": {
+      "placeholder": "Search change number, title, owner..."
+    },
+    "empty": {
+      "title": "No change requests yet",
+      "description": "Create your first change request to track approvals and implementation."
+    },
+    "noResults": {
+      "title": "No matching change requests",
+      "description": "Try adjusting your search term or selecting a different tab."
+    },
+    "resultCount": "{count} of {total}",
+    "overdue": "Overdue"
+  },
+  "contracts": {
+    "title": "Contracts",
+    "pageTitle": "Manufacturing Contracts",
+    "description": "GMP Chapter 8 - Contract Manufacturing & Laboratory Services",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "terminated": "Terminated",
+      "pending": "Pending",
+      "pendingRenewal": "Pending Renewal"
+    },
+    "type": {
+      "manufacturer": "Manufacturer",
+      "laboratory": "Laboratory",
+      "both": "Both",
+      "distributor": "Distributor"
+    },
+    "actions": {
+      "newContract": "New Contract",
+      "viewContract": "View Contract",
+      "renewContract": "Renew Contract",
+      "refresh": "Refresh"
+    },
+    "stats": {
+      "totalContracts": "Total Contracts",
+      "active": "Active",
+      "expiringSoon": "Expiring Soon",
+      "auditsOverdue": "Audits Overdue",
+      "totalBatches": "Total Batches",
+      "thisMonth": "This Month"
+    },
+    "tabs": {
+      "all": "All Contracts",
+      "active": "Active",
+      "expired": "Expired",
+      "pending": "Pending"
+    },
+    "sections": {
+      "expiringSoon": "Expiring Soon (90 days)",
+      "overdueAudits": "Overdue Audits",
+      "byStatus": "By Status",
+      "byType": "By Type",
+      "activeByType": "Active by Type",
+      "activitySummary": "Activity Summary",
+      "contractActivity": "Contract Activity (Last 6 Months)",
+      "topContractors": "Top Contractors by Activity"
+    },
+    "labels": {
+      "manufacturers": "Manufacturers",
+      "laboratories": "Laboratories",
+      "bothServices": "Both Services",
+      "production": "Production",
+      "testing": "Testing",
+      "fullService": "Full Service",
+      "needsRenewal": "Needs Renewal",
+      "allTime": "All Time",
+      "manufacturing": "Manufacturing",
+      "qcQa": "QC/QA",
+      "packaging": "Packaging",
+      "packOut": "Pack Out",
+      "contracts": "contracts",
+      "batches": "batches",
+      "batchesProcessed": "Batches Processed",
+      "overdue": "Overdue",
+      "due": "Due"
+    },
+    "empty": {
+      "noContracts": "No contracts",
+      "noData": "No data"
+    }
+  },
+  "pqr": {
+    "title": "PQR",
+    "pageTitle": "Product Quality Review",
+    "description": "Manage annual product quality review reports",
+    "status": {
+      "draft": "Draft",
+      "underReview": "Under Review",
+      "approved": "Approved",
+      "published": "Published"
+    },
+    "actions": {
+      "generatePqr": "Generate PQR",
+      "viewPqr": "View PQR",
+      "approvePqr": "Approve PQR",
+      "refresh": "Refresh"
+    },
+    "generate": {
+      "title": "Generate PQR Report",
+      "description": "Generate product quality review report"
+    }
+  },
+  "audits": {
+    "title": "Audits",
+    "description": "Manage GMP audits",
+    "table": {
+      "columns": {
+        "auditNumber": "Audit Number",
+        "type": "Type",
+        "scheduledDate": "Scheduled Date",
+        "status": "Status",
+        "findings": "Findings",
+        "auditor": "Auditor"
+      }
+    },
+    "actions": {
+      "scheduleAudit": "Schedule Audit",
+      "conductAudit": "Conduct Audit",
+      "viewAudit": "View Audit"
+    }
+  },
+  "training": {
+    "title": "Training",
+    "description": "Manage GMP training"
+  },
+  "toast": {
+    "createAudit": {
+      "success": "Audit created successfully",
+      "error": "Failed to create audit"
+    },
+    "createStudy": {
+      "success": "Study created successfully",
+      "error": "Failed to create study"
+    },
+    "createCapa": {
+      "success": "CAPA created successfully",
+      "error": "Failed to create CAPA"
+    },
+    "save": {
+      "success": "Saved successfully",
+      "error": "Failed to save"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "noData": "No data found",
+    "retry": "Retry",
+    "goBack": "Go Back",
+    "allStatus": "All Status",
+    "clearFilters": "Clear Filters",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "refresh": "Refresh",
+    "actions": "Actions"
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

@@ -1,0 +1,878 @@
+{
+  "page": {
+    "title": "Accounting",
+    "description": "Manage general ledger, receivables, payables, and financial reports"
+  },
+  "dashboard": {
+    "title": "Executive Accounting Dashboard",
+    "description": "Financial insights and actionable metrics",
+    "refresh": "Refresh",
+    "periods": {
+      "mtd": "MTD",
+      "qtd": "QTD",
+      "ytd": "YTD"
+    },
+    "sections": {
+      "financialHealth": "Financial Health",
+      "businessPerformance": "Business Performance",
+      "quickAccess": "Quick Access"
+    },
+    "quickLinks": {
+      "financialStatements": "Financial Statements",
+      "trialBalance": "Trial Balance",
+      "balanceSheet": "Balance Sheet",
+      "incomeStatement": "Income Statement",
+      "cashFlow": "Cash Flow",
+      "receivables": "Receivables",
+      "arInvoices": "AR Invoices",
+      "arAging": "AR Aging",
+      "receipts": "Receipts",
+      "payables": "Payables",
+      "apInvoices": "AP Invoices",
+      "apAging": "AP Aging",
+      "payments": "Payments",
+      "assetsOperations": "Assets & Operations",
+      "fixedAssets": "Fixed Assets",
+      "equipment": "Equipment",
+      "periodClose": "Period Close"
+    }
+  },
+  "chartOfAccounts": {
+    "title": "Chart of Accounts",
+    "subtitle": "Chart of Accounts",
+    "export": "Export",
+    "exportSuccess": "Export successful",
+    "exportFailed": "Export failed",
+    "stats": {
+      "total": "Total Accounts",
+      "active": "Active",
+      "postable": "Postable",
+      "bankAccounts": "Bank Accounts",
+      "inactive": "Inactive",
+      "byType": "Account Types",
+      "accountsShown": "{count} accounts shown"
+    },
+    "search": {
+      "placeholder": "Search by code or name..."
+    },
+    "empty": {
+      "title": "No accounts in chart yet",
+      "description": "Get started by adding your first account"
+    },
+    "noResults": {
+      "title": "No accounts match your filters",
+      "description": "Try adjusting your search term or filters"
+    },
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive",
+      "postable": "Postable",
+      "bank": "Bank"
+    },
+    "tabs": {
+      "tree": "Tree View",
+      "list": "List View"
+    },
+    "columns": {
+      "code": "Account Code",
+      "nameTh": "Account Name (Thai)",
+      "nameEn": "Account Name (English)",
+      "type": "Type",
+      "level": "Level",
+      "postable": "Postable",
+      "postableYes": "Postable",
+      "status": "Status",
+      "bankAccount": "Bank Account"
+    },
+    "form": {
+      "addTitle": "Add New Account",
+      "editTitle": "Edit Account: {code}",
+      "sections": {
+        "basic": "Basic Information",
+        "options": "Options",
+        "bank": "Bank Information"
+      },
+      "fields": {
+        "code": "Account Code",
+        "codePlaceholder": "e.g. 1-1100-01",
+        "codeRequired": "Account code is required",
+        "codePattern": "Account code must be numbers, dashes, or dots only",
+        "codeMaxLength": "Account code must not exceed 20 characters",
+        "accountType": "Account Type",
+        "accountTypePlaceholder": "Select account type",
+        "accountTypeRequired": "Account type is required",
+        "nameTh": "Account Name (Thai)",
+        "nameThPlaceholder": "Thai account name",
+        "nameThRequired": "Thai account name is required",
+        "nameMaxLength": "Account name must not exceed 200 characters",
+        "nameEn": "Account Name (English)",
+        "nameEnPlaceholder": "English account name",
+        "nameEnRequired": "English account name is required",
+        "parent": "Parent Account",
+        "parentPlaceholder": "Select parent account (if any)",
+        "noParent": "(No parent)",
+        "description": "Description",
+        "descriptionPlaceholder": "Account description (optional)",
+        "isPostable": "Postable",
+        "isPostableText": "Can be posted to",
+        "isBankAccount": "Bank Account",
+        "isBankAccountText": "Is a bank account",
+        "isActive": "Status",
+        "isActiveText": "Active",
+        "bankName": "Bank Name",
+        "bankNamePlaceholder": "e.g. Bangkok Bank",
+        "bankNameMaxLength": "Bank name must not exceed 100 characters",
+        "bankAccountNumber": "Account Number",
+        "bankAccountNumberPlaceholder": "Bank account number",
+        "bankAccountNumberMaxLength": "Account number must not exceed 50 characters"
+      },
+      "toast": {
+        "createSuccess": "Account created successfully",
+        "updateSuccess": "Account updated successfully"
+      }
+    },
+    "actions": {
+      "label": "Actions",
+      "add": "Add Account",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    }
+  },
+  "accountTypes": {
+    "title": "Account Types",
+    "subtitle": "Summary of account types and number of accounts in each type",
+    "breadcrumbAccounting": "Accounting",
+    "refresh": "Refresh",
+    "viewChart": "Chart of Accounts",
+    "search": {
+      "placeholder": "Search code or account type name..."
+    },
+    "showingCount": "Showing {filtered} / {total} types",
+    "noDataText": "No account types found",
+    "stats": {
+      "totalTypes": "Total Account Types",
+      "assetAccounts": "Asset Accounts",
+      "liabilityAccounts": "Liability Accounts",
+      "equityAccounts": "Equity Accounts"
+    },
+    "categories": {
+      "asset": "Assets",
+      "liability": "Liabilities",
+      "equity": "Equity",
+      "revenue": "Revenue",
+      "expense": "Expenses",
+      "assetTh": "Assets",
+      "liabilityTh": "Liabilities",
+      "equityTh": "Equity",
+      "revenueTh": "Revenue",
+      "expenseTh": "Expenses"
+    },
+    "filters": {
+      "all": "All"
+    },
+    "columns": {
+      "code": "Code",
+      "name": "Account Type",
+      "category": "Category",
+      "normalBalance": "Normal Balance",
+      "accounts": "Accounts",
+      "active": "Active",
+      "postable": "Postable",
+      "groups": "Groups"
+    },
+    "balance": {
+      "debit": "Debit",
+      "credit": "Credit"
+    },
+    "card": {
+      "accountsLabel": "accounts",
+      "activeLabel": "Active",
+      "groupsLabel": "groups",
+      "viewChartOfType": "View Chart of this Type"
+    },
+    "actions": {
+      "viewChart": "View Chart",
+      "retry": "Try Again",
+      "clearFilters": "Clear Filters"
+    },
+    "tooltips": {
+      "activePercent": "{percent}% of total"
+    },
+    "empty": {
+      "title": "No Account Types Yet",
+      "description": "No account types data in the system. Please set up the chart of accounts to start using the accounting module."
+    },
+    "noResults": {
+      "title": "No account types match the criteria",
+      "description": "Try changing your search term or selecting a different category"
+    },
+    "summaryTable": {
+      "title": "Summary Table",
+      "columns": {
+        "category": "Category",
+        "types": "Types",
+        "totalAccounts": "Total Accounts",
+        "active": "Active",
+        "postable": "Postable",
+        "groups": "Groups"
+      },
+      "total": "Total",
+      "activeUsage": "{percent}% of all accounts are active",
+      "noAccounts": "No accounts yet"
+    }
+  },
+  "journalEntries": {
+    "title": "Journal Entries",
+    "subtitle": "Journal Entries",
+    "addEntry": "Add Entry",
+    "search": "Search...",
+    "stats": {
+      "total": "Total Entries",
+      "draft": "Draft",
+      "posted": "Posted",
+      "reversed": "Reversed",
+      "thisMonth": "This Month"
+    },
+    "filters": {
+      "status": "Status",
+      "statusPlaceholder": "Filter status",
+      "type": "Type",
+      "typePlaceholder": "Filter type",
+      "all": "All",
+      "allTypes": "All Types"
+    },
+    "sourceTypes": {
+      "MANUAL": "Manual",
+      "PO_RECEIPT": "PO Receipt",
+      "SO_SHIPMENT": "SO Shipment",
+      "AP_PAYMENT": "AP Payment",
+      "AR_RECEIPT": "AR Receipt",
+      "DEPRECIATION": "Depreciation",
+      "PAYROLL": "Payroll",
+      "COST_ALLOCATION": "Cost Allocation",
+      "PERIOD_CLOSE": "Period Close"
+    },
+    "columns": {
+      "entryNumber": "Entry Number",
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "debit": "Debit",
+      "credit": "Credit",
+      "status": "Status",
+      "actions": "Actions",
+      "account": "Account"
+    },
+    "summary": {
+      "total": "Total: {0}"
+    },
+    "actions": {
+      "view": "View Details",
+      "post": "Post Entry",
+      "reverse": "Reverse Entry"
+    },
+    "dialogs": {
+      "postTitle": "Confirm Post Entry",
+      "postMessage": "Do you want to post entry {entryNumber}?",
+      "reverseTitle": "Confirm Reverse Entry",
+      "reverseMessage": "Do you want to reverse entry {entryNumber}?",
+      "reverseNote": "System will create a reversing entry automatically"
+    },
+    "toast": {
+      "postSuccess": "Journal entry posted successfully",
+      "postError": "Failed to post entry",
+      "reverseSuccess": "Journal entry reversed successfully",
+      "reverseError": "Failed to reverse entry"
+    },
+    "detail": {
+      "loading": "Loading...",
+      "noLines": "No lines found"
+    },
+    "empty": {
+      "noResultsTitle": "No entries match the current filter",
+      "noResultsDescription": "Clear filters to see all entries"
+    },
+    "refresh": "Refresh",
+    "clearFilters": "Clear Filters"
+  },
+  "generalLedger": {
+    "title": "General Ledger",
+    "description": "Manage chart of accounts and journal entries",
+    "chartOfAccounts": {
+      "title": "Chart of Accounts",
+      "table": {
+        "columns": {
+          "accountCode": "Account Code",
+          "accountName": "Account Name",
+          "accountType": "Account Type",
+          "parentAccount": "Parent Account",
+          "balance": "Balance",
+          "status": "Status"
+        }
+      }
+    },
+    "journalEntries": {
+      "title": "Journal Entries",
+      "table": {
+        "columns": {
+          "entryNumber": "Entry Number",
+          "date": "Date",
+          "description": "Description",
+          "debit": "Debit",
+          "credit": "Credit",
+          "status": "Status",
+          "reference": "Reference"
+        }
+      },
+      "actions": {
+        "createEntry": "Create Entry",
+        "postEntry": "Post Entry",
+        "reverseEntry": "Reverse Entry"
+      }
+    },
+    "accountTypes": {
+      "asset": "Asset",
+      "liability": "Liability",
+      "equity": "Equity",
+      "revenue": "Revenue",
+      "expense": "Expense"
+    }
+  },
+  "accountsReceivable": {
+    "title": "Accounts Receivable",
+    "description": "Manage customer invoices and payment receipts",
+    "refresh": "Refresh",
+    "quickAccess": "Quick Access",
+    "recentInvoicesTitle": "Recent AR Invoices",
+    "agingSummaryTitle": "AR Aging Summary",
+    "loadingAgingData": "Loading aging data...",
+    "open": "Open",
+    "viewAll": "View all",
+    "viewAllInvoices": "View All Invoices",
+    "createInvoice": "Create Invoice",
+    "overdueBadge": "Overdue",
+    "agingLegend": "AR Amount",
+    "stats": {
+      "totalReceivable": "Total Receivable",
+      "overdue": "Overdue",
+      "pendingInvoices": "Pending Invoices",
+      "collectedThisMonth": "Collected This Month",
+      "onTrack": "On track",
+      "invoicesPastDue": "{count} invoices past due",
+      "receiptsCount": "{count} receipts"
+    },
+    "alert": {
+      "title": "Outstanding Receivables",
+      "message": "You have {amount} in overdue receivables across {count} invoice(s).",
+      "viewOverdue": "View Overdue Invoices"
+    },
+    "filters": {
+      "all": "All",
+      "overdue": "Overdue",
+      "open": "Open",
+      "paid": "Paid"
+    },
+    "navCards": {
+      "invoices": {
+        "name": "AR Invoices",
+        "description": "Manage customer invoices and billing"
+      },
+      "receipts": {
+        "name": "Receipts",
+        "description": "Record and track customer payments"
+      },
+      "aging": {
+        "name": "Aging Report",
+        "description": "View receivables aging analysis"
+      }
+    },
+    "agingBuckets": {
+      "current": "Current",
+      "days1_30": "1-30 Days",
+      "days31_60": "31-60 Days",
+      "days61_90": "61-90 Days",
+      "days90Plus": "90+ Days"
+    },
+    "emptyRecent": {
+      "title": "No AR invoices yet",
+      "description": "Create your first customer invoice to start tracking receivables."
+    },
+    "noResultsRecent": {
+      "title": "No invoices match this filter",
+      "description": "Try switching to another filter to see matching results.",
+      "clear": "Clear filter"
+    },
+    "details": {
+      "noDescription": "No description",
+      "dueLabel": "Due",
+      "issuedLabel": "Issued",
+      "received": "Received",
+      "balance": "Balance",
+      "paidInFull": "Paid in full"
+    },
+    "footer": {
+      "recentInvoices": "Recent Invoices",
+      "totalOutstanding": "Total Outstanding",
+      "overdue": "Overdue",
+      "collectedThisMonth": "Collected This Month"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "table": {
+        "columns": {
+          "invoiceNumber": "Invoice Number",
+          "customer": "Customer",
+          "invoiceDate": "Invoice Date",
+          "dueDate": "Due Date",
+          "amount": "Amount",
+          "paidAmount": "Paid Amount",
+          "balance": "Balance",
+          "status": "Status"
+        }
+      },
+      "status": {
+        "draft": "Draft",
+        "sent": "Sent",
+        "partial": "Partially Paid",
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "cancelled": "Cancelled"
+      }
+    },
+    "receipts": {
+      "title": "Receipts",
+      "table": {
+        "columns": {
+          "receiptNumber": "Receipt Number",
+          "customer": "Customer",
+          "date": "Date",
+          "amount": "Amount",
+          "paymentMethod": "Payment Method"
+        }
+      }
+    },
+    "actions": {
+      "createInvoice": "Create Invoice",
+      "recordPayment": "Record Payment",
+      "sendReminder": "Send Reminder",
+      "viewAging": "View Aging Report"
+    }
+  },
+  "accountsPayable": {
+    "title": "Accounts Payable",
+    "description": "Manage supplier bills and payments",
+    "quickAccess": "Quick Access",
+    "recentInvoicesTitle": "Recent AP Invoices",
+    "agingSummaryTitle": "AP Aging Summary",
+    "loadingAgingData": "Loading aging data...",
+    "open": "Open",
+    "viewAllInvoices": "View All Invoices",
+    "viewDetails": "View Details",
+    "stats": {
+      "totalOutstanding": "Total Outstanding",
+      "overdueAmount": "Overdue Amount",
+      "pendingInvoices": "Pending Invoices",
+      "paidThisMonth": "Paid This Month",
+      "attentionNeeded": "Attention needed",
+      "onTrack": "On track"
+    },
+    "alert": {
+      "title": "Overdue Invoices",
+      "message": "You have {amount} in overdue payables",
+      "viewOverdue": "View Overdue Invoices"
+    },
+    "navCards": {
+      "invoices": {
+        "name": "AP Invoices",
+        "description": "Manage vendor invoices and approvals"
+      },
+      "payments": {
+        "name": "Payments",
+        "description": "Process and track vendor payments"
+      },
+      "aging": {
+        "name": "Aging Report",
+        "description": "View payables aging analysis"
+      }
+    },
+    "agingBuckets": {
+      "current": "Current",
+      "days1_30": "1-30 Days",
+      "days31_60": "31-60 Days",
+      "days61_90": "61-90 Days",
+      "days90Plus": "90+ Days"
+    },
+    "agingLegend": "AP Amount",
+    "emptyRecent": {
+      "title": "No AP invoices yet",
+      "description": "Create your first vendor invoice to start tracking payables.",
+      "cta": "Go to AP Invoices"
+    },
+    "noAging": {
+      "title": "No aging data available",
+      "description": "Once invoices are posted, aging breakdown will appear here."
+    },
+    "details": {
+      "dueLabel": "Due",
+      "total": "Total",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "overdueBadge": "Overdue"
+    },
+    "footer": {
+      "recentInvoices": "Recent Invoices",
+      "totalOutstanding": "Total Outstanding",
+      "overdue": "Overdue",
+      "paidThisMonth": "Paid This Month"
+    },
+    "bills": {
+      "title": "Supplier Bills",
+      "table": {
+        "columns": {
+          "billNumber": "Bill Number",
+          "supplier": "Supplier",
+          "billDate": "Bill Date",
+          "dueDate": "Due Date",
+          "amount": "Amount",
+          "paidAmount": "Paid Amount",
+          "balance": "Balance",
+          "status": "Status"
+        }
+      }
+    },
+    "payments": {
+      "title": "Payments",
+      "table": {
+        "columns": {
+          "paymentNumber": "Payment Number",
+          "supplier": "Supplier",
+          "date": "Date",
+          "amount": "Amount",
+          "paymentMethod": "Payment Method"
+        }
+      }
+    },
+    "actions": {
+      "recordBill": "Record Bill",
+      "makePayment": "Make Payment",
+      "viewAging": "View Aging Report"
+    }
+  },
+  "fixedAssets": {
+    "title": "Fixed Assets",
+    "description": "Manage fixed assets and depreciation",
+    "refresh": "Refresh",
+    "breadcrumbHome": "Home",
+    "breadcrumbAccounting": "Accounting",
+    "search": {
+      "placeholder": "Search asset code or name..."
+    },
+    "stats": {
+      "totalAssets": "Total Assets",
+      "totalValue": "Total Value",
+      "netBookValue": "Net Book Value",
+      "disposed": "Disposed"
+    },
+    "status": {
+      "all": "All",
+      "active": "Active",
+      "fullyDepreciated": "Fully Depreciated",
+      "disposed": "Disposed"
+    },
+    "empty": {
+      "title": "No fixed assets yet",
+      "description": "Start tracking your fixed assets and depreciation by adding your first asset."
+    },
+    "noResults": {
+      "title": "No matching assets",
+      "description": "Try changing your search keyword or selecting a different status filter."
+    },
+    "deleteDialog": {
+      "title": "Confirm Delete",
+      "message": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+      "confirm": "Delete",
+      "deleting": "Deleting...",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "deleteSuccess": "Asset deleted successfully"
+    },
+    "cardActions": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "rowActions": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "table": {
+      "columns": {
+        "assetCode": "Asset Code",
+        "assetName": "Asset Name",
+        "nameTh": "Name (TH)",
+        "nameEn": "Name (EN)",
+        "category": "Category",
+        "acquisitionDate": "Acquisition Date",
+        "acquisitionCost": "Acquisition Cost",
+        "currentValue": "Current Value",
+        "depreciation": "Accumulated Depreciation",
+        "status": "Status"
+      }
+    },
+    "actions": {
+      "addAsset": "Add Asset",
+      "recordDepreciation": "Record Depreciation",
+      "disposeAsset": "Dispose Asset",
+      "clearFilters": "Clear Filters"
+    }
+  },
+  "equipment": {
+    "title": "Equipment & Maintenance",
+    "subtitle": "Track equipment, maintenance schedules, and MTBF analysis",
+    "breadcrumbHome": "Home",
+    "breadcrumbAccounting": "Accounting",
+    "breadcrumbEquipment": "Equipment",
+    "exportJson": "Export JSON",
+    "addEquipment": "Add Equipment",
+    "exportSuccess": "Equipment data exported successfully",
+    "deleteSuccess": "Equipment deleted successfully",
+    "availability": {
+      "label": "Availability",
+      "all": "All Equipment",
+      "available": "Available",
+      "unavailable": "Unavailable / In Use",
+      "clear": "Clear"
+    },
+    "stats": {
+      "totalEquipment": "Total Equipment",
+      "available": "Available",
+      "inUse": "In Use",
+      "overdue": "Overdue",
+      "due7Days": "Due (7 days)"
+    },
+    "overdueAlert": {
+      "title": "Overdue Maintenance Alert",
+      "message": "There are {count} maintenance tasks that are overdue. Please review and schedule immediately."
+    },
+    "delete": {
+      "title": "Confirm Delete",
+      "message": "Are you sure you want to delete equipment \"{name}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "deleting": "Deleting..."
+    },
+    "table": {
+      "columns": {
+        "assetCode": "Asset Code",
+        "assetName": "Asset Name",
+        "serialNumber": "Serial No.",
+        "manufacturer": "Manufacturer",
+        "model": "Model",
+        "operatingHours": "Op. Hours",
+        "lastMaintenance": "Last Maintenance",
+        "nextDue": "Next Due",
+        "status": "Status",
+        "actions": "Actions"
+      }
+    },
+    "rowActions": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "detail": {
+      "title": "Maintenance Schedules",
+      "noSchedules": "No maintenance schedules configured.",
+      "active": "Active",
+      "every": "Every",
+      "next": "Next"
+    },
+    "upcoming": {
+      "title": "Upcoming Maintenance (Next 7 Days)",
+      "due": "Due",
+      "today": "Today",
+      "days": "{count} days"
+    }
+  },
+  "periodClose": {
+    "title": "Period Close",
+    "subtitle": "Month-end and year-end closing procedures",
+    "refresh": "Refresh",
+    "stats": {
+      "openPeriods": "Open Periods",
+      "softClosed": "Soft Closed",
+      "closedPeriods": "Closed Periods",
+      "closeProgress": "Close Progress"
+    },
+    "charts": {
+      "statusDistribution": "Period Status Distribution",
+      "statusDistributionDescription": "Current period status breakdown",
+      "yearCloseProgress": "Year Close Progress",
+      "yearCloseProgressDescription": "Percentage of periods closed",
+      "closeWorkflow": "Close Workflow",
+      "closeWorkflowDescription": "Current close process status",
+      "noPeriods": "No periods found"
+    },
+    "statusChart": {
+      "open": "Open",
+      "softClosed": "Soft Closed",
+      "closed": "Closed"
+    },
+    "statusBadge": {
+      "open": "Open",
+      "softClosed": "Soft Closed",
+      "closed": "Closed"
+    },
+    "statusTabs": {
+      "all": "All",
+      "open": "Open",
+      "softClosed": "Soft Closed",
+      "closed": "Closed"
+    },
+    "fiscalYear": "Fiscal Year:",
+    "allYears": "All Years",
+    "periodsShown": "{count} periods shown",
+    "workflow": {
+      "selectPeriod": "Select Period",
+      "validate": "Validate",
+      "reviewIssues": "Review Issues",
+      "closePeriod": "Close Period",
+      "periodSelected": "Period Selected",
+      "validationRun": "Validation Run",
+      "issuesFound": "Issues Found",
+      "noIssues": "No Issues",
+      "readyToClose": "Ready to Close",
+      "fixRequired": "Fix Required"
+    },
+    "validation": {
+      "sectionTitle": "Validation & Actions",
+      "selectPrompt": "Select a Period",
+      "closeTitle": "Close: {periodName}",
+      "descriptionSelected": "Review validation and perform close action",
+      "descriptionNone": "Tap a period above to view close status",
+      "noneSelectedTitle": "No Period Selected",
+      "noneSelectedDescription": "Select a period from the list to view validation results and close actions.",
+      "validating": "Validating period...",
+      "validatingDetail": "Checking entries, invoices, and trial balance",
+      "readyToClose": "Ready to Close",
+      "cannotClose": "Cannot Close - Issues Found",
+      "errors": "Errors ({count})",
+      "warnings": "Warnings ({count})",
+      "metrics": "Validation Metrics",
+      "unpostedJEs": "Unposted JEs",
+      "draftAP": "Draft AP",
+      "draftAR": "Draft AR",
+      "trialBalance": "Trial Balance",
+      "balanced": "Balanced",
+      "notBalanced": "Not Balanced",
+      "debits": "Debits",
+      "credits": "Credits"
+    },
+    "actions": {
+      "close": "Close Period",
+      "forceClose": "Force Close (Skip Validation)",
+      "forceCloseConfirm": "Force close will skip validation. Are you sure?",
+      "reopen": "Reopen Period",
+      "reopenReasonLabel": "Reason for Reopening",
+      "reopenReasonPlaceholder": "Enter reason...",
+      "reopenReasonRequired": "Please enter a reason for reopening",
+      "clearFilters": "Clear Filters"
+    },
+    "recentClosed": {
+      "title": "Recently Closed",
+      "description": "Last 5 closed periods",
+      "closedLabel": "Closed",
+      "none": "No closed periods yet"
+    },
+    "guide": {
+      "title": "Period Close Guide",
+      "description": "Follow these steps for successful period closing",
+      "step1Title": "Post All Entries",
+      "step1Desc": "Ensure all journal entries are posted",
+      "step2Title": "Process Invoices",
+      "step2Desc": "Complete all AP/AR invoices",
+      "step3Title": "Balance Check",
+      "step3Desc": "Verify trial balance is balanced",
+      "step4Title": "Close Period",
+      "step4Desc": "Lock period to prevent changes"
+    },
+    "columns": {
+      "period": "Period",
+      "year": "Year",
+      "start": "Start",
+      "end": "End",
+      "status": "Status",
+      "closedAt": "Closed At"
+    },
+    "cardLabels": {
+      "closedPrefix": "Closed"
+    },
+    "empty": {
+      "title": "No Fiscal Periods Found",
+      "description": "Fiscal periods will appear here once a fiscal year is configured in your accounting setup."
+    },
+    "noResults": {
+      "title": "No periods match the current filter",
+      "description": "Try selecting a different status tab or fiscal year.",
+      "clearFilters": "Clear Filters"
+    }
+  },
+  "reports": {
+    "title": "Financial Reports",
+    "balanceSheet": "Balance Sheet",
+    "incomeStatement": "Income Statement",
+    "cashFlow": "Cash Flow Statement",
+    "trialBalance": "Trial Balance",
+    "agingReport": "Aging Report",
+    "taxReport": "Tax Report"
+  },
+  "periods": {
+    "title": "Accounting Periods",
+    "actions": {
+      "closePeriod": "Close Period",
+      "openPeriod": "Open Period",
+      "yearEnd": "Year-End Close"
+    }
+  },
+  "operatingActivities": "Operating Activities",
+  "investingActivities": "Investing Activities",
+  "financingActivities": "Financing Activities",
+  "cashReconciliation": "Cash Reconciliation",
+  "netIncome": "Net Income",
+  "adjustments": "Adjustments",
+  "workingCapitalChanges": "Working Capital Changes",
+  "netCashFromOperating": "Net Cash from Operating",
+  "investingItems": "Investing Items",
+  "netCashFromInvesting": "Net Cash from Investing",
+  "financingItems": "Financing Items",
+  "netCashFromFinancing": "Net Cash from Financing",
+  "beginningCash": "Beginning Cash",
+  "actions": {
+    "refresh": "Refresh",
+    "clear": "Clear",
+    "edit": "Edit"
+  },
+  "common": {
+    "debit": "Debit",
+    "credit": "Credit",
+    "balance": "Balance",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "discount": "Discount",
+    "grandTotal": "Grand Total",
+    "refresh": "Refresh",
+    "clearFilters": "Clear Filters"
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

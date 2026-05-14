@@ -7,6 +7,8 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -53,6 +55,7 @@ const reasonCodes: { id: ReasonCode; text: string }[] = [
 ];
 
 function NewCreditNoteContent() {
+  const t = useTranslations('accounting');
   const router = useRouter();
   const searchParams = useSearchParams();
   const noteType = (searchParams.get('type') || 'ar_credit') as NoteType;
@@ -144,7 +147,7 @@ function NewCreditNoteContent() {
         body: JSON.stringify({
           noteType,
           referenceInvoiceId: invoiceId,
-          noteDate: noteDate.toISOString().split('T')[0],
+          noteDate: toLocalDateStr(noteDate),
           reasonCode,
           reasonDescription,
           notes,
@@ -179,7 +182,7 @@ function NewCreditNoteContent() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            New {noteType === 'ar_credit' ? 'AR' : 'AP'} Credit Note
+            {t('page.title')}
           </h1>
         </div>
 

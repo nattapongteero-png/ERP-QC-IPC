@@ -1,0 +1,213 @@
+{
+  "page": {
+    "title": "ระบบติดตามปัญหา",
+    "description": "ตรวจสอบ ติดตาม และแก้ไขปัญหาในองค์กร"
+  },
+  "actions": {
+    "viewAll": "ดูปัญหาทั้งหมด",
+    "reportIssue": "รายงานปัญหา",
+    "viewDetails": "ดูรายละเอียด",
+    "edit": "แก้ไข",
+    "backToIssues": "กลับไปหน้าปัญหา",
+    "loading": "กำลังโหลด..."
+  },
+  "kpi": {
+    "openIssues": "ปัญหาที่เปิดอยู่",
+    "criticalIssues": "ปัญหาวิกฤต",
+    "resolvedThisWeek": "แก้ไขสัปดาห์นี้",
+    "avgResolutionTime": "เวลาแก้ไขเฉลี่ย",
+    "issuesRequiringAttention": "ปัญหาที่ต้องดำเนินการ",
+    "actionRequired": "ต้องดำเนินการ",
+    "allClear": "ปกติ",
+    "issuesClosedThisWeek": "ปัญหาที่ปิดสัปดาห์นี้",
+    "averageTimeToResolve": "เวลาเฉลี่ยในการแก้ไข",
+    "days": "วัน"
+  },
+  "charts": {
+    "byStatus": "ปัญหาตามสถานะ",
+    "bySeverity": "ปัญหาตามความรุนแรง",
+    "byCategory": "ปัญหาตามหมวดหมู่",
+    "seriesName": "ปัญหา"
+  },
+  "recent": {
+    "title": "ปัญหาล่าสุด",
+    "viewAll": "ดูทั้งหมด",
+    "noIssues": "ยังไม่มีปัญหาที่รายงาน",
+    "reportFirst": "รายงานปัญหาแรกของคุณ",
+    "uncategorized": "ไม่มีหมวดหมู่"
+  },
+  "quickActions": {
+    "title": "การดำเนินการด่วน",
+    "reportNew": "รายงานปัญหาใหม่",
+    "reportNewDescription": "ส่งปัญหาใหม่พร้อมการตรวจสอบโดย AI",
+    "viewAll": "ดูปัญหาทั้งหมด",
+    "viewAllDescription": "เรียกดูและกรองปัญหาที่รายงานทั้งหมด",
+    "criticalIssues": "ปัญหาวิกฤต",
+    "criticalDescription": "ดูปัญหาที่ต้องดำเนินการทันที",
+    "myAssigned": "งานที่มอบหมาย",
+    "myAssignedDescription": "ดูปัญหาที่มอบหมายให้คุณ"
+  },
+  "error": {
+    "loadFailed": "ไม่สามารถโหลดแดชบอร์ดได้",
+    "genericError": "เกิดข้อผิดพลาดขณะโหลดแดชบอร์ด",
+    "notFound": "ไม่พบปัญหา",
+    "unableToLoad": "ไม่สามารถโหลดปัญหาได้",
+    "notExistsOrDeleted": "ปัญหาที่คุณกำลังค้นหาไม่มีอยู่หรือถูกลบไปแล้ว"
+  },
+  "list": {
+    "title": "ปัญหา",
+    "subtitle": "เรียกดู กรอง และจัดการปัญหาที่รายงานทั้งหมด",
+    "filters": {
+      "searchPlaceholder": "ค้นหาปัญหา...",
+      "statusPlaceholder": "สถานะ",
+      "severityPlaceholder": "ความรุนแรง",
+      "categoryPlaceholder": "หมวดหมู่",
+      "allStatus": "ทุกสถานะ",
+      "allSeverity": "ทุกความรุนแรง",
+      "allCategories": "ทุกหมวดหมู่",
+      "assignedToMe": "ที่มอบหมายให้ฉัน",
+      "allIssues": "ปัญหาทั้งหมด"
+    },
+    "status": {
+      "draft": "ร่าง",
+      "submitted": "ส่งแล้ว",
+      "triaged": "จัดลำดับแล้ว",
+      "inProgress": "กำลังดำเนินการ",
+      "resolved": "แก้ไขแล้ว",
+      "verified": "ตรวจสอบแล้ว",
+      "closed": "ปิดแล้ว"
+    },
+    "severity": {
+      "critical": "วิกฤต",
+      "major": "สำคัญ",
+      "minor": "เล็กน้อย"
+    },
+    "columns": {
+      "issueNumber": "เลขที่ปัญหา",
+      "title": "หัวข้อ",
+      "status": "สถานะ",
+      "severity": "ความรุนแรง",
+      "priority": "ลำดับความสำคัญ",
+      "category": "หมวดหมู่",
+      "assignee": "ผู้รับผิดชอบ",
+      "created": "สร้างเมื่อ",
+      "actions": "การดำเนินการ"
+    },
+    "summary": "แสดง {shown} จาก {total} ปัญหา"
+  },
+  "new": {
+    "title": "รายงานปัญหาใหม่",
+    "subtitle": "ส่งปัญหาใหม่เพื่อติดตามและแก้ไข",
+    "guidelines": {
+      "title": "แนวทางการรายงานปัญหา",
+      "clearTitle": "หัวข้อชัดเจน:",
+      "clearTitleText": "ใช้หัวข้อที่อธิบายและสรุปปัญหาได้ชัดเจน",
+      "detailedSummary": "สรุปรายละเอียด:",
+      "detailedSummaryText": "อธิบายว่าเกิดอะไรขึ้น เมื่อไหร่ และที่ไหน",
+      "impactAssessment": "การประเมินผลกระทบ:",
+      "impactAssessmentText": "อธิบายว่ามีใครหรือสิ่งใดได้รับผลกระทบ",
+      "forBugs": "สำหรับบัก:",
+      "forBugsText": "รวมขั้นตอนการทำซ้ำ พฤติกรรมที่คาดหวังและที่เกิดขึ้นจริง",
+      "aiValidation": "ระบบ AI จะตรวจสอบความครบถ้วนของปัญหาก่อนส่ง"
+    },
+    "tips": {
+      "title": "เคล็ดลับเพื่อการแก้ไขอย่างรวดเร็ว",
+      "includeErrorMessages": "รวมข้อความหรือรหัสข้อผิดพลาด",
+      "attachScreenshots": "แนบภาพหน้าจอหากเกี่ยวข้อง",
+      "mentionRecentChanges": "แจ้งการเปลี่ยนแปลงล่าสุด",
+      "noteReproducible": "ระบุว่าปัญหาสามารถทำซ้ำได้หรือไม่",
+      "specifyEnvironment": "ระบุรายละเอียดสภาพแวดล้อม"
+    },
+    "categoryHelp": {
+      "title": "การเลือกหมวดหมู่",
+      "bug": "บัก:",
+      "bugText": "บางอย่างไม่ทำงานตามที่คาดไว้",
+      "featureRequest": "คำขอฟีเจอร์:",
+      "featureRequestText": "ข้อเสนอฟังก์ชันใหม่",
+      "documentation": "เอกสาร:",
+      "documentationText": "การอัปเดตหรือแก้ไขเอกสาร",
+      "support": "สนับสนุน:",
+      "supportText": "ช่วยเหลือการใช้ระบบ"
+    }
+  },
+  "form": {
+    "sections": {
+      "basic": "ข้อมูลพื้นฐาน",
+      "description": "รายละเอียด",
+      "bugDetails": "รายละเอียดบัก (ไม่บังคับ)"
+    },
+    "fields": {
+      "title": "หัวข้อ",
+      "category": "หมวดหมู่",
+      "severity": "ความรุนแรง",
+      "summary": "สรุป",
+      "impact": "ผลกระทบ",
+      "environment": "สภาพแวดล้อม",
+      "expectedBehavior": "พฤติกรรมที่คาดหวัง",
+      "actualBehavior": "พฤติกรรมที่เกิดขึ้นจริง",
+      "stepsToReproduce": "ขั้นตอนการทำซ้ำ"
+    },
+    "placeholders": {
+      "title": "ระบุหัวข้อที่ชัดเจนและอธิบายปัญหา",
+      "category": "เลือกหมวดหมู่",
+      "severity": "เลือกความรุนแรง",
+      "summary": "อธิบายปัญหาให้ชัดเจนและกระชับ",
+      "impact": "ปัญหานี้ส่งผลกระทบอย่างไร? ใคร/อะไรได้รับผลกระทบ?",
+      "environment": "Production, Staging, ฯลฯ ระบุเวอร์ชันถ้าเกี่ยวข้อง",
+      "expectedBehavior": "ควรเกิดอะไรขึ้น?",
+      "actualBehavior": "เกิดอะไรขึ้นจริง?",
+      "stepsToReproduce": "1. ไปที่...\n2. คลิก...\n3. สังเกต..."
+    },
+    "severity": {
+      "critical": "วิกฤต",
+      "criticalDesc": "ต้องดำเนินการทันที",
+      "major": "รุนแรง",
+      "majorDesc": "ผลกระทบมาก ต้องให้ความสำคัญ",
+      "minor": "เล็กน้อย",
+      "minorDesc": "ผลกระทบน้อย ทำตามลำดับได้"
+    },
+    "actions": {
+      "cancel": "ยกเลิก",
+      "validate": "ตรวจสอบด้วย AI",
+      "validating": "กำลังตรวจสอบ...",
+      "create": "สร้างปัญหา",
+      "update": "บันทึกการแก้ไข",
+      "saving": "กำลังบันทึก..."
+    },
+    "validation": {
+      "passed": "ตรวจสอบผ่าน",
+      "needsAttention": "ต้องตรวจสอบเพิ่มเติม",
+      "aiUnavailable": "(AI ไม่พร้อมใช้งาน)",
+      "missingItems": "รายการที่ขาดหาย:",
+      "followUpQuestions": "คำถามเพิ่มเติม:"
+    }
+  },
+  "detail": {
+    "reportedBy": "รายงานโดย",
+    "unknown": "ไม่ทราบ",
+    "description": "รายละเอียด",
+    "summary": "สรุป",
+    "impact": "ผลกระทบ",
+    "environment": "สภาพแวดล้อม",
+    "expectedBehavior": "พฤติกรรมที่คาดหวัง",
+    "actualBehavior": "พฤติกรรมที่เกิดขึ้นจริง",
+    "stepsToReproduce": "ขั้นตอนการทำซ้ำ",
+    "details": "รายละเอียด",
+    "category": "หมวดหมู่",
+    "assignee": "ผู้รับผิดชอบ",
+    "reporter": "ผู้รายงาน",
+    "created": "สร้างเมื่อ",
+    "updated": "อัปเดตเมื่อ",
+    "tags": "แท็ก",
+    "uncategorized": "ไม่มีหมวดหมู่",
+    "unassigned": "ยังไม่ได้มอบหมาย",
+    "activity": "กิจกรรม",
+    "addComment": "เพิ่มความคิดเห็น",
+    "relative": {
+      "today": "วันนี้",
+      "yesterday": "เมื่อวาน",
+      "daysAgo": "{days} วันที่แล้ว",
+      "weeksAgo": "{weeks} สัปดาห์ที่แล้ว"
+    }
+  }
+}

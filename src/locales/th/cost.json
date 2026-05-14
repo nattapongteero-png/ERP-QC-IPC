@@ -1,0 +1,214 @@
+{
+  "page": {
+    "title": "ต้นทุน",
+    "description": "จัดการต้นทุนและการวิเคราะห์ต้นทุน"
+  },
+  "dashboard": {
+    "title": "ต้นทุน",
+    "subtitle": "แดชบอร์ดสำหรับการควบคุมต้นทุนและการวิเคราะห์กำไร",
+    "periodOptions": {
+      "this_month": "เดือนนี้",
+      "last_month": "เดือนที่แล้ว",
+      "this_quarter": "ไตรมาสนี้",
+      "last_quarter": "ไตรมาสที่แล้ว",
+      "ytd": "ปีนี้"
+    },
+    "quickLinks": {
+      "landedCosts": {
+        "title": "ต้นทุนนำเข้า",
+        "description": "จัดสรรค่าขนส่งและภาษี"
+      },
+      "workCenters": {
+        "title": "ศูนย์งาน",
+        "description": "กำหนดค่าแรงและค่าใช้จ่าย"
+      },
+      "reports": {
+        "title": "รายงานต้นทุน",
+        "description": "ดูรายงานโดยละเอียด"
+      }
+    }
+  },
+  "landedCosts": {
+    "page": {
+      "title": "ต้นทุนนำเข้า",
+      "description": "จัดสรรค่าขนส่ง ภาษี และต้นทุนอื่นๆ ให้กับใบรับสินค้า"
+    },
+    "stats": {
+      "total": "ทั้งหมด",
+      "draft": "ร่าง",
+      "allocated": "จัดสรรแล้ว",
+      "posted": "บันทึกแล้ว",
+      "totalValue": "มูลค่ารวม"
+    },
+    "empty": {
+      "title": "ยังไม่มีเอกสารต้นทุนนำเข้า",
+      "description": "เริ่มต้นโดยการสร้างเอกสารต้นทุนนำเข้าใหม่เพื่อจัดสรรค่าขนส่งและภาษี"
+    },
+    "loading": "กำลังโหลดข้อมูล...",
+    "retry": "ลองใหม่อีกครั้ง",
+    "search": {
+      "placeholder": "ค้นหาเลขที่เอกสาร, PO หรือใบแจ้งหนี้..."
+    },
+    "filter": {
+      "all": "ทั้งหมด",
+      "draft": "ร่าง",
+      "allocated": "จัดสรรแล้ว",
+      "posted": "บันทึกแล้ว"
+    },
+    "grid": {
+      "title": "เอกสารต้นทุนนำเข้า",
+      "columns": {
+        "documentNumber": "เลขที่เอกสาร",
+        "referenceNumber": "เลขที่ใบสั่งซื้อ",
+        "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+        "status": "สถานะ",
+        "totalAmount": "จำนวนรวม",
+        "created": "วันที่สร้าง",
+        "posted": "วันที่บันทึก"
+      },
+      "mobile": {
+        "poPrefix": "PO",
+        "invoicePrefix": "ใบแจ้งหนี้"
+      },
+      "pagerInfo": "แสดง {from}-{to} จาก {total}"
+    },
+    "actions": {
+      "new": "สร้างต้นทุนนำเข้าใหม่"
+    },
+    "status": {
+      "draft": "ร่าง",
+      "allocated": "จัดสรรแล้ว",
+      "posted": "บันทึกแล้ว"
+    },
+    "errors": {
+      "loadFailed": "ไม่สามารถโหลดข้อมูลต้นทุนนำเข้าได้"
+    }
+  },
+  "workCenters": {
+    "page": {
+      "title": "ศูนย์งาน",
+      "description": "กำหนดค่าใช้จ่ายศูนย์งานการผลิต ค่าแรง และค่าใช้จ่ายโสหุย"
+    },
+    "stats": {
+      "total": "ทั้งหมด",
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน",
+      "avgTotalRate": "อัตรารวมเฉลี่ย/ชม"
+    },
+    "empty": {
+      "title": "ยังไม่มีศูนย์งาน",
+      "description": "เริ่มต้นโดยการสร้างศูนย์งานเพื่อกำหนดค่าแรงและค่าใช้จ่าย"
+    },
+    "search": {
+      "placeholder": "ค้นหาด้วยรหัสหรือชื่อ..."
+    },
+    "filter": {
+      "all": "ทั้งหมด",
+      "active": "ใช้งานอยู่",
+      "inactive": "ไม่ใช้งาน"
+    },
+    "grid": {
+      "title": "รายการศูนย์งาน",
+      "columns": {
+        "code": "รหัส",
+        "name": "ชื่อ",
+        "nameEn": "ชื่อ (อังกฤษ)",
+        "nameTh": "ชื่อ (ไทย)",
+        "orgUnit": "หน่วยงาน",
+        "laborRate": "อัตราค่าแรง",
+        "overheadRate": "อัตราค่าใช้จ่ายโสหุย",
+        "machineRate": "อัตราค่าเครื่องจักร",
+        "totalRate": "อัตรารวม",
+        "capacity": "กำลังการผลิต (ชม/วัน)",
+        "status": "สถานะ",
+        "actions": "การดำเนินการ"
+      },
+      "pagerInfo": "แสดง {from}-{to} จาก {total}"
+    },
+    "actions": {
+      "new": "สร้างศูนย์งานใหม่",
+      "edit": "แก้ไข",
+      "delete": "ลบ",
+      "deleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบศูนย์งานนี้?"
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน"
+    },
+    "toast": {
+      "deleteSuccess": "ลบศูนย์งานสำเร็จ",
+      "deleteError": "ไม่สามารถลบศูนย์งานได้"
+    },
+    "errors": {
+      "loadFailed": "ไม่สามารถโหลดข้อมูลศูนย์งานได้",
+      "loading": "กำลังโหลดศูนย์งาน...",
+      "retry": "ลองใหม่อีกครั้ง"
+    }
+  },
+  "reports": {
+    "costSummary": {
+      "title": "สรุปต้นทุน",
+      "description": "รายงานสรุปต้นทุนโดยละเอียด",
+      "stats": {
+        "totalItems": "จำนวนรายการ",
+        "totalValue": "มูลค่าคงเหลือรวม",
+        "avgWac": "WAC เฉลี่ย",
+        "outOfStock": "ของที่หมดสต็อก"
+      },
+      "empty": {
+        "title": "ไม่พบข้อมูลที่ตรงกับตัวกรอง",
+        "description": "ลองเปลี่ยนตัวกรองหรือล้างเงื่อนไขการค้นหา"
+      },
+      "actions": {
+        "exportExcel": "ดาวน์โหลด Excel",
+        "clearFilters": "ล้างตัวกรอง"
+      },
+      "filters": {
+        "title": "ตัวกรอง",
+        "itemType": "ประเภทสินค้า",
+        "search": "ค้นหา",
+        "searchPlaceholder": "ค้นหาด้วยรหัสหรือชื่อ...",
+        "allTypes": "ทุกประเภท",
+        "rawMaterial": "วัตถุดิบ",
+        "finishedGoods": "สินค้าสำเร็จรูป",
+        "packaging": "บรรจุภัณฑ์",
+        "consumable": "วัสดุสิ้นเปลือง",
+        "wip": "งานระหว่างทำ"
+      },
+      "itemTypes": {
+        "raw_material": "วัตถุดิบ",
+        "finished_goods": "สินค้าสำเร็จรูป",
+        "packaging": "บรรจุภัณฑ์",
+        "consumable": "วัสดุสิ้นเปลือง",
+        "wip": "งานระหว่างทำ"
+      },
+      "grid": {
+        "title": "สรุปต้นทุนสินค้า",
+        "columns": {
+          "code": "รหัส",
+          "name": "ชื่อ",
+          "type": "ประเภท",
+          "uom": "หน่วย",
+          "onHand": "คงเหลือ",
+          "wac": "WAC",
+          "value": "มูลค่า",
+          "stdCost": "ต้นทุนมาตรฐาน",
+          "lastPOCost": "ต้นทุน PO ล่าสุด",
+          "fullCost": "ต้นทุนรวม"
+        },
+        "total": "รวม",
+        "pagerInfo": "แสดง {from}-{to} จาก {total}",
+        "worksheetName": "สรุปต้นทุน"
+      },
+      "loading": "กำลังโหลด...",
+      "error": "ไม่สามารถโหลดข้อมูลรายงานได้"
+    }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

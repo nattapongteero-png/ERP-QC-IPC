@@ -26,6 +26,7 @@ vi.mock('lucide-react', () => ({
   Check: () => <span data-testid="icon-check" />,
   AlertCircle: () => <span data-testid="icon-alert" />,
   Wifi: () => <span data-testid="icon-wifi" />,
+  Shield: () => <span data-testid="icon-shield" />,
   ChevronRight: () => <span data-testid="icon-chevron-right" />,
 }));
 
@@ -90,7 +91,7 @@ describe('SettingsPage', () => {
       renderWithProviders(<SettingsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ตั้งค่าระบบ')).toBeInTheDocument();
+        expect(screen.getByText('System settings and configuration')).toBeInTheDocument();
       });
     });
 

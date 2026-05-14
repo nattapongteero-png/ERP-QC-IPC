@@ -6,6 +6,7 @@ import { Sidebar } from './sidebar';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useVmiAutoSync } from '@/hooks/use-vmi-auto-sync';
+import { CompactLanguageSwitcher } from '@/components/shared/language-switcher';
 
 interface User {
   id: number;
@@ -54,8 +55,9 @@ export function MainLayout({ children }: MainLayoutProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // VMI Auto Sync - runs every 15 minutes when user is authenticated
-  useVmiAutoSync({ enabled: !!user });
+  // VMI Auto Sync - runs every 15 minutes only for roles with VMI sync permission
+  const vmiRoles = ['admin', 'manager', 'sales'];
+  useVmiAutoSync({ enabled: !!user && vmiRoles.includes(user.role) });
 
   const handleLogout = async () => {
     try {
@@ -105,7 +107,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Mobile/Tablet Overlay */}
       <div
         className={cn(
-          'fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden',
+          'fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden no-print',
           'transition-opacity duration-300 ease-out',
           'motion-reduce:transition-none',
           sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -115,14 +117,14 @@ export function MainLayout({ children }: MainLayoutProps) {
       />
 
       {/* Sidebar - Desktop */}
-      <div className="hidden lg:block lg:fixed lg:inset-y-0 lg:z-50">
+      <div className="hidden lg:block lg:fixed lg:inset-y-0 lg:z-50 no-print">
         <Sidebar user={user} onLogout={handleLogout} />
       </div>
 
       {/* Sidebar - Mobile/Tablet */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 lg:hidden',
+          'fixed inset-y-0 left-0 z-50 lg:hidden no-print',
           'transform transition-transform duration-300 ease-out',
           'motion-reduce:transition-none',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -136,7 +138,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         {/* Mobile/Tablet Header */}
         <header
           className={cn(
-            'lg:hidden sticky top-0 z-30',
+            'lg:hidden sticky top-0 z-30 no-print',
             'bg-white/80 backdrop-blur-lg',
             'border-b border-slate-200/50 shadow-sm',
             'transition-shadow duration-200',
@@ -164,17 +166,20 @@ export function MainLayout({ children }: MainLayoutProps) {
               </div>
               <span className="font-semibold text-slate-800">Herbal ERP</span>
             </div>
-            <div
-              className={cn(
-                'w-10 h-10 rounded-xl',
-                'bg-gradient-to-br from-emerald-400 to-teal-500',
-                'flex items-center justify-center',
-                'shadow-lg shadow-emerald-500/20'
-              )}
-            >
-              <span className="text-white text-sm font-bold">
-                {user.name.charAt(0).toUpperCase()}
-              </span>
+            <div className="flex items-center gap-2">
+              <CompactLanguageSwitcher />
+              <div
+                className={cn(
+                  'w-10 h-10 rounded-xl',
+                  'bg-gradient-to-br from-emerald-400 to-teal-500',
+                  'flex items-center justify-center',
+                  'shadow-lg shadow-emerald-500/20'
+                )}
+              >
+                <span className="text-white text-sm font-bold">
+                  {user.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
             </div>
           </div>
         </header>
@@ -189,8 +194,8 @@ export function MainLayout({ children }: MainLayoutProps) {
             'min-w-0 max-w-full',
             // On tablet, fit content to viewport height (minus header)
             'md:h-[calc(100vh-56px)] md:overflow-hidden',
-            // On desktop, allow vertical scrolling but prevent horizontal overflow
-            'lg:h-auto lg:overflow-y-auto lg:overflow-x-hidden',
+            // On desktop, constrain to viewport height — pages handle their own scrolling
+            'lg:h-[calc(100vh)] lg:overflow-hidden',
             'animate-fade-in motion-reduce:animate-none',
             'focus:outline-none'
           )}

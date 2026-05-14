@@ -286,28 +286,28 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('จัดการ Lot/Batch สินค้าคงคลัง')).toBeInTheDocument();
+        expect(screen.getByText('Manage Lot/Batch inventory')).toBeInTheDocument();
       });
     });
 
-    it('should render the "รับ Lot ใหม่" button', async () => {
+    it('should render the "Add New Lot" button', async () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
     });
   });
 
   describe('Lot Creation Modal', () => {
-    it('should open create lot modal when clicking "รับ Lot ใหม่" button', async () => {
+    it('should open create lot modal when clicking "Add New Lot" button', async () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -318,14 +318,14 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /รับ Lot ใหม่/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Add New Lot/i })).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /รับ Lot ใหม่/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Add New Lot/i }));
 
       await waitFor(() => {
         // Modal should have the title as h2
-        expect(screen.getByRole('heading', { name: 'รับ Lot ใหม่' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Receive New Lot' })).toBeInTheDocument();
       });
     });
   });
@@ -335,13 +335,13 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('ข้อมูล GMP Compliance')).toBeInTheDocument();
+        expect(screen.getByText('GMP Compliance Information')).toBeInTheDocument();
       });
     });
 
@@ -349,14 +349,14 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('ชื่อผู้ผลิต (Manufacturer)')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('ชื่อผู้ผลิต...')).toBeInTheDocument();
+        expect(screen.getByText('Manufacturer Name')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Manufacturer name...')).toBeInTheDocument();
       });
     });
 
@@ -364,14 +364,14 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('ชื่อผู้นำเข้า (Importer)')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('ชื่อผู้นำเข้า...')).toBeInTheDocument();
+        expect(screen.getByText('Importer Name')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Importer name...')).toBeInTheDocument();
       });
     });
 
@@ -379,14 +379,14 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('ประเทศต้นกำเนิด')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('ประเทศ...')).toBeInTheDocument();
+        expect(screen.getByText('Country of Origin')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Country...')).toBeInTheDocument();
       });
     });
 
@@ -394,12 +394,12 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
-      const manufacturerInput = await screen.findByPlaceholderText('ชื่อผู้ผลิต...');
+      const manufacturerInput = await screen.findByPlaceholderText('Manufacturer name...');
       fireEvent.change(manufacturerInput, { target: { value: 'Thai Herbs Co., Ltd.' } });
 
       expect(manufacturerInput).toHaveValue('Thai Herbs Co., Ltd.');
@@ -409,12 +409,12 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
-      const importerInput = await screen.findByPlaceholderText('ชื่อผู้นำเข้า...');
+      const importerInput = await screen.findByPlaceholderText('Importer name...');
       fireEvent.change(importerInput, { target: { value: 'Import Trading Co.' } });
 
       expect(importerInput).toHaveValue('Import Trading Co.');
@@ -424,12 +424,12 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
-      const countryInput = await screen.findByPlaceholderText('ประเทศ...');
+      const countryInput = await screen.findByPlaceholderText('Country...');
       fireEvent.change(countryInput, { target: { value: 'Thailand' } });
 
       expect(countryInput).toHaveValue('Thailand');
@@ -441,13 +441,13 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('วันที่ต้อง Retest')).toBeInTheDocument();
+        expect(screen.getByText('Retest Date')).toBeInTheDocument();
       });
     });
 
@@ -455,13 +455,13 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('ระยะเวลา Retest (เดือน)')).toBeInTheDocument();
+        expect(screen.getByText('Retest Interval (months)')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('12')).toBeInTheDocument();
       });
     });
@@ -470,10 +470,10 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       const retestIntervalInput = await screen.findByPlaceholderText('12');
       fireEvent.change(retestIntervalInput, { target: { value: '6' } });
@@ -487,15 +487,15 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('เลขที่ Lot')).toBeInTheDocument();
+        expect(screen.getByText('Lot Number')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('LOT-YYYYMMDD-XXX')).toBeInTheDocument();
-        expect(screen.getByTestId('dx-button-สร้าง')).toBeInTheDocument();
+        expect(screen.getByTestId('dx-button-Generate')).toBeInTheDocument();
       });
     });
 
@@ -503,14 +503,14 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('สินค้า')).toBeInTheDocument();
-        expect(screen.getByText('คลิกเพื่อเลือกสินค้า...')).toBeInTheDocument();
+        expect(screen.getByText('Item')).toBeInTheDocument();
+        expect(screen.getByText('Click to select item...')).toBeInTheDocument();
       });
     });
 
@@ -518,14 +518,14 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('จำนวน')).toBeInTheDocument();
-        expect(screen.getByText('หน่วย')).toBeInTheDocument();
+        expect(screen.getByText('Quantity')).toBeInTheDocument();
+        expect(screen.getByText('Unit')).toBeInTheDocument();
       });
     });
 
@@ -533,15 +533,15 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('วันผลิต')).toBeInTheDocument();
-        expect(screen.getByText('วันหมดอายุ')).toBeInTheDocument();
-        expect(screen.getByText('วันรับสินค้า')).toBeInTheDocument();
+        expect(screen.getByText('Manufacturing Date')).toBeInTheDocument();
+        expect(screen.getByText('Expiry Date')).toBeInTheDocument();
+        expect(screen.getByText('Received Date')).toBeInTheDocument();
       });
     });
   });
@@ -551,13 +551,13 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('dx-button-ยกเลิก')).toBeInTheDocument();
+        expect(screen.getByTestId('dx-button-Cancel')).toBeInTheDocument();
       });
     });
 
@@ -565,13 +565,13 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('dx-button-รับ Lot')).toBeInTheDocument();
+        expect(screen.getByTestId('dx-button-Receive Lot')).toBeInTheDocument();
       });
     });
   });
@@ -611,10 +611,10 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
 
       await waitFor(() => {
         expect(screen.getByText('All')).toBeInTheDocument();
-        expect(screen.getByText('กักกัน')).toBeInTheDocument();
-        expect(screen.getByText('ปล่อยแล้ว')).toBeInTheDocument();
-        expect(screen.getByText('ปฏิเสธ')).toBeInTheDocument();
-        expect(screen.getByText('ล็อค')).toBeInTheDocument();
+        expect(screen.getByText('Quarantine')).toBeInTheDocument();
+        expect(screen.getByText('Released')).toBeInTheDocument();
+        expect(screen.getByText('Rejected')).toBeInTheDocument();
+        expect(screen.getByText('Blocked')).toBeInTheDocument();
       });
     });
   });
@@ -624,14 +624,14 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
-        expect(screen.getByText('รับสินค้าเข้าคลัง')).toBeInTheDocument();
-        expect(screen.getByText('สถานะเริ่มต้น: กักกัน (รอ QC)')).toBeInTheDocument();
+        expect(screen.getByText('Receive goods into warehouse')).toBeInTheDocument();
+        expect(screen.getByText('Initial status: Quarantine (awaiting QC)')).toBeInTheDocument();
       });
     });
   });
@@ -686,10 +686,10 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       // Wait for modal
       await waitFor(() => {
@@ -701,7 +701,7 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       fireEvent.change(lotNumberInput, { target: { value: 'LOT-TEST-001' } });
 
       // Select item via dialog
-      const selectItemArea = screen.getByText('คลิกเพื่อเลือกสินค้า...');
+      const selectItemArea = screen.getByText('Click to select item...');
       fireEvent.click(selectItemArea);
 
       await waitFor(() => {
@@ -722,10 +722,10 @@ describe('Inventory Lots Page - Material Receipt with GMP Fields', () => {
       render(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+        expect(screen.getByText('Add New Lot')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         // Check for required field indicators

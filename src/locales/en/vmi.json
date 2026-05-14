@@ -1,0 +1,260 @@
+{
+  "page": {
+    "title": "VMI",
+    "description": "Vendor Managed Inventory"
+  },
+  "dashboard": {
+    "title": "VMI Integration",
+    "subtitle": "Vendor Managed Inventory - Hospital System Integration",
+    "manageSync": "Manage Sync",
+    "viewOrders": "View Orders",
+    "connectedPortals": "Connected Portals",
+    "pendingOrders": "Pending Orders",
+    "shippedToday": "Shipped Today",
+    "urgentOrders": "Urgent Orders"
+  },
+  "orderStatus": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "processing": "Processing",
+    "shippedToday": "Shipped Today",
+    "delivered": "Delivered",
+    "unmatched": "Unmatched Items"
+  },
+  "syncStatus": {
+    "title": "Sync Status",
+    "inventoryTitle": "Inventory",
+    "itemsTitle": "Items",
+    "pricesTitle": "Prices",
+    "inventory": "Stock Level",
+    "items": "Item Catalog",
+    "prices": "Pricing",
+    "unknown": "Unknown",
+    "completed": "Completed",
+    "running": "Running",
+    "failed": "Failed",
+    "partial": "Partial",
+    "hasIssues": "Has Issues",
+    "never": "Never",
+    "justNow": "Just now",
+    "minutesAgo": "{count} minutes ago",
+    "hoursAgo": "{count} hours ago",
+    "daysAgo": "{count} days ago"
+  },
+  "portals": {
+    "title": "VMI Portals",
+    "subtitle": "Hospital Connections",
+    "activePortals": "Active Portals"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "manageOrders": "Manage Orders",
+    "manageOrdersDescription": "View and manage VMI Orders",
+    "viewList": "View List",
+    "syncManagement": "Sync Management",
+    "syncDescription": "Manage data synchronization",
+    "goToSync": "Go to Sync",
+    "portalSettings": "Portal Settings",
+    "portalSettingsDescription": "Configure portal connections",
+    "settings": "Settings",
+    "itemMapping": "Item Mapping",
+    "itemMappingDescription": "Map item codes",
+    "manageItems": "Manage Items",
+    "inventoryLots": "Inventory Lots",
+    "lotsDescription": "Manage inventory lots",
+    "viewLots": "View Lots",
+    "hospitalPartners": "Hospital Partners",
+    "partnersDescription": "Manage hospital partners"
+  },
+  "alerts": {
+    "unmatchedTitle": "Items Pending Matching",
+    "unmatchedDescription": "{count} items need code matching before processing",
+    "urgentTitle": "Urgent Orders",
+    "urgentDescription": "{count} orders require urgent action",
+    "viewItems": "View Items"
+  },
+  "agreements": {
+    "title": "VMI Agreements",
+    "description": "Manage VMI agreements with suppliers",
+    "table": {
+      "columns": {
+        "agreementNumber": "Agreement Number",
+        "supplier": "Supplier",
+        "item": "Item",
+        "minLevel": "Min Level",
+        "maxLevel": "Max Level",
+        "status": "Status"
+      }
+    }
+  },
+  "replenishment": {
+    "title": "Replenishment",
+    "description": "Manage automatic replenishment"
+  },
+  "consignment": {
+    "title": "Consignment",
+    "description": "Manage consignment inventory from suppliers"
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "description": "Manage webhooks for notifications"
+  },
+  "toast": {
+    "createAgreement": {
+      "success": "VMI agreement created successfully",
+      "error": "Failed to create VMI agreement"
+    }
+  },
+  "sync": {
+    "syncSuffix": "Sync",
+    "breadcrumb": {
+      "portal": "VMI Portal",
+      "synchronization": "Synchronization"
+    },
+    "header": {
+      "title": "VMI Synchronization",
+      "subtitle": "Manage data synchronization to VMI Portal",
+      "totalSyncs": "Total",
+      "successfulToday": "Successful Today",
+      "failedToday": "Failed Today",
+      "running": "Running",
+      "refresh": "Refresh",
+      "portalSettings": "Portal Settings"
+    },
+    "syncTypes": {
+      "inventory": {
+        "label": "Inventory",
+        "name": "Inventory",
+        "description": "Push current stock levels to VMI Portal"
+      },
+      "items": {
+        "label": "Items",
+        "name": "Item Catalog",
+        "description": "Update item catalog with TPP/TTMT codes"
+      },
+      "prices": {
+        "label": "Prices",
+        "name": "Prices",
+        "description": "Push current pricing data"
+      },
+      "orders": {
+        "label": "Orders",
+        "name": "Orders",
+        "description": "Pull orders from VMI Portal"
+      }
+    },
+    "status": {
+      "running": "Running",
+      "completed": "Completed",
+      "partial": "Partial",
+      "failed": "Failed"
+    },
+    "trigger": {
+      "manual": "Manual",
+      "scheduled": "Scheduled",
+      "threshold": "Threshold",
+      "auto": "Auto"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{count} minutes ago",
+      "hoursAgo": "{count} hours ago",
+      "daysAgo": "{count} days ago"
+    },
+    "card": {
+      "noHistory": "No sync history yet",
+      "syncing": "Syncing...",
+      "syncLabel": "Sync {label}",
+      "noItemsToSync": "No items to sync",
+      "syncSuccess": "Successfully synced {processed} items",
+      "syncSuccessWithFailures": "Successfully synced {processed} items, {failed} failed",
+      "failedSuffix": "failed"
+    },
+    "syncAll": {
+      "title": "Sync All",
+      "description": "Sync all data types in order: Inventory -> Items -> Prices",
+      "button": "Sync All",
+      "syncing": "Syncing..."
+    },
+    "help": {
+      "title": "No items to sync?",
+      "intro": "To sync items to VMI Portal, you need to:",
+      "step1Label": "Configure VMI Portal",
+      "step1Detail": "Configure at least 1 portal connection in",
+      "step1Link": "Settings -> VMI Portals",
+      "step2Label": "Enable VMI Sync on items",
+      "step2Detail": "Go to",
+      "step2Link": "Inventory -> Items",
+      "step2Suffix": "and enable \"VMI Sync Enabled\"",
+      "step3Label": "Add VMI Standard Codes",
+      "step3Detail": "Add TPP/TTMT codes in the VMI Standard Codes section"
+    },
+    "history": {
+      "title": "Sync History",
+      "subtitle": "Click a row to view more details",
+      "refreshHint": "Refresh",
+      "loadError": "Unable to load sync history",
+      "empty": "No sync history",
+      "emptyHint": "Start syncing data from the cards above to see history here",
+      "searchPlaceholder": "Search...",
+      "filterButton": "Filter",
+      "filterHint": "Show/hide filters",
+      "pagerInfoText": "Page {0} of {1} ({2} items)",
+      "totalSummary": "Total: {0} items",
+      "failedSuffix": "failed",
+      "columns": {
+        "syncType": "Type",
+        "status": "Status",
+        "trigger": "Trigger",
+        "progress": "Progress",
+        "startedAt": "Started At",
+        "duration": "Duration",
+        "portal": "Portal"
+      },
+      "headerFilter": {
+        "inventory": "Inventory",
+        "items": "Items",
+        "prices": "Prices",
+        "completed": "Completed",
+        "failed": "Failed",
+        "partial": "Partial",
+        "running": "Running",
+        "manual": "Manual",
+        "scheduled": "Scheduled",
+        "auto": "Auto"
+      }
+    },
+    "masterDetail": {
+      "syncInfo": "Sync Info",
+      "syncId": "Sync ID:",
+      "portalId": "Portal ID:",
+      "duration": "Duration:",
+      "results": "Results",
+      "processed": "Processed:",
+      "failed": "Failed:",
+      "total": "Total:",
+      "itemsUnit": "items",
+      "executedBy": "Executed By",
+      "trigger": "Trigger:",
+      "by": "By:",
+      "system": "System",
+      "errorMessage": "Error Message"
+    },
+    "mobileCard": {
+      "errorLabel": "Error:"
+    },
+    "info": {
+      "title": "About VMI Synchronization",
+      "syncSuffix": "Sync",
+      "autoSyncLabel": "Auto Sync:",
+      "autoSyncDescription": "The system syncs automatically every 15 minutes, both Client-side and Server-side (Vercel Cron)"
+    }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

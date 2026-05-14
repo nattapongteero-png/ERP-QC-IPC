@@ -5,6 +5,7 @@
 // User Story 6: Manage VAT and Withholding Tax
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button as DxButton } from 'devextreme-react/button';
@@ -55,6 +56,7 @@ async function fetchWHTCertificates(
 }
 
 export default function WHTReportPage() {
+  const t = useTranslations('accounting');
   const [taxPeriod, setTaxPeriod] = useState<Date>(new Date());
   const [certificateType, setCertificateType] = useState<WHTCertificateType>('pnd53');
   const [reportGenerated, setReportGenerated] = useState(false);
@@ -95,7 +97,7 @@ export default function WHTReportPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 pb-8" data-testid="wht-report-page">
+    <div className="flex flex-col gap-6 pb-8" data-testid="wht-report-page" data-title={t('page.title')}>
       {/* Professional Page Header */}
       <AccountingPageHeader
         title="หนังสือรับรองภาษีหัก ณ ที่จ่าย"

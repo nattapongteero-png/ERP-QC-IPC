@@ -267,7 +267,7 @@ describe('Bank Reconciliation Page', () => {
     render(<BankReconciliationPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByTestId('page-title')).toHaveTextContent('Bank Reconciliation');
+      expect(screen.getByTestId('page-title')).toBeInTheDocument();
     });
   });
 

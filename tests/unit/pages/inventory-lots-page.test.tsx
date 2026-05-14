@@ -313,7 +313,7 @@ describe('LotsPage', () => {
 
       expect(screen.getByText('Refresh')).toBeInTheDocument();
       expect(screen.getByText('View Items')).toBeInTheDocument();
-      expect(screen.getByText('รับ Lot ใหม่')).toBeInTheDocument();
+      expect(screen.getByText('Add New Lot')).toBeInTheDocument();
     });
 
     it('fetches lots and master data on mount', async () => {
@@ -328,12 +328,12 @@ describe('LotsPage', () => {
   });
 
   describe('Lot Receive Dialog - Opening', () => {
-    it('opens dialog when "รับ Lot ใหม่" button is clicked', async () => {
+    it('opens dialog when "Add New Lot" button is clicked', async () => {
       render(<LotsPage />);
 
       // Find the add button (there are multiple elements with this text)
       const allButtons = screen.getAllByRole('button');
-      const addButton = allButtons.find(b => b.textContent?.includes('รับ Lot ใหม่'));
+      const addButton = allButtons.find(b => b.textContent?.includes('Add New Lot'));
       expect(addButton).toBeDefined();
       fireEvent.click(addButton!);
 
@@ -345,7 +345,7 @@ describe('LotsPage', () => {
     it('shows initial form with empty fields', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         // Check for lot number input
@@ -359,13 +359,13 @@ describe('LotsPage', () => {
     it('generates lot number when สร้าง button is clicked', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
-      const generateButton = screen.getByTestId('dx-button-สร้าง');
+      const generateButton = screen.getByTestId('dx-button-Generate');
       fireEvent.click(generateButton);
 
       await waitFor(() => {
@@ -379,13 +379,13 @@ describe('LotsPage', () => {
     it('opens item search dialog when item selector is clicked', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
-      const itemSelector = screen.getByText('คลิกเพื่อเลือกสินค้า...');
+      const itemSelector = screen.getByText('Click to select item...');
       fireEvent.click(itemSelector);
 
       await waitFor(() => {
@@ -396,13 +396,13 @@ describe('LotsPage', () => {
     it('displays selected item after selection', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('คลิกเพื่อเลือกสินค้า...'));
+      fireEvent.click(screen.getByText('Click to select item...'));
 
       await waitFor(() => {
         expect(screen.getByTestId('item-search-dialog')).toBeInTheDocument();
@@ -421,13 +421,13 @@ describe('LotsPage', () => {
     it('shows validation error when submitting empty form', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
-      const submitButton = screen.getByTestId('dx-button-รับ-Lot');
+      const submitButton = screen.getByTestId('dx-button-Receive-Lot');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -440,7 +440,7 @@ describe('LotsPage', () => {
     it('shows validation error for quantity <= 0', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -451,12 +451,12 @@ describe('LotsPage', () => {
       fireEvent.change(lotInput, { target: { value: 'LOT-001' } });
 
       // Select item
-      fireEvent.click(screen.getByText('คลิกเพื่อเลือกสินค้า...'));
+      fireEvent.click(screen.getByText('Click to select item...'));
       await waitFor(() => expect(screen.getByTestId('item-search-dialog')).toBeInTheDocument());
       fireEvent.click(screen.getByTestId('select-item-btn'));
 
       // Submit without quantity
-      fireEvent.click(screen.getByTestId('dx-button-รับ-Lot'));
+      fireEvent.click(screen.getByTestId('dx-button-Receive-Lot'));
 
       await waitFor(() => {
         expect(screen.getByText('Quantity must be greater than 0')).toBeInTheDocument();
@@ -466,7 +466,7 @@ describe('LotsPage', () => {
     it('shows validation error for missing expiry date', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -476,7 +476,7 @@ describe('LotsPage', () => {
       fireEvent.change(screen.getByTestId('dx-text-box-lot-yyyymmdd-xxx'), { target: { value: 'LOT-001' } });
 
       // Submit
-      fireEvent.click(screen.getByTestId('dx-button-รับ-Lot'));
+      fireEvent.click(screen.getByTestId('dx-button-Receive-Lot'));
 
       await waitFor(() => {
         expect(screen.getByText('Expiry date is required')).toBeInTheDocument();
@@ -486,7 +486,7 @@ describe('LotsPage', () => {
     it('shows validation error for missing cost', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -496,7 +496,7 @@ describe('LotsPage', () => {
       fireEvent.change(screen.getByTestId('dx-text-box-lot-yyyymmdd-xxx'), { target: { value: 'LOT-001' } });
 
       // Submit
-      fireEvent.click(screen.getByTestId('dx-button-รับ-Lot'));
+      fireEvent.click(screen.getByTestId('dx-button-Receive-Lot'));
 
       await waitFor(() => {
         expect(screen.getByText('Cost per unit is required and must be greater than 0')).toBeInTheDocument();
@@ -549,7 +549,7 @@ describe('LotsPage', () => {
 
       // Open dialog - find the button more specifically
       const allButtons = screen.getAllByRole('button');
-      const addButton = allButtons.find(b => b.textContent?.includes('รับ Lot ใหม่'));
+      const addButton = allButtons.find(b => b.textContent?.includes('Add New Lot'));
       expect(addButton).toBeDefined();
       fireEvent.click(addButton!);
 
@@ -563,7 +563,7 @@ describe('LotsPage', () => {
       });
 
       // Select item
-      fireEvent.click(screen.getByText('คลิกเพื่อเลือกสินค้า...'));
+      fireEvent.click(screen.getByText('Click to select item...'));
       await waitFor(() => expect(screen.getByTestId('item-search-dialog')).toBeInTheDocument());
       fireEvent.click(screen.getByTestId('select-item-btn'));
 
@@ -599,7 +599,7 @@ describe('LotsPage', () => {
       });
 
       // Submit
-      fireEvent.click(screen.getByTestId('dx-button-รับ-Lot'));
+      fireEvent.click(screen.getByTestId('dx-button-Receive-Lot'));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
@@ -617,13 +617,13 @@ describe('LotsPage', () => {
     it('closes dialog when ยกเลิก button is clicked', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
-      const cancelButton = screen.getByTestId('dx-button-ยกเลิก');
+      const cancelButton = screen.getByTestId('dx-button-Cancel');
       fireEvent.click(cancelButton);
 
       await waitFor(() => {
@@ -636,7 +636,7 @@ describe('LotsPage', () => {
 
       // Open dialog
       const allButtons = screen.getAllByRole('button');
-      const addButton = allButtons.find(b => b.textContent?.includes('รับ Lot ใหม่'));
+      const addButton = allButtons.find(b => b.textContent?.includes('Add New Lot'));
       expect(addButton).toBeDefined();
       fireEvent.click(addButton!);
 
@@ -661,7 +661,7 @@ describe('LotsPage', () => {
 
       // Reopen dialog
       const buttonsAfterClose = screen.getAllByRole('button');
-      const addButtonAfter = buttonsAfterClose.find(b => b.textContent?.includes('รับ Lot ใหม่'));
+      const addButtonAfter = buttonsAfterClose.find(b => b.textContent?.includes('Add New Lot'));
       fireEvent.click(addButtonAfter!);
 
       await waitFor(() => {
@@ -681,25 +681,26 @@ describe('LotsPage', () => {
     it('shows initial status as quarantine', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(screen.getByText('สถานะเริ่มต้น: กักกัน (รอ QC)')).toBeInTheDocument();
+        // From i18n: t('lots.form.initialStatus') = 'Initial status: Quarantine (awaiting QC)'
+        expect(screen.getByText('Initial status: Quarantine (awaiting QC)')).toBeInTheDocument();
       });
     });
 
     it('displays selected item unit after selection', async () => {
       render(<LotsPage />);
 
-      fireEvent.click(screen.getByText('รับ Lot ใหม่'));
+      fireEvent.click(screen.getByText('Add New Lot'));
 
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
       // Select item
-      fireEvent.click(screen.getByText('คลิกเพื่อเลือกสินค้า...'));
+      fireEvent.click(screen.getByText('Click to select item...'));
       await waitFor(() => expect(screen.getByTestId('item-search-dialog')).toBeInTheDocument());
       fireEvent.click(screen.getByTestId('select-item-btn'));
 
@@ -722,10 +723,10 @@ describe('LotsPage', () => {
         const tabTexts = allButtons.map(b => b.textContent);
 
         expect(tabTexts.some(t => t?.includes('All'))).toBe(true);
-        expect(tabTexts.some(t => t?.includes('กักกัน'))).toBe(true);
-        expect(tabTexts.some(t => t?.includes('ปล่อยแล้ว'))).toBe(true);
-        expect(tabTexts.some(t => t?.includes('ปฏิเสธ'))).toBe(true);
-        expect(tabTexts.some(t => t?.includes('ล็อค'))).toBe(true);
+        expect(tabTexts.some(t => t?.includes('Quarantine'))).toBe(true);
+        expect(tabTexts.some(t => t?.includes('Released'))).toBe(true);
+        expect(tabTexts.some(t => t?.includes('Rejected'))).toBe(true);
+        expect(tabTexts.some(t => t?.includes('Blocked'))).toBe(true);
       });
     });
 
@@ -738,7 +739,7 @@ describe('LotsPage', () => {
 
       // Find and click quarantine tab button
       const allButtons = screen.getAllByRole('button');
-      const quarantineTab = allButtons.find(b => b.textContent?.includes('กักกัน'));
+      const quarantineTab = allButtons.find(b => b.textContent?.includes('Quarantine'));
       expect(quarantineTab).toBeDefined();
 
       if (quarantineTab) {
@@ -792,7 +793,8 @@ describe('LotsPage', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('empty-state')).toBeInTheDocument();
-        expect(screen.getByText('ไม่พบ Lot')).toBeInTheDocument();
+        // From i18n: t('lots.noLots') = 'No lots found'
+        expect(screen.getByText('No lots found')).toBeInTheDocument();
       });
     });
 

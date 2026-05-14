@@ -1,0 +1,242 @@
+{
+  "loading": "กำลังโหลด...",
+  "page": {
+    "title": "การจัดซื้อ",
+    "description": "จัดการใบสั่งซื้อและผู้ขาย"
+  },
+  "orders": {
+    "title": "ใบสั่งซื้อ",
+    "pageTitle": "ใบสั่งซื้อ",
+    "description": "จัดการใบสั่งซื้อวัตถุดิบและวัสดุ",
+    "newTitle": "สร้างใบสั่งซื้อใหม่",
+    "newDescription": "Create New Purchase Order",
+    "detail": {
+      "title": "PO",
+      "vendor": "ผู้ขาย",
+      "status": "สถานะ"
+    },
+    "status": {
+      "all": "ทั้งหมด",
+      "draft": "ร่าง",
+      "pending": "รออนุมัติ",
+      "pendingApproval": "รออนุมัติ",
+      "approved": "อนุมัติแล้ว",
+      "sent": "ส่งให้ผู้ขาย",
+      "partial": "รับบางส่วน",
+      "partiallyReceived": "รับบางส่วน",
+      "received": "รับครบแล้ว",
+      "cancelled": "ยกเลิก"
+    },
+    "stats": {
+      "total": "รวม",
+      "pending": "รอดำเนินการ",
+      "awaiting": "รอรับ"
+    },
+    "grid": {
+      "columns": {
+        "poNumber": "เลขที่ PO",
+        "vendor": "ผู้ขาย",
+        "orderDate": "วันที่สั่ง",
+        "expectedDate": "คาดว่าจะได้รับ",
+        "totalAmount": "ยอดรวม",
+        "status": "สถานะ"
+      },
+      "showing": "แสดง {count} รายการ",
+      "noData": "ไม่พบใบสั่งซื้อ"
+    },
+    "searchPlaceholder": "ค้นหาด้วยเลขที่ PO หรือชื่อผู้ขาย...",
+    "table": {
+      "columns": {
+        "orderNumber": "เลขที่ใบสั่งซื้อ",
+        "supplier": "ผู้ขาย",
+        "orderDate": "วันที่สั่งซื้อ",
+        "expectedDate": "วันที่คาดว่าจะได้รับ",
+        "totalAmount": "จำนวนเงินรวม",
+        "status": "สถานะ",
+        "createdBy": "สร้างโดย"
+      }
+    },
+    "form": {
+      "orderNumber": {
+        "label": "เลขที่ใบสั่งซื้อ",
+        "placeholder": "เลขที่จะถูกสร้างอัตโนมัติ"
+      },
+      "supplier": {
+        "label": "ผู้ขาย",
+        "placeholder": "เลือกผู้ขาย"
+      },
+      "orderDate": {
+        "label": "วันที่สั่งซื้อ"
+      },
+      "expectedDate": {
+        "label": "วันที่คาดว่าจะได้รับ"
+      },
+      "notes": {
+        "label": "หมายเหตุ",
+        "placeholder": "ป้อนหมายเหตุ"
+      }
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "createPO": "สร้าง PO",
+      "createOrder": "สร้างใบสั่งซื้อ",
+      "editOrder": "แก้ไขใบสั่งซื้อ",
+      "viewOrder": "ดูใบสั่งซื้อ",
+      "cancelOrder": "ยกเลิกใบสั่งซื้อ",
+      "approveOrder": "อนุมัติใบสั่งซื้อ",
+      "receiveGoods": "รับสินค้า"
+    }
+  },
+  "suppliers": {
+    "title": "ผู้ขาย",
+    "description": "จัดการข้อมูลผู้ขาย",
+    "table": {
+      "columns": {
+        "code": "รหัสผู้ขาย",
+        "name": "ชื่อผู้ขาย",
+        "contact": "ผู้ติดต่อ",
+        "phone": "โทรศัพท์",
+        "email": "อีเมล",
+        "status": "สถานะ"
+      }
+    }
+  },
+  "vendors": {
+    "pageTitle": "ผู้ขาย",
+    "description": "จัดการข้อมูลผู้ขายและคู่ค้า",
+    "newTitle": "เพิ่มผู้ขายใหม่",
+    "newDescription": "สร้างผู้ขายใหม่",
+    "notFound": {
+      "title": "ไม่พบข้อมูลผู้ขาย",
+      "description": "ไม่พบข้อมูลผู้ขายที่ระบุในระบบ"
+    },
+    "status": {
+      "all": "ทั้งหมด",
+      "approved": "อนุมัติแล้ว",
+      "pending": "รอดำเนินการ",
+      "vmi": "VMI",
+      "inactive": "ไม่ใช้งาน"
+    },
+    "stats": {
+      "approved": "อนุมัติแล้ว",
+      "vmi": "VMI",
+      "avgDays": "วันเฉลี่ย",
+      "total": "ผู้ขายทั้งหมด",
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน"
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "addVendor": "เพิ่มผู้ขาย"
+    },
+    "grid": {
+      "columns": {
+        "code": "รหัส",
+        "name": "ชื่อผู้ขาย",
+        "phone": "โทรศัพท์",
+        "email": "อีเมล",
+        "leadTime": "Lead Time",
+        "paymentTerms": "เงื่อนไขชำระ",
+        "status": "สถานะ"
+      },
+      "showing": "แสดง {count} รายการ",
+      "noData": "ไม่พบผู้ขาย",
+      "days": "{days} วัน"
+    },
+    "searchPlaceholder": "ค้นหาด้วยรหัส ชื่อ หรือผู้ติดต่อ...",
+    "emptyTitle": "ยังไม่มีผู้ขาย",
+    "emptyDescription": "เริ่มต้นจัดการผู้ขายของคุณโดยเพิ่มผู้ขายรายแรก",
+    "noResultsTitle": "ไม่พบผู้ขายที่ตรงกับเงื่อนไข",
+    "noResultsDescription": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองอื่น",
+    "clearFilters": "ล้างตัวกรอง",
+    "viewDetails": "ดูรายละเอียด",
+    "vendorsShown": "{count} ผู้ขายที่แสดง"
+  },
+  "requisitions": {
+    "pageTitle": "ใบขอซื้อ",
+    "description": "สร้างและจัดการใบขอซื้อพร้อมระบบอนุมัติ",
+    "newPageTitle": "สร้างใบขอซื้อใหม่",
+    "detailTitle": "Purchase Requisition",
+    "status": {
+      "all": "ทั้งหมด",
+      "draft": "ร่าง",
+      "submitted": "ส่งแล้ว",
+      "pendingApproval": "รออนุมัติ",
+      "approved": "อนุมัติแล้ว",
+      "rejected": "ไม่อนุมัติ",
+      "cancelled": "ยกเลิก",
+      "converted": "แปลงเป็น PO"
+    },
+    "priority": {
+      "low": "ต่ำ",
+      "normal": "ปกติ",
+      "high": "สูง",
+      "urgent": "เร่งด่วน"
+    },
+    "stats": {
+      "total": "รวม",
+      "pending": "รอดำเนินการ",
+      "urgent": "เร่งด่วน"
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "createPR": "สร้าง PR"
+    },
+    "grid": {
+      "columns": {
+        "prNumber": "เลขที่ PR",
+        "description": "รายละเอียด",
+        "priority": "ความสำคัญ",
+        "totalAmount": "ยอดประมาณ",
+        "requiredDate": "ต้องการภายใน",
+        "createdAt": "วันที่สร้าง",
+        "status": "สถานะ"
+      },
+      "showing": "แสดง {count} รายการ",
+      "noData": "ไม่พบใบขอซื้อ"
+    },
+    "searchPlaceholder": "ค้นหาด้วยเลขที่ PR หรือรายละเอียด..."
+  },
+  "receiving": {
+    "title": "การรับสินค้า",
+    "description": "บันทึกการรับสินค้าจากใบสั่งซื้อ"
+  },
+  "vmi": {
+    "pageTitle": "ใบสั่งซื้อ VMI",
+    "description": "จัดการใบสั่งซื้อจากโรงพยาบาลผ่านระบบ VMI Portal",
+    "actions": {
+      "pollAll": "ดึงข้อมูลทุกผู้ขาย",
+      "polling": "กำลังดึงข้อมูล...",
+      "pollOrders": "ดึงใบสั่งซื้อ"
+    },
+    "stats": {
+      "total": "ใบสั่งทั้งหมด",
+      "submitted": "ส่งแล้ว",
+      "confirmed": "ยืนยันแล้ว",
+      "shipped": "จัดส่งแล้ว",
+      "received": "รับแล้ว"
+    },
+    "loading": "กำลังโหลดรายละเอียดใบสั่งซื้อ...",
+    "empty": {
+      "title": "ไม่มีใบสั่งซื้อ VMI",
+      "description": "คลิก 'ดึงข้อมูลทุกผู้ขาย' เพื่อดึงใบสั่งซื้อใหม่จาก VMI Portal"
+    }
+  },
+  "toast": {
+    "createOrder": {
+      "success": "สร้างใบสั่งซื้อสำเร็จ",
+      "error": "ไม่สามารถสร้างใบสั่งซื้อได้"
+    },
+    "approveOrder": {
+      "success": "อนุมัติใบสั่งซื้อสำเร็จ",
+      "error": "ไม่สามารถอนุมัติใบสั่งซื้อได้"
+    }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

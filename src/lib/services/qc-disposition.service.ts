@@ -10,7 +10,7 @@
  * - FR-071-074: Electronic Signatures for disposition and approval
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
 import {
   sqliteQualityTests,
@@ -195,7 +195,7 @@ function mapDispositionToLotStatus(disposition: DispositionType): string | null 
 export async function setDisposition(input: DispositionInput): Promise<DispositionResult> {
   const { testId, disposition, reason, userId, password } = input;
   const { tests, users } = getTables();
-  const database = db();
+  const database = await getDb() as any;
 
   try {
     // Validate disposition reason
@@ -302,7 +302,7 @@ export async function setDisposition(input: DispositionInput): Promise<Dispositi
 export async function approveDisposition(input: DispositionApprovalInput): Promise<DispositionResult> {
   const { testId, userId, password, approvalNotes } = input;
   const { tests, lots, users } = getTables();
-  const database = db();
+  const database = await getDb() as any;
 
   try {
     // Verify user password for e-signature
@@ -446,7 +446,7 @@ export async function approveDisposition(input: DispositionApprovalInput): Promi
  */
 export async function getDispositionDetails(testId: number): Promise<DispositionDetails | null> {
   const { tests, lots, users, signatures } = getTables();
-  const database = db();
+  const database = await getDb() as any;
 
   // Get test details
   const [test] = await database
@@ -569,7 +569,7 @@ export async function getDispositionDetails(testId: number): Promise<Disposition
  */
 export async function getQCSummary(): Promise<QCSummary> {
   const { tests } = getTables();
-  const database = db();
+  const database = await getDb() as any;
 
   // Get all tests
   const allTests = await database
@@ -635,7 +635,7 @@ export async function getQCSummary(): Promise<QCSummary> {
  */
 export async function getPendingRelease(): Promise<PendingReleaseItem[]> {
   const { tests, lots } = getTables();
-  const database = db();
+  const database = await getDb() as any;
 
   // Import items table dynamically based on database type
   const items = isSqlite()
@@ -716,7 +716,7 @@ export async function checkLotDispositionComplete(lotId: number): Promise<{
   pendingApproval: number;
 }> {
   const { tests } = getTables();
-  const database = db();
+  const database = await getDb() as any;
 
   const lotTests = await database
     .select({

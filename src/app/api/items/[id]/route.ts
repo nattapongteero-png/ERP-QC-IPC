@@ -37,7 +37,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         return notFoundResponse('Item not found');
       }
 
-      return successResponse(items[0]);
+      // Map DB field name to frontend field name
+      const item: any = { ...items[0] };
+
+      // Auto-correct conversion rate for standard unit pairs on read
+      const STANDARD_CONVERSIONS: Record<string, number> = {
+        'kg:g': 1000, 'g:mg': 1000, 'kg:mg': 1000000,
+        'l:ml': 1000, 'ml:µl': 1000, 'l:µl': 1000000,
+        't:kg': 1000,
+      };
+      const pairKey = `${(item.primaryUnit || '').toLowerCase()}:${(item.secondaryUnit || '').toLowerCase()}`;
+      if (STANDARD_CONVERSIONS[pairKey] != null) {
+        item.conversionFactor = STANDARD_CONVERSIONS[pairKey];
+      } else if (item.conversionRate != null) {
+        item.conversionFactor = Number(item.conversionRate);
+      }
+
+      return successResponse(item);
     } catch (error) {
       return serverErrorResponse(error);
     }
@@ -83,9 +99,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         'code', 'nameTh', 'nameEn', 'type', 'category', 'primaryUnit',
         'secondaryUnit', 'conversionRate', 'shelfLifeDays', 'storageCondition',
         'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive',
-        'tppCode', 'tppName', 'ttmtCode', 'ttmtName', 'vmiSyncEnabled',
-        'confidentialityLevel', 'defaultConfidential'
+        'tppCode', 'tppName', 'ttmtCode', 'ttmtName', 'drugCode24', 'vmiSyncEnabled',
+        'confidentialityLevel', 'defaultConfidential', 'strength', 'gRegNumber',
+        // 3-level unit conversion (PU → SU → WU)
+        'weightUnit', 'secondaryToWeightRate', 'weightTrackingEnabled'
       ];
+
+      // Map frontend field names to DB column names
+      if (body.conversionFactor !== undefined) {
+        body.conversionRate = body.conversionFactor;
+      }
+
+      // Auto-correct conversion rate for standard unit pairs
+      const STANDARD_CONVERSIONS: Record<string, number> = {
+        'kg:g': 1000, 'g:mg': 1000, 'kg:mg': 1000000,
+        'l:ml': 1000, 'ml:µl': 1000, 'l:µl': 1000000,
+        't:kg': 1000,
+      };
+      const pUnit = (body.primaryUnit || oldItem.primaryUnit || '').toLowerCase();
+      const sUnit = (body.secondaryUnit || oldItem.secondaryUnit || '').toLowerCase();
+      const pairKey = `${pUnit}:${sUnit}`;
+      if (STANDARD_CONVERSIONS[pairKey] != null) {
+        body.conversionRate = STANDARD_CONVERSIONS[pairKey];
+        updateData.conversionRate = STANDARD_CONVERSIONS[pairKey];
+      }
 
       for (const field of allowedFields) {
         if (body[field] !== undefined) {

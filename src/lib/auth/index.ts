@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+import { expandRole } from './role-mapping';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -95,7 +96,10 @@ export const PERMISSIONS = {
   'items:delete': [ROLES.ADMIN],
   
   // Inventory
-  'inventory:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION, ROLES.QC, ROLES.WAREHOUSE],
+  // PURCHASING is included on read because Procurement needs to pick the
+  // destination warehouse when creating a PO and to look up on-hand stock
+  // before ordering. Write/adjust stays restricted to warehouse/admin.
+  'inventory:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION, ROLES.QC, ROLES.WAREHOUSE, ROLES.PURCHASING, ROLES.SALES],
   'inventory:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.WAREHOUSE],
   'inventory:adjust': [ROLES.ADMIN, ROLES.MANAGER],
   
@@ -103,14 +107,27 @@ export const PERMISSIONS = {
   'production:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION, ROLES.QC],
   'production:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION],
   'production:approve': [ROLES.ADMIN, ROLES.MANAGER],
+  // Cleaning dual-control (GMP): cleaner (mark) must differ from verifier.
+  // Record-level check (operator != verifier) in wo-execution.service enforces
+  // the dual-control even when a user has both permissions (e.g. ADMIN).
+  'production:clean_mark': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION],
+  'production:clean_verify': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   
   // Quality
   'quality:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION, ROLES.QC],
   'quality:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'quality:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'quality:test_catalog:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PRODUCTION, ROLES.QC],
+  'quality:test_catalog:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'quality:test_catalog:delete': [ROLES.ADMIN, ROLES.QC],
   
   // Purchasing
-  'purchasing:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PURCHASING, ROLES.WAREHOUSE],
+  // `purchasing:read` is also used as a permission gate for master-data
+  // lookup endpoints like GET /api/vendors. Production and QC staff need
+  // to look up vendors for GMP traceability (which supplier produced the
+  // material in the lot they are using/testing), so we include them here.
+  // Write/approve stays restricted.
+  'purchasing:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PURCHASING, ROLES.WAREHOUSE, ROLES.PRODUCTION, ROLES.QC],
   'purchasing:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.PURCHASING],
   'purchasing:approve': [ROLES.ADMIN, ROLES.MANAGER],
   
@@ -120,7 +137,7 @@ export const PERMISSIONS = {
   'sales:approve': [ROLES.ADMIN, ROLES.MANAGER],
   
   // Reports
-  'reports:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR],
+  'reports:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.PRODUCTION, ROLES.QC, ROLES.WAREHOUSE, ROLES.PURCHASING, ROLES.SALES, ROLES.FINANCE, ROLES.ACCOUNTANT],
   'reports:export': [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR],
   
   // Settings
@@ -258,11 +275,29 @@ export const PERMISSIONS = {
 
 export type Permission = keyof typeof PERMISSIONS;
 
+export function isAdminRole(role: string): boolean {
+  // Accept both the legacy lowercase 'admin' and HR role codes that expand
+  // to 'admin' (e.g. "ADMIN", "METAHERB_FACTORY"). This keeps super-users
+  // unrestricted regardless of whether their user.role was set from the
+  // legacy dropdown or the HR Roles module.
+  if (role === ROLES.ADMIN) return true;
+  const expanded = expandRole(role);
+  return expanded.includes('admin');
+}
+
 export function hasPermission(role: Role, permission: Permission): boolean {
-  const allowedRoles = PERMISSIONS[permission];
-  return allowedRoles.includes(role as any);
+  // Administrator bypasses all permission checks.
+  if (isAdminRole(role)) return true;
+  const allowedRoles = PERMISSIONS[permission] as readonly string[];
+  // Expand the user's role so an HR code (e.g. "QC_ANALYST") matches legacy
+  // allow-lists (["qc", ...]). Falls back to direct comparison for roles
+  // that were already legacy (e.g. "qc", "manager").
+  const expanded = expandRole(role);
+  return expanded.some((r) => allowedRoles.includes(r));
 }
 
 export function checkPermissions(role: Role, permissions: Permission[]): boolean {
+  // Administrator bypasses all permission checks
+  if (isAdminRole(role as string)) return true;
   return permissions.every(permission => hasPermission(role, permission));
 }

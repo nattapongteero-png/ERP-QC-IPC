@@ -1,0 +1,721 @@
+{
+  "page": {
+    "title": "การผลิต",
+    "description": "จัดการใบสั่งผลิต สูตรการผลิต และสายการผลิต"
+  },
+  "breadcrumbs": {
+    "production": "การผลิต"
+  },
+  "workOrders": {
+    "title": "ใบสั่งผลิต",
+    "description": "จัดการใบสั่งผลิตและติดตามความคืบหน้า",
+    "pageTitle": "ใบสั่งผลิต",
+    "stats": {
+      "totalOrders": "ใบสั่งผลิตทั้งหมด",
+      "planned": "วางแผน",
+      "released": "ปล่อยงาน",
+      "inProgress": "กำลังผลิต",
+      "completed": "เสร็จสิ้น",
+      "highPriority": "ความสำคัญสูง",
+      "today": "วันนี้",
+      "avgYield": "ผลผลิตเฉลี่ย"
+    },
+    "tabs": {
+      "all": "ทั้งหมด"
+    },
+    "charts": {
+      "byStatus": "ตามสถานะ",
+      "byPriority": "ใบสั่งที่กำลังดำเนินการตามความสำคัญ",
+      "performance": "ผลการดำเนินงาน",
+      "completionRate": "อัตราการเสร็จสิ้น",
+      "activeOrders": "ใบสั่งที่กำลังดำเนินการ",
+      "averageYield": "ผลผลิตเฉลี่ย",
+      "cancelled": "ยกเลิก",
+      "noData": "ไม่มีข้อมูล",
+      "noActiveOrders": "ไม่มีใบสั่งที่กำลังดำเนินการ"
+    },
+    "grid": {
+      "columns": {
+        "woBatch": "ใบสั่ง / แบตช์",
+        "product": "ผลิตภัณฑ์",
+        "quantity": "ปริมาณ",
+        "priority": "ความสำคัญ",
+        "schedule": "กำหนดการ",
+        "yield": "ผลผลิต",
+        "status": "สถานะ"
+      },
+      "orders": "{count} รายการ",
+      "searchPlaceholder": "ค้นหาใบสั่งผลิต..."
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "analytics": "วิเคราะห์",
+      "newWorkOrder": "ใบสั่งผลิตใหม่",
+      "viewDetails": "ดูรายละเอียด",
+      "createWO": "สร้างใบสั่งผลิต",
+      "editWO": "แก้ไขใบสั่งผลิต",
+      "viewWO": "ดูรายละเอียด",
+      "startWO": "เริ่มการผลิต",
+      "completeWO": "เสร็จสิ้นการผลิต",
+      "cancelWO": "ยกเลิกใบสั่งผลิต",
+      "holdWO": "พักใบสั่งผลิต",
+      "releaseWO": "ปล่อยใบสั่งผลิต",
+      "printLabel": "พิมพ์ฉลาก",
+      "viewBOM": "ดูสูตรการผลิต",
+      "deleteWO": "ลบใบสั่งผลิต",
+      "deleteConfirm": "คุณต้องการลบใบสั่งผลิต {woNumber} หรือไม่? การดำเนินการนี้จะลบรายการวัตถุดิบทั้งหมดด้วย",
+      "deleteSuccess": "ลบใบสั่งผลิตเรียบร้อยแล้ว",
+      "editSuccess": "แก้ไขใบสั่งผลิตเรียบร้อยแล้ว"
+    },
+    "breadcrumbs": {
+      "production": "การผลิต",
+      "workOrders": "ใบสั่งผลิต"
+    },
+    "table": {
+      "columns": {
+        "woNumber": "เลขที่ใบสั่งผลิต",
+        "batchNumber": "เลขที่แบตช์",
+        "product": "ผลิตภัณฑ์",
+        "quantity": "ปริมาณ",
+        "unit": "หน่วย",
+        "status": "สถานะ",
+        "plannedStart": "วันเริ่มต้นตามแผน",
+        "plannedEnd": "วันสิ้นสุดตามแผน",
+        "actualStart": "วันเริ่มต้นจริง",
+        "actualEnd": "วันสิ้นสุดจริง",
+        "productionLine": "สายการผลิต",
+        "priority": "ความสำคัญ"
+      }
+    },
+    "form": {
+      "product": {
+        "label": "ผลิตภัณฑ์",
+        "placeholder": "เลือกผลิตภัณฑ์"
+      },
+      "quantity": {
+        "label": "ปริมาณ",
+        "placeholder": "ป้อนปริมาณ"
+      },
+      "batchSize": {
+        "label": "ขนาดแบตช์",
+        "placeholder": "ป้อนขนาดแบตช์"
+      },
+      "plannedStart": {
+        "label": "วันเริ่มต้นตามแผน",
+        "placeholder": "เลือกวันเริ่มต้น"
+      },
+      "plannedEnd": {
+        "label": "วันสิ้นสุดตามแผน",
+        "placeholder": "เลือกวันสิ้นสุด"
+      },
+      "productionLine": {
+        "label": "สายการผลิต",
+        "placeholder": "เลือกสายการผลิต"
+      },
+      "priority": {
+        "label": "ความสำคัญ",
+        "placeholder": "เลือกความสำคัญ"
+      },
+      "remarks": {
+        "label": "หมายเหตุ",
+        "placeholder": "ป้อนหมายเหตุ"
+      },
+      "batchNumber": {
+        "label": "เลขที่แบตช์"
+      }
+    },
+    "status": {
+      "draft": "แบบร่าง",
+      "planned": "วางแผนแล้ว",
+      "released": "ปล่อยแล้ว",
+      "inProgress": "กำลังดำเนินการ",
+      "onHold": "พักไว้",
+      "completed": "เสร็จสิ้น",
+      "cancelled": "ยกเลิก"
+    },
+    "priority": {
+      "low": "ต่ำ",
+      "normal": "ปกติ",
+      "high": "สูง",
+      "urgent": "เร่งด่วน"
+    },
+    "toast": {
+      "create": {
+        "success": "สร้างใบสั่งผลิตสำเร็จ",
+        "error": "ไม่สามารถสร้างใบสั่งผลิตได้"
+      },
+      "update": {
+        "success": "อัปเดตใบสั่งผลิตสำเร็จ",
+        "error": "ไม่สามารถอัปเดตใบสั่งผลิตได้"
+      },
+      "start": {
+        "success": "เริ่มการผลิตสำเร็จ",
+        "error": "ไม่สามารถเริ่มการผลิตได้"
+      },
+      "complete": {
+        "success": "เสร็จสิ้นการผลิตสำเร็จ",
+        "error": "ไม่สามารถเสร็จสิ้นการผลิตได้"
+      }
+    },
+    "empty": {
+      "title": "ไม่มีใบสั่งผลิต",
+      "description": "เริ่มต้นโดยสร้างใบสั่งผลิตใหม่",
+      "action": "สร้างใบสั่งผลิต"
+    }
+  },
+  "bom": {
+    "title": "สูตรการผลิต (BOM)",
+    "pageTitle": "สูตรการผลิต (BOM)",
+    "description": "จัดการสูตรการผลิตและส่วนผสม",
+    "subtitle": "จัดการสูตรการผลิตและส่วนประกอบ",
+    "breadcrumbs": {
+      "bomManagement": "จัดการ BOM"
+    },
+    "status": {
+      "draft": "แบบร่าง",
+      "active": "ใช้งาน",
+      "approved": "อนุมัติ",
+      "obsolete": "ล้าสมัย"
+    },
+    "filters": {
+      "allStatuses": "ทุกสถานะ"
+    },
+    "stats": {
+      "totalBOMs": "BOM ทั้งหมด",
+      "activeBOMs": "BOM ที่ใช้งาน",
+      "draftBOMs": "BOM ร่าง",
+      "workOrders": "ใบสั่งผลิต",
+      "materials": "วัสดุ",
+      "avgPerBOM": "เฉลี่ย/BOM",
+      "obsolete": "ล้าสมัย"
+    },
+    "charts": {
+      "statusDistribution": "การกระจายสถานะ",
+      "topProducts": "ผลิตภัณฑ์ยอดนิยม",
+      "recentBOMs": "BOM ล่าสุด",
+      "noBOMsFound": "ไม่พบ BOM",
+      "noData": "ไม่มีข้อมูล"
+    },
+    "tabs": {
+      "all": "ทั้งหมด",
+      "approved": "อนุมัติ",
+      "draft": "ร่าง",
+      "obsolete": "ล้าสมัย"
+    },
+    "alerts": {
+      "pendingReview": "รอการตรวจสอบ",
+      "draftBOMsPending": "คุณมี {count} BOM ร่างรอการอนุมัติ",
+      "viewDraftBOMs": "ดู BOM ร่าง"
+    },
+    "registry": {
+      "title": "ทะเบียน BOM"
+    },
+    "table": {
+      "columns": {
+        "code": "รหัส",
+        "name": "ชื่อ",
+        "product": "ผลิตภัณฑ์",
+        "batch": "แบตช์",
+        "version": "เวอร์ชัน",
+        "status": "สถานะ",
+        "created": "วันที่สร้าง",
+        "bomCode": "รหัส BOM",
+        "batchSize": "ขนาดแบตช์",
+        "unit": "หน่วย",
+        "effectiveDate": "วันที่มีผล",
+        "expiryDate": "วันหมดอายุ"
+      }
+    },
+    "ingredients": {
+      "title": "ส่วนผสม",
+      "columns": {
+        "item": "รายการ",
+        "quantity": "ปริมาณ",
+        "unit": "หน่วย",
+        "percentage": "เปอร์เซ็นต์",
+        "scrap": "เศษ/สูญเสีย"
+      }
+    },
+    "actions": {
+      "createNewBOM": "สร้าง BOM ใหม่",
+      "createBOM": "สร้างสูตรการผลิต",
+      "editBOM": "แก้ไขสูตรการผลิต",
+      "copyBOM": "คัดลอกสูตรการผลิต",
+      "newVersion": "สร้างเวอร์ชันใหม่",
+      "activateBOM": "เปิดใช้งาน",
+      "deactivateBOM": "ปิดใช้งาน"
+    }
+  },
+  "productionLines": {
+    "title": "สายการผลิต",
+    "description": "จัดการสายการผลิตและกำลังการผลิต",
+    "table": {
+      "columns": {
+        "code": "รหัสสายการผลิต",
+        "name": "ชื่อสายการผลิต",
+        "capacity": "กำลังการผลิต",
+        "status": "สถานะ",
+        "currentWO": "ใบสั่งผลิตปัจจุบัน",
+        "efficiency": "ประสิทธิภาพ"
+      }
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน",
+      "maintenance": "ซ่อมบำรุง"
+    }
+  },
+  "batches": {
+    "title": "แบตช์",
+    "description": "ติดตามแบตช์การผลิตและการควบคุมคุณภาพ",
+    "table": {
+      "columns": {
+        "batchNumber": "เลขที่แบตช์",
+        "product": "ผลิตภัณฑ์",
+        "quantity": "ปริมาณ",
+        "status": "สถานะ",
+        "productionDate": "วันที่ผลิต",
+        "expiryDate": "วันหมดอายุ",
+        "qcStatus": "สถานะ QC"
+      }
+    }
+  },
+  "labelVerification": {
+    "title": "การตรวจสอบฉลาก",
+    "description": "ตรวจสอบและรับรองเนื้อหาฉลากด้วยลายเซ็นอิเล็กทรอนิกส์คู่ (FR-064, FR-065)"
+  },
+  "lineClearance": {
+    "title": "การอนุมัติสายการผลิต",
+    "description": "ดำเนินการตรวจสอบการอนุมัติสายการผลิตก่อนเริ่มการผลิต (FR-062)"
+  },
+  "batchRecords": {
+    "title": "บันทึกการผลิตอิเล็กทรอนิกส์ (eBMR)",
+    "subtitle": "เอกสารกระบวนการผลิตและการติดตามความสอดคล้อง",
+    "actions": {
+      "refresh": "รีเฟรช",
+      "workOrders": "ใบสั่งผลิต"
+    },
+    "status": {
+      "pending": "รอดำเนินการ",
+      "in_progress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "deviation": "ความเบี่ยงเบน"
+    },
+    "stats": {
+      "total": "eBMR ทั้งหมด",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "deviations": "ความเบี่ยงเบน",
+      "completedToday": "เสร็จวันนี้",
+      "pending": "รอดำเนินการ",
+      "avgCompletionTime": "เวลาเฉลี่ย",
+      "minSuffix": " นาที"
+    },
+    "charts": {
+      "statusDistribution": "สัดส่วนสถานะ eBMR",
+      "noRecords": "ไม่พบข้อมูล",
+      "weeklyActivity": "กิจกรรมรายสัปดาห์",
+      "noActivity": "ยังไม่มีข้อมูลกิจกรรม",
+      "topProducts": "สินค้าที่มี eBMR มากที่สุด",
+      "woCount": "{count} ใบสั่งผลิต",
+      "completionRate": "เสร็จ {rate}%",
+      "noProductData": "ไม่มีข้อมูลสินค้า",
+      "recentRecords": "eBMR ล่าสุด",
+      "noRecentRecords": "ไม่มีรายการล่าสุด",
+      "completed": "เสร็จสิ้น",
+      "deviations": "ความเบี่ยงเบน"
+    },
+    "alerts": {
+      "deviationsTitle": "พบความเบี่ยงเบน",
+      "deviationsDescription": "มี {count} รายการบันทึกการผลิตที่มีความเบี่ยงเบน ต้องได้รับการตรวจสอบ",
+      "activeTitle": "กำลังผลิตอยู่",
+      "activeDescription": "มี {count} ใบสั่งผลิต{suffix}กำลังดำเนินการและมีข้อมูลการทำงาน",
+      "viewInProgress": "ดูที่กำลังดำเนินการ"
+    },
+    "registry": {
+      "title": "รายการ eBMR",
+      "filterByStatus": "กรองตามสถานะ",
+      "searchPlaceholder": "ค้นหา WO, แบตช์, หรือสินค้า...",
+      "dataGridSearch": "ค้นหารายการ..."
+    },
+    "statusFilters": {
+      "all": "ทุกสถานะ",
+      "pending": "รอดำเนินการ",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น"
+    },
+    "tabs": {
+      "all": "ทั้งหมด",
+      "inProgress": "กำลังดำเนินการ",
+      "pending": "รอดำเนินการ",
+      "completed": "เสร็จสิ้น"
+    },
+    "columns": {
+      "workOrder": "ใบสั่งผลิต",
+      "product": "สินค้า",
+      "executionRecords": "บันทึกการทำงาน",
+      "startDate": "วันเริ่มต้น",
+      "endDate": "วันสิ้นสุด",
+      "status": "สถานะ"
+    },
+    "execution": {
+      "sopPrefix": "SOP:",
+      "cleanPrefix": "ทำความสะอาด:",
+      "envPrefix": "สภาพแวดล้อม:",
+      "fiPrefix": "ตรวจปลาย:",
+      "totalSuffix": " รวม"
+    },
+    "mobile": {
+      "startPrefix": "เริ่ม:",
+      "endPrefix": "สิ้นสุด:",
+      "viewDetails": "ดูรายละเอียด"
+    },
+    "empty": {
+      "title": "ไม่มี Batch Records",
+      "description": "Batch records จะปรากฏที่นี่เมื่อใบสั่งผลิตมีบันทึกการทำงาน (SOP, ทำความสะอาด, สภาพแวดล้อม, หรือตรวจปลาย)"
+    },
+    "noResults": {
+      "title": "ไม่พบรายการที่ตรงกับเงื่อนไข",
+      "description": "ลองเปลี่ยนคำค้นหาหรือตัวกรอง",
+      "clearFilters": "ล้างตัวกรอง"
+    }
+  },
+  "execution": {
+    "title": "การดำเนินการใบสั่งผลิต",
+    "materialWeighing": "การชั่งวัตถุดิบ",
+    "cleaning": "รายการตรวจสอบการทำความสะอาด",
+    "environmentalMonitoring": "การตรวจสอบสภาพแวดล้อม",
+    "sopExecution": "การดำเนินการ SOP",
+    "packagingQC": "QC บรรจุภัณฑ์",
+    "finishedInspection": "การตรวจสอบผลิตภัณฑ์สำเร็จรูป",
+    "ipc": "In-Process Control (IPC)",
+    "ipcDescription": "บันทึกผลการตรวจสอบระหว่างกระบวนการผลิต",
+    "ipcProgress": "ความคืบหน้า IPC",
+    "testsCompleted": "รายการเสร็จสิ้น",
+    "approved": "อนุมัติแล้ว",
+    "initializeIPCTests": "เริ่มต้นรายการทดสอบ IPC",
+    "noIPCConfig": "ไม่พบการกำหนดค่า IPC ใน BOM",
+    "noIPCConfigHint": "กรุณากำหนดรายการทดสอบ IPC ในสูตรการผลิต (BOM) ก่อน",
+    "ipcReadyToInit": "พร้อมเริ่มต้นรายการทดสอบ IPC",
+    "testsFromBOM": "รายการทดสอบจาก BOM",
+    "record": "บันทึกผล",
+    "approve": "อนุมัติ",
+    "range": "ช่วงค่า",
+    "spec": "ข้อกำหนด",
+    "samples": "ตัวอย่าง",
+    "sampleResults": "ผลตัวอย่าง",
+    "notes": "หมายเหตุ",
+    "notesPlaceholder": "หมายเหตุเพิ่มเติม (ไม่บังคับ)",
+    "testedAt": "ทดสอบเมื่อ",
+    "approvedAt": "อนุมัติเมื่อ",
+    "recordResult": "บันทึกผลทดสอบ",
+    "specRequirement": "ข้อกำหนดคุณภาพ",
+    "measuredValue": "ค่าที่วัดได้",
+    "withinSpec": "อยู่ในข้อกำหนด",
+    "outOfSpec": "นอกข้อกำหนด",
+    "sampleValues": "ค่าตัวอย่าง",
+    "samplesPass": "ผ่านเกณฑ์",
+    "room": "ห้อง",
+    "equipment": "อุปกรณ์",
+    "materialReturnDialog": {
+      "title": "คืนของเหลือ",
+      "sourceLot": "ลอตต้นทาง",
+      "planned": "ตามแผน",
+      "weighed": "ชั่งได้",
+      "threeLevelLabel": "วัตถุดิบ 3 ระดับ",
+      "modeWeight": "ชั่งน้ำหนัก",
+      "modeSU": "ใส่จำนวน",
+      "weightInputLabel": "น้ำหนักที่ใช้จริง",
+      "actualUsed": "ใช้จริง",
+      "returnToWarehouse": "คืนคลัง",
+      "zeroCost": "ไม่คิดต้นทุน",
+      "issued": "เบิกออก",
+      "used": "ใช้จริง",
+      "returnQty": "คืนคลัง",
+      "variance": "ส่วนต่าง",
+      "varianceWarning": "ส่วนต่างอาจเกินเกณฑ์ — QA จะตรวจสอบและอาจเปิดรายการเบี่ยงเบน",
+      "containerLabel": "ป้ายภาชนะ",
+      "containerType": "ประเภทภาชนะ",
+      "varianceReason": "เหตุผลส่วนต่าง",
+      "varianceExplanation": "คำอธิบายส่วนต่าง",
+      "explanationRequired": "จำเป็นต้องระบุเหตุผลสำหรับ \"อื่นๆ\" / \"ไม่ทราบสาเหตุ\"",
+      "explanationOptional": "อธิบายเพิ่มเติม (ถ้ามี)",
+      "notes": "หมายเหตุ",
+      "notesPlaceholder": "หมายเหตุเพิ่มเติม",
+      "cancel": "ยกเลิก",
+      "submitting": "กำลังส่ง...",
+      "submit": "ส่งคืนวัตถุดิบ",
+      "editTitle": "แก้ไขการคืนของ",
+      "editSubmit": "บันทึกการแก้ไข",
+      "buttonSubmit": "บันทึกคืนของ",
+      "buttonEdit": "แก้ไขการคืนของ",
+      "badgeReceived": "คืนเข้าคลังแล้ว",
+      "badgeRejected": "ถูกปฏิเสธ",
+      "badgePending": "รอตรวจสอบ"
+    },
+    "materialWeighingPage": {
+      "title": "ชั่งน้ำหนักวัตถุดิบ",
+      "progress": {
+        "weighed": "ชั่งแล้ว",
+        "verified": "ตรวจสอบแล้ว",
+        "allVerified": "ตรวจสอบครบทุกรายการ"
+      },
+      "material": {
+        "planned": "แผน",
+        "actual": "จริง",
+        "variance": "ส่วนต่าง",
+        "lot": "Lot"
+      },
+      "form": {
+        "actualWeight": "น้ำหนักจริง",
+        "lot": {
+          "label": "Lot Number",
+          "placeholder": "เลือก Lot (ไม่บังคับ)",
+          "noData": "ไม่พบ Lot ที่ใช้ได้",
+          "expiry": "หมดอายุ",
+          "noExpiry": "N/A"
+        },
+        "notes": "หมายเหตุ",
+        "recordWeight": "บันทึกน้ำหนัก",
+        "cancel": "ยกเลิก",
+        "varianceWarning": "ส่วนต่างสูง - กรุณาตรวจสอบ"
+      },
+      "actions": {
+        "weigh": "ชั่ง",
+        "verify": "ตรวจสอบ",
+        "backToExecution": "กลับไปหน้าดำเนินการ"
+      },
+      "toast": {
+        "weightRecorded": "บันทึกน้ำหนักสำเร็จ",
+        "weightVerified": "ตรวจสอบน้ำหนักสำเร็จ"
+      },
+      "noMaterials": "ไม่พบวัตถุดิบสำหรับใบสั่งผลิตนี้",
+      "noMaterialsHint": "วัตถุดิบจะถูกโหลดจากสูตรการผลิต (BOM)"
+    },
+    "productionOutputPage": {
+      "title": "บันทึกผลผลิต",
+      "subtitle": "Batch: {batch} | {product}",
+      "status": {
+        "notRecorded": "ยังไม่ได้บันทึก",
+        "recorded": "บันทึกแล้ว",
+        "woNotInProgress": "ใบสั่งผลิตยังไม่ได้เริ่มดำเนินการ"
+      },
+      "info": {
+        "plannedQty": "จำนวนตามแผน",
+        "unit": "หน่วย",
+        "batchNumber": "หมายเลข Batch",
+        "product": "สินค้า"
+      },
+      "form": {
+        "actualQuantity": "จำนวนผลิตจริง (Good)",
+        "rejectQuantity": "Finished Goods Loss",
+        "warehouse": "คลังสินค้าปลายทาง",
+        "warehousePlaceholder": "เลือกคลังสินค้า",
+        "notes": "หมายเหตุ",
+        "submit": "บันทึกผลผลิต",
+        "cancel": "ยกเลิก",
+        "edit": "แก้ไข"
+      },
+      "yield": {
+        "title": "ผลการคำนวณ Yield",
+        "yieldPercent": "Yield %",
+        "rejectPercent": "FG Loss %",
+        "lossPercent": "Loss %",
+        "theoretical": "จำนวนตามทฤษฎี",
+        "actualGood": "จำนวนดี",
+        "actualReject": "Finished Goods Loss",
+        "statusNormal": "ปกติ",
+        "statusLowYield": "Yield ต่ำกว่าเป้า",
+        "statusHighYield": "Yield สูงผิดปกติ"
+      },
+      "output": {
+        "title": "ข้อมูลผลผลิตที่บันทึก",
+        "lotCreated": "สร้าง Lot สำเร็จรูปแล้ว",
+        "lotId": "Lot ID"
+      },
+      "toast": {
+        "success": "บันทึกผลผลิตสำเร็จ",
+        "successDetail": "สร้าง Lot สินค้าสำเร็จรูปในคลังแล้ว",
+        "error": "ไม่สามารถบันทึกผลผลิตได้",
+        "lowYieldWarning": "Yield ต่ำกว่าเป้า อาจต้องบันทึก Deviation"
+      },
+      "actions": {
+        "backToExecution": "กลับไปหน้าดำเนินการ"
+      }
+    }
+  },
+  "newWorkOrder": {
+    "title": "สร้างใบสั่งผลิต"
+  },
+  "newBOM": {
+    "title": "สร้าง BOM ใหม่"
+  },
+  "bomDetail": {
+    "title": "รายละเอียด BOM"
+  },
+  "bomConfiguration": {
+    "title": "การตั้งค่า BOM",
+    "summary": "สรุปการตั้งค่า BOM",
+    "rooms": "ห้อง",
+    "equipment": "อุปกรณ์",
+    "environmentalConditions": "เงื่อนไขสภาพแวดล้อม",
+    "sopSteps": "ขั้นตอน SOP",
+    "packagingQC": "เกณฑ์ QC บรรจุภัณฑ์",
+    "noConfig": "ไม่พบการตั้งค่า BOM",
+    "requirements": "ข้อกำหนด BOM",
+    "temperatureRange": "อุณหภูมิ",
+    "humidityMax": "ความชื้นสูงสุด",
+    "monitoringInterval": "ช่วงเวลาตรวจวัด",
+    "weightMin": "น้ำหนักต่ำสุด",
+    "weightMax": "น้ำหนักสูงสุด",
+    "sampleSize": "จำนวนตัวอย่าง",
+    "maxFailures": "จำนวนล้มเหลวสูงสุด",
+    "checkInterval": "ช่วงเวลาตรวจสอบ",
+    "parameters": "พารามิเตอร์",
+    "instructions": "คำแนะนำ",
+    "everyMinutes": "ทุก {minutes} นาที",
+    "step": "ขั้นตอนที่ {sequence}"
+  },
+  "workOrderDetail": {
+    "title": "รายละเอียดใบสั่งผลิต"
+  },
+  "analytics": {
+    "pageTitle": "วิเคราะห์การผลิต",
+    "description": "สรุปภาพรวมและวิเคราะห์ข้อมูลการผลิต",
+    "breadcrumbs": {
+      "analytics": "วิเคราะห์"
+    },
+    "stats": {
+      "totalOrders": "ใบสั่งทั้งหมด",
+      "completedOrders": "ผลิตเสร็จ",
+      "completionRate": "อัตราสำเร็จ",
+      "avgYield": "ผลผลิตเฉลี่ย",
+      "onTimeRate": "ตรงเวลา",
+      "totalProducts": "ผลิตภัณฑ์ที่ผลิต",
+      "avgLeadTime": "ระยะเวลาเฉลี่ย",
+      "days": "วัน"
+    },
+    "charts": {
+      "monthlyVolume": "ปริมาณการผลิตรายเดือน",
+      "planned": "แผน",
+      "actual": "จริง",
+      "completed": "เสร็จ",
+      "yieldByProduct": "ผลผลิต (Yield) ตามผลิตภัณฑ์",
+      "yieldPercent": "ผลผลิต (%)",
+      "productionByProduct": "จำนวนการผลิตตามผลิตภัณฑ์",
+      "count": "จำนวน (ครั้ง)",
+      "statusOverview": "ภาพรวมสถานะ",
+      "leadTimeByProduct": "ระยะเวลาผลิตตามผลิตภัณฑ์",
+      "averageDays": "เฉลี่ย (วัน)",
+      "onTimeDelivery": "การส่งมอบตรงเวลา",
+      "onTime": "ตรงเวลา",
+      "late": "ล่าช้า",
+      "noDeliveryDate": "ไม่มีกำหนด",
+      "priorityCompletion": "อัตราสำเร็จตามความสำคัญ",
+      "rate": "อัตรา (%)",
+      "noData": "ไม่มีข้อมูล",
+      "orders": "ใบสั่ง",
+      "month": "เดือน",
+      "product": "ผลิตภัณฑ์"
+    },
+    "actions": {
+      "backToWorkOrders": "กลับไปหน้าใบสั่งผลิต",
+      "exportExcel": "ส่งออก Excel"
+    }
+  },
+  "packagingQc": {
+    "common": {
+      "back": "กลับไป Execution Dashboard",
+      "history": "ประวัติการตรวจ",
+      "notes": "หมายเหตุ",
+      "notesLabel": "หมายเหตุ:",
+      "cancel": "ยกเลิก",
+      "save": "บันทึก",
+      "update": "อัพเดท",
+      "edit": "แก้ไข",
+      "delete": "ลบ",
+      "deleteConfirmTitle": "ยืนยันการลบ",
+      "deleteConfirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้",
+      "deleteAction": "ลบรายการ",
+      "operator": "ผู้บันทึก",
+      "inspector": "ผู้ตรวจสอบ",
+      "error": "เกิดข้อผิดพลาด",
+      "batch": "Batch"
+    },
+    "weight": {
+      "title": "ตรวจน้ำหนักบรรจุภัณฑ์",
+      "subtitle": "Packaging Weight Control",
+      "criteria": "เกณฑ์การตรวจ (Acceptance Criteria)",
+      "minWeight": "น้ำหนักขั้นต่ำ",
+      "maxWeight": "น้ำหนักสูงสุด",
+      "sampleSize": "จำนวนตัวอย่าง",
+      "maxFailures": "เสียได้ไม่เกิน",
+      "noBomCriteria": "ยังไม่ได้กำหนดเกณฑ์น้ำหนักใน BOM — ติดต่อ admin เพื่อกำหนดก่อน",
+      "addCheck": "บันทึกการตรวจน้ำหนัก",
+      "addCheckEn": "Add Weight Check",
+      "totalChecks": "จำนวนครั้งที่ตรวจ",
+      "passed": "ผ่าน",
+      "failed": "ไม่ผ่าน",
+      "passRate": "อัตราผ่าน",
+      "emptyTitle": "ยังไม่มีการตรวจน้ำหนัก",
+      "emptyHint": "คลิก \"บันทึกการตรวจน้ำหนัก\" ด้านบนเพื่อเริ่มต้น",
+      "failedSamples": "เสีย {count} ตัวอย่าง",
+      "passLabel": "PASS",
+      "failLabel": "FAIL",
+      "avg": "เฉลี่ย",
+      "min": "ต่ำสุด",
+      "max": "สูงสุด",
+      "dialogAdd": "บันทึกการตรวจน้ำหนัก",
+      "dialogEdit": "แก้ไขการตรวจน้ำหนัก",
+      "editingFrom": "กำลังแก้ไขรายการของ {time} — การเปลี่ยนแปลงจะถูกบันทึกใน audit trail",
+      "criteriaLabel": "เกณฑ์",
+      "criteriaRange": "ช่วงน้ำหนัก:",
+      "criteriaSample": "ตัวอย่าง:",
+      "criteriaMaxFail": "เสียได้:",
+      "inputLabel": "ใส่น้ำหนักแต่ละตัวอย่าง (กรัม) — ทศนิยม 2 ตำแหน่ง",
+      "inputItem": "ตัวอย่าง #{index}",
+      "outOfRange": "นอกเกณฑ์",
+      "ok": "OK",
+      "helperText": "น้ำหนักที่ผ่าน: {min}–{max}g (เสียได้ไม่เกิน {maxFail} ตัวอย่าง)",
+      "notesEditReason": "(เหตุผลในการแก้ไข)",
+      "notesPlaceholderEdit": "ระบุเหตุผลในการแก้ไข...",
+      "notesPlaceholderAdd": "หมายเหตุเพิ่มเติม...",
+      "toastAdded": "บันทึกการตรวจน้ำหนักแล้ว",
+      "toastEdited": "แก้ไขข้อมูลสำเร็จ",
+      "toastDeleted": "ลบข้อมูลสำเร็จ",
+      "namespace": "Weight Control"
+    },
+    "integrity": {
+      "title": "ตรวจสอบคุณภาพบรรจุภัณฑ์",
+      "subtitle": "Packaging Integrity Check",
+      "checklist": "รายการตรวจสอบ (Checklist)",
+      "tubeCapLabel": "หลอด/ฝา ปิดสนิท",
+      "tubeCapSub": "Tube/Cap Sealed",
+      "tubeCapFull": "Tube/Cap Complete & Sealed",
+      "lotLabel": "Lot Number ถูกต้อง",
+      "lotSub": "Lot Correct",
+      "lotFull": "Lot Number Correct",
+      "packingLabel": "การบรรจุถูกต้อง",
+      "packingSub": "Packing Correct",
+      "packingFull": "Packing Correct",
+      "addCheck": "บันทึกการตรวจ Integrity",
+      "addCheckEn": "Add Integrity Check",
+      "totalChecks": "จำนวนครั้งที่ตรวจ",
+      "allPass": "ผ่านครบทุกข้อ",
+      "issues": "พบปัญหา",
+      "passRate": "อัตราผ่าน",
+      "emptyTitle": "ยังไม่มีการตรวจ Integrity",
+      "emptyHint": "คลิก \"บันทึกการตรวจ Integrity\" ด้านบนเพื่อเริ่มต้น",
+      "passAll": "ผ่านครบ 3/3",
+      "passPartial": "{pass}/3 ผ่าน",
+      "shortTubeCap": "หลอด/ฝา",
+      "shortLot": "Lot Number",
+      "shortPacking": "การบรรจุ",
+      "dialogTitle": "บันทึกการตรวจ Integrity",
+      "dialogIntro": "ตรวจสอบทั้ง 3 ข้อ — สลับ toggle หากพบปัญหา",
+      "notesPlaceholder": "ระบุปัญหาที่พบ หรือ ข้อสังเกต...",
+      "toastAdded": "บันทึกการตรวจ Integrity แล้ว",
+      "namespace": "Integrity Check"
+    }
+  }
+}

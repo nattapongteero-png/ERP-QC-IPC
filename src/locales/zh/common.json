@@ -1,0 +1,28 @@
+{
+  "actions": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "search": "搜索",
+    "filter": "筛选",
+    "export": "导出",
+    "import": "导入",
+    "refresh": "刷新"
+  },
+  "status": {
+    "active": "活跃",
+    "inactive": "停用",
+    "pending": "待处理",
+    "approved": "已批准",
+    "draft": "草稿"
+  },
+  "loading": {
+    "loading": "加载中...",
+    "saving": "保存中..."
+  },
+  "empty": {
+    "noData": "暂无数据"
+  }
+}

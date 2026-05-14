@@ -4,59 +4,51 @@
  * Product Recalls Dashboard
  * Feature: 009-gmp-compliance-gap-analysis (หมวด 9)
  *
- * Professional dashboard for product recall management with:
- * - KPI cards with trends and click handlers
- * - Status and Class distribution charts
- * - Recall effectiveness matrix
- * - Tabbed data views with badges
- * - Enhanced data grid with advanced filtering
+ * Responsive + informative dashboard for product recall management:
+ * - ResponsivePageHeader with strong warning identity (red)
+ * - 4 KPI StatCards (Total / Active / Class I / Avg Effectiveness)
+ * - Charts hidden on mobile (hidden lg:grid)
+ * - Mobile card view with class-severity border accent + 44px touch footer
+ * - Loading skeletons, Empty state, No-results state
+ * - Responsive search + tab scroll-snap filter row
+ * - DxDataGrid on desktop with minWidth/hideOnMobile columns
+ * - DxPopup with fullScreenOnMobile for Mock Drill
  */
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import DataGrid, {
-  Column,
-  Paging,
-  Pager,
-  FilterRow,
-  HeaderFilter,
-  SearchPanel,
-  Selection,
-  Sorting,
-  ColumnChooser,
-  Export,
-  Toolbar,
-  Item,
-  LoadPanel,
-  MasterDetail,
-  StateStoring,
-} from 'devextreme-react/data-grid';
-import { PieChart, Series, Label, Legend, Tooltip, Connector } from 'devextreme-react/pie-chart';
-import { Chart, CommonSeriesSettings, Series as ChartSeries, ArgumentAxis, ValueAxis, Legend as ChartLegend, Tooltip as ChartTooltip } from 'devextreme-react/chart';
-import Button from 'devextreme-react/button';
+import { useTranslations, useLocale } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxButton } from '@/components/ui/dx-button';
+import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { useMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils/cn';
 import { RecallDataEntryDialog } from '@/components/recalls/RecallDataEntryDialog';
+import PieChart, { Series, Label, Legend, Tooltip } from 'devextreme-react/pie-chart';
+import { Chart, CommonSeriesSettings, Series as ChartSeries, ArgumentAxis, ValueAxis, Legend as ChartLegend, Tooltip as ChartTooltip } from 'devextreme-react/chart';
 import {
   AlertTriangle,
-  Package,
-  CheckCircle,
+  AlertOctagon,
   Activity,
-  TrendingUp,
-  TrendingDown,
-  Shield,
+  CheckCircle,
   Clock,
   Target,
+  Shield,
+  Package,
+  Truck,
+  Users,
+  XCircle,
   BarChart3,
   PieChartIcon,
-  XCircle,
-  Users,
-  Truck,
-  RefreshCw,
+  SearchX,
+  Calendar,
   FileText,
-  AlertOctagon,
+  ChevronRight,
 } from 'lucide-react';
 import type { RecallListResponse, RecallStatus, RecallClass, MockDrillResult, Recall } from '@/types/recalls';
 
@@ -65,13 +57,6 @@ import type { RecallListResponse, RecallStatus, RecallClass, MockDrillResult, Re
 // ============================================
 
 type TabKey = 'all' | 'initiated' | 'in_progress' | 'completed' | 'closed';
-
-interface TabConfig {
-  id: TabKey;
-  text: string;
-  icon: string;
-  badge?: number;
-}
 
 // ============================================
 // Constants
@@ -83,10 +68,26 @@ const CLASS_COLORS: Record<RecallClass, string> = {
   class_iii: '#3b82f6',
 };
 
-const CLASS_LABELS: Record<RecallClass, string> = {
-  class_i: 'Class I',
-  class_ii: 'Class II',
-  class_iii: 'Class III',
+
+// next-intl's Translator shape (subset).
+type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
+
+const CLASS_BORDER_ACCENT: Record<RecallClass, string> = {
+  class_i: 'border-l-red-500',
+  class_ii: 'border-l-amber-500',
+  class_iii: 'border-l-blue-500',
+};
+
+const CLASS_ICON_BG: Record<RecallClass, string> = {
+  class_i: 'bg-red-100',
+  class_ii: 'bg-amber-100',
+  class_iii: 'bg-blue-100',
+};
+
+const CLASS_ICON_COLOR: Record<RecallClass, string> = {
+  class_i: 'text-red-600',
+  class_ii: 'text-amber-600',
+  class_iii: 'text-blue-600',
 };
 
 const STATUS_COLORS: Record<RecallStatus, string> = {
@@ -96,12 +97,27 @@ const STATUS_COLORS: Record<RecallStatus, string> = {
   closed: '#6b7280',
 };
 
-const STATUS_LABELS: Record<RecallStatus, string> = {
-  initiated: 'Initiated',
-  in_progress: 'In Progress',
-  completed: 'Completed',
-  closed: 'Closed',
+
+const STATUS_BADGE_VARIANT: Record<RecallStatus, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
+  initiated: 'warning',
+  in_progress: 'info',
+  completed: 'success',
+  closed: 'default',
 };
+
+// Status tab configuration (scroll-snap filter row) — labels supplied via t()
+const TAB_CONFIG: Array<{
+  key: TabKey;
+  labelKey: string;
+  bgActive: string;
+  icon: React.ElementType;
+}> = [
+  { key: 'all', labelKey: 'recalls.tabs.all', bgActive: 'bg-gray-900', icon: FileText },
+  { key: 'initiated', labelKey: 'recalls.tabs.initiated', bgActive: 'bg-amber-500', icon: Clock },
+  { key: 'in_progress', labelKey: 'recalls.tabs.in_progress', bgActive: 'bg-blue-600', icon: Activity },
+  { key: 'completed', labelKey: 'recalls.tabs.completed', bgActive: 'bg-emerald-600', icon: CheckCircle },
+  { key: 'closed', labelKey: 'recalls.tabs.closed', bgActive: 'bg-gray-600', icon: XCircle },
+];
 
 // ============================================
 // API Functions
@@ -136,79 +152,41 @@ async function executeMockDrill(lotId: number): Promise<MockDrillResult> {
 // Helper Functions
 // ============================================
 
-function getRecoveryLevel(rate: number): { level: string; color: string } {
-  if (rate >= 90) return { level: 'Excellent', color: 'green' };
-  if (rate >= 70) return { level: 'Good', color: 'emerald' };
-  if (rate >= 50) return { level: 'Fair', color: 'yellow' };
-  if (rate >= 30) return { level: 'Poor', color: 'orange' };
-  return { level: 'Critical', color: 'red' };
+function formatDate(dateStr: string | Date | null | undefined): string {
+  if (!dateStr) return '-';
+  const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+  return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function getRecoveryColor(rate: number): string {
+  if (rate >= 70) return 'text-emerald-600';
+  if (rate >= 50) return 'text-amber-600';
+  if (rate > 0) return 'text-red-600';
+  return 'text-gray-400';
+}
+
+function getRecoveryBarColor(rate: number): string {
+  if (rate >= 70) return 'bg-emerald-500';
+  if (rate >= 50) return 'bg-amber-500';
+  if (rate > 0) return 'bg-red-500';
+  return 'bg-gray-300';
 }
 
 // ============================================
-// Sub-Components
+// Recall Effectiveness Matrix
 // ============================================
 
-interface KpiCardProps {
-  title: string;
-  value: number | string;
-  subtitle?: string;
-  icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-  trend?: { value: number; isPositive: boolean };
-  onClick?: () => void;
-  highlight?: boolean;
-}
-
-function KpiCard({ title, value, subtitle, icon: Icon, iconBg, iconColor, trend, onClick, highlight }: KpiCardProps) {
-  return (
-    <div
-      className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border ${
-        highlight ? 'border-red-300 dark:border-red-700 ring-2 ring-red-100 dark:ring-red-900/50' : 'border-gray-100 dark:border-gray-700'
-      } p-5 transition-all duration-200 ${
-        onClick ? 'cursor-pointer hover:shadow-md hover:border-red-200 dark:hover:border-red-800' : ''
-      }`}
-      onClick={onClick}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{subtitle}</p>
-          )}
-          {trend && (
-            <div className={`flex items-center gap-1 mt-2 text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-              {trend.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              <span>{trend.value}% vs last month</span>
-            </div>
-          )}
-        </div>
-        <div className={`p-3 rounded-xl ${iconBg}`}>
-          <Icon className={`w-6 h-6 ${iconColor}`} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface RecallEffectivenessMatrixProps {
-  recalls: Recall[];
-}
-
-function RecallEffectivenessMatrix({ recalls }: RecallEffectivenessMatrixProps) {
+function RecallEffectivenessMatrix({ recalls, t }: { recalls: Recall[]; t: TranslateFn }) {
   const matrixData = useMemo(() => {
     const activeRecalls = recalls.filter(r => r.status !== 'closed');
     const matrix: Record<string, { count: number; avgEffectiveness: number; recalls: Recall[] }> = {};
 
-    // Initialize matrix
-    ['class_i', 'class_ii', 'class_iii'].forEach(cls => {
-      ['initiated', 'in_progress', 'completed'].forEach(status => {
+    (['class_i', 'class_ii', 'class_iii'] as RecallClass[]).forEach(cls => {
+      (['initiated', 'in_progress', 'completed'] as RecallStatus[]).forEach(status => {
         matrix[`${cls}-${status}`] = { count: 0, avgEffectiveness: 0, recalls: [] };
       });
     });
 
-    // Populate matrix
     activeRecalls.forEach(recall => {
       const key = `${recall.recallClass}-${recall.status}`;
       if (matrix[key]) {
@@ -217,7 +195,6 @@ function RecallEffectivenessMatrix({ recalls }: RecallEffectivenessMatrixProps) 
       }
     });
 
-    // Calculate average effectiveness
     Object.keys(matrix).forEach(key => {
       const cell = matrix[key];
       if (cell.recalls.length > 0) {
@@ -229,52 +206,54 @@ function RecallEffectivenessMatrix({ recalls }: RecallEffectivenessMatrixProps) 
   }, [recalls]);
 
   const getCellColor = (cls: string, count: number): string => {
-    if (count === 0) return 'bg-gray-50 dark:bg-gray-800';
-    if (cls === 'class_i') return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
-    if (cls === 'class_ii') return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200';
-    return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200';
+    if (count === 0) return 'bg-gray-50';
+    if (cls === 'class_i') return 'bg-red-100 text-red-800';
+    if (cls === 'class_ii') return 'bg-yellow-100 text-yellow-800';
+    return 'bg-blue-100 text-blue-800';
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
         <Shield className="w-4 h-4" />
-        Active Recalls Matrix
+        {t('recalls.charts.activeRecallsMatrix')}
       </h3>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
             <tr>
               <th className="p-1"></th>
-              <th className="p-1 text-center font-medium text-gray-500 dark:text-gray-400">Initiated</th>
-              <th className="p-1 text-center font-medium text-gray-500 dark:text-gray-400">In Progress</th>
-              <th className="p-1 text-center font-medium text-gray-500 dark:text-gray-400">Completed</th>
+              <th className="p-1 text-center font-medium text-gray-500">{t('recalls.charts.matrixHeaderInitiated')}</th>
+              <th className="p-1 text-center font-medium text-gray-500">{t('recalls.charts.matrixHeaderInProgress')}</th>
+              <th className="p-1 text-center font-medium text-gray-500">{t('recalls.charts.matrixHeaderCompleted')}</th>
             </tr>
           </thead>
           <tbody>
             {(['class_i', 'class_ii', 'class_iii'] as RecallClass[]).map((cls) => (
               <tr key={cls}>
-                <td className="p-1 text-right font-medium text-gray-500 dark:text-gray-400 pr-2">
-                  {CLASS_LABELS[cls]}
+                <td className="p-1 text-right font-medium text-gray-500 pr-2">
+                  {t(`recalls.classLabels.${cls}`)}
                 </td>
                 {(['initiated', 'in_progress', 'completed'] as RecallStatus[]).map((status) => {
                   const cell = matrixData[`${cls}-${status}`];
                   return (
                     <td key={`${cls}-${status}`} className="p-1">
                       <div
-                        className={`rounded-lg h-14 flex flex-col items-center justify-center font-bold transition-all ${getCellColor(cls, cell.count)} ${
-                          cell.count > 0 ? 'ring-1 ring-offset-1 ring-gray-300 dark:ring-gray-600' : ''
-                        }`}
+                        className={cn(
+                          'rounded-lg h-14 flex flex-col items-center justify-center font-bold transition-all',
+                          getCellColor(cls, cell.count),
+                          cell.count > 0 && 'ring-1 ring-offset-1 ring-gray-300'
+                        )}
                       >
                         {cell.count > 0 ? (
                           <>
                             <span className="text-lg">{cell.count}</span>
                             <span className="text-[10px] font-normal opacity-70">
-                              {cell.avgEffectiveness.toFixed(0)}% eff.
+                              {cell.avgEffectiveness.toFixed(0)}% {t('recalls.charts.effectivenessSuffix')}
                             </span>
                           </>
                         ) : (
-                          <span className="text-gray-300 dark:text-gray-600">-</span>
+                          <span className="text-gray-300">-</span>
                         )}
                       </div>
                     </td>
@@ -284,18 +263,18 @@ function RecallEffectivenessMatrix({ recalls }: RecallEffectivenessMatrixProps) 
             ))}
           </tbody>
         </table>
-        <div className="flex items-center justify-center gap-4 mt-4 text-xs">
+        <div className="flex items-center justify-center gap-4 mt-4 text-xs flex-wrap">
           <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded bg-red-100 dark:bg-red-900/30 border border-red-200"></div>
-            <span className="text-gray-500">Class I (Critical)</span>
+            <div className="w-4 h-4 rounded bg-red-100 border border-red-200"></div>
+            <span className="text-gray-500">{t('recalls.classLegend.classI')}</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200"></div>
-            <span className="text-gray-500">Class II (Major)</span>
+            <div className="w-4 h-4 rounded bg-yellow-100 border border-yellow-200"></div>
+            <span className="text-gray-500">{t('recalls.classLegend.classII')}</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 border border-blue-200"></div>
-            <span className="text-gray-500">Class III (Minor)</span>
+            <div className="w-4 h-4 rounded bg-blue-100 border border-blue-200"></div>
+            <span className="text-gray-500">{t('recalls.classLegend.classIII')}</span>
           </div>
         </div>
       </div>
@@ -309,8 +288,12 @@ function RecallEffectivenessMatrix({ recalls }: RecallEffectivenessMatrixProps) 
 
 export default function RecallsDashboardPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const t = useTranslations('gmp');
+  const locale = useLocale();
+  const { isMobile } = useMobile();
+
   const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [search, setSearch] = useState('');
   const [showNewRecallDialog, setShowNewRecallDialog] = useState(false);
   const [showMockDrill, setShowMockDrill] = useState(false);
   const [mockDrillLotId, setMockDrillLotId] = useState<number>(0);
@@ -337,7 +320,6 @@ export default function RecallsDashboardPage() {
     const totalDistributed = activeRecalls.reduce((sum, r) => sum + r.distributedQuantity, 0);
     const totalReturned = activeRecalls.reduce((sum, r) => sum + r.returnedQuantity, 0);
 
-    // Count by status
     const byStatus = {
       initiated: recalls.filter((r) => r.status === 'initiated').length,
       in_progress: recalls.filter((r) => r.status === 'in_progress').length,
@@ -345,7 +327,6 @@ export default function RecallsDashboardPage() {
       closed: recalls.filter((r) => r.status === 'closed').length,
     };
 
-    // Count by class (active only)
     const byClass = {
       class_i: activeRecalls.filter((r) => r.recallClass === 'class_i').length,
       class_ii: activeRecalls.filter((r) => r.recallClass === 'class_ii').length,
@@ -353,6 +334,7 @@ export default function RecallsDashboardPage() {
     };
 
     return {
+      total: recalls.length,
       active: activeRecalls.length,
       classI: byClass.class_i,
       classII: byClass.class_ii,
@@ -365,104 +347,98 @@ export default function RecallsDashboardPage() {
     };
   }, [recalls]);
 
-  // Filter recalls based on active tab
+  // Per-tab counts
+  const tabCounts = useMemo(() => {
+    const counts: Record<TabKey, number> = {
+      all: recalls.length,
+      initiated: stats.byStatus.initiated,
+      in_progress: stats.byStatus.in_progress,
+      completed: stats.byStatus.completed,
+      closed: stats.byStatus.closed,
+    };
+    return counts;
+  }, [recalls.length, stats]);
+
+  // Filter recalls based on tab + search
   const filteredRecalls = useMemo(() => {
+    let list = recalls;
+
     switch (activeTab) {
       case 'initiated':
-        return recalls.filter(r => r.status === 'initiated');
+        list = list.filter(r => r.status === 'initiated');
+        break;
       case 'in_progress':
-        return recalls.filter(r => r.status === 'in_progress');
+        list = list.filter(r => r.status === 'in_progress');
+        break;
       case 'completed':
-        return recalls.filter(r => r.status === 'completed');
+        list = list.filter(r => r.status === 'completed');
+        break;
       case 'closed':
-        return recalls.filter(r => r.status === 'closed');
+        list = list.filter(r => r.status === 'closed');
+        break;
       default:
-        return recalls;
+        break;
     }
-  }, [recalls, activeTab]);
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(r =>
+        r.recallNumber?.toLowerCase().includes(q) ||
+        r.productName?.toLowerCase().includes(q) ||
+        r.coordinatorName?.toLowerCase().includes(q) ||
+        r.reason?.toLowerCase().includes(q)
+      );
+    }
+
+    return list.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+  }, [recalls, activeTab, search]);
 
   // Chart data
   const classChartData = useMemo(() => {
     return [
-      { class: 'Class I', count: stats.byClass.class_i, color: CLASS_COLORS.class_i },
-      { class: 'Class II', count: stats.byClass.class_ii, color: CLASS_COLORS.class_ii },
-      { class: 'Class III', count: stats.byClass.class_iii, color: CLASS_COLORS.class_iii },
+      { class: t('recalls.classLabels.class_i'), count: stats.byClass.class_i, color: CLASS_COLORS.class_i },
+      { class: t('recalls.classLabels.class_ii'), count: stats.byClass.class_ii, color: CLASS_COLORS.class_ii },
+      { class: t('recalls.classLabels.class_iii'), count: stats.byClass.class_iii, color: CLASS_COLORS.class_iii },
     ].filter(item => item.count > 0);
-  }, [stats]);
+  }, [stats, t]);
 
   const statusChartData = useMemo(() => {
     return [
-      { status: 'Initiated', count: stats.byStatus.initiated, color: STATUS_COLORS.initiated },
-      { status: 'In Progress', count: stats.byStatus.in_progress, color: STATUS_COLORS.in_progress },
-      { status: 'Completed', count: stats.byStatus.completed, color: STATUS_COLORS.completed },
-      { status: 'Closed', count: stats.byStatus.closed, color: STATUS_COLORS.closed },
+      { status: t('recalls.statusLabels.initiated'), count: stats.byStatus.initiated, color: STATUS_COLORS.initiated },
+      { status: t('recalls.statusLabels.in_progress'), count: stats.byStatus.in_progress, color: STATUS_COLORS.in_progress },
+      { status: t('recalls.statusLabels.completed'), count: stats.byStatus.completed, color: STATUS_COLORS.completed },
+      { status: t('recalls.statusLabels.closed'), count: stats.byStatus.closed, color: STATUS_COLORS.closed },
     ].filter(item => item.count > 0);
-  }, [stats]);
-
-  // Monthly trend data
-  const monthlyTrendData = useMemo(() => {
-    const months: Record<string, { initiated: number; closed: number }> = {};
-
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      months[key] = { initiated: 0, closed: 0 };
-    }
-
-    recalls.forEach((recall) => {
-      const initiatedDate = new Date(recall.initiatedDate);
-      const key = initiatedDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      if (months[key]) {
-        months[key].initiated++;
-      }
-
-      if (recall.closureDate) {
-        const closedDate = new Date(recall.closureDate);
-        const closedKey = closedDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        if (months[closedKey]) {
-          months[closedKey].closed++;
-        }
-      }
-    });
-
-    return Object.entries(months).map(([month, data]) => ({
-      month,
-      initiated: data.initiated,
-      closed: data.closed,
-    }));
-  }, [recalls]);
-
-  // Tab configuration
-  const tabs: TabConfig[] = useMemo(() => [
-    { id: 'all', text: 'All Recalls', icon: 'folder' },
-    { id: 'initiated', text: 'Initiated', icon: 'clock', badge: stats.byStatus.initiated },
-    { id: 'in_progress', text: 'In Progress', icon: 'runner', badge: stats.byStatus.in_progress },
-    { id: 'completed', text: 'Completed', icon: 'check', badge: stats.byStatus.completed },
-    { id: 'closed', text: 'Closed', icon: 'save', badge: stats.byStatus.closed },
-  ], [stats]);
+  }, [stats, t]);
 
   // Handlers
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
 
-  const handleRowClick = useCallback((e: { data: Recall }) => {
-    router.push(`/gmp/recalls/${e.data.id}`);
+  const handleRowClick = useCallback((e: { data?: Recall }) => {
+    if (e.data?.id) {
+      router.push(`/gmp/recalls/${e.data.id}`);
+    }
+  }, [router]);
+
+  const handleRecallClick = useCallback((id: number) => {
+    router.push(`/gmp/recalls/${id}`);
   }, [router]);
 
   const handleNewRecall = useCallback(() => {
     setShowNewRecallDialog(true);
   }, []);
 
-  const handleDialogClose = useCallback(() => {
-    setShowNewRecallDialog(false);
-  }, []);
-
   const handleDialogSuccess = useCallback(() => {
     setShowNewRecallDialog(false);
-    handleRefresh();
-  }, [handleRefresh]);
+    refetch();
+  }, [refetch]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearch('');
+    setActiveTab('all');
+  }, []);
 
   const handleMockDrill = async () => {
     if (!mockDrillLotId) return;
@@ -478,469 +454,434 @@ export default function RecallsDashboardPage() {
   };
 
   // Cell renderers
-  const renderClass = useCallback((cellData: { value: RecallClass }) => {
-    const colors: Record<RecallClass, string> = {
-      class_i: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
-      class_ii: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
-      class_iii: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
-    };
-    return (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${colors[cellData.value]}`}>
-        {CLASS_LABELS[cellData.value]}
-      </span>
-    );
-  }, []);
-
-  const renderStatus = useCallback((cellData: { value: RecallStatus }) => {
-    const colors: Record<RecallStatus, string> = {
-      initiated: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
-      in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
-      completed: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-      closed: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    };
-    return (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${colors[cellData.value]}`}>
-        {STATUS_LABELS[cellData.value]}
-      </span>
-    );
-  }, []);
-
-  const renderEffectiveness = useCallback((cellData: { data: Recall }) => {
-    const rate = Number(cellData.data.effectivenessRate) || 0;
-    const { level, color } = getRecoveryLevel(rate);
-    const colorClasses: Record<string, string> = {
-      green: 'text-green-600 dark:text-green-400',
-      emerald: 'text-emerald-600 dark:text-emerald-400',
-      yellow: 'text-yellow-600 dark:text-yellow-400',
-      orange: 'text-orange-600 dark:text-orange-400',
-      red: 'text-red-600 dark:text-red-400',
-    };
-
+  const renderRecallNumberCell = useCallback((data: { data?: Recall }) => {
+    const r = data.data;
+    if (!r) return null;
+    const isClassI = r.recallClass === 'class_i';
     return (
       <div className="flex items-center gap-2">
-        <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden max-w-[60px]">
+        {isClassI && (
+          <AlertOctagon className="h-4 w-4 text-red-600 flex-shrink-0" aria-label={t('recalls.classIAria')} />
+        )}
+        <span className="font-mono font-semibold text-red-700">{r.recallNumber}</span>
+      </div>
+    );
+  }, [t]);
+
+  const renderClassCell = useCallback((data: { data?: Recall }) => {
+    if (!data.data) return null;
+    const cls = data.data.recallClass;
+    const colors: Record<RecallClass, string> = {
+      class_i: 'bg-red-100 text-red-800',
+      class_ii: 'bg-yellow-100 text-yellow-800',
+      class_iii: 'bg-blue-100 text-blue-800',
+    };
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${colors[cls]}`}>
+        {t(`recalls.classLabels.${cls}`)}
+      </span>
+    );
+  }, [t]);
+
+  const renderStatusCell = useCallback((data: { data?: Recall }) => {
+    if (!data.data) return null;
+    return (
+      <Badge variant={STATUS_BADGE_VARIANT[data.data.status]} dot>
+        {t(`recalls.statusLabels.${data.data.status}`)}
+      </Badge>
+    );
+  }, [t]);
+
+  const renderProductCell = useCallback((data: { data?: Recall }) => {
+    const r = data.data;
+    if (!r) return null;
+    return (
+      <div className="min-w-0">
+        <p className="font-medium text-gray-900 truncate">{r.productName}</p>
+        {r.affectedLotNumbers && r.affectedLotNumbers.length > 0 && (
+          <p className="text-xs text-gray-500 font-mono truncate">
+            {r.affectedLotNumbers.slice(0, 2).join(', ')}
+            {r.affectedLotNumbers.length > 2 && ` +${r.affectedLotNumbers.length - 2}`}
+          </p>
+        )}
+      </div>
+    );
+  }, []);
+
+  const renderEffectivenessCell = useCallback((data: { data?: Recall }) => {
+    const r = data.data;
+    if (!r) return null;
+    const rate = Number(r.effectivenessRate) || 0;
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden max-w-[60px]">
           <div
-            className={`h-full transition-all ${
-              rate >= 70 ? 'bg-green-500' : rate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-            }`}
-            style={{ width: `${rate}%` }}
+            className={cn('h-full transition-all', getRecoveryBarColor(rate))}
+            style={{ width: `${Math.min(rate, 100)}%` }}
           />
         </div>
-        <span className={`text-xs font-semibold min-w-[40px] ${colorClasses[color]}`}>
+        <span className={cn('text-xs font-semibold min-w-[40px]', getRecoveryColor(rate))}>
           {rate.toFixed(0)}%
         </span>
       </div>
     );
   }, []);
 
-  const renderQuantities = useCallback((cellData: { data: Recall }) => {
-    const distributedQuantity = Number(cellData.data.distributedQuantity) || 0;
-    const returnedQuantity = Number(cellData.data.returnedQuantity) || 0;
+  const renderQuantitiesCell = useCallback((data: { data?: Recall }) => {
+    const r = data.data;
+    if (!r) return null;
+    const distributed = Number(r.distributedQuantity) || 0;
+    const returned = Number(r.returnedQuantity) || 0;
     return (
-      <div className="text-xs">
-        <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+      <div className="text-xs space-y-0.5">
+        <div className="flex items-center gap-1 text-gray-600">
           <Truck className="w-3 h-3" />
-          {distributedQuantity.toLocaleString()}
+          {distributed.toLocaleString()}
         </div>
-        <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+        <div className="flex items-center gap-1 text-emerald-600">
           <Package className="w-3 h-3" />
-          {returnedQuantity.toLocaleString()}
+          {returned.toLocaleString()}
         </div>
       </div>
     );
   }, []);
 
-  const renderClassIcon = useCallback((cellData: { data?: Recall }) => {
-    if (cellData.data?.recallClass === 'class_i') {
-      return (
-        <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
-          <AlertOctagon className="h-4 w-4" />
+  // DataGrid columns
+  const columns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: '_rowNumber',
+      caption: t('items.grid.columns.rowNum'),
+      width: 60,
+      alignment: 'center',
+      allowFiltering: false,
+      allowSorting: false,
+      cellRender: (cell) => (
+        <span className="text-gray-500 text-sm font-medium">
+          {(cell.data as { _rowNumber?: number })._rowNumber}
         </span>
-      );
-    }
-    return null;
-  }, []);
-
-  // Master detail template
-  const masterDetailTemplate = useCallback((e: { data: Recall }) => {
-    const recall = e.data;
-    return (
-      <div className="p-4 bg-gray-50 dark:bg-gray-900/50 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Reason for Recall</h4>
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {recall.reason || 'Not specified'}
-          </p>
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Affected Lots</h4>
-          <p className="text-sm font-mono text-gray-700 dark:text-gray-300">
-            {recall.affectedLotNumbers?.join(', ') || 'N/A'}
-          </p>
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Recovery Progress</h4>
-          <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
-            <p>Distributed: <span className="font-medium">{recall.distributedQuantity.toLocaleString()}</span></p>
-            <p>Returned: <span className="font-medium text-green-600">{recall.returnedQuantity.toLocaleString()}</span></p>
-            <p>Rate: <span className={`font-medium ${recall.effectivenessRate >= 70 ? 'text-green-600' : 'text-red-600'}`}>
-              {recall.effectivenessRate.toFixed(1)}%
-            </span></p>
-          </div>
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Linked Complaint</h4>
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {recall.complaintNumber ? (
-              <span className="font-mono text-blue-600 dark:text-blue-400">{recall.complaintNumber}</span>
-            ) : (
-              'None'
-            )}
-          </p>
-        </div>
-      </div>
-    );
-  }, []);
+      ),
+    },
+    {
+      dataField: 'recallNumber',
+      caption: t('recalls.columns.recallNumber'),
+      width: 150,
+      cellRender: renderRecallNumberCell,
+    },
+    {
+      dataField: 'recallClass',
+      caption: t('recalls.columns.class'),
+      width: 110,
+      cellRender: renderClassCell,
+    },
+    {
+      dataField: 'productName',
+      caption: t('recalls.columns.product'),
+      minWidth: 200,
+      cellRender: renderProductCell,
+    },
+    {
+      dataField: 'status',
+      caption: t('recalls.columns.status'),
+      width: 130,
+      cellRender: renderStatusCell,
+    },
+    {
+      dataField: 'effectivenessRate',
+      caption: t('recalls.columns.recovery'),
+      width: 140,
+      hideOnMobile: true,
+      cellRender: renderEffectivenessCell,
+    },
+    {
+      dataField: 'distributedQuantity',
+      caption: t('recalls.columns.quantity'),
+      width: 110,
+      hideOnMobile: true,
+      hideOnTablet: true,
+      cellRender: renderQuantitiesCell,
+    },
+    {
+      dataField: 'coordinatorName',
+      caption: t('recalls.columns.coordinator'),
+      width: 160,
+      hideOnMobile: true,
+      hideOnTablet: true,
+    },
+    {
+      dataField: 'initiatedDate',
+      caption: t('recalls.columns.initiated'),
+      width: 120,
+      dataType: 'date',
+      hideOnMobile: true,
+    },
+  ], [renderRecallNumberCell, renderClassCell, renderProductCell, renderStatusCell, renderEffectivenessCell, renderQuantitiesCell, t]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-[1920px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                  <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                </div>
-                Product Recalls
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Thai FDA GMP หมวด 9 • Recall Management Dashboard
-              </p>
+    <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
+      {/* Responsive Page Header */}
+      <ResponsivePageHeader
+        title={t('recalls.pageTitle')}
+        subtitle={t('recalls.description')}
+        icon={AlertOctagon}
+        iconBgColor="bg-red-100"
+        iconColor="text-red-600"
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <DxButton
+              icon="refresh"
+              text={t('recalls.actions.refresh')}
+              stylingMode="outlined"
+              onClick={handleRefresh}
+              className="hidden sm:inline-flex"
+            />
+            <DxButton
+              icon="like"
+              text={t('recalls.buttons.mockDrill')}
+              stylingMode="outlined"
+              onClick={() => setShowMockDrill(true)}
+              className="hidden md:inline-flex"
+            />
+            <DxButton
+              icon="plus"
+              text={t('recalls.actions.initiateRecall')}
+              type="danger"
+              onClick={handleNewRecall}
+            />
+          </div>
+        }
+      />
+
+      {/* Critical Alert Banner */}
+      {stats.classI > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4">
+          <div className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="p-2 bg-red-100 rounded-full animate-pulse flex-shrink-0">
+                <AlertOctagon className="h-5 w-5 text-red-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-red-800 text-sm sm:text-base">
+                  {t(
+                    stats.classI === 1
+                      ? 'recalls.alerts.classIActiveSingle'
+                      : 'recalls.alerts.classIActiveMany',
+                    { count: stats.classI }
+                  )}
+                </h3>
+                <p className="text-xs sm:text-sm text-red-600 mt-0.5">
+                  {t('recalls.alerts.classIActiveSubtitle')}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Button
-                icon="refresh"
-                text="Refresh"
-                stylingMode="outlined"
-                onClick={handleRefresh}
-              />
-              <Button
-                icon="like"
-                text="Mock Drill"
-                stylingMode="outlined"
-                onClick={() => setShowMockDrill(true)}
-              />
-              <Button
-                icon="plus"
-                text="Initiate Recall"
-                type="danger"
-                onClick={handleNewRecall}
-              />
-            </div>
+            <DxButton
+              text={t('recalls.buttons.viewCritical')}
+              type="danger"
+              stylingMode="contained"
+              onClick={() => setActiveTab('all')}
+              className="self-end sm:self-auto"
+            />
           </div>
         </div>
+      )}
+
+      {/* 4 KPI StatCards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          label={t('recalls.stats.totalRecalls')}
+          value={stats.total}
+          icon={FileText}
+          iconColor="text-gray-500"
+          accentColor="border-gray-400"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label={t('recalls.stats.active')}
+          value={stats.active}
+          icon={AlertTriangle}
+          iconColor="text-amber-500"
+          accentColor="border-amber-500"
+          trend={stats.active > 0 ? { value: String(stats.active), direction: 'neutral' } : undefined}
+          isLoading={isLoading}
+        />
+        <StatCard
+          label={t('recalls.stats.classICritical')}
+          value={stats.classI}
+          icon={AlertOctagon}
+          iconColor={stats.classI > 0 ? 'text-red-500' : 'text-gray-400'}
+          accentColor={stats.classI > 0 ? 'border-red-500' : 'border-gray-300'}
+          trend={stats.classI > 0 ? { value: String(stats.classI), direction: 'down' } : undefined}
+          isLoading={isLoading}
+        />
+        <StatCard
+          label={t('recalls.stats.avgEffectiveness')}
+          value={`${stats.avgEffectiveness.toFixed(0)}%`}
+          icon={Target}
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
+          trend={stats.avgEffectiveness >= 70 ? { value: `${stats.avgEffectiveness.toFixed(0)}`, direction: 'up' } : undefined}
+          isLoading={isLoading}
+        />
       </div>
 
-      <div className="max-w-[1920px] mx-auto px-6 py-6 space-y-6">
-        {/* Critical Alert Banner */}
-        {stats.classI > 0 && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 dark:bg-red-800 rounded-full animate-pulse">
-                  <AlertOctagon className="h-5 w-5 text-red-600 dark:text-red-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-red-800 dark:text-red-200">
-                    {stats.classI} Active Class I Recall{stats.classI > 1 ? 's' : ''}
-                  </h3>
-                  <p className="text-sm text-red-600 dark:text-red-300">
-                    Critical recalls require immediate attention and regulatory reporting within 24 hours
-                  </p>
-                </div>
-              </div>
-              <Button
-                text="View Critical"
-                icon="arrowright"
-                onClick={() => setActiveTab('all')}
-                type="danger"
-                stylingMode="outlined"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          <KpiCard
-            title="Active Recalls"
-            value={stats.active}
-            subtitle="Requiring action"
-            icon={AlertTriangle}
-            iconBg="bg-orange-100 dark:bg-orange-900/30"
-            iconColor="text-orange-600 dark:text-orange-400"
-            onClick={() => setActiveTab('all')}
-          />
-          <KpiCard
-            title="Class I (Critical)"
-            value={stats.classI}
-            subtitle="Health hazard risk"
-            icon={AlertOctagon}
-            iconBg={stats.classI > 0 ? "bg-red-100 dark:bg-red-900/30" : "bg-gray-100 dark:bg-gray-800"}
-            iconColor={stats.classI > 0 ? "text-red-600 dark:text-red-400" : "text-gray-400"}
-            highlight={stats.classI > 0}
-            onClick={() => setActiveTab('all')}
-          />
-          <KpiCard
-            title="In Progress"
-            value={stats.byStatus.in_progress}
-            subtitle="Currently being processed"
-            icon={Activity}
-            iconBg="bg-blue-100 dark:bg-blue-900/30"
-            iconColor="text-blue-600 dark:text-blue-400"
-            onClick={() => setActiveTab('in_progress')}
-          />
-          <KpiCard
-            title="Pending Closure"
-            value={stats.byStatus.completed}
-            subtitle="Awaiting final review"
-            icon={Clock}
-            iconBg="bg-purple-100 dark:bg-purple-900/30"
-            iconColor="text-purple-600 dark:text-purple-400"
-            onClick={() => setActiveTab('completed')}
-          />
-          <KpiCard
-            title="Avg Effectiveness"
-            value={`${stats.avgEffectiveness.toFixed(0)}%`}
-            subtitle="Product recovery rate"
-            icon={Target}
-            iconBg="bg-emerald-100 dark:bg-emerald-900/30"
-            iconColor="text-emerald-600 dark:text-emerald-400"
-          />
-        </div>
-
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Class Distribution */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-              <PieChartIcon className="w-4 h-4" />
-              By Recall Class
-            </h3>
-            {classChartData.length > 0 ? (
-              <PieChart
-                id="class-pie"
-                dataSource={classChartData}
-                type="doughnut"
-                innerRadius={0.65}
-                palette={classChartData.map(d => d.color)}
-              >
-                <Series argumentField="class" valueField="count">
-                  <Label visible={true} position="inside" customizeText={(e: { valueText: string }) => e.valueText}>
-                    <Connector visible={false} />
-                  </Label>
-                </Series>
-                <Legend
-                  visible={true}
-                  horizontalAlignment="right"
-                  verticalAlignment="top"
-                  itemTextPosition="right"
-                />
-                <Tooltip enabled={true} />
-              </PieChart>
-            ) : (
-              <div className="h-[200px] flex items-center justify-center text-gray-400">
-                No active recalls
-              </div>
-            )}
-          </div>
-
-          {/* Status Distribution */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              By Status
-            </h3>
-            {statusChartData.length > 0 ? (
-              <Chart
-                id="status-chart"
-                dataSource={statusChartData}
-                rotated={true}
-              >
-                <CommonSeriesSettings type="bar" argumentField="status" valueField="count" />
-                <ChartSeries
-                  name="Count"
-                  color="#ef4444"
-                  barWidth={30}
-                />
-                <ArgumentAxis />
-                <ValueAxis />
-                <ChartLegend visible={false} />
-                <ChartTooltip enabled={true} />
-              </Chart>
-            ) : (
-              <div className="h-[200px] flex items-center justify-center text-gray-400">
-                No data available
-              </div>
-            )}
-          </div>
-
-          {/* Effectiveness Matrix */}
-          <RecallEffectivenessMatrix recalls={recalls} />
-        </div>
-
-        {/* Trend Chart */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Recall Trend (Last 6 Months)
+      {/* Charts Row - Hidden on mobile */}
+      <div className="hidden lg:grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Class Distribution */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <PieChartIcon className="w-4 h-4" />
+            {t('recalls.charts.byRecallClass')}
           </h3>
-          <Chart dataSource={monthlyTrendData} height={200}>
-            <CommonSeriesSettings type="bar" argumentField="month" />
-            <ChartSeries valueField="initiated" name="Initiated" color="#f59e0b" />
-            <ChartSeries valueField="closed" name="Closed" color="#10b981" />
-            <ArgumentAxis />
-            <ValueAxis />
-            <ChartLegend visible={true} horizontalAlignment="center" verticalAlignment="bottom" />
-            <ChartTooltip enabled={true} />
-          </Chart>
-        </div>
-
-        {/* Tabs and Data Grid */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-          {/* Custom Tabs */}
-          <div className="border-b border-gray-200 dark:border-gray-700 px-4">
-            <div className="flex items-center gap-1 overflow-x-auto py-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  {tab.text}
-                  {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                      activeTab === tab.id
-                        ? 'bg-red-600 text-white'
-                        : tab.id === 'initiated'
-                        ? 'bg-yellow-500 text-white'
-                        : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200'
-                    }`}>
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              ))}
+          {classChartData.length > 0 ? (
+            <PieChart
+              key={locale}
+              id="class-pie"
+              dataSource={classChartData}
+              type="doughnut"
+              innerRadius={0.65}
+              palette={classChartData.map(d => d.color)}
+              size={{ height: 200 }}
+            >
+              <Series argumentField="class" valueField="count">
+                <Label visible={true} position="inside" />
+              </Series>
+              <Legend
+                visible={true}
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+              />
+              <Tooltip enabled={true} />
+            </PieChart>
+          ) : (
+            <div className="h-[200px] flex items-center justify-center text-gray-400">
+              {t('recalls.charts.noActiveRecalls')}
             </div>
-          </div>
-
-          {/* Data Grid */}
-          <DataGrid
-            dataSource={filteredRecalls}
-            showBorders={false}
-            showRowLines={true}
-            showColumnLines={false}
-            rowAlternationEnabled={true}
-            hoverStateEnabled={true}
-            onRowClick={handleRowClick}
-            wordWrapEnabled={false}
-            columnAutoWidth={true}
-            height="calc(100vh - 650px)"
-            className="dx-card-grid"
-          >
-            <LoadPanel enabled={true} />
-            <StateStoring enabled={true} type="localStorage" storageKey="recallGridState" />
-            <SearchPanel visible={true} width={250} placeholder="Search recalls..." />
-            <FilterRow visible={true} />
-            <HeaderFilter visible={true} />
-            <Sorting mode="multiple" />
-            <ColumnChooser enabled={true} mode="select" />
-            <Export enabled={true} allowExportSelectedData={true} />
-            <Selection mode="multiple" showCheckBoxesMode="onClick" />
-            <Paging defaultPageSize={20} />
-            <Pager
-              showPageSizeSelector={true}
-              allowedPageSizes={[10, 20, 50, 100]}
-              showInfo={true}
-              showNavigationButtons={true}
-            />
-            <MasterDetail enabled={true} component={masterDetailTemplate} />
-
-            <Column dataField="recallNumber" caption="Recall #" width={130} fixed={true} />
-            <Column
-              caption=""
-              width={40}
-              cellRender={renderClassIcon}
-              allowFiltering={false}
-              allowSorting={false}
-            />
-            <Column
-              dataField="recallClass"
-              caption="Class"
-              width={110}
-              cellRender={renderClass}
-            />
-            <Column dataField="productName" caption="Product" minWidth={180} />
-            <Column
-              dataField="status"
-              caption="Status"
-              width={120}
-              cellRender={renderStatus}
-            />
-            <Column
-              dataField="effectivenessRate"
-              caption="Recovery"
-              width={130}
-              cellRender={renderEffectiveness}
-            />
-            <Column
-              dataField="distributedQuantity"
-              caption="Qty"
-              width={100}
-              cellRender={renderQuantities}
-            />
-            <Column dataField="coordinatorName" caption="Coordinator" width={150} />
-            <Column
-              dataField="initiatedDate"
-              caption="Initiated"
-              width={110}
-              dataType="date"
-              format="dd MMM yyyy"
-            />
-            <Column
-              dataField="closureDate"
-              caption="Closed"
-              width={110}
-              dataType="date"
-              format="dd MMM yyyy"
-              visible={false}
-            />
-
-            <Toolbar>
-              <Item name="searchPanel" />
-              <Item name="columnChooserButton" />
-              <Item name="exportButton" />
-            </Toolbar>
-          </DataGrid>
+          )}
         </div>
+
+        {/* Status Distribution */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            {t('recalls.charts.byStatus')}
+          </h3>
+          {statusChartData.length > 0 ? (
+            <Chart
+              key={locale}
+              id="status-chart"
+              dataSource={statusChartData}
+              rotated={true}
+            >
+              <CommonSeriesSettings type="bar" argumentField="status" valueField="count" />
+              <ChartSeries name={t('recalls.charts.legendCount')} color="#ef4444" barWidth={30} />
+              <ArgumentAxis />
+              <ValueAxis />
+              <ChartLegend visible={false} />
+              <ChartTooltip enabled={true} />
+            </Chart>
+          ) : (
+            <div className="h-[200px] flex items-center justify-center text-gray-400">
+              {t('recalls.charts.noDataAvailable')}
+            </div>
+          )}
+        </div>
+
+        {/* Effectiveness Matrix */}
+        <RecallEffectivenessMatrix recalls={recalls} t={t} />
+      </div>
+
+      {/* DataGrid / Cards Card */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        {/* Filter Header: Status Tabs (scroll-snap) */}
+        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+          <div className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x">
+            {TAB_CONFIG.map((tab) => {
+              const isActive = activeTab === tab.key;
+              const count = tabCounts[tab.key];
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]',
+                    isActive
+                      ? `${tab.bgActive} text-white shadow-sm`
+                      : 'text-gray-600 hover:bg-gray-100'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{t(tab.labelKey)}</span>
+                  <span className={cn(
+                    'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                    isActive ? 'bg-white/25 text-inherit' : 'bg-gray-200 text-gray-700'
+                  )}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Search + count row */}
+        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="w-full sm:max-w-md">
+            <DxTextBox
+              placeholder={t('recalls.search.placeholder')}
+              value={search}
+              onValueChange={setSearch}
+              showClearButton
+              mode="search"
+            />
+          </div>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+            <FileText className="h-4 w-4 text-gray-400" />
+            <span>{filteredRecalls.length} / {recalls.length} {t('recalls.recallsCountSuffix')}</span>
+          </div>
+        </div>
+
+        {/* Content: Loading / Empty / No-Results / Mobile Cards / Desktop Grid */}
+        {isLoading ? (
+          isMobile ? <RecallCardSkeletonList count={4} /> : <DataGridLoadingSkeleton />
+        ) : recalls.length === 0 ? (
+          <RecallsEmptyState onCreate={handleNewRecall} t={t} />
+        ) : filteredRecalls.length === 0 ? (
+          <RecallsNoResultsState onClear={handleClearFilters} t={t} />
+        ) : isMobile ? (
+          <RecallCardList recalls={filteredRecalls} onClick={handleRecallClick} t={t} />
+        ) : (
+          <DxDataGrid
+            key={locale}
+            dataSource={filteredRecalls}
+            keyExpr="id"
+            columns={columns}
+            sorting
+            filterRow
+            headerFilter
+            export
+            exportFileName="recalls"
+            columnChooser
+            responsiveColumns
+            virtualScrolling={filteredRecalls.length > 100}
+            height={600}
+            mobileHeight={520}
+            tabletHeight={560}
+            onRowClick={handleRowClick}
+            noDataText={t('recalls.noDataText')}
+          />
+        )}
       </div>
 
       {/* New Recall Dialog */}
       <RecallDataEntryDialog
         visible={showNewRecallDialog}
-        onClose={handleDialogClose}
+        onClose={() => setShowNewRecallDialog(false)}
         onSaved={handleDialogSuccess}
         mode="create"
-        title="Initiate New Recall"
+        title={t('recalls.dialogs.initiateTitle')}
       />
 
-      {/* Mock Drill Dialog */}
+      {/* Mock Drill Dialog - fullScreenOnMobile via DxPopup default */}
       <DxPopup
         visible={showMockDrill}
         onHiding={() => {
@@ -948,20 +889,22 @@ export default function RecallsDashboardPage() {
           setMockDrillResult(null);
           setMockDrillLotId(0);
         }}
-        title="Mock Recall Drill"
+        title={t('recalls.dialogs.mockDrillTitle')}
         width={500}
         height="auto"
+        maxWidth={600}
         showCloseButton
+        fullScreenOnMobile
       >
         <div className="p-4 space-y-4">
           {!mockDrillResult ? (
             <>
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
                 <div className="flex items-start gap-3">
-                  <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <Shield className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <h4 className="font-medium text-blue-800 dark:text-blue-200">FDA 4-Hour Traceability Test</h4>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                    <h4 className="font-medium text-blue-800">FDA 4-Hour Traceability Test</h4>
+                    <p className="text-sm text-blue-700 mt-1">
                       Test your ability to trace product distribution within the FDA-required 4-hour window.
                       Enter a lot ID to verify traceability.
                     </p>
@@ -970,23 +913,23 @@ export default function RecallsDashboardPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Lot ID to Trace</label>
+                <label className="text-sm font-medium">{t('recalls.mockDrill.lotIdLabel')}</label>
                 <DxNumberBox
                   value={mockDrillLotId}
                   onValueChanged={(e) => setMockDrillLotId(e.value || 0)}
                   min={1}
-                  placeholder="Enter lot ID..."
+                  placeholder={t('recalls.search.enterLotId')}
                 />
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t">
                 <DxButton
-                  text="Cancel"
+                  text={t('common.cancel')}
                   onClick={() => setShowMockDrill(false)}
                   stylingMode="outlined"
                 />
                 <DxButton
-                  text="Run Mock Drill"
+                  text={t('recalls.buttons.runMockDrill')}
                   icon="like"
                   onClick={handleMockDrill}
                   type="default"
@@ -997,17 +940,18 @@ export default function RecallsDashboardPage() {
           ) : (
             <>
               <div
-                className={`p-4 rounded-xl ${
+                className={cn(
+                  'p-4 rounded-xl border',
                   mockDrillResult.passedTarget
-                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                    : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                }`}
+                    ? 'bg-emerald-50 border-emerald-200'
+                    : 'bg-red-50 border-red-200'
+                )}
               >
                 <div className="flex items-center gap-3">
                   {mockDrillResult.passedTarget ? (
-                    <CheckCircle className="h-10 w-10 text-green-600" />
+                    <CheckCircle className="h-10 w-10 text-emerald-600 flex-shrink-0" />
                   ) : (
-                    <XCircle className="h-10 w-10 text-red-600" />
+                    <XCircle className="h-10 w-10 text-red-600 flex-shrink-0" />
                   )}
                   <div>
                     <h3 className="text-lg font-bold">
@@ -1022,19 +966,19 @@ export default function RecallsDashboardPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-xl text-center">
+                <div className="p-4 bg-gray-100 rounded-xl text-center">
                   <Users className="h-6 w-6 mx-auto mb-2 text-gray-500" />
                   <div className="text-2xl font-bold">{mockDrillResult.customersIdentified}</div>
-                  <div className="text-xs text-gray-500">Customers Identified</div>
+                  <div className="text-xs text-gray-500">{t('recalls.mockDrill.customersIdentified')}</div>
                 </div>
-                <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-xl text-center">
+                <div className="p-4 bg-gray-100 rounded-xl text-center">
                   <Package className="h-6 w-6 mx-auto mb-2 text-gray-500" />
                   <div className="text-2xl font-bold">{mockDrillResult.totalDistributed}</div>
-                  <div className="text-xs text-gray-500">Units Distributed</div>
+                  <div className="text-xs text-gray-500">{t('recalls.mockDrill.unitsDistributed')}</div>
                 </div>
               </div>
 
-              <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-xl space-y-1">
+              <div className="p-3 bg-gray-100 rounded-xl space-y-1">
                 <div className="text-sm flex items-center justify-between">
                   <span className="text-gray-500">Lot Number:</span>
                   <span className="font-mono font-medium">{mockDrillResult.lotNumber}</span>
@@ -1051,7 +995,7 @@ export default function RecallsDashboardPage() {
 
               <div className="flex items-center justify-end pt-4 border-t">
                 <DxButton
-                  text="Close"
+                  text={t('common.close')}
                   onClick={() => {
                     setShowMockDrill(false);
                     setMockDrillResult(null);
@@ -1064,6 +1008,217 @@ export default function RecallsDashboardPage() {
           )}
         </div>
       </DxPopup>
+    </div>
+  );
+}
+
+// ============================================
+// Helper Sub-Components (Mobile Cards, Skeletons, Empty States)
+// ============================================
+
+/**
+ * Mobile card list — replaces DataGrid on mobile viewports.
+ * Uses class-severity border-left accent for quick visual scanning.
+ * Footer provides 44px touch target.
+ */
+function RecallCardList({
+  recalls,
+  onClick,
+  t,
+}: {
+  recalls: Recall[];
+  onClick: (id: number) => void;
+  t: TranslateFn;
+}) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30">
+      {recalls.map((r) => {
+        const rate = Number(r.effectivenessRate) || 0;
+        const distributed = Number(r.distributedQuantity) || 0;
+        const returned = Number(r.returnedQuantity) || 0;
+        return (
+          <div
+            key={r.id}
+            className={cn(
+              'bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md active:bg-gray-50 transition-all border-l-4',
+              CLASS_BORDER_ACCENT[r.recallClass]
+            )}
+          >
+            {/* Card body - tap to view */}
+            <button
+              type="button"
+              onClick={() => onClick(r.id)}
+              className="w-full text-left p-4 flex items-start gap-3"
+            >
+              <div
+                className={cn(
+                  'h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0',
+                  CLASS_ICON_BG[r.recallClass]
+                )}
+              >
+                <AlertOctagon className={cn('h-5 w-5', CLASS_ICON_COLOR[r.recallClass])} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="min-w-0">
+                    <p className="font-mono font-semibold text-red-700 text-sm">{r.recallNumber}</p>
+                    <p className="font-medium text-gray-900 text-base truncate mt-0.5">{r.productName}</p>
+                  </div>
+                  <Badge variant={STATUS_BADGE_VARIANT[r.status]} size="sm" dot>
+                    {t(`recalls.statusLabels.${r.status}`)}
+                  </Badge>
+                </div>
+
+                {/* Class + initiated date */}
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <span className={cn(
+                    'px-2 py-0.5 rounded-full text-xs font-semibold',
+                    r.recallClass === 'class_i' ? 'bg-red-100 text-red-800' :
+                    r.recallClass === 'class_ii' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-blue-100 text-blue-800'
+                  )}>
+                    {t(`recalls.classLabels.${r.recallClass}`)}
+                  </span>
+                  {r.initiatedDate && (
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                      <Calendar className="h-3 w-3" />
+                      {formatDate(r.initiatedDate)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Quantities + recovery */}
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-3 text-xs flex-wrap">
+                    <span className="inline-flex items-center gap-1 text-gray-600">
+                      <Truck className="h-3 w-3" />
+                      <span className="font-medium">{distributed.toLocaleString()}</span>
+                      <span className="text-gray-400">distributed</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-emerald-600">
+                      <Package className="h-3 w-3" />
+                      <span className="font-medium">{returned.toLocaleString()}</span>
+                      <span className="text-gray-400">returned</span>
+                    </span>
+                  </div>
+
+                  {/* Recovery bar */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className={cn('h-full transition-all', getRecoveryBarColor(rate))}
+                        style={{ width: `${Math.min(rate, 100)}%` }}
+                      />
+                    </div>
+                    <span className={cn('text-xs font-semibold min-w-[36px] text-right', getRecoveryColor(rate))}>
+                      {rate.toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Tap footer — 44px touch target */}
+            <button
+              type="button"
+              onClick={() => onClick(r.id)}
+              className="w-full flex items-center justify-center gap-1.5 border-t border-gray-100 py-3 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700 active:bg-red-100 transition-colors min-h-[44px]"
+            >
+              <span>{t('recalls.viewRecall')}</span>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Loading skeleton for mobile card list */
+function RecallCardSkeletonList({ count = 3 }: { count?: number }) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse border-l-4 border-l-gray-300">
+          <div className="flex items-start gap-3">
+            <div className="h-11 w-11 rounded-xl bg-gray-200 flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-1/3 bg-gray-200 rounded" />
+              <div className="h-4 w-2/3 bg-gray-200 rounded" />
+              <div className="flex gap-2 pt-1">
+                <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                <div className="h-5 w-20 bg-gray-200 rounded-full" />
+              </div>
+              <div className="h-2 w-full bg-gray-200 rounded-full mt-2" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading skeleton for desktop DataGrid area */
+function DataGridLoadingSkeleton() {
+  return (
+    <div className="p-4 space-y-2" aria-busy="true" aria-live="polite">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-lg animate-pulse">
+          <div className="h-8 w-8 rounded-lg bg-gray-200" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-1/4 bg-gray-200 rounded" />
+            <div className="h-2 w-1/6 bg-gray-200 rounded" />
+          </div>
+          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-16 bg-gray-200 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Empty State — shown when zero recalls exist */
+function RecallsEmptyState({ onCreate, t }: { onCreate: () => void; t: TranslateFn }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <div className="h-20 w-20 rounded-2xl bg-red-100 flex items-center justify-center mb-5">
+        <AlertOctagon className="h-10 w-10 text-red-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        {t('recalls.empty.title')}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-6">
+        {t('recalls.empty.description')}
+      </p>
+      <DxButton
+        text={t('recalls.buttons.initiateRecall')}
+        icon="plus"
+        type="danger"
+        onClick={onCreate}
+      />
+    </div>
+  );
+}
+
+/** No Results State — shown when filter/search yields zero results */
+function RecallsNoResultsState({ onClear, t }: { onClear: () => void; t: TranslateFn }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+      <div className="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+        <SearchX className="h-8 w-8 text-gray-400" />
+      </div>
+      <h3 className="text-base font-semibold text-gray-900 mb-1">
+        {t('recalls.noResults.title')}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-4">
+        {t('recalls.noResults.description')}
+      </p>
+      <DxButton
+        text={t('common.clearFilters')}
+        icon="clear"
+        stylingMode="outlined"
+        onClick={onClear}
+      />
     </div>
   );
 }

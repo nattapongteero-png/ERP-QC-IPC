@@ -118,12 +118,21 @@ export const buddhistDateTimeFormat: CustomDateFormat = {
 };
 
 /**
- * Convert string value (YYYY-MM-DD) to Date object
+ * Convert string value (YYYY-MM-DD) to Date object in local timezone.
+ * Using `new Date("YYYY-MM-DD")` parses as UTC which can shift dates
+ * in positive UTC offsets (e.g. Thailand UTC+7). Instead, parse as
+ * local midnight to keep the date consistent with user intent.
  * Exported for testing purposes
  */
 export function parseStringToDate(value: string | undefined): Date | null {
   if (!value) return null;
-  // Handle ISO date string (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+  // Parse YYYY-MM-DD as local date (not UTC) to avoid timezone shift
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  }
+  // Fallback for other formats (ISO datetime strings, etc.)
   const date = new Date(value);
   if (isNaN(date.getTime())) return null;
   return date;
@@ -199,8 +208,16 @@ export function DxDateBox({
     const newDateValue = e.value as Date | null;
 
     if (onValueChange) {
-      // Always convert Date to ISO string (YYYY-MM-DD) for consistent string-based state
-      onValueChange(newDateValue ? newDateValue.toISOString().split('T')[0] : '');
+      if (newDateValue && !isNaN(newDateValue.getTime())) {
+        // Use local date components to avoid UTC timezone shift (toISOString converts to UTC,
+        // which shifts Thai dates back by 1 day for selections before 07:00)
+        const year = newDateValue.getFullYear();
+        const month = String(newDateValue.getMonth() + 1).padStart(2, '0');
+        const day = String(newDateValue.getDate()).padStart(2, '0');
+        onValueChange(`${year}-${month}-${day}`);
+      } else {
+        onValueChange('');
+      }
     }
     if (onValueChanged) {
       onValueChanged(e);
@@ -241,6 +258,7 @@ export function DxDateBox({
       openOnFieldClick={openOnFieldClick}
       acceptCustomValue={acceptCustomValue}
       elementAttr={testId ? { 'data-testid': testId } : undefined}
+      dropDownOptions={{ container: 'body' }}
       calendarOptions={{
         firstDayOfWeek: 0, // Sunday
       }}

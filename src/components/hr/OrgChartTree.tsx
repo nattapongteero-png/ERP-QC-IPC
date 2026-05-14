@@ -21,6 +21,7 @@ import {
   XCircle,
   Calendar,
 } from 'lucide-react';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 export interface OrgChartTreeProps {
   /** Height of the tree list */
@@ -244,7 +245,7 @@ export function OrgChartTree({
   const handleRowInserting = useCallback(
     (e: RowInsertingEvent<FlatOrgUnit, number>) => {
       e.cancel = new Promise<void>((resolve, reject) => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = toLocalDateStr(new Date());
         const data = e.data as Partial<OrgUnitCreate>;
         createMutation.mutateAsync({
           code: data.code || '',
@@ -302,7 +303,7 @@ export function OrgChartTree({
         code: generatedCode,
         type: defaultType,
         isGmpCritical: false,
-        effectiveFrom: new Date().toISOString().split('T')[0],
+        effectiveFrom: toLocalDateStr(new Date()),
       } as FlatOrgUnit;
     },
     [existingCodes]

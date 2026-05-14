@@ -10,6 +10,7 @@
 import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -66,17 +67,20 @@ function formatDate(date: string | Date): string {
   });
 }
 
-function formatRelativeDate(date: string | Date): string {
-  const d = new Date(date);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
+function useRelativeDate() {
+  const t = useTranslations('issues');
+  return (date: string | Date): string => {
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  return d.toLocaleDateString();
+    if (diffDays === 0) return t('detail.relative.today');
+    if (diffDays === 1) return t('detail.relative.yesterday');
+    if (diffDays < 7) return t('detail.relative.daysAgo', { days: diffDays });
+    if (diffDays < 30) return t('detail.relative.weeksAgo', { weeks: Math.floor(diffDays / 7) });
+    return d.toLocaleDateString();
+  };
 }
 
 // ============================================
@@ -84,6 +88,8 @@ function formatRelativeDate(date: string | Date): string {
 // ============================================
 
 function IssueDetailPageHeader({ issue }: { issue: Issue }) {
+  const t = useTranslations('issues');
+  const formatRelativeDate = useRelativeDate();
   return (
     <div className="flex items-start justify-between mb-6">
       <div className="flex items-start gap-4">
@@ -99,14 +105,14 @@ function IssueDetailPageHeader({ issue }: { issue: Issue }) {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{issue.title}</h1>
           <p className="text-gray-600 mt-1">
-            Reported by {issue.reporter?.name || 'Unknown'} • {formatRelativeDate(issue.createdAt)}
+            {t('detail.reportedBy')} {issue.reporter?.name || t('detail.unknown')} • {formatRelativeDate(issue.createdAt)}
           </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
         <Link href={`/issues/${issue.id}/edit`}>
           <Button
-            text="Edit"
+            text={t('actions.edit')}
             type="normal"
             stylingMode="outlined"
             icon="edit"
@@ -123,6 +129,7 @@ function IssueDetailPageHeader({ issue }: { issue: Issue }) {
 // ============================================
 
 function DescriptionSection({ issue }: { issue: Issue }) {
+  const t = useTranslations('issues');
   const description = issue.description;
 
   return (
@@ -130,20 +137,20 @@ function DescriptionSection({ issue }: { issue: Issue }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bug className="w-5 h-5" />
-          Description
+          {t('detail.description')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Summary */}
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-1">Summary</h4>
+          <h4 className="text-sm font-medium text-gray-700 mb-1">{t('detail.summary')}</h4>
           <p className="text-gray-900 whitespace-pre-wrap">{description.summary}</p>
         </div>
 
         {/* Impact */}
         {description.impact && (
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-1">Impact</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-1">{t('detail.impact')}</h4>
             <p className="text-gray-900 whitespace-pre-wrap">{description.impact}</p>
           </div>
         )}
@@ -151,7 +158,7 @@ function DescriptionSection({ issue }: { issue: Issue }) {
         {/* Environment */}
         {description.environment && (
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-1">Environment</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-1">{t('detail.environment')}</h4>
             <p className="text-gray-600 font-mono text-sm bg-gray-50 p-2 rounded">
               {description.environment}
             </p>
@@ -163,7 +170,7 @@ function DescriptionSection({ issue }: { issue: Issue }) {
           <div className="grid grid-cols-2 gap-4">
             {description.expectedBehavior && (
               <div>
-                <h4 className="text-sm font-medium text-green-700 mb-1">Expected Behavior</h4>
+                <h4 className="text-sm font-medium text-green-700 mb-1">{t('detail.expectedBehavior')}</h4>
                 <p className="text-gray-900 whitespace-pre-wrap bg-green-50 p-3 rounded">
                   {description.expectedBehavior}
                 </p>
@@ -171,7 +178,7 @@ function DescriptionSection({ issue }: { issue: Issue }) {
             )}
             {description.actualBehavior && (
               <div>
-                <h4 className="text-sm font-medium text-red-700 mb-1">Actual Behavior</h4>
+                <h4 className="text-sm font-medium text-red-700 mb-1">{t('detail.actualBehavior')}</h4>
                 <p className="text-gray-900 whitespace-pre-wrap bg-red-50 p-3 rounded">
                   {description.actualBehavior}
                 </p>
@@ -183,7 +190,7 @@ function DescriptionSection({ issue }: { issue: Issue }) {
         {/* Steps to Reproduce */}
         {description.stepsToReproduce && (
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-1">Steps to Reproduce</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-1">{t('detail.stepsToReproduce')}</h4>
             <div className="bg-gray-50 p-3 rounded">
               <pre className="text-gray-900 whitespace-pre-wrap text-sm">
                 {description.stepsToReproduce}
@@ -201,30 +208,31 @@ function DescriptionSection({ issue }: { issue: Issue }) {
 // ============================================
 
 function MetadataSidebar({ issue }: { issue: Issue }) {
+  const t = useTranslations('issues');
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Details</CardTitle>
+        <CardTitle className="text-lg">{t('detail.details')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Category */}
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <Tag className="w-4 h-4" />
-            Category
+            {t('detail.category')}
           </div>
-          <p className="font-medium">{issue.category?.name || 'Uncategorized'}</p>
+          <p className="font-medium">{issue.category?.name || t('detail.uncategorized')}</p>
         </div>
 
         {/* Assignee */}
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <User className="w-4 h-4" />
-            Assignee
+            {t('detail.assignee')}
           </div>
           <p className="font-medium">
             {issue.assignee?.name || (
-              <span className="text-gray-400">Unassigned</span>
+              <span className="text-gray-400">{t('detail.unassigned')}</span>
             )}
           </p>
         </div>
@@ -233,16 +241,16 @@ function MetadataSidebar({ issue }: { issue: Issue }) {
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <User className="w-4 h-4" />
-            Reporter
+            {t('detail.reporter')}
           </div>
-          <p className="font-medium">{issue.reporter?.name || 'Unknown'}</p>
+          <p className="font-medium">{issue.reporter?.name || t('detail.unknown')}</p>
         </div>
 
         {/* Created */}
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <Calendar className="w-4 h-4" />
-            Created
+            {t('detail.created')}
           </div>
           <p className="text-sm">{formatDate(issue.createdAt)}</p>
         </div>
@@ -251,7 +259,7 @@ function MetadataSidebar({ issue }: { issue: Issue }) {
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <Clock className="w-4 h-4" />
-            Updated
+            {t('detail.updated')}
           </div>
           <p className="text-sm">{formatDate(issue.updatedAt)}</p>
         </div>
@@ -261,7 +269,7 @@ function MetadataSidebar({ issue }: { issue: Issue }) {
           <div>
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
               <Tag className="w-4 h-4" />
-              Tags
+              {t('detail.tags')}
             </div>
             <div className="flex flex-wrap gap-1">
               {issue.tags.map((tag) => (
@@ -286,12 +294,13 @@ function MetadataSidebar({ issue }: { issue: Issue }) {
 // ============================================
 
 function ActivitySection({ issueId }: { issueId: number }) {
+  const t = useTranslations('issues');
   return (
     <Card className="mb-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="w-5 h-5" />
-          Activity
+          {t('detail.activity')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -306,12 +315,13 @@ function ActivitySection({ issueId }: { issueId: number }) {
 // ============================================
 
 function CommentsSection({ issueId }: { issueId: number }) {
+  const t = useTranslations('issues');
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Edit className="w-5 h-5" />
-          Add Comment
+          {t('detail.addComment')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -355,6 +365,7 @@ export default function IssueDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const issueId = parseInt(resolvedParams.id, 10);
   const router = useRouter();
+  const t = useTranslations('issues');
 
   const { data: issue, isLoading, error } = useQuery({
     queryKey: ['issue', issueId],
@@ -374,20 +385,20 @@ export default function IssueDetailPage({ params }: PageProps) {
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Issue Not Found</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('error.notFound')}</h1>
           </div>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
             <AlertTriangle className="w-12 h-12 mx-auto text-red-500 mb-4" />
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              Unable to Load Issue
+              {t('error.unableToLoad')}
             </h2>
             <p className="text-gray-600 mb-4">
-              {error?.message || 'The issue you are looking for does not exist or has been deleted.'}
+              {error?.message || t('error.notExistsOrDeleted')}
             </p>
             <Button
-              text="Back to Issues"
+              text={t('actions.backToIssues')}
               type="default"
               stylingMode="contained"
               onClick={() => router.push('/issues/list')}

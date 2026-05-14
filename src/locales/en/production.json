@@ -1,0 +1,721 @@
+{
+  "page": {
+    "title": "Production",
+    "description": "Manage work orders, recipes, and production lines"
+  },
+  "breadcrumbs": {
+    "production": "Production"
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "description": "Manage production work orders and track progress",
+    "pageTitle": "Work Orders",
+    "stats": {
+      "totalOrders": "Total Orders",
+      "planned": "Planned",
+      "released": "Released",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "highPriority": "High Priority",
+      "today": "Today",
+      "avgYield": "Avg Yield"
+    },
+    "tabs": {
+      "all": "All"
+    },
+    "charts": {
+      "byStatus": "By Status",
+      "byPriority": "Active Orders by Priority",
+      "performance": "Performance",
+      "completionRate": "Completion Rate",
+      "activeOrders": "Active Orders",
+      "averageYield": "Average Yield",
+      "cancelled": "Cancelled",
+      "noData": "No data",
+      "noActiveOrders": "No active orders"
+    },
+    "grid": {
+      "columns": {
+        "woBatch": "WO / Batch",
+        "product": "Product",
+        "quantity": "Quantity",
+        "priority": "Priority",
+        "schedule": "Schedule",
+        "yield": "Yield",
+        "status": "Status"
+      },
+      "orders": "{count} orders",
+      "searchPlaceholder": "Search work orders..."
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "analytics": "Analytics",
+      "newWorkOrder": "New Work Order",
+      "viewDetails": "View Details",
+      "createWO": "Create Work Order",
+      "editWO": "Edit Work Order",
+      "viewWO": "View Details",
+      "startWO": "Start Production",
+      "completeWO": "Complete Production",
+      "cancelWO": "Cancel Work Order",
+      "holdWO": "Hold Work Order",
+      "releaseWO": "Release Work Order",
+      "printLabel": "Print Label",
+      "viewBOM": "View BOM",
+      "deleteWO": "Delete Work Order",
+      "deleteConfirm": "Are you sure you want to delete work order {woNumber}? This will also delete all material items.",
+      "deleteSuccess": "Work order deleted successfully",
+      "editSuccess": "Work order updated successfully"
+    },
+    "breadcrumbs": {
+      "production": "Production",
+      "workOrders": "Work Orders"
+    },
+    "table": {
+      "columns": {
+        "woNumber": "WO Number",
+        "batchNumber": "Batch Number",
+        "product": "Product",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "status": "Status",
+        "plannedStart": "Planned Start",
+        "plannedEnd": "Planned End",
+        "actualStart": "Actual Start",
+        "actualEnd": "Actual End",
+        "productionLine": "Production Line",
+        "priority": "Priority"
+      }
+    },
+    "form": {
+      "product": {
+        "label": "Product",
+        "placeholder": "Select product"
+      },
+      "quantity": {
+        "label": "Quantity",
+        "placeholder": "Enter quantity"
+      },
+      "batchSize": {
+        "label": "Batch Size",
+        "placeholder": "Enter batch size"
+      },
+      "plannedStart": {
+        "label": "Planned Start",
+        "placeholder": "Select start date"
+      },
+      "plannedEnd": {
+        "label": "Planned End",
+        "placeholder": "Select end date"
+      },
+      "productionLine": {
+        "label": "Production Line",
+        "placeholder": "Select production line"
+      },
+      "priority": {
+        "label": "Priority",
+        "placeholder": "Select priority"
+      },
+      "remarks": {
+        "label": "Remarks",
+        "placeholder": "Enter remarks"
+      },
+      "batchNumber": {
+        "label": "Batch Number"
+      }
+    },
+    "status": {
+      "draft": "Draft",
+      "planned": "Planned",
+      "released": "Released",
+      "inProgress": "In Progress",
+      "onHold": "On Hold",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "toast": {
+      "create": {
+        "success": "Work order created successfully",
+        "error": "Failed to create work order"
+      },
+      "update": {
+        "success": "Work order updated successfully",
+        "error": "Failed to update work order"
+      },
+      "start": {
+        "success": "Production started successfully",
+        "error": "Failed to start production"
+      },
+      "complete": {
+        "success": "Production completed successfully",
+        "error": "Failed to complete production"
+      }
+    },
+    "empty": {
+      "title": "No work orders found",
+      "description": "Get started by creating a new work order",
+      "action": "Create Work Order"
+    }
+  },
+  "bom": {
+    "title": "Bill of Materials (BOM)",
+    "pageTitle": "Bill of Materials (BOM)",
+    "description": "Manage production recipes and ingredients",
+    "subtitle": "Manufacturing recipes and component management",
+    "breadcrumbs": {
+      "bomManagement": "BOM Management"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "approved": "Approved",
+      "obsolete": "Obsolete"
+    },
+    "filters": {
+      "allStatuses": "All Statuses"
+    },
+    "stats": {
+      "totalBOMs": "Total BOMs",
+      "activeBOMs": "Active BOMs",
+      "draftBOMs": "Draft BOMs",
+      "workOrders": "Work Orders",
+      "materials": "Materials",
+      "avgPerBOM": "Avg/BOM",
+      "obsolete": "Obsolete"
+    },
+    "charts": {
+      "statusDistribution": "Status Distribution",
+      "topProducts": "Top Products",
+      "recentBOMs": "Recent BOMs",
+      "noBOMsFound": "No BOMs found",
+      "noData": "No data"
+    },
+    "tabs": {
+      "all": "All",
+      "approved": "Approved",
+      "draft": "Draft",
+      "obsolete": "Obsolete"
+    },
+    "alerts": {
+      "pendingReview": "Pending Review",
+      "draftBOMsPending": "You have {count} draft BOM(s) pending approval.",
+      "viewDraftBOMs": "View draft BOMs"
+    },
+    "registry": {
+      "title": "BOM Registry"
+    },
+    "table": {
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "product": "Product",
+        "batch": "Batch",
+        "version": "Version",
+        "status": "Status",
+        "created": "Created",
+        "bomCode": "BOM Code",
+        "batchSize": "Batch Size",
+        "unit": "Unit",
+        "effectiveDate": "Effective Date",
+        "expiryDate": "Expiry Date"
+      }
+    },
+    "ingredients": {
+      "title": "Ingredients",
+      "columns": {
+        "item": "Item",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "percentage": "Percentage",
+        "scrap": "Scrap/Loss"
+      }
+    },
+    "actions": {
+      "createNewBOM": "Create New BOM",
+      "createBOM": "Create BOM",
+      "editBOM": "Edit BOM",
+      "copyBOM": "Copy BOM",
+      "newVersion": "Create New Version",
+      "activateBOM": "Activate",
+      "deactivateBOM": "Deactivate"
+    }
+  },
+  "productionLines": {
+    "title": "Production Lines",
+    "description": "Manage production lines and capacity",
+    "table": {
+      "columns": {
+        "code": "Line Code",
+        "name": "Line Name",
+        "capacity": "Capacity",
+        "status": "Status",
+        "currentWO": "Current WO",
+        "efficiency": "Efficiency"
+      }
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "maintenance": "Maintenance"
+    }
+  },
+  "batches": {
+    "title": "Batches",
+    "description": "Track production batches and quality control",
+    "table": {
+      "columns": {
+        "batchNumber": "Batch Number",
+        "product": "Product",
+        "quantity": "Quantity",
+        "status": "Status",
+        "productionDate": "Production Date",
+        "expiryDate": "Expiry Date",
+        "qcStatus": "QC Status"
+      }
+    }
+  },
+  "labelVerification": {
+    "title": "Label Verification",
+    "description": "Verify and witness label content with dual electronic signatures (FR-064, FR-065)"
+  },
+  "lineClearance": {
+    "title": "Line Clearance",
+    "description": "Complete line clearance verification before production start (FR-062)"
+  },
+  "batchRecords": {
+    "title": "Electronic Batch Records (eBMR)",
+    "subtitle": "Manufacturing process documentation and compliance tracking",
+    "actions": {
+      "refresh": "Refresh",
+      "workOrders": "Work Orders"
+    },
+    "status": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "deviation": "Deviation"
+    },
+    "stats": {
+      "total": "Total eBMR",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "deviations": "Deviations",
+      "completedToday": "Completed Today",
+      "pending": "Pending",
+      "avgCompletionTime": "Avg Completion Time",
+      "minSuffix": " min"
+    },
+    "charts": {
+      "statusDistribution": "eBMR Status Distribution",
+      "noRecords": "No records found",
+      "weeklyActivity": "Weekly Activity",
+      "noActivity": "No activity data yet",
+      "topProducts": "Top Products by eBMR",
+      "woCount": "{count} WO",
+      "completionRate": "{rate}% complete",
+      "noProductData": "No product data",
+      "recentRecords": "Recent eBMR Records",
+      "noRecentRecords": "No recent records",
+      "completed": "Completed",
+      "deviations": "Deviations"
+    },
+    "alerts": {
+      "deviationsTitle": "Deviations Detected",
+      "deviationsDescription": "There are {count} batch record{plural} with deviations that require attention.",
+      "activeTitle": "Active Production",
+      "activeDescription": "{count} Work Order{suffix} currently in progress with execution data.",
+      "viewInProgress": "View in progress"
+    },
+    "registry": {
+      "title": "eBMR Registry",
+      "filterByStatus": "Filter by status",
+      "searchPlaceholder": "Search WO, batch, or product...",
+      "dataGridSearch": "Search records..."
+    },
+    "statusFilters": {
+      "all": "All Statuses",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed"
+    },
+    "tabs": {
+      "all": "All",
+      "inProgress": "In Progress",
+      "pending": "Pending",
+      "completed": "Completed"
+    },
+    "columns": {
+      "workOrder": "Work Order",
+      "product": "Product",
+      "executionRecords": "Execution Records",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "status": "Status"
+    },
+    "execution": {
+      "sopPrefix": "SOP:",
+      "cleanPrefix": "Clean:",
+      "envPrefix": "Env:",
+      "fiPrefix": "FI:",
+      "totalSuffix": " total"
+    },
+    "mobile": {
+      "startPrefix": "Start:",
+      "endPrefix": "End:",
+      "viewDetails": "View Details"
+    },
+    "empty": {
+      "title": "No Batch Records",
+      "description": "Batch records appear here when work orders have execution data recorded (SOP, cleaning, environmental, or finished inspection)."
+    },
+    "noResults": {
+      "title": "No matching records",
+      "description": "Try changing your search or filter selection.",
+      "clearFilters": "Clear Filters"
+    }
+  },
+  "execution": {
+    "title": "Work Order Execution",
+    "materialWeighing": "Material Weighing",
+    "cleaning": "Cleaning Checklist",
+    "environmentalMonitoring": "Environmental Monitoring",
+    "sopExecution": "SOP Execution",
+    "packagingQC": "Packaging QC",
+    "finishedInspection": "Finished Product Inspection",
+    "ipc": "In-Process Control (IPC)",
+    "ipcDescription": "Record in-process quality control test results during production",
+    "ipcProgress": "IPC Progress",
+    "testsCompleted": "tests completed",
+    "approved": "Approved",
+    "initializeIPCTests": "Initialize IPC Tests",
+    "noIPCConfig": "No IPC configuration found in BOM",
+    "noIPCConfigHint": "Please configure IPC tests in the Bill of Materials (BOM) first",
+    "ipcReadyToInit": "Ready to initialize IPC tests",
+    "testsFromBOM": "tests from BOM",
+    "record": "Record",
+    "approve": "Approve",
+    "range": "Range",
+    "spec": "Spec",
+    "samples": "samples",
+    "sampleResults": "Sample Results",
+    "notes": "Notes",
+    "notesPlaceholder": "Additional notes (optional)",
+    "testedAt": "Tested at",
+    "approvedAt": "Approved at",
+    "recordResult": "Record Test Result",
+    "specRequirement": "Spec Requirement",
+    "measuredValue": "Measured Value",
+    "withinSpec": "Within spec",
+    "outOfSpec": "Out of spec",
+    "sampleValues": "Sample Values",
+    "samplesPass": "pass",
+    "room": "Room",
+    "equipment": "Equipment",
+    "materialReturnDialog": {
+      "title": "Return Excess Material",
+      "sourceLot": "Source Lot",
+      "planned": "Planned",
+      "weighed": "Weighed",
+      "threeLevelLabel": "3-level item",
+      "modeWeight": "Weight",
+      "modeSU": "Quantity",
+      "weightInputLabel": "Actual weight used",
+      "actualUsed": "Used",
+      "returnToWarehouse": "Return",
+      "zeroCost": "Zero Cost",
+      "issued": "Issued",
+      "used": "Used",
+      "returnQty": "Return",
+      "variance": "Variance",
+      "varianceWarning": "Variance may exceed tolerance — QA will review and may open a deviation",
+      "containerLabel": "Container Label",
+      "containerType": "Container Type",
+      "varianceReason": "Variance Reason",
+      "varianceExplanation": "Variance Explanation",
+      "explanationRequired": "Explanation required for \"Other\" / \"Unaccounted\"",
+      "explanationOptional": "Optional details",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes",
+      "cancel": "Cancel",
+      "submitting": "Submitting...",
+      "submit": "Submit Return",
+      "editTitle": "Edit Material Return",
+      "editSubmit": "Save Changes",
+      "buttonSubmit": "Submit Return",
+      "buttonEdit": "Edit Return",
+      "badgeReceived": "Received",
+      "badgeRejected": "Rejected",
+      "badgePending": "Pending Review"
+    },
+    "materialWeighingPage": {
+      "title": "Material Weighing",
+      "progress": {
+        "weighed": "Weighed",
+        "verified": "Verified",
+        "allVerified": "All Verified"
+      },
+      "material": {
+        "planned": "Planned",
+        "actual": "Actual",
+        "variance": "Variance",
+        "lot": "Lot"
+      },
+      "form": {
+        "actualWeight": "Actual Weight",
+        "lot": {
+          "label": "Lot Number",
+          "placeholder": "Select Lot (optional)",
+          "noData": "No available lots",
+          "expiry": "Exp",
+          "noExpiry": "N/A"
+        },
+        "notes": "Notes",
+        "recordWeight": "Record Weight",
+        "cancel": "Cancel",
+        "varianceWarning": "High variance - please verify"
+      },
+      "actions": {
+        "weigh": "Weigh",
+        "verify": "Verify",
+        "backToExecution": "Back to Execution"
+      },
+      "toast": {
+        "weightRecorded": "Material weight has been recorded",
+        "weightVerified": "Material weight has been verified"
+      },
+      "noMaterials": "No materials found for this work order.",
+      "noMaterialsHint": "Materials are loaded from the BOM formula."
+    },
+    "productionOutputPage": {
+      "title": "Production Output",
+      "subtitle": "Batch: {batch} | {product}",
+      "status": {
+        "notRecorded": "Not Recorded",
+        "recorded": "Recorded",
+        "woNotInProgress": "Work Order is not In Progress"
+      },
+      "info": {
+        "plannedQty": "Planned Quantity",
+        "unit": "Unit",
+        "batchNumber": "Batch Number",
+        "product": "Product"
+      },
+      "form": {
+        "actualQuantity": "Actual Quantity (Good)",
+        "rejectQuantity": "Finished Goods Loss",
+        "warehouse": "Destination Warehouse",
+        "warehousePlaceholder": "Select warehouse",
+        "notes": "Notes",
+        "submit": "Record Output",
+        "cancel": "Cancel",
+        "edit": "Edit"
+      },
+      "yield": {
+        "title": "Yield Calculation",
+        "yieldPercent": "Yield %",
+        "rejectPercent": "FG Loss %",
+        "lossPercent": "Loss %",
+        "theoretical": "Theoretical",
+        "actualGood": "Good Quantity",
+        "actualReject": "Finished Goods Loss",
+        "statusNormal": "Normal",
+        "statusLowYield": "Below Target",
+        "statusHighYield": "Abnormally High"
+      },
+      "output": {
+        "title": "Recorded Output",
+        "lotCreated": "Finished goods lot created",
+        "lotId": "Lot ID"
+      },
+      "toast": {
+        "success": "Production output recorded",
+        "successDetail": "Finished goods lot created in inventory",
+        "error": "Failed to record production output",
+        "lowYieldWarning": "Yield below target - deviation may be required"
+      },
+      "actions": {
+        "backToExecution": "Back to Execution"
+      }
+    }
+  },
+  "newWorkOrder": {
+    "title": "Create Work Order"
+  },
+  "newBOM": {
+    "title": "Create New BOM"
+  },
+  "bomDetail": {
+    "title": "BOM Detail"
+  },
+  "bomConfiguration": {
+    "title": "BOM Configuration",
+    "summary": "BOM Configuration Summary",
+    "rooms": "Rooms",
+    "equipment": "Equipment",
+    "environmentalConditions": "Environmental Conditions",
+    "sopSteps": "SOP Steps",
+    "packagingQC": "Packaging QC Criteria",
+    "noConfig": "No BOM configuration found",
+    "requirements": "BOM Requirements",
+    "temperatureRange": "Temperature",
+    "humidityMax": "Max Humidity",
+    "monitoringInterval": "Monitoring Interval",
+    "weightMin": "Min Weight",
+    "weightMax": "Max Weight",
+    "sampleSize": "Sample Size",
+    "maxFailures": "Max Failures",
+    "checkInterval": "Check Interval",
+    "parameters": "Parameters",
+    "instructions": "Instructions",
+    "everyMinutes": "every {minutes} minutes",
+    "step": "Step {sequence}"
+  },
+  "workOrderDetail": {
+    "title": "Work Order Detail"
+  },
+  "analytics": {
+    "pageTitle": "Production Analytics",
+    "description": "Overview and analysis of production data",
+    "breadcrumbs": {
+      "analytics": "Analytics"
+    },
+    "stats": {
+      "totalOrders": "Total Orders",
+      "completedOrders": "Completed",
+      "completionRate": "Completion Rate",
+      "avgYield": "Avg Yield",
+      "onTimeRate": "On-Time",
+      "totalProducts": "Products Produced",
+      "avgLeadTime": "Avg Lead Time",
+      "days": "days"
+    },
+    "charts": {
+      "monthlyVolume": "Monthly Production Volume",
+      "planned": "Planned",
+      "actual": "Actual",
+      "completed": "Completed",
+      "yieldByProduct": "Yield by Product",
+      "yieldPercent": "Yield (%)",
+      "productionByProduct": "Production Count by Product",
+      "count": "Count",
+      "statusOverview": "Status Overview",
+      "leadTimeByProduct": "Lead Time by Product",
+      "averageDays": "Average (days)",
+      "onTimeDelivery": "On-Time Delivery",
+      "onTime": "On-Time",
+      "late": "Late",
+      "noDeliveryDate": "No Due Date",
+      "priorityCompletion": "Completion Rate by Priority",
+      "rate": "Rate (%)",
+      "noData": "No data",
+      "orders": "orders",
+      "month": "Month",
+      "product": "Product"
+    },
+    "actions": {
+      "backToWorkOrders": "Back to Work Orders",
+      "exportExcel": "Export Excel"
+    }
+  },
+  "packagingQc": {
+    "common": {
+      "back": "Back to Execution Dashboard",
+      "history": "Check History",
+      "notes": "Notes",
+      "notesLabel": "Notes:",
+      "cancel": "Cancel",
+      "save": "Save",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Confirm Delete",
+      "deleteConfirmMessage": "Are you sure you want to delete this record? This action cannot be undone.",
+      "deleteAction": "Delete",
+      "operator": "Operator",
+      "inspector": "Inspector",
+      "error": "Error",
+      "batch": "Batch"
+    },
+    "weight": {
+      "title": "Packaging Weight Control",
+      "subtitle": "Weight verification of packaged products",
+      "criteria": "Acceptance Criteria",
+      "minWeight": "Min Weight",
+      "maxWeight": "Max Weight",
+      "sampleSize": "Sample Size",
+      "maxFailures": "Max Failures",
+      "noBomCriteria": "Weight criteria not configured in BOM — contact admin to set it up",
+      "addCheck": "Add Weight Check",
+      "addCheckEn": "Record New Sample",
+      "totalChecks": "Total Checks",
+      "passed": "Pass",
+      "failed": "Fail",
+      "passRate": "Pass Rate",
+      "emptyTitle": "No weight checks yet",
+      "emptyHint": "Click \"Add Weight Check\" above to start",
+      "failedSamples": "{count} failed",
+      "passLabel": "PASS",
+      "failLabel": "FAIL",
+      "avg": "Avg",
+      "min": "Min",
+      "max": "Max",
+      "dialogAdd": "Record Weight Check",
+      "dialogEdit": "Edit Weight Check",
+      "editingFrom": "Editing record from {time} — changes will be logged in audit trail",
+      "criteriaLabel": "Criteria",
+      "criteriaRange": "Range:",
+      "criteriaSample": "Samples:",
+      "criteriaMaxFail": "Max fail:",
+      "inputLabel": "Enter weight per sample (g) — 2 decimal places",
+      "inputItem": "Sample #{index}",
+      "outOfRange": "Out of range",
+      "ok": "OK",
+      "helperText": "Acceptance window: {min}–{max}g (max {maxFail} failures allowed)",
+      "notesEditReason": "(reason for edit)",
+      "notesPlaceholderEdit": "Reason for editing...",
+      "notesPlaceholderAdd": "Additional notes...",
+      "toastAdded": "Weight check recorded",
+      "toastEdited": "Record updated",
+      "toastDeleted": "Record deleted",
+      "namespace": "Weight Control"
+    },
+    "integrity": {
+      "title": "Packaging Integrity Check",
+      "subtitle": "Quality inspection of packaging",
+      "checklist": "Checklist",
+      "tubeCapLabel": "Tube/Cap Sealed",
+      "tubeCapSub": "Tube/Cap Complete",
+      "tubeCapFull": "Tube/Cap Complete & Sealed",
+      "lotLabel": "Lot Number Correct",
+      "lotSub": "Lot Correct",
+      "lotFull": "Lot Number Correct",
+      "packingLabel": "Packing Correct",
+      "packingSub": "Packing OK",
+      "packingFull": "Packing Correct",
+      "addCheck": "Add Integrity Check",
+      "addCheckEn": "Record New Inspection",
+      "totalChecks": "Total Checks",
+      "allPass": "All Passed",
+      "issues": "Issues Found",
+      "passRate": "Pass Rate",
+      "emptyTitle": "No integrity checks yet",
+      "emptyHint": "Click \"Add Integrity Check\" above to start",
+      "passAll": "All 3/3 Passed",
+      "passPartial": "{pass}/3 Passed",
+      "shortTubeCap": "Tube/Cap",
+      "shortLot": "Lot Number",
+      "shortPacking": "Packing",
+      "dialogTitle": "Record Integrity Check",
+      "dialogIntro": "Verify all 3 items — toggle off if any issue is found",
+      "notesPlaceholder": "Describe any issues found or observations...",
+      "toastAdded": "Integrity check recorded",
+      "namespace": "Integrity Check"
+    }
+  }
+}

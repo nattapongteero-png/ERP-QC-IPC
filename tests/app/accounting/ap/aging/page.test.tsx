@@ -136,8 +136,8 @@ describe('AP Aging Report Page', () => {
   it('renders page header with correct title and icon', () => {
     render(<APAgingReportPage />, { wrapper: createWrapper() });
 
-    expect(screen.getByText('AP Aging Report')).toBeInTheDocument();
-    expect(screen.getByText('Accounts payable aging analysis by vendor')).toBeInTheDocument();
+    expect(screen.getByText('Aging Report')).toBeInTheDocument();
+    expect(screen.getByText('Manage supplier bills and payments')).toBeInTheDocument();
   });
 
   it('renders filter panel with as-of date selector', () => {

@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 // Mock next/navigation
@@ -46,6 +46,11 @@ vi.mock('lucide-react', async (importOriginal) => {
     AlertCircle: MockIcon,
     Loader2: MockIcon,
     RefreshCw: MockIcon,
+    ClipboardList: MockIcon,
+    TrendingUp: MockIcon,
+    AlertTriangle: MockIcon,
+    ArrowRightCircle: MockIcon,
+    Zap: MockIcon,
   };
 });
 
@@ -56,10 +61,21 @@ vi.mock('@/components/layout/main-layout', () => ({
   ),
 }));
 
-// Mock DevExtreme components
-vi.mock('devextreme-react/data-grid', () => ({
-  default: ({ dataSource, children, ...props }: any) => (
-    <div data-testid={props['data-testid'] || 'data-grid'}>
+// Mock PageHeader
+vi.mock('@/components/ui/page-header', () => ({
+  PageHeader: ({ title, description, actions }: any) => (
+    <div data-testid="page-header">
+      <h1 data-testid="page-title">{title}</h1>
+      {description && <p>{description}</p>}
+      {actions}
+    </div>
+  ),
+}));
+
+// Mock DxDataGrid
+vi.mock('@/components/ui/dx-data-grid', () => ({
+  DxDataGrid: ({ dataSource, children, noDataText, ...props }: any) => (
+    <div data-testid={props['data-testid'] || 'pr-grid'}>
       <table>
         <tbody>
           {Array.isArray(dataSource) && dataSource.map((row: any, i: number) => (
@@ -74,41 +90,40 @@ vi.mock('devextreme-react/data-grid', () => ({
       {children}
     </div>
   ),
-  Column: () => null,
-  Paging: () => null,
-  FilterRow: () => null,
-  SearchPanel: () => null,
-  HeaderFilter: () => null,
-  Scrolling: () => null,
-  Selection: () => null,
-  Toolbar: ({ children }: any) => <div data-testid="grid-toolbar">{children}</div>,
-  Item: ({ children }: any) => <div>{children}</div>,
+  DxDataGridColumn: () => null,
 }));
 
-vi.mock('devextreme-react/button', () => ({
-  Button: ({ text, onClick, ...props }: any) => (
-    <button onClick={onClick} data-testid={props['data-testid']}>{text}</button>
-  ),
-}));
-
-vi.mock('devextreme-react/select-box', () => ({
-  SelectBox: ({ value, onValueChanged, ...props }: any) => (
-    <select
-      value={value}
-      onChange={(e) => onValueChanged?.({ value: e.target.value })}
+// Mock DxButton
+vi.mock('@/components/ui/dx-button', () => ({
+  DxButton: ({ text, onClick, hint, ...props }: any) => (
+    <button
+      onClick={onClick}
       data-testid={props['data-testid']}
+      title={hint}
     >
-      <option value="">All</option>
-      <option value="draft">Draft</option>
-      <option value="submitted">Submitted</option>
-      <option value="approved">Approved</option>
-      <option value="rejected">Rejected</option>
-    </select>
+      {text || hint}
+    </button>
   ),
 }));
 
-vi.mock('devextreme-react/load-indicator', () => ({
-  LoadIndicator: () => <div data-testid="dx-loadindicator">Loading...</div>,
+// Mock DxTextBox
+vi.mock('@/components/ui/dx-text-box', () => ({
+  DxTextBox: ({ value, onValueChange, placeholder, ...props }: any) => (
+    <input
+      type="text"
+      value={value || ''}
+      onChange={(e) => onValueChange && onValueChange(e.target.value)}
+      placeholder={placeholder}
+      data-testid={props['data-testid']}
+    />
+  ),
+}));
+
+// Mock Badge
+vi.mock('@/components/ui/badge', () => ({
+  Badge: ({ children, variant }: any) => (
+    <span data-testid={`badge-${variant}`}>{children}</span>
+  ),
 }));
 
 // Mock fetch
@@ -247,7 +262,7 @@ describe('Purchase Requisitions Page', () => {
     render(<RequisitionsPage />);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/purchasing/requisitions');
+      expect(mockFetch).toHaveBeenCalledWith('/api/purchasing/requisitions?limit=1000');
     });
   });
 

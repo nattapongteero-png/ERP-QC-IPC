@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -43,6 +44,7 @@ const testTypeOptions = [
 
 function NewQualityTestContent() {
   const router = useRouter();
+  const t = useTranslations('quality');
   const searchParams = useSearchParams();
   const lotIdParam = searchParams.get('lotId');
   const [isLoading, setIsLoading] = useState(false);
@@ -178,8 +180,8 @@ function NewQualityTestContent() {
     <>
       <div className="space-y-6">
         <PageHeader
-          title="New Quality Test"
-          description="Create a new quality control test"
+          title={t('inspections.actions.createInspection')}
+          description={t('inspections.description')}
           backButton={
             <DxButton
               text="Back"
@@ -390,12 +392,16 @@ function NewQualityTestContent() {
         </div>
       </div>
 
-      {/* Lot Search Dialog */}
+      {/* Lot Search Dialog.
+          Per GMP workflow, QC tests are only created for lots that are
+          still in Quarantine (waiting for release). Released lots are
+          already approved and shouldn't be retested from this screen. */}
       <LotSearchDialog
         open={lotDialogOpen}
         onOpenChange={setLotDialogOpen}
         onSelect={handleSelectLot}
         title="Select Lot for QC Test"
+        filterStatus="quarantine"
       />
     </>
   );

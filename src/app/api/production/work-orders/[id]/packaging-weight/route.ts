@@ -8,6 +8,8 @@ import {
 import {
   getWOPackagingWeightLogs,
   createWOPackagingWeightLog,
+  updateWOPackagingWeightLog,
+  deleteWOPackagingWeightLog,
 } from '@/lib/services/wo-execution.service';
 import { executeDbOperation } from '@/lib/db/db-helper';
 import { isSqlite } from '@/lib/db';
@@ -112,6 +114,111 @@ export async function POST(
       );
     } catch (error) {
       console.error('Error creating WO packaging weight log:', error);
+      return serverErrorResponse(error);
+    }
+  });
+}
+
+// PUT /api/production/work-orders/[id]/packaging-weight - Update a weight log
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await params;
+      const workOrderId = Number(id);
+
+      if (isNaN(workOrderId)) {
+        return errorResponse('Invalid work order ID');
+      }
+
+      const data = await request.json();
+
+      if (!data.logId || !data.sampleWeights) {
+        return errorResponse('Missing required fields: logId, sampleWeights');
+      }
+
+      // Validate sampleWeights
+      let weights: number[];
+      try {
+        weights = typeof data.sampleWeights === 'string'
+          ? JSON.parse(data.sampleWeights)
+          : data.sampleWeights;
+        if (!Array.isArray(weights) || !weights.every((w) => typeof w === 'number')) {
+          throw new Error('sampleWeights must be an array of numbers');
+        }
+      } catch (e) {
+        return errorResponse(`Invalid sampleWeights format: ${(e as Error).message}`);
+      }
+
+      // Check WO is not completed
+      const workOrder = await executeDbOperation(async (db: any) => {
+        const table = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+        const orders = await db.select().from(table).where(eq(table.id, workOrderId));
+        return orders[0];
+      });
+
+      if (!workOrder) {
+        return errorResponse('Work order not found');
+      }
+
+      if (workOrder.status === 'completed') {
+        return errorResponse('Cannot edit weight logs for completed work orders');
+      }
+
+      const userId = session.userId;
+      const log = await updateWOPackagingWeightLog(data.logId, JSON.stringify(weights), data.notes, userId, workOrder.bomId);
+
+      return successResponse(
+        log,
+        `Weight check updated (${log.failedCount} failures out of ${weights.length} samples)`
+      );
+    } catch (error) {
+      console.error('Error updating WO packaging weight log:', error);
+      return serverErrorResponse(error);
+    }
+  });
+}
+
+// DELETE /api/production/work-orders/[id]/packaging-weight - Delete a weight log
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(request, async () => {
+    try {
+      const { id } = await params;
+      const workOrderId = Number(id);
+
+      if (isNaN(workOrderId)) {
+        return errorResponse('Invalid work order ID');
+      }
+
+      const data = await request.json();
+      if (!data.logId) {
+        return errorResponse('Missing required field: logId');
+      }
+
+      // Check WO is not completed
+      const workOrder = await executeDbOperation(async (db: any) => {
+        const table = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+        const orders = await db.select().from(table).where(eq(table.id, workOrderId));
+        return orders[0];
+      });
+
+      if (!workOrder) {
+        return errorResponse('Work order not found');
+      }
+
+      if (workOrder.status === 'completed') {
+        return errorResponse('Cannot delete weight logs for completed work orders');
+      }
+
+      await deleteWOPackagingWeightLog(data.logId);
+      return successResponse(null, 'Weight check deleted');
+    } catch (error) {
+      console.error('Error deleting WO packaging weight log:', error);
       return serverErrorResponse(error);
     }
   });

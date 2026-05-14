@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -115,6 +116,7 @@ const resultOptions = [
 export default function QualityTestDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('quality');
   const toast = useToast();
   const [data, setData] = useState<TestDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -269,7 +271,7 @@ export default function QualityTestDetailPage() {
       <div className="text-center py-12">
         <p className="text-gray-500">Quality Test not found</p>
         <DxButton
-          text="Back to List"
+          text={t('page.title')}
           type="normal"
           stylingMode="outlined"
           className="mt-4"

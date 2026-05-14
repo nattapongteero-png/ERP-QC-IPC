@@ -60,8 +60,8 @@ describe('WarehousesPage', () => {
       renderWithProviders(<WarehousesPage />);
 
       await waitFor(() => {
-        // Thai description
-        expect(screen.getByText('จัดการคลังสินค้าและสถานที่จัดเก็บ')).toBeInTheDocument();
+        // Description comes from i18n: t('warehouses.description') = 'Manage warehouses and storage locations'
+        expect(screen.getByText('Manage warehouses and storage locations')).toBeInTheDocument();
       });
     });
 
@@ -71,8 +71,8 @@ describe('WarehousesPage', () => {
       renderWithProviders(<WarehousesPage />);
 
       await waitFor(() => {
-        // Thai text for "Add Warehouse"
-        expect(screen.getByText('เพิ่มคลัง')).toBeInTheDocument();
+        // Button text comes from i18n: t('warehouses.addWarehouse') = 'Add Warehouse'
+        expect(screen.getByText('Add Warehouse')).toBeInTheDocument();
       });
     });
 
@@ -83,11 +83,11 @@ describe('WarehousesPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('All')).toBeInTheDocument();
-        // Thai type labels
-        expect(screen.getByText('วัตถุดิบ')).toBeInTheDocument(); // Raw Material
-        expect(screen.getByText('สินค้าสำเร็จรูป')).toBeInTheDocument(); // Finished Goods
-        expect(screen.getByText('กักกัน')).toBeInTheDocument(); // Quarantine
-        expect(screen.getByText('ห้องเย็น')).toBeInTheDocument(); // Cold Storage
+        // Type labels come from i18n
+        expect(screen.getByText('Raw Material')).toBeInTheDocument();
+        expect(screen.getByText('Finished Goods')).toBeInTheDocument();
+        expect(screen.getByText('Quarantine')).toBeInTheDocument();
+        expect(screen.getAllByText('Cold Storage').length).toBeGreaterThan(0);
       });
     });
 
@@ -108,8 +108,8 @@ describe('WarehousesPage', () => {
       renderWithProviders(<WarehousesPage />);
 
       await waitFor(() => {
-        // Thai placeholder text
-        expect(screen.getByPlaceholderText('ค้นหาด้วยรหัส ชื่อ หรือที่ตั้ง...')).toBeInTheDocument();
+        // Placeholder comes from i18n: t('warehouses.searchPlaceholder') = 'Search by code, name, or location...'
+        expect(screen.getByPlaceholderText('Search by code, name, or location...')).toBeInTheDocument();
       });
     });
   });
@@ -202,7 +202,7 @@ describe('WarehousesPage', () => {
       renderWithProviders(<WarehousesPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Cold Storage/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Cold Storage/).length).toBeGreaterThan(0);
       });
     });
 

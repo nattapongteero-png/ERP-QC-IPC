@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Leaf, Mail, Lock, ArrowRight, Sparkles, Shield, Clock, BarChart3 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,19 +30,19 @@ export default function LoginPage() {
       if (data.success) {
         router.push('/dashboard');
       } else {
-        setError(data.error || 'Login failed');
+        setError(data.error || t('errors.loginFailed'));
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError(t('errors.genericError'));
     } finally {
       setIsLoading(false);
     }
   };
 
   const features = [
-    { icon: Shield, text: 'ควบคุมคุณภาพตามมาตรฐาน GMP' },
-    { icon: Clock, text: 'ติดตามล็อตการผลิตแบบ Real-time' },
-    { icon: BarChart3, text: 'รายงานและวิเคราะห์ข้อมูลอัตโนมัติ' },
+    { icon: Shield, textKey: 'features.gmpCompliance' as const },
+    { icon: Clock, textKey: 'features.realTimeTracking' as const },
+    { icon: BarChart3, textKey: 'features.autoReports' as const },
   ];
 
   return (
@@ -53,7 +55,7 @@ export default function LoginPage() {
           <div className="absolute bottom-10 right-10 lg:bottom-20 lg:right-20 w-64 lg:w-96 h-64 lg:h-96 bg-teal-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
           <div className="absolute top-1/2 left-1/3 w-40 lg:w-64 h-40 lg:h-64 bg-green-400/20 rounded-full blur-3xl animate-pulse delay-500"></div>
         </div>
-        
+
         {/* Floating Leaves Pattern */}
         <div className="absolute inset-0 opacity-10">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -72,14 +74,14 @@ export default function LoginPage() {
             </div>
             <Sparkles className="h-5 w-5 lg:h-6 lg:w-6 text-emerald-300 animate-pulse" />
           </div>
-          
+
           <h1 className="text-3xl lg:text-5xl font-bold mb-4 lg:mb-6 leading-tight">
-            Herbal Medicine
-            <span className="block text-emerald-300">ERP System</span>
+            {t('title')}
+            <span className="block text-emerald-300">{t('subtitle')}</span>
           </h1>
-          
+
           <p className="text-base lg:text-xl text-emerald-100 mb-6 lg:mb-8 leading-relaxed max-w-md">
-            ระบบบริหารจัดการการผลิตยาสมุนไพรครบวงจร ตั้งแต่วัตถุดิบจนถึงสินค้าสำเร็จรูป
+            {t('tagline')}
           </p>
 
           <div className="space-y-3 lg:space-y-4">
@@ -88,7 +90,7 @@ export default function LoginPage() {
                 <div className="p-1.5 bg-emerald-500/20 rounded-lg">
                   <feature.icon className="h-4 w-4" />
                 </div>
-                <span className="text-sm lg:text-base">{feature.text}</span>
+                <span className="text-sm lg:text-base">{t(feature.textKey)}</span>
               </div>
             ))}
           </div>
@@ -103,21 +105,21 @@ export default function LoginPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 mb-4 shadow-lg shadow-emerald-500/30">
               <Leaf className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Herbal Medicine ERP</h1>
-            <p className="text-gray-500 mt-1 text-sm">ระบบบริหารจัดการการผลิตยาสมุนไพร</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('appName')}</h1>
+            <p className="text-gray-500 mt-1 text-sm">{t('taglineShort')}</p>
           </div>
 
           {/* Login Card */}
           <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl shadow-gray-200/50 p-6 sm:p-8 border border-gray-100">
             <div className="text-center mb-6 md:mb-8">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900">ยินดีต้อนรับ</h2>
-              <p className="text-gray-500 mt-1 md:mt-2 text-sm md:text-base">เข้าสู่ระบบเพื่อดำเนินการต่อ</p>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900">{t('form.welcome')}</h2>
+              <p className="text-gray-500 mt-1 md:mt-2 text-sm md:text-base">{t('form.welcomeSubtitle')}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
               {/* Email Field */}
               <div className="space-y-1.5 md:space-y-2">
-                <label className="text-sm font-medium text-gray-700">อีเมล</label>
+                <label className="text-sm font-medium text-gray-700">{t('form.email')}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 md:pl-4 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-gray-400" />
@@ -126,7 +128,7 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
+                    placeholder={t('form.emailPlaceholder')}
                     required
                     className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm md:text-base"
                   />
@@ -135,7 +137,7 @@ export default function LoginPage() {
 
               {/* Password Field */}
               <div className="space-y-1.5 md:space-y-2">
-                <label className="text-sm font-medium text-gray-700">รหัสผ่าน</label>
+                <label className="text-sm font-medium text-gray-700">{t('form.password')}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 md:pl-4 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-gray-400" />
@@ -144,7 +146,7 @@ export default function LoginPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder={t('form.passwordPlaceholder')}
                     required
                     className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm md:text-base"
                   />
@@ -169,7 +171,7 @@ export default function LoginPage() {
                   <div className="w-5 h-5 md:w-6 md:h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : (
                   <>
-                    เข้าสู่ระบบ
+                    {t('form.submit')}
                     <ArrowRight className="h-4 w-4 md:h-5 md:w-5" />
                   </>
                 )}
@@ -180,7 +182,7 @@ export default function LoginPage() {
             {process.env.NODE_ENV !== 'production' && (
               <div className="mt-6 md:mt-8 pt-5 md:pt-6 border-t border-gray-100">
                 <p className="text-xs md:text-sm font-medium text-gray-500 text-center mb-3 md:mb-4">
-                  บัญชีทดสอบ
+                  {t('demo.title')}
                 </p>
                 <div className="grid grid-cols-1 gap-2">
                   <button
@@ -222,7 +224,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <p className="text-center text-xs md:text-sm text-gray-400 mt-6 md:mt-8">
-            © 2025 Herbal Medicine ERP. All rights reserved.
+            {t('footer.copyright')}
           </p>
         </div>
       </div>

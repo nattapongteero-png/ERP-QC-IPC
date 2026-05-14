@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,19 +22,9 @@ import notify from 'devextreme/ui/notify';
 
 // Available roles in the system
 const AVAILABLE_ROLES = [
-  { value: 'ADMIN', label: 'Administrator', description: 'Full system access' },
-  { value: 'MANAGER', label: 'Manager', description: 'Department management' },
-  { value: 'SUPERVISOR', label: 'Supervisor', description: 'Team supervision' },
-  { value: 'OPERATOR', label: 'Operator', description: 'Daily operations' },
-  { value: 'QA', label: 'Quality Assurance', description: 'Quality control' },
-  { value: 'RND', label: 'R&D', description: 'Research and development' },
-  { value: 'PRODUCTION', label: 'Production', description: 'Manufacturing' },
-  { value: 'WAREHOUSE', label: 'Warehouse', description: 'Inventory management' },
-  { value: 'PURCHASING', label: 'Purchasing', description: 'Procurement' },
-  { value: 'SALES', label: 'Sales', description: 'Sales operations' },
-  { value: 'ACCOUNTING', label: 'Accounting', description: 'Financial operations' },
-  { value: 'USER', label: 'User', description: 'Basic user' },
-];
+  'ADMIN', 'MANAGER', 'SUPERVISOR', 'OPERATOR', 'QA', 'RND',
+  'PRODUCTION', 'WAREHOUSE', 'PURCHASING', 'SALES', 'ACCOUNTING', 'USER',
+] as const;
 
 // API functions
 async function fetchBypassRoles(): Promise<{ roles: string[] }> {
@@ -53,6 +44,7 @@ async function saveBypassRoles(roles: string[]): Promise<void> {
 }
 
 export default function ConfidentialitySettingsPage() {
+  const t = useTranslations('settings');
   const queryClient = useQueryClient();
   const [selectedRoles, setSelectedRoles] = useState<string[]>(['ADMIN']);
   const [hasChanges, setHasChanges] = useState(false);
@@ -76,10 +68,10 @@ export default function ConfidentialitySettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['confidential-bypass-roles'] });
       setHasChanges(false);
-      notify('Bypass roles saved successfully', 'success', 3000);
+      notify(t('confidentiality.saveSuccess'), 'success', 3000);
     },
     onError: () => {
-      notify('Failed to save bypass roles', 'error', 3000);
+      notify(t('confidentiality.saveError'), 'error', 3000);
     },
   });
 
@@ -87,7 +79,7 @@ export default function ConfidentialitySettingsPage() {
   const handleRoleToggle = (role: string, checked: boolean) => {
     // Prevent removing ADMIN role (always required)
     if (role === 'ADMIN' && !checked) {
-      notify('Administrator role cannot be removed from bypass roles', 'warning', 3000);
+      notify(t('confidentiality.adminCannotRemove'), 'warning', 3000);
       return;
     }
 
@@ -120,7 +112,7 @@ export default function ConfidentialitySettingsPage() {
       <MainLayout>
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <AlertTriangle className="h-12 w-12 text-red-500" />
-          <p className="text-red-600">Failed to load settings</p>
+          <p className="text-red-600">{t('confidentiality.loadError')}</p>
         </div>
       </MainLayout>
     );
@@ -130,15 +122,15 @@ export default function ConfidentialitySettingsPage() {
     <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title="Confidentiality Settings"
-          description="Configure BOM confidentiality bypass roles"
+          title={t('confidentiality.title')}
+          description={t('confidentiality.description')}
           actions={
             <div className="flex items-center gap-3">
               <Link href="/settings">
-                <DxButton text="Back" icon="back" type="normal" />
+                <DxButton text={t('confidentiality.back')} icon="back" type="normal" />
               </Link>
               <DxButton
-                text={saveMutation.isPending ? 'Saving...' : 'Save Changes'}
+                text={saveMutation.isPending ? t('settingsPage.saving') : t('confidentiality.saveChanges')}
                 icon="save"
                 type="success"
                 onClick={handleSave}
@@ -154,10 +146,9 @@ export default function ConfidentialitySettingsPage() {
             <div className="flex items-start gap-3">
               <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-700">
-                <p className="font-medium mb-1">About Confidentiality Bypass Roles</p>
+                <p className="font-medium mb-1">{t('confidentiality.aboutTitle')}</p>
                 <p>
-                  Users with bypass roles can view all confidential BOM items regardless of access grants.
-                  This is useful for administrators and senior management who need full visibility.
+                  {t('confidentiality.aboutDescription')}
                 </p>
               </div>
             </div>
@@ -169,42 +160,41 @@ export default function ConfidentialitySettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-blue-600" />
-              <CardTitle>Bypass Roles</CardTitle>
+              <CardTitle>{t('confidentiality.bypassRoles')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              Select which roles should have automatic access to all confidential BOM items.
-              The Administrator role is always included and cannot be removed.
+              {t('confidentiality.selectRolesDescription')}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {AVAILABLE_ROLES.map((role) => (
+              {AVAILABLE_ROLES.map((roleValue) => (
                 <div
-                  key={role.value}
+                  key={roleValue}
                   className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                    selectedRoles.includes(role.value)
+                    selectedRoles.includes(roleValue)
                       ? 'bg-blue-50 border-blue-200'
                       : 'bg-white border-gray-200 hover:border-gray-300'
                   }`}
-                  data-testid={`role-item-${role.value}`}
+                  data-testid={`role-item-${roleValue}`}
                 >
                   <DxCheckBox
-                    value={selectedRoles.includes(role.value)}
-                    onValueChange={(checked) => handleRoleToggle(role.value, checked)}
-                    disabled={role.value === 'ADMIN'} // ADMIN is always required
-                    data-testid={`role-checkbox-${role.value}`}
+                    value={selectedRoles.includes(roleValue)}
+                    onValueChange={(checked) => handleRoleToggle(roleValue, checked)}
+                    disabled={roleValue === 'ADMIN'} // ADMIN is always required
+                    data-testid={`role-checkbox-${roleValue}`}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{role.label}</span>
-                      {role.value === 'ADMIN' && (
-                        <span title="Required">
+                      <span className="font-medium text-gray-900">{t(`confidentiality.roleLabels.${roleValue}`)}</span>
+                      {roleValue === 'ADMIN' && (
+                        <span title={t('confidentiality.required')}>
                           <Lock className="h-3.5 w-3.5 text-gray-400" />
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">{role.description}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{t(`confidentiality.roleDescriptions.${roleValue}`)}</p>
                   </div>
                 </div>
               ))}
@@ -215,7 +205,7 @@ export default function ConfidentialitySettingsPage() {
               <div className="flex items-center gap-2 text-sm">
                 <Check className="h-4 w-4 text-green-600" />
                 <span className="text-gray-600">
-                  <strong>{selectedRoles.length}</strong> role{selectedRoles.length !== 1 ? 's' : ''} can bypass confidentiality
+                  <strong>{selectedRoles.length}</strong> {selectedRoles.length !== 1 ? t('confidentiality.roles') : t('confidentiality.role')} {t('confidentiality.rolesCanBypass')}
                 </span>
               </div>
             </div>
@@ -227,17 +217,16 @@ export default function ConfidentialitySettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-amber-600" />
-              <CardTitle>Access Control Groups</CardTitle>
+              <CardTitle>{t('confidentiality.accessGroups')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              Manage confidential access groups to grant specific users access to confidential BOM items
-              without giving them bypass roles.
+              {t('confidentiality.accessGroupsDescription')}
             </p>
             <Link href="/admin/confidential-groups">
               <DxButton
-                text="Manage Access Groups"
+                text={t('confidentiality.manageGroups')}
                 icon="group"
                 type="default"
               />

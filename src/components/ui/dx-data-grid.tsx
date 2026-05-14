@@ -18,6 +18,7 @@ import DataGrid, {
   Summary,
   TotalItem,
   Editing,
+  GroupPanel,
 } from 'devextreme-react/data-grid';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 
@@ -84,6 +85,8 @@ export interface DxDataGridColumn {
   sortOrder?: 'asc' | 'desc';
   /** Sort index */
   sortIndex?: number;
+  /** Group index for grouping */
+  groupIndex?: number;
   /** Hide this column on mobile devices (< 768px) */
   hideOnMobile?: boolean;
   /** Hide this column on tablets (768px - 1024px) */
@@ -183,6 +186,8 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
   fillHeight?: boolean;
   /** Element attributes for testing */
   elementAttr?: Record<string, string>;
+  /** Enable group panel (drag columns to group) */
+  groupPanel?: boolean;
 }
 
 /**
@@ -249,6 +254,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
   responsiveColumns = true,
   fillHeight = false,
   elementAttr,
+  groupPanel = false,
 }: DxDataGridProps<T>) {
   // Detect device type for responsive behavior
   const { isMobile, isTablet } = useMobile();
@@ -353,6 +359,10 @@ export function DxDataGrid<T = Record<string, unknown>>({
         <ColumnChooser enabled mode="select" />
       )}
 
+      {groupPanel && (
+        <GroupPanel visible emptyPanelText="ลากคอลัมน์มาวางที่นี่เพื่อจัดกลุ่ม" />
+      )}
+
       {/* Explicitly control SearchPanel visibility - always render but control visible prop */}
       <SearchPanel visible={searchPanel} placeholder="ค้นหา..." />
 
@@ -386,6 +396,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
           allowEditing={col.allowEditing}
           sortOrder={col.sortOrder}
           sortIndex={col.sortIndex}
+          groupIndex={col.groupIndex}
         />
       ))}
 

@@ -1,16 +1,23 @@
 'use client';
 
 /**
- * VMI Orders Page - Professional Dashboard
+ * VMI Orders Page - Professional Dashboard (Responsive Refactor)
  *
  * Page for managing orders received from VMI Portals.
  * Displays order list with KPI stats, charts, and multiple view modes.
  *
- * Feature: 008-vmi-vendor-sync
+ * Responsive patterns:
+ *  - ResponsivePageHeader with PackageOpen icon (cyan tone)
+ *  - 4 StatCards (Total / Pending / Delivered / Overdue)
+ *  - Mobile card view replaces DataGrid at <md
+ *  - Charts hidden below lg
+ *  - Scroll-snap status tab filter, responsive filters, skeletons, empty/no-results states
+ *
+ * Feature: 008-vmi-vendor-sync (refactored)
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
@@ -18,12 +25,14 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { useMobile } from '@/hooks/use-mobile';
 import { VmiOrderDetail } from '@/components/vmi';
 import { cn } from '@/lib/utils/cn';
 import {
   ShoppingCart,
   Package,
+  PackageOpen,
   Truck,
   CheckCircle2,
   Clock,
@@ -31,7 +40,6 @@ import {
   BarChart3,
   LayoutGrid,
   List,
-  DollarSign,
   TrendingUp,
   Calendar,
   ArrowRight,
@@ -41,12 +49,10 @@ import {
   CheckSquare,
   AlertCircle,
   Zap,
-  Search,
   Filter,
-  Download,
-  ExternalLink,
   Activity,
   ArrowLeft,
+  SearchX,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PieChart, { Series, Legend, Tooltip, Label } from 'devextreme-react/pie-chart';
@@ -87,66 +93,66 @@ type ViewMode = 'grid' | 'cards' | 'analytics';
 const STATUS_CONFIG: Record<
   string,
   {
-    label: string;
-    labelTh: string;
+    translationKey: string;
     color: string;
     bgColor: string;
     borderColor: string;
+    hex: string;
     icon: typeof Clock;
     badgeVariant: 'warning' | 'info' | 'success' | 'danger';
   }
 > = {
   pending: {
-    label: 'Pending',
-    labelTh: 'รอดำเนินการ',
+    translationKey: 'pending',
     color: 'text-amber-600',
     bgColor: 'bg-amber-50',
     borderColor: 'border-amber-500',
+    hex: '#f59e0b',
     icon: Clock,
     badgeVariant: 'warning',
   },
   confirmed: {
-    label: 'Confirmed',
-    labelTh: 'ยืนยันแล้ว',
+    translationKey: 'confirmed',
     color: 'text-blue-600',
     bgColor: 'bg-blue-50',
     borderColor: 'border-blue-500',
+    hex: '#3b82f6',
     icon: CheckCircle2,
     badgeVariant: 'info',
   },
   processing: {
-    label: 'Processing',
-    labelTh: 'กำลังจัดเตรียม',
+    translationKey: 'processing',
     color: 'text-violet-600',
     bgColor: 'bg-violet-50',
     borderColor: 'border-violet-500',
+    hex: '#8b5cf6',
     icon: Package,
     badgeVariant: 'info',
   },
   shipped: {
-    label: 'Shipped',
-    labelTh: 'จัดส่งแล้ว',
+    translationKey: 'shipped',
     color: 'text-cyan-600',
     bgColor: 'bg-cyan-50',
     borderColor: 'border-cyan-500',
+    hex: '#06b6d4',
     icon: Truck,
     badgeVariant: 'info',
   },
   delivered: {
-    label: 'Delivered',
-    labelTh: 'ส่งมอบแล้ว',
+    translationKey: 'delivered',
     color: 'text-green-600',
     bgColor: 'bg-green-50',
     borderColor: 'border-green-500',
+    hex: '#22c55e',
     icon: CheckCircle2,
     badgeVariant: 'success',
   },
   cancelled: {
-    label: 'Cancelled',
-    labelTh: 'ยกเลิก',
+    translationKey: 'cancelled',
     color: 'text-red-600',
     bgColor: 'bg-red-50',
     borderColor: 'border-red-500',
+    hex: '#ef4444',
     icon: XCircle,
     badgeVariant: 'danger',
   },
@@ -154,30 +160,23 @@ const STATUS_CONFIG: Record<
 
 const PRIORITY_CONFIG: Record<
   string,
-  { label: string; labelTh: string; color: string; bgColor: string }
+  { translationKey: string; color: string; bgColor: string }
 > = {
-  low: { label: 'Low', labelTh: 'ต่ำ', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-  normal: { label: 'Normal', labelTh: 'ปกติ', color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  high: { label: 'High', labelTh: 'สูง', color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  urgent: { label: 'Urgent', labelTh: 'เร่งด่วน', color: 'text-red-600', bgColor: 'bg-red-100' },
+  low: { translationKey: 'low', color: 'text-gray-600', bgColor: 'bg-gray-100' },
+  normal: { translationKey: 'normal', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  high: { translationKey: 'high', color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  urgent: { translationKey: 'urgent', color: 'text-red-600', bgColor: 'bg-red-100' },
 };
 
-const statusOptions = [
-  { value: '', label: 'ทุกสถานะ' },
-  { value: 'pending', label: 'รอดำเนินการ' },
-  { value: 'confirmed', label: 'ยืนยันแล้ว' },
-  { value: 'processing', label: 'กำลังจัดเตรียม' },
-  { value: 'shipped', label: 'จัดส่งแล้ว' },
-  { value: 'delivered', label: 'ส่งมอบแล้ว' },
-  { value: 'cancelled', label: 'ยกเลิก' },
-];
-
-const priorityOptions = [
-  { value: '', label: 'ทุกความสำคัญ' },
-  { value: 'low', label: 'ต่ำ' },
-  { value: 'normal', label: 'ปกติ' },
-  { value: 'high', label: 'สูง' },
-  { value: 'urgent', label: 'เร่งด่วน' },
+// Status tab filter order (used for scroll-snap filter row)
+const STATUS_TAB_KEYS: Array<{ key: string; translationKey: string; icon: typeof Clock; bgActive: string }> = [
+  { key: '', translationKey: 'all', icon: ShoppingCart, bgActive: 'bg-cyan-600' },
+  { key: 'pending', translationKey: 'pending', icon: Clock, bgActive: 'bg-amber-500' },
+  { key: 'confirmed', translationKey: 'confirmed', icon: CheckCircle2, bgActive: 'bg-blue-600' },
+  { key: 'processing', translationKey: 'processing', icon: Package, bgActive: 'bg-violet-600' },
+  { key: 'shipped', translationKey: 'shipped', icon: Truck, bgActive: 'bg-cyan-600' },
+  { key: 'delivered', translationKey: 'delivered', icon: CheckCircle2, bgActive: 'bg-green-600' },
+  { key: 'cancelled', translationKey: 'cancelled', icon: XCircle, bgActive: 'bg-red-600' },
 ];
 
 // ============================================================================
@@ -250,7 +249,28 @@ async function fetchVmiOrders(): Promise<VmiOrder[]> {
   if (!result.success) {
     throw new Error(result.error || 'Failed to fetch VMI orders');
   }
-  return result.data?.items || [];
+  // Map API VmiSalesOrderSummary fields to frontend VmiOrder fields
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (result.data?.items || []).map((item: any) => ({
+    id: item.id,
+    portalId: item.portalId,
+    portalName: item.portalName,
+    portalOrderId: item.vmiOrderId,
+    orderDate: item.orderDate,
+    customerId: item.customerId,
+    customerName: item.vmiCustomerName || 'Unknown',
+    hospitalCode: item.vmiCustomerId,
+    status: item.localStatus || 'pending',
+    priority: 'normal', // Not stored in DB yet - default to normal
+    totalItems: item.lineCount || 0,
+    totalAmount: item.totalAmount,
+    matchedItems: (item.lineCount || 0) - (item.unmatchedLineCount || 0),
+    unmatchedItems: item.unmatchedLineCount || 0,
+    requestedDeliveryDate: item.requiredDate,
+    confirmedAt: item.confirmedAt,
+    shippedAt: item.shippedAt,
+    createdAt: item.polledAt || item.orderDate,
+  }));
 }
 
 async function pollOrders(): Promise<{
@@ -274,6 +294,28 @@ async function pollOrders(): Promise<{
 
 export default function VmiOrdersPage() {
   const queryClient = useQueryClient();
+  const t = useTranslations('sales');
+  const locale = useLocale();
+  const { isMobile } = useMobile();
+
+  // Derive status/priority select options from translations
+  const statusOptions = useMemo(() => [
+    { value: '', label: t('vmiOrders.placeholders.allStatus') },
+    { value: 'pending', label: t('vmiOrders.status.pending') },
+    { value: 'confirmed', label: t('vmiOrders.status.confirmed') },
+    { value: 'processing', label: t('vmiOrders.status.processing') },
+    { value: 'shipped', label: t('vmiOrders.status.shipped') },
+    { value: 'delivered', label: t('vmiOrders.status.delivered') },
+    { value: 'cancelled', label: t('vmiOrders.status.cancelled') },
+  ], [t]);
+
+  const priorityOptions = useMemo(() => [
+    { value: '', label: t('vmiOrders.priority.all') },
+    { value: 'low', label: t('vmiOrders.priority.low') },
+    { value: 'normal', label: t('vmiOrders.priority.normal') },
+    { value: 'high', label: t('vmiOrders.priority.high') },
+    { value: 'urgent', label: t('vmiOrders.priority.urgent') },
+  ], [t]);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -312,7 +354,7 @@ export default function VmiOrdersPage() {
       const matchesPriority = !priorityFilter || order.priority === priorityFilter;
 
       return matchesSearch && matchesStatus && matchesPriority;
-    });
+    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [orders, search, statusFilter, priorityFilter]);
 
   // Calculate statistics
@@ -372,32 +414,30 @@ export default function VmiOrdersPage() {
     };
   }, [orders]);
 
+  // Count per status for scroll-snap tabs
+  const statusTabCounts = useMemo(() => {
+    const counts: Record<string, number> = { '': orders.length };
+    Object.keys(STATUS_CONFIG).forEach((key) => {
+      counts[key] = orders.filter((o) => o.status === key).length;
+    });
+    return counts;
+  }, [orders]);
+
   // Chart data
   const statusChartData = useMemo(() => {
     return Object.entries(STATUS_CONFIG)
       .map(([key, config]) => ({
-        status: config.labelTh,
+        status: t(`vmiOrders.status.${config.translationKey}`),
         count: orders.filter((o) => o.status === key).length,
-        color:
-          key === 'pending'
-            ? '#f59e0b'
-            : key === 'confirmed'
-              ? '#3b82f6'
-              : key === 'processing'
-                ? '#8b5cf6'
-                : key === 'shipped'
-                  ? '#06b6d4'
-                  : key === 'delivered'
-                    ? '#22c55e'
-                    : '#ef4444',
+        color: config.hex,
       }))
       .filter((item) => item.count > 0);
-  }, [orders]);
+  }, [orders, t]);
 
   const priorityChartData = useMemo(() => {
     return Object.entries(PRIORITY_CONFIG)
       .map(([key, config]) => ({
-        priority: config.labelTh,
+        priority: t(`vmiOrders.priority.${config.translationKey}`),
         count: orders.filter((o) => o.priority === key).length,
         color:
           key === 'urgent'
@@ -409,7 +449,7 @@ export default function VmiOrdersPage() {
                 : '#6b7280',
       }))
       .filter((item) => item.count > 0);
-  }, [orders]);
+  }, [orders, t]);
 
   // Portal statistics
   const portalStats = useMemo(() => {
@@ -462,7 +502,7 @@ export default function VmiOrdersPage() {
       .slice(0, 5);
   }, [orders]);
 
-  // Navigation handler
+  // Navigation handlers
   const handleRowClick = useCallback((e: DataGridTypes.RowClickEvent) => {
     if (e.data?.id) {
       setSelectedOrderId(e.data.id);
@@ -471,6 +511,12 @@ export default function VmiOrdersPage() {
 
   const handleOrderClick = useCallback((id: number) => {
     setSelectedOrderId(id);
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearch('');
+    setStatusFilter('');
+    setPriorityFilter('');
   }, []);
 
   // Cell renderers
@@ -484,18 +530,18 @@ export default function VmiOrdersPage() {
         {overdue && (
           <div className="inline-flex items-center gap-1 mt-1 text-xs text-red-600">
             <AlertTriangle className="h-3 w-3" />
-            เกินกำหนด
+            {t('vmiOrders.dates.overdueLabel')}
           </div>
         )}
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderPortalCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
     return (
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center">
+        <div className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center flex-shrink-0">
           <Link2 className="h-3.5 w-3.5 text-indigo-600" />
         </div>
         <span className="truncate">{data.data.portalName || '-'}</span>
@@ -558,10 +604,10 @@ export default function VmiOrdersPage() {
     const config = PRIORITY_CONFIG[data.data.priority] || PRIORITY_CONFIG.normal;
     return (
       <span className={cn('px-2 py-1 rounded text-xs font-medium', config.bgColor, config.color)}>
-        {config.labelTh}
+        {t(`vmiOrders.priority.${config.translationKey}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderDateCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
@@ -593,15 +639,15 @@ export default function VmiOrdersPage() {
             )}
           >
             {daysUntil < 0
-              ? `เกิน ${Math.abs(daysUntil)} วัน`
+              ? t('vmiOrders.dates.overdueDays', { days: Math.abs(daysUntil) })
               : daysUntil === 0
-                ? 'วันนี้'
-                : `อีก ${daysUntil} วัน`}
+                ? t('vmiOrders.dates.today')
+                : t('vmiOrders.dates.daysRemaining', { days: daysUntil })}
           </p>
         )}
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderAmountCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
@@ -624,10 +670,10 @@ export default function VmiOrdersPage() {
         )}
       >
         <Icon className="h-3.5 w-3.5" />
-        {config.labelTh}
+        {t(`vmiOrders.status.${config.translationKey}`)}
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderActionsCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
@@ -636,81 +682,107 @@ export default function VmiOrdersPage() {
         icon="chevronnext"
         type="normal"
         stylingMode="text"
-        hint="ดูรายละเอียด"
+        hint={t('vmiOrders.list.viewDetails')}
         onClick={(e) => {
           e.event?.stopPropagation();
           setSelectedOrderId(data.data!.id);
         }}
       />
     );
-  }, []);
+  }, [t]);
 
-  // DataGrid columns
+  // DataGrid columns with responsive hiding
   const columns: DxDataGridColumn[] = useMemo(
     () => [
       {
+        dataField: '_rowNumber',
+        caption: t('items.grid.columns.rowNum'),
+        width: 60,
+        alignment: 'center',
+        allowFiltering: false,
+        allowHeaderFiltering: false,
+        allowSorting: false,
+        cellRender: (cellInfo: { data?: VmiOrder & { _rowNumber?: number } }) => (
+          <span className="text-gray-500 text-sm font-medium">
+            {cellInfo.data?._rowNumber}
+          </span>
+        ),
+      },
+      {
         dataField: 'portalOrderId',
-        caption: 'รหัสคำสั่งซื้อ',
-        width: 150,
+        caption: t('vmiOrders.columns.orderId'),
+        minWidth: 150,
         cellRender: renderOrderIdCell,
       },
       {
         dataField: 'portalName',
-        caption: 'Portal',
-        width: 140,
+        caption: t('vmiOrders.columns.portal'),
+        minWidth: 140,
+        hideOnMobile: true,
         cellRender: renderPortalCell,
       },
       {
         dataField: 'customerName',
-        caption: 'โรงพยาบาล/ลูกค้า',
-        minWidth: 160,
+        caption: t('vmiOrders.columns.customer'),
+        minWidth: 180,
         cellRender: renderCustomerCell,
       },
       {
         dataField: 'orderDate',
-        caption: 'วันที่สั่ง',
-        width: 120,
+        caption: t('vmiOrders.columns.orderDate'),
+        minWidth: 120,
         dataType: 'date',
+        hideOnMobile: true,
+        hideOnTablet: true,
         cellRender: renderDateCell,
       },
       {
         dataField: 'requestedDeliveryDate',
-        caption: 'กำหนดส่ง',
-        width: 130,
+        caption: t('vmiOrders.columns.deliveryDate'),
+        minWidth: 140,
+        hideOnMobile: true,
         cellRender: renderDeliveryDateCell,
       },
       {
         dataField: 'matchedItems',
-        caption: 'จับคู่สินค้า',
-        width: 120,
+        caption: t('vmiOrders.columns.matchItems'),
+        minWidth: 130,
+        hideOnMobile: true,
+        hideOnTablet: true,
         cellRender: renderMatchStatusCell,
       },
       {
         dataField: 'priority',
-        caption: 'ความสำคัญ',
-        width: 100,
+        caption: t('vmiOrders.columns.priority'),
+        minWidth: 110,
+        hideOnMobile: true,
+        hideOnTablet: true,
         cellRender: renderPriorityCell,
       },
       {
         dataField: 'totalAmount',
-        caption: 'มูลค่า',
-        width: 120,
+        caption: t('vmiOrders.columns.totalAmount'),
+        minWidth: 120,
         dataType: 'number',
+        hideOnMobile: true,
         cellRender: renderAmountCell,
       },
       {
         dataField: 'status',
-        caption: 'สถานะ',
-        width: 140,
+        caption: t('vmiOrders.columns.status'),
+        minWidth: 140,
         cellRender: renderStatusCell,
       },
       {
         caption: '',
         width: 60,
+        allowSorting: false,
+        allowFiltering: false,
         cellRender: renderActionsCell,
       },
     ],
     [
+      t,
       renderOrderIdCell,
       renderPortalCell,
       renderCustomerCell,
@@ -724,7 +796,7 @@ export default function VmiOrdersPage() {
     ]
   );
 
-  // Render order card
+  // Render order card (used in cards / analytics view)
   const renderOrderCard = (order: VmiOrder) => {
     const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
     const priorityConfig = PRIORITY_CONFIG[order.priority] || PRIORITY_CONFIG.normal;
@@ -743,35 +815,22 @@ export default function VmiOrdersPage() {
           <div className="flex items-stretch">
             <div
               className="w-1.5"
-              style={{
-                backgroundColor:
-                  order.status === 'pending'
-                    ? '#f59e0b'
-                    : order.status === 'confirmed'
-                      ? '#3b82f6'
-                      : order.status === 'processing'
-                        ? '#8b5cf6'
-                        : order.status === 'shipped'
-                          ? '#06b6d4'
-                          : order.status === 'delivered'
-                            ? '#22c55e'
-                            : '#ef4444',
-              }}
+              style={{ backgroundColor: statusConfig.hex }}
             />
             <div className="flex-1 p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-mono font-semibold text-blue-600">{order.portalOrderId}</p>
+              <div className="flex items-start justify-between mb-3 gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-mono font-semibold text-blue-600 truncate">{order.portalOrderId}</p>
                     {order.priority === 'urgent' && (
                       <span className="px-1.5 py-0.5 text-xs bg-red-100 text-red-700 rounded font-medium">
-                        เร่งด่วน
+                        {t('vmiOrders.card.urgent')}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">{order.portalName}</p>
+                  <p className="text-sm text-gray-500 mt-1 truncate">{order.portalName}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <p className="text-lg font-bold text-green-600">
                     {formatCurrency(order.totalAmount)}
                   </p>
@@ -783,20 +842,20 @@ export default function VmiOrdersPage() {
                         statusConfig.color
                       )}
                     >
-                      {statusConfig.labelTh}
+                      {t(`vmiOrders.status.${statusConfig.translationKey}`)}
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="p-2 bg-gray-50 rounded-lg mb-3">
-                <p className="font-medium text-sm">{order.customerName || '-'}</p>
+                <p className="font-medium text-sm truncate">{order.customerName || '-'}</p>
                 {order.hospitalCode && (
-                  <p className="text-xs text-gray-500">{order.hospitalCode}</p>
+                  <p className="text-xs text-gray-500 truncate">{order.hospitalCode}</p>
                 )}
               </div>
 
-              <div className="flex items-center justify-between text-xs mb-2">
+              <div className="flex items-center justify-between text-xs mb-2 flex-wrap gap-2">
                 <div
                   className={cn(
                     'flex items-center gap-1 px-2 py-1 rounded',
@@ -809,15 +868,15 @@ export default function VmiOrdersPage() {
                     <AlertCircle className="h-3.5 w-3.5" />
                   )}
                   <span>
-                    จับคู่ {order.matchedItems}/{order.totalItems}
+                    {t('vmiOrders.card.matched', { matched: order.matchedItems, total: order.totalItems })}
                   </span>
                 </div>
                 <span className={cn('px-2 py-1 rounded', priorityConfig.bgColor, priorityConfig.color)}>
-                  {priorityConfig.labelTh}
+                  {t(`vmiOrders.priority.${priorityConfig.translationKey}`)}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+              <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t flex-wrap gap-2">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
                   <span>{formatDateShort(order.orderDate)}</span>
@@ -838,7 +897,11 @@ export default function VmiOrdersPage() {
                               : ''
                         )}
                       >
-                        ({daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)}d` : daysUntil === 0 ? 'วันนี้' : `${daysUntil}d`})
+                        ({daysUntil < 0
+                          ? t('vmiOrders.dates.overdueShort', { days: Math.abs(daysUntil) })
+                          : daysUntil === 0
+                            ? t('vmiOrders.dates.today')
+                            : t('vmiOrders.dates.daysShort', { days: daysUntil })})
                       </span>
                     )}
                   </div>
@@ -848,7 +911,7 @@ export default function VmiOrdersPage() {
               {overdue && (
                 <div className="mt-2 p-2 bg-red-50 rounded-md flex items-center gap-2 text-red-600 text-xs">
                   <AlertTriangle className="h-3.5 w-3.5" />
-                  <span>เกินกำหนดส่งแล้ว</span>
+                  <span>{t('vmiOrders.card.overdueMessage')}</span>
                 </div>
               )}
             </div>
@@ -859,152 +922,8 @@ export default function VmiOrdersPage() {
   };
 
   // ============================================================================
-  // Render Functions
+  // Section Renderers
   // ============================================================================
-
-  const renderHeader = () => (
-    <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-teal-500 to-cyan-600 p-6 text-white">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
-        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-white/10" />
-        <div className="absolute right-1/4 top-1/2 h-24 w-24 rounded-full bg-white/5" />
-      </div>
-
-      <div className="relative">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-teal-100 mb-4">
-          <Link href="/sales" className="hover:text-white transition-colors">
-            การขาย
-          </Link>
-          <span>/</span>
-          <span className="text-white">คำสั่งซื้อ VMI</span>
-        </nav>
-
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">คำสั่งซื้อ VMI</h1>
-            <p className="text-teal-100">จัดการคำสั่งซื้อจาก VMI Portals</p>
-          </div>
-
-          {/* Quick Stats in Header */}
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <div className="text-xs text-teal-200">ทั้งหมด</div>
-            </div>
-            <div className="w-px h-10 bg-white/20" />
-            <div className="text-center">
-              <div className="text-2xl font-bold text-amber-300">{stats.pending}</div>
-              <div className="text-xs text-teal-200">รอดำเนินการ</div>
-            </div>
-            <div className="w-px h-10 bg-white/20" />
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-300">{stats.delivered}</div>
-              <div className="text-xs text-teal-200">ส่งมอบแล้ว</div>
-            </div>
-            <div className="w-px h-10 bg-white/20" />
-            <div className="text-center">
-              <div className="text-2xl font-bold">{formatCurrencyShort(stats.pendingValue)}</div>
-              <div className="text-xs text-teal-200">มูลค่ารอดำเนินการ</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-3 mt-4">
-          {/* View Mode Toggle */}
-          <div className="hidden md:flex items-center bg-white/10 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                'p-2 rounded transition-colors',
-                viewMode === 'grid' ? 'bg-white/20' : 'hover:bg-white/10'
-              )}
-              title="Grid View"
-            >
-              <List className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={cn(
-                'p-2 rounded transition-colors',
-                viewMode === 'cards' ? 'bg-white/20' : 'hover:bg-white/10'
-              )}
-              title="Cards View"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('analytics')}
-              className={cn(
-                'p-2 rounded transition-colors',
-                viewMode === 'analytics' ? 'bg-white/20' : 'hover:bg-white/10'
-              )}
-              title="Analytics View"
-            >
-              <BarChart3 className="h-4 w-4" />
-            </button>
-          </div>
-
-          <DxButton
-            icon="refresh"
-            text="รีเฟรช"
-            type="normal"
-            stylingMode="text"
-            onClick={() => refetch()}
-            className="!text-white hover:!bg-white/10"
-          />
-          <DxButton
-            text={pollMutation.isPending ? 'กำลังดึง...' : 'Poll Orders'}
-            icon={pollMutation.isPending ? undefined : 'download'}
-            type="default"
-            stylingMode="contained"
-            onClick={() => pollMutation.mutate()}
-            disabled={pollMutation.isPending}
-            className="!bg-white/20 hover:!bg-white/30 !border-white/30"
-          >
-            {pollMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-          </DxButton>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderStatusCards = () => (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-      {[
-        { key: 'total', label: 'ทั้งหมด', value: stats.total, color: 'indigo', icon: ShoppingCart },
-        { key: 'pending', label: 'รอดำเนินการ', value: stats.pending, color: 'amber', icon: Clock },
-        { key: 'unmatched', label: 'รอจับคู่', value: stats.unmatchedItems, color: 'orange', icon: AlertCircle },
-        { key: 'delivered', label: 'ส่งมอบแล้ว', value: stats.delivered, color: 'green', icon: CheckCircle2 },
-        { key: 'overdue', label: 'เกินกำหนด', value: stats.overdue, color: 'red', icon: AlertTriangle },
-        { key: 'value', label: 'มูลค่ารอดำเนินการ', value: formatCurrencyShort(stats.pendingValue), color: 'emerald', icon: DollarSign },
-      ].map((item) => {
-        const Icon = item.icon;
-        return (
-          <Card key={item.key} elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className={`w-1 bg-${item.color}-500`} />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-9 w-9 bg-${item.color}-100 rounded-lg flex items-center justify-center`}>
-                      <Icon className={`h-5 w-5 text-${item.color}-600`} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{item.label}</p>
-                      <p className="text-lg font-bold text-gray-900">{item.value}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
 
   const renderAlerts = () => {
     const alerts = [];
@@ -1013,22 +932,21 @@ export default function VmiOrdersPage() {
       alerts.push(
         <Card key="overdue" className="border-red-200 bg-red-50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-red-100">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-red-800">{stats.overdue} คำสั่งซื้อเกินกำหนดส่ง</p>
-                <p className="text-sm text-red-600">กรุณาตรวจสอบและดำเนินการโดยเร็ว</p>
+            <div className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="p-2.5 rounded-xl bg-red-100 flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-red-800">{t('vmiOrders.alerts.overdueTitle', { count: stats.overdue })}</p>
+                  <p className="text-sm text-red-600">{t('vmiOrders.alerts.overdueMessage')}</p>
+                </div>
               </div>
               <DxButton
-                text="ดูรายการ"
+                text={t('vmiOrders.alerts.viewList')}
                 type="danger"
                 stylingMode="outlined"
-                onClick={() => {
-                  setStatusFilter('');
-                  setSearch('');
-                }}
+                onClick={clearFilters}
               />
             </div>
           </CardContent>
@@ -1041,14 +959,14 @@ export default function VmiOrdersPage() {
         <Card key="unmatched" className="border-orange-200 bg-orange-50">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-orange-100">
+              <div className="p-2.5 rounded-xl bg-orange-100 flex-shrink-0">
                 <AlertCircle className="h-5 w-5 text-orange-600" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="font-semibold text-orange-800">
-                  {unmatchedOrders.length} คำสั่งซื้อมีสินค้ารอจับคู่
+                  {t('vmiOrders.alerts.unmatchedTitle', { count: unmatchedOrders.length })}
                 </p>
-                <p className="text-sm text-orange-600">กรุณาจับคู่สินค้าก่อนยืนยันคำสั่งซื้อ</p>
+                <p className="text-sm text-orange-600">{t('vmiOrders.alerts.unmatchedMessage')}</p>
               </div>
             </div>
           </CardContent>
@@ -1060,16 +978,18 @@ export default function VmiOrdersPage() {
       alerts.push(
         <Card key="urgent" className="border-purple-200 bg-purple-50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-purple-100">
-                <Zap className="h-5 w-5 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-purple-800">{stats.urgentOrders} คำสั่งซื้อเร่งด่วน</p>
-                <p className="text-sm text-purple-600">ต้องดำเนินการโดยเร็ว</p>
+            <div className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="p-2.5 rounded-xl bg-purple-100 flex-shrink-0">
+                  <Zap className="h-5 w-5 text-purple-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-purple-800">{t('vmiOrders.alerts.urgentTitle', { count: stats.urgentOrders })}</p>
+                  <p className="text-sm text-purple-600">{t('vmiOrders.alerts.urgentMessage')}</p>
+                </div>
               </div>
               <DxButton
-                text="ดูรายการ"
+                text={t('vmiOrders.alerts.viewList')}
                 type="normal"
                 stylingMode="outlined"
                 onClick={() => {
@@ -1083,71 +1003,61 @@ export default function VmiOrdersPage() {
       );
     }
 
-    return alerts.length > 0 ? <div className="space-y-3">{alerts}</div> : null;
+    return alerts.length > 0 ? <div className="grid grid-cols-1 gap-3">{alerts}</div> : null;
   };
 
   const renderFilters = () => (
-    <Card elevation="raised">
-      <CardContent className="p-4">
-        <div className="flex flex-col md:flex-row gap-3 items-end">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Search className="h-4 w-4 text-gray-400" />
-              <label className="text-sm font-medium text-gray-700">ค้นหา</label>
-            </div>
-            <DxTextBox
-              placeholder="ค้นหาด้วยรหัสคำสั่งซื้อ, โรงพยาบาล, หรือ Portal..."
-              value={search}
-              onValueChange={setSearch}
-              showClearButton
-              mode="search"
-            />
-          </div>
-          <div className="w-full md:w-44">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <label className="text-sm font-medium text-gray-700">สถานะ</label>
-            </div>
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="flex-1 min-w-0">
+          <DxTextBox
+            placeholder={t('vmiOrders.placeholders.search')}
+            value={search}
+            onValueChange={setSearch}
+            showClearButton
+            mode="search"
+          />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="w-full sm:w-48">
             <DxSelectBox
               items={statusOptions}
               value={statusFilter}
               onValueChange={setStatusFilter}
-              placeholder="ทุกสถานะ"
+              placeholder={t('vmiOrders.placeholders.allStatus')}
               showClearButton
             />
           </div>
-          <div className="w-full md:w-44">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Zap className="h-4 w-4 text-gray-400" />
-              <label className="text-sm font-medium text-gray-700">ความสำคัญ</label>
-            </div>
+          <div className="w-full sm:w-48">
             <DxSelectBox
               items={priorityOptions}
               value={priorityFilter}
               onValueChange={setPriorityFilter}
-              placeholder="ทุกความสำคัญ"
+              placeholder={t('vmiOrders.placeholders.allPriority')}
               showClearButton
             />
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
   const renderCharts = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    // Hidden below lg to free up mobile vertical space
+    <div className="hidden lg:grid grid-cols-1 md:grid-cols-2 gap-4">
       <Card elevation="raised">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded bg-indigo-100">
               <BarChart3 className="h-4 w-4 text-indigo-600" />
             </div>
-            <CardTitle className="text-sm font-medium">การกระจายตามสถานะ</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('vmiOrders.charts.statusDistribution')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
           {statusChartData.length > 0 ? (
             <PieChart
+              key={`status-${locale}`}
               id="vmi-status-pie"
               dataSource={statusChartData}
               type="doughnut"
@@ -1166,13 +1076,13 @@ export default function VmiOrdersPage() {
               <Tooltip
                 enabled={true}
                 customizeTooltip={(arg) => ({
-                  text: `${arg.argumentText}: ${arg.valueText} รายการ`,
+                  text: `${arg.argumentText}: ${arg.valueText} ${t('vmiOrders.charts.itemsSuffix')}`,
                 })}
               />
             </PieChart>
           ) : (
             <div className="h-[220px] flex items-center justify-center text-gray-400">
-              ไม่มีข้อมูล
+              {t('vmiOrders.charts.noData')}
             </div>
           )}
         </CardContent>
@@ -1184,12 +1094,13 @@ export default function VmiOrdersPage() {
             <div className="p-1.5 rounded bg-purple-100">
               <Zap className="h-4 w-4 text-purple-600" />
             </div>
-            <CardTitle className="text-sm font-medium">การกระจายตามความสำคัญ</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('vmiOrders.charts.priorityDistribution')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
           {priorityChartData.length > 0 ? (
             <PieChart
+              key={`priority-${locale}`}
               id="vmi-priority-pie"
               dataSource={priorityChartData}
               type="doughnut"
@@ -1208,13 +1119,13 @@ export default function VmiOrdersPage() {
               <Tooltip
                 enabled={true}
                 customizeTooltip={(arg) => ({
-                  text: `${arg.argumentText}: ${arg.valueText} รายการ`,
+                  text: `${arg.argumentText}: ${arg.valueText} ${t('vmiOrders.charts.itemsSuffix')}`,
                 })}
               />
             </PieChart>
           ) : (
             <div className="h-[220px] flex items-center justify-center text-gray-400">
-              ไม่มีข้อมูล
+              {t('vmiOrders.charts.noData')}
             </div>
           )}
         </CardContent>
@@ -1222,58 +1133,102 @@ export default function VmiOrdersPage() {
     </div>
   );
 
+  // Main grid view - desktop DataGrid or mobile card list
   const renderGridView = () => (
-    <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-teal-100">
-              <ShoppingCart className="h-5 w-5 text-teal-600" />
-            </div>
-            <div>
-              <CardTitle>รายการคำสั่งซื้อ</CardTitle>
-              <p className="text-sm text-gray-500">
-                แสดง {filteredOrders.length} จาก {orders.length} รายการ
-              </p>
-            </div>
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      {/* Scroll-snap status tab row */}
+      <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+        <div className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x">
+          {STATUS_TAB_KEYS.map((tab) => {
+            const count = statusTabCounts[tab.key] || 0;
+            const isActive = statusFilter === tab.key;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key || 'all'}
+                onClick={() => setStatusFilter(tab.key)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]',
+                  isActive
+                    ? `${tab.bgActive} text-white shadow-sm`
+                    : `text-gray-600 hover:bg-gray-100`
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{t(`vmiOrders.status.${tab.translationKey}`)}</span>
+                <span
+                  className={cn(
+                    'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                    isActive ? 'bg-white/25 text-inherit' : 'bg-gray-200 text-gray-700'
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* List header: title + result count */}
+      <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-2 rounded-lg bg-cyan-100 flex-shrink-0">
+            <ShoppingCart className="h-4 w-4 text-cyan-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{t('vmiOrders.list.title')}</p>
+            <p className="text-xs text-gray-500">
+              {t('vmiOrders.list.showingOf', { shown: filteredOrders.length, total: orders.length })}
+            </p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="flex-1 min-h-0 flex flex-col p-0">
-        {filteredOrders.length > 0 || isLoading ? (
-          <DxDataGrid
-            dataSource={filteredOrders}
-            keyExpr="id"
-            columns={columns}
-            loading={isLoading}
-            sorting
-            filterRow
-            headerFilter
-            export
-            exportFileName="vmi-orders"
-            columnChooser
-            virtualScrolling={filteredOrders.length > 100}
-            fillHeight
-            onRowClick={handleRowClick}
-            noDataText="ไม่พบคำสั่งซื้อ VMI"
-          />
+      </div>
+
+      {/* Content: Loading / Empty / Mobile Cards / Desktop Grid */}
+      {isLoading ? (
+        isMobile ? (
+          <VmiOrderCardSkeletonList count={4} />
         ) : (
-          <EmptyState
-            icon={<ShoppingCart className="h-8 w-8" />}
-            title="ไม่พบคำสั่งซื้อ VMI"
-            description="ลองดึงคำสั่งซื้อใหม่จาก VMI Portals"
-            action={{
-              label: 'Poll for Orders',
-              onClick: () => pollMutation.mutate(),
-            }}
-          />
-        )}
-      </CardContent>
-    </Card>
+          <DataGridLoadingSkeleton />
+        )
+      ) : orders.length === 0 ? (
+        <VmiEmptyState onPoll={() => pollMutation.mutate()} loading={pollMutation.isPending} t={t} />
+      ) : filteredOrders.length === 0 ? (
+        <VmiNoResultsState onClear={clearFilters} t={t} />
+      ) : isMobile ? (
+        <VmiOrderCardList
+          orders={filteredOrders}
+          onOpen={handleOrderClick}
+          t={t}
+        />
+      ) : (
+        <DxDataGrid
+          key={locale}
+          dataSource={filteredOrders}
+          keyExpr="id"
+          columns={columns}
+          loading={isLoading}
+          sorting
+          filterRow
+          headerFilter
+          export
+          exportFileName="vmi-orders"
+          columnChooser
+          responsiveColumns
+          virtualScrolling={filteredOrders.length > 100}
+          height={600}
+          mobileHeight={520}
+          tabletHeight={560}
+          onRowClick={handleRowClick}
+          noDataText={t('vmiOrders.noData')}
+        />
+      )}
+    </div>
   );
 
   const renderCardsView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
       {/* Main Content */}
       <div className="lg:col-span-3 space-y-4">
         {renderCharts()}
@@ -1285,7 +1240,7 @@ export default function VmiOrdersPage() {
                 <div className="p-2 rounded-lg bg-amber-100">
                   <Zap className="h-5 w-5 text-amber-600" />
                 </div>
-                <CardTitle>ต้องดำเนินการเร่งด่วน</CardTitle>
+                <CardTitle>{t('vmiOrders.sections.urgentAction')}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
@@ -1303,7 +1258,7 @@ export default function VmiOrdersPage() {
                 <div className="p-2 rounded-lg bg-orange-100">
                   <AlertCircle className="h-5 w-5 text-orange-600" />
                 </div>
-                <CardTitle>รอจับคู่สินค้า</CardTitle>
+                <CardTitle>{t('vmiOrders.sections.unmatchedItems')}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
@@ -1317,10 +1272,10 @@ export default function VmiOrdersPage() {
         <Card elevation="raised">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-teal-100">
-                <ShoppingCart className="h-5 w-5 text-teal-600" />
+              <div className="p-2 rounded-lg bg-cyan-100">
+                <ShoppingCart className="h-5 w-5 text-cyan-600" />
               </div>
-              <CardTitle>คำสั่งซื้อทั้งหมด ({filteredOrders.length})</CardTitle>
+              <CardTitle>{t('vmiOrders.sections.allOrders', { count: filteredOrders.length })}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
@@ -1329,12 +1284,12 @@ export default function VmiOrdersPage() {
                 {filteredOrders.slice(0, 10).map(renderOrderCard)}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-400">ไม่พบคำสั่งซื้อที่ตรงกับเงื่อนไข</div>
+              <div className="text-center py-8 text-gray-400">{t('vmiOrders.sections.noMatchingSearch')}</div>
             )}
             {filteredOrders.length > 10 && (
               <div className="mt-4 text-center">
                 <DxButton
-                  text={`ดูเพิ่มเติมอีก ${filteredOrders.length - 10} รายการ`}
+                  text={t('vmiOrders.sections.viewMore', { count: filteredOrders.length - 10 })}
                   type="normal"
                   onClick={() => setViewMode('grid')}
                 />
@@ -1353,7 +1308,7 @@ export default function VmiOrdersPage() {
               <div className="p-1.5 rounded bg-indigo-100">
                 <Link2 className="h-4 w-4 text-indigo-600" />
               </div>
-              <CardTitle className="text-sm">VMI Portals</CardTitle>
+              <CardTitle className="text-sm">{t('vmiOrders.sections.portalStats')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
@@ -1362,20 +1317,20 @@ export default function VmiOrdersPage() {
                 <div key={portal.name} className="p-2 rounded-lg bg-gray-50">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium truncate">{portal.name}</span>
-                    <span className="text-xs text-gray-500">{portal.count} รายการ</span>
+                    <span className="text-xs text-gray-500">{t('vmiOrders.analytics.portalOrdersCount', { count: portal.count })}</span>
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-green-600 font-semibold">
                       {formatCurrencyShort(portal.value)}
                     </p>
                     {portal.pending > 0 && (
-                      <span className="text-xs text-amber-600">{portal.pending} รอดำเนินการ</span>
+                      <span className="text-xs text-amber-600">{t('vmiOrders.analytics.portalPending', { count: portal.pending })}</span>
                     )}
                   </div>
                 </div>
               ))}
               {portalStats.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">ไม่มีข้อมูล</p>
+                <p className="text-sm text-gray-400 text-center py-4">{t('vmiOrders.sections.noData')}</p>
               )}
             </div>
           </CardContent>
@@ -1388,28 +1343,28 @@ export default function VmiOrdersPage() {
               <div className="p-1.5 rounded bg-green-100">
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </div>
-              <CardTitle className="text-sm">สรุปรวม</CardTitle>
+              <CardTitle className="text-sm">{t('vmiOrders.sections.summary')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0 space-y-3">
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">มูลค่ารวม</span>
+              <span className="text-sm text-gray-500">{t('vmiOrders.sections.totalValue')}</span>
               <span className="font-semibold text-green-600">
                 {formatCurrencyShort(stats.totalValue)}
               </span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">ส่งมอบแล้ว</span>
+              <span className="text-sm text-gray-500">{t('vmiOrders.sections.deliveredValue')}</span>
               <span className="font-semibold text-green-600">
                 {formatCurrencyShort(stats.deliveredValue)}
               </span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">อัตราจับคู่</span>
+              <span className="text-sm text-gray-500">{t('vmiOrders.sections.matchRate')}</span>
               <span className="font-semibold text-blue-600">{stats.matchRate}%</span>
             </div>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-gray-500">อัตราส่งมอบ</span>
+              <span className="text-sm text-gray-500">{t('vmiOrders.sections.fulfillmentRate')}</span>
               <span className="font-semibold text-blue-600">{stats.fulfillmentRate}%</span>
             </div>
           </CardContent>
@@ -1422,7 +1377,7 @@ export default function VmiOrdersPage() {
               <div className="p-1.5 rounded bg-blue-100">
                 <Clock className="h-4 w-4 text-blue-600" />
               </div>
-              <CardTitle className="text-sm">ล่าสุด</CardTitle>
+              <CardTitle className="text-sm">{t('vmiOrders.sections.recent')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
@@ -1430,68 +1385,60 @@ export default function VmiOrdersPage() {
               {recentOrders.map((order) => {
                 const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
                 return (
-                  <div
+                  <button
                     key={order.id}
-                    className="p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border-l-2"
-                    style={{
-                      borderLeftColor:
-                        order.status === 'pending'
-                          ? '#f59e0b'
-                          : order.status === 'confirmed'
-                            ? '#3b82f6'
-                            : order.status === 'delivered'
-                              ? '#22c55e'
-                              : '#9ca3af',
-                    }}
+                    type="button"
+                    className="w-full text-left p-2 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors border-l-2 min-h-[44px]"
+                    style={{ borderLeftColor: statusConfig.hex }}
                     onClick={() => handleOrderClick(order.id)}
                   >
                     <div className="flex items-center justify-between">
-                      <p className="font-mono text-xs text-blue-600">{order.portalOrderId}</p>
-                      <p className="text-xs font-semibold text-green-600">
+                      <p className="font-mono text-xs text-blue-600 truncate">{order.portalOrderId}</p>
+                      <p className="text-xs font-semibold text-green-600 flex-shrink-0">
                         {formatCurrencyShort(order.totalAmount)}
                       </p>
                     </div>
                     <p className="text-sm truncate">{order.customerName || order.portalName}</p>
                     <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
-                  </div>
+                  </button>
                 );
               })}
               {recentOrders.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">ไม่มีข้อมูล</p>
+                <p className="text-sm text-gray-400 text-center py-4">{t('vmiOrders.sections.noData')}</p>
               )}
             </div>
           </CardContent>
         </Card>
 
         {/* Workflow Help */}
-        <Card className="border-teal-100 bg-gradient-to-br from-teal-50 to-cyan-50">
+        <Card className="border-cyan-100 bg-gradient-to-br from-cyan-50 to-teal-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-teal-900">วิธีการทำงาน</CardTitle>
+            <CardTitle className="text-sm text-cyan-900">{t('vmiOrders.sections.workflowTitle')}</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-xs text-teal-800 space-y-2">
+          <CardContent className="pt-0 text-xs text-cyan-800 space-y-2">
             <div className="flex gap-2">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-200 flex items-center justify-center font-bold text-teal-700">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-200 flex items-center justify-center font-bold text-cyan-700">
                 1
               </span>
-              <span>Poll ดึงคำสั่งซื้อจาก Portals</span>
+              <span>{t('vmiOrders.sections.workflow1')}</span>
             </div>
             <div className="flex gap-2">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-200 flex items-center justify-center font-bold text-teal-700">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-200 flex items-center justify-center font-bold text-cyan-700">
                 2
               </span>
-              <span>จับคู่สินค้า (Match)</span>
+              <span>{t('vmiOrders.sections.workflow2')}</span>
             </div>
             <div className="flex gap-2">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-200 flex items-center justify-center font-bold text-teal-700">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-200 flex items-center justify-center font-bold text-cyan-700">
                 3
               </span>
-              <span>ยืนยันคำสั่งซื้อ (Confirm)</span>
+              <span>{t('vmiOrders.sections.workflow3')}</span>
             </div>
             <div className="flex gap-2">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-200 flex items-center justify-center font-bold text-teal-700">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-200 flex items-center justify-center font-bold text-cyan-700">
                 4
               </span>
-              <span>จัดส่ง (Ship)</span>
+              <span>{t('vmiOrders.sections.workflow4')}</span>
             </div>
           </CardContent>
         </Card>
@@ -1500,7 +1447,7 @@ export default function VmiOrdersPage() {
   );
 
   const renderAnalyticsView = () => (
-    <div className="space-y-4 flex-1">
+    <div className="space-y-4">
       {renderCharts()}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1511,7 +1458,7 @@ export default function VmiOrdersPage() {
               <div className="p-2 rounded-lg bg-indigo-100">
                 <BarChart3 className="h-5 w-5 text-indigo-600" />
               </div>
-              <CardTitle>สรุปตามสถานะ</CardTitle>
+              <CardTitle>{t('vmiOrders.analytics.statusBreakdown')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
@@ -1527,7 +1474,7 @@ export default function VmiOrdersPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">{config.labelTh}</span>
+                        <span className="text-sm font-medium">{t(`vmiOrders.status.${config.translationKey}`)}</span>
                         <span className="text-sm text-gray-500">
                           {count} ({percentage.toFixed(0)}%)
                         </span>
@@ -1535,21 +1482,7 @@ export default function VmiOrdersPage() {
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${percentage}%`,
-                            backgroundColor:
-                              key === 'pending'
-                                ? '#f59e0b'
-                                : key === 'confirmed'
-                                  ? '#3b82f6'
-                                  : key === 'processing'
-                                    ? '#8b5cf6'
-                                    : key === 'shipped'
-                                      ? '#06b6d4'
-                                      : key === 'delivered'
-                                        ? '#22c55e'
-                                        : '#ef4444',
-                          }}
+                          style={{ width: `${percentage}%`, backgroundColor: config.hex }}
                         />
                       </div>
                     </div>
@@ -1567,26 +1500,26 @@ export default function VmiOrdersPage() {
               <div className="p-2 rounded-lg bg-green-100">
                 <TrendingUp className="h-5 w-5 text-green-600" />
               </div>
-              <CardTitle>สรุปมูลค่า</CardTitle>
+              <CardTitle>{t('vmiOrders.analytics.valueSummary')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-4">
               <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <p className="text-sm text-gray-600">มูลค่ารวมทั้งหมด</p>
-                <p className="text-3xl font-bold text-green-600">
+                <p className="text-sm text-gray-600">{t('vmiOrders.analytics.totalValue')}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-600 break-all">
                   {formatCurrency(stats.totalValue)}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-gray-500">รอดำเนินการ</p>
+                  <p className="text-xs text-gray-500">{t('vmiOrders.analytics.pending')}</p>
                   <p className="text-lg font-bold text-blue-600">
                     {formatCurrencyShort(stats.pendingValue)}
                   </p>
                 </div>
                 <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-xs text-gray-500">ส่งมอบแล้ว</p>
+                  <p className="text-xs text-gray-500">{t('vmiOrders.analytics.delivered')}</p>
                   <p className="text-lg font-bold text-green-600">
                     {formatCurrencyShort(stats.deliveredValue)}
                   </p>
@@ -1594,7 +1527,7 @@ export default function VmiOrdersPage() {
               </div>
               <div className="pt-3 border-t">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">อัตราส่งมอบ</span>
+                  <span className="text-sm text-gray-600">{t('vmiOrders.analytics.fulfillmentRate')}</span>
                   <span className="text-sm font-semibold">{stats.fulfillmentRate}%</span>
                 </div>
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -1616,11 +1549,11 @@ export default function VmiOrdersPage() {
             <div className="p-2 rounded-lg bg-purple-100">
               <Link2 className="h-5 w-5 text-purple-600" />
             </div>
-            <CardTitle>สถิติตาม Portal</CardTitle>
+            <CardTitle>{t('vmiOrders.analytics.portalStats')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {portalStats.map((portal, idx) => (
               <Card key={portal.name} className="border overflow-hidden">
                 <CardContent className="p-0">
@@ -1628,7 +1561,7 @@ export default function VmiOrdersPage() {
                     <div className="w-1 bg-indigo-500" />
                     <div className="flex-1 p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold flex-shrink-0">
                           {idx + 1}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -1637,11 +1570,11 @@ export default function VmiOrdersPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="p-2 bg-gray-50 rounded">
-                          <span className="text-gray-500">คำสั่งซื้อ</span>
-                          <p className="font-semibold">{portal.count} รายการ</p>
+                          <span className="text-gray-500">{t('vmiOrders.analytics.portalOrders')}</span>
+                          <p className="font-semibold">{t('vmiOrders.analytics.portalOrdersCount', { count: portal.count })}</p>
                         </div>
                         <div className="p-2 bg-gray-50 rounded">
-                          <span className="text-gray-500">มูลค่า</span>
+                          <span className="text-gray-500">{t('vmiOrders.analytics.portalValue')}</span>
                           <p className="font-semibold text-green-600">
                             {formatCurrencyShort(portal.value)}
                           </p>
@@ -1649,7 +1582,7 @@ export default function VmiOrdersPage() {
                       </div>
                       {portal.pending > 0 && (
                         <div className="mt-2 p-2 bg-amber-50 rounded text-xs text-amber-700">
-                          {portal.pending} รอดำเนินการ
+                          {t('vmiOrders.analytics.portalPending', { count: portal.pending })}
                         </div>
                       )}
                     </div>
@@ -1658,7 +1591,7 @@ export default function VmiOrdersPage() {
               </Card>
             ))}
             {portalStats.length === 0 && (
-              <div className="col-span-4 text-center py-8 text-gray-400">ไม่มีข้อมูล Portal</div>
+              <div className="col-span-full text-center py-8 text-gray-400">{t('vmiOrders.analytics.noPortalData')}</div>
             )}
           </div>
         </CardContent>
@@ -1671,22 +1604,22 @@ export default function VmiOrdersPage() {
             <div className="p-2 rounded-lg bg-blue-100">
               <CheckSquare className="h-5 w-5 text-blue-600" />
             </div>
-            <CardTitle>อัตราการจับคู่สินค้า</CardTitle>
+            <CardTitle>{t('vmiOrders.analytics.matchRateAnalysis')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
-              <p className="text-4xl font-bold text-blue-600">{stats.matchRate}%</p>
-              <p className="text-sm text-gray-600 mt-1">อัตราการจับคู่</p>
+              <p className="text-3xl sm:text-4xl font-bold text-blue-600">{stats.matchRate}%</p>
+              <p className="text-sm text-gray-600 mt-1">{t('vmiOrders.analytics.matchRate')}</p>
             </div>
             <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
-              <p className="text-4xl font-bold text-green-600">{stats.matchedItems}</p>
-              <p className="text-sm text-gray-600 mt-1">สินค้าจับคู่แล้ว</p>
+              <p className="text-3xl sm:text-4xl font-bold text-green-600">{stats.matchedItems}</p>
+              <p className="text-sm text-gray-600 mt-1">{t('vmiOrders.analytics.matchedItems')}</p>
             </div>
             <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 text-center">
-              <p className="text-4xl font-bold text-orange-600">{stats.unmatchedItems}</p>
-              <p className="text-sm text-gray-600 mt-1">รอจับคู่</p>
+              <p className="text-3xl sm:text-4xl font-bold text-orange-600">{stats.unmatchedItems}</p>
+              <p className="text-sm text-gray-600 mt-1">{t('vmiOrders.analytics.unmatchedItems')}</p>
             </div>
           </div>
         </CardContent>
@@ -1698,22 +1631,26 @@ export default function VmiOrdersPage() {
   // Main Render
   // ============================================================================
 
-  // Show detail view if order is selected
+  // Detail view (selected order)
   if (selectedOrderId) {
     return (
       <MainLayout>
-        <div className="space-y-6">
+        <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
           {/* Back Header */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <DxButton
               icon="arrowleft"
               type="normal"
               stylingMode="outlined"
               onClick={() => setSelectedOrderId(null)}
             />
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">รายละเอียดคำสั่งซื้อ VMI</h1>
-              <p className="text-sm text-gray-500">ดูและจัดการคำสั่งซื้อจาก VMI Portal</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
+                {t('vmiOrders.detailTitle')}
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">
+                {t('vmiOrders.detailSubtitle')}
+              </p>
             </div>
           </div>
           <VmiOrderDetail
@@ -1733,17 +1670,367 @@ export default function VmiOrdersPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-col h-full gap-4 max-w-[1800px] mx-auto w-full">
-        {renderHeader()}
-        {renderStatusCards()}
+      <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
+        {/* Responsive Page Header */}
+        <ResponsivePageHeader
+          title={t('vmiOrders.pageTitle')}
+          subtitle={t('vmiOrders.pageSubtitle')}
+          icon={PackageOpen}
+          iconBgColor="bg-cyan-100"
+          iconColor="text-cyan-600"
+          breadcrumbs={[
+            { label: t('vmiOrders.breadcrumbSales'), href: '/sales' },
+            { label: t('vmiOrders.breadcrumbVmiOrders') },
+          ]}
+          actions={
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* View Mode Toggle: hidden on mobile */}
+              <div className="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={cn(
+                    'p-2 rounded transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center',
+                    viewMode === 'grid' ? 'bg-white shadow-sm text-cyan-600' : 'text-gray-500 hover:text-gray-700'
+                  )}
+                  title={t('vmiOrders.views.grid')}
+                  aria-label={t('vmiOrders.views.grid')}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('cards')}
+                  className={cn(
+                    'p-2 rounded transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center',
+                    viewMode === 'cards' ? 'bg-white shadow-sm text-cyan-600' : 'text-gray-500 hover:text-gray-700'
+                  )}
+                  title={t('vmiOrders.views.cards')}
+                  aria-label={t('vmiOrders.views.cards')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('analytics')}
+                  className={cn(
+                    'p-2 rounded transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center',
+                    viewMode === 'analytics' ? 'bg-white shadow-sm text-cyan-600' : 'text-gray-500 hover:text-gray-700'
+                  )}
+                  title={t('vmiOrders.views.analytics')}
+                  aria-label={t('vmiOrders.views.analytics')}
+                >
+                  <BarChart3 className="h-4 w-4" />
+                </button>
+              </div>
+
+              <DxButton
+                icon="refresh"
+                text={t('vmiOrders.refresh')}
+                stylingMode="outlined"
+                onClick={() => refetch()}
+                className="hidden sm:inline-flex"
+              />
+              <DxButton
+                text={pollMutation.isPending ? t('vmiOrders.polling') : t('vmiOrders.pollOrders')}
+                icon={pollMutation.isPending ? undefined : 'download'}
+                type="success"
+                onClick={() => pollMutation.mutate()}
+                disabled={pollMutation.isPending}
+              />
+            </div>
+          }
+        />
+
+        {/* KPI Stat Cards — 4 key metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <StatCard
+            label={t('vmiOrders.stats.totalOrders')}
+            value={stats.total}
+            icon={ShoppingCart}
+            iconColor="text-cyan-500"
+            accentColor="border-cyan-500"
+          />
+          <StatCard
+            label={t('vmiOrders.stats.pending')}
+            value={stats.pending}
+            icon={Clock}
+            iconColor="text-amber-500"
+            accentColor="border-amber-500"
+          />
+          <StatCard
+            label={t('vmiOrders.stats.delivered')}
+            value={stats.delivered}
+            icon={CheckCircle2}
+            iconColor="text-emerald-500"
+            accentColor="border-emerald-500"
+          />
+          <StatCard
+            label={t('vmiOrders.stats.overdue')}
+            value={stats.overdue}
+            icon={AlertTriangle}
+            iconColor="text-red-500"
+            accentColor="border-red-500"
+          />
+        </div>
+
+        {/* Alerts (overdue / unmatched / urgent) */}
         {renderAlerts()}
+
+        {/* Filters (search + status + priority) */}
         {renderFilters()}
 
-        {/* Content based on view mode */}
+        {/* Content */}
         {viewMode === 'grid' && renderGridView()}
         {viewMode === 'cards' && renderCardsView()}
         {viewMode === 'analytics' && renderAnalyticsView()}
       </div>
     </MainLayout>
+  );
+}
+
+// ============================================================================
+// Helper Components (Mobile / Loading / Empty / No-Results)
+// ============================================================================
+
+/**
+ * Mobile Card List — replaces DataGrid on mobile viewports.
+ * Prioritizes: Order ID, hospital/customer, status, match rate, date. 44px tap footer.
+ */
+function VmiOrderCardList({
+  orders,
+  onOpen,
+  t,
+}: {
+  orders: VmiOrder[];
+  onOpen: (id: number) => void;
+  t: (key: string, values?: Record<string, string | number | Date>) => string;
+}) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30">
+      {orders.map((order) => {
+        const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+        const overdue = isOverdue(order.requestedDeliveryDate || '', order.status);
+        const daysUntil = getDaysUntilRequired(order.requestedDeliveryDate || '', order.status);
+        const allMatched = order.matchedItems === order.totalItems;
+        const StatusIcon = statusConfig.icon;
+
+        return (
+          <div
+            key={order.id}
+            className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md active:bg-gray-50 transition-all overflow-hidden"
+          >
+            <button
+              type="button"
+              onClick={() => onOpen(order.id)}
+              className="w-full text-left flex items-stretch"
+            >
+              <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: statusConfig.hex }} />
+              <div className="flex-1 p-4 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono font-semibold text-blue-600 text-sm truncate">
+                      {order.portalOrderId}
+                    </p>
+                    {order.portalName && (
+                      <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
+                        <Link2 className="h-3 w-3 flex-shrink-0" />
+                        {order.portalName}
+                      </p>
+                    )}
+                  </div>
+                  <div
+                    className={cn(
+                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0',
+                      statusConfig.bgColor,
+                      statusConfig.color
+                    )}
+                  >
+                    <StatusIcon className="h-3 w-3" />
+                    {t(`vmiOrders.status.${statusConfig.translationKey}`)}
+                  </div>
+                </div>
+
+                <div className="p-2 bg-gray-50 rounded-lg mb-2">
+                  <p className="font-medium text-sm truncate">{order.customerName || '-'}</p>
+                  {order.hospitalCode && (
+                    <p className="text-xs text-gray-500 truncate">{order.hospitalCode}</p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded',
+                      allMatched ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'
+                    )}
+                  >
+                    {allMatched ? (
+                      <CheckSquare className="h-3 w-3" />
+                    ) : (
+                      <AlertCircle className="h-3 w-3" />
+                    )}
+                    {t('vmiOrders.card.matched', { matched: order.matchedItems, total: order.totalItems })}
+                  </span>
+                  {order.totalAmount != null && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold">
+                      {formatCurrency(order.totalAmount)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t flex-wrap gap-2">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>{formatDateShort(order.orderDate)}</span>
+                  </div>
+                  {order.requestedDeliveryDate && (
+                    <div className={cn('flex items-center gap-1', overdue && 'text-red-600 font-medium')}>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                      <span>{formatDateShort(order.requestedDeliveryDate)}</span>
+                      {daysUntil !== null && (
+                        <span
+                          className={cn(
+                            daysUntil < 0
+                              ? 'text-red-500'
+                              : daysUntil <= 3
+                                ? 'text-amber-500'
+                                : ''
+                          )}
+                        >
+                          ({daysUntil < 0
+                            ? t('vmiOrders.dates.overdueShort', { days: Math.abs(daysUntil) })
+                            : daysUntil === 0
+                              ? t('vmiOrders.dates.today')
+                              : t('vmiOrders.dates.daysShort', { days: daysUntil })})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {overdue && (
+                  <div className="mt-2 p-2 bg-red-50 rounded-md flex items-center gap-2 text-red-600 text-xs">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span>{t('vmiOrders.card.overdueMessage')}</span>
+                  </div>
+                )}
+              </div>
+            </button>
+
+            {/* Card footer: primary tap target (44px) */}
+            <div className="flex items-center border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => onOpen(order.id)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-cyan-50 hover:text-cyan-700 active:bg-cyan-100 transition-colors min-h-[44px]"
+              >
+                <Activity className="h-4 w-4" />
+                <span>{t('vmiOrders.list.viewDetails')}</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Loading skeleton for mobile card list */
+function VmiOrderCardSkeletonList({ count = 3 }: { count?: number }) {
+  return (
+    <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30" aria-busy="true" aria-live="polite">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="w-1.5 h-20 bg-gray-200 rounded" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/2 bg-gray-200 rounded" />
+              <div className="h-3 w-1/3 bg-gray-200 rounded" />
+              <div className="h-8 w-full bg-gray-100 rounded" />
+              <div className="flex gap-2 pt-1">
+                <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                <div className="h-5 w-20 bg-gray-200 rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading skeleton for desktop DataGrid area */
+function DataGridLoadingSkeleton() {
+  return (
+    <div className="p-4 space-y-2" aria-busy="true" aria-live="polite">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-lg animate-pulse"
+        >
+          <div className="h-8 w-24 rounded bg-gray-200" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-1/4 bg-gray-200 rounded" />
+            <div className="h-2 w-1/6 bg-gray-200 rounded" />
+          </div>
+          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-16 bg-gray-200 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Empty State — shown when zero VMI orders exist */
+function VmiEmptyState({
+  onPoll,
+  loading,
+  t,
+}: {
+  onPoll: () => void;
+  loading: boolean;
+  t: (key: string, values?: Record<string, string | number | Date>) => string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <div className="h-20 w-20 rounded-2xl bg-cyan-100 flex items-center justify-center mb-5">
+        <PackageOpen className="h-10 w-10 text-cyan-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('vmiOrders.empty.title')}</h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-6">
+        {t('vmiOrders.empty.description')}
+      </p>
+      <DxButton
+        text={loading ? t('vmiOrders.polling') : t('vmiOrders.pollOrders')}
+        icon={loading ? undefined : 'download'}
+        type="success"
+        disabled={loading}
+        onClick={onPoll}
+      >
+        {loading && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+      </DxButton>
+    </div>
+  );
+}
+
+/** No Results State — shown when filter/search yields zero results */
+function VmiNoResultsState({
+  onClear,
+  t,
+}: {
+  onClear: () => void;
+  t: (key: string, values?: Record<string, string | number | Date>) => string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+      <div className="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+        <SearchX className="h-8 w-8 text-gray-400" />
+      </div>
+      <h3 className="text-base font-semibold text-gray-900 mb-1">
+        {t('vmiOrders.noResults.title')}
+      </h3>
+      <p className="text-sm text-gray-500 max-w-sm mb-4">
+        {t('vmiOrders.noResults.description')}
+      </p>
+      <DxButton text={t('vmiOrders.noResults.clearFilters')} icon="clear" stylingMode="outlined" onClick={onClear} />
+    </div>
   );
 }

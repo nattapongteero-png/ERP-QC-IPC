@@ -155,7 +155,7 @@ describe('Matching Exceptions Page', () => {
     render(<MatchingExceptionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('page-title')).toHaveTextContent('Matching Exceptions');
+      expect(screen.getByTestId('page-title')).toHaveTextContent('Accounting');
     });
   });
 

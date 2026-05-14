@@ -2,6 +2,7 @@
 
 /**
  * Purchasing Module Layout
+ *
  * Wraps all purchasing pages with MainLayout for consistent navigation.
  */
 

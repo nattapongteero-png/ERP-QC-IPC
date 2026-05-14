@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { runAutoMatch } from '@/lib/services/bank-reconciliation.service';
 import { autoMatchConfigSchema } from '@/lib/validation/bank-reconciliation';
 
@@ -12,30 +13,33 @@ interface RouteContext {
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  try {
-    const { id } = await context.params;
-    const statementId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await context.params;
+      const statementId = parseInt(id, 10);
 
-    if (isNaN(statementId)) {
+      if (isNaN(statementId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid statement ID' },
+          { status: 400 }
+        );
+      }
+
+      const body = await request.json().catch(() => ({}));
+      const config = autoMatchConfigSchema.parse({
+        statementId,
+        ...body,
+      });
+
+      const result = await runAutoMatch(config);
+      return NextResponse.json({ success: true, ...result });
+    } catch (error) {
+      console.error('Error running auto-match:', error);
       return NextResponse.json(
-        { success: false, error: 'Invalid statement ID' },
+        { success: false, error: (error as Error).message },
         { status: 400 }
       );
     }
 
-    const body = await request.json().catch(() => ({}));
-    const config = autoMatchConfigSchema.parse({
-      statementId,
-      ...body,
-    });
-
-    const result = await runAutoMatch(config);
-    return NextResponse.json({ success: true, ...result });
-  } catch (error) {
-    console.error('Error running auto-match:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 400 }
-    );
-  }
+  });
 }

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { getMatchingResultByInvoice } from '@/lib/services/matching.service';
 
 interface RouteContext {
@@ -11,24 +12,27 @@ interface RouteContext {
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
-  try {
-    const { id } = await context.params;
-    const invoiceId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await context.params;
+      const invoiceId = parseInt(id, 10);
 
-    if (isNaN(invoiceId)) {
+      if (isNaN(invoiceId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid invoice ID' },
+          { status: 400 }
+        );
+      }
+
+      const result = await getMatchingResultByInvoice(invoiceId);
+      return NextResponse.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Error getting matching results:', error);
       return NextResponse.json(
-        { success: false, error: 'Invalid invoice ID' },
-        { status: 400 }
+        { success: false, error: (error as Error).message },
+        { status: 500 }
       );
     }
 
-    const result = await getMatchingResultByInvoice(invoiceId);
-    return NextResponse.json({ success: true, data: result });
-  } catch (error) {
-    console.error('Error getting matching results:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  });
 }

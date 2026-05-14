@@ -7,9 +7,10 @@
  * Redesigned with DevExtreme UI components.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import DataGrid, {
@@ -27,8 +28,6 @@ import DataGrid, {
   TotalItem,
   Toolbar,
   Item as ToolbarItem,
-  Scrolling,
-  Selection,
 } from 'devextreme-react/data-grid';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -50,7 +49,13 @@ import {
   XCircle,
   Warehouse,
   Clock,
+  Download,
+  Upload,
+  X,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { ItemEditDialog, Item, ItemFormData } from '@/components/ui/item-edit-dialog';
 import { DxConfirmDialog } from '@/components/ui/dx-popup';
 import { cn } from '@/lib/utils/cn';
@@ -60,29 +65,17 @@ import { cn } from '@/lib/utils/cn';
 // ============================================
 
 /**
- * Format number to compact human-readable format
- * e.g., 1500 -> "1.5K", 1500000 -> "1.5M", 1500000000 -> "1.5B"
+ * Format number with comma separators and 2 decimal places
+ * e.g., 11200 -> "11,200.00", 11163.0341 -> "11,163.03"
+ * Uses manual formatting to avoid SSR/client hydration mismatch from toLocaleString
  */
-function formatCompactNumber(value: number): string {
-  if (value === 0) return '0';
-
-  const absValue = Math.abs(value);
-  const sign = value < 0 ? '-' : '';
-
-  if (absValue >= 1_000_000_000) {
-    const formatted = (absValue / 1_000_000_000).toFixed(1);
-    return sign + (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'B';
-  }
-  if (absValue >= 1_000_000) {
-    const formatted = (absValue / 1_000_000).toFixed(1);
-    return sign + (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'M';
-  }
-  if (absValue >= 1_000) {
-    const formatted = (absValue / 1_000).toFixed(1);
-    return sign + (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'K';
-  }
-
-  return sign + absValue.toLocaleString(undefined, { maximumFractionDigits: 2 });
+function formatCompactNumber(value: number | string): string {
+  const num = Number(value);
+  if (isNaN(num)) return '0.00';
+  const fixed = Math.abs(num).toFixed(2);
+  const [intPart, decPart] = fixed.split('.');
+  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (num < 0 ? '-' : '') + withCommas + '.' + decPart;
 }
 
 // ============================================
@@ -92,48 +85,42 @@ function formatCompactNumber(value: number): string {
 type ItemType = 'raw_material' | 'packaging' | 'wip' | 'finished_goods' | 'consumable';
 
 const ITEM_TYPE_CONFIG: Record<ItemType, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   bgColor: string;
   textColor: string;
   borderColor: string;
   icon: React.ReactNode;
 }> = {
   raw_material: {
-    label: 'Raw Material',
-    labelTh: 'วัตถุดิบ',
+    translationKey: 'rawMaterial',
     bgColor: 'bg-green-50',
     textColor: 'text-green-700',
     borderColor: 'border-green-200',
     icon: <Leaf className="h-4 w-4" />,
   },
   packaging: {
-    label: 'Packaging',
-    labelTh: 'บรรจุภัณฑ์',
+    translationKey: 'packaging',
     bgColor: 'bg-blue-50',
     textColor: 'text-blue-700',
     borderColor: 'border-blue-200',
     icon: <Box className="h-4 w-4" />,
   },
   wip: {
-    label: 'Work in Progress',
-    labelTh: 'งานระหว่างทำ',
+    translationKey: 'wip',
     bgColor: 'bg-orange-50',
     textColor: 'text-orange-700',
     borderColor: 'border-orange-200',
     icon: <FlaskConical className="h-4 w-4" />,
   },
   finished_goods: {
-    label: 'Finished Goods',
-    labelTh: 'สินค้าสำเร็จรูป',
+    translationKey: 'finishedGoods',
     bgColor: 'bg-purple-50',
     textColor: 'text-purple-700',
     borderColor: 'border-purple-200',
     icon: <Pill className="h-4 w-4" />,
   },
   consumable: {
-    label: 'Consumable',
-    labelTh: 'วัสดุสิ้นเปลือง',
+    translationKey: 'consumable',
     bgColor: 'bg-gray-50',
     textColor: 'text-gray-700',
     borderColor: 'border-gray-200',
@@ -158,10 +145,175 @@ async function fetchItems(): Promise<Item[]> {
 
 export default function ItemsPage() {
   const router = useRouter();
+  const t = useTranslations('inventory');
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'all' | ItemType>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; item: Item | null }>({ open: false, item: null });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importLog, setImportLog] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/session').then(r => r.json()).then(d => {
+      if (d.success && d.data?.user?.role?.toLowerCase() === 'admin') setIsAdmin(true);
+    }).catch(() => {});
+  }, []);
+
+  // ─── Item Import Config ─────────────────────────────────────
+  const ITEM_TYPES_CONFIG = [
+    { key: 'raw_material', label: 'วัตถุดิบ (Raw Material)', sheetName: 'Raw Material' },
+    { key: 'packaging', label: 'บรรจุภัณฑ์ (Packaging)', sheetName: 'Packaging' },
+    { key: 'finished_goods', label: 'สินค้าสำเร็จรูป (Finished Goods)', sheetName: 'Finished Goods' },
+    { key: 'wip', label: 'งานระหว่างผลิต (WIP)', sheetName: 'WIP' },
+    { key: 'consumable', label: 'วัสดุสิ้นเปลือง (Consumable)', sheetName: 'Consumable' },
+  ];
+  const ALL_TYPE_KEYS = ITEM_TYPES_CONFIG.map(t => t.key);
+
+  const ITEM_COLUMNS = [
+    { header: 'รหัส (Code)*', field: 'code', required: false },
+    { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
+    { header: 'ชื่อ EN (Name EN)', field: 'nameEn', required: false },
+    { header: 'หมวดหมู่ (Category)', field: 'category', required: false },
+    { header: 'หน่วยหลัก (Primary Unit)*', field: 'primaryUnit', required: true },
+    { header: 'หน่วยรอง (Secondary Unit)', field: 'secondaryUnit', required: false },
+    { header: 'อัตราแปลง (Conversion Rate)', field: 'conversionRate', required: false },
+    { header: 'อายุการเก็บ (วัน)', field: 'shelfLifeDays', required: false },
+    { header: 'เงื่อนไขจัดเก็บ', field: 'storageCondition', required: false },
+    { header: 'สต็อกขั้นต่ำ', field: 'minStock', required: false },
+    { header: 'สต็อกสูงสุด', field: 'maxStock', required: false },
+    { header: 'จุดสั่งซื้อ', field: 'reorderPoint', required: false },
+  ];
+
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    // Instruction
+    const instr = [
+      ['Template นำเข้ารายการสินค้า — Herbal Medicine ERP'],
+      [''], ['แต่ละ Sheet = ประเภทสินค้า 1 ประเภท, กรอกข้อมูลใน Sheet ที่ต้องการ'],
+      ['ฟิลด์ที่มี * = บังคับ, Code ถ้าไม่กรอกระบบสร้างให้อัตโนมัติ'],
+      [''], ['Sheet', 'ประเภท', 'ฟิลด์บังคับ'],
+      ...ITEM_TYPES_CONFIG.map(tc => [tc.sheetName, tc.key, 'ชื่อ TH, หน่วยหลัก']),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instr), 'คำแนะนำ');
+
+    // Data sheets per type
+    const EXAMPLE_DATA: Record<string, Record<string, string | number>[]> = {
+      raw_material: [
+        { 'รหัส (Code)*': 'RM-0001', 'ชื่อ TH (Name TH)*': 'การบูร', 'ชื่อ EN (Name EN)': 'Camphor', 'หมวดหมู่ (Category)': 'herb', 'หน่วยหลัก (Primary Unit)*': 'kg', 'หน่วยรอง (Secondary Unit)': 'g', 'อัตราแปลง (Conversion Rate)': 1000, 'อายุการเก็บ (วัน)': 730, 'เงื่อนไขจัดเก็บ': 'เก็บที่อุณหภูมิห้อง แห้ง', 'สต็อกขั้นต่ำ': 50, 'สต็อกสูงสุด': 500, 'จุดสั่งซื้อ': 100 },
+        { 'รหัส (Code)*': 'RM-0002', 'ชื่อ TH (Name TH)*': 'พิมเสน', 'ชื่อ EN (Name EN)': 'Borneol', 'หมวดหมู่ (Category)': 'herb', 'หน่วยหลัก (Primary Unit)*': 'kg', 'หน่วยรอง (Secondary Unit)': 'g', 'อัตราแปลง (Conversion Rate)': 1000, 'อายุการเก็บ (วัน)': 365, 'เงื่อนไขจัดเก็บ': 'เก็บในภาชนะปิดสนิท', 'สต็อกขั้นต่ำ': 30, 'สต็อกสูงสุด': 300, 'จุดสั่งซื้อ': 60 },
+      ],
+      packaging: [
+        { 'รหัส (Code)*': 'RP-0001', 'ชื่อ TH (Name TH)*': 'ขวดแก้วขนาด 10 มล', 'ชื่อ EN (Name EN)': 'Glass Bottle 10mL', 'หมวดหมู่ (Category)': 'bottle', 'หน่วยหลัก (Primary Unit)*': 'box', 'หน่วยรอง (Secondary Unit)': 'pcs', 'อัตราแปลง (Conversion Rate)': 100, 'อายุการเก็บ (วัน)': '', 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง', 'สต็อกขั้นต่ำ': 1000, 'สต็อกสูงสุด': 10000, 'จุดสั่งซื้อ': 2000 },
+        { 'รหัส (Code)*': 'RP-0002', 'ชื่อ TH (Name TH)*': 'ฉลากยาสมุนไพร', 'ชื่อ EN (Name EN)': 'Herbal Product Label', 'หมวดหมู่ (Category)': 'label', 'หน่วยหลัก (Primary Unit)*': 'roll', 'หน่วยรอง (Secondary Unit)': 'pcs', 'อัตราแปลง (Conversion Rate)': 500, 'อายุการเก็บ (วัน)': '', 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง หลีกเลี่ยงแสงแดด', 'สต็อกขั้นต่ำ': 500, 'สต็อกสูงสุด': 5000, 'จุดสั่งซื้อ': 1000 },
+      ],
+      finished_goods: [
+        { 'รหัส (Code)*': 'FG-0001', 'ชื่อ TH (Name TH)*': 'ยาหม่องสมุนไพร 10g', 'ชื่อ EN (Name EN)': 'Herbal Balm 10g', 'หมวดหมู่ (Category)': 'finished', 'หน่วยหลัก (Primary Unit)*': 'box', 'หน่วยรอง (Secondary Unit)': 'bottle', 'อัตราแปลง (Conversion Rate)': 12, 'อายุการเก็บ (วัน)': 1095, 'เงื่อนไขจัดเก็บ': 'เก็บที่อุณหภูมิไม่เกิน 30°C', 'สต็อกขั้นต่ำ': 100, 'สต็อกสูงสุด': 5000, 'จุดสั่งซื้อ': 500 },
+        { 'รหัส (Code)*': 'FG-0002', 'ชื่อ TH (Name TH)*': 'แคปซูลฟ้าทะลายโจร 400mg', 'ชื่อ EN (Name EN)': 'Andrographis Capsule 400mg', 'หมวดหมู่ (Category)': 'finished', 'หน่วยหลัก (Primary Unit)*': 'box', 'หน่วยรอง (Secondary Unit)': 'bottle', 'อัตราแปลง (Conversion Rate)': 6, 'อายุการเก็บ (วัน)': 730, 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง พ้นแสงแดด', 'สต็อกขั้นต่ำ': 200, 'สต็อกสูงสุด': 10000, 'จุดสั่งซื้อ': 1000 },
+      ],
+      wip: [
+        { 'รหัส (Code)*': 'WIP-0001', 'ชื่อ TH (Name TH)*': 'ผงสมุนไพรผสม สูตร A', 'ชื่อ EN (Name EN)': 'Herbal Powder Mix Formula A', 'หมวดหมู่ (Category)': 'semi_finished', 'หน่วยหลัก (Primary Unit)*': 'kg', 'หน่วยรอง (Secondary Unit)': 'g', 'อัตราแปลง (Conversion Rate)': 1000, 'อายุการเก็บ (วัน)': 180, 'เงื่อนไขจัดเก็บ': 'เก็บในถุงปิดสนิท อุณหภูมิห้อง', 'สต็อกขั้นต่ำ': 10, 'สต็อกสูงสุด': 100, 'จุดสั่งซื้อ': 20 },
+      ],
+      consumable: [
+        { 'รหัส (Code)*': 'CS-0001', 'ชื่อ TH (Name TH)*': 'ถุงมือยาง ไซส์ M', 'ชื่อ EN (Name EN)': 'Latex Gloves Size M', 'หมวดหมู่ (Category)': 'consumable', 'หน่วยหลัก (Primary Unit)*': 'box', 'หน่วยรอง (Secondary Unit)': 'pcs', 'อัตราแปลง (Conversion Rate)': 100, 'อายุการเก็บ (วัน)': 1825, 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง', 'สต็อกขั้นต่ำ': 20, 'สต็อกสูงสุด': 200, 'จุดสั่งซื้อ': 50 },
+      ],
+    };
+
+    for (const tc of ITEM_TYPES_CONFIG) {
+      const rows = EXAMPLE_DATA[tc.key] || [];
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = ITEM_COLUMNS.map(() => ({ wch: 25 }));
+      XLSX.utils.book_append_sheet(wb, ws, tc.sheetName);
+    }
+
+    // Lookup sheet
+    const lookupRows: string[][] = [
+      ['ตัวเลือก (Lookup Values)'], [''],
+      ['Category (หมวดหมู่)', ''], ['ค่า', 'คำอธิบาย'],
+      ['herb', 'สมุนไพร'], ['extract', 'สารสกัด'], ['excipient', 'สารเติมแต่ง'],
+      ['packaging', 'บรรจุภัณฑ์'], ['capsule', 'แคปซูล'], ['bottle', 'ขวด'],
+      ['label', 'ฉลาก'], ['box', 'กล่อง'], ['finished', 'ผลิตภัณฑ์สำเร็จรูป'],
+      ['semi_finished', 'กึ่งสำเร็จรูป'], ['consumable', 'วัสดุสิ้นเปลือง'],
+      ['chemical', 'เคมีภัณฑ์'], ['other', 'อื่นๆ'],
+      [''],
+      ['Primary/Secondary Unit (หน่วย)', ''], ['ค่า', 'คำอธิบาย'],
+      ['kg', 'กิโลกรัม'], ['g', 'กรัม'], ['mg', 'มิลลิกรัม'],
+      ['l', 'ลิตร'], ['ml', 'มิลลิลิตร'], ['pcs', 'ชิ้น'],
+      ['pack', 'แพ็ค'], ['box', 'กล่อง'], ['bottle', 'ขวด'],
+      ['bag', 'ถุง'], ['roll', 'ม้วน'], ['sheet', 'แผ่น'],
+      ['set', 'ชุด'], ['carton', 'ลัง'], ['drum', 'ถัง'],
+      ['can', 'กระป๋อง'], ['tube', 'หลอด'], ['cap', 'ฝา'],
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lookupRows), 'ตัวเลือก (Lookup)');
+    XLSX.writeFile(wb, 'Item_Import_Templates.xlsx');
+  };
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || selectedTypes.length === 0) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const log: string[] = [];
+        setImporting(true);
+
+        for (const typeKey of selectedTypes) {
+          const tc = ITEM_TYPES_CONFIG.find(t => t.key === typeKey);
+          if (!tc) continue;
+          const sheetName = workbook.SheetNames.find(n => n === tc.sheetName || n.toLowerCase() === tc.sheetName.toLowerCase());
+          if (!sheetName) { log.push(`⚠️ ไม่พบ Sheet "${tc.sheetName}"`); continue; }
+          const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(workbook.Sheets[sheetName]);
+          if (jsonData.length === 0) { log.push(`⚠️ ${tc.label}: ไม่มีข้อมูล`); continue; }
+
+          let success = 0, created = 0, updated = 0;
+          const errors: string[] = [];
+
+          for (let i = 0; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            const nameTh = String(row['ชื่อ TH (Name TH)*'] ?? row['nameTh'] ?? '').trim();
+            const primaryUnit = String(row['หน่วยหลัก (Primary Unit)*'] ?? row['primaryUnit'] ?? '').trim();
+            if (!nameTh || !primaryUnit) { errors.push(`แถว ${i+2}: ไม่มี ชื่อ TH หรือ หน่วยหลัก`); continue; }
+
+            const payload: Record<string, unknown> = { type: tc.key, nameTh, primaryUnit, isActive: true };
+            for (const col of ITEM_COLUMNS) {
+              if (col.field === 'nameTh' || col.field === 'primaryUnit') continue;
+              const val = String(row[col.header] ?? row[col.field] ?? '').trim();
+              if (val) {
+                const num = Number(val);
+                payload[col.field] = !isNaN(num) && col.field.match(/Stock|Point|Rate|Days/) ? num : val;
+              }
+            }
+
+            try {
+              const res = await fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+              const result = await res.json();
+              if (result.success) {
+                success++;
+                if (String(result.message).includes('updated')) updated++; else created++;
+              } else {
+                errors.push(`${payload.code || `แถว ${i+2}`}: ${result.error}`);
+              }
+            } catch (err) { errors.push(`แถว ${i+2}: ${err instanceof Error ? err.message : 'Error'}`); }
+          }
+
+          log.push(`✅ ${tc.label}: ${success}/${jsonData.length} สำเร็จ${created ? ` (สร้าง ${created})` : ''}${updated ? ` (อัปเดต ${updated})` : ''}`);
+          if (errors.length > 0) log.push(...errors.slice(0, 3).map(e => `   ❌ ${e}`));
+        }
+
+        setImportLog(log);
+        setImporting(false);
+        refetch();
+      } catch { setImporting(false); }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+  };
 
   // Fetch data
   const { data: items = [], isLoading, refetch } = useQuery({
@@ -169,10 +321,10 @@ export default function ItemsPage() {
     queryFn: fetchItems,
   });
 
-  // Handle refresh
+  // Handle refresh - invalidate cache to force fresh fetch
   const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    queryClient.invalidateQueries({ queryKey: ['items-list'] });
+  }, [queryClient]);
 
   // Calculate type counts
   const typeCounts = useMemo(() => {
@@ -217,10 +369,11 @@ export default function ItemsPage() {
     };
   }, [items]);
 
-  // Filter items by tab
+  // Filter items by tab and add row numbers
   const filteredItems = useMemo(() => {
-    if (activeTab === 'all') return items;
-    return items.filter((item) => item.type === activeTab);
+    const filtered = activeTab === 'all' ? items : items.filter((item) => item.type === activeTab);
+    // Add _rowNumber for stable display with virtual scrolling
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [items, activeTab]);
 
   // Handlers
@@ -261,6 +414,35 @@ export default function ItemsPage() {
     setDialogOpen(true);
   };
 
+  // "Download Excel" button — export ALL visible items (flat xlsx) without
+  // going through the DataGrid toolbar. Keeps the current type/search filter
+  // so the operator gets what they see.
+  const handleDownloadData = () => {
+    const rows = filteredItems.map((it) => ({
+      'รหัส (Code)': it.code,
+      'ชื่อ TH': it.nameTh,
+      'ชื่อ EN': it.nameEn || '',
+      'ประเภท': it.type,
+      'หมวดหมู่': it.category || '',
+      'หน่วยหลัก': it.primaryUnit,
+      'หน่วยรอง': it.secondaryUnit || '',
+      'อัตราแปลง': it.conversionFactor ?? '',
+      'อายุการเก็บ (วัน)': it.shelfLifeDays ?? '',
+      'เงื่อนไขจัดเก็บ': it.storageConditions || '',
+      'สต็อกต่ำสุด': it.minStock ?? '',
+      'สต็อกสูงสุด': it.maxStock ?? '',
+      'จุดสั่งซื้อ': it.reorderPoint ?? '',
+      'คงเหลือ (on_hand)': it.onHand ?? '',
+      'สถานะ': it.isActive ? 'Active' : 'Inactive',
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = Array(15).fill({ wch: 18 });
+    XLSX.utils.book_append_sheet(wb, ws, 'Items');
+    const ts = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `items-${ts}.xlsx`);
+  };
+
   // Excel export handler
   const onExporting = useCallback((e: ExportingEvent) => {
     const workbook = new Workbook();
@@ -274,10 +456,11 @@ export default function ItemsPage() {
         if (gridCell?.rowType === 'data') {
           if (gridCell.column?.dataField === 'type') {
             const type = gridCell.value as ItemType;
-            excelCell.value = ITEM_TYPE_CONFIG[type]?.labelTh || type;
+            const config = ITEM_TYPE_CONFIG[type];
+            excelCell.value = config ? t(`items.types.${config.translationKey}`) : type;
           }
           if (gridCell.column?.dataField === 'isActive') {
-            excelCell.value = gridCell.value ? 'Active' : 'Inactive';
+            excelCell.value = gridCell.value ? t('items.status.active') : t('items.status.inactive');
           }
         }
       },
@@ -286,7 +469,7 @@ export default function ItemsPage() {
         saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'inventory-items.xlsx');
       });
     });
-  }, []);
+  }, [t]);
 
   // Custom cell renderers
   const renderCodeCell = useCallback((data: { data: Item }) => {
@@ -323,14 +506,13 @@ export default function ItemsPage() {
     return (
       <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium', config.bgColor, config.textColor)}>
         {config.icon}
-        {config.labelTh}
+        {t(`items.types.${config.translationKey}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderStockCell = useCallback((data: { data: Item }) => {
     const onHand = data.data.onHand ?? 0;
-    const onHandCost = data.data.onHandCost ?? 0;
     const minStock = data.data.minStock ?? 0;
     const isLow = minStock > 0 && onHand < minStock;
 
@@ -339,17 +521,12 @@ export default function ItemsPage() {
         <div className={cn('font-medium', isLow ? 'text-red-600' : 'text-gray-900')}>
           {formatCompactNumber(onHand)} {data.data.primaryUnit}
           {isLow && (
-            <span className="ml-1 text-xs px-1 py-0.5 bg-red-100 text-red-700 rounded">Low</span>
+            <span className="ml-1 text-xs px-1 py-0.5 bg-red-100 text-red-700 rounded">{t('items.grid.lowStock')}</span>
           )}
         </div>
-        {onHandCost > 0 && (
-          <div className="text-xs text-gray-500" title={`฿${onHandCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}>
-            ฿{formatCompactNumber(onHandCost)}
-          </div>
-        )}
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderQuarantineCell = useCallback((data: { data: Item }) => {
     const quarantineQty = data.data.quarantineQty ?? 0;
@@ -375,22 +552,22 @@ export default function ItemsPage() {
     return data.value ? (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
         <CheckCircle className="h-3 w-3" />
-        Active
+        {t('items.status.active')}
       </span>
     ) : (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
         <XCircle className="h-3 w-3" />
-        Inactive
+        {t('items.status.inactive')}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderVmiCell = useCallback((data: { data: Item }) => {
     const hasVmi = data.data.tppCode || data.data.ttmtCode;
     return hasVmi ? (
       <div className="flex items-center gap-1 text-emerald-600" title={`TPP: ${data.data.tppCode || '-'}, TTMT: ${data.data.ttmtCode || '-'}`}>
         <CheckCircle className="h-4 w-4" />
-        <span className="text-xs font-medium">Ready</span>
+        <span className="text-xs font-medium">{t('items.grid.vmiReady')}</span>
       </div>
     ) : (
       <div className="flex items-center gap-1 text-gray-400">
@@ -398,7 +575,7 @@ export default function ItemsPage() {
         <span className="text-xs">-</span>
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderActionsCell = useCallback((data: { data: Item }) => {
     return (
@@ -409,7 +586,7 @@ export default function ItemsPage() {
             router.push(`/inventory/items/${data.data.id}`);
           }}
           className="p-1 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded"
-          title="View Details"
+          title={t('items.buttons.viewDetails')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -419,7 +596,7 @@ export default function ItemsPage() {
             handleEdit(data.data);
           }}
           className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
-          title="Edit"
+          title={t('items.buttons.edit')}
         >
           <Edit className="h-4 w-4" />
         </button>
@@ -429,13 +606,13 @@ export default function ItemsPage() {
             setDeleteConfirm({ open: true, item: data.data });
           }}
           className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
-          title="Delete"
+          title={t('items.buttons.delete')}
         >
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
     );
-  }, [router]);
+  }, [router, t]);
 
   const totalItems = items.length;
 
@@ -444,30 +621,49 @@ export default function ItemsPage() {
       <div className="space-y-4">
         {/* Page Header */}
         <PageHeader
-          title="Inventory Items"
-          description="รายการสินค้าและวัตถุดิบ"
+          title={t('items.pageTitle')}
+          description={t('items.description')}
           actions={
             <div className="flex items-center gap-2">
               <button
                 onClick={handleRefresh}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={isLoading}
+                className={cn(
+                  "inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors",
+                  isLoading
+                    ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
+                    : "text-gray-600 bg-white border-gray-300 hover:bg-gray-50"
+                )}
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                Refresh
+                {t('common.refresh')}
               </button>
               <button
                 onClick={() => router.push('/inventory/lots')}
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <Warehouse className="h-4 w-4" />
-                View Lots
+                {t('items.viewLots')}
               </button>
+              <button onClick={handleDownloadData} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors">
+                <Download className="h-4 w-4" /> Download Excel
+              </button>
+              {isAdmin && (
+                <>
+                  <button onClick={handleDownloadTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Download className="h-4 w-4" /> {t('common.downloadTemplate')}
+                  </button>
+                  <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                    <Upload className="h-4 w-4" /> {t('common.importExcel')}
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => router.push('/inventory/items/new')}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 <Plus className="h-4 w-4" />
-                Add Item
+                {t('items.addItem')}
               </button>
             </div>
           }
@@ -489,7 +685,7 @@ export default function ItemsPage() {
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   )}
                 >
-                  All
+                  {t('common.all')}
                   <span className={cn(
                     'ml-1.5 text-xs px-1.5 py-0.5 rounded-full',
                     activeTab === 'all' ? 'bg-gray-700' : 'bg-gray-200'
@@ -509,7 +705,7 @@ export default function ItemsPage() {
                       )}
                     >
                       {config.icon}
-                      {config.label}
+                      {t(`items.types.${config.translationKey}`)}
                       <span className={cn(
                         'text-xs px-1.5 py-0.5 rounded-full',
                         activeTab === type ? 'bg-white/50' : 'bg-gray-200'
@@ -526,21 +722,21 @@ export default function ItemsPage() {
                 {statistics.lowStockItems > 0 && (
                   <div className="flex items-center gap-1.5 text-red-600">
                     <AlertTriangle className="h-4 w-4" />
-                    <span className="font-medium">{statistics.lowStockItems} Low Stock</span>
+                    <span className="font-medium">{statistics.lowStockItems} {t('stats.lowStock')}</span>
                   </div>
                 )}
                 {statistics.itemsInQuarantine > 0 && (
                   <div className="flex items-center gap-1.5 text-amber-600">
                     <Clock className="h-4 w-4" />
-                    <span className="font-medium">{statistics.itemsInQuarantine} In Quarantine</span>
+                    <span className="font-medium">{statistics.itemsInQuarantine} {t('stats.inQuarantine')}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-gray-500">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>{statistics.activeItems} Active</span>
+                  <span>{statistics.activeItems} {t('stats.active')}</span>
                 </div>
                 <div className="text-gray-400">|</div>
-                <span className="text-gray-500">{filteredItems.length} items shown</span>
+                <span className="text-gray-500">{t('common.itemsShown', { count: filteredItems.length })}</span>
               </div>
             </div>
           </div>
@@ -565,76 +761,122 @@ export default function ItemsPage() {
             }}
             className="items-professional-grid"
           >
-            <Scrolling mode="virtual" />
-            <Selection mode="multiple" showCheckBoxesMode="onClick" />
-            <SearchPanel visible={true} placeholder="Search items..." width={250} />
+            <SearchPanel visible={true} placeholder={t('items.searchPlaceholder')} width={250} />
             <FilterRow visible={true} />
             <HeaderFilter visible={true} />
             <GroupPanel visible={true} />
             <Grouping autoExpandAll={false} />
             <ColumnChooser enabled={true} mode="select" />
-            <Export enabled={true} allowExportSelectedData={true} />
+            <Export enabled={true} />
 
             <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
+            <Column
               dataField="code"
-              caption="Code"
+              caption={t('items.grid.columns.code')}
               width={150}
               cellRender={renderCodeCell}
             />
             <Column
               dataField="nameTh"
-              caption="Name"
+              caption={t('items.grid.columns.name')}
               minWidth={200}
               cellRender={renderNameCell}
             />
             <Column
               dataField="type"
-              caption="Type"
+              caption={t('items.grid.columns.type')}
               width={150}
               cellRender={renderTypeCell}
             />
             <Column
               dataField="category"
-              caption="Category"
+              caption={t('items.grid.columns.category')}
               width={120}
             />
             <Column
               dataField="onHand"
-              caption="On Hand"
-              width={150}
+              caption={t('items.grid.columns.onHandQty')}
+              width={140}
               cellRender={renderStockCell}
             />
             <Column
+              dataField="onHandCost"
+              caption={t('items.grid.columns.totalValue')}
+              width={130}
+              dataType="number"
+              cellRender={(data: { data: Item }) => {
+                const val = Number(data.data.onHandCost) || 0;
+                if (val === 0) return <span className="text-gray-400">-</span>;
+                return (
+                  <span className="font-medium text-gray-900" title={`฿${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}>
+                    ฿{formatCompactNumber(val)}
+                  </span>
+                );
+              }}
+            />
+            <Column
+              caption={t('items.grid.columns.avgCost')}
+              width={120}
+              dataType="number"
+              calculateCellValue={(rowData: Record<string, unknown>) => {
+                const qty = Number(rowData.onHand) || 0;
+                const cost = Number(rowData.onHandCost) || 0;
+                if (qty <= 0 || cost <= 0) return null;
+                return Math.round((cost / qty) * 100) / 100;
+              }}
+              cellRender={(data: { value: number | null; data: Item }) => {
+                if (!data.value) return <span className="text-gray-400">-</span>;
+                return (
+                  <span className="text-gray-700 text-sm">
+                    ฿{data.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/{data.data.primaryUnit}
+                  </span>
+                );
+              }}
+            />
+            <Column
               dataField="quarantineQty"
-              caption="Quarantine"
+              caption={t('items.grid.columns.quarantine')}
               width={120}
               cellRender={renderQuarantineCell}
             />
             <Column
               dataField="primaryUnit"
-              caption="Unit"
+              caption={t('items.grid.columns.unit')}
               width={80}
             />
             <Column
               dataField="shelfLifeDays"
-              caption="Shelf Life"
+              caption={t('items.grid.columns.shelfLife')}
               width={100}
-              cellRender={(data) => data.value ? `${data.value} days` : '-'}
+              cellRender={(data) => data.value ? t('items.grid.shelfLifeDays', { days: data.value }) : '-'}
             />
             <Column
               dataField="isActive"
-              caption="Status"
+              caption={t('items.grid.columns.status')}
               width={100}
               cellRender={renderStatusCell}
             />
             <Column
-              caption="VMI"
+              caption={t('items.grid.columns.vmi')}
               width={90}
               cellRender={renderVmiCell}
               allowFiltering={false}
             />
             <Column
-              caption="Actions"
+              caption={t('items.grid.columns.actions')}
               width={110}
               cellRender={renderActionsCell}
               allowFiltering={false}
@@ -642,10 +884,10 @@ export default function ItemsPage() {
             />
 
             <Summary>
-              <TotalItem column="code" summaryType="count" displayFormat="Total: {0}" />
+              <TotalItem column="code" summaryType="count" displayFormat={`${t('common.total')}: {0}`} />
             </Summary>
 
-            <Paging defaultPageSize={20} />
+            <Paging enabled={true} defaultPageSize={20} />
             <Pager
               visible={true}
               showPageSizeSelector={true}
@@ -680,9 +922,9 @@ export default function ItemsPage() {
         visible={deleteConfirm.open}
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirm({ open: false, item: null })}
-        title="Confirm Delete"
-        message={`Are you sure you want to delete "${deleteConfirm.item?.nameTh}"?`}
-        confirmText="Delete"
+        title={t('common.confirmDelete')}
+        message={t('common.deleteMessage', { name: deleteConfirm.item?.nameTh || '' })}
+        confirmText={t('common.delete')}
         confirmType="danger"
       />
 
@@ -728,6 +970,56 @@ export default function ItemsPage() {
           border-top: 1px solid #e2e8f0;
         }
       `}</style>
+
+      {/* Hidden file input */}
+      <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportFile} className="hidden" />
+
+      {/* Import Dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
+              <h2 className="text-lg font-semibold text-gray-900">นำเข้ารายการสินค้า</h2>
+              <button onClick={() => setShowImportDialog(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X className="h-5 w-5 text-gray-500" /></button>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">1. เลือกประเภทสินค้าที่ต้องการนำเข้า</label>
+                  <button onClick={() => setSelectedTypes(prev => prev.length === ALL_TYPE_KEYS.length ? [] : [...ALL_TYPE_KEYS])} className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                    {selectedTypes.length === ALL_TYPE_KEYS.length ? <><CheckSquare className="h-3.5 w-3.5" /> ยกเลิกทั้งหมด</> : <><Square className="h-3.5 w-3.5" /> เลือกทั้งหมด</>}
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {ITEM_TYPES_CONFIG.map(tc => (
+                    <label key={tc.key} className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${selectedTypes.includes(tc.key) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                      <input type="checkbox" checked={selectedTypes.includes(tc.key)} onChange={() => setSelectedTypes(prev => prev.includes(tc.key) ? prev.filter(k => k !== tc.key) : [...prev, tc.key])} className="h-4 w-4 rounded text-blue-600" />
+                      <span className="text-sm font-medium text-gray-900 flex-1">{tc.label}</span>
+                      <span className="text-xs text-gray-400">Sheet: {tc.sheetName}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {selectedTypes.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">2. เลือกไฟล์ Excel ({selectedTypes.length} ประเภท)</label>
+                  <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50">
+                    <Upload className="h-5 w-5" />{importing ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
+                  </button>
+                </div>
+              )}
+              {importLog.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 border">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">ผลการนำเข้า:</label>
+                  <div className="text-xs font-mono space-y-0.5 max-h-40 overflow-y-auto">
+                    {importLog.map((line, i) => <div key={i} className={line.includes('❌') ? 'text-red-600' : 'text-gray-700'}>{line}</div>)}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }

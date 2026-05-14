@@ -117,7 +117,8 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ควบคุมคุณภาพ')).toBeInTheDocument();
+        // Title from i18n: t('page.title') = 'Quality'
+        expect(screen.getByText('Quality')).toBeInTheDocument();
       });
     });
 
@@ -127,7 +128,8 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Quality Control Dashboard')).toBeInTheDocument();
+        // Subtitle from i18n: t('page.description') = 'Manage quality control and inspections'
+        expect(screen.getByText('Manage quality control and inspections')).toBeInTheDocument();
       });
     });
 
@@ -149,7 +151,8 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-การทดสอบทั้งหมด')).toBeInTheDocument();
+        // Label from i18n: t('dashboard.stats.totalTests') = 'Total Tests'
+        expect(screen.getByTestId('stat-total-tests')).toBeInTheDocument();
       });
     });
 
@@ -159,7 +162,8 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-รอทดสอบ')).toBeInTheDocument();
+        // Label from i18n: t('dashboard.stats.pending') = 'Pending'
+        expect(screen.getByTestId('stat-pending')).toBeInTheDocument();
       });
     });
 
@@ -169,7 +173,8 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-ผ่านการทดสอบ')).toBeInTheDocument();
+        // Label from i18n: t('dashboard.stats.passed') = 'Passed'
+        expect(screen.getByTestId('stat-passed')).toBeInTheDocument();
       });
     });
 
@@ -179,7 +184,8 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-ไม่ผ่านการทดสอบ')).toBeInTheDocument();
+        // Label from i18n: t('dashboard.stats.failed') = 'Failed'
+        expect(screen.getByTestId('stat-failed')).toBeInTheDocument();
       });
     });
 
@@ -189,7 +195,8 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-ข้อกำหนดคุณภาพ')).toBeInTheDocument();
+        // Label from i18n: t('dashboard.stats.totalSpecs') = 'Quality Specs'
+        expect(screen.getByTestId('stat-quality-specs')).toBeInTheDocument();
       });
     });
 
@@ -199,7 +206,8 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-ความเบี่ยงเบนเปิด')).toBeInTheDocument();
+        // Label from i18n: t('dashboard.stats.openDeviations') = 'Open Deviations'
+        expect(screen.getByTestId('stat-open-deviations')).toBeInTheDocument();
       });
     });
   });
@@ -263,7 +271,8 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ควบคุมคุณภาพ')).toBeInTheDocument();
+        // Title from i18n: t('page.title') = 'Quality'
+        expect(screen.getByText('Quality')).toBeInTheDocument();
       });
     });
 
@@ -290,7 +299,8 @@ describe('QualityDashboardPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('ควบคุมคุณภาพ')).toBeInTheDocument();
+        // Title from i18n: t('page.title') = 'Quality'
+        expect(screen.getByText('Quality')).toBeInTheDocument();
       });
     });
 
@@ -314,9 +324,10 @@ describe('QualityDashboardPage', () => {
       renderWithProviders(<QualityDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByTitle('มุมมองตาราง')).toBeInTheDocument();
-        expect(screen.getByTitle('มุมมองการ์ด')).toBeInTheDocument();
-        expect(screen.getByTitle('มุมมองวิเคราะห์')).toBeInTheDocument();
+        // Titles from i18n: t('common.viewGrid') = 'Grid view', etc.
+        expect(screen.getByTitle('Grid view')).toBeInTheDocument();
+        expect(screen.getByTitle('Cards view')).toBeInTheDocument();
+        expect(screen.getByTitle('Analytics view')).toBeInTheDocument();
       });
     });
   });

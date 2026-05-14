@@ -77,6 +77,10 @@ export interface DxPopupProps {
       onClick?: () => void;
     };
   }>;
+  /** Defer rendering of children until first show. Default true. Set
+   *  false when children read state set in the same call as visible=true
+   *  (deferred rendering can cache the empty initial render). */
+  deferRendering?: boolean;
 }
 
 /**
@@ -141,6 +145,7 @@ export function DxPopup({
   className,
   children,
   toolbarItems,
+  deferRendering = true,
 }: DxPopupProps) {
   // Detect device type for responsive fullscreen
   const { isMobile, isTablet } = useMobile();
@@ -195,7 +200,7 @@ export function DxPopup({
       container={container}
       wrapperAttr={{ ...wrapperAttr, className }}
       toolbarItems={toolbarItems}
-      deferRendering={true}
+      deferRendering={deferRendering}
     >
       {children}
     </Popup>
@@ -208,10 +213,12 @@ export interface DxConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   title?: string;
-  message: string;
+  message?: string;
   confirmText?: string;
   cancelText?: string;
   confirmType?: 'success' | 'danger';
+  children?: React.ReactNode;
+  width?: number;
 }
 
 export function DxConfirmDialog({
@@ -223,13 +230,15 @@ export function DxConfirmDialog({
   confirmText = 'ยืนยัน',
   cancelText = 'ยกเลิก',
   confirmType = 'success',
+  children,
+  width = 400,
 }: DxConfirmDialogProps) {
   return (
     <DxPopup
       visible={visible}
       onVisibleChange={(v) => !v && onCancel()}
       title={title}
-      width={400}
+      width={width}
       height="auto"
       toolbarItems={[
         {
@@ -254,9 +263,11 @@ export function DxConfirmDialog({
         },
       ]}
     >
-      <div style={{ padding: 16 }}>
-        <p>{message}</p>
-      </div>
+      {children ? children : (
+        <div style={{ padding: 16 }}>
+          <p>{message}</p>
+        </div>
+      )}
     </DxPopup>
   );
 }

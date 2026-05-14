@@ -12,6 +12,7 @@ import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import {
   ShoppingCart,
   Building2,
@@ -195,7 +196,7 @@ export function VmiOrderDetail({
   const [shipDate, setShipDate] = React.useState<string>(
     order.expectedDeliveryDate
       ? order.expectedDeliveryDate
-      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      : toLocalDateStr(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
   );
 
   const statusInfo = statusConfig[order.status];

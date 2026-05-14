@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Template — Realtime Sync | Herbal ERP</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand: #10b981;
+    --brand-dark: #047857;
+    --brand-soft: #ecfdf5;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', 'Sarabun', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
+    color: var(--slate-900);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  .container { max-width: 980px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* Header */
+  .hero {
+    background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+    color: white;
+    border-radius: 24px;
+    padding: 32px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 40px rgba(37, 99, 235, 0.25);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .hero .pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #34d399;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+  .hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 700; line-height: 1.2; }
+  .hero p { margin: 0; opacity: 0.9; font-size: 15px; }
+
+  /* TOC */
+  .toc {
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .toc-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--slate-500); letter-spacing: 0.5px; margin-bottom: 8px; }
+  .toc ol { margin: 0; padding-left: 20px; font-size: 14px; }
+  .toc li { margin-bottom: 4px; }
+  .toc a { color: var(--brand-dark); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Section */
+  .section {
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
+  .section h2 {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--slate-900);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section h2::before {
+    content: counter(section);
+    counter-increment: section;
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #2563eb, #10b981);
+    color: white;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  body { counter-reset: section; }
+  .section h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 600; color: var(--slate-700); }
+  .section p { margin: 0 0 12px; font-size: 14px; color: var(--slate-600); }
+  .section ul, .section ol { padding-left: 22px; margin: 8px 0 12px; }
+  .section li { font-size: 14px; color: var(--slate-700); margin-bottom: 4px; }
+
+  /* Code blocks */
+  .code-block {
+    background: var(--slate-900);
+    color: #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    overflow-x: auto;
+    position: relative;
+    margin: 8px 0 12px;
+  }
+  .code-block .lang {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.5px;
+  }
+  .code-inline {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.875em;
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid #bfdbfe;
+  }
+  .code-block .heading { color: #fcd34d; font-weight: 600; }
+
+  /* Callouts */
+  .callout {
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 14px;
+    color: var(--slate-700);
+  }
+  .callout.warn { border-left-color: #f59e0b; background: #fffbeb; }
+  .callout.danger { border-left-color: #ef4444; background: #fef2f2; }
+  .callout.green { border-left-color: var(--brand); background: var(--brand-soft); }
+  .callout strong { color: var(--slate-900); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--slate-200); }
+  th { background: var(--slate-50); font-weight: 600; color: var(--slate-700); font-size: 13px; }
+  td { color: var(--slate-700); vertical-align: top; }
+  td code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #eff6ff; color: #1d4ed8; padding: 1px 6px; border-radius: 4px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid var(--slate-200); flex-wrap: wrap; }
+  .tabs button {
+    padding: 8px 14px;
+    background: transparent;
+    border: none;
+    color: var(--slate-500);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tabs button:hover { color: var(--slate-700); }
+  .tabs button.active { color: #1d4ed8; border-bottom-color: #2563eb; font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Copy button */
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #cbd5e1;
+    font-size: 11px;
+    font-family: inherit;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: rgba(255, 255, 255, 0.2); color: white; }
+  .copy-btn.copied { background: var(--brand); border-color: var(--brand); color: white; }
+
+  /* Examples */
+  .example {
+    background: #f8fafc;
+    border: 1px dashed var(--slate-300);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 8px 0 12px;
+    font-size: 13px;
+  }
+  .example .label {
+    display: inline-block;
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  /* Architecture diagram */
+  .diagram {
+    background: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--slate-700);
+    white-space: pre;
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+
+  /* Quick reference card */
+  .quick-ref {
+    background: linear-gradient(135deg, #eff6ff, #ecfdf5);
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .quick-ref h3 { margin-top: 0; color: #1d4ed8; }
+  .quick-ref-grid { display: grid; gap: 8px; }
+  .quick-ref-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dashed #bfdbfe;
+    font-size: 13px;
+  }
+  .quick-ref-row:last-child { border-bottom: none; }
+  .quick-ref-row .icon { font-size: 18px; flex-shrink: 0; }
+  .quick-ref-row .label { font-weight: 600; color: var(--slate-800); min-width: 110px; }
+  .quick-ref-row .desc { color: var(--slate-600); flex: 1; }
+
+  /* Latency badges */
+  .latency-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 12px 0;
+  }
+  .latency-card {
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: 12px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .latency-card .num { font-size: 20px; font-weight: 700; color: #2563eb; }
+  .latency-card .label { font-size: 12px; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.5px; }
+  .latency-card .feel { font-size: 13px; color: var(--slate-700); margin-top: 4px; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    color: var(--slate-500);
+    font-size: 12px;
+    padding: 20px 0 0;
+    border-top: 1px solid var(--slate-200);
+    margin-top: 40px;
+  }
+  footer a { color: #1d4ed8; text-decoration: none; }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .container { padding: 16px 12px 40px; }
+    .hero { padding: 24px 20px; }
+    .hero h1 { font-size: 22px; }
+    .section { padding: 18px 16px; }
+    .section h2 { font-size: 17px; }
+    table { font-size: 12px; }
+    th, td { padding: 8px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="hero">
+    <div class="badge">
+      <span class="pulse-dot"></span>
+      Realtime Sync — Multi-User Pages
+    </div>
+    <h1>Prompt Template สำหรับ Realtime Sync</h1>
+    <p>ใช้ template นี้เมื่อต้องการขอแก้ปัญหา <strong>"หลาย user เปิดหน้าเดียวกัน ข้อมูลไม่ update เมื่อมีคนกดบันทึก/อนุมัติ"</strong>
+      — อ้างอิงจาก feature ที่ deploy แล้วใน <code style="color:white;background:rgba(255,255,255,0.15);padding:1px 6px;border-radius:4px;">/inventory/lots</code> +
+      <code style="color:white;background:rgba(255,255,255,0.15);padding:1px 6px;border-radius:4px;">/production/work-orders/[id]</code></p>
+  </header>
+
+  <nav class="toc">
+    <div class="toc-title">📑 สารบัญ</div>
+    <ol>
+      <li><a href="#scenario">Scenario ที่ template นี้แก้</a></li>
+      <li><a href="#architecture">Architecture ที่ระบบใช้อยู่</a></li>
+      <li><a href="#full-template">Template หลัก (Full version)</a></li>
+      <li><a href="#extend-template">Template ขยายไปหน้าอื่น (4 บรรทัด)</a></li>
+      <li><a href="#scenario-templates">Template เฉพาะกรณี</a></li>
+      <li><a href="#latency">Latency Reference</a></li>
+      <li><a href="#tips">Tips ในการเขียน Prompt</a></li>
+      <li><a href="#examples">ตัวอย่างการใช้จริง</a></li>
+      <li><a href="#quick-ref">Quick Reference Card</a></li>
+    </ol>
+  </nav>
+
+  <section class="section" id="scenario">
+    <h2>Scenario ที่ template นี้แก้</h2>
+    <p>ปัญหาคลาสสิก เมื่อ 2 user เปิดหน้าเดียวกัน:</p>
+
+    <div class="callout danger">
+      <strong>❌ ปัญหา:</strong>
+      <ul style="margin:8px 0 0;">
+        <li>User A กด "อนุมัติปล่อยของ" → status เปลี่ยนเป็น approved ในจอ A</li>
+        <li>User B เปิดหน้าเดียวกันค้างไว้ — ยังเห็น status "รออนุมัติ"</li>
+        <li>User B กดอนุมัติซ้ำได้ → <strong>เกิด duplicate approval</strong></li>
+        <li>Stock เคลื่อนไหวผิด, audit log ผิด</li>
+      </ul>
+    </div>
+
+    <div class="callout green">
+      <strong>✅ หลังแก้:</strong>
+      <ul style="margin:8px 0 0;">
+        <li>User A กด → User B เห็น status เปลี่ยนภายใน <strong>&lt; 1 วินาที</strong></li>
+        <li>Row ที่เปลี่ยนแถบจะกระพริบสีเขียว 1.5 วิ ให้สังเกตได้</li>
+        <li>ถ้า User B กดซ้ำก่อน sync ทัน → server reject พร้อม error ชัดเจน</li>
+        <li>ป้องกันได้ที่ <strong>2 layer</strong> — DB guard (atomic) + UI sync (UX)</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" id="architecture">
+    <h2>Architecture ที่ระบบใช้อยู่</h2>
+    <p>Infrastructure ที่ deploy แล้ว 5 tenants — สามารถ reuse ได้ทันที</p>
+
+    <div class="diagram">┌─────────────────┐                ┌──────────────────┐
+│  Browser A      │                │  Browser B       │
+│  /lots          │                │  /lots           │
+│  [Click]        │                │  [Receive Event] │
+└────────┬────────┘                └──────────▲───────┘
+         │ POST                              │ SSE stream
+         ▼                                    │
+┌─────────────────────────────────────────────┴──────┐
+│       Next.js Server (per tenant)                  │
+│                                                    │
+│  1. Service.update():                              │
+│     UPDATE WHERE status='requested' (Layer 1)      │
+│                                                    │
+│  2. realtimeBus.publish('topic', data)             │
+│              ↓                                     │
+│  3. SSE listener → stream to subscribers           │
+└────────────────────────────────────────────────────┘</div>
+
+    <h3>Reusable Components (มีอยู่แล้ว)</h3>
+    <table>
+      <thead>
+        <tr><th>File</th><th>หน้าที่</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>src/lib/realtime/event-bus.ts</code></td><td>EventBus singleton (in-process pub/sub)</td></tr>
+        <tr><td><code>src/lib/realtime/types.ts</code></td><td>TopicName + RealtimeEvent types</td></tr>
+        <tr><td><code>src/app/api/realtime/[topic]/events/route.ts</code></td><td>Generic SSE endpoint รองรับทุก topic</td></tr>
+        <tr><td><code>src/hooks/use-realtime-topic.ts</code></td><td>React hook สำหรับ subscribe</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <strong>💡 สำคัญ:</strong> ขยายไปหน้าใหม่ — แค่เพิ่ม topic ใน <code class="code-inline">TopicName</code> + เรียก <code class="code-inline">publish</code> ใน service + เรียก <code class="code-inline">useRealtimeTopic</code> ในหน้า = <strong>~4 บรรทัด</strong>
+    </div>
+  </section>
+
+  <section class="section" id="full-template">
+    <h2>Template หลัก (Full version)</h2>
+    <p>ใช้เมื่อเป็นปัญหา critical ที่ต้องการ design + implement ครบทุกชั้น</p>
+
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;"><span class="heading"># แก้ปัญหา Multi-User Race Condition + Realtime Sync</span>
+
+<span class="heading">## Scenario</span>
+ที่หน้า [URL หรือชื่อหน้า] — เมื่อมีหลาย user เปิดพร้อมกัน:
+- User A กด [action เช่น อนุมัติ/บันทึก/ปล่อย]
+- ข้อมูลในจอ User B ไม่ update — ต้อง refresh manually
+- User B กดซ้ำได้ → เกิด duplicate / data corruption
+
+<span class="heading">## ความต้องการ</span>
+1. **Server-side guard** — ป้องกัน duplicate ที่ DB level
+   (atomic UPDATE ... WHERE status='expected_value')
+2. **Realtime UI sync** — User B เห็นข้อมูลเปลี่ยน &lt; 1 วินาที
+3. **Visual feedback** — row ที่เปลี่ยนกระพริบสีเขียว 1.5 วิ
+
+<span class="heading">## Reuse Infrastructure ที่มีอยู่</span>
+- ใช้ pattern เดียวกับ /inventory/lots (tab requisitions)
+  + /production/work-orders/[id] ที่ deploy แล้ว
+- Components: src/lib/realtime/* + use-realtime-topic hook
+- ไม่ต้องสร้าง SSE endpoint ใหม่ — ใช้ /api/realtime/[topic]/events
+
+<span class="heading">## ขอบเขต</span>
+- เพิ่ม topic ใหม่ใน TopicName: '[topic-name]'
+- Service ที่ทำการเปลี่ยน status ต้อง publish event
+- หน้าที่ต้องการ sync subscribe ผ่าน useRealtimeTopic
+- Filter event ตาม id ที่กำลังเปิดอยู่
+
+<span class="heading">## ข้อจำกัด</span>
+- Backwards-compatible — ไม่กระทบ user ที่ใช้งานปกติ
+- ไม่แตะ audit-wrapper หรือ globalThis pattern
+- Deploy 5 tenants (metaherb + arjaro + renunakhon + huaikoeng + phonphisai)
+
+<span class="heading">## ขั้นตอน</span>
+1. วิเคราะห์ผลกระทบ + เสนอ design
+2. Add topic + publish + subscribe (TDD with tests)
+3. Type check + build clean
+4. Update changelog
+5. Deploy 5 tenants
+6. ทดสอบ end-to-end ด้วย 2 browser sessions</pre>
+    </div>
+  </section>
+
+  <section class="section" id="extend-template">
+    <h2>Template ขยายไปหน้าอื่น (4 บรรทัด)</h2>
+    <p>ใช้เมื่อ infrastructure มีอยู่แล้ว แค่ "เพิ่มหน้า" ที่ต้องการ realtime — เร็วที่สุด</p>
+
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">ขยาย realtime sync ไปยังหน้า [URL]
+ใช้ topic [topic-name] ที่ publish อยู่แล้ว
+หน้านี้ subscribe + invalidate query [queryKey]
+filter ตาม [id field] เพื่อ refetch เฉพาะที่เกี่ยวข้อง
+
+Deploy 5 tenants</pre>
+    </div>
+
+    <h3>โค้ดที่ AI จะเขียนให้ (preview)</h3>
+    <div class="code-block">
+      <span class="lang">typescript</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;"><span style="color:#94a3b8;">// ในหน้า [URL]:</span>
+useRealtimeTopic(<span style="color:#86efac;">'requisition-changed'</span>, (data) =&gt; {
+  if (data.workOrderId !== currentWorkOrderId) return;
+  queryClient.invalidateQueries({ queryKey: [<span style="color:#86efac;">'queryKey'</span>, currentWorkOrderId] });
+});</pre>
+    </div>
+  </section>
+
+  <section class="section" id="scenario-templates">
+    <h2>Template เฉพาะกรณี</h2>
+
+    <div class="tabs">
+      <button class="active" onclick="showTab('case1', this)">เพิ่ม topic ใหม่</button>
+      <button onclick="showTab('case2', this)">เฉพาะ Server Guard</button>
+      <button onclick="showTab('case3', this)">เพิ่ม Flash Highlight</button>
+      <button onclick="showTab('case4', this)">หลายหน้า + 1 topic</button>
+    </div>
+
+    <div id="case1" class="tab-content active">
+      <div class="example">
+        <div class="label">CASE 1: เพิ่ม topic ใหม่ (เช่น work-order, lot, pr)</div>
+        <p style="margin:8px 0 0;">เมื่อต้องการ topic ที่ไม่ใช่ <code class="code-inline">requisition-changed</code> ที่มีอยู่</p>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">เพิ่ม realtime topic ใหม่ '[topic-name]'
+
+Service [path/to/service.ts] ที่ทำ [action]:
+- หลัง update DB success → publish event
+- payload: { id, status, changedBy }
+
+หน้า [URL] subscribe topic นี้ + invalidate [queryKey]
+
+อ้างอิง pattern จาก:
+- src/lib/services/.../route.ts (publish)
+- src/app/inventory/lots/page.tsx (subscribe)
+
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+
+    <div id="case2" class="tab-content">
+      <div class="example">
+        <div class="label">CASE 2: ต้องการแค่ Server-side Guard (กัน duplicate)</div>
+        <p style="margin:8px 0 0;">UI sync ไม่จำเป็น — แค่ป้องกัน race condition ที่ DB level</p>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">หน้า [URL] เกิด duplicate [action] เมื่อ user กดซ้ำ/พร้อมกัน
+
+แก้ที่ API endpoint [path/to/route.ts]:
+- เปลี่ยน UPDATE ... WHERE id=X
+  เป็น UPDATE ... WHERE id=X AND status='expected'
+- ใช้ getAffectedRows() เช็ค — ถ้า 0 = ไม่ผ่าน
+- Return errorResponse 409 พร้อมข้อความ "อนุมัติไปแล้ว — กรุณา refresh"
+
+อ้างอิง pattern จาก:
+src/app/api/production/work-orders/[id]/requisition/route.ts
+
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+
+    <div id="case3" class="tab-content">
+      <div class="example">
+        <div class="label">CASE 3: เพิ่ม Flash Highlight UI</div>
+        <p style="margin:8px 0 0;">Page มี realtime แล้ว แต่อยากให้ row ที่เปลี่ยนกระพริบให้เห็นชัด</p>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">หน้า [URL] เพิ่ม flash highlight effect
+- เมื่อมี realtime event → row ของ id ที่เปลี่ยนกระพริบสีเขียว 1.5 วิ
+- ใช้ animation 'animate-flash-green' ที่อยู่ใน globals.css อยู่แล้ว
+- Track recently-changed ids ใน Set state
+- Add class กับ row element
+
+อ้างอิงจาก src/app/inventory/lots/page.tsx (RequisitionTab)
+
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+
+    <div id="case4" class="tab-content">
+      <div class="example">
+        <div class="label">CASE 4: หลายหน้าใช้ topic เดียวกัน</div>
+        <p style="margin:8px 0 0;">เช่น เมื่อ approve requisition จะ sync 3 หน้าพร้อมกัน</p>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">ขยาย realtime topic '[topic-name]' ไปยัง 3 หน้านี้:
+1. [URL 1] — invalidate queryKey [key1]
+2. [URL 2] — invalidate queryKey [key2]
+3. [URL 3] — invalidate queryKey [key3]
+
+แต่ละหน้า filter event ตาม [id field]
+ที่ตรงกับหน้าที่กำลังเปิด (ไม่ refetch ถ้า event เป็น id อื่น)
+
+Component shared (เช่น ExecutionDashboard) ใส่ hook 1 ครั้ง
+ส่วน page ที่ใช้ component นั้นไม่ต้องแก้
+
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="latency">
+    <h2>Latency Reference</h2>
+    <p>ระบบที่ deploy ไว้ใช้ <strong>SSE</strong> + TanStack Query refetch</p>
+
+    <div class="latency-grid">
+      <div class="latency-card">
+        <div class="num">50-300 ms</div>
+        <div class="label">Total Latency</div>
+        <div class="feel">เร็วมาก — Realtime</div>
+      </div>
+      <div class="latency-card">
+        <div class="num">~ 30 ms</div>
+        <div class="label">Server → Browser</div>
+        <div class="feel">SSE stream</div>
+      </div>
+      <div class="latency-card">
+        <div class="num">~ 100 ms</div>
+        <div class="label">Refetch + Render</div>
+        <div class="feel">React Query</div>
+      </div>
+    </div>
+
+    <h3>วิธีอื่นที่อาจพิจารณา</h3>
+    <table>
+      <thead><tr><th>Approach</th><th>Latency</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SSE (ปัจจุบัน)</strong></td><td>50-300 ms</td><td>Native Next.js, ใช้ HTTP เดิม ⭐</td></tr>
+        <tr><td>WebSocket</td><td>~ 100 ms</td><td>ต้อง custom server, sticky session</td></tr>
+        <tr><td>Polling 5s</td><td>1-5 วิ</td><td>Simple แต่ไม่ instant</td></tr>
+        <tr><td>Manual refresh</td><td>นาน</td><td>UX แย่ที่สุด</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section" id="tips">
+    <h2>Tips ในการเขียน Prompt</h2>
+
+    <h3>✅ ทำให้ทำงานง่าย</h3>
+    <ul>
+      <li><strong>ระบุ scenario ชัด</strong> — "User A ทำ X, User B เห็น Y" ไม่ใช่ "ข้อมูลไม่ refresh"</li>
+      <li><strong>อ้างอิงหน้าที่ทำเสร็จแล้ว</strong> — "เหมือน /inventory/lots tab requisitions"</li>
+      <li><strong>ระบุ scope: server guard, UI sync, หรือทั้งคู่</strong></li>
+      <li><strong>บอก topic name</strong> — ใช้ topic เดิม หรือ topic ใหม่?</li>
+    </ul>
+
+    <h3>❌ หลีกเลี่ยง</h3>
+    <ul>
+      <li>"ทำให้ realtime" — ไม่ระบุว่าอะไรต้อง realtime</li>
+      <li>"ใช้ WebSocket" — ระบบใช้ SSE; ขอเพราะอะไร?</li>
+      <li>"ป้องกัน duplicate" โดยไม่บอกว่าซ้ำได้เพราะอะไร</li>
+    </ul>
+
+    <div class="callout warn">
+      <strong>⚠ บทเรียนจากครั้งก่อน:</strong> ขอแบบ <strong>ระบุ scope แคบ</strong> (เฉพาะหน้า) จะดีกว่า "system-wide realtime ทั้งระบบ" — ครั้งก่อนทำ system-wide แล้ว user ยกเลิกเพราะซับซ้อนเกินไป (50+ topics, audit-wrapper hooks)
+    </div>
+  </section>
+
+  <section class="section" id="examples">
+    <h2>ตัวอย่างการใช้จริง</h2>
+
+    <div class="example">
+      <div class="label">EXAMPLE 1: Purchase Requisition Approval</div>
+      <div class="code-block" style="margin-top:8px;">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">หน้า /purchasing/requisitions มีปัญหา:
+- 2 user เปิดพร้อมกัน → A approve PR → B ยังเห็นเป็น pending
+- B กด approve ซ้ำได้
+
+ขอแก้:
+1. Server guard: UPDATE WHERE status='pending' ใน /api/purchasing/.../approve
+2. Realtime: เพิ่ม topic 'pr-changed', publish ตอน approve, subscribe ในหน้า list
+3. Flash highlight row ที่ approve
+
+อ้างอิง pattern: /inventory/lots tab requisitions
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label">EXAMPLE 2: Lot Status Change</div>
+      <div class="code-block" style="margin-top:8px;">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">เพิ่ม realtime topic 'lot-changed'
+- Service inventory.service.ts updateLotStatus():
+  หลัง commit → publish { lotId, status, changedBy }
+
+หน้าที่ต้อง subscribe:
+1. /inventory/lots (tab lots) — invalidate ['inventory-lots']
+2. /production/work-orders/[id] — invalidate ['available-lots']
+
+Filter ตาม lotId ที่เกี่ยวข้องกับหน้านั้น
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label">EXAMPLE 3: Quality Test Result</div>
+      <div class="code-block" style="margin-top:8px;">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <span class="lang">prompt</span>
+<pre style="margin:0;color:inherit;font-family:inherit;background:none;">หน้า /quality/tests มีปัญหา 2 lab tech บันทึกผลพร้อมกัน
+ข้อมูลในจออีกคนไม่อัพเดท
+
+ทำแค่ Server Guard (ไม่ต้อง realtime UI):
+- API record-result ใส่ WHERE status='pending'
+- ถ้า affectedRows=0 → return 409 "ผลถูกบันทึกแล้ว — กรุณา refresh"
+
+ไม่ต้องเพิ่ม SSE/realtime
+Deploy 5 tenants</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="quick-ref">
+    <h2>Quick Reference Card</h2>
+    <p>Checklist ก่อนส่ง prompt</p>
+
+    <div class="quick-ref">
+      <div class="quick-ref-grid">
+        <div class="quick-ref-row">
+          <span class="icon">🎯</span>
+          <span class="label">หน้าที่มีปัญหา</span>
+          <span class="desc"><code class="code-inline">/path/to/page</code> หรือ URL เต็ม</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">👥</span>
+          <span class="label">Scenario</span>
+          <span class="desc">"User A ทำอะไร" + "User B ควรเห็นอะไร"</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">🔒</span>
+          <span class="label">Scope</span>
+          <span class="desc">Server guard, Realtime UI, หรือทั้งคู่?</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">📡</span>
+          <span class="label">Topic</span>
+          <span class="desc">ใช้ topic เดิม (ระบุชื่อ) หรือสร้างใหม่?</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">📐</span>
+          <span class="label">Reference</span>
+          <span class="desc">"เหมือน /inventory/lots" หรือ specific component</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">🚀</span>
+          <span class="label">Deploy</span>
+          <span class="desc">5 tenants? เฉพาะ tenant?</span>
+        </div>
+        <div class="quick-ref-row">
+          <span class="icon">✅</span>
+          <span class="label">Done =</span>
+          <span class="desc">commit, deploy, test 2 browsers?</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout green" style="margin-top:16px;">
+      <strong>💡 Pro Tip:</strong> ถ้าใช้ <code class="code-inline">"เหมือน /inventory/lots tab requisitions"</code>
+      AI จะอ่านโค้ดของหน้านั้นและใช้ pattern เดียวกันทั้ง infrastructure (event-bus, SSE, hook) + server guard + flash highlight
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      สร้างจาก feature realtime sync ที่ deploy แล้ว (PR <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">016-realtime-lots-requisitions</code>)
+      <br>
+      <span style="color:#94a3b8;">Live pages:</span>
+      <a href="/inventory/lots">/inventory/lots</a> ·
+      <a href="/production/work-orders">/production/work-orders</a>
+      <br>
+      <span style="color:#94a3b8;">เอกสาร spec:</span>
+      <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">docs/superpowers/specs/2026-04-27-realtime-lots-requisitions-design.md</code>
+    </p>
+  </footer>
+
+</div>
+
+<script>
+  function copyCode(btn) {
+    const block = btn.closest('.code-block');
+    const pre = block.querySelector('pre');
+    if (!pre) return;
+    const text = pre.textContent || '';
+    navigator.clipboard.writeText(text.trim()).then(() => {
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  }
+  function showTab(id, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

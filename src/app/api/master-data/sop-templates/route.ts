@@ -11,18 +11,28 @@ import {
   updateSOPTemplate,
   getSOPTemplateById,
 } from '@/lib/services/master-data.service';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { desc, eq } from 'drizzle-orm';
 
 // GET /api/master-data/sop-templates - List SOP step templates
 export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
       const category = searchParams.get('category') || undefined;
       const isActive = searchParams.get('isActive');
 
+      // Fetch single item by ID
+      if (id) {
+        const template = await getSOPTemplateById(Number(id));
+        if (!template) return successResponse(null);
+        return successResponse(template);
+      }
+
       const templates = await getSOPTemplates({
         category,
-        isActive: isActive ? isActive === 'true' : undefined,
+        isActive: isActive !== null ? isActive === 'true' : true,
       });
 
       return successResponse(templates);
@@ -39,13 +49,23 @@ export async function POST(request: NextRequest) {
     try {
       const data = await request.json();
 
-      // Validate required fields
-      if (!data.code || !data.name || !data.nameTh || !data.category) {
-        return errorResponse('Missing required fields: code, name, nameTh, category');
+      // Auto-generate code if not provided
+      if (!data.code) {
+        const table = getTableRef('sOPStepTemplates');
+        const latest = await executeDbOperation(async (db) => {
+          const rows = await db.select({ code: table.code }).from(table).orderBy(desc(table.id)).limit(1);
+          return rows[0]?.code as string | undefined;
+        });
+        const lastNum = latest ? parseInt(latest.replace(/\D/g, '') || '0') : 0;
+        data.code = `SOP-${String(lastNum + 1).padStart(4, '0')}`;
+      }
+
+      if (!data.nameTh || !data.category) {
+        return errorResponse('Missing required fields: nameTh, category');
       }
 
       // Validate category
-      const validCategories = ['preparation', 'mixing', 'heating', 'cooling', 'packaging'];
+      const validCategories = ['line_clearance', 'dispensing', 'preparation', 'milling', 'sieving', 'drying', 'blending', 'mixing', 'heating', 'cooling', 'filling', 'packaging', 'ipc', 'weighing', 'cleaning', 'inspection', 'other'];
       if (!validCategories.includes(data.category)) {
         return errorResponse(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
       }
@@ -61,25 +81,58 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const template = await createSOPTemplate({
-        code: data.code,
-        name: data.name,
-        nameTh: data.nameTh,
-        category: data.category,
-        instructions: data.instructions,
-        instructionsTh: data.instructionsTh,
-        defaultParameters: typeof data.defaultParameters === 'object'
-          ? JSON.stringify(data.defaultParameters)
-          : data.defaultParameters,
+      const sopData = {
+        name: data.name, nameTh: data.nameTh, category: data.category,
+        instructions: data.instructions, instructionsTh: data.instructionsTh,
+        defaultParameters: typeof data.defaultParameters === 'object' ? JSON.stringify(data.defaultParameters) : data.defaultParameters,
         isActive: data.isActive ?? true,
+      };
+
+      // Upsert
+      const table = getTableRef('sOPStepTemplates');
+      const existing = await executeDbOperation(async (db) => {
+        const rows = await db.select({ id: table.id }).from(table).where(eq(table.code, data.code));
+        return rows[0];
       });
 
+      if (existing) {
+        const updated = await updateSOPTemplate(existing.id as number, sopData);
+        return successResponse(updated, 'SOP template updated (code existed)');
+      }
+
+      const template = await createSOPTemplate({ code: data.code, ...sopData });
       return successResponse(template, 'SOP template created successfully');
     } catch (error) {
       console.error('Error creating SOP template:', error);
-      if ((error as Error).message?.includes('UNIQUE constraint')) {
-        return errorResponse('Template code already exists');
+      return serverErrorResponse(error);
+    }
+  });
+}
+
+// DELETE /api/master-data/sop-templates?id=X - Deactivate
+export async function DELETE(request: NextRequest) {
+  return withAuth(request, async () => {
+    try {
+      const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
+      if (!id) return errorResponse('Missing ID');
+      const existing = await getSOPTemplateById(Number(id));
+      if (!existing) return errorResponse('SOP template not found');
+
+      const bomSop = getTableRef('bOMSOPSteps');
+      const refs = await executeDbOperation(async (db) => {
+        return db.select({ id: bomSop.id }).from(bomSop).where(eq(bomSop.templateId, Number(id))).limit(1);
+      });
+      if (refs.length > 0) {
+        return errorResponse('ไม่สามารถลบได้ เนื่องจาก SOP นี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
       }
+
+      const table = getTableRef('sOPStepTemplates');
+      await executeDbOperation(async (db) => {
+        await db.delete(table).where(eq(table.id, Number(id)));
+      });
+      return successResponse(null, 'SOP template deleted');
+    } catch (error) {
       return serverErrorResponse(error);
     }
   });
@@ -102,7 +155,7 @@ export async function PUT(request: NextRequest) {
 
       // Validate category if provided
       if (data.category) {
-        const validCategories = ['preparation', 'mixing', 'heating', 'cooling', 'packaging'];
+        const validCategories = ['line_clearance', 'dispensing', 'preparation', 'milling', 'sieving', 'drying', 'blending', 'mixing', 'heating', 'cooling', 'filling', 'packaging', 'ipc', 'weighing', 'cleaning', 'inspection', 'other'];
         if (!validCategories.includes(data.category)) {
           return errorResponse(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
         }

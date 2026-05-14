@@ -1,0 +1,56 @@
+{
+  "page": {
+    "title": "รายงาน",
+    "description": "ดู สร้าง และจัดการเทมเพลตรายงาน"
+  },
+  "inventory": {
+    "title": "รายงานคลังสินค้า",
+    "stockSummary": "สรุปสต็อก",
+    "stockMovement": "การเคลื่อนไหวสต็อก",
+    "expiryReport": "รายงานวันหมดอายุ",
+    "lotTracking": "ติดตามล็อต"
+  },
+  "production": {
+    "title": "รายงานการผลิต",
+    "productionSummary": "สรุปการผลิต",
+    "batchHistory": "ประวัติแบทช์",
+    "yieldAnalysis": "วิเคราะห์ผลผลิต"
+  },
+  "quality": {
+    "title": "รายงานคุณภาพ",
+    "inspectionSummary": "สรุปการตรวจสอบ",
+    "nonConformance": "ความไม่สอดคล้อง",
+    "trendAnalysis": "วิเคราะห์แนวโน้ม"
+  },
+  "financial": {
+    "title": "รายงานการเงิน",
+    "balanceSheet": "งบดุล",
+    "incomeStatement": "งบกำไรขาดทุน",
+    "cashFlow": "งบกระแสเงินสด"
+  },
+  "actions": {
+    "generate": "สร้างรายงาน",
+    "export": "ส่งออก",
+    "print": "พิมพ์",
+    "schedule": "กำหนดเวลา",
+    "newReport": "รายงานใหม่",
+    "dismiss": "ปิด"
+  },
+  "overview": {
+    "title": "ภาพรวม",
+    "totalTemplates": "เทมเพลตทั้งหมด",
+    "published": "เผยแพร่แล้ว",
+    "drafts": "ฉบับร่าง",
+    "categories": "หมวดหมู่"
+  },
+  "mobile": {
+    "filterByCategory": "กรองตามหมวดหมู่"
+  },
+  "filters": {
+    "dateRange": "ช่วงวันที่",
+    "fromDate": "จากวันที่",
+    "toDate": "ถึงวันที่",
+    "category": "หมวดหมู่",
+    "department": "แผนก"
+  }
+}

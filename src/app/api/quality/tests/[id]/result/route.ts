@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
       }
 
-      // Update test
+      // Update test with spec snapshot (immutable record of spec at test time)
       await executeDbOperation(async (db) => {
         return db
           .update(testsTable)
@@ -74,6 +74,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             testDate: dbDate(),
             testedBy: session.userId,
             notes,
+            // Snapshot spec values at recording time
+            specMinValue: spec?.minValue ?? null,
+            specMaxValue: spec?.maxValue ?? null,
+            specSpecification: spec?.specification ?? null,
+            specUnit: spec?.unit ?? null,
             updatedAt: dbDate(),
           })
           .where(eq(testsTable.id, testId));

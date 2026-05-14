@@ -1,0 +1,808 @@
+{
+  "page": {
+    "title": "ทรัพยากรบุคคล",
+    "description": "จัดการพนักงานและโครงสร้างองค์กร"
+  },
+  "common": {
+    "all": "ทั้งหมด",
+    "loading": "กำลังโหลด...",
+    "noData": "ไม่มีข้อมูล",
+    "search": "ค้นหา...",
+    "searchEmployee": "ค้นหาพนักงาน...",
+    "filter": "ตัวกรอง",
+    "filters": "ตัวกรอง",
+    "hideFilters": "ซ่อนตัวกรอง",
+    "showFilters": "ตัวกรอง",
+    "clearFilters": "ล้างตัวกรอง",
+    "refresh": "รีเฟรช",
+    "refreshHint": "รีเฟรชข้อมูล",
+    "refreshData": "รีเฟรชข้อมูล",
+    "actions": "การดำเนินการ",
+    "manage": "จัดการ",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "create": "สร้าง",
+    "edit": "แก้ไข",
+    "delete": "ลบ",
+    "close": "ปิด",
+    "deleting": "กำลังลบ...",
+    "view": "ดู",
+    "viewDetails": "ดูรายละเอียด",
+    "viewMode": "มุมมอง:",
+    "viewGrid": "มุมมองตาราง",
+    "viewCards": "มุมมองการ์ด",
+    "viewAnalytics": "มุมมองวิเคราะห์",
+    "gridView": "ตาราง",
+    "cardsView": "การ์ด",
+    "analyticsView": "วิเคราะห์",
+    "show": "แสดง:",
+    "dataFilters": "ตัวกรองข้อมูล",
+    "deleteConfirm": "ยืนยันการลบ",
+    "deactivateConfirm": "ยืนยันการปิดใช้งาน",
+    "noEmployeeData": "ไม่พบข้อมูลพนักงาน",
+    "selectDepartment": "เลือกหน่วยงาน",
+    "allDepartments": "ทุกหน่วยงาน",
+    "department": "หน่วยงาน",
+    "status": "สถานะ",
+    "type": "ประเภท",
+    "email": "อีเมล",
+    "phone": "เบอร์โทร",
+    "person": "คน",
+    "people": "คน",
+    "items": "รายการ",
+    "person_counter": "คน",
+    "quickActions": "การดำเนินการด่วน",
+    "newBadge": "ใหม่",
+    "month": "เดือน",
+    "year": "ปี",
+    "years": "ปี",
+    "yearsMonths": "{years} ปี {months} เดือน",
+    "selectBox": "เลือก..."
+  },
+  "dashboard": {
+    "statCards": {
+      "pendingNotifications": "รอดำเนินการ",
+      "expiringTraining": "อบรมใกล้หมดอายุ",
+      "todayActivities": "กิจกรรมวันนี้",
+      "actionRequired": "ต้องดำเนินการ"
+    },
+    "quickActions": {
+      "title": "การดำเนินการด่วน",
+      "addEmployee": "เพิ่มพนักงานใหม่",
+      "createCourse": "สร้างหลักสูตร",
+      "viewMatrix": "ดู Competency Matrix",
+      "checkNotifications": "ตรวจสอบการแจ้งเตือน"
+    },
+    "modules": {
+      "title": "โมดูล HR",
+      "organization": {
+        "title": "โครงสร้างองค์กร",
+        "titleEn": "Organization",
+        "description": "จัดการโครงสร้างหน่วยงานและผังองค์กร"
+      },
+      "employees": {
+        "title": "พนักงาน",
+        "titleEn": "Employees",
+        "description": "ทะเบียนพนักงานและประวัติการทำงาน"
+      },
+      "positions": {
+        "title": "ตำแหน่งงาน",
+        "titleEn": "Positions",
+        "description": "จัดการตำแหน่งและ Job Description"
+      },
+      "training": {
+        "title": "การอบรม",
+        "titleEn": "Training",
+        "description": "หลักสูตร รอบอบรม และ Competency Matrix"
+      },
+      "authorizations": {
+        "title": "สิทธิ์อนุมัติ",
+        "titleEn": "Authorizations",
+        "description": "การให้สิทธิ์และมอบหมายอำนาจ"
+      },
+      "healthRecords": {
+        "title": "สุขภาพพนักงาน",
+        "titleEn": "Health Records",
+        "description": "ผลตรวจสุขภาพและการติดตาม"
+      },
+      "roles": {
+        "title": "บทบาท/สิทธิ์",
+        "titleEn": "Roles",
+        "description": "จัดการบทบาทและสิทธิ์ระบบ"
+      },
+      "notifications": {
+        "title": "การแจ้งเตือน",
+        "titleEn": "Notifications",
+        "description": "แจ้งเตือนการอบรมและสุขภาพ"
+      },
+      "audit": {
+        "title": "Audit Trail",
+        "titleEn": "Audit Log",
+        "description": "ประวัติการเปลี่ยนแปลงข้อมูล HR"
+      }
+    }
+  },
+  "employees": {
+    "title": "พนักงาน",
+    "description": "จัดการข้อมูลพนักงาน",
+    "notFound": "ไม่พบพนักงาน",
+    "notFoundDescription": "ไม่พบข้อมูลพนักงานที่ต้องการ",
+    "breadcrumb": "พนักงาน",
+    "addEmployee": "เพิ่มพนักงาน",
+    "searchPlaceholder": "ค้นหาพนักงาน...",
+    "noEmployees": "ไม่พบข้อมูลพนักงาน",
+    "tenure": "อายุงาน",
+    "tenureLabel": "อายุงาน",
+    "hireDateLabel": "วันเริ่มงาน / อายุงาน",
+    "employeeCol": "พนักงาน",
+    "orgUnitPosition": "หน่วยงาน / ตำแหน่ง",
+    "phoneCol": "เบอร์โทร",
+    "statusCol": "สถานะ",
+    "viewMode": {
+      "grid": "มุมมองตาราง",
+      "cards": "มุมมองการ์ด",
+      "analytics": "มุมมองวิเคราะห์"
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "พักงาน",
+      "terminated": "พ้นสภาพ"
+    },
+    "stats": {
+      "total": "พนักงานทั้งหมด",
+      "active": "ใช้งาน",
+      "inactive": "พักงาน",
+      "newThisMonth": "เข้าใหม่เดือนนี้",
+      "avgTenure": "อายุงานเฉลี่ย",
+      "increasing": "เพิ่มขึ้น"
+    },
+    "analytics": {
+      "statusTitle": "สถานะพนักงาน",
+      "byDepartment": "จำนวนพนักงานตามหน่วยงาน"
+    },
+    "filters": {
+      "orgUnit": "หน่วยงาน",
+      "orgUnitPlaceholder": "ทุกหน่วยงาน",
+      "status": "สถานะ",
+      "allStatus": "ทั้งหมด"
+    },
+    "table": {
+      "columns": {
+        "employeeId": "รหัสพนักงาน",
+        "name": "ชื่อ-นามสกุล",
+        "department": "แผนก",
+        "position": "ตำแหน่ง",
+        "joinDate": "วันที่เริ่มงาน",
+        "status": "สถานะ",
+        "employeeCount": "{0} คน"
+      }
+    },
+    "form": {
+      "employeeId": {
+        "label": "รหัสพนักงาน"
+      },
+      "firstName": {
+        "label": "ชื่อ",
+        "placeholder": "ป้อนชื่อ"
+      },
+      "lastName": {
+        "label": "นามสกุล",
+        "placeholder": "ป้อนนามสกุล"
+      },
+      "department": {
+        "label": "แผนก",
+        "placeholder": "เลือกแผนก"
+      },
+      "position": {
+        "label": "ตำแหน่ง",
+        "placeholder": "เลือกตำแหน่ง"
+      }
+    },
+    "actions": {
+      "addEmployee": "เพิ่มพนักงาน",
+      "editEmployee": "แก้ไขพนักงาน",
+      "viewEmployee": "ดูข้อมูลพนักงาน"
+    }
+  },
+  "departments": {
+    "title": "แผนก",
+    "description": "จัดการโครงสร้างแผนก"
+  },
+  "positions": {
+    "title": "ตำแหน่ง",
+    "description": "จัดการตำแหน่งงาน",
+    "breadcrumb": "ตำแหน่งงาน",
+    "addPosition": "เพิ่มตำแหน่ง",
+    "refresh": "รีเฟรช",
+    "stats": {
+      "total": "ตำแหน่งทั้งหมด",
+      "active": "ใช้งาน",
+      "gmpCritical": "GMP Critical",
+      "orgUnits": "หน่วยงาน"
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "ปิดใช้งาน"
+    },
+    "jdStatus": {
+      "draft": "ร่าง",
+      "pendingApproval": "รอตรวจสอบ",
+      "approved": "อนุมัติ",
+      "obsolete": "ยกเลิก"
+    },
+    "filters": {
+      "title": "ตัวกรองข้อมูล",
+      "orgUnit": "หน่วยงาน",
+      "status": "สถานะ",
+      "all": "ทั้งหมด",
+      "gmpOnly": "เฉพาะ GMP Critical"
+    },
+    "columns": {
+      "code": "รหัส",
+      "title": "ชื่อตำแหน่ง",
+      "titleEn": "ชื่อภาษาอังกฤษ",
+      "orgUnit": "หน่วยงาน",
+      "grade": "ระดับ",
+      "gmp": "GMP",
+      "status": "สถานะ"
+    },
+    "form": {
+      "code": "รหัสตำแหน่ง",
+      "codePlaceholder": "เช่น QC-001",
+      "grade": "ระดับตำแหน่ง",
+      "gradePlaceholder": "เช่น Manager, Supervisor",
+      "titleTh": "ชื่อตำแหน่ง (ภาษาไทย)",
+      "titleThPlaceholder": "ชื่อตำแหน่งภาษาไทย",
+      "titleEn": "ชื่อตำแหน่ง (ภาษาอังกฤษ)",
+      "titleEnPlaceholder": "Position title in English",
+      "orgUnit": "หน่วยงาน",
+      "orgUnitPlaceholder": "เลือกหน่วยงาน...",
+      "isGmpCritical": "ตำแหน่ง GMP Critical"
+    },
+    "popups": {
+      "createTitle": "เพิ่มตำแหน่งงานใหม่",
+      "editTitle": "แก้ไขตำแหน่ง: {0}",
+      "createJdTitle": "สร้างรายละเอียดงาน - {0}"
+    },
+    "jd": {
+      "title": "รายละเอียดงาน",
+      "add": "เพิ่ม",
+      "empty": "ยังไม่มีรายละเอียดงาน",
+      "effective": "มีผล",
+      "approved": "อนุมัติ",
+      "version": "v",
+      "responsibilities": "หน้าที่ความรับผิดชอบ",
+      "responsibilitiesPlaceholder": "ระบุหน้าที่ความรับผิดชอบ...",
+      "authorities": "อำนาจหน้าที่",
+      "authoritiesPlaceholder": "ระบุอำนาจหน้าที่...",
+      "qualifications": "คุณสมบัติ",
+      "qualificationsPlaceholder": "ระบุคุณสมบัติ..."
+    },
+    "detailsEmpty": "เลือกตำแหน่งเพื่อดูรายละเอียด",
+    "details": {
+      "titleEn": "ชื่อภาษาอังกฤษ",
+      "orgUnit": "หน่วยงาน"
+    },
+    "analytics": {
+      "gmpTitle": "การกระจายตำแหน่ง GMP",
+      "statusTitle": "สถานะตำแหน่ง",
+      "byOrgUnit": "จำนวนตำแหน่งตามหน่วยงาน",
+      "byGrade": "จำนวนตำแหน่งตามระดับ",
+      "noOrgUnitData": "ไม่มีข้อมูลหน่วยงาน",
+      "positionSuffix": "ตำแหน่ง"
+    },
+    "toast": {
+      "createSuccess": "สร้างตำแหน่งสำเร็จ",
+      "createError": "ไม่สามารถสร้างตำแหน่งได้",
+      "updateSuccess": "อัปเดตตำแหน่งสำเร็จ",
+      "updateError": "ไม่สามารถอัปเดตตำแหน่งได้",
+      "jdCreateSuccess": "สร้างรายละเอียดงานสำเร็จ",
+      "jdCreateError": "ไม่สามารถสร้างรายละเอียดงานได้"
+    },
+    "noPositions": "ไม่พบข้อมูลตำแหน่ง",
+    "gmpCritical": "GMP Critical",
+    "editHint": "แก้ไข",
+    "actions": {
+      "addPosition": "เพิ่มตำแหน่ง",
+      "viewPosition": "ดูตำแหน่ง"
+    }
+  },
+  "roles": {
+    "title": "บทบาท",
+    "description": "จัดการบทบาทและสิทธิ์",
+    "invalidId": "รหัสบทบาทไม่ถูกต้อง",
+    "breadcrumb": "บทบาทและสิทธิ์",
+    "createRole": "สร้างบทบาท",
+    "filters": {
+      "all": "ทั้งหมด",
+      "active": "ใช้งาน",
+      "inactive": "ปิดใช้งาน",
+      "system": "บทบาทระบบ",
+      "placeholder": "ค้นหาบทบาท...",
+      "statusPlaceholder": "สถานะ"
+    },
+    "stats": {
+      "total": "บทบาททั้งหมด",
+      "active": "ใช้งาน",
+      "system": "บทบาทระบบ",
+      "totalPermissions": "สิทธิ์ทั้งหมด"
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "ปิดใช้งาน",
+      "system": "ระบบ"
+    },
+    "columns": {
+      "code": "รหัส",
+      "name": "ชื่อบทบาท",
+      "description": "คำอธิบาย",
+      "permissionCount": "จำนวนสิทธิ์",
+      "status": "สถานะ",
+      "actions": "จัดการ"
+    },
+    "permissions": "สิทธิ์",
+    "deleteConfirm": {
+      "title": "ยืนยันการปิดใช้งาน",
+      "message": "คุณต้องการปิดใช้งานบทบาท \"{0}\" หรือไม่?",
+      "deactivate": "ปิดใช้งาน",
+      "deactivating": "กำลังลบ..."
+    },
+    "toast": {
+      "deactivateSuccess": "ปิดใช้งานบทบาทสำเร็จ",
+      "deactivateError": "ไม่สามารถปิดใช้งานบทบาทได้"
+    },
+    "actionsHint": {
+      "view": "ดูรายละเอียด",
+      "edit": "แก้ไข",
+      "deactivate": "ปิดใช้งาน"
+    },
+    "actions": {
+      "addRole": "เพิ่มบทบาท",
+      "viewRole": "ดูบทบาท"
+    }
+  },
+  "authorizations": {
+    "title": "การอนุมัติ",
+    "description": "จัดการการอนุมัติและสิทธิ์การเข้าถึง",
+    "breadcrumb": "สิทธิ์อนุมัติ",
+    "grantNew": "มอบสิทธิ์ใหม่",
+    "types": {
+      "batchRelease": "ปล่อยผ่านชุด",
+      "sopApproval": "อนุมัติ SOP",
+      "deviationApproval": "อนุมัติ Deviation",
+      "changeControlApproval": "อนุมัติ Change Control",
+      "capaApproval": "อนุมัติ CAPA"
+    },
+    "typesEn": {
+      "batchRelease": "Batch Release",
+      "sopApproval": "SOP Approval",
+      "deviationApproval": "Deviation Approval",
+      "changeControlApproval": "Change Control",
+      "capaApproval": "CAPA Approval"
+    },
+    "status": {
+      "active": "มีผล",
+      "expired": "หมดอายุ",
+      "pending": "รอเริ่มต้น",
+      "revoked": "ถูกยกเลิก"
+    },
+    "stats": {
+      "total": "สิทธิ์ทั้งหมด",
+      "active": "มีผลบังคับใช้",
+      "pending": "รอเริ่มต้น",
+      "expiringSoon": "ใกล้หมดอายุ",
+      "expiringSoonTrend": "ภายใน 30 วัน",
+      "delegations": "การมอบอำนาจ",
+      "employeesWithAuth": "พนักงานที่มีสิทธิ์"
+    },
+    "filters": {
+      "search": "ค้นหา",
+      "searchPlaceholder": "ชื่อพนักงาน, ประเภทสิทธิ์...",
+      "authType": "ประเภทสิทธิ์",
+      "authTypePlaceholder": "ทุกประเภท",
+      "status": "สถานะ",
+      "statusPlaceholder": "ทุกสถานะ"
+    },
+    "columns": {
+      "employee": "พนักงาน",
+      "authType": "ประเภทสิทธิ์",
+      "effectiveFrom": "วันที่เริ่ม",
+      "effectiveTo": "วันที่สิ้นสุด",
+      "status": "สถานะ",
+      "delegations": "มอบอำนาจ",
+      "grantedBy": "ผู้มอบสิทธิ์",
+      "actions": "การดำเนินการ"
+    },
+    "delegationsCount": "{0} มอบอำนาจ",
+    "delegate": "มอบอำนาจ",
+    "revoke": "ยกเลิก",
+    "revokeHint": "ยกเลิกสิทธิ์",
+    "revokeConfirm": "ต้องการยกเลิกสิทธิ์นี้หรือไม่?",
+    "grantedBy": "โดย",
+    "unknown": "ไม่ระบุ",
+    "noMatch": "ไม่พบสิทธิ์อนุมัติที่ตรงกับเงื่อนไข",
+    "noActiveAuth": "ไม่มีข้อมูลสิทธิ์ที่มีผล",
+    "noData": "ไม่มีข้อมูล",
+    "analytics": {
+      "byTypeTitle": "การกระจายตามประเภทสิทธิ์",
+      "byStatusTitle": "สถานะสิทธิ์อนุมัติ",
+      "summaryByStatus": "สรุปตามสถานะ",
+      "summaryByType": "สรุปตามประเภท",
+      "delegationsTitle": "การมอบอำนาจ",
+      "totalDelegations": "การมอบอำนาจทั้งหมด",
+      "delegatedRights": "สิทธิ์ที่มีการมอบอำนาจ",
+      "quickActions": "ดำเนินการด่วน",
+      "viewExpiring": "ดูสิทธิ์ใกล้หมดอายุ",
+      "countByType": "จำนวนสิทธิ์ตามประเภท",
+      "authSuffix": "สิทธิ์",
+      "itemSuffix": "รายการ"
+    },
+    "summary": {
+      "active": "มีผลบังคับใช้",
+      "pending": "รอเริ่มต้น",
+      "expired": "หมดอายุ",
+      "revoked": "ถูกยกเลิก"
+    },
+    "delegatePopup": {
+      "title": "มอบอำนาจ",
+      "delegateFrom": "มอบอำนาจจาก",
+      "authority": "สิทธิ์",
+      "delegateTo": "ผู้รับมอบอำนาจ",
+      "selectEmployee": "เลือกพนักงาน...",
+      "reason": "เหตุผล (ไม่บังคับ)",
+      "effectiveFrom": "วันที่เริ่มต้น",
+      "effectiveTo": "วันที่สิ้นสุด",
+      "submit": "มอบอำนาจ",
+      "cancel": "ยกเลิก"
+    },
+    "toast": {
+      "revokeSuccess": "ยกเลิกสิทธิ์สำเร็จ",
+      "revokeError": "ไม่สามารถยกเลิกสิทธิ์ได้",
+      "delegateSuccess": "มอบอำนาจสำเร็จ",
+      "delegateError": "ไม่สามารถมอบอำนาจได้"
+    },
+    "viewMode": {
+      "grid": "มุมมองตาราง",
+      "cards": "มุมมองการ์ด",
+      "analytics": "มุมมองวิเคราะห์"
+    },
+    "actions": {
+      "addAuthorization": "เพิ่มการอนุมัติ",
+      "viewAuthorization": "ดูการอนุมัติ"
+    }
+  },
+  "healthRecords": {
+    "title": "บันทึกสุขภาพ",
+    "description": "จัดการบันทึกสุขภาพพนักงาน",
+    "breadcrumb": "บันทึกสุขภาพ",
+    "addRecord": "บันทึกผลตรวจ",
+    "examinationType": {
+      "preEmployment": "ก่อนเข้างาน",
+      "periodic": "ตรวจประจำปี",
+      "special": "ตรวจพิเศษ"
+    },
+    "fitnessStatus": {
+      "fit": "พร้อมปฏิบัติงาน",
+      "unfit": "ไม่พร้อมปฏิบัติงาน",
+      "restricted": "มีข้อจำกัด"
+    },
+    "stats": {
+      "total": "รายการทั้งหมด",
+      "dueIn30": "ครบกำหนดใน 30 วัน",
+      "overdue": "เกินกำหนด",
+      "restricted": "มีข้อจำกัด"
+    },
+    "tabs": {
+      "records": "ประวัติตรวจสุขภาพ",
+      "due": "ใกล้ครบกำหนด",
+      "overdue": "เกินกำหนด"
+    },
+    "columns": {
+      "employee": "พนักงาน",
+      "examType": "ประเภทการตรวจ",
+      "examDate": "วันที่ตรวจ",
+      "status": "สถานะ",
+      "restrictions": "ข้อจำกัด",
+      "nextDue": "ครบกำหนดถัดไป",
+      "examiner": "ผู้ตรวจ",
+      "actions": "การดำเนินการ",
+      "email": "อีเมล",
+      "lastExamDate": "ตรวจครั้งล่าสุด",
+      "dueDate": "ครบกำหนด",
+      "daysRemaining": "เหลือเวลา",
+      "examDue": "กำหนดตรวจ",
+      "lastStatus": "สถานะล่าสุด"
+    },
+    "daysStatus": {
+      "overdueBy": "เกินกำหนด {0} วัน",
+      "inDays": "อีก {0} วัน",
+      "inDaysLeft": "อีก {0} วัน"
+    },
+    "deleteConfirm": {
+      "title": "ยืนยันการลบ",
+      "message": "คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกสุขภาพของ \"{0}\"? การดำเนินการนี้ไม่สามารถยกเลิกได้",
+      "deleting": "กำลังลบ...",
+      "delete": "ลบ",
+      "cancel": "ยกเลิก",
+      "defaultEmployee": "พนักงาน"
+    },
+    "toast": {
+      "deleteSuccess": "ลบบันทึกสุขภาพสำเร็จ"
+    },
+    "actionsHint": {
+      "view": "ดูรายละเอียด",
+      "edit": "แก้ไข",
+      "delete": "ลบ"
+    },
+    "actions": {
+      "addRecord": "เพิ่มบันทึก",
+      "viewRecord": "ดูบันทึก"
+    }
+  },
+  "notifications": {
+    "title": "การแจ้งเตือน",
+    "description": "จัดการการแจ้งเตือน",
+    "breadcrumb": "การแจ้งเตือน",
+    "checkTraining": "ตรวจสอบอบรม",
+    "checkHealth": "ตรวจสอบสุขภาพ",
+    "refreshHint": "รีเฟรช",
+    "types": {
+      "all": "ทั้งหมด",
+      "trainingExpiring": "การอบรมใกล้หมดอายุ",
+      "trainingExpired": "การอบรมหมดอายุแล้ว",
+      "healthCheckDue": "ถึงกำหนดตรวจสุขภาพ",
+      "healthCheckOverdue": "เลยกำหนดตรวจสุขภาพ",
+      "authorizationExpiring": "สิทธิ์ใกล้หมดอายุ"
+    },
+    "typeLabels": {
+      "trainingExpiring": "อบรมใกล้หมดอายุ",
+      "trainingExpired": "อบรมหมดอายุ",
+      "healthCheckDue": "ตรวจสุขภาพ",
+      "healthCheckOverdue": "เลยกำหนดตรวจ",
+      "authorizationExpiring": "สิทธิ์หมดอายุ"
+    },
+    "stats": {
+      "total": "รายการทั้งหมด",
+      "trainingExpiring": "อบรมใกล้หมดอายุ",
+      "trainingExpired": "อบรมหมดอายุ",
+      "healthDue": "ตรวจสุขภาพใกล้ถึง",
+      "healthOverdue": "เลยกำหนดตรวจ"
+    },
+    "filters": {
+      "label": "ตัวกรอง:",
+      "searchPlaceholder": "ค้นหา...",
+      "typePlaceholder": "ประเภท",
+      "clear": "ล้าง"
+    },
+    "columns": {
+      "type": "ประเภท",
+      "employeeCode": "รหัสพนักงาน",
+      "employeeName": "ชื่อพนักงาน",
+      "title": "หัวข้อ",
+      "createdAt": "วันที่สร้าง",
+      "actions": "จัดการ"
+    },
+    "showing": "แสดง:",
+    "deleteConfirm": {
+      "title": "ยืนยันการลบ",
+      "message": "คุณต้องการลบการแจ้งเตือน \"{0}\" หรือไม่?",
+      "deleting": "กำลังลบ...",
+      "delete": "ลบ",
+      "cancel": "ยกเลิก"
+    },
+    "detailPopup": {
+      "title": "รายละเอียดการแจ้งเตือน",
+      "employee": "พนักงาน",
+      "titleLabel": "หัวข้อ",
+      "message": "รายละเอียด",
+      "createdAt": "วันที่สร้าง",
+      "markAsRead": "ทำเครื่องหมายอ่านแล้ว",
+      "delete": "ลบ",
+      "close": "ปิด"
+    },
+    "actionsHint": {
+      "view": "ดูรายละเอียด",
+      "markAsRead": "ทำเครื่องหมายอ่านแล้ว",
+      "delete": "ลบ"
+    },
+    "toast": {
+      "checkSuccess": "สร้างการแจ้งเตือน {0} รายการ",
+      "checkError": "เกิดข้อผิดพลาดในการตรวจสอบ",
+      "markReadSuccess": "ทำเครื่องหมายอ่านแล้ว",
+      "error": "เกิดข้อผิดพลาด",
+      "deleteSuccess": "ลบการแจ้งเตือนสำเร็จ"
+    }
+  },
+  "orgChart": {
+    "title": "แผนผังองค์กร",
+    "description": "ดูโครงสร้างองค์กร"
+  },
+  "org": {
+    "title": "องค์กร",
+    "description": "จัดการโครงสร้างองค์กร",
+    "breadcrumb": "องค์กร",
+    "subtitle": "โครงสร้างองค์กร",
+    "tabs": {
+      "tree": "มุมมองต้นไม้",
+      "diagram": "มุมมองแผนภาพ"
+    }
+  },
+  "orgRedirect": {
+    "redirecting": "กำลังเปลี่ยนหน้า..."
+  },
+  "audit": {
+    "title": "ตรวจสอบ",
+    "description": "ประวัติการตรวจสอบ",
+    "breadcrumb": "บันทึกการตรวจสอบ",
+    "stats": {
+      "total": "รายการทั้งหมด",
+      "activityTypes": "ประเภทกิจกรรม",
+      "users": "ผู้มีสิทธิ์",
+      "totalActivities": "กิจกรรมทั้งหมด"
+    },
+    "tabs": {
+      "logs": "บันทึกกิจกรรม",
+      "summary": "สรุปตามประเภท",
+      "accessReview": "ตรวจสอบสิทธิ์"
+    },
+    "filters": {
+      "fromDate": "จากวันที่",
+      "toDate": "ถึงวันที่",
+      "clear": "ล้างตัวกรอง"
+    },
+    "columns": {
+      "dateTime": "วันที่/เวลา",
+      "activity": "กิจกรรม",
+      "user": "ผู้ดำเนินการ",
+      "table": "ตาราง",
+      "recordId": "รหัส",
+      "employee": "พนักงาน",
+      "roles": "บทบาท",
+      "authorizations": "สิทธิ์อนุมัติ",
+      "activeRoles": "บทบาทใช้งาน",
+      "activeAuth": "สิทธิ์ใช้งาน"
+    },
+    "summaryTitle": "สรุปกิจกรรมตามประเภท",
+    "noSummary": "ไม่พบข้อมูลสรุป",
+    "detailPopup": {
+      "title": "รายละเอียดบันทึก",
+      "dateTime": "วันที่/เวลา",
+      "user": "ผู้ดำเนินการ",
+      "activity": "กิจกรรม",
+      "tableRecord": "ตาราง / รหัส",
+      "oldValue": "ค่าเดิม",
+      "newValue": "ค่าใหม่",
+      "noChanges": "ไม่มีรายละเอียดการเปลี่ยนแปลง"
+    },
+    "viewDetailsHint": "ดูรายละเอียด"
+  },
+  "training": {
+    "title": "การฝึกอบรม",
+    "description": "จัดการการฝึกอบรม",
+    "breadcrumb": "การอบรม",
+    "stats": {
+      "totalCourses": "หลักสูตรทั้งหมด",
+      "mandatoryCourses": "หลักสูตรบังคับ",
+      "totalSessions": "รอบอบรมทั้งหมด",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้นแล้ว",
+      "upcoming": "ใน 7 วันข้างหน้า",
+      "sessionsTrend": "{0} รอบ"
+    },
+    "quickAccess": {
+      "manageCourses": "จัดการหลักสูตร",
+      "coursesSummary": "{0} หลักสูตร ({1} ใช้งาน)",
+      "manageSessions": "จัดการรอบอบรม",
+      "sessionsSummary": "{0} กำลังดำเนินการ, {1} รอ",
+      "matrix": "Competency Matrix",
+      "matrixDesc": "ตารางทักษะและความสามารถ"
+    },
+    "viewMode": {
+      "grid": "มุมมองตาราง (รอบอบรม)",
+      "cards": "มุมมองการ์ด (หลักสูตร)",
+      "analytics": "มุมมองวิเคราะห์"
+    },
+    "addSession": "เพิ่มรอบอบรม",
+    "addCourse": "เพิ่มหลักสูตร",
+    "filters": {
+      "title": "ตัวกรองข้อมูล",
+      "clear": "ล้างตัวกรอง",
+      "search": "ค้นหา",
+      "searchPlaceholder": "ชื่อหลักสูตร, รหัส...",
+      "sessionStatus": "สถานะรอบอบรม",
+      "allStatus": "ทุกสถานะ",
+      "category": "หมวดหมู่",
+      "allCategories": "ทุกหมวดหมู่",
+      "mandatoryOnly": "แสดงเฉพาะหลักสูตรบังคับ"
+    },
+    "sessionStatus": {
+      "scheduled": "รอดำเนินการ",
+      "inProgress": "กำลังอบรม",
+      "completed": "เสร็จสิ้น",
+      "cancelled": "ยกเลิก"
+    },
+    "mandatory": "บังคับ",
+    "optional": "ไม่บังคับ",
+    "active": "ใช้งาน",
+    "inactive": "ไม่ใช้งาน",
+    "columns": {
+      "courseCode": "รหัสหลักสูตร",
+      "courseName": "ชื่อหลักสูตร",
+      "sessionDate": "วันที่อบรม",
+      "startTime": "เวลาเริ่ม",
+      "endTime": "เวลาสิ้นสุด",
+      "location": "สถานที่",
+      "capacity": "จำนวนรับ",
+      "status": "สถานะ"
+    },
+    "sessionSearch": "ค้นหารอบอบรม...",
+    "noCourses": "ไม่พบหลักสูตรที่ตรงกับเงื่อนไข",
+    "noSessionData": "ไม่มีข้อมูลรอบอบรม",
+    "noCategoryData": "ไม่มีข้อมูลหมวดหมู่",
+    "hours": "ชั่วโมง",
+    "validDays": "อายุ {0} วัน",
+    "analytics": {
+      "sessionStatusTitle": "สถานะรอบอบรม",
+      "courseCategoryTitle": "หมวดหมู่หลักสูตร",
+      "sessionsSummary": "สรุปรอบอบรม",
+      "coursesSummary": "สรุปหลักสูตร",
+      "thisMonth": "เดือนนี้",
+      "next7Days": "7 วันข้างหน้า",
+      "thisMonthSessions": "รอบอบรมทั้งหมด",
+      "quickActions": "ดำเนินการด่วน",
+      "addCourse": "เพิ่มหลักสูตรใหม่",
+      "addSession": "เพิ่มรอบอบรม",
+      "viewMatrix": "ดู Competency Matrix",
+      "coursesByCategory": "จำนวนหลักสูตรตามหมวดหมู่",
+      "sessionSuffix": "รอบ",
+      "courseSuffix": "หลักสูตร",
+      "summary": {
+        "scheduled": "รอดำเนินการ",
+        "inProgress": "กำลังอบรม",
+        "completed": "เสร็จสิ้น",
+        "cancelled": "ยกเลิก",
+        "total": "ทั้งหมด",
+        "active": "ใช้งาน",
+        "mandatory": "บังคับ",
+        "categories": "หมวดหมู่"
+      }
+    },
+    "matrix": {
+      "title": "ตารางการฝึกอบรม",
+      "description": "ดูตารางการฝึกอบรมของพนักงาน"
+    },
+    "sessions": {
+      "title": "รอบการอบรม",
+      "description": "จัดการรอบการอบรม",
+      "actions": {
+        "addSession": "เพิ่มรอบการอบรม"
+      }
+    },
+    "courses": {
+      "title": "หลักสูตร",
+      "description": "จัดการหลักสูตรการอบรม",
+      "invalidId": "รหัสหลักสูตรไม่ถูกต้อง",
+      "actions": {
+        "addCourse": "เพิ่มหลักสูตร",
+        "viewCourse": "ดูหลักสูตร"
+      }
+    }
+  },
+  "attendance": {
+    "title": "การลงเวลา",
+    "description": "จัดการการลงเวลาทำงาน"
+  },
+  "toast": {
+    "addEmployee": {
+      "success": "เพิ่มพนักงานสำเร็จ",
+      "error": "ไม่สามารถเพิ่มพนักงานได้"
+    }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

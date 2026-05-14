@@ -41,12 +41,10 @@
   --chart-5: 280 67% 45%;          /* purple */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Dark mode disabled - app uses light theme only.
+   Previously, OS dark mode would set dark background variables
+   while component text remained hardcoded light-mode colors,
+   causing invisible text after language switch. */
 
 /* ===========================
    DESIGN TOKENS (Generate Utilities)
@@ -322,4 +320,737 @@ a:not([class]):hover {
 .module-kpi-tabs .dx-tab-selected {
   border-bottom: 2px solid #3b82f6;
   color: #3b82f6;
+}
+
+/* Kill the green focus ring on every focused descendant inside this tab
+   panel — root, tabs strip, individual tab buttons, multiview wrapper,
+   and content panes. The global .dx-state-focused rule in
+   dx.emerald-override.css adds a 2px emerald outline for keyboard
+   accessibility, but on this panel a click lands focus somewhere
+   different each time (whole tab strip, then the wrapper, then a tab),
+   so listing exact selectors plays whack-a-mole. The wildcard form
+   covers every spot the focus can land within the panel. */
+.module-kpi-tabs.dx-state-focused,
+.module-kpi-tabs .dx-state-focused,
+.module-kpi-tabs.dx-state-focused::before,
+.module-kpi-tabs.dx-state-focused::after,
+.module-kpi-tabs .dx-state-focused::before,
+.module-kpi-tabs .dx-state-focused::after {
+  outline: none !important;
+  box-shadow: none !important;
+}
+/* Some DevExtreme themes draw the focus indicator as a top/left border
+   on the tabs container — neutralize those without touching the active
+   tab's blue underline (which is on .dx-tab-selected, a different
+   class). */
+.module-kpi-tabs .dx-tabs.dx-state-focused,
+.module-kpi-tabs .dx-tabpanel-tabs.dx-state-focused {
+  border-top-color: transparent !important;
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+}
+
+/* ===========================
+   PRINT STYLES - eBMR Document
+   =========================== */
+
+/* Elements visible only when printing */
+.print-only {
+  display: none !important;
+}
+
+/* eBMR: print-only section title row inside <thead> — hidden on screen
+   (use visibility+height trick as fallback when display:none breaks thead repeat
+   in some browsers) */
+.ebmr-print-title-row {
+  display: none;
+}
+
+@media print {
+  /* Page setup — kill browser URL/title header + date/page# footer.
+
+     Trick: Firefox doesn't honor @page { @top-left { content: '' } }
+     in most versions. The RELIABLE cross-browser approach is:
+       1. @page { margin: 0 }       → no physical space for browser to
+                                       draw its own header/footer
+       2. body padding               → recreate the visual margin ourselves
+
+     This works in Chrome, Firefox, AND Edge without relying on any
+     browser-specific feature. Side effect: if user enables "Print
+     headers and footers" in Firefox dialog, they MAY still render
+     overlapping our content — but the default for modern Firefox is
+     off, and on Chrome/Edge they're fully suppressed. */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  /* Recreate the margin visually via body padding — tight horizontal
+     padding gives more room for wide tables (many columns). Keep top
+     and bottom a bit larger so the document doesn't look cramped. */
+  body {
+    padding: 10mm 8mm 14mm 8mm !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  /* ─── CRITICAL: kill all scroll containers & fixed heights ───
+     The app shell uses `lg:h-[calc(100vh)] lg:overflow-hidden` on <main>
+     and sticky sidebar + viewport-height constraints. Chrome honors these
+     during print preview and clips content, while Firefox is more lenient.
+     Force every container to auto height + visible overflow so the entire
+     document flows onto printed pages regardless of browser. */
+  html, body {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  }
+
+  /* Force white background on eBMR CONTAINERS only (not cells).
+     Firefox honors background-color in print; UI gradients/cards bleed
+     colored tints onto paper if we don't reset them.
+
+     CRITICAL: Do NOT include `*` or `td/th` here — setting
+     `background: white` on `td` with `border-collapse: collapse` causes
+     Firefox to paint the cell bg OVER shared vertical borders, making
+     vertical column lines disappear while horizontal lines survive
+     (because horizontal lines are drawn BETWEEN rows, not inside). */
+  #ebmr-content,
+  #ebmr-content > *,
+  main,
+  .min-h-screen,
+  [class*="bg-gradient"],
+  [class*="bg-gray-50"],
+  [class*="bg-gray-100"]:not(thead tr),
+  [class*="bg-slate"],
+  [class*="bg-zinc"],
+  [class*="bg-neutral"],
+  [class*="bg-white"] {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+  }
+
+  /* Card content wrappers: transparent bg so td borders render cleanly */
+  #ebmr-content [data-slot="card-content"],
+  #ebmr-content [data-slot="card"] {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
+  /* Table cells MUST be transparent (no white bg) for vertical borders
+     to survive Firefox's print rasterizer with border-collapse: collapse */
+  #ebmr-content table td {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
+  /* Exceptions: keep specific colored backgrounds that convey status
+     (table header gray, zebra stripes, badges) */
+  #ebmr-content table thead tr:not(.ebmr-print-title-row) th {
+    background-color: #e5e7eb !important;
+  }
+  #ebmr-content table tbody tr:nth-child(even) td {
+    background-color: #f8fafc !important;
+  }
+
+  /* Every element loses scroll/height constraints during print. Using
+     universal selector is fine here because @media print only applies
+     when rendering for paper — never affects screen performance. */
+  *, *::before, *::after {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* Kill position:fixed/sticky bars (sidebar, header, sticky filters) —
+     they break pagination and re-appear on every page in Chrome. */
+  .fixed, .sticky,
+  [class*="sticky"],
+  [class*="fixed"],
+  .top-bar, .sidebar, .navbar,
+  aside, nav {
+    position: static !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Hide no-print elements (app chrome, buttons, filters) */
+  .no-print,
+  .back-to-top,
+  button.btn,
+  [role="navigation"] {
+    display: none !important;
+  }
+
+  /* Force show eBMR content (overrides hidden class from tab state) */
+  #ebmr-content {
+    display: block !important;
+    padding: 0 !important;
+  }
+
+  /* Remove sidebar padding from main layout */
+  .lg\:pl-64 {
+    padding-left: 0 !important;
+  }
+
+  /* Main layout flex columns → block flow for print */
+  .min-h-screen,
+  [class*="min-h-screen"],
+  .flex-1 {
+    min-height: 0 !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  /* Remove viewport-height / overflow constraints on <main> content area.
+     These Tailwind classes (md:h-[calc(100vh-56px)] md:overflow-hidden and
+     lg:h-[calc(100vh)] lg:overflow-hidden) are the root cause of Chrome's
+     scroll+clip behavior in print preview. */
+  main,
+  main#main-content {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  /* A4 width guidance — content fills the printable area fully.
+     Firefox specifically tends to leave extra white space on either
+     side unless we reset width constraints on nested containers. */
+  body {
+    width: 100%;
+    min-width: 0;
+    max-width: none !important;
+  }
+
+  /* Kill all max-width / container limits within eBMR so content uses
+     full width of the printable area (A4 - our padding). */
+  #ebmr-content,
+  #ebmr-content > * {
+    max-width: none !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Kill container padding inherited from Tailwind on main wrappers */
+  .container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl,
+  .max-w-3xl, .max-w-2xl, .max-w-xl, .max-w-lg, .max-w-md {
+    max-width: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* ===== VISUAL CLEANUP FOR PRINT — DOCUMENT STYLE ===== */
+
+  /* Kill ALL card chrome — eBMR should look like a plain GMP document,
+     not a UI dashboard. Remove borders, rounded corners, shadows, and
+     card-like padding so sections flow as continuous document text.
+     Targets ALL common card-ish classes (Tailwind + data-slot attrs). */
+  #ebmr-content [class*="shadow"],
+  #ebmr-content [class*="rounded"],
+  #ebmr-content [class*="Card"],
+  #ebmr-content [class*="card"],
+  #ebmr-content .rounded-lg,
+  #ebmr-content .rounded-xl,
+  #ebmr-content .rounded-md,
+  #ebmr-content .rounded,
+  #ebmr-content [data-slot="card"] {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Flatten Card containers — no outer border, no inner padding.
+     Use explicit [data-slot] attrs (shadcn/ui standard) for reliability
+     across Firefox/Edge/Chrome. */
+  #ebmr-content [data-slot="card"],
+  #ebmr-content [data-slot="card-header"],
+  #ebmr-content [data-slot="card-content"] {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Remove inner padding from Card Content specifically (p-4, p-6 etc) */
+  #ebmr-content [class*="p-"]:not(table):not(th):not(td) {
+    padding: 0 !important;
+  }
+
+  /* Section spacing: vertical rhythm between sections */
+  #ebmr-content > * {
+    margin-bottom: 12pt !important;
+  }
+
+  /* CardTitle — document-style bold heading with underline.
+     Acts as section H2. */
+  #ebmr-content h2,
+  #ebmr-content h3,
+  #ebmr-content [data-slot="card-title"] {
+    font-size: 12pt !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    margin: 0 0 4pt 0 !important;
+    padding: 4pt 0 2pt 0 !important;
+    border-bottom: 1.5pt solid #111827 !important;
+    background: transparent !important;
+  }
+
+  /* Remove colored text (save ink) - keep green/red for pass/fail */
+  #ebmr-content .text-blue-600,
+  #ebmr-content .text-blue-700,
+  #ebmr-content .text-purple-700 {
+    color: #1f2937 !important;
+  }
+
+  /* ===== TABLE BORDERS — box-shadow inset method (Firefox-safe) =====
+     Firefox 149 print rasterizer has a bug where regular `border` on
+     td/th can disappear regardless of border-collapse mode.
+
+     Solution: draw borders as `box-shadow: inset` layers instead of
+     using the border property. Firefox renders inset box-shadows
+     reliably in print (they're treated as content, not box model).
+     Chrome/Edge also render them correctly — cross-browser safe.
+
+     Each cell gets 2 inset shadows: 1px right edge + 1px bottom edge.
+     Table itself provides top and left edges. This creates a complete
+     grid with exactly 1px lines (no doubling). */
+  html body #ebmr-content table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+    /* Table outer edges via box-shadow inset (top + left + right + bottom) */
+    box-shadow:
+      inset 0 1.5px 0 0 #000,     /* top */
+      inset 1.5px 0 0 0 #000,     /* left */
+      inset -1.5px 0 0 0 #000,    /* right */
+      inset 0 -1.5px 0 0 #000     /* bottom */
+      !important;
+  }
+
+  /* Every cell: inset shadow on RIGHT and BOTTOM edges — creates
+     inner grid lines. Remove any regular border property so it can't
+     conflict with Tailwind `border` class defaults. */
+  html body #ebmr-content table th,
+  html body #ebmr-content table td {
+    border: 0 !important;
+    box-shadow:
+      inset -1px 0 0 0 #000,      /* right edge */
+      inset 0 -1px 0 0 #000       /* bottom edge */
+      !important;
+  }
+
+  /* Thead gray background (re-apply because border: 0 above may wipe) */
+  html body #ebmr-content table thead tr:not(.ebmr-print-title-row) th {
+    background-color: #e5e7eb !important;
+  }
+
+  /* ===== Section closing line =====
+     After stripping card chrome, each section had no visual separator.
+     Add a bottom rule so reader can see where one section ends and the
+     next begins — essential for document-style GMP records. */
+  #ebmr-content .ebmr-section-with-table,
+  #ebmr-content [data-has-table="true"] {
+    border-bottom: 1.5pt solid #111827 !important;
+    padding-bottom: 8pt !important;
+    margin-bottom: 14pt !important;
+  }
+
+  /* ===== table-fixed support =====
+     Force long content (sub-steps list, instructions) to wrap inside
+     fixed-width columns rather than overflowing or forcing column resize. */
+  #ebmr-content table.table-fixed {
+    table-layout: fixed !important;
+  }
+  #ebmr-content table.table-fixed td,
+  #ebmr-content table.table-fixed th {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  /* Base font size for eBMR content */
+  #ebmr-content {
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+
+  /* Compact grid spacing for print */
+  #ebmr-content .grid {
+    gap: 6px !important;
+  }
+
+  /* FIX: Prevent grid children from overflowing into adjacent cells.
+     This fixes drug code 24 digits overlapping with G-registration number. */
+  #ebmr-content .grid > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* ===== TABLE STYLING =====
+     IMPORTANT: Do NOT set `border` or `border-collapse` here — they are
+     owned by the "TABLE BORDERS — Firefox-safe" block above (using
+     border-collapse: separate). Any shorthand `border:` here would
+     override the individual border-right/border-bottom rules that make
+     Firefox render vertical lines correctly. */
+  #ebmr-content table {
+    font-size: 9pt;
+    width: 100%;
+    table-layout: auto;
+  }
+
+  #ebmr-content table th {
+    background-color: #e5e7eb !important;
+    font-weight: 600;
+    padding: 5px 8px !important;
+    font-size: 8.5pt;
+    color: #374151;
+    /* Column headers: keep on one line — short labels like "Step"
+       should never wrap to "S\nt\ne\np" when column is narrow */
+    white-space: nowrap !important;
+  }
+
+  #ebmr-content table td {
+    padding: 4px 8px !important;
+    font-size: 9pt;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Zebra stripes for readability */
+  #ebmr-content table tbody tr:nth-child(even) {
+    background-color: #f8fafc !important;
+  }
+
+  /* Repeat table headers on every printed page */
+  #ebmr-content table thead {
+    display: table-header-group;
+  }
+
+  /* Keep each table row on one page */
+  #ebmr-content table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Tables themselves can span pages */
+  #ebmr-content table {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  /* ===== PAGE BREAK CONTROL — section-by-section flow =====
+     Rules (cross-browser: Chrome, Firefox, Edge):
+     1. Each top-level section tries to fit on one page.
+     2. If a section doesn't fit → move ENTIRE section to a new page.
+     3. If a section itself overflows → start on new page, continue on
+        subsequent pages with section title + column headers repeated
+        (via in-thead .ebmr-print-title-row, controlled below).
+
+     We use EXPLICIT classes (.ebmr-section, .ebmr-section-with-table)
+     instead of :has() because Firefox < 121 + Edge Legacy don't support
+     :has() in print contexts reliably. */
+
+  /* Default: every direct child of eBMR content = a section.
+     Whole-section avoid (never split) unless marked with-table. */
+  #ebmr-content > * {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Sections WITH tables: allow the table to split (tables with many
+     rows can span pages). Use explicit class on the Card wrapper. */
+  #ebmr-content > .ebmr-section-with-table,
+  #ebmr-content > [data-has-table="true"] {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  /* Tables themselves can break across pages (thead repeats automatically) */
+  #ebmr-content table {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Section title (h2/h3/CardTitle) must NOT be orphaned — glue to content below */
+  #ebmr-content h2,
+  #ebmr-content h3,
+  #ebmr-content [data-slot="card-title"] {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  /* CardHeader must stay with the first row of its table/content */
+  #ebmr-content [data-slot="card-header"] {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  /* Keep each table row on one page (no splitting a single row) */
+  #ebmr-content table tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* ===== eBMR In-Thead Section Title Row =====
+     When a table spans multiple pages, the browser repeats <thead>
+     contents on every page (Chrome + Firefox + Edge all support
+     `thead { display: table-header-group }` natively for page break).
+     We add a hidden-on-screen <tr> with the section title as first
+     thead row. Visible only on print so the continuation page shows:
+     [Section Title] + [Column Headers] + data. */
+  #ebmr-content .ebmr-print-title-row,
+  tr.ebmr-print-title-row {
+    display: table-row !important;
+    visibility: visible !important;
+  }
+  #ebmr-content .ebmr-print-title-row th,
+  tr.ebmr-print-title-row th {
+    text-align: left !important;
+    font-size: 11pt !important;
+    font-weight: 700 !important;
+    padding: 5pt 6pt !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: none !important;
+    border-bottom: 1.5pt solid #111827 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ensure thead repeats on every page (all browsers) */
+  #ebmr-content table thead {
+    display: table-header-group !important;
+  }
+  #ebmr-content table tbody {
+    display: table-row-group !important;
+  }
+
+  /* Hide duplicate CardHeader on sections that have in-thead title row —
+     otherwise user sees the same section title twice (above + inside table). */
+  #ebmr-content .ebmr-section-with-table > [data-slot="card-header"],
+  #ebmr-content .ebmr-section-with-table > *:first-child {
+    display: none !important;
+  }
+
+  /* Status badges inside tables: keep on one line (no text wrap).
+     Targets Badge component (inline-flex rounded-full) in any cell. */
+  #ebmr-content table td [class*="inline-flex"][class*="rounded"],
+  #ebmr-content table td .badge,
+  #ebmr-content table td [class*="Badge"] {
+    white-space: nowrap !important;
+    display: inline-flex !important;
+  }
+
+  /* Batch Record Execution step cards - keep each step together */
+  #ebmr-content .space-y-4 > .border.rounded-lg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #d1d5db !important;
+    margin-bottom: 6pt;
+  }
+
+  /* Orphan/widow control for text content */
+  #ebmr-content p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* ===== PRINT HEADER ===== */
+
+  .ebmr-print-header {
+    border-bottom: 2px solid #111827;
+    padding-bottom: 10pt;
+    margin-bottom: 14pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .ebmr-print-header h1 {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .ebmr-print-header p {
+    color: #4b5563;
+  }
+
+  /* ===== SIGNATURE SECTION ===== */
+
+  #ebmr-signatures {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* Signature boxes: keep all three together */
+  #ebmr-signatures .grid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ===== PRINT FOOTER ===== */
+
+  .ebmr-print-footer {
+    margin-top: 20pt;
+    padding-top: 8pt;
+    border-top: 1px solid #d1d5db;
+    font-size: 8pt;
+    color: #9ca3af;
+    text-align: center;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+/* =========================================================
+   DevExtreme DataGrid — Column Header + Badge Cell Fixes
+   ---------------------------------------------------------
+   DevExtreme's default CSS truncates every header caption and
+   cell content with ellipsis when content > column width. For
+   columns that contain badges/tags (Type, Category, Critical,
+   etc.) this clips both the text AND the badge border. These
+   rules allow wrapping where it actually helps, without breaking
+   layout on short values.
+
+   Scope: applies globally to every <DxDataGrid>. The behavior is
+   additive — short values still render on one line; only when
+   they overflow do they wrap to a second line instead of being
+   cut to "...". This matches user expectation for Master Data
+   screens without needing per-column annotations.
+   ========================================================= */
+
+/* HEADER CAPTIONS: allow multi-line so "Temperature Range" and
+   "Monitoring Interval" aren't truncated to "Temperature Ran..." */
+.dx-datagrid .dx-datagrid-headers .dx-datagrid-content .dx-header-row > td {
+  white-space: normal !important;
+  vertical-align: middle;
+}
+.dx-datagrid .dx-datagrid-headers .dx-datagrid-text-content {
+  white-space: normal !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
+  line-height: 1.3 !important;
+  min-height: auto;
+}
+
+/* CELL CONTENT: when a cell renders a badge (rounded-full inline-flex
+   element), make sure the cell has enough vertical room so the
+   badge's border isn't clipped top/bottom. */
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row > td {
+  vertical-align: middle;
+  line-height: 1.5;
+}
+
+/* Utility: any inline-flex badge inside a grid cell keeps its text on
+   one line AND doesn't get clipped by parent overflow. Use via:
+     <span class="dx-cell-tag bg-blue-100 ...">Packaging Room</span>
+   The class is additive — existing Tailwind classes still apply. */
+.dx-cell-tag {
+  white-space: nowrap;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+/* Allow cell content with badges to overflow cell bounds gracefully —
+   this is the safety net when a column width is slightly smaller than
+   the longest badge. */
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row > td:has(.dx-cell-tag),
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row > td:has(.inline-flex.rounded-full) {
+  overflow: visible !important;
+}
+
+/* ===== Compact DevExtreme inputs (filter-compact wrapper) ===== */
+/* Used in pages where filter controls should match the compact chip/button style */
+.filter-compact .dx-texteditor {
+  font-size: 13px;
+}
+.filter-compact .dx-texteditor .dx-texteditor-input {
+  font-size: 13px;
+  min-height: 28px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.filter-compact .dx-texteditor .dx-placeholder::before {
+  font-size: 13px;
+  padding-top: 4px;
+}
+.filter-compact .dx-dropdowneditor-icon,
+.filter-compact .dx-icon {
+  font-size: 14px;
+}
+
+/* =========================================================
+   DevExtreme Tabs — Show full text (no ellipsis)
+   ---------------------------------------------------------
+   By default DevExtreme tabs apply text-overflow: ellipsis on
+   .dx-tab-text when the tab width is smaller than the text.
+   For status filter tabs ("In Progress", "Completed", etc.) we
+   want the full label regardless of width. Parent containers
+   already enable horizontal scrolling on overflow.
+   ========================================================= */
+.dx-tabs .dx-tab .dx-tab-text,
+.dx-tabs .dx-tab-content .dx-tab-text {
+  text-overflow: clip !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+.dx-tabs .dx-tab {
+  flex-shrink: 0;
+  max-width: none !important;
+  overflow: visible !important;
+}
+
+/* =========================================================
+   DevExtreme DataGrid — cell-wrap helper
+   ---------------------------------------------------------
+   For columns that must show full text (no truncation) even when
+   content is longer than column width, wrap the cell content div
+   with className="dx-cell-wrap". Applies word-break so long codes
+   like BOM numbers wrap instead of being clipped with ellipsis.
+   ========================================================= */
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row > td:has(.dx-cell-wrap) {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+.dx-cell-wrap {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* =========================================================
+   Realtime sync — flash highlight
+   ---------------------------------------------------------
+   Briefly tints rows that just changed via SSE event so other
+   users notice the update before it settles into its new tab.
+   ========================================================= */
+@keyframes flash-green {
+  0% {
+    background-color: rgb(34 197 94 / 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-flash-green {
+  animation: flash-green 1.5s ease-out;
 }

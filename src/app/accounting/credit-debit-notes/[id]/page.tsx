@@ -6,6 +6,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -46,6 +47,7 @@ const reasonCodeLabels: Record<string, string> = {
 };
 
 export default function CreditDebitNoteDetailPage({ params }: PageProps) {
+  const t = useTranslations('accounting');
   const { id } = use(params);
   const noteId = parseInt(id, 10);
   const router = useRouter();
@@ -295,7 +297,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-                {note.noteNumber}
+                {t('page.title')}: {note.noteNumber}
               </h1>
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${

@@ -86,7 +86,11 @@ export async function POST(request: NextRequest) {
         category,
         primaryUnit,
         secondaryUnit,
-        conversionRate,
+        conversionRate: conversionRateRaw,
+        conversionFactor,
+        weightUnit,
+        secondaryToWeightRate,
+        weightTrackingEnabled,
         shelfLifeDays,
         storageCondition,
         minStock,
@@ -100,6 +104,7 @@ export async function POST(request: NextRequest) {
         ttmtName,
         confidentialityLevel,
         defaultConfidential,
+        strength,
       } = body;
 
       if (!code || !nameTh || !type || !primaryUnit) {
@@ -117,9 +122,36 @@ export async function POST(request: NextRequest) {
           .limit(1);
       });
 
+      // Upsert — update if code exists
       if (existing.length > 0) {
-        return errorResponse('Item code already exists');
+        const existingId = existing[0].id;
+        await executeDbOperation(async (db) => {
+          return db.update(itemsTable).set({
+            nameTh, nameEn, type, category, primaryUnit, secondaryUnit,
+            weightUnit: weightUnit || null,
+            secondaryToWeightRate: secondaryToWeightRate ?? null,
+            weightTrackingEnabled: weightTrackingEnabled === true,
+            shelfLifeDays, storageCondition, minStock: minStock || 0, maxStock, reorderPoint,
+            isLotControlled: isLotControlled !== false, isFEFO: isFEFO !== false,
+            tppCode: tppCode || null, tppName: tppName || null,
+            ttmtCode: ttmtCode || null, ttmtName: ttmtName || null,
+            confidentialityLevel: confidentialityLevel || 'public',
+            defaultConfidential: defaultConfidential || false, strength: strength || null,
+            isActive: true,
+          }).where(eq(itemsTable.id, existingId));
+        });
+        return successResponse({ id: existingId }, 'Item updated (code existed)');
       }
+
+      // Auto-correct conversion rate for standard unit pairs
+      const STANDARD_CONVERSIONS: Record<string, number> = {
+        'kg:g': 1000, 'g:mg': 1000, 'kg:mg': 1000000,
+        'l:ml': 1000, 'ml:µl': 1000, 'l:µl': 1000000,
+        't:kg': 1000,
+      };
+      const pairKey = `${(primaryUnit || '').toLowerCase()}:${(secondaryUnit || '').toLowerCase()}`;
+      const standardRate = STANDARD_CONVERSIONS[pairKey];
+      const finalConversionRate = standardRate ?? conversionFactor ?? conversionRateRaw;
 
       // Create item
       const result = await executeDbOperation(async (db) => {
@@ -131,7 +163,10 @@ export async function POST(request: NextRequest) {
           category,
           primaryUnit,
           secondaryUnit,
-          conversionRate,
+          conversionRate: finalConversionRate,
+          weightUnit: weightUnit || null,
+          secondaryToWeightRate: secondaryToWeightRate ?? null,
+          weightTrackingEnabled: weightTrackingEnabled === true,
           shelfLifeDays,
           storageCondition,
           minStock: minStock || 0,
@@ -145,6 +180,7 @@ export async function POST(request: NextRequest) {
           ttmtName: ttmtName || null,
           confidentialityLevel: confidentialityLevel || 'public',
           defaultConfidential: defaultConfidential || false,
+          strength: strength || null,
         });
       });
 

@@ -340,53 +340,56 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       expect(screen.getByTestId('page-header')).toBeInTheDocument();
-      expect(screen.getByText('ควบคุมคุณภาพ')).toBeInTheDocument();
-      expect(screen.getByText('Quality Control Dashboard')).toBeInTheDocument();
+      // Title from i18n: t('page.title') = 'Quality'
+      expect(screen.getByText('Quality')).toBeInTheDocument();
+      // Subtitle from i18n: t('page.description') = 'Manage quality control and inspections'
+      expect(screen.getByText('Manage quality control and inspections')).toBeInTheDocument();
     });
 
     it('should render KPI stat cards', () => {
       render(<QualityDashboardPage />);
 
-      expect(screen.getByTestId('stat-card-การทดสอบทั้งหมด')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-รอทดสอบ')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-ผ่านการทดสอบ')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-ไม่ผ่านการทดสอบ')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-ข้อกำหนดคุณภาพ')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-ความเบี่ยงเบนเปิด')).toBeInTheDocument();
+      // Stat card testids generated from English labels from i18n
+      expect(screen.getByTestId('stat-card-total-tests')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-pending')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-passed')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-failed')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-quality-specs')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-card-open-deviations')).toBeInTheDocument();
     });
 
     it('should display correct total tests count', () => {
       render(<QualityDashboardPage />);
 
-      const totalCard = screen.getByTestId('stat-card-การทดสอบทั้งหมด');
+      const totalCard = screen.getByTestId('stat-card-total-tests');
       expect(totalCard).toHaveTextContent('4');
     });
 
     it('should display correct pending tests count', () => {
       render(<QualityDashboardPage />);
 
-      const pendingCard = screen.getByTestId('stat-card-รอทดสอบ');
+      const pendingCard = screen.getByTestId('stat-card-pending');
       expect(pendingCard).toHaveTextContent('1');
     });
 
     it('should display correct passed tests count', () => {
       render(<QualityDashboardPage />);
 
-      const passedCard = screen.getByTestId('stat-card-ผ่านการทดสอบ');
+      const passedCard = screen.getByTestId('stat-card-passed');
       expect(passedCard).toHaveTextContent('1');
     });
 
     it('should display correct failed tests count', () => {
       render(<QualityDashboardPage />);
 
-      const failedCard = screen.getByTestId('stat-card-ไม่ผ่านการทดสอบ');
+      const failedCard = screen.getByTestId('stat-card-failed');
       expect(failedCard).toHaveTextContent('1');
     });
 
     it('should display correct specs count', () => {
       render(<QualityDashboardPage />);
 
-      const specsCard = screen.getByTestId('stat-card-ข้อกำหนดคุณภาพ');
+      const specsCard = screen.getByTestId('stat-card-quality-specs');
       expect(specsCard).toHaveTextContent('3');
     });
 
@@ -394,7 +397,7 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       // 2 deviations are open (open + investigating), 1 is closed
-      const deviationsCard = screen.getByTestId('stat-card-ความเบี่ยงเบนเปิด');
+      const deviationsCard = screen.getByTestId('stat-card-open-deviations');
       expect(deviationsCard).toHaveTextContent('2');
     });
   });
@@ -410,17 +413,17 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const cardsButton = buttons.find(btn => btn.title === 'มุมมองการ์ด');
+      const cardsButton = buttons.find(btn => btn.title === 'Cards view');
 
       if (cardsButton) {
         fireEvent.click(cardsButton);
 
         await waitFor(() => {
           expect(screen.queryByTestId('dx-data-grid')).not.toBeInTheDocument();
-          // Module card titles should be visible
-          expect(screen.getByText('การทดสอบคุณภาพ')).toBeInTheDocument();
-          expect(screen.getByText('ข้อกำหนดคุณภาพ')).toBeInTheDocument();
-          expect(screen.getByText('ความเบี่ยงเบน')).toBeInTheDocument();
+          // Module card titles from i18n
+          expect(screen.getByText('Quality Tests')).toBeInTheDocument();
+          expect(screen.getByText('Quality Specifications')).toBeInTheDocument();
+          expect(screen.getByText('Deviations')).toBeInTheDocument();
         });
       }
     });
@@ -429,7 +432,7 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const analyticsButton = buttons.find(btn => btn.title === 'มุมมองวิเคราะห์');
+      const analyticsButton = buttons.find(btn => btn.title === 'Analytics view');
 
       if (analyticsButton) {
         fireEvent.click(analyticsButton);
@@ -449,13 +452,13 @@ describe('Quality Dashboard Page', () => {
       expect(filterButton).toBeInTheDocument();
 
       // Initially filter panel should be hidden
-      expect(screen.queryByText('ตัวกรองข้อมูล')).not.toBeInTheDocument();
+      expect(screen.queryByText('Data Filters')).not.toBeInTheDocument();
 
       // Click to show filters
       fireEvent.click(filterButton);
 
       await waitFor(() => {
-        expect(screen.getByText('ตัวกรองข้อมูล')).toBeInTheDocument();
+        expect(screen.getByText('Data Filters')).toBeInTheDocument();
       });
     });
 
@@ -506,7 +509,7 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const cardsButton = buttons.find(btn => btn.title === 'มุมมองการ์ด');
+      const cardsButton = buttons.find(btn => btn.title === 'Cards view');
 
       if (cardsButton) {
         fireEvent.click(cardsButton);
@@ -523,16 +526,17 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const cardsButton = buttons.find(btn => btn.title === 'มุมมองการ์ด');
+      const cardsButton = buttons.find(btn => btn.title === 'Cards view');
 
       if (cardsButton) {
         fireEvent.click(cardsButton);
 
         await waitFor(() => {
-          expect(screen.getByText('การดำเนินการด่วน')).toBeInTheDocument();
-          expect(screen.getByText('สร้างการทดสอบใหม่')).toBeInTheDocument();
-          expect(screen.getByText('เพิ่มข้อกำหนดใหม่')).toBeInTheDocument();
-          expect(screen.getByText('รายงานความเบี่ยงเบน')).toBeInTheDocument();
+          // Quick actions from i18n
+          expect(screen.getByText('Quick Actions')).toBeInTheDocument();
+          expect(screen.getByText('Create New Test')).toBeInTheDocument();
+          expect(screen.getByText('Add New Specification')).toBeInTheDocument();
+          expect(screen.getByText('Report Deviation')).toBeInTheDocument();
         });
       }
     });
@@ -541,13 +545,14 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const cardsButton = buttons.find(btn => btn.title === 'มุมมองการ์ด');
+      const cardsButton = buttons.find(btn => btn.title === 'Cards view');
 
       if (cardsButton) {
         fireEvent.click(cardsButton);
 
         await waitFor(() => {
-          expect(screen.getByText('อัตราการผ่านการทดสอบ')).toBeInTheDocument();
+          // From i18n: t('dashboard.passRate.title') = 'Test Pass Rate'
+          expect(screen.getByText('Test Pass Rate')).toBeInTheDocument();
         });
       }
     });
@@ -558,7 +563,7 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const analyticsButton = buttons.find(btn => btn.title === 'มุมมองวิเคราะห์');
+      const analyticsButton = buttons.find(btn => btn.title === 'Analytics view');
 
       if (analyticsButton) {
         fireEvent.click(analyticsButton);
@@ -574,14 +579,15 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const analyticsButton = buttons.find(btn => btn.title === 'มุมมองวิเคราะห์');
+      const analyticsButton = buttons.find(btn => btn.title === 'Analytics view');
 
       if (analyticsButton) {
         fireEvent.click(analyticsButton);
 
         await waitFor(() => {
-          expect(screen.getByText('การกระจายตามสถานะ')).toBeInTheDocument();
-          expect(screen.getByText('การกระจายตามประเภท')).toBeInTheDocument();
+          // From i18n
+          expect(screen.getByText('Distribution by Status')).toBeInTheDocument();
+          expect(screen.getByText('Distribution by Type')).toBeInTheDocument();
         });
       }
     });
@@ -590,15 +596,16 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const analyticsButton = buttons.find(btn => btn.title === 'มุมมองวิเคราะห์');
+      const analyticsButton = buttons.find(btn => btn.title === 'Analytics view');
 
       if (analyticsButton) {
         fireEvent.click(analyticsButton);
 
         await waitFor(() => {
-          expect(screen.getByText('สรุปสถานะการทดสอบ')).toBeInTheDocument();
-          expect(screen.getByText('สรุปข้อกำหนดคุณภาพ')).toBeInTheDocument();
-          expect(screen.getByText('สรุปความเบี่ยงเบน')).toBeInTheDocument();
+          // Analytics section titles from i18n
+          expect(screen.getByText('Test Status Summary')).toBeInTheDocument();
+          expect(screen.getByText('Quality Specs Summary')).toBeInTheDocument();
+          expect(screen.getByText('Deviations Summary')).toBeInTheDocument();
         });
       }
     });
@@ -607,13 +614,14 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const analyticsButton = buttons.find(btn => btn.title === 'มุมมองวิเคราะห์');
+      const analyticsButton = buttons.find(btn => btn.title === 'Analytics view');
 
       if (analyticsButton) {
         fireEvent.click(analyticsButton);
 
         await waitFor(() => {
-          expect(screen.getByText('รายละเอียดตามประเภทการทดสอบ')).toBeInTheDocument();
+          // From i18n: t('dashboard.analytics.typeBreakdown') = 'Details by Test Type'
+          expect(screen.getByText('Details by Test Type')).toBeInTheDocument();
         });
       }
     });
@@ -631,7 +639,7 @@ describe('Quality Dashboard Page', () => {
 
       const newTestButton = screen.getByTestId('dx-button-add');
       expect(newTestButton).toBeInTheDocument();
-      expect(newTestButton).toHaveTextContent('ทดสอบใหม่');
+      expect(newTestButton).toHaveTextContent('New Test');
     });
 
     it('should navigate to new test page when button is clicked', () => {
@@ -655,7 +663,7 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const gridButton = buttons.find(btn => btn.title === 'มุมมองตาราง');
+      const gridButton = buttons.find(btn => btn.title === 'Grid view');
       expect(gridButton).toBeInTheDocument();
     });
 
@@ -663,7 +671,7 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const cardsButton = buttons.find(btn => btn.title === 'มุมมองการ์ด');
+      const cardsButton = buttons.find(btn => btn.title === 'Cards view');
       expect(cardsButton).toBeInTheDocument();
     });
 
@@ -671,7 +679,7 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const analyticsButton = buttons.find(btn => btn.title === 'มุมมองวิเคราะห์');
+      const analyticsButton = buttons.find(btn => btn.title === 'Analytics view');
       expect(analyticsButton).toBeInTheDocument();
     });
   });
@@ -681,13 +689,13 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const cardsButton = buttons.find(btn => btn.title === 'มุมมองการ์ด');
+      const cardsButton = buttons.find(btn => btn.title === 'Cards view');
 
       if (cardsButton) {
         fireEvent.click(cardsButton);
 
         await waitFor(() => {
-          const testsCard = screen.getByText('การทดสอบคุณภาพ').closest('div[class*="cursor-pointer"]');
+          const testsCard = screen.getByText('Quality Tests').closest('div[class*="cursor-pointer"]');
           if (testsCard) {
             fireEvent.click(testsCard);
             expect(mockPush).toHaveBeenCalledWith('/quality/tests');
@@ -700,13 +708,13 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const cardsButton = buttons.find(btn => btn.title === 'มุมมองการ์ด');
+      const cardsButton = buttons.find(btn => btn.title === 'Cards view');
 
       if (cardsButton) {
         fireEvent.click(cardsButton);
 
         await waitFor(() => {
-          const specsCard = screen.getByText('ข้อกำหนดคุณภาพ').closest('div[class*="cursor-pointer"]');
+          const specsCard = screen.getByText('Quality Specifications').closest('div[class*="cursor-pointer"]');
           if (specsCard) {
             fireEvent.click(specsCard);
             expect(mockPush).toHaveBeenCalledWith('/quality/specs');
@@ -719,13 +727,13 @@ describe('Quality Dashboard Page', () => {
       render(<QualityDashboardPage />);
 
       const buttons = screen.getAllByRole('button');
-      const cardsButton = buttons.find(btn => btn.title === 'มุมมองการ์ด');
+      const cardsButton = buttons.find(btn => btn.title === 'Cards view');
 
       if (cardsButton) {
         fireEvent.click(cardsButton);
 
         await waitFor(() => {
-          const deviationsCard = screen.getByText('ความเบี่ยงเบน').closest('div[class*="cursor-pointer"]');
+          const deviationsCard = screen.getByText('Deviations').closest('div[class*="cursor-pointer"]');
           if (deviationsCard) {
             fireEvent.click(deviationsCard);
             expect(mockPush).toHaveBeenCalledWith('/quality/deviations');

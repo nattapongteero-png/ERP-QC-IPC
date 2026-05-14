@@ -9,14 +9,15 @@
 import { useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ResponsivePageHeader } from '@/components/shared';
+import { useTranslations, useLocale } from 'next-intl';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
+import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSwitch } from '@/components/ui/dx-switch';
-import { DxTabs } from '@/components/ui/dx-tabs';
-import type { DxTabItem } from '@/components/ui/dx-tabs';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import { SwitchTypes } from 'devextreme-react/switch';
@@ -48,16 +49,28 @@ interface CleaningLog {
   verifierId?: number;
   verifierName?: string;
   verifiedAt?: string;
+  verifyResult?: string; // 'pass' | 'fail'
   notes?: string;
 }
+
+// Permission codes that drive dual-control cleaning (GMP).
+// A user who marks a log as clean CANNOT verify it — enforced both here
+// (UI) and in wo-execution.service (backend: operator_id != verifier_id).
+const PERM_CLEAN_MARK = 'production:clean_mark';
+const PERM_CLEAN_VERIFY = 'production:clean_verify';
 
 interface CleaningRequirement {
   type: 'room' | 'equipment';
   id: number;
   code: string;
   name: string;
+  nameTh?: string;
   isRequired: boolean;
   cleaningLog?: CleaningLog;
+  // Source phase — used when Packaging view merges items configured under
+  // pre_packaging (line clearance) with items configured under packaging.
+  // Each log is recorded against the item's source phase, not the URL phase.
+  sourcePhase?: CleaningPhase;
 }
 
 interface WorkOrderBasic {
@@ -68,13 +81,28 @@ interface WorkOrderBasic {
   status: string;
 }
 
-const tabItems: DxTabItem[] = [
-  { id: 0, text: 'Pre-Production', icon: 'clock' },
-  { id: 1, text: 'Post-Production', icon: 'check' },
-  { id: 2, text: 'Pre-Packaging', icon: 'box' },
-];
+// All phases that can host cleaning (must mirror cleaning-logs VALID_PHASES).
+// We render only the phases that the BOM actually uses — see visiblePhases
+// below — so the tab bar never shows empty sections.
+type CleaningPhase = 'pre_production' | 'production' | 'post_production' | 'pre_packaging' | 'packaging';
 
-const phaseMap = ['pre_production', 'post_production', 'pre_packaging'] as const;
+const PHASE_META: Record<CleaningPhase, { label: string; icon: string; short: string }> = {
+  pre_production: { label: 'Pre-Production', short: 'Pre-Prod', icon: 'clock' },
+  production: { label: 'Production', short: 'Prod', icon: 'product' },
+  post_production: { label: 'Post-Production', short: 'Post-Prod', icon: 'check' },
+  pre_packaging: { label: 'Pre-Packaging', short: 'Pre-Pkg', icon: 'box' },
+  packaging: { label: 'Packaging', short: 'Pkg', icon: 'box' },
+};
+
+// pre_packaging removed — its items merge into the Packaging view via
+// fetch-and-tag below. Direct ?phase=pre_packaging URLs still work via
+// PHASE_META lookup, but Packaging is now the canonical entry point.
+const PHASE_ORDER: CleaningPhase[] = [
+  'pre_production',
+  'production',
+  'post_production',
+  'packaging',
+];
 
 export default function CleaningPage() {
   const params = useParams();
@@ -82,20 +110,25 @@ export default function CleaningPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const t = useTranslations('production');
+  const locale = useLocale();
   const workOrderId = Number(params.id);
 
-  const phaseParam = searchParams.get('phase');
-  const initialTab = phaseParam === 'post_production' ? 1 : phaseParam === 'pre_packaging' ? 2 : 0;
+  // GMP dual-control: a log's operator can't verify their own work
+  const { data: currentUser } = useCurrentUser();
 
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const phaseParam = searchParams.get('phase') as CleaningPhase | null;
+
+  // Phase is driven entirely by the ?phase= URL param — no in-page switching.
+  const currentPhase: CleaningPhase = phaseParam && PHASE_ORDER.includes(phaseParam)
+    ? phaseParam
+    : 'pre_production';
   const [showCleanDialog, setShowCleanDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CleaningRequirement | null>(null);
   const [formData, setFormData] = useState({
     isClean: true,
     notes: '',
   });
-
-  const currentPhase = phaseMap[activeTab];
 
   // Fetch Work Order basic info
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderBasic>({
@@ -108,20 +141,51 @@ export default function CleaningPage() {
     },
   });
 
-  // Fetch cleaning requirements with logs
+  // Fetch cleaning requirements with logs for the CURRENT phase.
+  // When phase=packaging, also fetch pre_packaging items (line clearance)
+  // and merge into the same list — Pre-Packaging phase was collapsed into
+  // Packaging so a single Cleaning page hosts both sets of items.
   const { data: requirements, isLoading: reqLoading } = useQuery<CleaningRequirement[]>({
     queryKey: ['wo-cleaning-requirements', workOrderId, currentPhase],
     queryFn: async () => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs?phase=${currentPhase}`);
-      const data = await res.json();
-      if (!data.success) return [];
-      return data.data;
+      const fetchPhase = async (p: CleaningPhase): Promise<CleaningRequirement[]> => {
+        const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs?phase=${p}`);
+        const data = await res.json();
+        if (!data.success) return [];
+        return (data.data as CleaningRequirement[]).map(item => ({ ...item, sourcePhase: p }));
+      };
+      if (currentPhase === 'packaging') {
+        const [pre, pkg] = await Promise.all([
+          fetchPhase('pre_packaging'),
+          fetchPhase('packaging'),
+        ]);
+        return [...pre, ...pkg];
+      }
+      return fetchPhase(currentPhase);
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
-  // Create cleaning log mutation
+  // Auto-refresh when another user mark-clean / verify cleaning on this WO
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    if (data.section !== 'cleaning' && data.section !== 'status') return;
+    queryClient.invalidateQueries({ queryKey: ['wo-cleaning-requirements', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
+  });
+
+  // Intentionally no per-phase stats/selector — this page renders exactly
+  // one phase at a time as requested by the operator. Phase switching
+  // happens upstream (Execution Dashboard links go to each phase URL).
+
+  // Create cleaning log mutation — phase comes from the item itself
+  // (sourcePhase) so pre_packaging items keep their phase tag even when
+  // recorded from the merged Packaging view.
   const createLogMutation = useMutation({
     mutationFn: async (data: {
+      phase: CleaningPhase;
       itemType: 'room' | 'equipment';
       roomId?: number;
       equipmentId?: number;
@@ -131,10 +195,7 @@ export default function CleaningPage() {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phase: currentPhase,
-          ...data,
-        }),
+        body: JSON.stringify(data),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
@@ -152,26 +213,34 @@ export default function CleaningPage() {
     },
   });
 
-  // Verify cleaning log mutation
+  // Verify cleaning log mutation (supports pass/fail)
   const verifyLogMutation = useMutation({
-    mutationFn: async (logId: number) => {
+    mutationFn: async ({ logId, verifyResult }: { logId: number; verifyResult: 'pass' | 'fail' }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logId }),
+        body: JSON.stringify({ logId, verifyResult }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['wo-cleaning-requirements', workOrderId, currentPhase] });
-      toast.success('Cleaning Verified', 'Cleaning has been verified.');
+      if (variables.verifyResult === 'pass') {
+        toast.success('Verified — Pass', 'ผ่านการตรวจสอบความสะอาด');
+      } else {
+        toast.warning('Verified — Fail', 'ไม่ผ่าน — Production ต้องทำความสะอาดใหม่');
+      }
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
     },
   });
+
+  const userPermissions = currentUser?.permissions ?? [];
+  const canMarkClean = userPermissions.includes(PERM_CLEAN_MARK);
+  const canVerify = userPermissions.includes(PERM_CLEAN_VERIFY);
 
   const handleOpenCleanDialog = (item: CleaningRequirement) => {
     setSelectedItem(item);
@@ -182,6 +251,7 @@ export default function CleaningPage() {
   const handleSubmitCleaning = () => {
     if (!selectedItem) return;
     createLogMutation.mutate({
+      phase: selectedItem.sourcePhase ?? currentPhase,
       itemType: selectedItem.type,
       roomId: selectedItem.type === 'room' ? selectedItem.id : undefined,
       equipmentId: selectedItem.type === 'equipment' ? selectedItem.id : undefined,
@@ -194,11 +264,17 @@ export default function CleaningPage() {
     if (!item.cleaningLog) {
       return { status: 'pending', label: 'Not Started', color: 'bg-gray-100 text-gray-600' };
     }
+    if (item.cleaningLog.verifyResult === 'fail') {
+      return { status: 'verify_failed', label: 'Verify Failed — ต้องทำความสะอาดใหม่', color: 'bg-red-100 text-red-700' };
+    }
+    if (item.cleaningLog.verifiedAt && item.cleaningLog.verifyResult === 'pass') {
+      return { status: 'verified', label: 'Verified ✓', color: 'bg-blue-100 text-blue-700' };
+    }
     if (item.cleaningLog.verifiedAt) {
-      return { status: 'verified', label: 'Verified', color: 'bg-blue-100 text-blue-700' };
+      return { status: 'verified', label: 'Verified ✓', color: 'bg-blue-100 text-blue-700' };
     }
     if (item.cleaningLog.isClean) {
-      return { status: 'completed', label: 'Cleaned', color: 'bg-green-100 text-green-700' };
+      return { status: 'completed', label: 'Cleaned — รอตรวจสอบ', color: 'bg-green-100 text-green-700' };
     }
     return { status: 'failed', label: 'Not Clean', color: 'bg-red-100 text-red-700' };
   };
@@ -262,46 +338,37 @@ export default function CleaningPage() {
         }
       />
 
-      {/* Progress Card */}
-      <Card className="border-amber-200 bg-amber-50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
+      {/* Current Phase Card — shows the rooms/equipment for the selected phase
+          only. The phase is driven by the ?phase= URL param set from the
+          Execution Dashboard, so the operator sees exactly one phase at a
+          time and other phases are not rendered. */}
+      <Card className="border-amber-200">
+        <CardContent className="p-0">
+          <div className="p-4 border-b border-amber-100 bg-amber-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="text-sm text-amber-700 uppercase tracking-wide font-medium">Phase</div>
+              <div className="text-xl font-bold text-amber-900 flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                {PHASE_META[currentPhase].label}
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-sm">
               <div className="text-amber-800">
-                <span className="text-2xl font-bold">{progress.completed}</span>
-                <span className="text-sm">/{progress.total} Cleaned</span>
+                <span className="text-xl font-bold">{progress.completed}</span>
+                <span className="text-xs">/{progress.total} Cleaned</span>
               </div>
               <div className="text-blue-800">
-                <span className="text-2xl font-bold">{progress.verified}</span>
-                <span className="text-sm">/{progress.total} Verified</span>
+                <span className="text-xl font-bold">{progress.verified}</span>
+                <span className="text-xs">/{progress.total} Verified</span>
               </div>
+              {progress.verified === progress.total && progress.total > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium text-xs">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Complete
+                </span>
+              )}
             </div>
-            <div className="flex-1 max-w-xs mx-4">
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber-500 transition-all duration-300"
-                  style={{ width: `${progress.total > 0 ? (progress.verified / progress.total) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-            {progress.verified === progress.total && progress.total > 0 && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium">
-                <CheckCircle2 className="h-4 w-4" />
-                All Verified
-              </span>
-            )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Phase Tabs */}
-      <Card>
-        <CardContent className="p-0">
-          <DxTabs
-            items={tabItems}
-            selectedIndex={activeTab}
-            onSelectedIndexChange={(idx) => setActiveTab(idx)}
-          />
 
           <div className="p-4">
             {reqLoading ? (
@@ -325,27 +392,38 @@ export default function CleaningPage() {
                   return (
                     <div
                       key={`${item.type}-${item.id}`}
-                      className="flex items-center justify-between p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-lg ${item.type === 'room' ? 'bg-blue-100' : 'bg-purple-100'}`}>
+                      <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                        <div className={`p-2 rounded-lg flex-shrink-0 ${item.type === 'room' ? 'bg-blue-100' : 'bg-purple-100'}`}>
                           {item.type === 'room' ? (
                             <Building2 className="h-5 w-5 text-blue-600" />
                           ) : (
                             <Wrench className="h-5 w-5 text-purple-600" />
                           )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm text-gray-500">{item.code}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                            <span className="font-mono text-xs sm:text-sm text-gray-500">{item.code}</span>
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusInfo.color}`}>
                               {statusInfo.label}
                             </span>
                             {item.isRequired && (
                               <span className="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700">Required</span>
                             )}
+                            <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                              {item.type === 'room' ? t('execution.room') : t('execution.equipment')}
+                            </span>
                           </div>
-                          <p className="font-medium text-gray-900">{item.name}</p>
+                          <p className="font-medium text-gray-900">
+                            {locale === 'th' && item.nameTh ? item.nameTh : item.name}
+                          </p>
+                          {locale === 'th' && item.name && (
+                            <p className="text-xs text-gray-400">{item.name}</p>
+                          )}
+                          {locale !== 'th' && item.nameTh && (
+                            <p className="text-xs text-gray-400">{item.nameTh}</p>
+                          )}
                           {item.cleaningLog && (
                             <div className="text-xs text-gray-500 mt-1 flex items-center gap-3">
                               <span className="flex items-center gap-1">
@@ -363,21 +441,70 @@ export default function CleaningPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        {!item.cleaningLog ? (
-                          <DxButton
-                            text="Mark Clean"
-                            type="success"
-                            onClick={() => handleOpenCleanDialog(item)}
-                          />
-                        ) : !item.cleaningLog.verifiedAt && item.cleaningLog.isClean ? (
-                          <DxButton
-                            text="Verify"
-                            type="default"
-                            onClick={() => verifyLogMutation.mutate(item.cleaningLog!.id)}
-                            disabled={verifyLogMutation.isPending}
-                          />
-                        ) : null}
+                      <div className="flex gap-2 flex-shrink-0 sm:ml-auto">
+                        {(() => {
+                          const log = item.cleaningLog;
+                          const isFailed = log?.verifyResult === 'fail';
+
+                          // State 1: No log yet — anyone with clean_mark can Mark Clean
+                          if (!log) {
+                            if (!canMarkClean) return null;
+                            return (
+                              <DxButton
+                                text="Mark Clean"
+                                type="success"
+                                onClick={() => handleOpenCleanDialog(item)}
+                              />
+                            );
+                          }
+
+                          // State 2: Verify failed — anyone with clean_mark can re-clean
+                          if (isFailed) {
+                            if (!canMarkClean) {
+                              return <span className="text-xs text-red-600 font-medium">รอ Production ทำความสะอาดใหม่</span>;
+                            }
+                            return (
+                              <DxButton
+                                text="Mark Clean ใหม่"
+                                type="success"
+                                onClick={() => handleOpenCleanDialog(item)}
+                              />
+                            );
+                          }
+
+                          // State 3: Cleaned, waiting for verification — dual-control:
+                          // the operator can NEVER verify their own log, even if they
+                          // hold the clean_verify permission (e.g. admin).
+                          if (!log.verifiedAt && log.isClean) {
+                            if (currentUser?.id === log.operatorId) {
+                              return <AwaitingOtherVerifierBadge />;
+                            }
+                            if (!canVerify) {
+                              return <span className="text-xs text-amber-600">รอผู้ตรวจสอบ Verify</span>;
+                            }
+                            return (
+                              <div className="flex gap-1.5">
+                                <DxButton
+                                  text="✓ Pass"
+                                  type="success"
+                                  stylingMode="outlined"
+                                  onClick={() => verifyLogMutation.mutate({ logId: log.id, verifyResult: 'pass' })}
+                                  disabled={verifyLogMutation.isPending}
+                                />
+                                <DxButton
+                                  text="✗ Fail"
+                                  type="danger"
+                                  stylingMode="outlined"
+                                  onClick={() => verifyLogMutation.mutate({ logId: log.id, verifyResult: 'fail' })}
+                                  disabled={verifyLogMutation.isPending}
+                                />
+                              </div>
+                            );
+                          }
+
+                          // State 4: Verified pass — done
+                          return null;
+                        })()}
                       </div>
                     </div>
                   );

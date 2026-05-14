@@ -168,7 +168,7 @@ describe('Credit/Debit Notes List Page', () => {
       expect(screen.getByTestId('page-title')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('page-title')).toHaveTextContent('Credit/Debit Notes');
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Accounting');
   });
 
   it('renders the main layout', async () => {

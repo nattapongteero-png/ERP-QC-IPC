@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import {
   replaceApprovalSteps,
   getApprovalFlowById,
@@ -15,49 +16,52 @@ interface RouteParams {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
-    const flowId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await params;
+      const flowId = parseInt(id, 10);
 
-    if (isNaN(flowId)) {
+      if (isNaN(flowId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid flow ID' },
+          { status: 400 }
+        );
+      }
+
+      // Verify flow exists
+      const flow = await getApprovalFlowById(flowId);
+      if (!flow) {
+        return NextResponse.json(
+          { success: false, error: 'Approval flow not found' },
+          { status: 404 }
+        );
+      }
+
+      const body = await request.json();
+      const data = approvalStepBulkCreateSchema.parse({
+        flowId,
+        steps: body.steps,
+      });
+
+      await replaceApprovalSteps(flowId, data.steps);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Approval steps updated successfully',
+      });
+    } catch (error) {
+      console.error('Error updating approval steps:', error);
+      if (error instanceof Error && error.name === 'ZodError') {
+        return NextResponse.json(
+          { success: false, error: 'Validation error', details: error },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
-        { success: false, error: 'Invalid flow ID' },
-        { status: 400 }
+        { success: false, error: 'Failed to update approval steps' },
+        { status: 500 }
       );
     }
 
-    // Verify flow exists
-    const flow = await getApprovalFlowById(flowId);
-    if (!flow) {
-      return NextResponse.json(
-        { success: false, error: 'Approval flow not found' },
-        { status: 404 }
-      );
-    }
-
-    const body = await request.json();
-    const data = approvalStepBulkCreateSchema.parse({
-      flowId,
-      steps: body.steps,
-    });
-
-    await replaceApprovalSteps(flowId, data.steps);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Approval steps updated successfully',
-    });
-  } catch (error) {
-    console.error('Error updating approval steps:', error);
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { success: false, error: 'Validation error', details: error },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json(
-      { success: false, error: 'Failed to update approval steps' },
-      { status: 500 }
-    );
-  }
+  });
 }

@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, real, blob, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, mysqlEnum, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
+import { sqliteTable, text, integer, real, blob, uniqueIndex as sqliteUniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, mysqlEnum, uniqueIndex as mysqlUniqueIndex, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Custom type for MySQL LONGBLOB (for storing large binary files)
@@ -83,6 +83,12 @@ export const sqliteItems = sqliteTable('items', {
   primaryUnit: text('primary_unit').notNull(),
   secondaryUnit: text('secondary_unit'),
   conversionRate: real('conversion_rate'),
+  // 3-level unit conversion (PU → SU → WU)
+  // Why: pharma items are stored in PU (กล่อง) but produced/issued by SU (แคปซูล)
+  // and consumed by weight (กรัม). Weighed-issuance flow needs WU → SU back-conversion.
+  weightUnit: text('weight_unit'), // WU label e.g. 'g'
+  secondaryToWeightRate: real('secondary_to_weight_rate'), // Ratio2: 1 SU = ? WU
+  weightTrackingEnabled: integer('weight_tracking_enabled', { mode: 'boolean' }).notNull().default(false),
   shelfLifeDays: integer('shelf_life_days'),
   storageCondition: text('storage_condition'),
   minStock: real('min_stock').default(0),
@@ -102,11 +108,13 @@ export const sqliteItems = sqliteTable('items', {
   tppName: text('tpp_name'), // TPP product name from VMI Portal
   ttmtCode: text('ttmt_code'), // Thai Traditional Medicine Terminology (A + 8 digits)
   ttmtName: text('ttmt_name'), // TTMT product name (FSN) from VMI Portal
+  drugCode24: text('drug_code_24'), // 24-digit drug registration code
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiSyncEnabled: integer('vmi_sync_enabled', { mode: 'boolean' }).notNull().default(false),
   lastVmiSyncAt: text('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
   strength: text('strength'),
+  gRegNumber: text('g_reg_number'), // เลขที่ทะเบียน G (drug registration number)
   // Unit Cost Calculation fields (014-unit-cost)
   currentWAC: real('current_wac'), // Current weighted average cost
   lastPurchaseCost: real('last_purchase_cost'), // From most recent PO receipt
@@ -228,6 +236,8 @@ export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   expiryDate: text('expiry_date'),
   receivedDate: text('received_date'),
   vendorId: integer('vendor_id').references(() => sqliteVendors.id),
+  vendorLotNumber: text('vendor_lot_number'),
+  cost: real('cost'),
   poNumber: text('po_number'),
   coaNumber: text('coa_number'),
   // Phase 2: Manufacturer/Importer fields (FR-055)
@@ -241,6 +251,8 @@ export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   retestIntervalMonths: integer('retest_interval_months'),
   lastRetestDate: text('last_retest_date'),
   retestStatus: text('retest_status'), // not_required, pending, scheduled, completed, overdue
+  // Material Return module: link a returned lot back to its source lot (self-reference)
+  parentLotId: integer('parent_lot_id').references((): AnySQLiteColumn => sqliteInventoryLots.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -260,6 +272,8 @@ export const sqliteInventoryTransactions = sqliteTable('inventory_transactions',
   reason: text('reason'),
   performedBy: integer('performed_by').references(() => sqliteUsers.id),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  balanceAfter: real('balance_after'), // lot balance snapshot after this transaction
+  itemBalanceAfter: real('item_balance_after'), // item total balance snapshot after this transaction
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -276,6 +290,9 @@ export const sqliteBOM = sqliteTable('bom', {
   yieldTarget: real('yield_target'), // percentage
   lossAllowance: real('loss_allowance'), // percentage
   theoreticalYield: real('theoretical_yield'), // absolute quantity in product unit
+  // Fill weight per sub-unit (capsule/tablet) in mg. Used by bulk yield
+  // workflow: actual bulk weight ÷ fillWeightMg = capsule count.
+  fillWeightMg: real('fill_weight_mg'),
   effectiveDate: text('effective_date'),
   expiryDate: text('expiry_date'),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
@@ -330,6 +347,7 @@ export const sqliteWorkOrders = sqliteTable('work_orders', {
   batchNumber: text('batch_number').notNull(),
   plannedQuantity: real('planned_quantity').notNull(),
   actualQuantity: real('actual_quantity'),
+  rejectQuantity: real('reject_quantity'),
   unit: text('unit').notNull(),
   status: text('status').notNull().default('planned'), // planned, released, in_progress, completed, cancelled
   priority: integer('priority').notNull().default(5),
@@ -337,6 +355,7 @@ export const sqliteWorkOrders = sqliteTable('work_orders', {
   plannedEndDate: text('planned_end_date'),
   actualStartDate: text('actual_start_date'),
   actualEndDate: text('actual_end_date'),
+  deliveryDate: text('delivery_date'),
   yieldPercentage: real('yield_percentage'),
   notes: text('notes'),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
@@ -347,6 +366,23 @@ export const sqliteWorkOrders = sqliteTable('work_orders', {
   lineClearanceBy: integer('line_clearance_by').references(() => sqliteUsers.id),
   lineClearanceAt: text('line_clearance_at'),
   lineClearanceChecklistId: integer('line_clearance_checklist_id'), // FK added after table creation
+  // Material requisition gate
+  requisitionStatus: text('requisition_status').notNull().default('none'), // none, requested, approved
+  requisitionRequestedBy: integer('requisition_requested_by').references(() => sqliteUsers.id),
+  requisitionRequestedAt: text('requisition_requested_at'),
+  requisitionApprovedBy: integer('requisition_approved_by').references(() => sqliteUsers.id),
+  requisitionApprovedAt: text('requisition_approved_at'),
+  // eBMR Approval Signatures — "Produced By" (captured on status → completed transition)
+  completedBy: integer('completed_by').references(() => sqliteUsers.id),
+  completedAt: text('completed_at'),
+  // Bulk Product Yield — recorded after Post-Production, before Packaging
+  bulkOutputQty: real('bulk_output_qty'),
+  bulkOutputRecordedAt: text('bulk_output_recorded_at'),
+  bulkOutputRecordedBy: integer('bulk_output_recorded_by').references(() => sqliteUsers.id),
+  // Finished Production Output/Yield — recorded after Inspection, creates FG lot
+  finishedOutputQty: real('finished_output_qty'),
+  finishedOutputRecordedAt: text('finished_output_recorded_at'),
+  finishedOutputRecordedBy: integer('finished_output_recorded_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -363,6 +399,9 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   status: text('status').notNull().default('pending'), // pending, issued, returned
   issuedBy: integer('issued_by').references(() => sqliteUsers.id),
   issuedAt: text('issued_at'),
+  // SU actually deducted at requisition approve (for weight-tracked items, = puToIssue × Ratio1).
+  // Non-null = stock was already physically released to production; weighing must NOT deduct again.
+  issuedQty: real('issued_qty'),
   // Phase 3: Enhanced material weighing fields (BMPR Form)
   bomLineId: integer('bom_line_id').references(() => sqliteBOMLines.id), // Reference to BOM formula
   weighedQty: real('weighed_qty'), // Actual weight recorded
@@ -378,6 +417,7 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   unitCost: real('unit_cost'), // WAC at time of issue
   totalCost: real('total_cost'), // quantity × unitCost
   costLayerId: integer('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
+  stockAtApproval: real('stock_at_approval'), // Stock snapshot when requisition was approved
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -437,6 +477,27 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
   approvedAt: text('approved_at'),
   notes: text('notes'),
+  // Spec snapshot at time of test recording (immutable after recording)
+  specMinValue: real('spec_min_value'),
+  specMaxValue: real('spec_max_value'),
+  specSpecification: text('spec_specification'),
+  specUnit: text('spec_unit'),
+  criteriaType: text('criteria_type').default('numeric'), // numeric, pass_fail, visual, text, checkbox(legacy) — copied from ipc_criteria at init
+  tolerancePercent: real('tolerance_percent').default(0), // sample-failure tolerance
+  specTarget: real('spec_target'), // copied from ipc_criteria at init
+  specTolerancePercent: real('spec_tolerance_percent').default(0), // Min/Max deviation tolerance
+  // Phase 3: Multi-stage acceptance plan snapshot (USP <711>, <905>)
+  // JSON array; null = single-stage (uses sampleSize + tolerancePercent above).
+  acceptanceStages: text('acceptance_stages'),
+  // IPC phase snapshot (in_process tests only): pre_production, production,
+  // post_production, packaging — drives per-phase IPC card on Execution Dashboard.
+  // Null for incoming/final tests where phase is irrelevant.
+  ipcPhase: text('ipc_phase'),
+  // Retest tracking (FDA OOS 2006 / PIC/S):
+  // retestRound = current round number (1 = first test, 2 = first retest)
+  // retestReason = 'justified' | 'unjustified' | null. NULL on round 1.
+  retestRound: integer('retest_round').notNull().default(1),
+  retestReason: text('retest_reason'),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: integer('disposition_by').references(() => sqliteUsers.id),
@@ -1021,12 +1082,17 @@ export const sqliteHRAppPermissions = sqliteTable('hr_app_permissions', {
 });
 
 // HR Role Permissions (สิทธิ์ของบทบาท)
+// Junction table: one row per (role, permission) pair. The unique index
+// on (role_id, permission_id) ensures INSERT IGNORE works idempotently
+// — without it, re-running permission seeds would produce duplicates.
 export const sqliteHRRolePermissions = sqliteTable('hr_role_permissions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   roleId: integer('role_id').notNull().references(() => sqliteHRAppRoles.id),
   permissionId: integer('permission_id').notNull().references(() => sqliteHRAppPermissions.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
-});
+}, (table) => [
+  sqliteUniqueIndex('uq_hr_role_permission').on(table.roleId, table.permissionId),
+]);
 
 // HR Employee Roles (บทบาทของพนักงาน)
 export const sqliteHREmployeeRoles = sqliteTable('hr_employee_roles', {
@@ -1077,7 +1143,7 @@ export const sqliteHRAuditLog = sqliteTable('hr_audit_log', {
 export const sqliteProductionRooms = sqliteTable('production_rooms', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   code: text('code').notNull().unique(),
-  name: text('name').notNull(),
+  name: text('name'),
   nameTh: text('name_th').notNull(),
   roomType: text('room_type').notNull(), // weighing, mixing, packaging, storage
   description: text('description'),
@@ -1129,6 +1195,38 @@ export const sqliteSOPStepTemplates = sqliteTable('sop_step_templates', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// SOP Template Steps - Ordered procedure steps within an SOP template
+export const sqliteSOPTemplateSteps = sqliteTable('sop_template_steps', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  templateId: integer('template_id').notNull().references(() => sqliteSOPStepTemplates.id),
+  sequence: integer('sequence').notNull(),
+  stepName: text('step_name').notNull(),
+  stepNameTh: text('step_name_th'),
+  instructions: text('instructions'),
+  instructionsTh: text('instructions_th'),
+  defaultParameters: text('default_parameters'), // JSON: { temperature: 75, duration: 10 }
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// SOP Template Step ↔ IPC Criteria links (many-to-many).
+// "After this template step, perform these IPC tests." When a BOM uses
+// the template, downstream logic (Phase 2) can auto-create the IPC tests.
+// Phase 1 defines the link only — no propagation yet.
+// Column names match what sop-template-ipc.service.ts expects.
+export const sqliteSOPTemplateIPCCriteria = sqliteTable('sop_template_ipc_criteria', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  procedureStepId: integer('procedure_step_id').notNull().references(() => sqliteSOPTemplateSteps.id),
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  sequence: integer('sequence').notNull().default(1),
+  sampleSize: integer('sample_size').notNull().default(1),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  notes: text('notes'),
+  // Override of BOM/master max_retest_rounds for this SOP step linkage.
+  // NULL = inherit from BOM/master.
+  maxRetestRounds: integer('max_retest_rounds'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Packaging QC Criteria (Master Data) - Lookup table for packaging weight/inspection criteria
 export const sqlitePackagingQCCriteria = sqliteTable('packaging_qc_criteria', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -1177,9 +1275,12 @@ export const sqliteBOMEnvironmentalConditions = sqliteTable('bom_environmental_c
   id: integer('id').primaryKey({ autoIncrement: true }),
   bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
   conditionId: integer('condition_id').notNull().references(() => sqliteEnvironmentalConditions.id),
-  phase: text('phase').notNull(), // production, packaging
+  bomRoomId: integer('bom_room_id').references(() => sqliteBOMRooms.id),
+  phase: text('phase').notNull(), // pre_production, production, packaging
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
-});
+}, (table) => [
+  sqliteUniqueIndex('uq_bom_phase_condition').on(table.bomId, table.phase, table.conditionId),
+]);
 
 // BOM SOP Steps - Detailed SOP steps for BOM with parameters
 export const sqliteBOMSOPSteps = sqliteTable('bom_sop_steps', {
@@ -1197,6 +1298,9 @@ export const sqliteBOMSOPSteps = sqliteTable('bom_sop_steps', {
   equipmentIds: text('equipment_ids'), // JSON array of equipment IDs
   // Verification requirements
   requiresVerification: integer('requires_verification', { mode: 'boolean' }).notNull().default(true),
+  // Phase determines which Execution Dashboard card hosts this step.
+  // Values: pre_production, production, post_production, packaging
+  phase: text('phase').notNull().default('production'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1208,15 +1312,100 @@ export const sqliteBOMPackagingQC = sqliteTable('bom_packaging_qc', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// BOM SOP-Step IPC Links — replaces master sop_template_ipc_criteria.
+// Each BOM owns its own IPC linkages per SOP step (and optionally per
+// sub-step via procedureStepId). Allows different BOMs to attach different
+// IPC criteria to the same SOP template step.
+export const sqliteBOMSOPStepIPC = sqliteTable('bom_sop_step_ipc', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomStepId: integer('bom_step_id').notNull().references(() => sqliteBOMSOPSteps.id),
+  // Sub-step within the SOP template (nullable = whole BOM step).
+  procedureStepId: integer('procedure_step_id').references(() => sqliteSOPTemplateSteps.id),
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  sequence: integer('sequence').notNull().default(1),
+  sampleSize: integer('sample_size').notNull().default(1),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  // BOM-level override of master ipc_criteria.maxRetestRounds.
+  // NULL = inherit from master criterion.
+  maxRetestRounds: integer('max_retest_rounds'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// BOM In-Process QC - Link quality specs to BOM for IPC tests
+// IPC Criteria (Master Data) - In-Process Control test criteria templates
+export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  nameTh: text('name_th'),
+  testMethod: text('test_method'),
+  specification: text('specification'), // e.g., "200 ± 10 mg"
+  minValue: real('min_value'),
+  maxValue: real('max_value'),
+  unit: text('unit'), // e.g., "mg", "mm", "min"
+  sampleSize: integer('sample_size').notNull().default(5),
+  checkIntervalMinutes: integer('check_interval_minutes').notNull().default(30),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  dosageForm: text('dosage_form'),
+  criteriaType: text('criteria_type').notNull().default('numeric'), // numeric, checkbox
+  tolerancePercent: real('tolerance_percent').notNull().default(0), // sample-failure tolerance %
+  // Target-based spec (pharmacy/chemistry concept: "300 ± 5%")
+  // When specTarget is set, minValue/maxValue are derived from it at save time
+  specTarget: real('spec_target'),
+  specTolerancePercent: real('spec_tolerance_percent').notNull().default(0),
+  // Multi-stage acceptance plan (USP <711>, <905>) — JSON array of stages.
+  // Empty/null = single-stage (uses sampleSize + tolerancePercent above).
+  // Each stage: { sampleSize, tolerancePercent, onFail: 'next_stage'|'reject_batch'|'deviation' }
+  acceptanceStages: text('acceptance_stages'),
+  // Max retest rounds before forcing deviation (FDA OOS 2006 / PIC/S).
+  // Default = 1 (allow 1 retest = max 2 rounds total).
+  // Critical criteria force this to 0 at runtime (deviation immediately on round 1 fail).
+  maxRetestRounds: integer('max_retest_rounds').notNull().default(1),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteBOMInProcessQC = sqliteTable('bom_in_process_qc', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  sequence: integer('sequence').notNull().default(1),
+  sampleSize: integer('sample_size').notNull().default(1),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  // Phase determines which Execution Dashboard card hosts this IPC test.
+  // Values: pre_production, production, post_production, packaging
+  phase: text('phase').notNull().default('production'),
+  // Override of master ipc_criteria.max_retest_rounds for this BOM.
+  // NULL = inherit from master.
+  maxRetestRounds: integer('max_retest_rounds'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // ============================================
 // Work Order Execution Tables (Phase 3 - BMPR Form)
 // ============================================
+
+// IPC Test Samples - Multi-sample values per quality test
+export const sqliteIPCTestSamples = sqliteTable('ipc_test_samples', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  qualityTestId: integer('quality_test_id').notNull().references(() => sqliteQualityTests.id),
+  sampleNumber: integer('sample_number').notNull(),
+  testRound: integer('test_round').notNull().default(1),
+  numericValue: real('numeric_value'),
+  textValue: text('text_value'),
+  result: text('result'), // pass, fail
+  approvedBy: integer('approved_by'),
+  approvedAt: text('approved_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
 
 // Work Order Environmental Logs - Actual environmental readings during production
 export const sqliteWOEnvironmentalLogs = sqliteTable('wo_environmental_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
   bomConditionId: integer('bom_condition_id').references(() => sqliteBOMEnvironmentalConditions.id),
+  roomId: integer('room_id').references(() => sqliteProductionRooms.id),
   phase: text('phase').notNull(), // production, packaging
   recordedDate: text('recorded_date').notNull(),
   recordedTime: text('recorded_time').notNull(),
@@ -1242,6 +1431,7 @@ export const sqliteWOCleaningLogs = sqliteTable('wo_cleaning_logs', {
   performedAt: text('performed_at').notNull(),
   verifierId: integer('verifier_id').references(() => sqliteUsers.id),
   verifiedAt: text('verified_at'),
+  verifyResult: text('verify_result'), // pass, fail
   notes: text('notes'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -1345,8 +1535,8 @@ export const mysqlUsers = mysqlTable('users', {
   role: varchar('role', { length: 50 }).notNull().default('user'),
   department: varchar('department', { length: 100 }),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Audit Trail
@@ -1359,7 +1549,7 @@ export const mysqlAuditTrail = mysqlTable('audit_trail', {
   oldValue: mysqlText('old_value'),
   newValue: mysqlText('new_value'),
   ipAddress: varchar('ip_address', { length: 50 }),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Item Categories (หมวดหมู่สินค้า)
@@ -1371,8 +1561,8 @@ export const mysqlItemCategories = mysqlTable('item_categories', {
   description: varchar('description', { length: 500 }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Item Units (หน่วยวัดสินค้า)
@@ -1385,8 +1575,8 @@ export const mysqlItemUnits = mysqlTable('item_units', {
   description: varchar('description', { length: 500 }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Item Master
@@ -1400,6 +1590,10 @@ export const mysqlItems = mysqlTable('items', {
   primaryUnit: varchar('primary_unit', { length: 50 }).notNull(),
   secondaryUnit: varchar('secondary_unit', { length: 50 }),
   conversionRate: decimal('conversion_rate', { precision: 10, scale: 4 }),
+  // 3-level unit conversion (PU → SU → WU)
+  weightUnit: varchar('weight_unit', { length: 50 }), // WU label e.g. 'g'
+  secondaryToWeightRate: decimal('secondary_to_weight_rate', { precision: 10, scale: 4 }), // Ratio2: 1 SU = ? WU
+  weightTrackingEnabled: mysqlBoolean('weight_tracking_enabled').notNull().default(false),
   shelfLifeDays: int('shelf_life_days'),
   storageCondition: varchar('storage_condition', { length: 255 }),
   minStock: decimal('min_stock', { precision: 15, scale: 4 }).default('0'),
@@ -1419,11 +1613,13 @@ export const mysqlItems = mysqlTable('items', {
   tppName: varchar('tpp_name', { length: 255 }), // TPP product name from VMI Portal
   ttmtCode: varchar('ttmt_code', { length: 10 }), // Thai Traditional Medicine Terminology (A + 8 digits)
   ttmtName: varchar('ttmt_name', { length: 255 }), // TTMT product name (FSN) from VMI Portal
+  drugCode24: varchar('drug_code_24', { length: 24 }), // 24-digit drug registration code
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiSyncEnabled: mysqlBoolean('vmi_sync_enabled').notNull().default(false),
   lastVmiSyncAt: datetime('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
   strength: varchar('strength', { length: 100 }),
+  gRegNumber: varchar('g_reg_number', { length: 50 }), // เลขที่ทะเบียน G
   // Unit Cost Calculation fields (014-unit-cost)
   currentWAC: decimal('current_wac', { precision: 15, scale: 4 }), // Current weighted average cost
   lastPurchaseCost: decimal('last_purchase_cost', { precision: 15, scale: 4 }), // From most recent PO receipt
@@ -1434,8 +1630,8 @@ export const mysqlItems = mysqlTable('items', {
   lastProductionWoId: int('last_production_wo_id'), // FK to work_orders (no Drizzle ref to avoid circular)
   sgaAllocationRate: decimal('sga_allocation_rate', { precision: 5, scale: 2 }).default('0'), // SG&A % for full cost
   standardCost: decimal('standard_cost', { precision: 15, scale: 4 }), // Standard cost for variance analysis
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Herbal Attributes
@@ -1448,8 +1644,8 @@ export const mysqlHerbalAttributes = mysqlTable('herbal_attributes', {
   originProvince: varchar('origin_province', { length: 100 }),
   harvestDate: datetime('harvest_date'),
   dryingMethod: varchar('drying_method', { length: 255 }),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Item Images (รูปภาพสินค้า)
@@ -1465,7 +1661,7 @@ export const mysqlItemImages = mysqlTable('item_images', {
   sortOrder: int('sort_order').notNull().default(0),
   description: varchar('description', { length: 500 }), // Optional description/caption
   uploadedBy: int('uploaded_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Vendors
@@ -1483,8 +1679,8 @@ export const mysqlVendors = mysqlTable('vendors', {
   leadTimeDays: int('lead_time_days'),
   paymentTerms: varchar('payment_terms', { length: 100 }),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Approved Vendor List
@@ -1495,7 +1691,7 @@ export const mysqlApprovedVendorList = mysqlTable('approved_vendor_list', {
   approvalDate: datetime('approval_date'),
   expiryDate: datetime('expiry_date'),
   isPreferred: mysqlBoolean('is_preferred').notNull().default(false),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Warehouses
@@ -1511,8 +1707,8 @@ export const mysqlWarehouses = mysqlTable('warehouses', {
   humidityMin: decimal('humidity_min', { precision: 5, scale: 2 }),
   humidityMax: decimal('humidity_max', { precision: 5, scale: 2 }),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Warehouse Locations
@@ -1526,7 +1722,7 @@ export const mysqlWarehouseLocations = mysqlTable('warehouse_locations', {
   shelf: varchar('shelf', { length: 50 }),
   bin: varchar('bin', { length: 50 }),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Inventory Lots
@@ -1545,6 +1741,8 @@ export const mysqlInventoryLots = mysqlTable('inventory_lots', {
   expiryDate: datetime('expiry_date'),
   receivedDate: datetime('received_date'),
   vendorId: int('vendor_id').references(() => mysqlVendors.id),
+  vendorLotNumber: varchar('vendor_lot_number', { length: 100 }),
+  cost: decimal('cost', { precision: 15, scale: 4 }),
   poNumber: varchar('po_number', { length: 50 }),
   coaNumber: varchar('coa_number', { length: 100 }),
   // Phase 2: Manufacturer/Importer fields (FR-055)
@@ -1558,8 +1756,10 @@ export const mysqlInventoryLots = mysqlTable('inventory_lots', {
   retestIntervalMonths: int('retest_interval_months'),
   lastRetestDate: datetime('last_retest_date'),
   retestStatus: varchar('retest_status', { length: 50 }), // not_required, pending, scheduled, completed, overdue
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  // Material Return module: link a returned lot back to its source lot (self-reference)
+  parentLotId: int('parent_lot_id').references((): AnyMySqlColumn => mysqlInventoryLots.id),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Inventory Transactions
@@ -1577,7 +1777,9 @@ export const mysqlInventoryTransactions = mysqlTable('inventory_transactions', {
   reason: mysqlText('reason'),
   performedBy: int('performed_by').references(() => mysqlUsers.id),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  balanceAfter: decimal('balance_after', { precision: 15, scale: 4 }),
+  itemBalanceAfter: decimal('item_balance_after', { precision: 15, scale: 4 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // BOM
@@ -1593,12 +1795,15 @@ export const mysqlBOM = mysqlTable('bom', {
   yieldTarget: decimal('yield_target', { precision: 5, scale: 2 }),
   lossAllowance: decimal('loss_allowance', { precision: 5, scale: 2 }),
   theoreticalYield: decimal('theoretical_yield', { precision: 15, scale: 4 }), // absolute quantity in product unit
+  // Fill weight per sub-unit (capsule/tablet) in mg. Used by bulk yield
+  // workflow: actual bulk weight ÷ fillWeightMg = capsule count.
+  fillWeightMg: decimal('fill_weight_mg', { precision: 10, scale: 4 }),
   effectiveDate: datetime('effective_date'),
   expiryDate: datetime('expiry_date'),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // BOM Lines
@@ -1620,7 +1825,7 @@ export const mysqlBOMLines = mysqlTable('bom_lines', {
   weighedBy: int('weighed_by').references(() => mysqlUsers.id),
   verifiedBy: int('verified_by').references(() => mysqlUsers.id),
   verifiedAt: datetime('verified_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Operations
@@ -1635,7 +1840,7 @@ export const mysqlOperations = mysqlTable('operations', {
   setupTime: decimal('setup_time', { precision: 10, scale: 2 }),
   cleaningTime: decimal('cleaning_time', { precision: 10, scale: 2 }),
   instructions: mysqlText('instructions'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Work Orders
@@ -1647,6 +1852,7 @@ export const mysqlWorkOrders = mysqlTable('work_orders', {
   batchNumber: varchar('batch_number', { length: 100 }).notNull(),
   plannedQuantity: decimal('planned_quantity', { precision: 15, scale: 4 }).notNull(),
   actualQuantity: decimal('actual_quantity', { precision: 15, scale: 4 }),
+  rejectQuantity: decimal('reject_quantity', { precision: 15, scale: 4 }),
   unit: varchar('unit', { length: 50 }).notNull(),
   status: varchar('status', { length: 50 }).notNull().default('planned'),
   priority: int('priority').notNull().default(5),
@@ -1654,6 +1860,7 @@ export const mysqlWorkOrders = mysqlTable('work_orders', {
   plannedEndDate: datetime('planned_end_date'),
   actualStartDate: datetime('actual_start_date'),
   actualEndDate: datetime('actual_end_date'),
+  deliveryDate: datetime('delivery_date'),
   yieldPercentage: decimal('yield_percentage', { precision: 5, scale: 2 }),
   notes: mysqlText('notes'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
@@ -1664,8 +1871,25 @@ export const mysqlWorkOrders = mysqlTable('work_orders', {
   lineClearanceBy: int('line_clearance_by').references(() => mysqlUsers.id),
   lineClearanceAt: datetime('line_clearance_at'),
   lineClearanceChecklistId: int('line_clearance_checklist_id'), // FK added after table creation
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  // Material requisition gate
+  requisitionStatus: varchar('requisition_status', { length: 20 }).notNull().default('none'),
+  requisitionRequestedBy: int('requisition_requested_by').references(() => mysqlUsers.id),
+  requisitionRequestedAt: datetime('requisition_requested_at'),
+  requisitionApprovedBy: int('requisition_approved_by').references(() => mysqlUsers.id),
+  requisitionApprovedAt: datetime('requisition_approved_at'),
+  // eBMR Approval Signatures — "Produced By" (captured on status → completed transition)
+  completedBy: int('completed_by').references(() => mysqlUsers.id),
+  completedAt: datetime('completed_at'),
+  // Bulk Product Yield — recorded after Post-Production, before Packaging
+  bulkOutputQty: decimal('bulk_output_qty', { precision: 15, scale: 4 }),
+  bulkOutputRecordedAt: datetime('bulk_output_recorded_at'),
+  bulkOutputRecordedBy: int('bulk_output_recorded_by').references(() => mysqlUsers.id),
+  // Finished Production Output/Yield — recorded after Inspection, creates FG lot
+  finishedOutputQty: decimal('finished_output_qty', { precision: 15, scale: 4 }),
+  finishedOutputRecordedAt: datetime('finished_output_recorded_at'),
+  finishedOutputRecordedBy: int('finished_output_recorded_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Work Order Materials
@@ -1680,6 +1904,8 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   issuedBy: int('issued_by').references(() => mysqlUsers.id),
   issuedAt: datetime('issued_at'),
+  // SU actually deducted at requisition approve (for weight-tracked items, = puToIssue × Ratio1).
+  issuedQty: decimal('issued_qty', { precision: 15, scale: 4 }),
   // Phase 3: Enhanced material weighing fields (BMPR Form)
   bomLineId: int('bom_line_id').references(() => mysqlBOMLines.id), // Reference to BOM formula
   weighedQty: decimal('weighed_qty', { precision: 15, scale: 4 }), // Actual weight recorded
@@ -1695,7 +1921,8 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   unitCost: decimal('unit_cost', { precision: 15, scale: 4 }), // WAC at time of issue
   totalCost: decimal('total_cost', { precision: 15, scale: 4 }), // quantity × unitCost
   costLayerId: int('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  stockAtApproval: decimal('stock_at_approval', { precision: 15, scale: 4 }), // Stock snapshot when requisition was approved
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Batch Records
@@ -1716,8 +1943,8 @@ export const mysqlBatchRecords = mysqlTable('batch_records', {
   verifiedAt: datetime('verified_at'),
   notes: mysqlText('notes'),
   attachments: mysqlText('attachments'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Quality Specifications
@@ -1732,8 +1959,8 @@ export const mysqlQualitySpecs = mysqlTable('quality_specs', {
   unit: varchar('unit', { length: 50 }),
   isCritical: mysqlBoolean('is_critical').notNull().default(false),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Quality Tests
@@ -1754,6 +1981,23 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
   notes: mysqlText('notes'),
+  // Spec snapshot at time of test recording (immutable after recording)
+  specMinValue: decimal('spec_min_value', { precision: 15, scale: 4 }),
+  specMaxValue: decimal('spec_max_value', { precision: 15, scale: 4 }),
+  specSpecification: varchar('spec_specification', { length: 500 }),
+  specUnit: varchar('spec_unit', { length: 50 }),
+  criteriaType: varchar('criteria_type', { length: 20 }).default('numeric'),
+  tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).default('0'), // sample-failure tolerance
+  specTarget: decimal('spec_target', { precision: 15, scale: 4 }), // copied from ipc_criteria at init
+  specTolerancePercent: decimal('spec_tolerance_percent', { precision: 5, scale: 2 }).default('0'), // Min/Max deviation tolerance
+  // Phase 3: Multi-stage acceptance plan snapshot (USP <711>, <905>)
+  // JSON array; null = single-stage (uses sampleSize + tolerancePercent above).
+  acceptanceStages: mysqlText('acceptance_stages'),
+  // IPC phase snapshot (in_process tests only) — drives per-phase IPC card.
+  ipcPhase: varchar('ipc_phase', { length: 50 }),
+  // Retest tracking (FDA OOS 2006 / PIC/S):
+  retestRound: int('retest_round').notNull().default(1),
+  retestReason: varchar('retest_reason', { length: 20 }), // 'justified' | 'unjustified' | null
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: varchar('disposition', { length: 50 }), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: int('disposition_by').references(() => mysqlUsers.id),
@@ -1761,8 +2005,8 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   dispositionReason: mysqlText('disposition_reason'),
   dispositionApprovedBy: int('disposition_approved_by').references(() => mysqlUsers.id),
   dispositionApprovedAt: datetime('disposition_approved_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Deviations
@@ -1789,8 +2033,8 @@ export const mysqlDeviations = mysqlTable('deviations', {
   closedBy: int('closed_by').references(() => mysqlUsers.id),
   closedAt: datetime('closed_at'),
   closureNotes: mysqlText('closure_notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Purchase Orders
@@ -1809,8 +2053,8 @@ export const mysqlPurchaseOrders = mysqlTable('purchase_orders', {
   createdBy: int('created_by').references(() => mysqlUsers.id),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Purchase Order Lines
@@ -1825,7 +2069,7 @@ export const mysqlPurchaseOrderLines = mysqlTable('purchase_order_lines', {
   totalPrice: decimal('total_price', { precision: 15, scale: 2 }).notNull(),
   expectedDate: datetime('expected_date'),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Sales Orders
@@ -1848,8 +2092,8 @@ export const mysqlSalesOrders = mysqlTable('sales_orders', {
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiSalesOrderId: int('vmi_sales_order_id'), // FK to vmi_sales_orders.id (set later)
   source: varchar('source', { length: 20 }).notNull().default('direct'), // direct, vmi, api
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Sales Order Lines
@@ -1870,7 +2114,7 @@ export const mysqlSalesOrderLines = mysqlTable('sales_order_lines', {
   totalCost: decimal('total_cost', { precision: 15, scale: 4 }), // quantity × unitCost (COGS)
   marginAmount: decimal('margin_amount', { precision: 15, scale: 4 }), // (unitPrice - unitCost) × qty
   marginPercent: decimal('margin_percent', { precision: 5, scale: 2 }), // margin ÷ revenue × 100
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Sales Deliveries (บันทึกการจัดส่ง)
@@ -1888,7 +2132,7 @@ export const mysqlSalesDeliveries = mysqlTable('sales_deliveries', {
   status: varchar('status', { length: 20 }).notNull().default('shipped'),
   notes: mysqlText('notes'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Customers (ลูกค้า)
@@ -1910,8 +2154,8 @@ export const mysqlCustomers = mysqlTable('customers', {
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiCustomerId: varchar('vmi_customer_id', { length: 50 }), // Customer ID from VMI Portal
   vmiPortalId: int('vmi_portal_id'), // FK to vmi_portal_config.id (set later)
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Equipment
@@ -1932,8 +2176,8 @@ export const mysqlEquipment = mysqlTable('equipment', {
   cleaningStatus: varchar('cleaning_status', { length: 50 }).default('clean'),
   status: varchar('status', { length: 50 }).notNull().default('active'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Maintenance Records
@@ -1948,8 +2192,8 @@ export const mysqlMaintenanceRecords = mysqlTable('maintenance_records', {
   cost: decimal('cost', { precision: 15, scale: 2 }),
   notes: mysqlText('notes'),
   status: varchar('status', { length: 50 }).notNull().default('scheduled'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // VMI Transactions
@@ -1971,7 +2215,7 @@ export const mysqlVMITransactions = mysqlTable('vmi_transactions', {
   sentAt: datetime('sent_at'),
   receivedAt: datetime('received_at'),
   errorMessage: mysqlText('error_message'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // VMI Vendor Configuration
@@ -1991,8 +2235,8 @@ export const mysqlVMIVendorConfig = mysqlTable('vmi_vendor_config', {
   lastPricesSyncAt: datetime('last_prices_sync_at'),
   lastInventorySyncAt: datetime('last_inventory_sync_at'),
   lastOrdersPollAt: datetime('last_orders_poll_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // VMI Price Offers
@@ -2010,8 +2254,8 @@ export const mysqlVMIPriceOffers = mysqlTable('vmi_price_offers', {
   lastSyncedAt: datetime('last_synced_at'),
   syncStatus: varchar('sync_status', { length: 20 }).notNull().default('pending'), // pending, synced, error
   syncError: mysqlText('sync_error'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // VMI Orders (from hospitals via VMI Portal)
@@ -2033,8 +2277,8 @@ export const mysqlVMIOrders = mysqlTable('vmi_orders', {
   confirmedAt: datetime('confirmed_at'),
   shippedAt: datetime('shipped_at'),
   receivedAt: datetime('received_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // VMI Order Lines
@@ -2051,7 +2295,7 @@ export const mysqlVMIOrderLines = mysqlTable('vmi_order_lines', {
   unit: varchar('unit', { length: 50 }).notNull(),
   tppCode: varchar('tpp_code', { length: 13 }),
   ttmtCode: varchar('ttmt_code', { length: 10 }),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Settings
@@ -2062,8 +2306,8 @@ export const mysqlSettings = mysqlTable('settings', {
   description: varchar('description', { length: 255 }),
   category: varchar('category', { length: 100 }),
   updatedBy: int('updated_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2076,8 +2320,8 @@ export const mysqlReportCategories = mysqlTable('report_categories', {
   parentId: int('parent_id'),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2097,9 +2341,9 @@ export const mysqlReportTemplates = mysqlTable('report_templates', {
   isSystem: mysqlBoolean('is_system').notNull().default(false),
   thumbnail: mysqlText('thumbnail'), // Base64 encoded
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedBy: int('updated_by').references(() => mysqlUsers.id),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2112,7 +2356,7 @@ export const mysqlReportPermissions = mysqlTable('report_permissions', {
   canView: mysqlBoolean('can_view').notNull().default(true),
   canDesign: mysqlBoolean('can_design').notNull().default(false),
   canExport: mysqlBoolean('can_export').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2125,7 +2369,7 @@ export const mysqlReportExecutions = mysqlTable('report_executions', {
   action: varchar('action', { length: 20 }).notNull(), // 'view', 'export', 'print'
   parameters: mysqlText('parameters'), // JSON stored as text
   exportFormat: varchar('export_format', { length: 20 }),
-  executedAt: datetime('executed_at').notNull().default(new Date()),
+  executedAt: datetime('executed_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   durationMs: int('duration_ms'),
   status: varchar('status', { length: 20 }).notNull(), // 'success', 'error', 'cancelled'
   errorMessage: varchar('error_message', { length: 1000 }),
@@ -2150,8 +2394,8 @@ export const mysqlHROrgUnits = mysqlTable('hr_org_units', {
   effectiveFrom: datetime('effective_from').notNull(),
   effectiveTo: datetime('effective_to'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Positions (ตำแหน่งงาน)
@@ -2164,8 +2408,8 @@ export const mysqlHRPositions = mysqlTable('hr_positions', {
   jobGrade: varchar('job_grade', { length: 10 }),
   isGmpCritical: mysqlBoolean('is_gmp_critical').notNull().default(false),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Job Descriptions (รายละเอียดตำแหน่งงาน)
@@ -2182,8 +2426,8 @@ export const mysqlHRJobDescriptions = mysqlTable('hr_job_descriptions', {
   effectiveTo: datetime('effective_to'),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Employees (พนักงาน)
@@ -2262,8 +2506,8 @@ export const mysqlHREmployees = mysqlTable('hr_employees', {
   hireDate: datetime('hire_date').notNull(),
   terminationDate: datetime('termination_date'),
   status: varchar('status', { length: 20 }).notNull().default('active'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Employee Assignments (การมอบหมายงาน/โอนย้าย)
@@ -2276,7 +2520,7 @@ export const mysqlHREmployeeAssignments = mysqlTable('hr_employee_assignments', 
   effectiveFrom: datetime('effective_from').notNull(),
   effectiveTo: datetime('effective_to'),
   reason: varchar('reason', { length: 255 }),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Training Courses (หลักสูตรอบรม)
@@ -2293,8 +2537,8 @@ export const mysqlHRTrainingCourses = mysqlTable('hr_training_courses', {
   targetRoles: mysqlText('target_roles'), // JSON array of role codes
   durationHours: decimal('duration_hours', { precision: 5, scale: 2 }),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Training Sessions (การจัดอบรม)
@@ -2310,8 +2554,8 @@ export const mysqlHRTrainingSessions = mysqlTable('hr_training_sessions', {
   maxParticipants: int('max_participants'),
   status: varchar('status', { length: 20 }).notNull().default('scheduled'),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Training Records (ประวัติการอบรม)
@@ -2327,8 +2571,8 @@ export const mysqlHRTrainingRecords = mysqlTable('hr_training_records', {
   assessedBy: int('assessed_by').references(() => mysqlHREmployees.id),
   certificateNumber: varchar('certificate_number', { length: 50 }),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Authorizations (สิทธิ์อนุมัติ)
@@ -2342,12 +2586,12 @@ export const mysqlHRAuthorizations = mysqlTable('hr_authorizations', {
   effectiveFrom: datetime('effective_from').notNull(),
   effectiveTo: datetime('effective_to'),
   grantedBy: int('granted_by').notNull().references(() => mysqlUsers.id),
-  grantedAt: datetime('granted_at').notNull().default(new Date()),
+  grantedAt: datetime('granted_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   revokedBy: int('revoked_by').references(() => mysqlUsers.id),
   revokedAt: datetime('revoked_at'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Delegations (การมอบอำนาจ)
@@ -2359,8 +2603,8 @@ export const mysqlHRDelegations = mysqlTable('hr_delegations', {
   reason: varchar('reason', { length: 255 }),
   effectiveFrom: datetime('effective_from').notNull(),
   effectiveTo: datetime('effective_to').notNull(),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Health Records (บันทึกสุขภาพ)
@@ -2377,8 +2621,8 @@ export const mysqlHRHealthRecords = mysqlTable('hr_health_records', {
   examinerName: varchar('examiner_name', { length: 100 }),
   examinerNotes: mysqlText('examiner_notes'), // SENSITIVE - filtered by role
   recordedBy: int('recorded_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Application Roles (บทบาทในระบบ)
@@ -2389,8 +2633,8 @@ export const mysqlHRAppRoles = mysqlTable('hr_app_roles', {
   description: varchar('description', { length: 255 }),
   isSystemRole: mysqlBoolean('is_system_role').notNull().default(false),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Application Permissions (สิทธิ์ในระบบ)
@@ -2400,16 +2644,21 @@ export const mysqlHRAppPermissions = mysqlTable('hr_app_permissions', {
   name: varchar('name', { length: 100 }).notNull(),
   module: varchar('module', { length: 50 }).notNull(),
   description: varchar('description', { length: 255 }),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Role Permissions (สิทธิ์ของบทบาท)
+// Junction table: one row per (role, permission) pair. The unique index
+// on (role_id, permission_id) ensures INSERT IGNORE works idempotently
+// — without it, re-running permission seeds would produce duplicates.
 export const mysqlHRRolePermissions = mysqlTable('hr_role_permissions', {
   id: int('id').primaryKey().autoincrement(),
   roleId: int('role_id').notNull().references(() => mysqlHRAppRoles.id),
   permissionId: int('permission_id').notNull().references(() => mysqlHRAppPermissions.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-});
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  mysqlUniqueIndex('uq_hr_role_permission').on(table.roleId, table.permissionId),
+]);
 
 // HR Employee Roles (บทบาทของพนักงาน)
 export const mysqlHREmployeeRoles = mysqlTable('hr_employee_roles', {
@@ -2421,8 +2670,8 @@ export const mysqlHREmployeeRoles = mysqlTable('hr_employee_roles', {
   effectiveFrom: datetime('effective_from').notNull(),
   effectiveTo: datetime('effective_to'),
   assignedBy: int('assigned_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Notifications (การแจ้งเตือน)
@@ -2436,7 +2685,7 @@ export const mysqlHRNotifications = mysqlTable('hr_notifications', {
   referenceId: int('reference_id'),
   isRead: mysqlBoolean('is_read').notNull().default(false),
   readAt: datetime('read_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // HR Audit Log (ประวัติการเปลี่ยนแปลง HR)
@@ -2449,7 +2698,7 @@ export const mysqlHRAuditLog = mysqlTable('hr_audit_log', {
   oldValue: mysqlText('old_value'),
   newValue: mysqlText('new_value'),
   ipAddress: varchar('ip_address', { length: 45 }),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2485,8 +2734,8 @@ export const mysqlVmiPortalConfig = mysqlTable('vmi_portal_config', {
   webhookEndpointUrl: varchar('webhook_endpoint_url', { length: 500 }), // Our webhook endpoint for this portal
   createdBy: int('created_by').references(() => mysqlUsers.id),
   updatedBy: int('updated_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // VMI Sync History
@@ -2501,7 +2750,7 @@ export const mysqlVmiSyncHistory = mysqlTable('vmi_sync_history', {
   itemsFailed: int('items_failed').notNull().default(0),
   errorDetails: mysqlText('error_details'), // JSON array of {itemId, itemCode, error}
   triggeredBy: int('triggered_by').references(() => mysqlUsers.id),
-  startedAt: datetime('started_at').notNull().default(new Date()),
+  startedAt: datetime('started_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   completedAt: datetime('completed_at'),
 });
 
@@ -2521,12 +2770,12 @@ export const mysqlVmiSalesOrders = mysqlTable('vmi_sales_orders', {
   totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull(),
   currency: varchar('currency', { length: 3 }).notNull().default('THB'),
   orderDataJson: mysqlText('order_data_json').notNull(), // Full order data from VMI Portal
-  polledAt: datetime('polled_at').notNull().default(new Date()),
+  polledAt: datetime('polled_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   confirmedAt: datetime('confirmed_at'),
   shippedAt: datetime('shipped_at'),
   deliveredAt: datetime('delivered_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // VMI Sales Order Lines
@@ -2544,7 +2793,7 @@ export const mysqlVmiSalesOrderLines = mysqlTable('vmi_sales_order_lines', {
   unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
   lineTotal: decimal('line_total', { precision: 15, scale: 2 }).notNull(),
   matchStatus: varchar('match_status', { length: 20 }).notNull().default('unmatched'), // unmatched, matched, multiple_matches, manual_mapped
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Vendor API Keys (for external vendors accessing our ERP data)
@@ -2583,8 +2832,8 @@ export const mysqlVmiWebhooks = mysqlTable('vmi_webhooks', {
   lastSuccessAt: datetime('last_success_at'),
   lastFailureAt: datetime('last_failure_at'),
   lastErrorMessage: mysqlText('last_error_message'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   createdBy: int('created_by').references(() => mysqlUsers.id),
 });
 
@@ -2602,7 +2851,7 @@ export const mysqlVmiWebhookDeliveries = mysqlTable('vmi_webhook_deliveries', {
   responseCode: int('response_code'), // HTTP response code returned
   errorMessage: mysqlText('error_message'),
   processingDurationMs: int('processing_duration_ms'),
-  receivedAt: datetime('received_at').notNull().default(new Date()),
+  receivedAt: datetime('received_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   processedAt: datetime('processed_at'),
 });
 
@@ -2618,7 +2867,7 @@ export const mysqlDocumentTypes = mysqlTable('document_types', {
   prefix: varchar('prefix', { length: 20 }), // Document number prefix
   approvalChain: mysqlText('approval_chain'), // JSON array of required approver roles
   reviewPeriodMonths: int('review_period_months'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Documents
@@ -2631,9 +2880,10 @@ export const mysqlDocuments = mysqlTable('documents', {
   currentVersionId: int('current_version_id'), // Will be FK to document_versions
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, active, obsolete, archived
   retentionYears: int('retention_years').notNull().default(7),
+  trainingCourseId: int('training_course_id').references(() => mysqlHRTrainingCourses.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Document Versions
@@ -2653,7 +2903,7 @@ export const mysqlDocumentVersions = mysqlTable('document_versions', {
   effectiveDate: datetime('effective_date'), // When this version becomes active
   obsoleteDate: datetime('obsolete_date'), // When this version became obsolete
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Document Approvals
@@ -2666,7 +2916,7 @@ export const mysqlDocumentApprovals = mysqlTable('document_approvals', {
   comments: mysqlText('comments'),
   signedAt: datetime('signed_at'),
   delegatedFrom: int('delegated_from').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2692,8 +2942,8 @@ export const mysqlCapa = mysqlTable('capa', {
   closedDate: datetime('closed_date'),
   ownerId: int('owner_id').references(() => mysqlUsers.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 
   // Phase 1 Critical: Risk Assessment (ICH Q9)
   riskSeverity: varchar('risk_severity', { length: 20 }), // negligible, minor, moderate, major, critical
@@ -2733,7 +2983,7 @@ export const mysqlCapaActions = mysqlTable('capa_actions', {
   completedAt: datetime('completed_at'),
   verifiedBy: int('verified_by').references(() => mysqlUsers.id),
   verifiedAt: datetime('verified_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // CAPA Effectiveness
@@ -2748,7 +2998,7 @@ export const mysqlCapaEffectiveness = mysqlTable('capa_effectiveness', {
   evidence: mysqlText('evidence'),
   followUpRequired: mysqlBoolean('follow_up_required').default(false),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Phase 1 Critical: CAPA Attachments (Document Control)
@@ -2762,7 +3012,7 @@ export const mysqlCapaAttachments = mysqlTable('capa_attachments', {
   attachmentType: varchar('attachment_type', { length: 30 }).notNull(), // evidence, root_cause_report, investigation_report, sop_revision, training_record, photo, lab_result, other
   description: mysqlText('description'),
   uploadedBy: int('uploaded_by').notNull().references(() => mysqlUsers.id),
-  uploadedAt: datetime('uploaded_at').notNull().default(new Date()),
+  uploadedAt: datetime('uploaded_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Phase 1 Critical: CAPA Approvals (Electronic Signature Workflow)
@@ -2775,8 +3025,8 @@ export const mysqlCapaApprovals = mysqlTable('capa_approvals', {
   comments: mysqlText('comments'),
   signedAt: datetime('signed_at'),
   signatureHash: varchar('signature_hash', { length: 255 }), // Electronic signature hash (21 CFR Part 11)
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2799,8 +3049,8 @@ export const mysqlChangeRequests = mysqlTable('change_requests', {
   ownerId: int('owner_id').references(() => mysqlUsers.id),
   targetDate: datetime('target_date'),
   implementedDate: datetime('implemented_date'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Change Approvals
@@ -2812,7 +3062,7 @@ export const mysqlChangeApprovals = mysqlTable('change_approvals', {
   status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, approved, rejected
   comments: mysqlText('comments'),
   signedAt: datetime('signed_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2841,8 +3091,8 @@ export const mysqlComplaints = mysqlTable('complaints', {
   closedDate: datetime('closed_date'),
   closedBy: int('closed_by').references(() => mysqlUsers.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Complaint Investigations
@@ -2857,7 +3107,7 @@ export const mysqlComplaintInvestigations = mysqlTable('complaint_investigations
   rootCause: mysqlText('root_cause'),
   conclusion: mysqlText('conclusion'),
   recommendation: mysqlText('recommendation'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2883,8 +3133,8 @@ export const mysqlRecalls = mysqlTable('recalls', {
   coordinatorId: int('coordinator_id').references(() => mysqlUsers.id),
   complaintId: int('complaint_id').references(() => mysqlComplaints.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Recall Notifications
@@ -2901,7 +3151,7 @@ export const mysqlRecallNotifications = mysqlTable('recall_notifications', {
   responseStatus: varchar('response_status', { length: 30 }).default('pending'), // pending, acknowledged, returning, returned, unresponsive
   quantityReturned: decimal('quantity_returned', { precision: 15, scale: 3 }).default('0'),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Recall Reconciliation
@@ -2917,7 +3167,7 @@ export const mysqlRecallReconciliation = mysqlTable('recall_reconciliation', {
   reconciliationNotes: mysqlText('reconciliation_notes'),
   verifiedBy: int('verified_by').references(() => mysqlUsers.id),
   verifiedAt: datetime('verified_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2937,7 +3187,7 @@ export const mysqlSanitationSchedules = mysqlTable('sanitation_schedules', {
   method: mysqlText('method'),
   verificationRequired: mysqlBoolean('verification_required').default(true),
   isActive: mysqlBoolean('is_active').default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Sanitation Logs
@@ -2954,7 +3204,7 @@ export const mysqlSanitationLogs = mysqlTable('sanitation_logs', {
   verifiedAt: datetime('verified_at'),
   deviationId: int('deviation_id').references(() => mysqlDeviations.id),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Pest Control Logs
@@ -2972,7 +3222,7 @@ export const mysqlPestControlLogs = mysqlTable('pest_control_logs', {
   followUpRequired: mysqlBoolean('follow_up_required').default(false),
   followUpDate: datetime('follow_up_date'),
   verifiedBy: int('verified_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -2992,7 +3242,7 @@ export const mysqlStabilityProtocols = mysqlTable('stability_protocols', {
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, approved, obsolete
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Stability Studies
@@ -3007,7 +3257,7 @@ export const mysqlStabilityStudies = mysqlTable('stability_studies', {
   chamberLocation: varchar('chamber_location', { length: 100 }),
   notes: mysqlText('notes'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Stability Samples
@@ -3024,7 +3274,7 @@ export const mysqlStabilitySamples = mysqlTable('stability_samples', {
   oosInvestigationId: int('oos_investigation_id').references(() => mysqlDeviations.id),
   sampledBy: int('sampled_by').references(() => mysqlUsers.id),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Stability Trends
@@ -3035,7 +3285,7 @@ export const mysqlStabilityTrends = mysqlTable('stability_trends', {
   dataPoints: mysqlText('data_points'), // JSON array of {month, value}
   trendSlope: decimal('trend_slope', { precision: 10, scale: 4 }),
   projectedFailureMonth: int('projected_failure_month'),
-  lastUpdated: datetime('last_updated').default(new Date()),
+  lastUpdated: datetime('last_updated').default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -3051,7 +3301,7 @@ export const mysqlAuditPlans = mysqlTable('audit_plans', {
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Audits
@@ -3070,7 +3320,7 @@ export const mysqlAudits = mysqlTable('audits', {
   summary: mysqlText('summary'),
   reportPath: varchar('report_path', { length: 500 }),
   closedDate: datetime('closed_date'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Audit Findings
@@ -3089,7 +3339,7 @@ export const mysqlAuditFindings = mysqlTable('audit_findings', {
   status: varchar('status', { length: 20 }).notNull().default('open'), // open, capa_assigned, closed
   closedDate: datetime('closed_date'),
   closedBy: int('closed_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -3113,7 +3363,7 @@ export const mysqlManufacturingContracts = mysqlTable('manufacturing_contracts',
   contactEmail: varchar('contact_email', { length: 200 }),
   contactPhone: varchar('contact_phone', { length: 50 }),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Contract Batches
@@ -3126,7 +3376,7 @@ export const mysqlContractBatches = mysqlTable('contract_batches', {
   performedDate: datetime('performed_date'),
   certificatePath: varchar('certificate_path', { length: 500 }),
   verifiedBy: int('verified_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -3154,7 +3404,7 @@ export const mysqlPqrReports = mysqlTable('pqr_reports', {
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // PQR Metrics
@@ -3166,7 +3416,7 @@ export const mysqlPqrMetrics = mysqlTable('pqr_metrics', {
   target: decimal('target', { precision: 10, scale: 4 }),
   status: varchar('status', { length: 20 }), // pass, fail, warning
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================================================
@@ -3185,8 +3435,8 @@ export const mysqlAttachments = mysqlTable('attachments', {
   description: varchar('description', { length: 500 }), // Optional description
   category: varchar('category', { length: 50 }), // Optional: evidence, report, photo, etc.
   uploadedBy: int('uploaded_by').references(() => mysqlUsers.id),
-  uploadedAt: datetime('uploaded_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  uploadedAt: datetime('uploaded_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -3434,6 +3684,7 @@ export const sqliteDocuments = sqliteTable('documents', {
   currentVersionId: integer('current_version_id'), // Will be FK to document_versions
   status: text('status').notNull().default('draft'), // draft, active, obsolete, archived
   retentionYears: integer('retention_years').notNull().default(7),
+  trainingCourseId: integer('training_course_id').references(() => sqliteHRTrainingCourses.id),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -3968,8 +4219,8 @@ export const sqlitePqrMetrics = sqliteTable('pqr_metrics', {
   metricValue: real('metric_value'),
   target: real('target'),
   status: text('status'), // pass, fail, warning
-  details: text('details'), // JSON supporting data
-  calculatedAt: text('calculated_at').default('CURRENT_TIMESTAMP'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
 // ============================================================================
@@ -3988,8 +4239,8 @@ export const sqliteAttachments = sqliteTable('attachments', {
   description: text('description'),
   category: text('category'),
   uploadedBy: integer('uploaded_by').references(() => sqliteUsers.id),
-  uploadedAt: text('uploaded_at').notNull().default(new Date().toISOString()),
-  updatedAt: text('updated_at').notNull().default(new Date().toISOString()),
+  uploadedAt: text('uploaded_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
 // Attachment Relations
@@ -4046,7 +4297,7 @@ export const mysqlElectronicSignatures = mysqlTable('electronic_signatures', {
   signatureHash: varchar('signature_hash', { length: 64 }).notNull(),
   ipAddress: varchar('ip_address', { length: 45 }),
   userAgent: mysqlText('user_agent'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -4093,8 +4344,8 @@ export const mysqlLineClearanceChecklists = mysqlTable('line_clearance_checklist
   verifiedSignatureId: int('verified_signature_id').references(() => mysqlElectronicSignatures.id),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -4139,7 +4390,7 @@ export const mysqlLabelVerifications = mysqlTable('label_verifications', {
   witnessSignatureId: int('witness_signature_id').references(() => mysqlElectronicSignatures.id),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   rejectionReason: mysqlText('rejection_reason'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   verifiedAt: datetime('verified_at'),
 });
 
@@ -4171,8 +4422,8 @@ export const mysqlStockAlertRules = mysqlTable('stock_alert_rules', {
   warningDays: int('warning_days'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   notifyEmails: mysqlText('notify_emails'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -4183,13 +4434,13 @@ export const mysqlStockAlertRules = mysqlTable('stock_alert_rules', {
 export const mysqlProductionRooms = mysqlTable('production_rooms', {
   id: int('id').primaryKey().autoincrement(),
   code: varchar('code', { length: 50 }).notNull().unique(),
-  name: varchar('name', { length: 255 }).notNull(),
+  name: varchar('name', { length: 255 }),
   nameTh: varchar('name_th', { length: 255 }).notNull(),
   roomType: varchar('room_type', { length: 50 }).notNull(), // weighing, mixing, packaging, storage
   description: mysqlText('description'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Production Equipment (Master Data) - MySQL
@@ -4203,8 +4454,8 @@ export const mysqlProductionEquipment = mysqlTable('production_equipment', {
   roomId: int('room_id').references(() => mysqlProductionRooms.id), // Default room
   description: mysqlText('description'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Environmental Conditions (Master Data) - MySQL
@@ -4218,7 +4469,7 @@ export const mysqlEnvironmentalConditions = mysqlTable('environmental_conditions
   monitoringIntervalMinutes: int('monitoring_interval_minutes').notNull().default(60),
   notes: mysqlText('notes'), // e.g., "Humidity may exceed during boiling process"
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // SOP Step Templates (Master Data) - MySQL
@@ -4232,7 +4483,34 @@ export const mysqlSOPStepTemplates = mysqlTable('sop_step_templates', {
   instructionsTh: mysqlText('instructions_th'),
   defaultParameters: mysqlText('default_parameters'), // JSON: { temperature: 75, mixingSpeed: 45, duration: 5 }
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// SOP Template Steps - Ordered procedure steps within an SOP template (MySQL)
+export const mysqlSOPTemplateSteps = mysqlTable('sop_template_steps', {
+  id: int('id').primaryKey().autoincrement(),
+  templateId: int('template_id').notNull().references(() => mysqlSOPStepTemplates.id),
+  sequence: int('sequence').notNull(),
+  stepName: varchar('step_name', { length: 255 }).notNull(),
+  stepNameTh: varchar('step_name_th', { length: 255 }),
+  instructions: mysqlText('instructions'),
+  instructionsTh: mysqlText('instructions_th'),
+  defaultParameters: mysqlText('default_parameters'), // JSON: { temperature: 75, duration: 10 }
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// SOP Template Step ↔ IPC Criteria links (many-to-many) — MySQL
+export const mysqlSOPTemplateIPCCriteria = mysqlTable('sop_template_ipc_criteria', {
+  id: int('id').primaryKey().autoincrement(),
+  procedureStepId: int('procedure_step_id').notNull().references(() => mysqlSOPTemplateSteps.id),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  sequence: int('sequence').notNull().default(1),
+  sampleSize: int('sample_size').notNull().default(1),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  notes: mysqlText('notes'),
+  // Override of BOM/master max_retest_rounds for this SOP step linkage. NULL = inherit.
+  maxRetestRounds: int('max_retest_rounds'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Packaging QC Criteria (Master Data) - MySQL
@@ -4249,7 +4527,7 @@ export const mysqlPackagingQCCriteria = mysqlTable('packaging_qc_criteria', {
   // Packaging
   unitsPerPack: int('units_per_pack').notNull().default(12),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -4264,7 +4542,7 @@ export const mysqlBOMRooms = mysqlTable('bom_rooms', {
   phase: varchar('phase', { length: 50 }).notNull(), // pre_production, production, post_production, pre_packaging, packaging
   sequence: int('sequence').notNull().default(1),
   isRequired: mysqlBoolean('is_required').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // BOM Equipment Requirements - MySQL
@@ -4275,7 +4553,7 @@ export const mysqlBOMEquipment = mysqlTable('bom_equipment', {
   phase: varchar('phase', { length: 50 }).notNull(), // pre_production, production, post_production, pre_packaging, packaging
   sequence: int('sequence').notNull().default(1),
   isRequired: mysqlBoolean('is_required').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // BOM Environmental Conditions - MySQL
@@ -4283,9 +4561,12 @@ export const mysqlBOMEnvironmentalConditions = mysqlTable('bom_environmental_con
   id: int('id').primaryKey().autoincrement(),
   bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
   conditionId: int('condition_id').notNull().references(() => mysqlEnvironmentalConditions.id),
-  phase: varchar('phase', { length: 50 }).notNull(), // production, packaging
-  createdAt: datetime('created_at').notNull().default(new Date()),
-});
+  bomRoomId: int('bom_room_id').references(() => mysqlBOMRooms.id),
+  phase: varchar('phase', { length: 50 }).notNull(), // pre_production, production, packaging
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  mysqlUniqueIndex('uq_bom_phase_condition').on(table.bomId, table.phase, table.conditionId),
+]);
 
 // BOM SOP Steps - MySQL
 export const mysqlBOMSOPSteps = mysqlTable('bom_sop_steps', {
@@ -4303,7 +4584,9 @@ export const mysqlBOMSOPSteps = mysqlTable('bom_sop_steps', {
   equipmentIds: mysqlText('equipment_ids'), // JSON array of equipment IDs
   // Verification requirements
   requiresVerification: mysqlBoolean('requires_verification').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  // Phase determines which Execution Dashboard card hosts this step.
+  phase: varchar('phase', { length: 50 }).notNull().default('production'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // BOM Packaging QC - MySQL
@@ -4311,18 +4594,94 @@ export const mysqlBOMPackagingQC = mysqlTable('bom_packaging_qc', {
   id: int('id').primaryKey().autoincrement(),
   bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
   criteriaId: int('criteria_id').notNull().references(() => mysqlPackagingQCCriteria.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// BOM SOP-Step IPC Links — MySQL (replaces sop_template_ipc_criteria as
+// authoritative source). Each BOM owns its IPC linkages per SOP step.
+export const mysqlBOMSOPStepIPC = mysqlTable('bom_sop_step_ipc', {
+  id: int('id').primaryKey().autoincrement(),
+  bomStepId: int('bom_step_id').notNull().references(() => mysqlBOMSOPSteps.id),
+  procedureStepId: int('procedure_step_id').references(() => mysqlSOPTemplateSteps.id),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  sequence: int('sequence').notNull().default(1),
+  sampleSize: int('sample_size').notNull().default(1),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  maxRetestRounds: int('max_retest_rounds'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// BOM In-Process QC - MySQL
+// IPC Criteria (Master Data) - MySQL
+export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  nameTh: varchar('name_th', { length: 255 }),
+  testMethod: varchar('test_method', { length: 255 }),
+  specification: varchar('specification', { length: 255 }), // e.g., "200 ± 10 mg"
+  minValue: decimal('min_value', { precision: 15, scale: 4 }),
+  maxValue: decimal('max_value', { precision: 15, scale: 4 }),
+  unit: varchar('unit', { length: 50 }), // e.g., "mg", "mm", "min"
+  sampleSize: int('sample_size').notNull().default(5),
+  checkIntervalMinutes: int('check_interval_minutes').notNull().default(30),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  dosageForm: varchar('dosage_form', { length: 100 }),
+  criteriaType: varchar('criteria_type', { length: 20 }).notNull().default('numeric'),
+  tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).notNull().default('0'), // sample-failure tolerance %
+  // Target-based spec (pharmacy/chemistry concept: "300 ± 5%")
+  // When specTarget is set, minValue/maxValue are derived from it at save time
+  specTarget: decimal('spec_target', { precision: 15, scale: 4 }),
+  specTolerancePercent: decimal('spec_tolerance_percent', { precision: 5, scale: 2 }).notNull().default('0'),
+  // Multi-stage acceptance plan (USP <711>, <905>) — JSON string of stages array.
+  // Empty/null = single-stage (uses sampleSize + tolerancePercent above).
+  // Each stage: { sampleSize, tolerancePercent, onFail: 'next_stage'|'reject_batch'|'deviation' }
+  acceptanceStages: mysqlText('acceptance_stages'),
+  // Max retest rounds before forcing deviation (FDA OOS 2006 / PIC/S).
+  maxRetestRounds: int('max_retest_rounds').notNull().default(1),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const mysqlBOMInProcessQC = mysqlTable('bom_in_process_qc', {
+  id: int('id').primaryKey().autoincrement(),
+  bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  sequence: int('sequence').notNull().default(1),
+  sampleSize: int('sample_size').notNull().default(1),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  // Phase determines which Execution Dashboard card hosts this IPC test.
+  phase: varchar('phase', { length: 50 }).notNull().default('production'),
+  // Override of master ipc_criteria.max_retest_rounds for this BOM. NULL = inherit.
+  maxRetestRounds: int('max_retest_rounds'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
 // Work Order Execution Tables (Phase 3 - BMPR Form) - MySQL
 // ============================================
 
+// IPC Test Samples - MySQL
+export const mysqlIPCTestSamples = mysqlTable('ipc_test_samples', {
+  id: int('id').primaryKey().autoincrement(),
+  qualityTestId: int('quality_test_id').notNull().references(() => mysqlQualityTests.id),
+  sampleNumber: int('sample_number').notNull(),
+  testRound: int('test_round').notNull().default(1),
+  numericValue: decimal('numeric_value', { precision: 15, scale: 4 }),
+  textValue: mysqlText('text_value'),
+  result: varchar('result', { length: 20 }), // pass, fail
+  approvedBy: int('approved_by'),
+  approvedAt: datetime('approved_at'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Work Order Environmental Logs - MySQL
 export const mysqlWOEnvironmentalLogs = mysqlTable('wo_environmental_logs', {
   id: int('id').primaryKey().autoincrement(),
   workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
   bomConditionId: int('bom_condition_id').references(() => mysqlBOMEnvironmentalConditions.id),
+  roomId: int('room_id').references(() => mysqlProductionRooms.id),
   phase: varchar('phase', { length: 50 }).notNull(), // production, packaging
   recordedDate: varchar('recorded_date', { length: 20 }).notNull(),
   recordedTime: varchar('recorded_time', { length: 20 }).notNull(),
@@ -4331,7 +4690,7 @@ export const mysqlWOEnvironmentalLogs = mysqlTable('wo_environmental_logs', {
   isNormal: mysqlBoolean('is_normal').notNull(),
   operatorId: int('operator_id').notNull().references(() => mysqlUsers.id),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Work Order Cleaning Logs - MySQL
@@ -4348,8 +4707,9 @@ export const mysqlWOCleaningLogs = mysqlTable('wo_cleaning_logs', {
   performedAt: datetime('performed_at').notNull(),
   verifierId: int('verifier_id').references(() => mysqlUsers.id),
   verifiedAt: datetime('verified_at'),
+  verifyResult: varchar('verify_result', { length: 20 }), // pass, fail
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Work Order SOP Execution - MySQL
@@ -4370,8 +4730,8 @@ export const mysqlWOSOPExecution = mysqlTable('wo_sop_execution', {
   verifiedAt: datetime('verified_at'),
   status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, in_progress, completed, deviation
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Work Order Packaging Weight Logs - MySQL
@@ -4385,7 +4745,7 @@ export const mysqlWOPackagingWeightLogs = mysqlTable('wo_packaging_weight_logs',
   isPass: mysqlBoolean('is_pass').notNull(),
   operatorId: int('operator_id').notNull().references(() => mysqlUsers.id),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Work Order Packaging Integrity Logs - MySQL
@@ -4399,7 +4759,7 @@ export const mysqlWOPackagingIntegrityLogs = mysqlTable('wo_packaging_integrity_
   operatorId: int('operator_id').notNull().references(() => mysqlUsers.id),
   inspectorId: int('inspector_id').notNull().references(() => mysqlUsers.id),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Work Order Finished Product Inspection - MySQL
@@ -4418,8 +4778,8 @@ export const mysqlWOFinishedInspection = mysqlTable('wo_finished_inspection', {
   reInspectedAt: datetime('re_inspected_at'),
   status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, pass, fail, re_inspected
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Work Order Packaging Materials - MySQL
@@ -4434,8 +4794,8 @@ export const mysqlWOPackagingMaterials = mysqlTable('wo_packaging_materials', {
   unit: varchar('unit', { length: 50 }).notNull(),
   operatorId: int('operator_id').references(() => mysqlUsers.id),
   verifierId: int('verifier_id').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -4865,6 +5225,7 @@ export const sqlitePurchaseRequisitions = sqliteTable('purchase_requisitions', {
   departmentId: integer('department_id').references(() => sqliteHROrgUnits.id),
   requiredDate: text('required_date'), // Nullable - PR can be saved as draft without required date
   priority: text('priority').notNull().default('normal'), // normal, urgent, critical
+  description: text('description'),
   justification: text('justification'),
   status: text('status').notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled
   totalAmount: real('total_amount').notNull().default(0),
@@ -5164,8 +5525,8 @@ export const mysqlGLAccountTypes = mysqlTable('gl_account_types', {
   category: varchar('category', { length: 20 }).notNull(), // asset, liability, equity, revenue, expense
   normalBalance: varchar('normal_balance', { length: 10 }).notNull(), // debit, credit
   displayOrder: int('display_order').notNull().default(0),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // GL Account (Chart of Accounts) - MySQL
@@ -5184,8 +5545,8 @@ export const mysqlGLAccounts = mysqlTable('gl_accounts', {
   bankAccountNumber: varchar('bank_account_number', { length: 50 }),
   description: mysqlText('description'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Fiscal Year - MySQL
@@ -5198,8 +5559,8 @@ export const mysqlFiscalYears = mysqlTable('fiscal_years', {
   status: varchar('status', { length: 20 }).notNull().default('open'), // open, closed
   closedBy: int('closed_by').references(() => mysqlUsers.id),
   closedAt: datetime('closed_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Fiscal Period - MySQL
@@ -5213,8 +5574,8 @@ export const mysqlFiscalPeriods = mysqlTable('fiscal_periods', {
   status: varchar('status', { length: 20 }).notNull().default('open'), // open, soft_closed, closed
   closedBy: int('closed_by').references(() => mysqlUsers.id),
   closedAt: datetime('closed_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Journal Entry - MySQL
@@ -5235,8 +5596,8 @@ export const mysqlJournalEntries = mysqlTable('journal_entries', {
   reversedAt: datetime('reversed_at'),
   reversalEntryId: int('reversal_entry_id').references((): AnyMySqlColumn => mysqlJournalEntries.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Journal Line - MySQL
@@ -5249,7 +5610,7 @@ export const mysqlJournalLines = mysqlTable('journal_lines', {
   credit: decimal('credit', { precision: 15, scale: 2 }).notNull().default('0'),
   description: mysqlText('description'),
   costCenterId: int('cost_center_id').references(() => mysqlHROrgUnits.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // AP Invoice - MySQL
@@ -5274,8 +5635,8 @@ export const mysqlAPInvoices = mysqlTable('ap_invoices', {
   approvedAt: datetime('approved_at'),
   journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // AP Invoice Line - MySQL
@@ -5291,7 +5652,7 @@ export const mysqlAPInvoiceLines = mysqlTable('ap_invoice_lines', {
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }).notNull().default('0'),
   isCapitalizable: mysqlBoolean('is_capitalizable').notNull().default(false),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // AR Invoice - MySQL
@@ -5315,8 +5676,8 @@ export const mysqlARInvoices = mysqlTable('ar_invoices', {
   confirmedAt: datetime('confirmed_at'),
   journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // AR Invoice Line - MySQL
@@ -5332,7 +5693,7 @@ export const mysqlARInvoiceLines = mysqlTable('ar_invoice_lines', {
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }).notNull().default('0'),
   lotId: int('lot_id').references(() => mysqlInventoryLots.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Payment - MySQL
@@ -5352,8 +5713,8 @@ export const mysqlPayments = mysqlTable('payments', {
   status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, completed, cancelled
   journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Payment Allocation - MySQL
@@ -5363,7 +5724,7 @@ export const mysqlPaymentAllocations = mysqlTable('payment_allocations', {
   apInvoiceId: int('ap_invoice_id').references(() => mysqlAPInvoices.id),
   arInvoiceId: int('ar_invoice_id').references(() => mysqlARInvoices.id),
   allocatedAmount: decimal('allocated_amount', { precision: 15, scale: 2 }).notNull(),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // VAT Transaction - MySQL
@@ -5384,7 +5745,7 @@ export const mysqlVATTransactions = mysqlTable('vat_transactions', {
   totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull(),
   apInvoiceId: int('ap_invoice_id').references(() => mysqlAPInvoices.id),
   arInvoiceId: int('ar_invoice_id').references(() => mysqlARInvoices.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // WHT Transaction - MySQL
@@ -5402,7 +5763,7 @@ export const mysqlWHTTransactions = mysqlTable('wht_transactions', {
   whtRate: decimal('wht_rate', { precision: 5, scale: 2 }).notNull(),
   whtAmount: decimal('wht_amount', { precision: 15, scale: 2 }).notNull(),
   netAmount: decimal('net_amount', { precision: 15, scale: 2 }).notNull(),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Asset Category - MySQL
@@ -5418,8 +5779,8 @@ export const mysqlAssetCategories = mysqlTable('asset_categories', {
   depreciationExpenseGLAccountId: int('depreciation_expense_gl_account_id').notNull().references(() => mysqlGLAccounts.id),
   accumulatedDepreciationGLAccountId: int('accumulated_depreciation_gl_account_id').notNull().references(() => mysqlGLAccounts.id),
   isActive: mysqlBoolean('is_active').notNull().default(true),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Fixed Asset - MySQL
@@ -5445,8 +5806,8 @@ export const mysqlFixedAssets = mysqlTable('fixed_assets', {
   status: varchar('status', { length: 20 }).notNull().default('active'), // active, disposed, fully_depreciated
   disposalDate: datetime('disposal_date'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Asset Depreciation - MySQL
@@ -5460,7 +5821,7 @@ export const mysqlAssetDepreciations = mysqlTable('asset_depreciations', {
   accumulatedDepreciation: decimal('accumulated_depreciation', { precision: 15, scale: 2 }).notNull(),
   closingBookValue: decimal('closing_book_value', { precision: 15, scale: 2 }).notNull(),
   journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Asset Disposal - MySQL
@@ -5478,7 +5839,7 @@ export const mysqlAssetDisposals = mysqlTable('asset_disposals', {
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Asset Movement - MySQL
@@ -5494,7 +5855,7 @@ export const mysqlAssetMovements = mysqlTable('asset_movements', {
   toResponsiblePersonId: int('to_responsible_person_id').references(() => mysqlHREmployees.id),
   reason: mysqlText('reason'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Accounting Equipment (extends FixedAsset) - MySQL
@@ -5516,8 +5877,8 @@ export const mysqlAccountingEquipment = mysqlTable('accounting_equipment', {
   isAvailable: mysqlBoolean('is_available').notNull().default(true),
   lastMaintenanceDate: datetime('last_maintenance_date'),
   nextMaintenanceDue: datetime('next_maintenance_due'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Maintenance Schedule - MySQL
@@ -5535,8 +5896,8 @@ export const mysqlAcctMaintenanceSchedules = mysqlTable('acct_maintenance_schedu
   alertDaysBefore: int('alert_days_before').notNull().default(7),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Maintenance Record - MySQL
@@ -5562,8 +5923,8 @@ export const mysqlAcctMaintenanceRecords = mysqlTable('acct_maintenance_records'
   performedBy: varchar('performed_by', { length: 100 }),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================
@@ -5578,6 +5939,7 @@ export const mysqlPurchaseRequisitions = mysqlTable('purchase_requisitions', {
   departmentId: int('department_id').references(() => mysqlHROrgUnits.id),
   requiredDate: datetime('required_date'), // Nullable - PR can be saved as draft without required date
   priority: varchar('priority', { length: 20 }).notNull().default('normal'), // normal, urgent, critical
+  description: mysqlText('description'),
   justification: mysqlText('justification'),
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled
   totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull().default('0'),
@@ -5586,8 +5948,8 @@ export const mysqlPurchaseRequisitions = mysqlTable('purchase_requisitions', {
   rejectionReason: mysqlText('rejection_reason'),
   notes: mysqlText('notes'),
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlPurchaseRequisitionLines = mysqlTable('purchase_requisition_lines', {
@@ -5604,7 +5966,7 @@ export const mysqlPurchaseRequisitionLines = mysqlTable('purchase_requisition_li
   notes: mysqlText('notes'),
   status: varchar('status', { length: 20 }).notNull().default('open'), // open, converted, cancelled
   convertedPoLineId: int('converted_po_line_id').references(() => mysqlPurchaseOrderLines.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Bank Reconciliation - MySQL (T002)
@@ -5619,13 +5981,13 @@ export const mysqlBankStatements = mysqlTable('bank_statements', {
   totalCredits: decimal('total_credits', { precision: 15, scale: 2 }).notNull().default('0'),
   status: varchar('status', { length: 20 }).notNull().default('imported'), // imported, in_progress, reconciled, closed
   importedFileName: varchar('imported_file_name', { length: 255 }),
-  importedAt: datetime('imported_at').notNull().default(new Date()),
+  importedAt: datetime('imported_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   reconciledBy: int('reconciled_by').references(() => mysqlHREmployees.id),
   reconciledAt: datetime('reconciled_at'),
   notes: mysqlText('notes'),
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlBankStatementLines = mysqlTable('bank_statement_lines', {
@@ -5644,7 +6006,7 @@ export const mysqlBankStatementLines = mysqlTable('bank_statement_lines', {
   matchedBy: int('matched_by').references(() => mysqlHREmployees.id),
   matchedAt: datetime('matched_at'),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlReconciliationMatches = mysqlTable('reconciliation_matches', {
@@ -5656,7 +6018,7 @@ export const mysqlReconciliationMatches = mysqlTable('reconciliation_matches', {
   matchAmount: decimal('match_amount', { precision: 15, scale: 2 }).notNull(),
   varianceAmount: decimal('variance_amount', { precision: 15, scale: 2 }).notNull().default('0'),
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Credit/Debit Notes - MySQL (T003)
@@ -5684,8 +6046,8 @@ export const mysqlCreditDebitNotes = mysqlTable('credit_debit_notes', {
   postedAt: datetime('posted_at'),
   notes: mysqlText('notes'),
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlCreditDebitNoteLines = mysqlTable('credit_debit_note_lines', {
@@ -5699,7 +6061,7 @@ export const mysqlCreditDebitNoteLines = mysqlTable('credit_debit_note_lines', {
   unitPrice: decimal('unit_price', { precision: 15, scale: 4 }).notNull(),
   lineTotal: decimal('line_total', { precision: 15, scale: 2 }).notNull(),
   glAccountId: int('gl_account_id').notNull().references(() => mysqlGLAccounts.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // 3-Way Matching - MySQL (T004)
@@ -5714,8 +6076,8 @@ export const mysqlMatchingTolerances = mysqlTable('matching_tolerances', {
   totalTolerancePct: decimal('total_tolerance_pct', { precision: 5, scale: 2 }).notNull().default('1.00'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlMatchingResults = mysqlTable('matching_results', {
@@ -5736,7 +6098,7 @@ export const mysqlMatchingResults = mysqlTable('matching_results', {
   priceVariancePct: decimal('price_variance_pct', { precision: 5, scale: 2 }).notNull().default('0'),
   matchStatus: varchar('match_status', { length: 30 }).notNull().default('pending'), // pending, matched, quantity_exception, price_exception, approved_variance, blocked
   matchedAt: datetime('matched_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlMatchingExceptions = mysqlTable('matching_exceptions', {
@@ -5750,7 +6112,7 @@ export const mysqlMatchingExceptions = mysqlTable('matching_exceptions', {
   resolutionNotes: mysqlText('resolution_notes'),
   resolvedBy: int('resolved_by').references(() => mysqlHREmployees.id),
   resolvedAt: datetime('resolved_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Approval Workflows - MySQL (T005)
@@ -5762,8 +6124,8 @@ export const mysqlApprovalFlows = mysqlTable('approval_flows', {
   priority: int('priority').notNull().default(100),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
-  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlApprovalRules = mysqlTable('approval_rules', {
@@ -5775,7 +6137,7 @@ export const mysqlApprovalRules = mysqlTable('approval_rules', {
   value: varchar('value', { length: 255 }).notNull(),
   valueTo: varchar('value_to', { length: 255 }),
   logicOperator: varchar('logic_operator', { length: 10 }).notNull().default('and'), // and, or
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlApprovalSteps = mysqlTable('approval_steps', {
@@ -5788,7 +6150,7 @@ export const mysqlApprovalSteps = mysqlTable('approval_steps', {
   canDelegate: mysqlBoolean('can_delegate').notNull().default(false),
   timeoutDays: int('timeout_days').notNull().default(3),
   escalationStepId: int('escalation_step_id').references((): AnyMySqlColumn => mysqlApprovalSteps.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlApprovalRequests = mysqlTable('approval_requests', {
@@ -5799,9 +6161,9 @@ export const mysqlApprovalRequests = mysqlTable('approval_requests', {
   currentStepOrder: int('current_step_order').notNull().default(1),
   status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, approved, rejected, cancelled
   requestedBy: int('requested_by').notNull().references(() => mysqlHREmployees.id),
-  requestedAt: datetime('requested_at').notNull().default(new Date()),
+  requestedAt: datetime('requested_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   completedAt: datetime('completed_at'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlApprovalRequestSteps = mysqlTable('approval_request_steps', {
@@ -5814,7 +6176,7 @@ export const mysqlApprovalRequestSteps = mysqlTable('approval_request_steps', {
   status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, approved, rejected, delegated, timed_out
   actionDate: datetime('action_date'),
   comments: mysqlText('comments'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlApprovalDelegations = mysqlTable('approval_delegations', {
@@ -5827,7 +6189,7 @@ export const mysqlApprovalDelegations = mysqlTable('approval_delegations', {
   isActive: mysqlBoolean('is_active').notNull().default(true),
   reason: mysqlText('reason'),
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Variance Analysis - MySQL (T006)
@@ -5844,7 +6206,7 @@ export const mysqlStandardCosts = mysqlTable('standard_costs', {
   notes: mysqlText('notes'),
   isCurrent: mysqlBoolean('is_current').notNull().default(false),
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const mysqlVarianceRecords = mysqlTable('variance_records', {
@@ -5861,7 +6223,606 @@ export const mysqlVarianceRecords = mysqlTable('variance_records', {
   journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
   postedAt: datetime('posted_at'),
   notes: mysqlText('notes'),
-  createdAt: datetime('created_at').notNull().default(new Date()),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// ============================================
+// QC + COA Module — Phase 1 Schema
+// Standards: ISO/IEC 17025:2017, FDA 21 CFR Part 11,
+//            FDA 21 CFR Part 211 Subpart I, WHO TRS 1010 Annex 4
+// ============================================
+
+// ---------- SQLite (testing) ----------
+
+// QC Samples — sample registration with state machine
+// States: draft → registered → testing → reviewed → approved → released
+//         (also: rejected, quarantine, oos)
+export const sqliteQcSamples = sqliteTable('qc_samples', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleNumber: text('sample_number').notNull().unique(), // e.g. "QC-2026-0001"
+  // Source of the sample
+  sourceType: text('source_type').notNull(), // raw_material_lot|work_order_batch|customer_return|stability|purchased_herb|outgoing_shipment|other
+  sourceRefId: integer('source_ref_id'), // FK to relevant table (lot/wo/etc) — soft reference
+  sourceRefText: text('source_ref_text'), // free text when source_ref_id not set
+  productId: integer('product_id').notNull().references(() => sqliteItems.id),
+  lotNumber: text('lot_number'),
+  manufactureDate: text('manufacture_date'),
+  expiryDate: text('expiry_date'),
+  retestDate: text('retest_date'),
+  quantityReceived: real('quantity_received'),
+  unit: text('unit'),
+  storageConditions: text('storage_conditions'),
+  // Outgoing-shipment context (drives COA)
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  salesOrderRef: text('sales_order_ref'),
+  receivedDate: text('received_date').notNull(),
+  receivedBy: integer('received_by').notNull().references(() => sqliteUsers.id),
+  status: text('status').notNull().default('draft'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// QC Sample Tests — per-test result lines per sample (reuses ipc_criteria master)
+export const sqliteQcSampleTests = sqliteTable('qc_sample_tests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleId: integer('sample_id').notNull().references(() => sqliteQcSamples.id),
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  sequence: integer('sequence').notNull().default(1),
+  // Spec snapshot at test time (immutable even if master spec later changes)
+  specMin: real('spec_min'),
+  specMax: real('spec_max'),
+  specTarget: real('spec_target'),
+  specText: text('spec_text'), // for non-numeric specs (e.g. "Pass identification")
+  unit: text('unit'),
+  testMethod: text('test_method'), // e.g. "USP <11>", "Ph.Eur 2.8.20", "In-house SOP-XXX"
+  // Actual result
+  numericResult: real('numeric_result'),
+  textResult: text('text_result'),
+  resultStatus: text('result_status').notNull().default('pending'), // pending|pass|fail|retest|na
+  // Audit
+  testedBy: integer('tested_by').references(() => sqliteUsers.id),
+  testedAt: text('tested_at'),
+  reviewedBy: integer('reviewed_by').references(() => sqliteUsers.id),
+  reviewedAt: text('reviewed_at'),
+  notes: text('notes'),
+  attachmentPath: text('attachment_path'), // chromatogram / photo
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// QC Test Panels — default test panel master per product/category
+export const sqliteQcTestPanels = sqliteTable('qc_test_panels', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  productId: integer('product_id').references(() => sqliteItems.id), // null = applies to all (category-level)
+  productCategory: text('product_category'), // 'herb','capsule','powder', etc.
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  isRequired: integer('is_required', { mode: 'boolean' }).notNull().default(true),
+  sequence: integer('sequence').notNull().default(1),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// QC OOS Investigations — Out-of-Spec investigation per FDA 21 CFR 211.192
+export const sqliteQcOosInvestigations = sqliteTable('qc_oos_investigations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleTestId: integer('sample_test_id').notNull().references(() => sqliteQcSampleTests.id),
+  initiatedBy: integer('initiated_by').notNull().references(() => sqliteUsers.id),
+  initiatedAt: text('initiated_at').notNull(),
+  phase1LabErrorCheck: text('phase1_lab_error_check'), // analyst hypothesis
+  phase2RootCause: text('phase2_root_cause'),
+  classification: text('classification'), // lab_error|manufacturing_error|undetermined
+  retestAuthorized: integer('retest_authorized', { mode: 'boolean' }).notNull().default(false),
+  closedBy: integer('closed_by').references(() => sqliteUsers.id),
+  closedAt: text('closed_at'),
+  conclusion: text('conclusion'),
+  capaId: integer('capa_id').references(() => sqliteCapa.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// QC Sample Signatures — 3-tier sign-off per 21 CFR Part 11
+// Roles: analyst → reviewer → approver → qa_release
+export const sqliteQcSampleSignatures = sqliteTable('qc_sample_signatures', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleId: integer('sample_id').notNull().references(() => sqliteQcSamples.id),
+  role: text('role').notNull(), // analyst|reviewer|approver|qa_release
+  userId: integer('user_id').notNull().references(() => sqliteUsers.id),
+  signedAt: text('signed_at').notNull(),
+  signatureMeaning: text('signature_meaning'), // 'Tested','Reviewed','Approved','Released'
+  notes: text('notes'),
+  // 21 CFR Part 11: meaning + auditable link
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Templates — template config (header/footer HTML, signatory roles, layout flags)
+export const sqliteCoaTemplates = sqliteTable('coa_templates', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  productCategory: text('product_category'), // 'herb','capsule','powder','liquid' or null=default
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // Layout config
+  headerLogoPath: text('header_logo_path'),
+  headerHtml: text('header_html'), // company name, address, license #
+  footerHtml: text('footer_html'), // disclaimer, references
+  // Signatory roles required (JSON array stored as text)
+  signatoryRoles: text('signatory_roles'), // e.g. '["analyst","qc_manager","qa_manager"]'
+  // Optional sections to show/hide
+  showStorageConditions: integer('show_storage_conditions', { mode: 'boolean' }).notNull().default(true),
+  showExpiryDate: integer('show_expiry_date', { mode: 'boolean' }).notNull().default(true),
+  showRetestDate: integer('show_retest_date', { mode: 'boolean' }).notNull().default(false),
+  showQrVerify: integer('show_qr_verify', { mode: 'boolean' }).notNull().default(true),
+  language: text('language').notNull().default('bilingual'), // th|en|bilingual
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Documents — main COA record with QR token and lifecycle
+export const sqliteCoaDocuments = sqliteTable('coa_documents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaNumber: text('coa_number').notNull().unique(), // COA-2026-000123
+  sampleId: integer('sample_id').notNull().references(() => sqliteQcSamples.id),
+  templateId: integer('template_id').references(() => sqliteCoaTemplates.id),
+  productId: integer('product_id').notNull().references(() => sqliteItems.id),
+  lotNumber: text('lot_number').notNull(),
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  salesOrderRef: text('sales_order_ref'),
+  // Document metadata
+  issueDate: text('issue_date').notNull(),
+  expiryDate: text('expiry_date'),
+  retestDate: text('retest_date'),
+  manufactureDate: text('manufacture_date'),
+  conclusion: text('conclusion').notNull(), // complies|does_not_comply|partial
+  // Lifecycle
+  status: text('status').notNull().default('draft'), // draft|review|approved|issued|superseded|revoked
+  supersededBy: integer('superseded_by'), // self-reference (no FK to avoid circular dep at create time)
+  revokeReason: text('revoke_reason'),
+  // Verification (public QR portal)
+  qrCodeToken: text('qr_code_token').notNull().unique(), // random 32-byte URL-safe hash
+  // Audit
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  releasedAt: text('released_at'),
+  releasedBy: integer('released_by').references(() => sqliteUsers.id),
+  // PDF cache
+  pdfPath: text('pdf_path'),
+  pdfGeneratedAt: text('pdf_generated_at'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Test Results — immutable snapshot of test data at COA issue time
+export const sqliteCoaTestResults = sqliteTable('coa_test_results', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaId: integer('coa_id').notNull().references(() => sqliteCoaDocuments.id),
+  sampleTestId: integer('sample_test_id').references(() => sqliteQcSampleTests.id), // source of truth
+  sequence: integer('sequence').notNull().default(1),
+  // Snapshot at COA issue time (immutable)
+  testName: text('test_name').notNull(),
+  testNameTh: text('test_name_th'),
+  testMethod: text('test_method'),
+  specification: text('specification').notNull(),
+  result: text('result').notNull(),
+  resultUnit: text('result_unit'),
+  conclusion: text('conclusion').notNull(), // conform|non_conform|na
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Signatures — 21 CFR Part 11 e-signatures with name/title snapshots
+export const sqliteCoaSignatures = sqliteTable('coa_signatures', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaId: integer('coa_id').notNull().references(() => sqliteCoaDocuments.id),
+  role: text('role').notNull(), // 'analyst','qc_manager','qa_manager'
+  userId: integer('user_id').notNull().references(() => sqliteUsers.id),
+  userNameSnapshot: text('user_name_snapshot'), // preserve display name at sign time
+  userTitleSnapshot: text('user_title_snapshot'), // preserve job title at sign time
+  signedAt: text('signed_at').notNull(),
+  signatureImagePath: text('signature_image_path'),
+  signatureMeaning: text('signature_meaning'), // 'Tested','Reviewed','Approved','Released'
+  ipAddress: text('ip_address'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Print History — audit trail of every print/email action
+export const sqliteCoaPrintHistory = sqliteTable('coa_print_history', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaId: integer('coa_id').notNull().references(() => sqliteCoaDocuments.id),
+  printedBy: integer('printed_by').notNull().references(() => sqliteUsers.id),
+  printedAt: text('printed_at').notNull(),
+  printType: text('print_type').notNull(), // preview|official|reprint|customer_email
+  customerEmail: text('customer_email'), // if emailed
+  ipAddress: text('ip_address'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// COA Verify Log — public verify portal hit log (audit)
+export const sqliteCoaVerifyLog = sqliteTable('coa_verify_log', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  coaId: integer('coa_id').references(() => sqliteCoaDocuments.id), // nullable: unknown token still logged
+  qrTokenAttempted: text('qr_token_attempted'), // raw token that was queried
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  referer: text('referer'),
+  result: text('result').notNull().default('found'), // found|not_found|revoked|superseded
+  verifiedAt: text('verified_at').notNull().default('CURRENT_TIMESTAMP'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ---------- MySQL (production) ----------
+
+// QC Samples — MySQL
+export const mysqlQcSamples = mysqlTable('qc_samples', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleNumber: varchar('sample_number', { length: 50 }).notNull().unique(),
+  sourceType: varchar('source_type', { length: 30 }).notNull(),
+  sourceRefId: int('source_ref_id'),
+  sourceRefText: varchar('source_ref_text', { length: 255 }),
+  productId: int('product_id').notNull().references(() => mysqlItems.id),
+  lotNumber: varchar('lot_number', { length: 100 }),
+  manufactureDate: datetime('manufacture_date'),
+  expiryDate: datetime('expiry_date'),
+  retestDate: datetime('retest_date'),
+  quantityReceived: decimal('quantity_received', { precision: 15, scale: 3 }),
+  unit: varchar('unit', { length: 20 }),
+  storageConditions: mysqlText('storage_conditions'),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  salesOrderRef: varchar('sales_order_ref', { length: 50 }),
+  receivedDate: datetime('received_date').notNull(),
+  receivedBy: int('received_by').notNull().references(() => mysqlUsers.id),
+  status: varchar('status', { length: 20 }).notNull().default('draft'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC Sample Tests — MySQL
+export const mysqlQcSampleTests = mysqlTable('qc_sample_tests', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleId: int('sample_id').notNull().references(() => mysqlQcSamples.id),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  sequence: int('sequence').notNull().default(1),
+  specMin: decimal('spec_min', { precision: 15, scale: 4 }),
+  specMax: decimal('spec_max', { precision: 15, scale: 4 }),
+  specTarget: decimal('spec_target', { precision: 15, scale: 4 }),
+  specText: varchar('spec_text', { length: 500 }),
+  unit: varchar('unit', { length: 20 }),
+  testMethod: varchar('test_method', { length: 255 }),
+  numericResult: decimal('numeric_result', { precision: 15, scale: 4 }),
+  textResult: mysqlText('text_result'),
+  resultStatus: varchar('result_status', { length: 20 }).notNull().default('pending'),
+  testedBy: int('tested_by').references(() => mysqlUsers.id),
+  testedAt: datetime('tested_at'),
+  reviewedBy: int('reviewed_by').references(() => mysqlUsers.id),
+  reviewedAt: datetime('reviewed_at'),
+  notes: mysqlText('notes'),
+  attachmentPath: varchar('attachment_path', { length: 500 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC Test Panels — MySQL
+export const mysqlQcTestPanels = mysqlTable('qc_test_panels', {
+  id: int('id').primaryKey().autoincrement(),
+  productId: int('product_id').references(() => mysqlItems.id),
+  productCategory: varchar('product_category', { length: 50 }),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  isRequired: mysqlBoolean('is_required').notNull().default(true),
+  sequence: int('sequence').notNull().default(1),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC Sample Test Samples — per-sample values + rounds for QC entry tests.
+// Mirror of ipc_test_samples but linked to qc_sample_tests so the QC entry
+// flow supports multi-sample readings (e.g. n=10 average weight) and retest
+// rounds matching what master data on ipc_criteria.sample_size /
+// max_retest_rounds defines.
+export const sqliteQcSampleTestSamples = sqliteTable('qc_sample_test_samples', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sampleTestId: integer('sample_test_id').notNull().references(() => sqliteQcSampleTests.id),
+  sampleNumber: integer('sample_number').notNull(),
+  testRound: integer('test_round').notNull().default(1),
+  numericValue: real('numeric_value'),
+  textValue: text('text_value'),
+  result: text('result'), // pass, fail
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const mysqlQcSampleTestSamples = mysqlTable('qc_sample_test_samples', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleTestId: int('sample_test_id').notNull().references(() => mysqlQcSampleTests.id),
+  sampleNumber: int('sample_number').notNull(),
+  testRound: int('test_round').notNull().default(1),
+  numericValue: decimal('numeric_value', { precision: 15, scale: 4 }),
+  textValue: mysqlText('text_value'),
+  result: varchar('result', { length: 20 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC OOS Investigations — MySQL
+export const mysqlQcOosInvestigations = mysqlTable('qc_oos_investigations', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleTestId: int('sample_test_id').notNull().references(() => mysqlQcSampleTests.id),
+  initiatedBy: int('initiated_by').notNull().references(() => mysqlUsers.id),
+  initiatedAt: datetime('initiated_at').notNull(),
+  phase1LabErrorCheck: mysqlText('phase1_lab_error_check'),
+  phase2RootCause: mysqlText('phase2_root_cause'),
+  classification: varchar('classification', { length: 30 }),
+  retestAuthorized: mysqlBoolean('retest_authorized').notNull().default(false),
+  closedBy: int('closed_by').references(() => mysqlUsers.id),
+  closedAt: datetime('closed_at'),
+  conclusion: mysqlText('conclusion'),
+  capaId: int('capa_id').references(() => mysqlCapa.id),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC Sample Signatures — MySQL
+export const mysqlQcSampleSignatures = mysqlTable('qc_sample_signatures', {
+  id: int('id').primaryKey().autoincrement(),
+  sampleId: int('sample_id').notNull().references(() => mysqlQcSamples.id),
+  role: varchar('role', { length: 20 }).notNull(),
+  userId: int('user_id').notNull().references(() => mysqlUsers.id),
+  signedAt: datetime('signed_at').notNull(),
+  signatureMeaning: varchar('signature_meaning', { length: 50 }),
+  notes: mysqlText('notes'),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: varchar('user_agent', { length: 500 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Templates — MySQL
+export const mysqlCoaTemplates = mysqlTable('coa_templates', {
+  id: int('id').primaryKey().autoincrement(),
+  name: varchar('name', { length: 100 }).notNull(),
+  productCategory: varchar('product_category', { length: 50 }),
+  isDefault: mysqlBoolean('is_default').notNull().default(false),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  headerLogoPath: varchar('header_logo_path', { length: 500 }),
+  headerHtml: mysqlText('header_html'),
+  footerHtml: mysqlText('footer_html'),
+  signatoryRoles: mysqlText('signatory_roles'), // JSON array stored as text
+  showStorageConditions: mysqlBoolean('show_storage_conditions').notNull().default(true),
+  showExpiryDate: mysqlBoolean('show_expiry_date').notNull().default(true),
+  showRetestDate: mysqlBoolean('show_retest_date').notNull().default(false),
+  showQrVerify: mysqlBoolean('show_qr_verify').notNull().default(true),
+  language: varchar('language', { length: 10 }).notNull().default('bilingual'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Documents — MySQL
+export const mysqlCoaDocuments = mysqlTable('coa_documents', {
+  id: int('id').primaryKey().autoincrement(),
+  coaNumber: varchar('coa_number', { length: 30 }).notNull().unique(),
+  sampleId: int('sample_id').notNull().references(() => mysqlQcSamples.id),
+  templateId: int('template_id').references(() => mysqlCoaTemplates.id),
+  productId: int('product_id').notNull().references(() => mysqlItems.id),
+  lotNumber: varchar('lot_number', { length: 100 }).notNull(),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  salesOrderRef: varchar('sales_order_ref', { length: 50 }),
+  issueDate: datetime('issue_date').notNull(),
+  expiryDate: datetime('expiry_date'),
+  retestDate: datetime('retest_date'),
+  manufactureDate: datetime('manufacture_date'),
+  conclusion: varchar('conclusion', { length: 20 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('draft'),
+  supersededBy: int('superseded_by'),
+  revokeReason: mysqlText('revoke_reason'),
+  qrCodeToken: varchar('qr_code_token', { length: 64 }).notNull().unique(),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  releasedAt: datetime('released_at'),
+  releasedBy: int('released_by').references(() => mysqlUsers.id),
+  pdfPath: varchar('pdf_path', { length: 500 }),
+  pdfGeneratedAt: datetime('pdf_generated_at'),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Test Results — MySQL
+export const mysqlCoaTestResults = mysqlTable('coa_test_results', {
+  id: int('id').primaryKey().autoincrement(),
+  coaId: int('coa_id').notNull().references(() => mysqlCoaDocuments.id),
+  sampleTestId: int('sample_test_id').references(() => mysqlQcSampleTests.id),
+  sequence: int('sequence').notNull().default(1),
+  testName: varchar('test_name', { length: 255 }).notNull(),
+  testNameTh: varchar('test_name_th', { length: 255 }),
+  testMethod: varchar('test_method', { length: 255 }),
+  specification: varchar('specification', { length: 500 }).notNull(),
+  result: varchar('result', { length: 500 }).notNull(),
+  resultUnit: varchar('result_unit', { length: 20 }),
+  conclusion: varchar('conclusion', { length: 20 }).notNull(),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Signatures — MySQL
+export const mysqlCoaSignatures = mysqlTable('coa_signatures', {
+  id: int('id').primaryKey().autoincrement(),
+  coaId: int('coa_id').notNull().references(() => mysqlCoaDocuments.id),
+  role: varchar('role', { length: 50 }).notNull(),
+  userId: int('user_id').notNull().references(() => mysqlUsers.id),
+  userNameSnapshot: varchar('user_name_snapshot', { length: 100 }),
+  userTitleSnapshot: varchar('user_title_snapshot', { length: 100 }),
+  signedAt: datetime('signed_at').notNull(),
+  signatureImagePath: varchar('signature_image_path', { length: 500 }),
+  signatureMeaning: varchar('signature_meaning', { length: 50 }),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Print History — MySQL
+export const mysqlCoaPrintHistory = mysqlTable('coa_print_history', {
+  id: int('id').primaryKey().autoincrement(),
+  coaId: int('coa_id').notNull().references(() => mysqlCoaDocuments.id),
+  printedBy: int('printed_by').notNull().references(() => mysqlUsers.id),
+  printedAt: datetime('printed_at').notNull(),
+  printType: varchar('print_type', { length: 30 }).notNull(),
+  customerEmail: varchar('customer_email', { length: 255 }),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// COA Verify Log — MySQL
+export const mysqlCoaVerifyLog = mysqlTable('coa_verify_log', {
+  id: int('id').primaryKey().autoincrement(),
+  coaId: int('coa_id').references(() => mysqlCoaDocuments.id),
+  qrTokenAttempted: varchar('qr_token_attempted', { length: 64 }),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: varchar('user_agent', { length: 500 }),
+  referer: varchar('referer', { length: 500 }),
+  result: varchar('result', { length: 20 }).notNull().default('found'),
+  verifiedAt: datetime('verified_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// ============================================
+// Material Return Module — Phase 1 Schema
+// Standards: FDA 21 CFR 211.103 (yield reconciliation),
+//            FDA 21 CFR 211.101–105 (charge-in/control of components),
+//            PIC/S PE 009 Annex 7 (herbal reconciliation),
+//            WHO Annex 2 (issue/dispense/return docs),
+//            Industry: Oracle MES "Reverse Dispense", SAP movement type 262
+// Note: source_requisition_id from design doc OMITTED — this project embeds
+// requisition fields on work_orders (no separate inventory_requisitions table).
+// ============================================
+
+// ---------- SQLite (testing) ----------
+
+// Material Returns — header for a return event (production -> warehouse trip)
+// Status flow: draft -> submitted -> received | rejected
+export const sqliteMaterialReturns = sqliteTable('material_returns', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  returnNumber: text('return_number').notNull().unique(), // e.g. "RET-2026-0001"
+  workOrderId: integer('work_order_id').references(() => sqliteWorkOrders.id),
+  returnDate: text('return_date').notNull(),
+  returnedBy: integer('returned_by').notNull().references(() => sqliteUsers.id),
+  receivingWarehouseId: integer('receiving_warehouse_id').notNull().references(() => sqliteWarehouses.id),
+  status: text('status').notNull().default('draft'), // draft|submitted|received|rejected
+  // QA approval
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  rejectionReason: text('rejection_reason'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Material Return Lines — per-item detail with reconciliation + variance tracking
+export const sqliteMaterialReturnLines = sqliteTable('material_return_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  returnId: integer('return_id').notNull().references(() => sqliteMaterialReturns.id),
+  // What was issued
+  sourceLotId: integer('source_lot_id').notNull().references(() => sqliteInventoryLots.id),
+  itemId: integer('item_id').notNull().references(() => sqliteItems.id),
+  issuedQty: real('issued_qty').notNull(),
+  issuedUnit: text('issued_unit').notNull(),
+  // What was used
+  usedQty: real('used_qty').notNull(),
+  usedUnit: text('used_unit').notNull(),
+  // What is being returned
+  returnQty: real('return_qty').notNull(),
+  returnUnit: text('return_unit').notNull(), // DISPENSE unit (small), per industry standard
+  // New lot for the returned portion (created on approval)
+  returnedLotId: integer('returned_lot_id').references(() => sqliteInventoryLots.id),
+  // Container tracking (cross-contamination prevention)
+  returnContainerLabel: text('return_container_label'), // e.g. "RTN-2026-0001-A"
+  returnContainerType: text('return_container_type'), // bag|drum|bottle
+  // Variance reconciliation
+  expectedVarianceQty: real('expected_variance_qty'), // known process loss
+  varianceQty: real('variance_qty').notNull(), // = issued - used - return
+  variancePct: real('variance_pct').notNull(), // = variance / issued * 100
+  varianceReason: text('variance_reason').notNull(), // process_loss|sampling|spillage|cleaning|measurement_error|unaccounted|other
+  varianceExplanation: text('variance_explanation'),
+  isOutsideTolerance: integer('is_outside_tolerance', { mode: 'boolean' }).notNull().default(false),
+  deviationId: integer('deviation_id').references(() => sqliteDeviations.id),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Material Variance Tolerances — per-item or per-category tolerance config
+// Lookup precedence: specific item_id wins over item_category fallback
+export const sqliteMaterialVarianceTolerances = sqliteTable('material_variance_tolerances', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  itemId: integer('item_id').references(() => sqliteItems.id), // null = category-level rule
+  itemCategory: text('item_category'), // 'active','inactive','excipient','herb', etc.
+  tolerancePct: real('tolerance_pct').notNull(), // e.g. 1.0 for active, 3.0 for inactive
+  effectiveFrom: text('effective_from').notNull(),
+  effectiveTo: text('effective_to'),
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ---------- MySQL (production) ----------
+
+// Material Returns — MySQL
+export const mysqlMaterialReturns = mysqlTable('material_returns', {
+  id: int('id').primaryKey().autoincrement(),
+  returnNumber: varchar('return_number', { length: 30 }).notNull().unique(),
+  workOrderId: int('work_order_id').references(() => mysqlWorkOrders.id),
+  returnDate: datetime('return_date').notNull(),
+  returnedBy: int('returned_by').notNull().references(() => mysqlUsers.id),
+  receivingWarehouseId: int('receiving_warehouse_id').notNull().references(() => mysqlWarehouses.id),
+  status: varchar('status', { length: 20 }).notNull().default('draft'),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  rejectionReason: mysqlText('rejection_reason'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Material Return Lines — MySQL
+export const mysqlMaterialReturnLines = mysqlTable('material_return_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  returnId: int('return_id').notNull().references(() => mysqlMaterialReturns.id),
+  sourceLotId: int('source_lot_id').notNull().references(() => mysqlInventoryLots.id),
+  itemId: int('item_id').notNull().references(() => mysqlItems.id),
+  issuedQty: decimal('issued_qty', { precision: 15, scale: 4 }).notNull(),
+  issuedUnit: varchar('issued_unit', { length: 20 }).notNull(),
+  usedQty: decimal('used_qty', { precision: 15, scale: 4 }).notNull(),
+  usedUnit: varchar('used_unit', { length: 20 }).notNull(),
+  returnQty: decimal('return_qty', { precision: 15, scale: 4 }).notNull(),
+  returnUnit: varchar('return_unit', { length: 20 }).notNull(),
+  returnedLotId: int('returned_lot_id').references(() => mysqlInventoryLots.id),
+  returnContainerLabel: varchar('return_container_label', { length: 50 }),
+  returnContainerType: varchar('return_container_type', { length: 50 }),
+  expectedVarianceQty: decimal('expected_variance_qty', { precision: 15, scale: 4 }),
+  varianceQty: decimal('variance_qty', { precision: 15, scale: 4 }).notNull(),
+  variancePct: decimal('variance_pct', { precision: 8, scale: 4 }).notNull(),
+  varianceReason: varchar('variance_reason', { length: 30 }).notNull(),
+  varianceExplanation: mysqlText('variance_explanation'),
+  isOutsideTolerance: mysqlBoolean('is_outside_tolerance').notNull().default(false),
+  deviationId: int('deviation_id').references(() => mysqlDeviations.id),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Material Variance Tolerances — MySQL
+export const mysqlMaterialVarianceTolerances = mysqlTable('material_variance_tolerances', {
+  id: int('id').primaryKey().autoincrement(),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  itemCategory: varchar('item_category', { length: 50 }),
+  tolerancePct: decimal('tolerance_pct', { precision: 8, scale: 4 }).notNull(),
+  effectiveFrom: datetime('effective_from').notNull(),
+  effectiveTo: datetime('effective_to'),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Export type aliases for easier use
@@ -6060,6 +7021,8 @@ export type EnvironmentalCondition = typeof sqliteEnvironmentalConditions.$infer
 export type NewEnvironmentalCondition = typeof sqliteEnvironmentalConditions.$inferInsert;
 export type SOPStepTemplate = typeof sqliteSOPStepTemplates.$inferSelect;
 export type NewSOPStepTemplate = typeof sqliteSOPStepTemplates.$inferInsert;
+export type SOPTemplateStep = typeof sqliteSOPTemplateSteps.$inferSelect;
+export type NewSOPTemplateStep = typeof sqliteSOPTemplateSteps.$inferInsert;
 export type PackagingQCCriteria = typeof sqlitePackagingQCCriteria.$inferSelect;
 export type NewPackagingQCCriteria = typeof sqlitePackagingQCCriteria.$inferInsert;
 
@@ -6074,6 +7037,12 @@ export type BOMSOPStep = typeof sqliteBOMSOPSteps.$inferSelect;
 export type NewBOMSOPStep = typeof sqliteBOMSOPSteps.$inferInsert;
 export type BOMPackagingQC = typeof sqliteBOMPackagingQC.$inferSelect;
 export type NewBOMPackagingQC = typeof sqliteBOMPackagingQC.$inferInsert;
+export type IPCCriteria = typeof sqliteIPCCriteria.$inferSelect;
+export type NewIPCCriteria = typeof sqliteIPCCriteria.$inferInsert;
+export type BOMInProcessQC = typeof sqliteBOMInProcessQC.$inferSelect;
+export type NewBOMInProcessQC = typeof sqliteBOMInProcessQC.$inferInsert;
+export type IPCTestSample = typeof sqliteIPCTestSamples.$inferSelect;
+export type NewIPCTestSample = typeof sqliteIPCTestSamples.$inferInsert;
 
 // Phase 3: Work Order Execution (BMPR Form)
 export type WOEnvironmentalLog = typeof sqliteWOEnvironmentalLogs.$inferSelect;
@@ -6174,6 +7143,38 @@ export type StandardCost = typeof sqliteStandardCosts.$inferSelect;
 export type NewStandardCost = typeof sqliteStandardCosts.$inferInsert;
 export type VarianceRecord = typeof sqliteVarianceRecords.$inferSelect;
 export type NewVarianceRecord = typeof sqliteVarianceRecords.$inferInsert;
+
+// QC + COA Module (Phase 1)
+export type QcSample = typeof sqliteQcSamples.$inferSelect;
+export type NewQcSample = typeof sqliteQcSamples.$inferInsert;
+export type QcSampleTest = typeof sqliteQcSampleTests.$inferSelect;
+export type NewQcSampleTest = typeof sqliteQcSampleTests.$inferInsert;
+export type QcTestPanel = typeof sqliteQcTestPanels.$inferSelect;
+export type NewQcTestPanel = typeof sqliteQcTestPanels.$inferInsert;
+export type QcOosInvestigation = typeof sqliteQcOosInvestigations.$inferSelect;
+export type NewQcOosInvestigation = typeof sqliteQcOosInvestigations.$inferInsert;
+export type QcSampleSignature = typeof sqliteQcSampleSignatures.$inferSelect;
+export type NewQcSampleSignature = typeof sqliteQcSampleSignatures.$inferInsert;
+export type CoaTemplate = typeof sqliteCoaTemplates.$inferSelect;
+export type NewCoaTemplate = typeof sqliteCoaTemplates.$inferInsert;
+export type CoaDocument = typeof sqliteCoaDocuments.$inferSelect;
+export type NewCoaDocument = typeof sqliteCoaDocuments.$inferInsert;
+export type CoaTestResult = typeof sqliteCoaTestResults.$inferSelect;
+export type NewCoaTestResult = typeof sqliteCoaTestResults.$inferInsert;
+export type CoaSignature = typeof sqliteCoaSignatures.$inferSelect;
+export type NewCoaSignature = typeof sqliteCoaSignatures.$inferInsert;
+export type CoaPrintHistory = typeof sqliteCoaPrintHistory.$inferSelect;
+export type NewCoaPrintHistory = typeof sqliteCoaPrintHistory.$inferInsert;
+export type CoaVerifyLog = typeof sqliteCoaVerifyLog.$inferSelect;
+export type NewCoaVerifyLog = typeof sqliteCoaVerifyLog.$inferInsert;
+
+// Material Return Module (Phase 1)
+export type MaterialReturn = typeof sqliteMaterialReturns.$inferSelect;
+export type NewMaterialReturn = typeof sqliteMaterialReturns.$inferInsert;
+export type MaterialReturnLine = typeof sqliteMaterialReturnLines.$inferSelect;
+export type NewMaterialReturnLine = typeof sqliteMaterialReturnLines.$inferInsert;
+export type MaterialVarianceTolerance = typeof sqliteMaterialVarianceTolerances.$inferSelect;
+export type NewMaterialVarianceTolerance = typeof sqliteMaterialVarianceTolerances.$inferInsert;
 
 // ============================================
 // Template Module (ERP Prototype)

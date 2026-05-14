@@ -17,6 +17,7 @@ import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxButton } from '@/components/ui/dx-button';
 import { FormSection, FormField } from '@/components/shared';
 import type { ManufacturingContract, ContractCreate, ContractorType } from '@/types/contracts';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 interface ContractDataEntryDialogProps {
   visible: boolean;
@@ -168,7 +169,7 @@ export function ContractDataEntryDialog({
                 setFormData((prev) => ({
                   ...prev,
                   effectiveDate: e.value
-                    ? new Date(e.value).toISOString().split('T')[0]
+                    ? toLocalDateStr(new Date(e.value))
                     : '',
                 }))
               }
@@ -184,7 +185,7 @@ export function ContractDataEntryDialog({
                 setFormData((prev) => ({
                   ...prev,
                   expirationDate: e.value
-                    ? new Date(e.value).toISOString().split('T')[0]
+                    ? toLocalDateStr(new Date(e.value))
                     : '',
                 }))
               }

@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -55,6 +56,7 @@ const exceptionTypeLabels: Record<string, string> = {
 };
 
 export default function MatchingExceptionsPage() {
+  const t = useTranslations('accounting');
   const [exceptions, setExceptions] = useState<Exception[]>([]);
   const [summary, setSummary] = useState<MatchingSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -192,7 +194,7 @@ export default function MatchingExceptionsPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            Matching Exceptions
+            {t('page.title')}
           </h1>
           <p className="text-gray-600">
             Review and resolve 3-way matching exceptions

@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { StabilityStudyList } from '@/components/stability';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
@@ -39,20 +40,22 @@ async function fetchStudies(
 // Component
 // ============================================
 
-const statusOptions = [
-  { value: '', label: 'All Status' },
-  { value: 'active', label: 'Active' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'on_hold', label: 'On Hold' },
-  { value: 'cancelled', label: 'Cancelled' },
-];
-
 export default function StabilityStudiesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('gmp');
   const productId = searchParams.get('productId');
 
   const [statusFilter, setStatusFilter] = useState<StabilityStudyStatus | ''>('');
+
+  // Status options with translations
+  const statusOptions = [
+    { value: '', label: t('common.allStatus') },
+    { value: 'active', label: t('stability.status.active') },
+    { value: 'completed', label: t('stability.status.completed') },
+    { value: 'on_hold', label: t('stability.status.onHold') },
+    { value: 'cancelled', label: t('stability.status.cancelled') },
+  ];
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['stability-studies', statusFilter, productId],
@@ -67,7 +70,7 @@ export default function StabilityStudiesPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
-          <p className="text-destructive">Failed to load studies</p>
+          <p className="text-destructive">{t('stability.studies.failedToLoad')}</p>
         </div>
       </div>
     );
@@ -77,12 +80,12 @@ export default function StabilityStudiesPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Stability Studies"
-        subtitle="Enrolled batch studies and sample schedules"
+        title={t('stability.studies.title')}
+        subtitle={t('stability.studies.description')}
         onBack={() => router.push('/gmp/stability')}
         actions={
           <DxButton
-            text="Enroll Batch"
+            text={t('stability.actions.enrollBatch')}
             icon="add"
             onClick={() => router.push('/gmp/stability/studies/new')}
             type="default"
@@ -99,7 +102,7 @@ export default function StabilityStudiesPage() {
             displayExpr="label"
             value={statusFilter}
             onValueChanged={(e) => setStatusFilter(e.value)}
-            placeholder="Filter by status..."
+            placeholder={t('stability.studies.filterByStatus')}
           />
         </div>
       </div>

@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -93,6 +94,7 @@ const commonConditions = [
 
 export default function NewProtocolPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
 
   // Form state
   const [name, setName] = useState('');
@@ -186,7 +188,7 @@ export default function NewProtocolPage() {
   const timepointColumns: DxDataGridColumn[] = [
     {
       dataField: 'month',
-      caption: 'Timepoint (Months)',
+      caption: t('stability.newProtocol.timepointMonths'),
       width: 180,
       cellRender: (cellData) => {
         const row = cellData.data as TimepointRow;
@@ -204,7 +206,7 @@ export default function NewProtocolPage() {
     },
     {
       dataField: 'tests',
-      caption: 'Tests Required',
+      caption: t('stability.newProtocol.testsRequired'),
       cellRender: (cellData) => {
         const row = cellData.data as TimepointRow;
         const selectedTests = (cellData.value ?? []) as number[];
@@ -215,7 +217,7 @@ export default function NewProtocolPage() {
             displayExpr="testName"
             value={selectedTests}
             onValueChanged={(e) => updateTimepointTests(row.id, e.value || [])}
-            placeholder="Select tests..."
+            placeholder={t('stability.newProtocol.selectTests')}
             disabled={testsLoading || !availableTests}
             searchEnabled={true}
             showClearButton={true}
@@ -244,18 +246,18 @@ export default function NewProtocolPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Create Stability Protocol"
-        subtitle="Define a new standardized protocol for stability testing"
+        title={t('stability.newProtocol.title')}
+        subtitle={t('stability.newProtocol.description')}
         onBack={() => router.push('/gmp/stability/protocols')}
         actions={
           <div className="flex items-center gap-2">
             <DxButton
-              text="Cancel"
+              text={t('stability.actions.cancel')}
               onClick={() => router.push('/gmp/stability/protocols')}
               stylingMode="outlined"
             />
             <DxButton
-              text="Save Protocol"
+              text={t('stability.actions.saveProtocol')}
               icon="save"
               onClick={handleSubmit}
               type="default"
@@ -269,33 +271,33 @@ export default function NewProtocolPage() {
       <div className="bg-card border rounded-lg shadow-sm p-6 space-y-6">
         {/* Basic Info Section */}
         <div>
-          <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+          <h3 className="text-lg font-semibold mb-4">{t('stability.newProtocol.basicInfo')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Protocol Name *</label>
+              <label className="block text-sm font-medium mb-2">{t('stability.newProtocol.protocolName')} *</label>
               <DxTextBox
                 value={name}
                 onValueChanged={(e) => setName(e.value)}
-                placeholder="e.g., Herbal Tablet Long-term Stability"
+                placeholder={t('stability.newProtocol.protocolNamePlaceholder')}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Product *</label>
+              <label className="block text-sm font-medium mb-2">{t('stability.newProtocol.product')} *</label>
               <DxSelectBox
                 dataSource={products || []}
                 valueExpr="id"
                 displayExpr="name"
                 value={productId}
                 onValueChanged={(e) => setProductId(e.value)}
-                placeholder="Select product..."
+                placeholder={t('stability.newProtocol.selectProduct')}
                 searchEnabled={true}
                 showClearButton={true}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Study Type *</label>
+              <label className="block text-sm font-medium mb-2">{t('stability.newProtocol.studyType')} *</label>
               <DxSelectBox
                 dataSource={studyTypes}
                 valueExpr="value"
@@ -306,13 +308,13 @@ export default function NewProtocolPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Storage Condition *</label>
+              <label className="block text-sm font-medium mb-2">{t('stability.newProtocol.storageCondition')} *</label>
               <DxSelectBox
                 dataSource={commonConditions}
                 value={storageCondition}
                 onValueChanged={(e) => setStorageCondition(e.value)}
                 searchEnabled={true}
-                placeholder="Select condition..."
+                placeholder={t('stability.newProtocol.selectCondition')}
                 showClearButton={false}
               />
             </div>
@@ -322,9 +324,9 @@ export default function NewProtocolPage() {
         {/* Timepoints Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Sampling Timepoints</h3>
+            <h3 className="text-lg font-semibold">{t('stability.newProtocol.samplingTimepoints')}</h3>
             <DxButton
-              text="Add Timepoint"
+              text={t('stability.actions.addTimepoint')}
               icon="add"
               onClick={addTimepoint}
               type="default"
@@ -334,7 +336,7 @@ export default function NewProtocolPage() {
 
           {!productId && (
             <div className="bg-muted rounded-lg p-4 text-center text-muted-foreground">
-              Select a product first to configure timepoints and tests
+              {t('stability.newProtocol.selectProductFirst')}
             </div>
           )}
 
@@ -354,8 +356,7 @@ export default function NewProtocolPage() {
           )}
 
           <p className="text-sm text-muted-foreground mt-2">
-            Define sampling timepoints in months from study start (e.g., 0, 1, 3, 6, 12, 18, 24).
-            Select which tests to perform at each timepoint.
+            {t('stability.newProtocol.timepointsHelp')}
           </p>
         </div>
 
@@ -363,7 +364,7 @@ export default function NewProtocolPage() {
         {!canSubmit() && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              Please complete all required fields and add at least one timepoint.
+              {t('stability.newProtocol.validationMessage')}
             </p>
           </div>
         )}

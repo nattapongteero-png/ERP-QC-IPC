@@ -433,8 +433,7 @@ describe('JournalEntriesPage', () => {
   describe('Page Header and Layout', () => {
     it('renders professional page header with Thai and English titles', async () => {
       render(<JournalEntriesPage />, { wrapper: createWrapper() });
-      expect(screen.getByText('รายการบันทึกบัญชี')).toBeInTheDocument();
-      expect(screen.getByText('Journal Entries')).toBeInTheDocument();
+      expect(screen.getAllByText('Journal Entries').length).toBeGreaterThan(0);
     });
 
     it('renders add entry button in header', async () => {
@@ -449,10 +448,10 @@ describe('JournalEntriesPage', () => {
       render(<JournalEntriesPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByText('รายการทั้งหมด')).toBeInTheDocument();
-        expect(screen.getByText('ร่าง')).toBeInTheDocument();
-        expect(screen.getByText('ผ่านแล้ว')).toBeInTheDocument();
-        expect(screen.getByText('กลับรายการ')).toBeInTheDocument();
+        expect(screen.getByText('Total Entries')).toBeInTheDocument();
+        expect(screen.getByText('Draft')).toBeInTheDocument();
+        expect(screen.getByText('Posted')).toBeInTheDocument();
+        expect(screen.getByText('Reversed')).toBeInTheDocument();
       });
     });
 
@@ -475,8 +474,8 @@ describe('JournalEntriesPage', () => {
 
       const filterPanel = screen.getByTestId('filter-panel');
       expect(filterPanel).toBeInTheDocument();
-      expect(screen.getByText('สถานะ')).toBeInTheDocument();
-      expect(screen.getByText('ประเภท')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
+      expect(screen.getByText('Type')).toBeInTheDocument();
     });
   });
 
@@ -667,7 +666,7 @@ describe('JournalEntriesPage', () => {
 
       // Should not crash
       render(<JournalEntriesPage />, { wrapper: createWrapper() });
-      expect(screen.getByText('รายการบันทึกบัญชี')).toBeInTheDocument();
+      expect(screen.getAllByText('Journal Entries').length).toBeGreaterThan(0);
     });
   });
 });

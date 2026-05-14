@@ -137,6 +137,8 @@ export function hasAccountingPermission(
   role: string,
   permission: AccountingPermission
 ): boolean {
+  // Administrator bypasses all permission checks
+  if (role === ROLES.ADMIN) return true;
   const allowedRoles = ACCOUNTING_PERMISSIONS[permission];
   return Array.isArray(allowedRoles) && allowedRoles.includes(role as any);
 }

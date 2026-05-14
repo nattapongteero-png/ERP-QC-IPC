@@ -1,0 +1,2207 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checklist การติดตั้งระบบ Herbal Medicine ERP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;
+      --border:#e2e8f0;--border-strong:#cbd5e1;
+      --accent:#2563eb;--accent-dark:#1d4ed8;--accent-light:#eff6ff;
+      --success:#10b981;--success-bg:#ecfdf5;--success-border:#a7f3d0;
+      --warning:#f59e0b;--warning-bg:#fffbeb;
+      --danger:#ef4444;--danger-bg:#fef2f2;
+      --p1:#7c3aed;--p1-light:#f5f3ff;
+      --p2:#2563eb;--p2-light:#eff6ff;
+      --p3:#10b981;--p3-light:#ecfdf5;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.05);
+      --shadow-md:0 4px 8px rgba(15,23,42,.06);
+      --shadow-lg:0 8px 20px rgba(15,23,42,.08);
+    }
+    body{font-family:'Sarabun','Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:15px;-webkit-text-size-adjust:100%;}
+
+    /* ═══════ HEADER ═══════ */
+    .header{background:linear-gradient(135deg,#1e3a8a 0%,#1e40af 30%,#2563eb 60%,#3b82f6 100%);color:white;padding:36px 16px 28px;text-align:center;position:relative;overflow:hidden;}
+    .header::before{content:'';position:absolute;top:-50%;right:-20%;width:500px;height:500px;background:rgba(255,255,255,0.04);border-radius:50%;}
+    .header::after{content:'';position:absolute;bottom:-40%;left:-10%;width:400px;height:400px;background:rgba(255,255,255,0.04);border-radius:50%;}
+    .header>*{position:relative;z-index:1;}
+    .header .logo{display:inline-flex;align-items:center;justify-content:center;width:68px;height:68px;background:rgba(255,255,255,0.15);border-radius:20px;font-size:34px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.2);}
+    .header h1{font-size:clamp(22px,4vw,28px);font-weight:700;margin:0;letter-spacing:-0.01em;}
+    .header .subtitle{font-size:clamp(13px,2.5vw,16px);opacity:0.9;margin-top:6px;}
+    .header .meta{display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:6px 16px;background:rgba(255,255,255,0.15);border-radius:22px;font-size:13px;font-weight:500;border:1px solid rgba(255,255,255,0.2);}
+
+    /* ═══════ STICKY TOP BAR ═══════ */
+    .top-bar{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,0.04);padding:12px 16px;}
+    .top-bar-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+    .stats-group{display:flex;gap:8px;flex-wrap:wrap;flex:1;min-width:0;}
+    .stats-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:10px;font-size:13px;font-weight:600;background:var(--accent-light);color:var(--accent-dark);border:1px solid #bfdbfe;white-space:nowrap;}
+    .stats-pill .num{font-size:17px;font-weight:800;}
+    .stats-pill.done{background:var(--success-bg);color:#065f46;border-color:var(--success-border);}
+    .stats-pill.pending{background:var(--warning-bg);color:#92400e;border-color:#fde68a;}
+
+    .actions-group{display:flex;gap:8px;flex-wrap:wrap;}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;border:1px solid transparent;font-family:inherit;text-decoration:none;white-space:nowrap;min-height:38px;}
+    .btn-primary{background:var(--accent);color:white;border-color:var(--accent);}
+    .btn-primary:hover{background:var(--accent-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,0.25);}
+    .btn-outline{background:white;color:var(--accent);border-color:var(--accent);}
+    .btn-outline:hover{background:var(--accent-light);}
+    .btn-ghost{background:transparent;color:var(--muted);border-color:var(--border-strong);}
+    .btn-ghost:hover{background:var(--bg);color:var(--text);}
+    .btn svg{width:16px;height:16px;}
+
+    /* ═══════ TOOLBAR (search + filter) ═══════ */
+    .toolbar{max-width:1200px;margin:20px auto 0;padding:0 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+    .search-wrap{position:relative;flex:1;min-width:240px;}
+    .search-input{width:100%;padding:10px 16px 10px 40px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;background:white;color:var(--text);transition:all 0.2s;}
+    .search-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+    .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;}
+
+    .filter-tabs{display:flex;gap:4px;background:white;padding:4px;border:1px solid var(--border);border-radius:12px;}
+    .filter-tab{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;transition:all 0.15s;white-space:nowrap;}
+    .filter-tab:hover{color:var(--text);}
+    .filter-tab.active{background:var(--accent);color:white;}
+    .filter-tab .count{opacity:0.7;font-size:11px;margin-left:3px;}
+    .filter-tab.active .count{opacity:0.9;}
+
+    /* ═══════ CONTAINER ═══════ */
+    .container{max-width:1200px;margin:0 auto;padding:20px 16px 80px;}
+
+    /* ═══════ OVERVIEW CARD + PROGRESS ═══════ */
+    .overview{background:white;border-radius:16px;padding:22px 26px;margin-bottom:24px;border:1px solid var(--border);box-shadow:var(--shadow-sm);}
+    .overview-head{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+    .overview-text{flex:1;min-width:200px;}
+    .overview h2{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+    .overview p{color:var(--muted);font-size:14px;line-height:1.5;}
+    .progress-ring{position:relative;width:96px;height:96px;flex-shrink:0;}
+    .progress-ring svg{transform:rotate(-90deg);width:100%;height:100%;}
+    .progress-ring .track{fill:none;stroke:#e2e8f0;stroke-width:8;}
+    .progress-ring .fill{fill:none;stroke:url(#gradientOverall);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 0.5s ease;}
+    .progress-ring .label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+    .progress-ring .pct{font-size:22px;font-weight:800;color:var(--accent);line-height:1;}
+    .progress-ring .caption{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;}
+
+    .progress-bar{margin-top:14px;background:#f1f5f9;border-radius:10px;height:10px;overflow:hidden;}
+    .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent) 0%,#3b82f6 100%);transition:width 0.4s ease;border-radius:10px;}
+    .progress-text{font-size:12px;color:var(--muted);margin-top:6px;text-align:right;font-weight:600;}
+
+    /* ═══════ PHASE CARDS ═══════ */
+    .phase-grid{display:flex;flex-direction:column;gap:20px;}
+    .phase-card{background:white;border-radius:16px;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow-sm);transition:box-shadow 0.2s;}
+    .phase-card:hover{box-shadow:var(--shadow-md);}
+
+    .phase-head{padding:18px 22px;display:flex;align-items:center;gap:14px;color:white;cursor:pointer;user-select:none;}
+    .phase-1 .phase-head{background:linear-gradient(135deg,#7c3aed 0%,#8b5cf6 100%);}
+    .phase-2 .phase-head{background:linear-gradient(135deg,#1e40af 0%,#2563eb 100%);}
+    .phase-3 .phase-head{background:linear-gradient(135deg,#059669 0%,#10b981 100%);}
+    .phase-head .num-badge{width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;border:1px solid rgba(255,255,255,0.3);flex-shrink:0;}
+    .phase-head .title{flex:1;min-width:0;}
+    .phase-head .title .kicker{font-size:11px;opacity:0.85;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:2px;font-weight:600;}
+    .phase-head .title h3{font-size:17px;font-weight:700;margin:0;line-height:1.3;}
+    .phase-head .phase-progress{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+    .phase-head .count-badge{padding:4px 12px;background:rgba(255,255,255,0.25);border-radius:16px;font-size:12px;font-weight:700;}
+    .phase-head .mini-bar{width:80px;height:4px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;}
+    .phase-head .mini-bar-fill{height:100%;background:white;border-radius:4px;transition:width 0.3s;}
+    .phase-head .chevron{transition:transform 0.2s;margin-left:4px;font-size:14px;}
+    .phase-card.collapsed .phase-head .chevron{transform:rotate(-90deg);}
+    .phase-card.collapsed .phase-body{display:none;}
+
+    .phase-body{padding:0;}
+
+    /* ═══════ SUBSECTION ═══════ */
+    .subsection{padding:18px 22px;border-bottom:1px solid #f1f5f9;}
+    .subsection:last-child{border-bottom:none;}
+    .subsection-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+    .subsection-title{font-size:14px;font-weight:700;color:#334155;display:flex;align-items:center;gap:8px;}
+    .subsection-title .icon{font-size:16px;}
+    .section-progress-chip{margin-left:auto;font-size:11px;font-weight:700;padding:2px 10px;border-radius:12px;background:#f1f5f9;color:var(--muted);border:1px solid var(--border);}
+    .section-progress-chip.complete{background:var(--success-bg);color:#065f46;border-color:var(--success-border);}
+
+    /* ═══════ CHECKLIST ITEMS ═══════ */
+    .checklist{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;}
+    .checklist-item{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:#f8fafc;border-left:3px solid #cbd5e1;border-radius:10px;cursor:pointer;transition:all 0.2s;position:relative;}
+    .checklist-item:hover{background:var(--accent-light);border-left-color:var(--accent);transform:translateX(2px);}
+    .checklist-item.checked{background:var(--success-bg);border-left-color:var(--success);}
+    .checklist-item.checked .item-text{text-decoration:line-through;color:var(--muted);}
+    .checklist-item.checked .item-text strong{color:#047857;}
+    .checklist-item.hidden{display:none;}
+    .checklist-item input[type="checkbox"]{margin-top:3px;width:18px;height:18px;cursor:pointer;accent-color:var(--success);flex-shrink:0;}
+    .item-text{flex:1;min-width:0;font-size:14px;color:var(--text);}
+    .item-text strong{color:var(--p2);}
+    .item-hint{display:block;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5;}
+    .phase-1 .checklist-item:hover{background:var(--p1-light);border-left-color:var(--p1);}
+    .phase-1 .item-text strong{color:var(--p1);}
+    .phase-3 .checklist-item:hover{background:var(--p3-light);border-left-color:var(--p3);}
+    .phase-3 .item-text strong{color:#047857;}
+    .phase-3 .checklist-item.checked{border-left-color:var(--p3);}
+
+    /* Empty/filtered state */
+    .empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;}
+    .empty-state .icon{font-size:40px;opacity:0.4;display:block;margin-bottom:8px;}
+
+    /* ═══════ Tab Navigation ═══════ */
+    .tabs-wrap{max-width:1200px;margin:20px auto 0;padding:0 16px;}
+    .tabs-nav{display:flex;gap:4px;background:white;padding:5px;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm);overflow-x:auto;}
+    .tab-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;transition:all 0.2s;white-space:nowrap;min-height:44px;}
+    .tab-btn:hover{color:var(--text);background:var(--bg);}
+    .tab-btn.active{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-dark) 100%);color:white;box-shadow:0 2px 8px rgba(37,99,235,0.25);}
+    .tab-btn .tab-icon{font-size:18px;}
+    .tab-btn .tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 7px;border-radius:10px;font-size:11px;font-weight:700;background:rgba(255,255,255,0.25);margin-left:4px;}
+    .tab-btn:not(.active) .tab-count{background:var(--bg);color:var(--muted);}
+    .tab-panel{display:none;}
+    .tab-panel.active{display:block;}
+
+    /* ═══════ Template download button (per-item) ═══════ */
+    .tpl-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--success-border);background:var(--success-bg);color:var(--success);font-family:inherit;margin-left:8px;transition:all 0.2s;flex-shrink:0;}
+    .tpl-btn:hover{background:var(--success);color:white;transform:translateY(-1px);box-shadow:0 2px 6px rgba(16,185,129,0.2);}
+    .tpl-btn svg{width:12px;height:12px;}
+    .checklist-item .item-wrap{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+    .checklist-item .item-wrap .item-text{flex:1;min-width:200px;}
+    .factory-hint{display:block;font-size:12px;color:var(--muted);margin-top:3px;padding-left:0;line-height:1.5;}
+
+    @media(max-width:640px){
+      .tpl-btn{margin-left:0;margin-top:4px;}
+      .checklist-item .item-wrap .item-text{flex:100%;min-width:0;}
+    }
+
+    /* ═══════ FOOTER ═══════ */
+    .footer{text-align:center;color:var(--muted);font-size:13px;padding:24px 20px;border-top:1px solid var(--border);margin-top:40px;}
+    .footer p{margin-top:4px;}
+
+    /* ═══════ BACK TO TOP ═══════ */
+    .back-to-top{position:fixed;bottom:24px;right:24px;width:46px;height:46px;border-radius:14px;background:var(--accent);color:white;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(37,99,235,0.35);z-index:50;font-size:22px;transition:transform 0.2s;}
+    .back-to-top:hover{transform:translateY(-3px);}
+    .back-to-top.visible{display:flex;}
+
+    /* ═══════ TOAST ═══════ */
+    .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:all 0.25s;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,0.2);}
+    .toast.visible{opacity:1;transform:translateX(-50%) translateY(0);}
+
+    /* ═══════ PRINT ═══════ */
+    @media print{
+      body{background:white;font-size:11pt;}
+      .header{padding:20px 0 14px;}
+      .top-bar,.toolbar,.back-to-top,.toast{display:none !important;}
+      .phase-card{break-inside:avoid;box-shadow:none;border:1px solid #333;}
+      .phase-card.collapsed .phase-body{display:block !important;}
+      .checklist-item{break-inside:avoid;}
+      .checklist-item.hidden{display:flex !important;}
+    }
+
+    /* ═══════ REDUCED MOTION ═══════ */
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:0.01ms !important;transition-duration:0.01ms !important;}
+    }
+
+    /* ═══════ MOBILE ═══════ */
+    @media(max-width:768px){
+      .overview-head{flex-direction:column;align-items:center;text-align:center;}
+      .progress-ring{order:-1;}
+    }
+    @media(max-width:640px){
+      body{font-size:14px;}
+      .header{padding:24px 12px 18px;}
+      .container{padding:16px 12px 60px;}
+      .overview{padding:18px;}
+      .phase-head{padding:14px 16px;gap:10px;}
+      .phase-head .num-badge{width:40px;height:40px;font-size:17px;}
+      .phase-head .title h3{font-size:15px;}
+      .phase-head .title .kicker{font-size:10px;}
+      .phase-head .phase-progress{align-items:flex-end;}
+      .phase-head .mini-bar{width:60px;}
+      .subsection{padding:14px 16px;}
+      .top-bar{padding:10px 12px;}
+      .stats-pill{padding:5px 10px;font-size:12px;}
+      .stats-pill .num{font-size:15px;}
+      .btn{padding:7px 12px;font-size:13px;}
+      .btn .label{display:none;}
+      .btn svg{width:18px;height:18px;}
+      .toolbar{gap:8px;margin-top:14px;}
+      .filter-tabs{width:100%;justify-content:space-between;}
+      .filter-tab{flex:1;text-align:center;padding:8px 6px;}
+      .checklist-item{padding:12px;gap:10px;}
+      .item-text{font-size:13.5px;}
+    }
+    @media(max-width:380px){
+      .stats-group{width:100%;justify-content:center;}
+      .actions-group{width:100%;justify-content:center;}
+    }
+  </style>
+</head>
+<body>
+  <!-- SVG gradient defs for progress ring -->
+  <svg width="0" height="0" style="position:absolute;">
+    <defs>
+      <linearGradient id="gradientOverall" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#2563eb"/>
+        <stop offset="100%" stop-color="#3b82f6"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="header">
+    <div class="logo">✅</div>
+    <h1>Checklist การติดตั้งระบบ</h1>
+    <div class="subtitle">Herbal Medicine ERP · Installation &amp; Operation Checklist</div>
+    <div class="meta">🔹 3 Phase · เตรียมตัว → ติดตั้ง → ดูแลต่อเนื่อง</div>
+  </div>
+
+  <!-- STICKY TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-inner">
+      <div class="stats-group">
+        <div class="stats-pill">
+          <span class="num" id="totalCount">0</span><span>รายการ</span>
+        </div>
+        <div class="stats-pill done">
+          <span class="num" id="checkedCount">0</span><span>เสร็จแล้ว</span>
+        </div>
+        <div class="stats-pill pending">
+          <span class="num" id="pendingCount">0</span><span>คงเหลือ</span>
+        </div>
+      </div>
+      <div class="actions-group">
+        <button class="btn btn-primary" type="button" onclick="exportToExcel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="label">ดาวน์โหลด Excel</span>
+        </button>
+        <button class="btn btn-outline" type="button" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          <span class="label">พิมพ์</span>
+        </button>
+        <button class="btn btn-ghost" type="button" onclick="resetChecklist()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          <span class="label">ล้าง</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH + FILTER TOOLBAR -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="search-input" id="searchInput" placeholder="ค้นหารายการตรวจสอบ... (กด / เพื่อโฟกัส)" aria-label="ค้นหา">
+    </div>
+    <div class="filter-tabs" role="tablist" aria-label="กรองรายการตามสถานะ">
+      <button class="filter-tab active" type="button" data-filter="all" role="tab">ทั้งหมด<span class="count" id="countAll">0</span></button>
+      <button class="filter-tab" type="button" data-filter="pending" role="tab">คงเหลือ<span class="count" id="countPending">0</span></button>
+      <button class="filter-tab" type="button" data-filter="done" role="tab">เสร็จแล้ว<span class="count" id="countDone">0</span></button>
+    </div>
+  </div>
+
+  <!-- TAB NAVIGATION — Split between Install Checklist + Factory Data -->
+  <div class="tabs-wrap">
+    <div class="tabs-nav" role="tablist">
+      <button class="tab-btn active" type="button" role="tab" data-tab="install" onclick="switchTab('install')">
+        <span class="tab-icon">📋</span>
+        <span>Checklist การติดตั้ง</span>
+        <span class="tab-count" id="tabCountInstall">0</span>
+      </button>
+      <button class="tab-btn" type="button" role="tab" data-tab="factory" onclick="switchTab('factory')">
+        <span class="tab-icon">📦</span>
+        <span>ขอข้อมูลพื้นฐานจากโรงงาน</span>
+        <span class="tab-count" id="tabCountFactory">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- OVERVIEW with progress ring -->
+    <div class="overview">
+      <div class="overview-head">
+        <div class="overview-text">
+          <h2 id="overviewTitle">📋 ภาพรวม Checklist การติดตั้ง</h2>
+          <p id="overviewDesc">รายการตรวจสอบการติดตั้งและใช้งานระบบ Herbal Medicine ERP ครอบคลุมตั้งแต่การเตรียมความพร้อมก่อนติดตั้ง การติดตั้งและดูแลระหว่างใช้งาน ไปจนถึงการดูแลรักษาหลังการติดตั้ง เพื่อให้ระบบทำงานอย่างเสถียร ข้อมูลปลอดภัย และเป็นไปตามมาตรฐาน GMP</p>
+        </div>
+        <div class="progress-ring" aria-hidden="true">
+          <svg viewBox="0 0 100 100">
+            <circle class="track" cx="50" cy="50" r="42"/>
+            <circle class="fill" cx="50" cy="50" r="42" id="progressCircle" stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+          </svg>
+          <div class="label">
+            <div class="pct" id="progressPct">0%</div>
+            <div class="caption">ก้าวหน้า</div>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-bar-fill" id="progressBar" style="width:0%;"></div>
+      </div>
+      <div class="progress-text" id="progressText">0 / 0 รายการ (0%)</div>
+    </div>
+
+    <!-- ═══════ TAB PANEL 1: INSTALL CHECKLIST ═══════ -->
+    <div class="tab-panel active" data-tab="install">
+    <div class="phase-grid">
+      <!-- ═══════ PHASE 1: Pre-installation ═══════ -->
+      <div class="phase-card phase-1" data-phase="1">
+        <div class="phase-head" onclick="togglePhase(this)" role="button" tabindex="0" aria-expanded="true">
+          <div class="num-badge">1</div>
+          <div class="title">
+            <div class="kicker">Phase 1 · Pre-installation</div>
+            <h3>🚀 การเตรียมตัวก่อนการใช้งาน</h3>
+          </div>
+          <div class="phase-progress">
+            <div class="count-badge" id="phase1Count">0/0</div>
+            <div class="mini-bar"><div class="mini-bar-fill" id="phase1Bar" style="width:0%;"></div></div>
+          </div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="phase-body">
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">💻</span> ฮาร์ดแวร์และโครงสร้างพื้นฐาน</div>
+              <div class="section-progress-chip" data-section="1-1">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="1-1-2" data-search="ระบบเครือข่าย network อินเทอร์เน็ต lan switch router"><input type="checkbox" id="cb-1-1-2"><label for="cb-1-1-2" class="item-text"><strong>ระบบเครือข่าย (Network)</strong> — ตรวจสอบความเร็วอินเทอร์เน็ต/LAN ≥ 100 Mbps และมี Switch/Router เพียงพอ</label></li>
+              <li class="checklist-item" data-id="1-1-4" data-search="client pc browser chrome edge firefox ram 8gb เครื่องลูกข่าย notebook"><input type="checkbox" id="cb-1-1-4"><label for="cb-1-1-4" class="item-text"><strong>เครื่องลูกข่าย (Client PC)</strong> — ตรวจสอบเครื่อง PC/Notebook ผู้ใช้: RAM ≥ 8GB, Browser ทันสมัย (Chrome/Edge/Firefox)</label></li>
+              <li class="checklist-item" data-id="1-1-5" data-search="อุปกรณ์เสริม barcode scanner label printer เครื่องชั่งดิจิทัล"><input type="checkbox" id="cb-1-1-5"><label for="cb-1-1-5" class="item-text"><strong>อุปกรณ์เสริม</strong> — เตรียม Barcode Scanner, Label Printer, เครื่องชั่งดิจิทัล (ถ้าใช้เชื่อมต่อ)</label></li>
+            </ul>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">📊</span> ข้อมูลพื้นฐาน (Master Data Preparation)</div>
+              <div class="section-progress-chip" data-section="1-2">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="1-2-1" data-search="รายการวัตถุดิบ raw materials สมุนไพร herbs รหัสสินค้า หน่วยนับ"><input type="checkbox" id="cb-1-2-1"><label for="cb-1-2-1" class="item-text"><strong>รายการวัตถุดิบ (Raw Materials)</strong> — รวบรวมรายการสมุนไพร/วัตถุดิบทั้งหมด พร้อมรหัส, ชื่อไทย/อังกฤษ, หน่วยนับ</label></li>
+              <li class="checklist-item" data-id="1-2-2" data-search="รายการบรรจุภัณฑ์ packaging วัสดุสิ้นเปลือง ฉลาก"><input type="checkbox" id="cb-1-2-2"><label for="cb-1-2-2" class="item-text"><strong>รายการบรรจุภัณฑ์</strong> — เตรียมข้อมูลบรรจุภัณฑ์, วัสดุสิ้นเปลือง, ฉลาก ฯลฯ</label></li>
+              <li class="checklist-item" data-id="1-2-3" data-search="สินค้าสำเร็จรูป finished goods fg"><input type="checkbox" id="cb-1-2-3"><label for="cb-1-2-3" class="item-text"><strong>รายการสินค้าสำเร็จรูป (FG)</strong> — เตรียมข้อมูลสินค้าสำเร็จรูปทั้งหมดที่ผลิต</label></li>
+              <li class="checklist-item" data-id="1-2-4" data-search="สูตรการผลิต bom bill of materials lot"><input type="checkbox" id="cb-1-2-4"><label for="cb-1-2-4" class="item-text"><strong>สูตรการผลิต (BOM)</strong> — เตรียมสูตรการผลิตทุกสินค้า ระบุวัตถุดิบและปริมาณที่ใช้ต่อ Lot</label></li>
+              <li class="checklist-item" data-id="1-2-5" data-search="supplier customer ผู้ขาย ลูกค้า"><input type="checkbox" id="cb-1-2-5"><label for="cb-1-2-5" class="item-text"><strong>รายชื่อ Supplier / Customer</strong> — เตรียมฐานข้อมูลผู้ขายวัตถุดิบและลูกค้าพร้อมข้อมูลติดต่อ</label></li>
+              <li class="checklist-item" data-id="1-2-6" data-search="ยอดสต๊อก opening balance ตรวจนับ"><input type="checkbox" id="cb-1-2-6"><label for="cb-1-2-6" class="item-text"><strong>ยอดสต๊อกเริ่มต้น (Opening Balance)</strong> — ตรวจนับสต๊อกวัตถุดิบ/สินค้าสำเร็จรูป ณ วันเริ่มระบบ</label></li>
+            </ul>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">👥</span> ทีมงานและสิทธิ์การใช้งาน</div>
+              <div class="section-progress-chip" data-section="1-3">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="1-3-1" data-search="รายชื่อผู้ใช้งาน users พนักงาน ตำแหน่ง แผนก"><input type="checkbox" id="cb-1-3-1"><label for="cb-1-3-1" class="item-text"><strong>รายชื่อผู้ใช้งาน (Users)</strong> — รวบรวมรายชื่อพนักงานที่ต้องใช้ระบบ พร้อมตำแหน่งและแผนก</label></li>
+              <li class="checklist-item" data-id="1-3-2" data-search="roles permissions สิทธิ์ admin production qc warehouse sales"><input type="checkbox" id="cb-1-3-2"><label for="cb-1-3-2" class="item-text"><strong>กำหนด Roles &amp; Permissions</strong> — ออกแบบสิทธิ์แต่ละบทบาท (Admin, Production, QC, Warehouse, Sales ฯลฯ)</label></li>
+              <li class="checklist-item" data-id="1-3-4" data-search="training plan อบรม ตารางอบรม บทบาท"><input type="checkbox" id="cb-1-3-4"><label for="cb-1-3-4" class="item-text"><strong>แผนการอบรม (Training Plan)</strong> — จัดตารางอบรมผู้ใช้งานตามบทบาท (ดูรายละเอียดในไฟล์ Training)</label></li>
+            </ul>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">📝</span> เอกสารและกระบวนการ</div>
+              <div class="section-progress-chip" data-section="1-4">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="1-4-1" data-search="process map กระบวนการทำงาน ผลิต จัดซื้อ ขาย"><input type="checkbox" id="cb-1-4-1"><label for="cb-1-4-1" class="item-text"><strong>Mapping กระบวนการทำงาน</strong> — จัดทำ Process Map ของกระบวนการผลิต/จัดซื้อ/ขาย ก่อนใช้ระบบ</label></li>
+              <li class="checklist-item" data-id="1-4-2" data-search="lot batch number รูปแบบ gmp มาตรฐาน"><input type="checkbox" id="cb-1-4-2"><label for="cb-1-4-2" class="item-text"><strong>นโยบายเลข Lot/Batch</strong> — กำหนดรูปแบบเลข Lot/Batch Number ให้เป็นมาตรฐานและสอดคล้อง GMP</label></li>
+              <li class="checklist-item" data-id="1-4-3" data-search="sop standard operating procedure module"><input type="checkbox" id="cb-1-4-3"><label for="cb-1-4-3" class="item-text"><strong>เอกสาร SOP</strong> — จัดทำเอกสาร Standard Operating Procedure สำหรับแต่ละ Module</label></li>
+              <li class="checklist-item" data-id="1-4-4" data-search="data migration plan ย้ายข้อมูล excel ระบบเดิม"><input type="checkbox" id="cb-1-4-4"><label for="cb-1-4-4" class="item-text"><strong>แผนการย้ายข้อมูล (Data Migration Plan)</strong> — วางแผนนำข้อมูลเก่าเข้าระบบใหม่ (จาก Excel/ระบบเดิม)</label></li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ═══════ PHASE 2: Installation & Operation ═══════ -->
+      <div class="phase-card phase-2" data-phase="2">
+        <div class="phase-head" onclick="togglePhase(this)" role="button" tabindex="0" aria-expanded="true">
+          <div class="num-badge">2</div>
+          <div class="title">
+            <div class="kicker">Phase 2 · Installation &amp; Operation</div>
+            <h3>⚙️ การติดตั้งและดูแลระหว่างการใช้งาน</h3>
+          </div>
+          <div class="phase-progress">
+            <div class="count-badge" id="phase2Count">0/0</div>
+            <div class="mini-bar"><div class="mini-bar-fill" id="phase2Bar" style="width:0%;"></div></div>
+          </div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="phase-body">
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">🔧</span> ทดสอบการเชื่อมต่อระบบ</div>
+              <div class="section-progress-chip" data-section="2-1">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="2-1-5" data-search="connectivity ทดสอบ client server"><input type="checkbox" id="cb-2-1-5"><label for="cb-2-1-5" class="item-text"><strong>ทดสอบ Connectivity</strong> — ทดสอบว่า Client สามารถเข้าถึง Server ได้ปกติ</label></li>
+            </ul>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">⚙️</span> ตั้งค่าระบบเริ่มต้น (Initial Configuration)</div>
+              <div class="section-progress-chip" data-section="2-2">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="2-2-1" data-search="ตั้งค่าบริษัท เลขผู้เสียภาษี ที่อยู่ ลายเซ็น"><input type="checkbox" id="cb-2-2-1"><label for="cb-2-2-1" class="item-text"><strong>ตั้งค่าบริษัท</strong> — กรอกข้อมูลบริษัท, เลขผู้เสียภาษี, ที่อยู่, ลายเซ็นผู้มีอำนาจ</label></li>
+              <li class="checklist-item" data-id="2-2-2" data-search="รูปแบบเอกสาร prefix po so wo lot เลขที่อัตโนมัติ"><input type="checkbox" id="cb-2-2-2"><label for="cb-2-2-2" class="item-text"><strong>ตั้งค่ารูปแบบเอกสาร</strong> — กำหนด Prefix เอกสาร (PO, SO, WO, LOT) และรูปแบบเลขที่อัตโนมัติ</label></li>
+              <li class="checklist-item" data-id="2-2-3" data-search="สร้าง user role สิทธิ์ นำเข้าผู้ใช้งาน"><input type="checkbox" id="cb-2-2-3"><label for="cb-2-2-3" class="item-text"><strong>สร้าง User และ Roles</strong> — นำเข้ารายชื่อผู้ใช้งานและกำหนดสิทธิ์ตามแผน</label></li>
+              <li class="checklist-item" data-id="2-2-4" data-search="คลังสินค้า warehouses wip fg quarantine"><input type="checkbox" id="cb-2-2-4"><label for="cb-2-2-4" class="item-text"><strong>ตั้งค่าคลังสินค้า (Warehouses)</strong> — สร้างคลัง/สถานที่จัดเก็บทั้งหมด (วัตถุดิบ, WIP, FG, Quarantine)</label></li>
+              <li class="checklist-item" data-id="2-2-5" data-search="approval workflow อนุมัติ เอกสาร"><input type="checkbox" id="cb-2-2-5"><label for="cb-2-2-5" class="item-text"><strong>ตั้งค่า Approval Workflow</strong> — กำหนดกระบวนการอนุมัติของเอกสารแต่ละประเภท</label></li>
+            </ul>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">📥</span> นำเข้าข้อมูล (Data Migration)</div>
+              <div class="section-progress-chip" data-section="2-3">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="2-3-1" data-search="import master data วัตถุดิบ บรรจุภัณฑ์ สินค้าสำเร็จรูป"><input type="checkbox" id="cb-2-3-1"><label for="cb-2-3-1" class="item-text"><strong>Import Master Data</strong> — นำเข้าข้อมูลวัตถุดิบ, บรรจุภัณฑ์, สินค้าสำเร็จรูป</label></li>
+              <li class="checklist-item" data-id="2-3-4" data-search="opening balance สต๊อก นำเข้ายอด เริ่มระบบ"><input type="checkbox" id="cb-2-3-4"><label for="cb-2-3-4" class="item-text"><strong>Import Opening Balance</strong> — นำเข้ายอดสต๊อกเริ่มต้น ณ วันเริ่มระบบ</label></li>
+              <li class="checklist-item" data-id="2-3-5" data-search="ตรวจสอบข้อมูล sampling เปรียบเทียบ ระบบเดิม"><input type="checkbox" id="cb-2-3-5"><label for="cb-2-3-5" class="item-text"><strong>ตรวจสอบความถูกต้องข้อมูล</strong> — Sampling ข้อมูลที่นำเข้าเปรียบเทียบกับระบบเดิม</label></li>
+            </ul>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">🎓</span> อบรมและทดสอบ (Training &amp; UAT)</div>
+              <div class="section-progress-chip" data-section="2-4">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="2-4-1" data-search="super user อบรม แผนก ลึก"><input type="checkbox" id="cb-2-4-1"><label for="cb-2-4-1" class="item-text"><strong>อบรม Super User</strong> — อบรมผู้ใช้งานหลักของแต่ละแผนกให้เข้าใจระบบในเชิงลึก</label></li>
+              <li class="checklist-item" data-id="2-4-2" data-search="end user อบรม master data purchasing production fg sales"><input type="checkbox" id="cb-2-4-2"><label for="cb-2-4-2" class="item-text"><strong>อบรมผู้ใช้งานทั่วไป (End User)</strong> — อบรมตามหลักสูตร 5 หัวข้อ (Master Data, Purchasing, Production, FG, Sales)</label></li>
+              <li class="checklist-item" data-id="2-4-3" data-search="uat user acceptance test scenario end-to-end"><input type="checkbox" id="cb-2-4-3"><label for="cb-2-4-3" class="item-text"><strong>User Acceptance Test (UAT)</strong> — ทดสอบ End-to-End ด้วย Test Scenario จริง และได้รับการยอมรับจากผู้ใช้</label></li>
+              <li class="checklist-item" data-id="2-4-4" data-search="user manual คู่มือ pdf vdo บทบาท"><input type="checkbox" id="cb-2-4-4"><label for="cb-2-4-4" class="item-text"><strong>จัดทำคู่มือการใช้งาน</strong> — User Manual แยกตามบทบาท (PDF/เอกสาร/VDO)</label></li>
+            </ul>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">🚦</span> Go-Live และติดตามผล</div>
+              <div class="section-progress-chip" data-section="2-5">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="2-5-1" data-search="go-live วันเริ่มใช้งาน support ทีม"><input type="checkbox" id="cb-2-5-1"><label for="cb-2-5-1" class="item-text"><strong>วันเริ่มใช้งานจริง (Go-Live)</strong> — กำหนดวัน Go-Live อย่างเป็นทางการ พร้อมทีม Support ประจำ 1-2 สัปดาห์แรก</label></li>
+              <li class="checklist-item" data-id="2-5-2" data-search="monitor performance response time error logs resource usage"><input type="checkbox" id="cb-2-5-2"><label for="cb-2-5-2" class="item-text"><strong>Monitor Performance</strong> — เฝ้าติดตามประสิทธิภาพระบบ (Response Time, Error Logs, Resource Usage)</label></li>
+              <li class="checklist-item" data-id="2-5-3" data-search="support hotline line oa email เบอร์ รับแจ้งปัญหา"><input type="checkbox" id="cb-2-5-3"><label for="cb-2-5-3" class="item-text"><strong>Support Hotline</strong> — จัดตั้งช่องทางรับแจ้งปัญหา (Line OA, Email, เบอร์ Hotline)</label></li>
+              <li class="checklist-item" data-id="2-5-4" data-search="bug issue tracking บันทึก ปัญหา"><input type="checkbox" id="cb-2-5-4"><label for="cb-2-5-4" class="item-text"><strong>Bug &amp; Issue Tracking</strong> — บันทึกปัญหาและการแก้ไขลงในระบบ Issue Tracker</label></li>
+              <li class="checklist-item" data-id="2-5-5" data-search="daily standup ประชุม สรุป สถานะ"><input type="checkbox" id="cb-2-5-5"><label for="cb-2-5-5" class="item-text"><strong>ประชุม Daily Stand-up</strong> — สรุปสถานะการใช้งานและปัญหาประจำวันในช่วงแรกหลัง Go-Live</label></li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ═══════ PHASE 3: Post-installation Care ═══════ -->
+      <div class="phase-card phase-3" data-phase="3">
+        <div class="phase-head" onclick="togglePhase(this)" role="button" tabindex="0" aria-expanded="true">
+          <div class="num-badge">3</div>
+          <div class="title">
+            <div class="kicker">Phase 3 · Post-installation Care</div>
+            <h3>🛡️ การดูแลหลังการติดตั้ง</h3>
+          </div>
+          <div class="phase-progress">
+            <div class="count-badge" id="phase3Count">0/0</div>
+            <div class="mini-bar"><div class="mini-bar-fill" id="phase3Bar" style="width:0%;"></div></div>
+          </div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="phase-body">
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">📈</span> การตรวจสอบระบบ (System Monitoring)</div>
+              <div class="section-progress-chip" data-section="3-2">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="3-2-1" data-search="performance cpu ram disk usage response time"><input type="checkbox" id="cb-3-2-1"><label for="cb-3-2-1" class="item-text"><strong>ตรวจ Performance รายสัปดาห์</strong> — ตรวจ CPU, RAM, Disk Usage, Response Time ของระบบ</label></li>
+              <li class="checklist-item" data-id="3-2-2" data-search="error log รายวัน แก้ไขปัญหา"><input type="checkbox" id="cb-3-2-2"><label for="cb-3-2-2" class="item-text"><strong>ตรวจ Error Log รายวัน</strong> — ดู Error Log ของระบบและแก้ไขปัญหาที่พบทันที</label></li>
+              <li class="checklist-item" data-id="3-2-3" data-search="database size ติดตาม เติบโต ขยาย"><input type="checkbox" id="cb-3-2-3"><label for="cb-3-2-3" class="item-text"><strong>ตรวจขนาด Database</strong> — ติดตามการเติบโตของข้อมูลและวางแผนขยายพื้นที่</label></li>
+              <li class="checklist-item" data-id="3-2-4" data-search="audit trail review ประวัติการเข้าใช้งาน การเปลี่ยนแปลง"><input type="checkbox" id="cb-3-2-4"><label for="cb-3-2-4" class="item-text"><strong>Audit Trail Review</strong> — สุ่มตรวจประวัติการเข้าใช้งานและการเปลี่ยนแปลงข้อมูลสำคัญ</label></li>
+            </ul>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <div class="subsection-title"><span class="icon">📚</span> การดูแลต่อเนื่อง (Continuous Improvement)</div>
+              <div class="section-progress-chip" data-section="3-4">0/0</div>
+            </div>
+            <ul class="checklist">
+              <li class="checklist-item" data-id="3-4-1" data-search="user feedback ประชุม ปัญหา ข้อเสนอแนะ"><input type="checkbox" id="cb-3-4-1"><label for="cb-3-4-1" class="item-text"><strong>รวบรวม User Feedback</strong> — ประชุมผู้ใช้งานประจำเดือนเพื่อเก็บปัญหาและข้อเสนอแนะ</label></li>
+              <li class="checklist-item" data-id="3-4-2" data-search="refresh training อบรมทบทวน feature ใหม่"><input type="checkbox" id="cb-3-4-2"><label for="cb-3-4-2" class="item-text"><strong>อบรม Refresh</strong> — จัดอบรมทบทวนผู้ใช้งานทุกไตรมาส หรือเมื่อมี Feature ใหม่</label></li>
+              <li class="checklist-item" data-id="3-4-3" data-search="update version อัปเดต uat ทดสอบ"><input type="checkbox" id="cb-3-4-3"><label for="cb-3-4-3" class="item-text"><strong>อัปเดตเวอร์ชันระบบ</strong> — อัปเดตเวอร์ชัน Application ตามรอบที่ทีมพัฒนากำหนด พร้อมทดสอบใน UAT ก่อน</label></li>
+              <li class="checklist-item" data-id="3-4-4" data-search="gmp audit support ตรวจ รองรับ"><input type="checkbox" id="cb-3-4-4"><label for="cb-3-4-4" class="item-text"><strong>GMP Audit Support</strong> — ดึงข้อมูลจากระบบเพื่อใช้ในการตรวจ GMP และรองรับการ Audit</label></li>
+              <li class="checklist-item" data-id="3-4-5" data-search="ทบทวน ประจำปี roi ประสิทธิภาพ สรุป"><input type="checkbox" id="cb-3-4-5"><label for="cb-3-4-5" class="item-text"><strong>ทบทวนประสิทธิภาพระบบประจำปี</strong> — สรุปผลการใช้งานและ ROI ของระบบทุกปลายปี</label></li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-panel install -->
+
+    <!-- ═══════ TAB PANEL 2: FACTORY DATA COLLECTION ═══════ -->
+    <div class="tab-panel" data-tab="factory">
+      <!-- Header with Download Excel Checklist button -->
+      <div style="background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%);border:1px solid #fde68a;border-radius:16px;padding:22px 26px;margin-bottom:20px;box-shadow:var(--shadow-sm);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:240px;">
+            <h2 style="font-size:18px;font-weight:700;color:#92400e;margin-bottom:6px;display:flex;align-items:center;gap:8px;">📦 ขอข้อมูลพื้นฐานจากโรงงาน</h2>
+            <p style="color:#78350f;font-size:13px;line-height:1.6;margin:0;">💡 ข้อมูลที่ต้องขอจากฝ่ายโรงงาน/ลูกค้า <strong>ก่อนเริ่มติดตั้งระบบ</strong> — คลิก <strong>📥 Template</strong> เพื่อดาวน์โหลด Excel แม่แบบเฉพาะแต่ละประเภท หรือกด <strong>Download Checklist</strong> เพื่อได้ Excel สรุปรายการตรวจสอบ</p>
+          </div>
+          <button class="btn btn-primary" type="button" onclick="exportFactoryChecklistExcel()" style="background:#92400e;border-color:#92400e;white-space:nowrap;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="label">ดาวน์โหลด Checklist (Excel)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Factory Data Items -->
+      <div class="phase-card" style="border:none;">
+        <div class="phase-body" style="padding:0;">
+          <div class="subsection" style="background:white;border-radius:14px;border:1px solid var(--border);padding:20px 24px;">
+            <ul class="checklist">
+              <!-- 1. Product / Items -->
+              <li class="checklist-item" data-id="1-5-1" data-search="รายการสินค้า items products raw materials packaging fg wip consumable">
+                <input type="checkbox" id="cb-1-5-1">
+                <div class="item-wrap">
+                  <label for="cb-1-5-1" class="item-text"><strong>🏷️ รายการสินค้า (Items Master)</strong> — ทุกประเภท: วัตถุดิบ, บรรจุภัณฑ์, สินค้าสำเร็จรูป, WIP, วัสดุสิ้นเปลือง<span class="factory-hint">Fields: Code, Name TH/EN, Type, Category, Unit, Shelf Life, Min/Max Stock, TTMT Code</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('items')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-2" data-search="lot opening inventory ยอดคงคลัง expiry lot number">
+                <input type="checkbox" id="cb-1-5-2">
+                <div class="item-wrap">
+                  <label for="cb-1-5-2" class="item-text"><strong>📦 รายการ Lot (Opening Inventory)</strong> — ยอดสต๊อกเริ่มต้น ณ วัน Go-Live แยกตาม Lot/Batch<span class="factory-hint">Fields: Item Code, Lot Number, Quantity, Unit, Manufacturing Date, Expiry Date, Warehouse, Status, Vendor Lot</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('lots')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-3" data-search="bom bill of materials สูตรการผลิต recipe">
+                <input type="checkbox" id="cb-1-5-3">
+                <div class="item-wrap">
+                  <label for="cb-1-5-3" class="item-text"><strong>📋 BOM (สูตรการผลิต)</strong> — Recipe / Formula สินค้าสำเร็จรูปและ WIP<span class="factory-hint">Fields: FG Code, BOM Name, Version, Batch Size, Item Code (Component), Qty per Batch, Unit, Yield Target, Loss Allowance</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('bom')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-4" data-search="vendors suppliers ผู้ขาย ผู้จำหน่าย contact">
+                <input type="checkbox" id="cb-1-5-4">
+                <div class="item-wrap">
+                  <label for="cb-1-5-4" class="item-text"><strong>🏢 รายการ Vendor / Supplier</strong> — ผู้ขายวัตถุดิบ/บรรจุภัณฑ์/บริการ<span class="factory-hint">Fields: Code, Name, Contact Person, Phone, Email, Tax ID, Address, Payment Terms, Credit Limit</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('vendors')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-5" data-search="customers ลูกค้า b2b contact">
+                <input type="checkbox" id="cb-1-5-5">
+                <div class="item-wrap">
+                  <label for="cb-1-5-5" class="item-text"><strong>🤝 รายการ Customer (ลูกค้า)</strong> — ลูกค้า B2B และ VMI<span class="factory-hint">Fields: Code, Name, Tax ID, Contact, Phone, Email, Billing Address, Shipping Address, Credit Limit, Price Tier</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('customers')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-6" data-search="warehouses rooms คลัง ห้องผลิต zones">
+                <input type="checkbox" id="cb-1-5-6">
+                <div class="item-wrap">
+                  <label for="cb-1-5-6" class="item-text"><strong>🏭 Warehouses + Rooms (GMP)</strong> — คลังและห้องผลิต (สำคัญสำหรับ GMP Environmental Monitoring)<span class="factory-hint">Fields: Code, Name, Type (Warehouse/Production Room/Quarantine), Class (ISO 5-8), Temp Range, Humidity Max, Pressure</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('warehouses')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-7" data-search="equipment machines เครื่องจักร tools">
+                <input type="checkbox" id="cb-1-5-7">
+                <div class="item-wrap">
+                  <label for="cb-1-5-7" class="item-text"><strong>⚙️ Equipment / Machines</strong> — รายการเครื่องจักร/อุปกรณ์ที่ใช้ในการผลิต<span class="factory-hint">Fields: Code, Name, Model, Serial Number, Location (Room), Calibration Due, Maintenance Schedule, Capacity</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('equipment')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-8" data-search="quality specifications qc spec test method">
+                <input type="checkbox" id="cb-1-5-8">
+                <div class="item-wrap">
+                  <label for="cb-1-5-8" class="item-text"><strong>🔬 Quality Specifications</strong> — ข้อกำหนดคุณภาพ + วิธีทดสอบ<span class="factory-hint">Fields: Item Code, Test Name, Method, Min Value, Max Value, Target, Unit, Is Critical, Sampling Plan</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('qc-specs')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-9" data-search="users employees ผู้ใช้งาน พนักงาน rules permissions">
+                <input type="checkbox" id="cb-1-5-9">
+                <div class="item-wrap">
+                  <label for="cb-1-5-9" class="item-text"><strong>👤 รายชื่อพนักงาน + สิทธิ์ (Users + Roles)</strong> — สำหรับสร้าง user login และกำหนดสิทธิ์<span class="factory-hint">Fields: Employee ID, Name TH/EN, Email, Phone, Position, Department, Role Code, Direct Manager, Active</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('users')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-10" data-search="org chart organization positions ผังองค์กร ตำแหน่ง">
+                <input type="checkbox" id="cb-1-5-10">
+                <div class="item-wrap">
+                  <label for="cb-1-5-10" class="item-text"><strong>🏛️ Organization Chart + ตำแหน่ง</strong> — ผังองค์กร + ตำแหน่งงาน + ลำดับบังคับบัญชา<span class="factory-hint">Fields: Org Unit Code, Name TH/EN, Parent Unit, Position Code, Position Name, Level, Head Count, Manager Position</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('org-chart')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-11" data-search="price list ราคา sell price standard cost">
+                <input type="checkbox" id="cb-1-5-11">
+                <div class="item-wrap">
+                  <label for="cb-1-5-11" class="item-text"><strong>💰 Price List (ราคาขาย + ต้นทุนมาตรฐาน)</strong> — ราคาขาย FG และ Standard Cost สำหรับคำนวณกำไร<span class="factory-hint">Fields: Item Code, Customer Tier (Retail/Wholesale/VMI), Sell Price, Currency, Standard Cost, Min Sell Price, Effective Date</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('price-list')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-12" data-search="chart of accounts บัญชี gl accounts accounting">
+                <input type="checkbox" id="cb-1-5-12">
+                <div class="item-wrap">
+                  <label for="cb-1-5-12" class="item-text"><strong>📊 Chart of Accounts (ผังบัญชี)</strong> — ผังบัญชีสำหรับโมดูล Accounting<span class="factory-hint">Fields: Account Code, Account Name, Type (Asset/Liability/Equity/Revenue/Expense), Parent Account, Normal Balance, Is Active</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('gl-accounts')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-13" data-search="company ข้อมูลบริษัท tax id logo signature">
+                <input type="checkbox" id="cb-1-5-13">
+                <div class="item-wrap">
+                  <label for="cb-1-5-13" class="item-text"><strong>🏢 ข้อมูลบริษัท + โลโก้ + ลายเซ็น</strong> — สำหรับเอกสารและใบกำกับภาษี<span class="factory-hint">Required: ชื่อบริษัท, เลขผู้เสียภาษี, ที่อยู่, เบอร์โทร, อีเมล, โลโก้ (PNG), ลายเซ็นผู้มีอำนาจ (PNG), FDA License</span></label>
+                  <button type="button" class="tpl-btn" onclick="downloadFactoryTemplate('company-info')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 Template
+                  </button>
+                </div>
+              </li>
+              <li class="checklist-item" data-id="1-5-14" data-search="all templates ทั้งหมด download bulk">
+                <input type="checkbox" id="cb-1-5-14">
+                <div class="item-wrap">
+                  <label for="cb-1-5-14" class="item-text"><strong>📚 ดาวน์โหลด Templates ทั้งหมด (All-in-One)</strong> — Excel ไฟล์เดียวรวมทุก sheet สำหรับกรอกข้อมูลพื้นฐาน<span class="factory-hint">รวม 13 sheets: Items, Lots, BOM, Vendors, Customers, Warehouses, Equipment, QC Specs, Users, Org Chart, Price List, GL Accounts, Company Info</span></label>
+                  <button type="button" class="tpl-btn" style="background:#2563eb;color:white;border-color:#2563eb;" onclick="downloadFactoryTemplate('all')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    📥 All Templates
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tab-panel factory -->
+
+    <!-- Empty state for filter with no results -->
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <span class="icon">🔍</span>
+      <div>ไม่พบรายการที่ตรงกับการค้นหา</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>© 2026 Herbal Medicine ERP · Installation &amp; Operation Checklist</p>
+    <p>รายการตรวจสอบจะถูกบันทึกใน Browser อัตโนมัติ (localStorage) · รองรับทั้ง Desktop &amp; Mobile</p>
+  </div>
+
+  <button class="back-to-top" type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="backToTop" aria-label="กลับขึ้นด้านบน">↑</button>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════
+    // Checklist data — kept in sync with HTML for Excel export + counting
+    // ═══════════════════════════════════════════════════════════════════
+    const CHECKLIST_DATA = [
+      {
+        phase: 1,
+        phaseName: 'การเตรียมตัวก่อนการใช้งาน',
+        phaseNameEn: 'Pre-installation',
+        sections: [
+          {
+            id: '1-1',
+            name: 'ฮาร์ดแวร์และโครงสร้างพื้นฐาน',
+            items: [
+              { id: '1-1-2', topic: 'ระบบเครือข่าย (Network)', desc: 'ตรวจสอบความเร็วอินเทอร์เน็ต/LAN ≥ 100 Mbps และมี Switch/Router เพียงพอ' },
+              { id: '1-1-4', topic: 'เครื่องลูกข่าย (Client PC)', desc: 'ตรวจสอบเครื่อง PC/Notebook ผู้ใช้: RAM ≥ 8GB, Browser ทันสมัย' },
+              { id: '1-1-5', topic: 'อุปกรณ์เสริม', desc: 'เตรียม Barcode Scanner, Label Printer, เครื่องชั่งดิจิทัล' },
+            ],
+          },
+          {
+            id: '1-2',
+            name: 'ข้อมูลพื้นฐาน (Master Data Preparation)',
+            items: [
+              { id: '1-2-1', topic: 'รายการวัตถุดิบ (Raw Materials)', desc: 'รวบรวมรายการสมุนไพร/วัตถุดิบทั้งหมด พร้อมรหัส, ชื่อไทย/อังกฤษ, หน่วยนับ' },
+              { id: '1-2-2', topic: 'รายการบรรจุภัณฑ์', desc: 'เตรียมข้อมูลบรรจุภัณฑ์, วัสดุสิ้นเปลือง, ฉลาก ฯลฯ' },
+              { id: '1-2-3', topic: 'รายการสินค้าสำเร็จรูป (FG)', desc: 'เตรียมข้อมูลสินค้าสำเร็จรูปทั้งหมดที่ผลิต' },
+              { id: '1-2-4', topic: 'สูตรการผลิต (BOM)', desc: 'เตรียมสูตรการผลิตทุกสินค้า ระบุวัตถุดิบและปริมาณที่ใช้ต่อ Lot' },
+              { id: '1-2-5', topic: 'รายชื่อ Supplier / Customer', desc: 'เตรียมฐานข้อมูลผู้ขายวัตถุดิบและลูกค้าพร้อมข้อมูลติดต่อ' },
+              { id: '1-2-6', topic: 'ยอดสต๊อกเริ่มต้น (Opening Balance)', desc: 'ตรวจนับสต๊อกวัตถุดิบ/สินค้าสำเร็จรูป ณ วันเริ่มระบบ' },
+            ],
+          },
+          {
+            id: '1-3',
+            name: 'ทีมงานและสิทธิ์การใช้งาน',
+            items: [
+              { id: '1-3-1', topic: 'รายชื่อผู้ใช้งาน (Users)', desc: 'รวบรวมรายชื่อพนักงานที่ต้องใช้ระบบ พร้อมตำแหน่งและแผนก' },
+              { id: '1-3-2', topic: 'กำหนด Roles & Permissions', desc: 'ออกแบบสิทธิ์แต่ละบทบาท (Admin, Production, QC, Warehouse, Sales ฯลฯ)' },
+              { id: '1-3-4', topic: 'แผนการอบรม (Training Plan)', desc: 'จัดตารางอบรมผู้ใช้งานตามบทบาท' },
+            ],
+          },
+          {
+            id: '1-4',
+            name: 'เอกสารและกระบวนการ',
+            items: [
+              { id: '1-4-1', topic: 'Mapping กระบวนการทำงาน', desc: 'จัดทำ Process Map ของกระบวนการผลิต/จัดซื้อ/ขาย ก่อนใช้ระบบ' },
+              { id: '1-4-2', topic: 'นโยบายเลข Lot/Batch', desc: 'กำหนดรูปแบบเลข Lot/Batch Number ให้เป็นมาตรฐานและสอดคล้อง GMP' },
+              { id: '1-4-3', topic: 'เอกสาร SOP', desc: 'จัดทำเอกสาร Standard Operating Procedure สำหรับแต่ละ Module' },
+              { id: '1-4-4', topic: 'แผนการย้ายข้อมูล (Data Migration Plan)', desc: 'วางแผนนำข้อมูลเก่าเข้าระบบใหม่ (จาก Excel/ระบบเดิม)' },
+            ],
+          },
+        ],
+      },
+      {
+        phase: 2,
+        phaseName: 'การติดตั้งและดูแลระหว่างการใช้งาน',
+        phaseNameEn: 'Installation & Operation',
+        sections: [
+          {
+            id: '2-1',
+            name: 'ทดสอบการเชื่อมต่อระบบ',
+            items: [
+              { id: '2-1-5', topic: 'ทดสอบ Connectivity', desc: 'ทดสอบว่า Client สามารถเข้าถึง Server ได้ปกติ' },
+            ],
+          },
+          {
+            id: '2-2',
+            name: 'ตั้งค่าระบบเริ่มต้น (Initial Configuration)',
+            items: [
+              { id: '2-2-1', topic: 'ตั้งค่าบริษัท', desc: 'กรอกข้อมูลบริษัท, เลขผู้เสียภาษี, ที่อยู่, ลายเซ็นผู้มีอำนาจ' },
+              { id: '2-2-2', topic: 'ตั้งค่ารูปแบบเอกสาร', desc: 'กำหนด Prefix เอกสาร (PO, SO, WO, LOT) และรูปแบบเลขที่อัตโนมัติ' },
+              { id: '2-2-3', topic: 'สร้าง User และ Roles', desc: 'นำเข้ารายชื่อผู้ใช้งานและกำหนดสิทธิ์ตามแผน' },
+              { id: '2-2-4', topic: 'ตั้งค่าคลังสินค้า (Warehouses)', desc: 'สร้างคลัง/สถานที่จัดเก็บทั้งหมด (วัตถุดิบ, WIP, FG, Quarantine)' },
+              { id: '2-2-5', topic: 'ตั้งค่า Approval Workflow', desc: 'กำหนดกระบวนการอนุมัติของเอกสารแต่ละประเภท' },
+            ],
+          },
+          {
+            id: '2-3',
+            name: 'นำเข้าข้อมูล (Data Migration)',
+            items: [
+              { id: '2-3-1', topic: 'Import Master Data', desc: 'นำเข้าข้อมูลวัตถุดิบ, บรรจุภัณฑ์, สินค้าสำเร็จรูป' },
+              { id: '2-3-4', topic: 'Import Opening Balance', desc: 'นำเข้ายอดสต๊อกเริ่มต้น ณ วันเริ่มระบบ' },
+              { id: '2-3-5', topic: 'ตรวจสอบความถูกต้องข้อมูล', desc: 'Sampling ข้อมูลที่นำเข้าเปรียบเทียบกับระบบเดิม' },
+            ],
+          },
+          {
+            id: '2-4',
+            name: 'อบรมและทดสอบ (Training & UAT)',
+            items: [
+              { id: '2-4-1', topic: 'อบรม Super User', desc: 'อบรมผู้ใช้งานหลักของแต่ละแผนกให้เข้าใจระบบในเชิงลึก' },
+              { id: '2-4-2', topic: 'อบรมผู้ใช้งานทั่วไป (End User)', desc: 'อบรมตามหลักสูตร 5 หัวข้อ (Master Data, Purchasing, Production, FG, Sales)' },
+              { id: '2-4-3', topic: 'User Acceptance Test (UAT)', desc: 'ทดสอบ End-to-End ด้วย Test Scenario จริง และได้รับการยอมรับจากผู้ใช้' },
+              { id: '2-4-4', topic: 'จัดทำคู่มือการใช้งาน', desc: 'User Manual แยกตามบทบาท (PDF/เอกสาร/VDO)' },
+            ],
+          },
+          {
+            id: '2-5',
+            name: 'Go-Live และติดตามผล',
+            items: [
+              { id: '2-5-1', topic: 'วันเริ่มใช้งานจริง (Go-Live)', desc: 'กำหนดวัน Go-Live อย่างเป็นทางการ พร้อมทีม Support ประจำ 1-2 สัปดาห์แรก' },
+              { id: '2-5-2', topic: 'Monitor Performance', desc: 'เฝ้าติดตามประสิทธิภาพระบบ (Response Time, Error Logs, Resource Usage)' },
+              { id: '2-5-3', topic: 'Support Hotline', desc: 'จัดตั้งช่องทางรับแจ้งปัญหา (Line OA, Email, เบอร์ Hotline)' },
+              { id: '2-5-4', topic: 'Bug & Issue Tracking', desc: 'บันทึกปัญหาและการแก้ไขลงในระบบ Issue Tracker' },
+              { id: '2-5-5', topic: 'ประชุม Daily Stand-up', desc: 'สรุปสถานะการใช้งานและปัญหาประจำวันในช่วงแรกหลัง Go-Live' },
+            ],
+          },
+        ],
+      },
+      {
+        phase: 3,
+        phaseName: 'การดูแลหลังการติดตั้ง',
+        phaseNameEn: 'Post-installation Care',
+        sections: [
+          {
+            id: '3-2',
+            name: 'การตรวจสอบระบบ (System Monitoring)',
+            items: [
+              { id: '3-2-1', topic: 'ตรวจ Performance รายสัปดาห์', desc: 'ตรวจ CPU, RAM, Disk Usage, Response Time ของระบบ' },
+              { id: '3-2-2', topic: 'ตรวจ Error Log รายวัน', desc: 'ดู Error Log ของระบบและแก้ไขปัญหาที่พบทันที' },
+              { id: '3-2-3', topic: 'ตรวจขนาด Database', desc: 'ติดตามการเติบโตของข้อมูลและวางแผนขยายพื้นที่' },
+              { id: '3-2-4', topic: 'Audit Trail Review', desc: 'สุ่มตรวจประวัติการเข้าใช้งานและการเปลี่ยนแปลงข้อมูลสำคัญ' },
+            ],
+          },
+          {
+            id: '3-4',
+            name: 'การดูแลต่อเนื่อง (Continuous Improvement)',
+            items: [
+              { id: '3-4-1', topic: 'รวบรวม User Feedback', desc: 'ประชุมผู้ใช้งานประจำเดือนเพื่อเก็บปัญหาและข้อเสนอแนะ' },
+              { id: '3-4-2', topic: 'อบรม Refresh', desc: 'จัดอบรมทบทวนผู้ใช้งานทุกไตรมาส หรือเมื่อมี Feature ใหม่' },
+              { id: '3-4-3', topic: 'อัปเดตเวอร์ชันระบบ', desc: 'อัปเดตเวอร์ชัน Application ตามรอบที่ทีมพัฒนากำหนด พร้อมทดสอบใน UAT ก่อน' },
+              { id: '3-4-4', topic: 'GMP Audit Support', desc: 'ดึงข้อมูลจากระบบเพื่อใช้ในการตรวจ GMP และรองรับการ Audit' },
+              { id: '3-4-5', topic: 'ทบทวนประสิทธิภาพระบบประจำปี', desc: 'สรุปผลการใช้งานและ ROI ของระบบทุกปลายปี' },
+            ],
+          },
+        ],
+      },
+    ];
+
+    // ═══════════════════════════════════════════════════════════════════
+    // FACTORY_CHECKLIST_DATA — separate from install checklist
+    // Items 1-5-1 ... 1-5-14 are shown in the "📦 ขอข้อมูลพื้นฐาน" tab
+    // ═══════════════════════════════════════════════════════════════════
+    const FACTORY_CHECKLIST_DATA = [
+      { id: '1-5-1', topic: 'รายการสินค้า (Items Master)', desc: 'ทุกประเภท: วัตถุดิบ บรรจุภัณฑ์ FG WIP วัสดุสิ้นเปลือง พร้อม Code, Name, Unit, Shelf Life, Min/Max Stock' },
+      { id: '1-5-2', topic: 'รายการ Lot (Opening Inventory)', desc: 'ยอดสต๊อกเริ่มต้น ณ วัน Go-Live แยกตาม Lot/Batch พร้อม Expiry Date, Warehouse' },
+      { id: '1-5-3', topic: 'BOM (สูตรการผลิต)', desc: 'Recipe/Formula สินค้าสำเร็จรูปและ WIP พร้อม Component, Qty per Batch, Yield Target' },
+      { id: '1-5-4', topic: 'รายการ Vendor / Supplier', desc: 'ผู้ขายวัตถุดิบ/บรรจุภัณฑ์/บริการ พร้อม Contact, Tax ID, Payment Terms' },
+      { id: '1-5-5', topic: 'รายการ Customer (ลูกค้า)', desc: 'ลูกค้า B2B และ VMI พร้อม Billing/Shipping Address, Credit Limit, Price Tier' },
+      { id: '1-5-6', topic: 'Warehouses + Rooms (GMP)', desc: 'คลังและห้องผลิต พร้อม ISO Class, Temp Range, Humidity — สำคัญสำหรับ Environmental Monitoring' },
+      { id: '1-5-7', topic: 'Equipment / Machines', desc: 'เครื่องจักร/อุปกรณ์ พร้อม Model, Serial, Location, Calibration Due, Maintenance Schedule' },
+      { id: '1-5-8', topic: 'Quality Specifications', desc: 'ข้อกำหนดคุณภาพ + วิธีทดสอบ พร้อม Min/Max, Target, Unit, Is Critical' },
+      { id: '1-5-9', topic: 'รายชื่อพนักงาน + สิทธิ์ (Users + Roles)', desc: 'สำหรับสร้าง user login และกำหนดสิทธิ์ พร้อม Role Code, Direct Manager' },
+      { id: '1-5-10', topic: 'Organization Chart + ตำแหน่ง', desc: 'ผังองค์กร + ตำแหน่งงาน + ลำดับบังคับบัญชา พร้อม Parent Unit, Head Count' },
+      { id: '1-5-11', topic: 'Price List (ราคา + ต้นทุน)', desc: 'ราคาขาย FG และ Standard Cost สำหรับคำนวณกำไร แยก Customer Tier' },
+      { id: '1-5-12', topic: 'Chart of Accounts (ผังบัญชี)', desc: 'ผังบัญชีสำหรับโมดูล Accounting พร้อม Account Type, Parent Account' },
+      { id: '1-5-13', topic: 'ข้อมูลบริษัท + โลโก้ + ลายเซ็น', desc: 'สำหรับเอกสารและใบกำกับภาษี: ชื่อบริษัท, เลขผู้เสียภาษี, โลโก้ PNG, ลายเซ็น PNG, FDA License' },
+      { id: '1-5-14', topic: 'ดาวน์โหลด Templates ทั้งหมด', desc: 'Excel ไฟล์เดียวรวม 13 sheets สำหรับกรอกข้อมูลพื้นฐานทั้งหมด' },
+    ];
+
+    // ═══════════════════════════════════════════════════════════════════
+    // STATE management (localStorage)
+    // ═══════════════════════════════════════════════════════════════════
+    const STORAGE_KEY = 'herbal-erp-install-checklist';
+    let currentFilter = 'all';
+    let currentSearch = '';
+    let currentTab = 'install';
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TAB switching — swap visible panels + update overview title
+    // ═══════════════════════════════════════════════════════════════════
+    function switchTab(tabName) {
+      currentTab = tabName;
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabName));
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.dataset.tab === tabName));
+
+      // Update overview title + description
+      const title = document.getElementById('overviewTitle');
+      const desc = document.getElementById('overviewDesc');
+      if (tabName === 'install') {
+        title.textContent = '📋 ภาพรวม Checklist การติดตั้ง';
+        desc.textContent = 'รายการตรวจสอบการติดตั้งและใช้งานระบบ Herbal Medicine ERP ครอบคลุมตั้งแต่การเตรียมความพร้อมก่อนติดตั้ง การติดตั้งและดูแลระหว่างใช้งาน ไปจนถึงการดูแลรักษาหลังการติดตั้ง';
+      } else {
+        title.textContent = '📦 ภาพรวม ขอข้อมูลพื้นฐานจากโรงงาน';
+        desc.textContent = 'รายการข้อมูลพื้นฐานที่ต้องขอจากโรงงาน/ลูกค้าก่อนติดตั้ง — พร้อม Excel Template แต่ละประเภทและ Checklist รวม';
+      }
+
+      updateCounts();
+      applyFilter();
+    }
+
+    function loadState() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+      catch { return {}; }
+    }
+    function saveState(state) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PROGRESS counts + UI updates — scoped per current tab
+    // ═══════════════════════════════════════════════════════════════════
+    function updateCounts() {
+      const state = loadState();
+
+      // Count both tabs separately for tab-count badges
+      let installTotal = 0, installDone = 0;
+      const phaseCounts = { 1: { t: 0, c: 0 }, 2: { t: 0, c: 0 }, 3: { t: 0, c: 0 } };
+      const sectionCounts = {};
+      CHECKLIST_DATA.forEach((p) => {
+        p.sections.forEach((sec) => {
+          sectionCounts[sec.id] = { t: 0, c: 0 };
+          sec.items.forEach((it) => {
+            installTotal++;
+            phaseCounts[p.phase].t++;
+            sectionCounts[sec.id].t++;
+            if (state[it.id]) {
+              installDone++;
+              phaseCounts[p.phase].c++;
+              sectionCounts[sec.id].c++;
+            }
+          });
+        });
+      });
+
+      let factoryTotal = 0, factoryDone = 0;
+      FACTORY_CHECKLIST_DATA.forEach((it) => {
+        factoryTotal++;
+        if (state[it.id]) factoryDone++;
+      });
+
+      // Tab badges
+      document.getElementById('tabCountInstall').textContent = installDone + '/' + installTotal;
+      document.getElementById('tabCountFactory').textContent = factoryDone + '/' + factoryTotal;
+
+      // Visible stats depend on current tab
+      const total = currentTab === 'install' ? installTotal : factoryTotal;
+      const checkedTotal = currentTab === 'install' ? installDone : factoryDone;
+      const pending = total - checkedTotal;
+
+      document.getElementById('totalCount').textContent = total;
+      document.getElementById('checkedCount').textContent = checkedTotal;
+      document.getElementById('pendingCount').textContent = pending;
+      document.getElementById('countAll').textContent = total;
+      document.getElementById('countPending').textContent = pending;
+      document.getElementById('countDone').textContent = checkedTotal;
+
+      // Phase-level
+      [1, 2, 3].forEach((n) => {
+        const pc = phaseCounts[n];
+        const pct = pc.t > 0 ? Math.round((pc.c / pc.t) * 100) : 0;
+        document.getElementById('phase' + n + 'Count').textContent = pc.c + '/' + pc.t;
+        document.getElementById('phase' + n + 'Bar').style.width = pct + '%';
+      });
+
+      // Section-level
+      document.querySelectorAll('.section-progress-chip').forEach((chip) => {
+        const sid = chip.dataset.section;
+        const sc = sectionCounts[sid];
+        if (sc) {
+          chip.textContent = sc.c + '/' + sc.t;
+          chip.classList.toggle('complete', sc.t > 0 && sc.c === sc.t);
+        }
+      });
+
+      // Overall progress
+      const pct = total > 0 ? Math.round((checkedTotal / total) * 100) : 0;
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressText').textContent = checkedTotal + ' / ' + total + ' รายการ (' + pct + '%)';
+      document.getElementById('progressPct').textContent = pct + '%';
+
+      // Progress ring (circumference 2π×42 = 263.89)
+      const circ = 263.89;
+      document.getElementById('progressCircle').style.strokeDashoffset = circ - (pct / 100) * circ;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CHECKBOX init + event wiring
+    // ═══════════════════════════════════════════════════════════════════
+    function initCheckboxes() {
+      const state = loadState();
+      document.querySelectorAll('.checklist-item').forEach((item) => {
+        const id = item.dataset.id;
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (state[id]) { checkbox.checked = true; item.classList.add('checked'); }
+        checkbox.addEventListener('change', function () {
+          const curState = loadState();
+          if (checkbox.checked) { curState[id] = true; item.classList.add('checked'); showToast('✓ บันทึกแล้ว'); }
+          else { delete curState[id]; item.classList.remove('checked'); }
+          saveState(curState);
+          updateCounts();
+          applyFilter();
+        });
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SEARCH + FILTER
+    // ═══════════════════════════════════════════════════════════════════
+    function applyFilter() {
+      const state = loadState();
+      const q = currentSearch.trim().toLowerCase();
+      let visibleCount = 0;
+
+      document.querySelectorAll('.checklist-item').forEach((item) => {
+        const id = item.dataset.id;
+        const isDone = !!state[id];
+        const searchText = (item.dataset.search || '').toLowerCase() + ' ' + item.querySelector('.item-text').textContent.toLowerCase();
+
+        const matchSearch = !q || searchText.includes(q);
+        const matchFilter =
+          currentFilter === 'all' ||
+          (currentFilter === 'done' && isDone) ||
+          (currentFilter === 'pending' && !isDone);
+
+        const visible = matchSearch && matchFilter;
+        item.classList.toggle('hidden', !visible);
+        if (visible) visibleCount++;
+      });
+
+      // Hide subsections that have no visible items
+      document.querySelectorAll('.subsection').forEach((sec) => {
+        const items = sec.querySelectorAll('.checklist-item');
+        const anyVisible = [...items].some((it) => !it.classList.contains('hidden'));
+        sec.style.display = anyVisible ? '' : 'none';
+      });
+
+      // Hide phase cards with no visible items
+      document.querySelectorAll('.phase-card').forEach((card) => {
+        const anyVisible = [...card.querySelectorAll('.checklist-item')].some((it) => !it.classList.contains('hidden'));
+        card.style.display = anyVisible ? '' : 'none';
+      });
+
+      document.getElementById('emptyState').style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PHASE collapse/expand
+    // ═══════════════════════════════════════════════════════════════════
+    function togglePhase(headEl) {
+      const card = headEl.closest('.phase-card');
+      const expanded = !card.classList.toggle('collapsed');
+      headEl.setAttribute('aria-expanded', String(expanded));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TOAST
+    // ═══════════════════════════════════════════════════════════════════
+    let toastTimer = null;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('visible'), 1500);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // EXCEL EXPORT — Styled multi-sheet workbook via ExcelJS
+    //
+    // Design goals:
+    //   · Responsive: column widths adapt to content, wrap text for long cells
+    //   · Informative: Dashboard sheet with overall & per-phase progress bars,
+    //     color-coded status, grouped phase sections, frozen header
+    //   · User-friendly: readable fonts, status emoji, colored bands per phase,
+    //     wide columns so nothing truncates, print-ready page setup
+    // ═══════════════════════════════════════════════════════════════════
+    async function exportToExcel() {
+      const state = loadState();
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const todayThai = today.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      // ─── Color palette (mirrors UI tokens) ───
+      const COLORS = {
+        brand: 'FF2563EB',      brandDark: 'FF1D4ED8',    headerText: 'FFFFFFFF',
+        p1: 'FF7C3AED',         p1Soft: 'FFF5F3FF',
+        p2: 'FF2563EB',         p2Soft: 'FFEFF6FF',
+        p3: 'FF10B981',         p3Soft: 'FFECFDF5',
+        doneFill: 'FFECFDF5',   doneText: 'FF047857',
+        pendingFill: 'FFFFFBEB',pendingText: 'FF92400E',
+        rowAlt: 'FFF8FAFC',     border: 'FFCBD5E1',
+        muted: 'FF64748B',      text: 'FF0F172A',
+      };
+
+      // ─── Stats computation ───
+      let total = 0, done = 0;
+      const phaseCounts = { 1: { t: 0, c: 0 }, 2: { t: 0, c: 0 }, 3: { t: 0, c: 0 } };
+      CHECKLIST_DATA.forEach((p) => {
+        p.sections.forEach((sec) => {
+          sec.items.forEach((it) => {
+            total++;
+            phaseCounts[p.phase].t++;
+            if (state[it.id]) { done++; phaseCounts[p.phase].c++; }
+          });
+        });
+      });
+      const pending = total - done;
+      const pctOverall = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      // Emoji progress bar: 20 blocks, filled by percentage
+      const progressBar = (pct) => {
+        const filled = Math.round((pct / 100) * 20);
+        return '█'.repeat(filled) + '░'.repeat(20 - filled);
+      };
+
+      // ───────────────────────────────────────────────────────────────
+      // Build workbook
+      // ───────────────────────────────────────────────────────────────
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Herbal Medicine ERP';
+      wb.created = today;
+      wb.title = 'Installation Checklist';
+
+      // ═══════════════════════════════════════════════════════════════
+      // SHEET 1 — Dashboard (overview)
+      // ═══════════════════════════════════════════════════════════════
+      const dash = wb.addWorksheet('Dashboard', {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 0 }],
+        pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+      });
+
+      dash.columns = [
+        { width: 4 }, { width: 28 }, { width: 14 }, { width: 14 },
+        { width: 14 }, { width: 30 }, { width: 6 },
+      ];
+
+      // Title banner
+      dash.mergeCells('B2:F2');
+      const title = dash.getCell('B2');
+      title.value = '🌿 Herbal Medicine ERP · Installation Checklist';
+      title.font = { name: 'Sarabun', size: 18, bold: true, color: { argb: COLORS.headerText } };
+      title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.brand } };
+      title.alignment = { horizontal: 'center', vertical: 'middle' };
+      dash.getRow(2).height = 32;
+
+      dash.mergeCells('B3:F3');
+      const sub = dash.getCell('B3');
+      sub.value = 'รายการตรวจสอบการติดตั้งและใช้งานระบบ · ออกรายงานเมื่อ ' + todayThai;
+      sub.font = { name: 'Sarabun', size: 11, italic: true, color: { argb: COLORS.muted } };
+      sub.alignment = { horizontal: 'center' };
+      dash.getRow(3).height = 20;
+
+      // ─── Overall Summary Card ───
+      dash.mergeCells('B5:F5');
+      const summaryHdr = dash.getCell('B5');
+      summaryHdr.value = '📊 ภาพรวมความก้าวหน้า (Overall Progress)';
+      summaryHdr.font = { name: 'Sarabun', size: 13, bold: true, color: { argb: COLORS.text } };
+      summaryHdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      summaryHdr.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      dash.getRow(5).height = 26;
+
+      // Stats row
+      const statRow = 6;
+      const stats = [
+        { col: 'B', label: 'รายการทั้งหมด', value: total, color: COLORS.brand },
+        { col: 'C', label: 'เสร็จแล้ว', value: done, color: COLORS.p3 },
+        { col: 'D', label: 'คงเหลือ', value: pending, color: 'FFF59E0B' },
+        { col: 'E', label: '% ความก้าวหน้า', value: pctOverall + '%', color: COLORS.brandDark },
+      ];
+      stats.forEach((s) => {
+        const labelCell = dash.getCell(s.col + (statRow));
+        labelCell.value = s.label;
+        labelCell.font = { name: 'Sarabun', size: 10, color: { argb: COLORS.muted } };
+        labelCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        labelCell.border = { top: { style: 'thin', color: { argb: COLORS.border } } };
+
+        const valCell = dash.getCell(s.col + (statRow + 1));
+        valCell.value = s.value;
+        valCell.font = { name: 'Sarabun', size: 20, bold: true, color: { argb: s.color } };
+        valCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      dash.getRow(statRow).height = 18;
+      dash.getRow(statRow + 1).height = 36;
+
+      // Progress bar row
+      dash.mergeCells('B' + (statRow + 2) + ':F' + (statRow + 2));
+      const pbCell = dash.getCell('B' + (statRow + 2));
+      pbCell.value = progressBar(pctOverall) + '  ' + pctOverall + '%';
+      pbCell.font = { name: 'Consolas', size: 14, bold: true, color: { argb: COLORS.brand } };
+      pbCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      pbCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+      dash.getRow(statRow + 2).height = 28;
+
+      // ─── Per-Phase Progress ───
+      let curRow = statRow + 4;
+      dash.mergeCells('B' + curRow + ':F' + curRow);
+      const phaseHdr = dash.getCell('B' + curRow);
+      phaseHdr.value = '🎯 ความก้าวหน้าแยกตาม Phase';
+      phaseHdr.font = { name: 'Sarabun', size: 13, bold: true, color: { argb: COLORS.text } };
+      phaseHdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      phaseHdr.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      dash.getRow(curRow).height = 26;
+      curRow++;
+
+      // Phase table header
+      const pCols = ['Phase', 'ชื่อ', 'เสร็จ/ทั้งหมด', 'ก้าวหน้า', 'Progress'];
+      pCols.forEach((txt, i) => {
+        const c = dash.getCell(String.fromCharCode(66 + i) + curRow);
+        c.value = txt;
+        c.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: COLORS.headerText } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.brandDark } };
+        c.alignment = { horizontal: 'center', vertical: 'middle' };
+        c.border = { right: { style: 'thin', color: { argb: COLORS.border } } };
+      });
+      dash.getRow(curRow).height = 24;
+      curRow++;
+
+      const phaseInfo = [
+        { num: 1, name: 'Pre-installation · การเตรียมตัวก่อนการใช้งาน', color: COLORS.p1, soft: COLORS.p1Soft },
+        { num: 2, name: 'Installation & Operation · ติดตั้งและดูแล', color: COLORS.p2, soft: COLORS.p2Soft },
+        { num: 3, name: 'Post-installation Care · ดูแลหลังการติดตั้ง', color: COLORS.p3, soft: COLORS.p3Soft },
+      ];
+      phaseInfo.forEach((pi) => {
+        const pc = phaseCounts[pi.num];
+        const pPct = pc.t > 0 ? Math.round((pc.c / pc.t) * 100) : 0;
+        const row = dash.getRow(curRow);
+
+        const c1 = row.getCell(2); c1.value = 'Phase ' + pi.num;
+        c1.font = { name: 'Sarabun', size: 12, bold: true, color: { argb: pi.color } };
+        c1.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        const c2 = row.getCell(3); c2.value = pi.name;
+        c2.font = { name: 'Sarabun', size: 10 };
+        c2.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 1 };
+
+        const c3 = row.getCell(4); c3.value = pc.c + ' / ' + pc.t;
+        c3.font = { name: 'Sarabun', size: 11, bold: true };
+        c3.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        const c4 = row.getCell(5); c4.value = pPct + '%';
+        c4.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: pi.color } };
+        c4.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        const c5 = row.getCell(6); c5.value = progressBar(pPct);
+        c5.font = { name: 'Consolas', size: 10, color: { argb: pi.color } };
+        c5.alignment = { horizontal: 'left', vertical: 'middle' };
+
+        [c1, c2, c3, c4, c5].forEach((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: pi.soft } };
+          cell.border = {
+            top: { style: 'thin', color: { argb: COLORS.border } },
+            bottom: { style: 'thin', color: { argb: COLORS.border } },
+            right: { style: 'thin', color: { argb: COLORS.border } },
+          };
+        });
+        row.height = 26;
+        curRow++;
+      });
+
+      // ─── Footer / instructions ───
+      curRow += 2;
+      dash.mergeCells('B' + curRow + ':F' + curRow);
+      const footer = dash.getCell('B' + curRow);
+      footer.value = '💡 ดูรายละเอียดรายการทั้งหมดใน Sheet "Checklist Detail"';
+      footer.font = { name: 'Sarabun', size: 10, italic: true, color: { argb: COLORS.muted } };
+      footer.alignment = { horizontal: 'center' };
+
+      // ═══════════════════════════════════════════════════════════════
+      // SHEET 2 — Checklist Detail (full data)
+      // ═══════════════════════════════════════════════════════════════
+      const detail = wb.addWorksheet('Checklist Detail', {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }],
+        pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+      });
+
+      detail.columns = [
+        { key: 'phase',    width: 10 },
+        { key: 'section',  width: 32 },
+        { key: 'id',       width: 9  },
+        { key: 'topic',    width: 30 },
+        { key: 'desc',     width: 55 },
+        { key: 'status',   width: 14 },
+        { key: 'owner',    width: 18 },
+        { key: 'date',     width: 14 },
+        { key: 'notes',    width: 28 },
+      ];
+
+      // Header row
+      const hdr = detail.getRow(1);
+      const headers = ['Phase', 'หมวดย่อย', 'ลำดับ', 'หัวข้อตรวจสอบ', 'รายละเอียด', 'สถานะ', 'ผู้รับผิดชอบ', 'วันที่เสร็จ', 'หมายเหตุ'];
+      headers.forEach((txt, i) => {
+        const c = hdr.getCell(i + 1);
+        c.value = txt;
+        c.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: COLORS.headerText } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.brandDark } };
+        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        c.border = {
+          top: { style: 'thin', color: { argb: COLORS.border } },
+          bottom: { style: 'medium', color: { argb: COLORS.brand } },
+          right: { style: 'thin', color: { argb: COLORS.border } },
+        };
+      });
+      hdr.height = 30;
+
+      // Data rows with phase grouping + status coloring
+      let rowIdx = 2;
+      let altRow = false;
+      CHECKLIST_DATA.forEach((p, pIdx) => {
+        const pi = phaseInfo.find((x) => x.num === p.phase);
+
+        // Phase band row
+        detail.mergeCells(rowIdx, 1, rowIdx, 9);
+        const bandCell = detail.getCell(rowIdx, 1);
+        bandCell.value = '▸ Phase ' + p.phase + ' · ' + p.phaseName + '  (' + p.phaseNameEn + ')';
+        bandCell.font = { name: 'Sarabun', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+        bandCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: pi.color } };
+        bandCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+        detail.getRow(rowIdx).height = 24;
+        rowIdx++;
+
+        p.sections.forEach((sec) => {
+          sec.items.forEach((it) => {
+            const isDone = !!state[it.id];
+            const row = detail.getRow(rowIdx);
+            row.values = [
+              'Phase ' + p.phase,
+              sec.name,
+              it.id,
+              it.topic,
+              it.desc,
+              isDone ? '✓ เสร็จแล้ว' : '☐ ยังไม่ทำ',
+              '', '', '',
+            ];
+
+            // Style all cells in row
+            for (let ci = 1; ci <= 9; ci++) {
+              const c = row.getCell(ci);
+              c.font = { name: 'Sarabun', size: 10.5, color: { argb: isDone ? COLORS.muted : COLORS.text } };
+              c.alignment = { horizontal: ci === 1 || ci === 3 || ci === 6 ? 'center' : 'left', vertical: 'top', wrapText: true, indent: 1 };
+              c.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: isDone ? COLORS.doneFill : (altRow ? COLORS.rowAlt : 'FFFFFFFF') },
+              };
+              c.border = {
+                top: { style: 'thin', color: { argb: COLORS.border } },
+                right: { style: 'thin', color: { argb: COLORS.border } },
+                bottom: { style: 'thin', color: { argb: COLORS.border } },
+              };
+            }
+
+            // Highlight topic in phase color
+            row.getCell(4).font = { name: 'Sarabun', size: 11, bold: true, color: { argb: pi.color } };
+
+            // Status cell — bold + colored
+            const statusCell = row.getCell(6);
+            statusCell.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: isDone ? COLORS.doneText : COLORS.pendingText } };
+            statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isDone ? COLORS.doneFill : COLORS.pendingFill } };
+
+            // Strike-through for done items
+            if (isDone) {
+              row.getCell(4).font = { name: 'Sarabun', size: 11, bold: true, color: { argb: COLORS.muted }, strike: true };
+              row.getCell(5).font = { name: 'Sarabun', size: 10.5, color: { argb: COLORS.muted }, strike: true };
+            }
+
+            row.height = Math.max(22, Math.ceil(it.desc.length / 60) * 16 + 10);
+            altRow = !altRow;
+            rowIdx++;
+          });
+        });
+        altRow = false; // reset zebra between phases
+      });
+
+      // Auto-filter
+      detail.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: 9 },
+      };
+
+      // ═══════════════════════════════════════════════════════════════
+      // Download
+      // ═══════════════════════════════════════════════════════════════
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'installation-checklist-herbal-erp-' + todayStr + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('📊 ดาวน์โหลด Excel แล้ว');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Factory Checklist Excel Export
+    // ═══════════════════════════════════════════════════════════════════
+    async function exportFactoryChecklistExcel() {
+      const state = loadState();
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayThai = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      const COLORS = {
+        amber: 'FF92400E', amberBg: 'FFFFFBEB', amberBorder: 'FFFDE68A',
+        doneFill: 'FFECFDF5', doneText: 'FF047857',
+        pendingFill: 'FFFFFBEB', pendingText: 'FF92400E',
+        headerText: 'FFFFFFFF', brand: 'FF92400E', muted: 'FF64748B', text: 'FF0F172A',
+        rowAlt: 'FFFEFBEB', border: 'FFFDE68A',
+      };
+
+      let total = 0, done = 0;
+      FACTORY_CHECKLIST_DATA.forEach((it) => { total++; if (state[it.id]) done++; });
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      const pending = total - done;
+      const progressBar = (p) => '█'.repeat(Math.round(p / 5)) + '░'.repeat(20 - Math.round(p / 5));
+
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Herbal Medicine ERP';
+      wb.created = new Date();
+
+      // ─── Dashboard ───
+      const dash = wb.addWorksheet('Summary', {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 0 }],
+        pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+      });
+      dash.columns = [{ width: 4 }, { width: 28 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 28 }, { width: 6 }];
+
+      dash.mergeCells('B2:F2');
+      const title = dash.getCell('B2');
+      title.value = '📦 Factory Data Collection · Checklist';
+      title.font = { name: 'Sarabun', size: 18, bold: true, color: { argb: COLORS.headerText } };
+      title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.brand } };
+      title.alignment = { horizontal: 'center', vertical: 'middle' };
+      dash.getRow(2).height = 32;
+
+      dash.mergeCells('B3:F3');
+      const sub = dash.getCell('B3');
+      sub.value = 'รายการข้อมูลพื้นฐานที่ต้องขอจากโรงงาน · ออกรายงานเมื่อ ' + todayThai;
+      sub.font = { name: 'Sarabun', size: 11, italic: true, color: { argb: COLORS.muted } };
+      sub.alignment = { horizontal: 'center' };
+
+      // Stats
+      dash.mergeCells('B5:F5');
+      const hdr = dash.getCell('B5');
+      hdr.value = '📊 ภาพรวมความก้าวหน้า';
+      hdr.font = { name: 'Sarabun', size: 13, bold: true, color: { argb: COLORS.text } };
+      hdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      hdr.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      dash.getRow(5).height = 26;
+
+      const stats = [
+        { col: 'B', label: 'รายการทั้งหมด', value: total, color: COLORS.brand },
+        { col: 'C', label: 'เสร็จแล้ว', value: done, color: COLORS.doneText },
+        { col: 'D', label: 'คงเหลือ', value: pending, color: 'FFF59E0B' },
+        { col: 'E', label: '% ความก้าวหน้า', value: pct + '%', color: COLORS.brand },
+      ];
+      stats.forEach((s) => {
+        const lbl = dash.getCell(s.col + '6');
+        lbl.value = s.label;
+        lbl.font = { name: 'Sarabun', size: 10, color: { argb: COLORS.muted } };
+        lbl.alignment = { horizontal: 'center', vertical: 'middle' };
+        const val = dash.getCell(s.col + '7');
+        val.value = s.value;
+        val.font = { name: 'Sarabun', size: 20, bold: true, color: { argb: s.color } };
+        val.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      dash.getRow(7).height = 36;
+
+      dash.mergeCells('B8:F8');
+      const pb = dash.getCell('B8');
+      pb.value = progressBar(pct) + '  ' + pct + '%';
+      pb.font = { name: 'Consolas', size: 14, bold: true, color: { argb: COLORS.brand } };
+      pb.alignment = { horizontal: 'center', vertical: 'middle' };
+      pb.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEFBEB' } };
+      dash.getRow(8).height = 28;
+
+      // ─── Detail sheet ───
+      const detail = wb.addWorksheet('Checklist Detail', {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }],
+        pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+      });
+      detail.columns = [
+        { key: 'id', width: 10 },
+        { key: 'topic', width: 36 },
+        { key: 'desc', width: 55 },
+        { key: 'status', width: 16 },
+        { key: 'owner', width: 18 },
+        { key: 'date', width: 14 },
+        { key: 'notes', width: 28 },
+      ];
+      const dHdr = detail.getRow(1);
+      const headers = ['ลำดับ', 'หัวข้อ (Topic)', 'รายละเอียด (Fields)', 'สถานะ', 'ผู้รับผิดชอบ', 'วันที่ส่งข้อมูล', 'หมายเหตุ'];
+      headers.forEach((t, i) => {
+        const c = dHdr.getCell(i + 1);
+        c.value = t;
+        c.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: COLORS.headerText } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.brand } };
+        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        c.border = { top: { style: 'thin', color: { argb: COLORS.border } }, bottom: { style: 'medium', color: { argb: COLORS.brand } }, right: { style: 'thin', color: { argb: COLORS.border } } };
+      });
+      dHdr.height = 30;
+
+      let rowIdx = 2;
+      let altRow = false;
+      FACTORY_CHECKLIST_DATA.forEach((it) => {
+        const isDone = !!state[it.id];
+        const row = detail.getRow(rowIdx);
+        row.values = [it.id, it.topic, it.desc, isDone ? '✓ เสร็จแล้ว' : '☐ ยังไม่ทำ', '', '', ''];
+        for (let ci = 1; ci <= 7; ci++) {
+          const c = row.getCell(ci);
+          c.font = { name: 'Sarabun', size: 10.5, color: { argb: isDone ? COLORS.muted : COLORS.text } };
+          c.alignment = { horizontal: ci === 1 || ci === 4 ? 'center' : 'left', vertical: 'top', wrapText: true, indent: 1 };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isDone ? COLORS.doneFill : (altRow ? COLORS.rowAlt : 'FFFFFFFF') } };
+          c.border = { top: { style: 'thin', color: { argb: COLORS.border } }, right: { style: 'thin', color: { argb: COLORS.border } }, bottom: { style: 'thin', color: { argb: COLORS.border } } };
+        }
+        row.getCell(2).font = { name: 'Sarabun', size: 11, bold: true, color: { argb: COLORS.brand } };
+        const sc = row.getCell(4);
+        sc.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: isDone ? COLORS.doneText : COLORS.pendingText } };
+        sc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isDone ? COLORS.doneFill : COLORS.pendingFill } };
+        if (isDone) {
+          row.getCell(2).font = { name: 'Sarabun', size: 11, bold: true, color: { argb: COLORS.muted }, strike: true };
+          row.getCell(3).font = { name: 'Sarabun', size: 10.5, color: { argb: COLORS.muted }, strike: true };
+        }
+        row.height = Math.max(22, Math.ceil(it.desc.length / 60) * 16 + 10);
+        altRow = !altRow;
+        rowIdx++;
+      });
+
+      detail.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 7 } };
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'factory-checklist-herbal-erp-' + todayStr + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('📊 ดาวน์โหลด Factory Checklist แล้ว');
+    }
+
+    function resetChecklist() {
+      if (confirm('ต้องการล้าง checklist ทั้งหมดและเริ่มใหม่หรือไม่?')) {
+        localStorage.removeItem(STORAGE_KEY);
+        document.querySelectorAll('.checklist-item').forEach((item) => {
+          item.querySelector('input[type="checkbox"]').checked = false;
+          item.classList.remove('checked');
+        });
+        updateCounts();
+        applyFilter();
+        showToast('🔄 ล้างเรียบร้อย');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // EVENT WIRING
+    // ═══════════════════════════════════════════════════════════════════
+    // Filter tabs
+    document.querySelectorAll('.filter-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.dataset.filter;
+        applyFilter();
+      });
+    });
+
+    // Search input
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      currentSearch = e.target.value;
+      applyFilter();
+    });
+
+    // Keyboard shortcut: `/` focuses search
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        document.getElementById('searchInput').focus();
+      }
+      // Escape clears search
+      if (e.key === 'Escape' && document.activeElement === document.getElementById('searchInput')) {
+        document.getElementById('searchInput').value = '';
+        currentSearch = '';
+        applyFilter();
+        document.getElementById('searchInput').blur();
+      }
+    });
+
+    // Back-to-top toggle
+    const btt = document.getElementById('backToTop');
+    window.addEventListener('scroll', () => {
+      btt.classList.toggle('visible', window.scrollY > 300);
+    });
+
+    // Phase head keyboard activation
+    document.querySelectorAll('.phase-head').forEach((h) => {
+      h.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePhase(h); }
+      });
+    });
+
+    // ═══════════════════════════════════════════════════════════════════
+    // FACTORY DATA TEMPLATES — Excel download for each master data type
+    // Each template has: Instructions sheet + Data sheet with headers + sample
+    // ═══════════════════════════════════════════════════════════════════
+    const FACTORY_TEMPLATES = {
+      items: {
+        sheetName: 'Items Master',
+        description: 'รายการสินค้าทั้งหมด (วัตถุดิบ, บรรจุภัณฑ์, สินค้าสำเร็จรูป)',
+        headers: [
+          { key: 'code',          header: 'รหัสสินค้า (Code) *',          width: 18, sample: 'RM-001' },
+          { key: 'nameTh',        header: 'ชื่อไทย *',                    width: 28, sample: 'ขมิ้นชัน' },
+          { key: 'nameEn',        header: 'ชื่ออังกฤษ',                    width: 28, sample: 'Turmeric' },
+          { key: 'type',          header: 'ประเภท (Type) *',              width: 16, sample: 'raw_material' },
+          { key: 'category',      header: 'หมวดหมู่',                      width: 20, sample: 'สมุนไพรแห้ง' },
+          { key: 'primaryUnit',   header: 'หน่วยนับหลัก *',                width: 14, sample: 'kg' },
+          { key: 'secondaryUnit', header: 'หน่วยนับรอง',                  width: 14, sample: 'g' },
+          { key: 'conversionFactor', header: 'ตัวคูณแปลงหน่วย',            width: 16, sample: 1000 },
+          { key: 'shelfLifeDays', header: 'อายุ (วัน)',                   width: 14, sample: 730 },
+          { key: 'minStock',      header: 'สต๊อกขั้นต่ำ',                  width: 14, sample: 10 },
+          { key: 'maxStock',      header: 'สต๊อกสูงสุด',                   width: 14, sample: 500 },
+          { key: 'reorderPoint',  header: 'จุดสั่งซื้อใหม่',                width: 14, sample: 20 },
+          { key: 'ttmtCode',      header: 'TTMT Code',                   width: 14, sample: '' },
+          { key: 'drugCode24',    header: 'Drug Code 24',                width: 16, sample: '' },
+        ],
+        instructions: [
+          ['📋 Items Master Template — คู่มือการกรอก'],
+          [''],
+          ['ประเภทสินค้า (type) ต้องเป็นหนึ่งใน:'],
+          ['  • raw_material — วัตถุดิบ (สมุนไพร, สารเคมี)'],
+          ['  • packaging — บรรจุภัณฑ์ (ขวด, กล่อง, ฉลาก)'],
+          ['  • finished_goods — สินค้าสำเร็จรูป'],
+          ['  • wip — สินค้าระหว่างผลิต (Work-in-Progress)'],
+          ['  • consumable — วัสดุสิ้นเปลือง'],
+          [''],
+          ['⚠️ คอลัมน์ที่มี (*) คือ required ห้ามเว้นว่าง'],
+          ['💡 Code ห้ามซ้ำกัน ระบบใช้เป็น unique identifier'],
+          ['💡 shelfLifeDays เป็นจำนวนวัน (เช่น 2 ปี = 730)'],
+          ['💡 conversionFactor = 1 หน่วยหลัก ÷ หน่วยรอง (เช่น 1 kg = 1000 g → factor = 1000)'],
+        ],
+      },
+      lots: {
+        sheetName: 'Opening Inventory',
+        description: 'ยอดสต๊อกเริ่มต้น ณ วัน Go-Live แยกตาม Lot/Batch',
+        headers: [
+          { key: 'itemCode',    header: 'Item Code *',           width: 16, sample: 'RM-001' },
+          { key: 'lotNumber',   header: 'Lot Number *',          width: 22, sample: 'RM-001-260101-001' },
+          { key: 'vendorLot',   header: 'Vendor Lot No.',        width: 18, sample: 'TRM-2026-A01' },
+          { key: 'quantity',    header: 'จำนวน *',               width: 12, sample: 150.5 },
+          { key: 'unit',        header: 'หน่วย *',               width: 10, sample: 'kg' },
+          { key: 'warehouse',   header: 'Warehouse Code *',       width: 15, sample: 'WH-RM' },
+          { key: 'mfgDate',     header: 'วันผลิต (YYYY-MM-DD) *',width: 18, sample: '2026-01-15' },
+          { key: 'expiryDate',  header: 'วันหมดอายุ *',           width: 18, sample: '2028-01-15' },
+          { key: 'status',      header: 'สถานะ',                width: 14, sample: 'released' },
+          { key: 'vendorCode',  header: 'Vendor Code',           width: 14, sample: 'V-001' },
+          { key: 'poNumber',    header: 'PO Number',             width: 16, sample: 'PO-2026-0001' },
+          { key: 'cost',        header: 'ต้นทุน/หน่วย',          width: 14, sample: 250 },
+        ],
+        instructions: [
+          ['📦 Opening Inventory Template — คู่มือการกรอก'],
+          [''],
+          ['รูปแบบ Lot Number แนะนำ: [Item Code]-[YYMMDD]-[Running]'],
+          ['  • เช่น RM-001-260101-001'],
+          [''],
+          ['สถานะ (status) ต้องเป็นหนึ่งใน:'],
+          ['  • quarantine — รอ QC ตรวจสอบ'],
+          ['  • released — ผ่าน QC พร้อมใช้'],
+          ['  • rejected — ไม่ผ่าน QC'],
+          ['  • expired — หมดอายุ'],
+          [''],
+          ['⚠️ วันหมดอายุต้อง > วันผลิต'],
+          ['⚠️ Item Code ต้องมีใน Items Master แล้ว'],
+          ['⚠️ Warehouse Code ต้องมีใน Warehouses แล้ว'],
+        ],
+      },
+      bom: {
+        sheetName: 'BOM',
+        description: 'สูตรการผลิต (Recipe/Formula)',
+        headers: [
+          { key: 'bomCode',    header: 'BOM Code *',          width: 16, sample: 'BOM-FG001-V1' },
+          { key: 'bomName',    header: 'BOM Name *',          width: 28, sample: 'ยาแคปซูลขมิ้นชัน' },
+          { key: 'version',    header: 'Version *',           width: 10, sample: '1.0' },
+          { key: 'fgItemCode', header: 'FG Item Code *',      width: 16, sample: 'FG-001' },
+          { key: 'batchSize',  header: 'Batch Size *',        width: 12, sample: 60 },
+          { key: 'batchUnit',  header: 'Batch Unit *',        width: 12, sample: 'ขวด' },
+          { key: 'componentCode', header: 'Component Item *', width: 16, sample: 'RM-001' },
+          { key: 'qtyPerBatch', header: 'Qty per Batch *',    width: 14, sample: 30 },
+          { key: 'componentUnit', header: 'Unit *',           width: 10, sample: 'g' },
+          { key: 'yieldTarget', header: 'Yield % เป้าหมาย',    width: 14, sample: 95 },
+          { key: 'lossAllowance', header: 'Loss Allowance %', width: 14, sample: 5 },
+          { key: 'isActive',   header: 'Active (Y/N)',         width: 10, sample: 'Y' },
+        ],
+        instructions: [
+          ['📋 BOM (Bill of Materials) Template — คู่มือการกรอก'],
+          [''],
+          ['ถ้า BOM 1 ตัวมี Component หลายตัว (เช่น RM-001, RM-002, PK-001)'],
+          ['  → กรอก 1 บรรทัด/Component โดยซ้ำค่า BOM Code, Name, FG, Batch Size เดิม'],
+          [''],
+          ['ตัวอย่าง: BOM-FG001-V1 มี 3 components'],
+          ['  บรรทัด 1: BOM-FG001-V1 | ... | RM-001 (ขมิ้นชัน) 30 g'],
+          ['  บรรทัด 2: BOM-FG001-V1 | ... | RM-002 (แป้งข้าวเจ้า) 15 g'],
+          ['  บรรทัด 3: BOM-FG001-V1 | ... | PK-001 (แคปซูล) 60 pc'],
+          [''],
+          ['⚠️ FG Item Code + Component Code ต้องมีใน Items Master แล้ว'],
+          ['⚠️ เวอร์ชัน BOM ใช้สำหรับการปรับสูตร — สร้างใหม่แทนการแก้ไขเดิม'],
+        ],
+      },
+      vendors: {
+        sheetName: 'Vendors',
+        description: 'ผู้ขาย / Supplier',
+        headers: [
+          { key: 'code',         header: 'Vendor Code *',    width: 14, sample: 'V-001' },
+          { key: 'name',         header: 'ชื่อ/บริษัท *',     width: 30, sample: 'บริษัท สมุนไพรไทย จำกัด' },
+          { key: 'contactName',  header: 'ผู้ติดต่อ',          width: 20, sample: 'คุณสมชาย' },
+          { key: 'phone',        header: 'โทรศัพท์',          width: 15, sample: '02-123-4567' },
+          { key: 'email',        header: 'Email',            width: 25, sample: 'contact@example.com' },
+          { key: 'taxId',        header: 'เลขผู้เสียภาษี',    width: 18, sample: '0107558000123' },
+          { key: 'address',      header: 'ที่อยู่',           width: 40, sample: '123/45 ...' },
+          { key: 'paymentTerms', header: 'เงื่อนไขการชำระ',   width: 14, sample: 'Net 30' },
+          { key: 'creditLimit',  header: 'วงเงินเครดิต',      width: 14, sample: 500000 },
+          { key: 'leadTimeDays', header: 'Lead Time (วัน)',   width: 14, sample: 7 },
+          { key: 'isActive',     header: 'Active (Y/N)',      width: 10, sample: 'Y' },
+        ],
+        instructions: [
+          ['🏢 Vendors Template — คู่มือการกรอก'],
+          [''],
+          ['Payment Terms แนะนำรูปแบบ: Net 7, Net 15, Net 30, COD, Prepaid'],
+          [''],
+          ['⚠️ Vendor Code ห้ามซ้ำ'],
+          ['💡 Lead Time Days ใช้คำนวณวันสั่งซื้อใหม่ (Reorder Point)'],
+        ],
+      },
+      customers: {
+        sheetName: 'Customers',
+        description: 'ลูกค้า B2B + VMI',
+        headers: [
+          { key: 'code',         header: 'Customer Code *',   width: 14, sample: 'C-001' },
+          { key: 'name',         header: 'ชื่อลูกค้า *',       width: 30, sample: 'ร้านยาสมุนไพร X' },
+          { key: 'taxId',        header: 'เลขผู้เสียภาษี',     width: 18, sample: '' },
+          { key: 'contactName',  header: 'ผู้ติดต่อ',          width: 20, sample: '' },
+          { key: 'phone',        header: 'โทรศัพท์',          width: 15, sample: '081-234-5678' },
+          { key: 'email',        header: 'Email',            width: 25, sample: '' },
+          { key: 'billingAddr',  header: 'ที่อยู่ใบกำกับภาษี',  width: 40, sample: '' },
+          { key: 'shippingAddr', header: 'ที่อยู่จัดส่ง',      width: 40, sample: '' },
+          { key: 'creditLimit',  header: 'วงเงินเครดิต',      width: 14, sample: 100000 },
+          { key: 'priceTier',    header: 'Price Tier',        width: 14, sample: 'retail' },
+          { key: 'isVMI',        header: 'VMI (Y/N)',         width: 10, sample: 'N' },
+          { key: 'isActive',     header: 'Active (Y/N)',      width: 10, sample: 'Y' },
+        ],
+        instructions: [
+          ['🤝 Customers Template — คู่มือการกรอก'],
+          [''],
+          ['Price Tier ต้องเป็นหนึ่งใน: retail, wholesale, distributor, vmi'],
+          [''],
+          ['VMI (Y/N):'],
+          ['  • Y = Vendor Managed Inventory ส่งของอัตโนมัติตาม stock portal'],
+          ['  • N = ลูกค้าทั่วไป (สั่ง-ส่ง)'],
+        ],
+      },
+      warehouses: {
+        sheetName: 'Warehouses + Rooms',
+        description: 'คลังและห้องผลิต (GMP)',
+        headers: [
+          { key: 'code',         header: 'Code *',             width: 14, sample: 'WH-RM' },
+          { key: 'name',         header: 'ชื่อ *',              width: 25, sample: 'คลังวัตถุดิบ' },
+          { key: 'type',         header: 'ประเภท *',            width: 16, sample: 'warehouse' },
+          { key: 'subType',      header: 'Sub-Type',           width: 16, sample: 'raw_material' },
+          { key: 'isoClass',     header: 'ISO Class',          width: 12, sample: 'ISO 8' },
+          { key: 'tempMin',      header: 'Temp Min (°C)',      width: 14, sample: 15 },
+          { key: 'tempMax',      header: 'Temp Max (°C)',      width: 14, sample: 25 },
+          { key: 'humidityMax',  header: 'Humidity Max (%)',   width: 16, sample: 60 },
+          { key: 'pressure',     header: 'Pressure (Pa)',      width: 14, sample: '' },
+          { key: 'floor',        header: 'ชั้น',                width: 10, sample: 1 },
+          { key: 'area',         header: 'พื้นที่ (ตร.ม.)',      width: 14, sample: 50 },
+          { key: 'isActive',     header: 'Active (Y/N)',        width: 10, sample: 'Y' },
+        ],
+        instructions: [
+          ['🏭 Warehouses + Rooms Template — คู่มือการกรอก'],
+          [''],
+          ['ประเภท (type):'],
+          ['  • warehouse — คลังสินค้า (เก็บของ)'],
+          ['  • production_room — ห้องผลิต (เครื่องจักรอยู่)'],
+          ['  • quarantine — พื้นที่กักกัน (รอ QC)'],
+          ['  • packaging_area — พื้นที่บรรจุ'],
+          [''],
+          ['ISO Class สำคัญมาก — ระบบใช้ validate temperature/humidity reading'],
+          ['  • ISO 5 = Cleanroom (ผลิตยาปลอดเชื้อ)'],
+          ['  • ISO 7-8 = Production rooms ทั่วไป'],
+        ],
+      },
+      equipment: {
+        sheetName: 'Equipment',
+        description: 'เครื่องจักร / อุปกรณ์',
+        headers: [
+          { key: 'code',           header: 'Equipment Code *', width: 14, sample: 'EQ-001' },
+          { key: 'name',           header: 'ชื่อ *',            width: 28, sample: 'เครื่องบดสมุนไพร' },
+          { key: 'model',          header: 'รุ่น',              width: 18, sample: 'HM-500' },
+          { key: 'serialNumber',   header: 'Serial Number',    width: 18, sample: 'SN-2024-01234' },
+          { key: 'manufacturer',   header: 'ผู้ผลิต',           width: 20, sample: 'ABC Co., Ltd.' },
+          { key: 'location',       header: 'Location (Room)',  width: 16, sample: 'PR-01' },
+          { key: 'capacity',       header: 'ความจุ',            width: 14, sample: '50 kg/hr' },
+          { key: 'purchaseDate',   header: 'วันที่ซื้อ',         width: 14, sample: '2024-06-15' },
+          { key: 'calibrationDue', header: 'Calibration Due',   width: 16, sample: '2026-12-31' },
+          { key: 'maintSchedule',  header: 'Maintenance',       width: 18, sample: 'Monthly' },
+          { key: 'status',         header: 'สถานะ',            width: 14, sample: 'operational' },
+        ],
+        instructions: [
+          ['⚙️ Equipment Template — คู่มือการกรอก'],
+          [''],
+          ['สถานะ (status):'],
+          ['  • operational — พร้อมใช้'],
+          ['  • maintenance — กำลัง PM/ซ่อม'],
+          ['  • broken — ชำรุด'],
+          ['  • retired — เลิกใช้'],
+          [''],
+          ['💡 Calibration Due สำคัญ — ระบบจะแจ้งเตือนก่อนถึงวันครบกำหนด'],
+        ],
+      },
+      'qc-specs': {
+        sheetName: 'QC Specifications',
+        description: 'ข้อกำหนดคุณภาพ + วิธีทดสอบ',
+        headers: [
+          { key: 'itemCode',     header: 'Item Code *',        width: 14, sample: 'RM-001' },
+          { key: 'testName',     header: 'Test Name *',        width: 25, sample: 'Moisture Content' },
+          { key: 'testMethod',   header: 'Test Method',         width: 20, sample: 'Loss on Drying' },
+          { key: 'minValue',     header: 'Min Value',           width: 12, sample: 0 },
+          { key: 'maxValue',     header: 'Max Value',           width: 12, sample: 10 },
+          { key: 'targetValue',  header: 'Target',              width: 12, sample: 5 },
+          { key: 'unit',         header: 'Unit',                width: 10, sample: '%' },
+          { key: 'isCritical',   header: 'Critical (Y/N)',       width: 12, sample: 'Y' },
+          { key: 'samplingPlan', header: 'Sampling Plan',       width: 20, sample: '1 sample per lot' },
+          { key: 'reference',    header: 'Reference / Standard', width: 20, sample: 'USP <731>' },
+        ],
+        instructions: [
+          ['🔬 Quality Specifications Template — คู่มือการกรอก'],
+          [''],
+          ['Critical (Y/N):'],
+          ['  • Y = Test ที่ fail แล้วต้อง reject lot ทันที'],
+          ['  • N = Test ทั่วไป (warn แต่ไม่ block)'],
+          [''],
+          ['💡 Min/Max ใช้คำนวณ Pass/Fail อัตโนมัติ'],
+          ['💡 กรอกค่า Target (ค่าที่ต้องการ) ถ้ามี — optional'],
+        ],
+      },
+      users: {
+        sheetName: 'Users + Roles',
+        description: 'ผู้ใช้งาน + สิทธิ์',
+        headers: [
+          { key: 'empId',       header: 'Employee ID *',     width: 14, sample: 'EMP-001' },
+          { key: 'nameTh',      header: 'ชื่อไทย *',          width: 25, sample: 'สมชาย ใจดี' },
+          { key: 'nameEn',      header: 'ชื่ออังกฤษ',         width: 25, sample: 'Somchai Jaidee' },
+          { key: 'email',       header: 'Email *',           width: 28, sample: 'somchai@company.com' },
+          { key: 'phone',       header: 'โทรศัพท์',           width: 14, sample: '081-xxx-xxxx' },
+          { key: 'position',    header: 'ตำแหน่ง *',          width: 22, sample: 'QC Officer' },
+          { key: 'department',  header: 'แผนก *',            width: 18, sample: 'Quality Control' },
+          { key: 'roleCode',    header: 'Role Code *',       width: 18, sample: 'QC_ANALYST' },
+          { key: 'managerEmpId', header: 'Direct Manager (EmpID)', width: 18, sample: 'EMP-010' },
+          { key: 'startDate',   header: 'วันเริ่มงาน',         width: 14, sample: '2023-01-15' },
+          { key: 'isActive',    header: 'Active (Y/N)',       width: 10, sample: 'Y' },
+        ],
+        instructions: [
+          ['👤 Users + Roles Template — คู่มือการกรอก'],
+          [''],
+          ['Role Code (ดูรายละเอียดใน /hr/roles):'],
+          ['  Admin family: ADMIN, METAHERB_FACTORY, BMS_TEST_LEADER, IT_MANAGER'],
+          ['  Executives: DIRECTOR, DEPUTY_DIRECTOR, DIV_HEAD, SECTION_HEAD'],
+          ['  Quality: QC_MANAGER, QC_ANALYST, QA_MANAGER, QA_OFFICER, PHARMACIST'],
+          ['  Production: PROD_MANAGER, PROD_OPERATOR'],
+          ['  Warehouse: WH_MANAGER, WH_STAFF'],
+          ['  Purchasing: PROCUREMENT_MANAGER, PROCUREMENT'],
+          ['  Sales: SALES_MANAGER, SALES_STAFF'],
+          ['  Accounting: ACCOUNTING_MANAGER, AP_STAFF, AR_STAFF, GL_ACCOUNTANT'],
+          ['  HR: HR_ADMIN, HR_MANAGER, HR_STAFF'],
+          ['  Others: VIEWER, IT_STAFF'],
+          [''],
+          ['⚠️ Email ต้อง unique — ใช้เป็น login ID'],
+          ['⚠️ Manager EmpID ต้องมีในรายการนี้แล้ว (สำหรับสร้าง org chart)'],
+        ],
+      },
+      'org-chart': {
+        sheetName: 'Org Chart + Positions',
+        description: 'ผังองค์กร + ตำแหน่งงาน',
+        headers: [
+          { key: 'unitCode',     header: 'Org Unit Code *',     width: 14, sample: 'QC' },
+          { key: 'unitNameTh',   header: 'ชื่อหน่วยงาน ไทย *',   width: 25, sample: 'ฝ่ายควบคุมคุณภาพ' },
+          { key: 'unitNameEn',   header: 'Unit Name EN',         width: 25, sample: 'Quality Control Dept.' },
+          { key: 'parentUnit',   header: 'Parent Unit Code',     width: 14, sample: 'CEO' },
+          { key: 'positionCode', header: 'Position Code *',      width: 14, sample: 'QC-001' },
+          { key: 'positionName', header: 'Position Name *',      width: 25, sample: 'QC Analyst' },
+          { key: 'level',        header: 'Level *',              width: 10, sample: 5 },
+          { key: 'managerPos',   header: 'Manager Position Code', width: 20, sample: 'QC-MGR' },
+          { key: 'headCount',    header: 'Head Count (ต้องการ)',   width: 14, sample: 3 },
+          { key: 'description',  header: 'หน้าที่โดยสังเขป',       width: 35, sample: 'ทดสอบคุณภาพวัตถุดิบและ FG' },
+        ],
+        instructions: [
+          ['🏛️ Organization Chart Template — คู่มือการกรอก'],
+          [''],
+          ['Level (ระดับองค์กร):'],
+          ['  1 = CEO/President'],
+          ['  2 = Director/VP'],
+          ['  3 = Division Head'],
+          ['  4 = Section Head/Manager'],
+          ['  5 = Supervisor/Officer'],
+          ['  6 = Staff/Operator'],
+          [''],
+          ['⚠️ Parent Unit Code ต้องมีในรายการนี้แล้ว (ยกเว้น ROOT/CEO)'],
+          ['⚠️ Manager Position Code ใช้กำหนดลำดับบังคับบัญชา'],
+        ],
+      },
+      'price-list': {
+        sheetName: 'Price List',
+        description: 'ราคาขาย + ต้นทุนมาตรฐาน',
+        headers: [
+          { key: 'itemCode',      header: 'Item Code *',        width: 16, sample: 'FG-001' },
+          { key: 'customerTier',  header: 'Customer Tier *',    width: 14, sample: 'retail' },
+          { key: 'sellPrice',     header: 'ราคาขาย *',          width: 14, sample: 350 },
+          { key: 'currency',      header: 'Currency',           width: 10, sample: 'THB' },
+          { key: 'standardCost',  header: 'Standard Cost',       width: 14, sample: 180 },
+          { key: 'minSellPrice',  header: 'ราคาขายขั้นต่ำ',      width: 14, sample: 300 },
+          { key: 'effectiveFrom', header: 'มีผลตั้งแต่',          width: 16, sample: '2026-01-01' },
+          { key: 'effectiveTo',   header: 'สิ้นสุด (ถ้ามี)',      width: 16, sample: '' },
+          { key: 'notes',         header: 'หมายเหตุ',            width: 20, sample: '' },
+        ],
+        instructions: [
+          ['💰 Price List Template — คู่มือการกรอก'],
+          [''],
+          ['Customer Tier: retail, wholesale, distributor, vmi'],
+          [''],
+          ['ถ้า item เดียวมีหลาย tier → กรอกหลายบรรทัด'],
+          [''],
+          ['💡 Standard Cost ใช้คำนวณ Gross Margin'],
+          ['💡 Min Sell Price ป้องกันการขายต่ำกว่าต้นทุน + margin'],
+        ],
+      },
+      'gl-accounts': {
+        sheetName: 'Chart of Accounts',
+        description: 'ผังบัญชี',
+        headers: [
+          { key: 'accountCode',   header: 'Account Code *',      width: 14, sample: '1000' },
+          { key: 'accountName',   header: 'ชื่อบัญชี *',          width: 30, sample: 'เงินสด' },
+          { key: 'accountNameEn', header: 'Account Name EN',     width: 25, sample: 'Cash' },
+          { key: 'type',          header: 'ประเภท *',            width: 14, sample: 'Asset' },
+          { key: 'subType',       header: 'Sub-Type',           width: 18, sample: 'Current Asset' },
+          { key: 'parentAccount', header: 'Parent Account',     width: 14, sample: '' },
+          { key: 'normalBalance', header: 'Normal Balance *',    width: 14, sample: 'Debit' },
+          { key: 'isActive',      header: 'Active (Y/N)',        width: 10, sample: 'Y' },
+          { key: 'description',   header: 'หมายเหตุ',            width: 30, sample: '' },
+        ],
+        instructions: [
+          ['📊 Chart of Accounts Template — คู่มือการกรอก'],
+          [''],
+          ['ประเภท (type) ต้องเป็นหนึ่งใน:'],
+          ['  • Asset — สินทรัพย์ (normal balance = Debit)'],
+          ['  • Liability — หนี้สิน (normal balance = Credit)'],
+          ['  • Equity — ส่วนของเจ้าของ (normal balance = Credit)'],
+          ['  • Revenue — รายได้ (normal balance = Credit)'],
+          ['  • Expense — ค่าใช้จ่าย (normal balance = Debit)'],
+          [''],
+          ['💡 Parent Account ใช้สำหรับ hierarchy — ทำรายงานยอดรวมตามลำดับ'],
+          ['⚠️ Account Code ต้อง unique ทั่วทั้ง chart'],
+        ],
+      },
+      'company-info': {
+        sheetName: 'Company Info',
+        description: 'ข้อมูลบริษัท + เอกสารที่ต้องการ',
+        headers: [
+          { key: 'field', header: 'ข้อมูล *', width: 30, sample: '' },
+          { key: 'value', header: 'ค่า *',   width: 40, sample: '' },
+          { key: 'note',  header: 'หมายเหตุ', width: 30, sample: '' },
+        ],
+        instructions: [
+          ['🏢 Company Info — ข้อมูลและเอกสารที่ต้องเตรียม'],
+          [''],
+          ['กรอกลงใน Sheet "Company Info" บรรทัดละ 1 field:'],
+          [''],
+          ['ข้อมูลบริษัท (Required):'],
+          ['  • ชื่อบริษัท (Thai)'],
+          ['  • ชื่อบริษัท (English)'],
+          ['  • เลขผู้เสียภาษี (13 หลัก)'],
+          ['  • ที่อยู่ทะเบียน'],
+          ['  • ที่อยู่โรงงาน'],
+          ['  • โทรศัพท์ / Fax'],
+          ['  • Email'],
+          ['  • Website'],
+          [''],
+          ['ใบอนุญาต:'],
+          ['  • FDA License Number'],
+          ['  • GMP Certificate Number'],
+          ['  • ISO Certificate (ถ้ามี)'],
+          [''],
+          ['เอกสารที่ต้องส่งแยก (ไฟล์):'],
+          ['  📎 โลโก้บริษัท PNG (พื้นหลังโปร่งใส, 512×512px)'],
+          ['  📎 ลายเซ็นผู้มีอำนาจ PNG (พื้นหลังโปร่งใส, 400×150px)'],
+          ['  📎 ตราประทับบริษัท PNG'],
+          ['  📎 สำเนาใบ ภ.พ.20'],
+          ['  📎 สำเนา FDA License'],
+        ],
+        presetRows: [
+          { field: 'ชื่อบริษัท (ไทย)', value: '', note: 'Required' },
+          { field: 'ชื่อบริษัท (English)', value: '', note: 'Required' },
+          { field: 'เลขผู้เสียภาษี', value: '', note: '13 หลัก' },
+          { field: 'ที่อยู่ทะเบียน', value: '', note: 'Required' },
+          { field: 'ที่อยู่โรงงาน', value: '', note: 'ถ้าต่างจากที่อยู่ทะเบียน' },
+          { field: 'โทรศัพท์', value: '', note: '' },
+          { field: 'Fax', value: '', note: '' },
+          { field: 'Email', value: '', note: '' },
+          { field: 'Website', value: '', note: '' },
+          { field: 'FDA License Number', value: '', note: '' },
+          { field: 'GMP Certificate Number', value: '', note: '' },
+          { field: 'ISO Certificate', value: '', note: '' },
+        ],
+      },
+    };
+
+    async function downloadFactoryTemplate(type) {
+      const today = new Date().toISOString().slice(0, 10);
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Herbal Medicine ERP';
+      wb.created = new Date();
+
+      const typesToBuild = type === 'all' ? Object.keys(FACTORY_TEMPLATES) : [type];
+
+      // For "all" — add cover sheet first
+      if (type === 'all') {
+        const cover = wb.addWorksheet('README', { views: [{ state: 'frozen', xSplit: 0, ySplit: 0 }] });
+        cover.columns = [{ width: 4 }, { width: 50 }, { width: 60 }];
+        cover.mergeCells('B2:C2');
+        cover.getCell('B2').value = '📦 Herbal Medicine ERP — Factory Data Templates';
+        cover.getCell('B2').font = { name: 'Sarabun', size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
+        cover.getCell('B2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+        cover.getCell('B2').alignment = { horizontal: 'center', vertical: 'middle' };
+        cover.getRow(2).height = 34;
+
+        cover.mergeCells('B3:C3');
+        cover.getCell('B3').value = 'Template รวบรวมข้อมูลพื้นฐานที่ต้องการจากโรงงาน · ออกเอกสารเมื่อ ' + new Date().toLocaleDateString('th-TH');
+        cover.getCell('B3').font = { name: 'Sarabun', size: 11, italic: true, color: { argb: 'FF64748B' } };
+        cover.getCell('B3').alignment = { horizontal: 'center' };
+
+        // TOC
+        let tocRow = 5;
+        cover.getCell('B' + tocRow).value = '📖 สารบัญ (Sheets)';
+        cover.getCell('B' + tocRow).font = { name: 'Sarabun', size: 13, bold: true, color: { argb: 'FF0F172A' } };
+        tocRow++;
+        Object.keys(FACTORY_TEMPLATES).forEach((k, i) => {
+          const tpl = FACTORY_TEMPLATES[k];
+          cover.getCell('B' + tocRow).value = (i + 1) + '. ' + tpl.sheetName;
+          cover.getCell('B' + tocRow).font = { name: 'Sarabun', size: 11, bold: true };
+          cover.getCell('C' + tocRow).value = tpl.description;
+          cover.getCell('C' + tocRow).font = { name: 'Sarabun', size: 10, color: { argb: 'FF64748B' } };
+          tocRow++;
+        });
+
+        // Usage notes
+        tocRow += 2;
+        cover.getCell('B' + tocRow).value = '💡 วิธีใช้';
+        cover.getCell('B' + tocRow).font = { name: 'Sarabun', size: 13, bold: true, color: { argb: 'FF0F172A' } };
+        tocRow++;
+        const usageNotes = [
+          '1. เปิด sheet ตามข้อมูลที่ต้องการกรอก',
+          '2. แต่ละ sheet มี header สีน้ำเงิน — ห้ามแก้ไข',
+          '3. คอลัมน์ที่มี * คือ required ห้ามเว้นว่าง',
+          '4. อ่าน Instructions sheet เพื่อเข้าใจ field-level validation',
+          '5. กรอกข้อมูลตามรูปแบบ (date, number, Y/N)',
+          '6. ส่งไฟล์กลับพร้อมเอกสารแนบ (โลโก้, ลายเซ็น) ให้ทีม implementation',
+        ];
+        usageNotes.forEach((n) => {
+          cover.mergeCells('B' + tocRow + ':C' + tocRow);
+          cover.getCell('B' + tocRow).value = n;
+          cover.getCell('B' + tocRow).font = { name: 'Sarabun', size: 11, color: { argb: 'FF334155' } };
+          cover.getRow(tocRow).height = 18;
+          tocRow++;
+        });
+      }
+
+      // Build data sheets
+      typesToBuild.forEach((t) => {
+        const tpl = FACTORY_TEMPLATES[t];
+        if (!tpl) return;
+
+        // Instructions sheet
+        const instSheet = wb.addWorksheet(tpl.sheetName + ' - Instructions');
+        instSheet.columns = [{ width: 100 }];
+        tpl.instructions.forEach((line, i) => {
+          const cell = instSheet.getCell('A' + (i + 1));
+          cell.value = line[0];
+          if (i === 0) {
+            cell.font = { name: 'Sarabun', size: 16, bold: true, color: { argb: 'FF2563EB' } };
+          } else if (line[0].startsWith('⚠️')) {
+            cell.font = { name: 'Sarabun', size: 11, color: { argb: 'FFB91C1C' }, bold: true };
+          } else if (line[0].startsWith('💡')) {
+            cell.font = { name: 'Sarabun', size: 11, color: { argb: 'FF047857' } };
+          } else {
+            cell.font = { name: 'Sarabun', size: 11, color: { argb: 'FF334155' } };
+          }
+        });
+
+        // Data sheet with styled header + sample row
+        const sheet = wb.addWorksheet(tpl.sheetName, {
+          views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }],
+        });
+        sheet.columns = tpl.headers.map((h) => ({ key: h.key, header: h.header, width: h.width }));
+
+        // Header styling
+        const hdr = sheet.getRow(1);
+        tpl.headers.forEach((h, i) => {
+          const c = hdr.getCell(i + 1);
+          c.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+          c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+          c.border = {
+            top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+            bottom: { style: 'medium', color: { argb: 'FF1D4ED8' } },
+            right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          };
+        });
+        hdr.height = 32;
+
+        // Sample row (row 2) — styled differently so user sees it's a template
+        const sampleValues = {};
+        tpl.headers.forEach((h) => { sampleValues[h.key] = h.sample; });
+        const sampleRow = sheet.addRow(sampleValues);
+        sampleRow.eachCell((c) => {
+          c.font = { name: 'Sarabun', size: 10, italic: true, color: { argb: 'FF94A3B8' } };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          c.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
+          c.border = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          };
+        });
+        sampleRow.height = 22;
+
+        // Preset rows for company-info
+        if (tpl.presetRows) {
+          tpl.presetRows.forEach((r) => {
+            const row = sheet.addRow(r);
+            row.eachCell((c) => {
+              c.font = { name: 'Sarabun', size: 11, color: { argb: 'FF0F172A' } };
+              c.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 1 };
+              c.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+            });
+            row.height = 20;
+          });
+        }
+
+        // Add 20 empty rows with borders for easy filling
+        const baseRow = sampleRow.number + 1;
+        for (let r = 0; r < 20; r++) {
+          const row = sheet.getRow(baseRow + r);
+          tpl.headers.forEach((_h, i) => {
+            const c = row.getCell(i + 1);
+            c.font = { name: 'Sarabun', size: 11 };
+            c.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
+            c.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            };
+          });
+          row.height = 20;
+        }
+
+        // Auto-filter
+        sheet.autoFilter = {
+          from: { row: 1, column: 1 },
+          to: { row: 1, column: tpl.headers.length },
+        };
+      });
+
+      // Download
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fileName = type === 'all' ? 'factory-data-templates-all' : 'factory-template-' + type;
+      a.download = fileName + '-' + today + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('📥 ดาวน์โหลด Template แล้ว');
+    }
+
+    // Initialize
+    initCheckboxes();
+    updateCounts();
+  </script>
+</body>
+</html>

@@ -5,7 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toQueryDate, getTodayStr } from '../db/date-utils';
+import { toQueryDate, getTodayStr, getNow, toDbDate } from '../db/date-utils';
 import { eq, and, gte, lte, desc, asc, sql, or } from 'drizzle-orm';
 import {
   sqliteInventoryLots,
@@ -121,15 +121,15 @@ export async function recalculateItemOnHand(itemId: number): Promise<{ onHand: n
   const database = (await getDb()) as any;
   const usingSqlite = isSqlite();
 
-  // Sum quantities from released lots for this item (onHand)
-  const [releasedResult] = await (database as any)
+  // Sum ALL lot quantities for this item (onHand = total stock including quarantine)
+  const [totalResult] = await (database as any)
     .select({
       totalOnHand: sql`COALESCE(SUM(${lots.quantity}), 0)`,
     })
     .from(lots)
-    .where(and(eq(lots.itemId, itemId), eq(lots.status, 'released')));
+    .where(eq(lots.itemId, itemId));
 
-  // Sum quantities from quarantine/under_test lots (quarantineQty)
+  // Sum quantities from quarantine/under_test lots (quarantineQty subset)
   const [quarantineResult] = await (database as any)
     .select({
       totalQuarantine: sql`COALESCE(SUM(${lots.quantity}), 0)`,
@@ -140,7 +140,7 @@ export async function recalculateItemOnHand(itemId: number): Promise<{ onHand: n
       or(eq(lots.status, 'quarantine'), eq(lots.status, 'under_test'))
     ));
 
-  const onHand = Number(releasedResult?.totalOnHand) || 0;
+  const onHand = Number(totalResult?.totalOnHand) || 0;
   const quarantineQty = Number(quarantineResult?.totalQuarantine) || 0;
 
   // Update item's onHand and quarantineQty fields
@@ -155,6 +155,29 @@ export async function recalculateItemOnHand(itemId: number): Promise<{ onHand: n
     .where(eq(items.id, itemId));
 
   return { onHand, quarantineQty };
+}
+
+/**
+ * Get balance snapshot for a lot and its parent item after a transaction.
+ * Used to record point-in-time balances in inventory_transactions.
+ */
+async function getBalanceSnapshot(database: any, lotId: number, itemId: number) {
+  const { lots } = getTables();
+  // Lot balance after transaction
+  const [lotRow] = await database
+    .select({ quantity: lots.quantity })
+    .from(lots)
+    .where(eq(lots.id, lotId));
+  const balanceAfter = Number(lotRow?.quantity) || 0;
+
+  // Item total balance (sum of all lots for this item)
+  const [itemRow] = await database
+    .select({ total: sql`COALESCE(SUM(${lots.quantity}), 0)` })
+    .from(lots)
+    .where(eq(lots.itemId, itemId));
+  const itemBalanceAfter = Number(itemRow?.total) || 0;
+
+  return { balanceAfter, itemBalanceAfter };
 }
 
 /**
@@ -215,6 +238,61 @@ export async function getLotsForPicking(
   }
 
   return { allocated, remaining };
+}
+
+/**
+ * Get available lots for an item (for lot selection UI)
+ * Reuses same query conditions as getLotsForPicking (FEFO sort)
+ * Returns all available lots without quantity allocation
+ */
+export async function getAvailableLots(itemId: number): Promise<{
+  id: number;
+  lotNumber: string;
+  availableQty: number;
+  unit: string;
+  expiryDate: string | null;
+  vendorLotNumber: string | null;
+  manufacturerName: string | null;
+}[]> {
+  const { lots } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  const conditions = [
+    eq(lots.itemId, itemId),
+    eq(lots.status, 'released'),
+    sql`${lots.quantity} - ${lots.reservedQuantity} > 0`,
+    // Exclude expired lots (NULL expiryDate = no expiry = always valid)
+    isSqlite()
+      ? sql`(${lots.expiryDate} IS NULL OR ${lots.expiryDate} >= date('now'))`
+      : sql`(${lots.expiryDate} IS NULL OR ${lots.expiryDate} >= CURDATE())`,
+  ];
+
+  const availableLots = await database
+    .select({
+      id: lots.id,
+      lotNumber: lots.lotNumber,
+      quantity: lots.quantity,
+      reservedQuantity: lots.reservedQuantity,
+      unit: lots.unit,
+      expiryDate: lots.expiryDate,
+      vendorLotNumber: lots.vendorLotNumber,
+      manufacturerName: lots.manufacturerName,
+    })
+    .from(lots)
+    .where(and(...conditions))
+    .orderBy(asc(lots.expiryDate), asc(lots.id));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return availableLots.map((lot: any) => ({
+    id: lot.id,
+    lotNumber: lot.lotNumber,
+    availableQty: (lot.quantity || 0) - (lot.reservedQuantity || 0),
+    unit: lot.unit,
+    expiryDate: lot.expiryDate,
+    vendorLotNumber: lot.vendorLotNumber,
+    manufacturerName: lot.manufacturerName,
+  }));
 }
 
 /**
@@ -301,6 +379,9 @@ export async function issueMaterial(
     })
     .where(eq(lots.id, lotId));
 
+  // Snapshot balance after deduction
+  const snapshot = await getBalanceSnapshot(database, lotId, lot.itemId);
+
   // Create transaction record
   let txnId: number;
   if (isSqlite()) {
@@ -317,6 +398,9 @@ export async function issueMaterial(
         fromWarehouseId: lot.warehouseId,
         reason,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
+        createdAt: getNow(),
       })
       .returning({ id: transactions.id });
     txnId = txn.id;
@@ -334,6 +418,9 @@ export async function issueMaterial(
         fromWarehouseId: lot.warehouseId,
         reason,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
+        createdAt: getNow(),
       });
     txnId = getInsertId(result);
   }
@@ -388,6 +475,9 @@ export async function issueMaterial(
     }, userId);
   }
 
+  // Sync items.on_hand with lot totals
+  await recalculateItemOnHand(lot.itemId);
+
   return txnId;
 }
 
@@ -411,6 +501,9 @@ export async function receiveMaterial(
 
   // Create new lot in quarantine status
   let newLotId: number;
+  const dbExpiryDate = expiryDate ? toDbDate(expiryDate) : null;
+  const dbReceivedDate = toDbDate(getTodayStr());
+
   if (isSqlite()) {
     const [newLot] = await database
       .insert(lots)
@@ -422,8 +515,8 @@ export async function receiveMaterial(
         reservedQuantity: 0,
         unit,
         status: 'quarantine', // Always start in quarantine
-        expiryDate,
-        receivedDate: new Date().toISOString().split('T')[0],
+        expiryDate: dbExpiryDate,
+        receivedDate: dbReceivedDate,
         vendorId,
         poNumber,
       })
@@ -440,13 +533,16 @@ export async function receiveMaterial(
         reservedQuantity: 0,
         unit,
         status: 'quarantine', // Always start in quarantine
-        expiryDate,
-        receivedDate: new Date().toISOString().split('T')[0],
+        expiryDate: dbExpiryDate,
+        receivedDate: dbReceivedDate,
         vendorId,
         poNumber,
       });
     newLotId = getInsertId(result);
   }
+
+  // Snapshot balance after receive
+  const snapshot = await getBalanceSnapshot(database, newLotId, itemId);
 
   // Create transaction record
   if (isSqlite()) {
@@ -461,6 +557,9 @@ export async function receiveMaterial(
         referenceNumber: poNumber,
         toWarehouseId: warehouseId,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
+        createdAt: getNow(),
       })
       .returning({ id: transactions.id });
   } else {
@@ -475,6 +574,9 @@ export async function receiveMaterial(
         referenceNumber: poNumber,
         toWarehouseId: warehouseId,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
+        createdAt: getNow(),
       });
   }
 
@@ -524,7 +626,7 @@ export async function updateLotStatus(
   // Update status
   const updateData: Record<string, unknown> = {
     status: newStatus,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (coaNumber) {
@@ -885,9 +987,12 @@ export async function adjustInventory(
     .update(lots)
     .set({
       quantity: newQuantity,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(lots.id, lotId));
+
+  // Snapshot balance after adjustment
+  const snapshot = await getBalanceSnapshot(database, lotId, lot.itemId);
 
   // Create transaction record
   let txnId: number;
@@ -903,6 +1008,9 @@ export async function adjustInventory(
         reason,
         performedBy: userId,
         approvedBy,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
+        createdAt: getNow(),
       })
       .returning({ id: transactions.id });
     txnId = txn.id;
@@ -918,6 +1026,9 @@ export async function adjustInventory(
         reason,
         performedBy: userId,
         approvedBy,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
+        createdAt: getNow(),
       });
     txnId = getInsertId(result);
   }
@@ -969,7 +1080,7 @@ export async function transferInventory(
     .update(lots)
     .set({
       quantity: sql`${lots.quantity} - ${quantity}`,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(lots.id, lotId));
 
@@ -1018,6 +1129,9 @@ export async function transferInventory(
     newLotId = getInsertId(result);
   }
 
+  // Snapshot balance of new lot after transfer
+  const snapshot = await getBalanceSnapshot(database, newLotId, lot.itemId);
+
   // Create transaction record
   let txnId: number;
   if (isSqlite()) {
@@ -1033,6 +1147,9 @@ export async function transferInventory(
         toWarehouseId,
         reason,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
+        createdAt: getNow(),
       })
       .returning({ id: transactions.id });
     txnId = txn.id;
@@ -1049,6 +1166,9 @@ export async function transferInventory(
         toWarehouseId,
         reason,
         performedBy: userId,
+        balanceAfter: snapshot.balanceAfter,
+        itemBalanceAfter: snapshot.itemBalanceAfter,
+        createdAt: getNow(),
       });
     txnId = getInsertId(result);
   }
@@ -1107,9 +1227,9 @@ export async function receiveMaterialExtended(
     reservedQuantity: 0,
     unit: data.unit,
     status: 'quarantine', // Always start in quarantine
-    expiryDate: data.expiryDate || null,
-    manufacturingDate: data.manufacturingDate || null,
-    receivedDate: new Date().toISOString().split('T')[0],
+    expiryDate: data.expiryDate ? toDbDate(data.expiryDate) : null,
+    manufacturingDate: data.manufacturingDate ? toDbDate(data.manufacturingDate) : null,
+    receivedDate: toDbDate(getTodayStr()),
     vendorId: data.vendorId || null,
     poNumber: data.poNumber || null,
     // FR-055: Manufacturer/Importer fields
@@ -1119,7 +1239,7 @@ export async function receiveMaterialExtended(
     importerId: data.importerId || null,
     countryOfOrigin: data.countryOfOrigin || null,
     // FR-056: Retest tracking
-    retestDate: data.retestDate || null,
+    retestDate: data.retestDate ? toDbDate(data.retestDate) : null,
     retestIntervalMonths: data.retestIntervalMonths || null,
     retestStatus,
   };
@@ -1138,6 +1258,9 @@ export async function receiveMaterialExtended(
     newLotId = getInsertId(result);
   }
 
+  // Snapshot balance after receive
+  const snapshot = await getBalanceSnapshot(database, newLotId, data.itemId);
+
   // Create transaction record
   await database
     .insert(transactions)
@@ -1150,6 +1273,9 @@ export async function receiveMaterialExtended(
       referenceNumber: data.poNumber,
       toWarehouseId: data.warehouseId,
       performedBy: userId,
+      balanceAfter: snapshot.balanceAfter,
+      itemBalanceAfter: snapshot.itemBalanceAfter,
+      createdAt: getNow(),
     });
 
   // Create audit log with extended fields
@@ -1215,7 +1341,7 @@ export async function updateLotManufacturerInfo(
       importerName,
       importerId,
       countryOfOrigin,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(lots.id, lotId));
 
@@ -1288,7 +1414,7 @@ export async function updateLotRetestInfo(
       retestDate,
       retestIntervalMonths,
       retestStatus,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(lots.id, lotId));
 

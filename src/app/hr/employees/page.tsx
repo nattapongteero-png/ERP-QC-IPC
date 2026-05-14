@@ -4,6 +4,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -57,10 +58,10 @@ import {
 } from 'lucide-react';
 import type { EmployeeWithDetails } from '@/types/hr';
 
-const STATUS_OPTIONS = [
-  { value: 'active', label: 'ใช้งาน' },
-  { value: 'inactive', label: 'พักงาน' },
-  { value: 'terminated', label: 'พ้นสภาพ' },
+const STATUS_OPTIONS_CONFIG = [
+  { value: 'active', translationKey: 'status.active' },
+  { value: 'inactive', translationKey: 'status.inactive' },
+  { value: 'terminated', translationKey: 'status.terminated' },
 ];
 
 // Professional avatar gradient colors based on name hash
@@ -87,7 +88,10 @@ function getAvatarGradient(name: string): string {
   return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
 }
 
-function formatTenure(dateStr: string | Date | null): string {
+function formatTenure(
+  dateStr: string | Date | null,
+  labels: { new: string; month: string; year: string; years: string }
+): string {
   if (!dateStr) return '-';
   const date = new Date(dateStr);
   const now = new Date();
@@ -95,10 +99,10 @@ function formatTenure(dateStr: string | Date | null): string {
   const years = Math.floor(diffDays / 365);
   const months = Math.floor((diffDays % 365) / 30);
 
-  if (years === 0 && months === 0) return 'ใหม่';
-  if (years === 0) return `${months} เดือน`;
-  if (months === 0) return `${years} ปี`;
-  return `${years} ปี ${months} เดือน`;
+  if (years === 0 && months === 0) return labels.new;
+  if (years === 0) return `${months} ${labels.month}`;
+  if (months === 0) return `${years} ${labels.year}`;
+  return `${years} ${labels.year} ${months} ${labels.month}`;
 }
 
 async function fetchEmployees(filters: {
@@ -120,8 +124,31 @@ async function fetchEmployees(filters: {
 type ViewMode = 'grid' | 'cards' | 'analytics';
 
 export default function EmployeesPage() {
+  const t = useTranslations('hr');
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Build status options with translations
+  const STATUS_OPTIONS = useMemo(
+    () =>
+      STATUS_OPTIONS_CONFIG.map((s) => ({
+        value: s.value,
+        label: t(`employees.${s.translationKey}`),
+      })),
+    [t]
+  );
+
+  // Tenure labels memoized
+  const tenureLabels = useMemo(
+    () => ({
+      new: t('common.newBadge'),
+      month: t('common.month'),
+      year: t('common.year'),
+      years: t('common.years'),
+    }),
+    [t]
+  );
 
   const [orgUnitFilter, setOrgUnitFilter] = useState<number | null>(
     searchParams.get('orgUnitId') ? Number(searchParams.get('orgUnitId')) : null
@@ -159,6 +186,11 @@ export default function EmployeesPage() {
   // Compute analytics data
   const employeeList = useMemo(() => Array.isArray(employees) ? employees : [], [employees]);
 
+  const employeeListWithRowNum = useMemo(
+    () => employeeList.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [employeeList]
+  );
+
   const analytics = useMemo(() => {
     const activeCount = employeeList.filter((e) => e.status === 'active').length;
     const inactiveCount = employeeList.filter((e) => e.status === 'inactive').length;
@@ -175,7 +207,7 @@ export default function EmployeesPage() {
     // Get department distribution
     const deptMap = new Map<string, number>();
     employeeList.forEach((e) => {
-      const dept = e.orgUnitName || 'ไม่ระบุ';
+      const dept = e.orgUnitName || t('authorizations.unknown');
       deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
     });
     const deptDistribution = Array.from(deptMap.entries())
@@ -185,9 +217,9 @@ export default function EmployeesPage() {
 
     // Status distribution for pie chart
     const statusDistribution = [
-      { status: 'ใช้งาน', count: activeCount, color: STATUS_COLORS.active },
-      { status: 'พักงาน', count: inactiveCount, color: STATUS_COLORS.inactive },
-      { status: 'พ้นสภาพ', count: terminatedCount, color: STATUS_COLORS.terminated },
+      { status: t('employees.status.active'), count: activeCount, color: STATUS_COLORS.active },
+      { status: t('employees.status.inactive'), count: inactiveCount, color: STATUS_COLORS.inactive },
+      { status: t('employees.status.terminated'), count: terminatedCount, color: STATUS_COLORS.terminated },
     ].filter(s => s.count > 0);
 
     // Calculate average tenure using a stable reference date
@@ -212,7 +244,7 @@ export default function EmployeesPage() {
       statusDistribution,
       avgTenure,
     };
-  }, [employeeList]);
+  }, [employeeList, t]);
 
   const handleRowClick = useCallback(
     (e: { data: EmployeeWithDetails }) => {
@@ -234,9 +266,9 @@ export default function EmployeesPage() {
   const renderStatusCell = (cellData: { value: string }) => {
     const status = cellData.value;
     const statusConfig = {
-      active: { variant: 'success' as const, label: 'ใช้งาน', icon: UserCheck },
-      inactive: { variant: 'warning' as const, label: 'พักงาน', icon: Clock },
-      terminated: { variant: 'danger' as const, label: 'พ้นสภาพ', icon: UserX },
+      active: { variant: 'success' as const, label: t('employees.status.active'), icon: UserCheck },
+      inactive: { variant: 'warning' as const, label: t('employees.status.inactive'), icon: Clock },
+      terminated: { variant: 'danger' as const, label: t('employees.status.terminated'), icon: UserX },
     };
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
 
@@ -345,12 +377,12 @@ export default function EmployeesPage() {
     }
 
     const date = new Date(dateValue);
-    const formattedDate = date.toLocaleDateString('th-TH', {
+    const formattedDate = date.toLocaleDateString(locale === 'th' ? 'th-TH' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
-    const tenure = formatTenure(dateValue);
+    const tenure = formatTenure(dateValue, tenureLabels);
 
     return (
       <div className="flex items-center gap-2 py-1">
@@ -361,7 +393,7 @@ export default function EmployeesPage() {
           <span className="text-slate-700 text-sm">{formattedDate}</span>
           <span className="text-xs text-slate-400 flex items-center gap-1">
             <Award className="w-3 h-3" />
-            อายุงาน: {tenure}
+            {t('employees.tenureLabel')}: {tenure}
           </span>
         </div>
       </div>
@@ -372,7 +404,7 @@ export default function EmployeesPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const customizePieTooltip = (pointInfo: any) => {
     return {
-      text: `${pointInfo.argument}: ${pointInfo.value} คน (${((pointInfo.percent || 0) * 100).toFixed(1)}%)`,
+      text: `${pointInfo.argument}: ${pointInfo.value} ${t('common.people')} (${((pointInfo.percent || 0) * 100).toFixed(1)}%)`,
     };
   };
 
@@ -385,14 +417,14 @@ export default function EmployeesPage() {
     <div className="p-4 md:p-6 space-y-5 max-w-[1600px] mx-auto" data-testid="hr-employees-page">
       {/* Header Section */}
       <ResponsivePageHeader
-        title="ทะเบียนพนักงาน"
-        subtitle={`Employee Directory • ${analytics.total} รายการ`}
+        title={t('employees.title')}
+        subtitle={t('employees.description')}
         icon={Users}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         breadcrumbs={[
           { label: 'HR', href: '/hr' },
-          { label: 'พนักงาน' },
+          { label: t('employees.breadcrumb') },
         ]}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
@@ -405,7 +437,7 @@ export default function EmployeesPage() {
                     ? 'bg-white shadow-sm text-blue-600'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
-                title="มุมมองตาราง"
+                title={t('employees.viewMode.grid')}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -416,7 +448,7 @@ export default function EmployeesPage() {
                     ? 'bg-white shadow-sm text-blue-600'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
-                title="มุมมองการ์ด"
+                title={t('employees.viewMode.cards')}
               >
                 <Grid3X3 className="w-4 h-4" />
               </button>
@@ -427,7 +459,7 @@ export default function EmployeesPage() {
                     ? 'bg-white shadow-sm text-blue-600'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
-                title="มุมมองวิเคราะห์"
+                title={t('employees.viewMode.analytics')}
               >
                 <BarChart3 className="w-4 h-4" />
               </button>
@@ -435,7 +467,7 @@ export default function EmployeesPage() {
 
             <DxButton
               icon="filter"
-              text={showFilters ? 'ซ่อนตัวกรอง' : 'ตัวกรอง'}
+              text={showFilters ? t('common.hideFilters') : t('common.showFilters')}
               type="default"
               stylingMode="outlined"
               onClick={() => setShowFilters(!showFilters)}
@@ -449,7 +481,7 @@ export default function EmployeesPage() {
             />
             <DxButton
               icon="add"
-              text="เพิ่มพนักงาน"
+              text={t('employees.addEmployee')}
               type="default"
               stylingMode="contained"
               onClick={handleAddEmployee}
@@ -461,7 +493,7 @@ export default function EmployeesPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4" data-testid="hr-employees-stats">
         <StatCard
-          label="พนักงานทั้งหมด"
+          label={t('employees.stats.total')}
           value={analytics.total}
           icon={Users}
           iconColor="text-blue-500"
@@ -469,7 +501,7 @@ export default function EmployeesPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ใช้งาน"
+          label={t('employees.stats.active')}
           value={analytics.active}
           icon={UserCheck}
           iconColor="text-emerald-500"
@@ -478,7 +510,7 @@ export default function EmployeesPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="พักงาน"
+          label={t('employees.stats.inactive')}
           value={analytics.inactive}
           icon={Clock}
           iconColor="text-yellow-500"
@@ -486,17 +518,17 @@ export default function EmployeesPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="เข้าใหม่เดือนนี้"
+          label={t('employees.stats.newThisMonth')}
           value={analytics.newThisMonth}
           icon={UserPlus}
           iconColor="text-violet-500"
           accentColor="border-violet-500"
-          trend={analytics.newThisMonth > 0 ? { direction: 'up', value: 'เพิ่มขึ้น' } : undefined}
+          trend={analytics.newThisMonth > 0 ? { direction: 'up', value: t('employees.stats.increasing') } : undefined}
           isLoading={isLoading}
         />
         <StatCard
-          label="อายุงานเฉลี่ย"
-          value={`${analytics.avgTenure} ปี`}
+          label={t('employees.stats.avgTenure')}
+          value={`${analytics.avgTenure} ${t('common.year')}`}
           icon={Award}
           iconColor="text-orange-500"
           accentColor="border-orange-500"
@@ -510,28 +542,28 @@ export default function EmployeesPage() {
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <Filter className="w-4 h-4 text-slate-500" />
-            <span className="font-medium text-slate-700">ตัวกรองข้อมูล</span>
+            <span className="font-medium text-slate-700">{t('common.dataFilters')}</span>
           </div>
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 md:gap-4">
             <div className="w-full sm:w-64">
               <OrgUnitPicker
                 value={orgUnitFilter}
                 onValueChange={setOrgUnitFilter}
-                label="หน่วยงาน"
-                placeholder="ทุกหน่วยงาน"
+                label={t('employees.filters.orgUnit')}
+                placeholder={t('employees.filters.orgUnitPlaceholder')}
                 showClearButton
               />
             </div>
             <div className="w-full sm:w-48">
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                สถานะ
+                {t('employees.filters.status')}
               </label>
               <select
                 value={statusFilter || ''}
                 onChange={(e) => setStatusFilter(e.target.value || null)}
                 className="w-full px-3 py-2 min-h-[44px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-700"
               >
-                <option value="">ทั้งหมด</option>
+                <option value="">{t('employees.filters.allStatus')}</option>
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
@@ -540,7 +572,7 @@ export default function EmployeesPage() {
               </select>
             </div>
             <DxButton
-              text="ล้างตัวกรอง"
+              text={t('common.clearFilters')}
               type="default"
               stylingMode="text"
               onClick={clearFilters}
@@ -558,10 +590,11 @@ export default function EmployeesPage() {
               <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                 <BarChart3 className="w-4 h-4 text-blue-600" />
               </div>
-              สถานะพนักงาน
+              {t('employees.analytics.statusTitle')}
             </h3>
             {analytics.statusDistribution.length > 0 ? (
               <PieChart
+                key={locale}
                 id="status-pie"
                 dataSource={analytics.statusDistribution}
                 type="doughnut"
@@ -585,7 +618,7 @@ export default function EmployeesPage() {
               </PieChart>
             ) : (
               <div className="h-[250px] flex items-center justify-center text-slate-400">
-                ไม่มีข้อมูล
+                {t('common.noData')}
               </div>
             )}
           </div>
@@ -596,7 +629,7 @@ export default function EmployeesPage() {
               <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                 <Building2 className="w-4 h-4 text-amber-600" />
               </div>
-              จำนวนพนักงานตามหน่วยงาน
+              {t('employees.analytics.byDepartment')}
             </h3>
             <div className="space-y-3 max-h-[300px] overflow-y-auto">
               {analytics.deptDistribution.map((dept) => {
@@ -605,7 +638,7 @@ export default function EmployeesPage() {
                   <div key={dept.department} className="group">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-slate-600 truncate flex-1">{dept.department}</span>
-                      <span className="text-sm font-semibold text-slate-800 ml-2">{dept.count} คน</span>
+                      <span className="text-sm font-semibold text-slate-800 ml-2">{dept.count} {t('common.people')}</span>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
@@ -618,7 +651,7 @@ export default function EmployeesPage() {
                 );
               })}
               {analytics.deptDistribution.length === 0 && (
-                <div className="text-center text-slate-400 py-8">ไม่มีข้อมูล</div>
+                <div className="text-center text-slate-400 py-8">{t('common.noData')}</div>
               )}
             </div>
           </div>
@@ -632,9 +665,9 @@ export default function EmployeesPage() {
             const fullName = `${emp.firstName} ${emp.lastName}`;
             const gradient = getAvatarGradient(fullName);
             const statusConfig = {
-              active: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'ใช้งาน' },
-              inactive: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'พักงาน' },
-              terminated: { bg: 'bg-red-100', text: 'text-red-700', label: 'พ้นสภาพ' },
+              active: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: t('employees.status.active') },
+              inactive: { bg: 'bg-amber-100', text: 'text-amber-700', label: t('employees.status.inactive') },
+              terminated: { bg: 'bg-red-100', text: 'text-red-700', label: t('employees.status.terminated') },
             };
             const status = statusConfig[emp.status as keyof typeof statusConfig] || statusConfig.active;
 
@@ -697,7 +730,7 @@ export default function EmployeesPage() {
                   {emp.hireDate && (
                     <div className="flex items-center gap-2 text-slate-500 text-xs pt-2 border-t border-slate-100">
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>อายุงาน: {formatTenure(emp.hireDate)}</span>
+                      <span>{t('employees.tenureLabel')}: {formatTenure(emp.hireDate, tenureLabels)}</span>
                     </div>
                   )}
                 </div>
@@ -706,7 +739,7 @@ export default function EmployeesPage() {
                 <div className="mt-4 pt-3 border-t border-slate-100">
                   <button className="w-full flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
                     <Eye className="w-4 h-4" />
-                    ดูรายละเอียด
+                    {t('common.viewDetails')}
                   </button>
                 </div>
               </div>
@@ -715,7 +748,7 @@ export default function EmployeesPage() {
           {employeeList.length === 0 && !isLoading && (
             <div className="col-span-full text-center py-12 text-slate-400">
               <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>ไม่พบข้อมูลพนักงาน</p>
+              <p>{t('employees.noEmployees')}</p>
             </div>
           )}
         </div>
@@ -725,7 +758,8 @@ export default function EmployeesPage() {
       {viewMode === 'grid' && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm" data-testid="hr-employees-grid">
           <DataGrid
-            dataSource={employeeList}
+            key={locale}
+            dataSource={employeeListWithRowNum}
             keyExpr="id"
             showBorders={false}
             showRowLines
@@ -740,7 +774,7 @@ export default function EmployeesPage() {
             loadPanel={{ enabled: isLoading }}
             className="[&_.dx-datagrid-headers]:bg-slate-50/80 [&_.dx-datagrid-headers]:border-b [&_.dx-datagrid-headers]:border-slate-200 [&_.dx-header-row>td]:font-semibold [&_.dx-header-row>td]:text-slate-600 [&_.dx-header-row>td]:text-xs [&_.dx-header-row>td]:uppercase [&_.dx-header-row>td]:tracking-wider [&_.dx-header-row>td]:py-3.5 [&_.dx-data-row]:border-b [&_.dx-data-row]:border-slate-100 [&_.dx-data-row:hover]:bg-blue-50/50 [&_.dx-data-row]:transition-colors [&_.dx-data-row]:cursor-pointer"
           >
-            <SearchPanel visible placeholder="ค้นหาพนักงาน..." width={280} />
+            <SearchPanel visible placeholder={t('employees.searchPlaceholder')} width={280} />
             <HeaderFilter visible />
             <FilterRow visible={false} />
             <Scrolling mode="virtual" />
@@ -756,7 +790,7 @@ export default function EmployeesPage() {
             <GroupPanel visible />
             <Grouping autoExpandAll={false} />
             <ColumnChooser enabled mode="select" />
-            <StateStoring enabled type="localStorage" storageKey="hrEmployeesGrid" />
+            <StateStoring enabled type="localStorage" storageKey="hrEmployeesGrid_v2" />
 
             <Toolbar>
               <Item name="groupPanel" />
@@ -766,19 +800,33 @@ export default function EmployeesPage() {
             </Toolbar>
 
             <Summary>
-              <GroupItem column="status" summaryType="count" displayFormat="{0} คน" />
+              <GroupItem column="status" summaryType="count" displayFormat={t('employees.table.columns.employeeCount', { 0: '{0}' })} />
             </Summary>
 
             {/* Professional columns with enhanced cell renderers */}
             <Column
-              caption="พนักงาน"
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
+            <Column
+              caption={t('employees.employeeCol')}
               cellRender={renderEmployeeCell}
               minWidth={280}
               calculateSortValue={(data: EmployeeWithDetails) => `${data.firstName} ${data.lastName}`}
               hidingPriority={0}
             />
             <Column
-              caption="หน่วยงาน / ตำแหน่ง"
+              caption={t('employees.orgUnitPosition')}
               cellRender={renderOrgUnitCell}
               minWidth={220}
               calculateSortValue={(data: EmployeeWithDetails) => data.orgUnitName || ''}
@@ -786,14 +834,14 @@ export default function EmployeesPage() {
             />
             <Column
               dataField="phone"
-              caption="เบอร์โทร"
+              caption={t('employees.phoneCol')}
               cellRender={renderPhoneCell}
               width={160}
               hidingPriority={4}
             />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('employees.statusCol')}
               width={130}
               cellRender={renderStatusCell}
               alignment="center"
@@ -809,7 +857,7 @@ export default function EmployeesPage() {
             </Column>
             <Column
               dataField="hireDate"
-              caption="วันเริ่มงาน / อายุงาน"
+              caption={t('employees.hireDateLabel')}
               cellRender={renderHireDateCell}
               minWidth={180}
               hidingPriority={3}

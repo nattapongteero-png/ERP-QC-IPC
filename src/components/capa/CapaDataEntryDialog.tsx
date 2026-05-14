@@ -18,6 +18,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { AlertCircle, Link2 } from 'lucide-react';
 import type { Capa, CapaCreate, CapaSourceType, CapaType, CapaPriority } from '@/types/capa';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 // ============================================
 // Types
@@ -468,7 +469,7 @@ export function CapaDataEntryDialog({
                 onValueChange={(value) =>
                   handleFieldChange(
                     'dueDate',
-                    value ? new Date(value).toISOString().split('T')[0] : ''
+                    value ? toLocalDateStr(new Date(value)) : ''
                   )
                 }
                 type="date"

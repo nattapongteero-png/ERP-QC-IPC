@@ -11,6 +11,7 @@ import {
   updateWOFinishedInspection,
   reInspectWOFinishedInspection,
 } from '@/lib/services/wo-execution.service';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 
 // GET /api/production/work-orders/[id]/finished-inspection - Get finished product inspection
 export async function GET(
@@ -81,6 +82,7 @@ export async function POST(
         checklistResults: checklistResultsStr,
       });
 
+      publishWorkOrderChanged(workOrderId, 'finished-inspection', session.userId, 'create');
       return successResponse(inspection, 'Finished product inspection created');
     } catch (error) {
       console.error('Error creating WO finished inspection:', error);
@@ -130,12 +132,18 @@ export async function PUT(
         return errorResponse('Invalid checklistResults JSON format');
       }
 
-      // Auto-determine status based on checklistResults (all true = pass, any false = fail)
-      const allPassed = Object.values(checklistObj).every(v => v === true);
-      const status = data.status || (allPassed ? 'passed' : 'failed');
-
-      // Use session user as inspector if not specified
-      const inspectorId = data.inspectorId || session.userId;
+      // Draft mode: save checklist without finalizing status
+      let status: string;
+      let inspectorId: number | undefined;
+      if (data.isDraft) {
+        status = 'in_progress';
+        inspectorId = undefined;
+      } else {
+        // Auto-determine status based on checklistResults (all true = pass, any false = fail)
+        const allPassed = Object.values(checklistObj).every(v => v === true);
+        status = data.status || (allPassed ? 'passed' : 'failed');
+        inspectorId = data.inspectorId || session.userId;
+      }
 
       const checklistResultsStr = JSON.stringify(checklistObj);
 
@@ -143,9 +151,11 @@ export async function PUT(
         inspectionId,
         checklistResultsStr,
         inspectorId,
-        status
+        status,
+        data.notes
       );
 
+      publishWorkOrderChanged(workOrderId, 'finished-inspection', session.userId, 'update');
       return successResponse(inspection, `Inspection updated - status: ${status}`);
     } catch (error) {
       console.error('Error updating WO finished inspection:', error);
@@ -190,6 +200,7 @@ export async function PATCH(
       const reInspectorId = data.reInspectorId || session.userId;
 
       const inspection = await reInspectWOFinishedInspection(inspectionId!, reInspectorId);
+      publishWorkOrderChanged(workOrderId, 'finished-inspection', session.userId, 'reinspect');
       return successResponse(inspection, 'Re-inspection recorded');
     } catch (error) {
       console.error('Error re-inspecting WO finished inspection:', error);

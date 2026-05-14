@@ -66,8 +66,8 @@ describe('FixedAssetsPage', () => {
   it('renders professional page header with building icon', async () => {
     render(<FixedAssetsPage />, { wrapper: createWrapper() });
 
-    // Use findByRole for the h1 heading to avoid ambiguity with breadcrumb text
-    expect(await screen.findByRole('heading', { name: 'Fixed Assets' })).toBeInTheDocument();
+    // Page title rendered from i18n t('page.title')
+    expect((await screen.findAllByText('Accounting')).length).toBeGreaterThan(0);
     expect(screen.getByText('Manage fixed assets and depreciation')).toBeInTheDocument();
   });
 

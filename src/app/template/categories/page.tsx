@@ -5,6 +5,7 @@
 
 import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import {
   FolderOpen,
@@ -51,15 +52,19 @@ async function deleteCategory(id: number): Promise<void> {
   }
 }
 
-const statusOptions = [
-  { value: '', label: 'All Status' },
-  { value: 'true', label: 'Active' },
-  { value: 'false', label: 'Inactive' },
-];
-
 export default function TemplateCategoriesPage() {
+  const t = useTranslations('template.categories');
+  const tActions = useTranslations('template.actions');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const statusOptions = React.useMemo(() => [
+    { value: '', label: t('statusOptions.all') },
+    { value: 'true', label: t('statusOptions.active') },
+    { value: 'false', label: t('statusOptions.inactive') },
+  ], [t]);
+
   const [searchText, setSearchText] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState<TemplateCategory | null>(null);
@@ -91,7 +96,7 @@ export default function TemplateCategoriesPage() {
       queryClient.invalidateQueries({ queryKey: ['template-categories-list'] });
       queryClient.invalidateQueries({ queryKey: ['template-categories'] });
       queryClient.invalidateQueries({ queryKey: ['template-dashboard'] });
-      notify('Category deleted successfully', 'success', 3000);
+      notify(t('toast.deleteSuccess'), 'success', 3000);
       setShowDeleteConfirm(false);
       setSelectedCategory(null);
     },
@@ -134,7 +139,7 @@ export default function TemplateCategoriesPage() {
           ? 'bg-green-100 text-green-800'
           : 'bg-gray-100 text-gray-800'
       }`}>
-        {cellData.value ? 'Active' : 'Inactive'}
+        {cellData.value ? t('statusOptions.active') : t('statusOptions.inactive')}
       </span>
     );
   };
@@ -148,7 +153,7 @@ export default function TemplateCategoriesPage() {
             router.push(`/template/categories/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="View"
+          title={tActions('view')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -158,7 +163,7 @@ export default function TemplateCategoriesPage() {
             router.push(`/template/categories/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="Edit"
+          title={tActions('edit')}
         >
           <Edit className="h-4 w-4" />
         </button>
@@ -168,7 +173,7 @@ export default function TemplateCategoriesPage() {
             handleDelete(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Delete"
+          title={tActions('delete')}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -192,15 +197,15 @@ export default function TemplateCategoriesPage() {
     <div className="space-y-6 p-1">
       {/* Header */}
       <TemplatePageHeader
-        title="Template Categories"
-        subtitle="Manage categories for organizing items"
+        title={t('title')}
+        subtitle={t('subtitle')}
         icon={FolderOpen}
         iconClassName="from-emerald-500 to-teal-600"
         onRefresh={() => refetch()}
         isRefreshing={isFetching}
         actions={
           <Button
-            text="New Category"
+            text={t('newCategory')}
             icon="add"
             type="success"
             onClick={() => router.push('/template/categories/new')}
@@ -214,15 +219,14 @@ export default function TemplateCategoriesPage() {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">{t('deleteConfirm.title')}</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete &quot;{selectedCategory.nameTh}&quot;?
-                  Categories with items cannot be deleted.
+                  {t('deleteConfirm.message', { name: selectedCategory.nameTh })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text={tActions('cancel')}
                   stylingMode="outlined"
                   onClick={() => {
                     setShowDeleteConfirm(false);
@@ -230,7 +234,7 @@ export default function TemplateCategoriesPage() {
                   }}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  text={deleteMutation.isPending ? tActions('deleting') : tActions('delete')}
                   icon={deleteMutation.isPending ? 'spindown' : 'trash'}
                   type="danger"
                   onClick={confirmDelete}
@@ -250,14 +254,14 @@ export default function TemplateCategoriesPage() {
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Filters:</span>
+                <span className="text-sm font-medium text-gray-700">{t('filters')}</span>
               </div>
               <div className="w-56">
                 <TextBox
                   value={searchText}
                   onValueChanged={(e) => setSearchText(e.value || '')}
                   valueChangeEvent="keyup"
-                  placeholder="Search categories..."
+                  placeholder={t('searchPlaceholder')}
                   showClearButton
                   mode="search"
                 />
@@ -269,12 +273,12 @@ export default function TemplateCategoriesPage() {
                   valueExpr="value"
                   value={statusFilter}
                   onValueChanged={(e) => setStatusFilter(e.value)}
-                  placeholder="Status"
+                  placeholder={t('statusPlaceholder')}
                 />
               </div>
               {(searchText || statusFilter) && (
                 <Button
-                  text="Clear"
+                  text={tActions('clear')}
                   stylingMode="text"
                   onClick={() => {
                     setSearchText('');
@@ -287,15 +291,15 @@ export default function TemplateCategoriesPage() {
             {/* Compact Statistics */}
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-md">
-                <span className="text-gray-500">Total:</span>
+                <span className="text-gray-500">{t('stats.total')}</span>
                 <span className="font-semibold text-gray-900">{categoriesData.length}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-md">
-                <span className="text-green-600">Active:</span>
+                <span className="text-green-600">{t('stats.active')}</span>
                 <span className="font-semibold text-green-700">{categories.filter((c) => c.isActive).length}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-md">
-                <span className="text-gray-500">Inactive:</span>
+                <span className="text-gray-500">{t('stats.inactive')}</span>
                 <span className="font-semibold text-gray-700">{categories.filter((c) => !c.isActive).length}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 rounded-md">
@@ -322,6 +326,7 @@ export default function TemplateCategoriesPage() {
       <Card>
         <CardContent className="p-0">
           <DataGrid
+            key={locale}
             dataSource={categories}
             showBorders={false}
             showRowLines
@@ -344,37 +349,37 @@ export default function TemplateCategoriesPage() {
               showNavigationButtons
             />
 
-            <Column dataField="code" caption="Code" width={120} />
+            <Column dataField="code" caption={t('columns.code')} width={120} />
             <Column
               dataField="nameTh"
-              caption="Name (Thai)"
+              caption={t('columns.nameTh')}
               minWidth={200}
               cellRender={renderNameCell}
             />
-            <Column dataField="nameEn" caption="Name (English)" minWidth={180} />
+            <Column dataField="nameEn" caption={t('columns.nameEn')} minWidth={180} />
             <Column
               dataField="color"
-              caption="Color"
+              caption={t('columns.color')}
               width={150}
               cellRender={renderColorCell}
               alignment="center"
             />
             <Column
               dataField="sortOrder"
-              caption="Order"
+              caption={t('columns.sortOrder')}
               width={100}
               dataType="number"
               alignment="center"
             />
             <Column
               dataField="isActive"
-              caption="Status"
+              caption={t('columns.status')}
               width={120}
               cellRender={renderStatusCell}
               alignment="center"
             />
             <Column
-              caption="Actions"
+              caption={t('columns.actions')}
               width={120}
               cellRender={renderActionsCell}
               allowFiltering={false}

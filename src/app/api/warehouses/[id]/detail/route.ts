@@ -49,7 +49,8 @@ export async function GET(
       });
 
       // Get recent transactions for this warehouse (from or to)
-      const transactionsResult = await executeDbOperation(async (db) => {
+      const warehouseId = parseInt(id);
+      const transactionsRaw = await executeDbOperation(async (db) => {
         return db
           .select({
             id: transactions.id,
@@ -61,21 +62,40 @@ export async function GET(
             referenceNumber: transactions.referenceNumber,
             reason: transactions.reason,
             createdAt: transactions.createdAt,
+            fromWarehouseId: transactions.fromWarehouseId,
+            toWarehouseId: transactions.toWarehouseId,
           })
           .from(transactions)
           .where(
             or(
-              eq(transactions.fromWarehouseId, parseInt(id)),
-              eq(transactions.toWarehouseId, parseInt(id))
+              eq(transactions.fromWarehouseId, warehouseId),
+              eq(transactions.toWarehouseId, warehouseId)
             )
           )
           .orderBy(sql`${transactions.createdAt} DESC`)
           .limit(20);
       });
 
+      // Map transactions: determine direction relative to THIS warehouse
+      const transactionsResult = transactionsRaw.map((tx: Record<string, unknown>) => {
+        const isInbound = Number(tx.toWarehouseId) === warehouseId;
+        const qty = Math.abs(Number(tx.quantity) || 0);
+        return {
+          id: tx.id,
+          type: tx.transactionType,
+          lotId: tx.lotId,
+          quantity: isInbound ? qty : -qty,
+          unit: tx.unit,
+          direction: isInbound ? 'inbound' : 'outbound',
+          reference: [tx.referenceType, tx.referenceNumber].filter(Boolean).join(': ') || null,
+          reason: tx.reason,
+          createdAt: tx.createdAt,
+        };
+      });
+
       // Calculate summary statistics
       const totalLots = lotsResult.length;
-      const totalQuantity = lotsResult.reduce((sum: number, lot: { quantity?: number }) => sum + (lot.quantity || 0), 0);
+      const totalQuantity = lotsResult.reduce((sum: number, lot: { quantity?: number | string }) => sum + (Number(lot.quantity) || 0), 0);
       const quarantineLots = lotsResult.filter((lot: { status?: string }) => lot.status === 'quarantine').length;
       const releasedLots = lotsResult.filter((lot: { status?: string }) => lot.status === 'released').length;
       const rejectedLots = lotsResult.filter((lot: { status?: string }) => lot.status === 'rejected').length;
@@ -89,18 +109,18 @@ export async function GET(
 
       // Group inventory by item type
       const inventoryByType: Record<string, { count: number; quantity: number }> = {};
-      lotsResult.forEach((lot: { itemType?: string; quantity?: number }) => {
+      lotsResult.forEach((lot: { itemType?: string; quantity?: number | string }) => {
         const type = lot.itemType || 'other';
         if (!inventoryByType[type]) {
           inventoryByType[type] = { count: 0, quantity: 0 };
         }
         inventoryByType[type].count += 1;
-        inventoryByType[type].quantity += lot.quantity || 0;
+        inventoryByType[type].quantity += Number(lot.quantity) || 0;
       });
 
-      // Calculate storage utilization using actual warehouse capacity
+      // Calculate storage utilization using actual warehouse capacity (in lots/positions)
       const storageCapacity = Number(warehouse.capacity) || 0;
-      const usedCapacity = totalQuantity;
+      const usedCapacity = totalLots;  // Number of lots, not sum of quantities
       const utilizationPercent = storageCapacity > 0
         ? Math.round((usedCapacity / storageCapacity) * 100)
         : 0;

@@ -1,7 +1,7 @@
 // HR/Personnel Management Service
 // Feature: 007-hr-personnel-management
 
-import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
+import { eq, and, like, or, sql, isNull, desc, inArray, SQL } from 'drizzle-orm';
 import { encrypt, decrypt, hashForLookup } from '@/lib/utils/encryption';
 import { validateThaiCid, cleanThaiCid } from '@/lib/utils/thai-cid';
 import { getDb, isSqlite } from '../db';
@@ -27,6 +27,7 @@ import {
   sqliteHRNotifications,
   sqliteHRAuditLog,
   sqliteAuditTrail,
+  sqliteUsers,
   mysqlHROrgUnits,
   mysqlHRPositions,
   mysqlHRJobDescriptions,
@@ -45,6 +46,7 @@ import {
   mysqlHRNotifications,
   mysqlHRAuditLog,
   mysqlAuditTrail,
+  mysqlUsers,
 } from '../db/schema';
 import type {
   OrgUnit,
@@ -1477,7 +1479,7 @@ export async function approveJobDescription(
     );
 
   // Approve current JD
-  const now = new Date().toISOString();
+  const now = getNow();
   await db
     .update(tables.jobDescriptions)
     .set({
@@ -2577,7 +2579,7 @@ export async function updateAuthorization(
 
   const updateData = {
     ...data,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (isSqlite()) {
@@ -3081,7 +3083,7 @@ export async function cancelDelegation(id: number): Promise<Delegation> {
 
   const updateData = {
     effectiveTo: now,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (isSqlite()) {
@@ -3357,7 +3359,7 @@ export async function updateHealthRecord(
   }
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (data.examinationType !== undefined) updateData.examinationType = data.examinationType;
@@ -3803,7 +3805,7 @@ export async function updateAppRole(
   }
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (data.name !== undefined) updateData.name = data.name;
@@ -3880,7 +3882,7 @@ export async function getRolePermissions(roleId: number): Promise<AppPermission[
   const permissions = await db
     .select()
     .from(tables.appPermissions)
-    .where(sql`${tables.appPermissions.id} IN (${permIds.join(',')})`);
+    .where(inArray(tables.appPermissions.id, permIds));
 
   return permissions as AppPermission[];
 }
@@ -3916,11 +3918,10 @@ export async function updateRolePermissions(
 
   // Insert new permissions
   if (permissionIds.length > 0) {
-    const now = new Date();
     const inserts = permissionIds.map((permissionId) => ({
       roleId,
       permissionId,
-      createdAt: now,
+      createdAt: getNow(),
     }));
     await db.insert(tables.rolePermissions).values(inserts);
   }
@@ -4083,7 +4084,7 @@ export async function revokeEmployeeRole(id: number): Promise<EmployeeRole> {
 
   const updateData = {
     effectiveTo: now,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (isSqlite()) {
@@ -4331,22 +4332,31 @@ export async function getHRAuditLogs(
 
   const logs = await query;
 
-  // Enrich with user names
-  const enriched: HRAuditLogWithDetails[] = [];
-  for (const log of logs) {
-    let userName: string | undefined;
-    if (log.userId) {
-      const user = await getEmployeeById(log.userId);
-      userName = user ? `${user.firstName} ${user.lastName}` : undefined;
-    }
+  // Batch-lookup user names from users table (audit_trail.user_id → users.id)
+  const userIds = [...new Set(
+    (logs as { userId: number | null }[])
+      .map(l => l.userId)
+      .filter((id): id is number => id != null)
+  )];
+  const userNameMap = new Map<number, string>();
 
-    enriched.push({
-      ...log,
-      action: log.action as HRAuditAction,
-      userName,
-      actionLabel: getActionLabel(log.action),
-    });
+  if (userIds.length > 0) {
+    const usersTable = isSqlite() ? sqliteUsers : mysqlUsers;
+    const users = await db
+      .select({ id: usersTable.id, name: usersTable.name })
+      .from(usersTable)
+      .where(inArray(usersTable.id, userIds));
+    for (const u of users as { id: number; name: string }[]) {
+      userNameMap.set(u.id, u.name);
+    }
   }
+
+  const enriched: HRAuditLogWithDetails[] = (logs as any[]).map(log => ({
+    ...log,
+    action: log.action as HRAuditAction,
+    userName: log.userId ? userNameMap.get(log.userId) : undefined,
+    actionLabel: getActionLabel(log.action),
+  }));
 
   return { data: enriched, total };
 }
@@ -4551,7 +4561,7 @@ export async function createNotification(
     referenceId: data.referenceId || null,
     isRead: false,
     readAt: null,
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   });
 
    
@@ -4676,7 +4686,7 @@ export async function markNotificationRead(id: number): Promise<void> {
     .update(tables.notifications)
     .set({
       isRead: true,
-      readAt: new Date().toISOString(),
+      readAt: getNow(),
     })
     .where(eq(tables.notifications.id, id));
 }
@@ -4693,7 +4703,7 @@ export async function markAllNotificationsRead(employeeId: number): Promise<void
     .update(tables.notifications)
     .set({
       isRead: true,
-      readAt: new Date().toISOString(),
+      readAt: getNow(),
     })
     .where(
       and(

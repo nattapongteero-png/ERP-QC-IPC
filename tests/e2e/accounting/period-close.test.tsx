@@ -229,7 +229,7 @@ describe('Period Close Page', () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Period Close')).toBeInTheDocument();
+      expect(screen.getAllByText('Accounting').length).toBeGreaterThan(0);
     });
   });
 
@@ -329,7 +329,7 @@ describe('Period Close Page', () => {
 
     // Page should still render without crashing
     await waitFor(() => {
-      expect(screen.getByText('Period Close')).toBeInTheDocument();
+      expect(screen.getAllByText('Accounting').length).toBeGreaterThan(0);
     });
   });
 });

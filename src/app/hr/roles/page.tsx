@@ -5,6 +5,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -33,15 +34,16 @@ import {
   Trash2,
   Filter,
   Key,
+  CheckCircle,
 } from 'lucide-react';
 import type { AppRoleWithPermissions } from '@/types/hr';
 
-// Status options for filter
-const statusOptions = [
-  { value: '', label: 'ทั้งหมด' },
-  { value: 'active', label: 'ใช้งาน' },
-  { value: 'inactive', label: 'ปิดใช้งาน' },
-  { value: 'system', label: 'บทบาทระบบ' },
+// Status options for filter - use translationKey instead of label
+const statusOptionConfig = [
+  { value: '', translationKey: 'filters.all' },
+  { value: 'active', translationKey: 'filters.active' },
+  { value: 'inactive', translationKey: 'filters.inactive' },
+  { value: 'system', translationKey: 'filters.system' },
 ];
 
 async function fetchRoles(): Promise<AppRoleWithPermissions[]> {
@@ -61,10 +63,34 @@ async function deactivateRole(id: number): Promise<void> {
   }
 }
 
+async function activateRoleById(id: number): Promise<void> {
+  const response = await fetch('/api/hr/roles/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive: true }),
+  });
+  if (!response.ok) {
+    const result = await response.json();
+    throw new Error(result.error || 'Failed to activate role');
+  }
+}
+
 export default function RolesPage() {
+  const t = useTranslations('hr');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  // Build status options with translations
+  const statusOptions = useMemo(
+    () =>
+      statusOptionConfig.map((o) => ({
+        value: o.value,
+        label: t(`roles.${o.translationKey}`),
+      })),
+    [t]
+  );
 
   // Filter states
   const [searchText, setSearchText] = useState('');
@@ -122,7 +148,7 @@ export default function RolesPage() {
       );
     }
 
-    return filtered;
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [allRoles, statusFilter, searchText]);
 
   // Stats
@@ -137,14 +163,29 @@ export default function RolesPage() {
     mutationFn: deactivateRole,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
-      toast.success('ปิดใช้งานบทบาทสำเร็จ');
+      toast.success(t('roles.toast.deactivateSuccess'));
       setShowDeleteConfirm(false);
       setSelectedRole(null);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถปิดใช้งานบทบาทได้');
+      toast.error(error.message || t('roles.toast.deactivateError'));
     },
   });
+
+  const activateMutation = useMutation({
+    mutationFn: activateRoleById,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
+      toast.success('เปิดใช้งานบทบาทสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'ไม่สามารถเปิดใช้งานบทบาทได้');
+    },
+  });
+
+  const handleActivate = useCallback((role: AppRoleWithPermissions) => {
+    activateMutation.mutate(role.id);
+  }, [activateMutation]);
 
   // Handlers
   const handleRowClick = useCallback((e: { data: AppRoleWithPermissions }) => {
@@ -181,26 +222,26 @@ export default function RolesPage() {
       return (
         <Badge variant="info" className="text-xs">
           <Lock className="h-3 w-3 mr-1" />
-          ระบบ
+          {t('roles.status.system')}
         </Badge>
       );
     }
     return role.isActive ? (
-      <Badge variant="success">ใช้งาน</Badge>
+      <Badge variant="success">{t('roles.status.active')}</Badge>
     ) : (
-      <Badge variant="danger">ปิดใช้งาน</Badge>
+      <Badge variant="danger">{t('roles.status.inactive')}</Badge>
     );
-  }, []);
+  }, [t]);
 
   const renderPermissionCountCell = useCallback((cellData: { value: number }) => {
     return (
       <div className="flex items-center gap-1.5">
         <Key className="h-3.5 w-3.5 text-amber-500" />
         <span className="font-medium">{cellData.value || 0}</span>
-        <span className="text-gray-500 text-xs">สิทธิ์</span>
+        <span className="text-gray-500 text-xs">{t('roles.permissions')}</span>
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderActionsCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
@@ -213,7 +254,7 @@ export default function RolesPage() {
             router.push(`/hr/roles/${role.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="ดูรายละเอียด"
+          title={t('roles.actionsHint.view')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -225,44 +266,56 @@ export default function RolesPage() {
                 router.push(`/hr/roles/${role.id}`);
               }}
               className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-              title="แก้ไข"
+              title={t('roles.actionsHint.edit')}
             >
               <Edit className="h-4 w-4" />
             </button>
-            {role.isActive && (
+            {role.isActive ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete(role);
                 }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="ปิดใช้งาน"
+                title={t('roles.actionsHint.deactivate')}
               >
                 <Trash2 className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleActivate(role);
+                }}
+                className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                title="เปิดใช้งาน"
+                data-testid={`role-activate-${role.id}`}
+              >
+                <CheckCircle className="h-4 w-4" />
               </button>
             )}
           </>
         )}
       </div>
     );
-  }, [router, handleDelete]);
+  }, [router, handleDelete, handleActivate, t]);
 
   return (
-    <div className="space-y-6 p-1" data-testid="hr-roles-page">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6" data-testid="hr-roles-page">
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
-        title="จัดการบทบาทและสิทธิ์"
-        subtitle="กำหนดบทบาทและสิทธิ์การเข้าถึงในระบบ"
+        title={t('roles.title')}
+        subtitle={t('roles.description')}
         icon={Shield}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         breadcrumbs={[
           { label: 'HR', href: '/hr' },
-          { label: 'บทบาทและสิทธิ์' },
+          { label: t('roles.breadcrumb') },
         ]}
         actions={
           <Button
-            text="สร้างบทบาท"
+            text={t('roles.createRole')}
             icon="plus"
             type="success"
             onClick={() => router.push('/hr/roles/new')}
@@ -274,28 +327,28 @@ export default function RolesPage() {
       {/* Stats using StatCard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="hr-roles-stats">
         <StatCard
-          label="บทบาททั้งหมด"
+          label={t('roles.stats.total')}
           value={stats.total}
           icon={Shield}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
         />
         <StatCard
-          label="ใช้งาน"
+          label={t('roles.stats.active')}
           value={stats.active}
           icon={Users}
           iconColor="text-green-500"
           accentColor="border-green-500"
         />
         <StatCard
-          label="บทบาทระบบ"
+          label={t('roles.stats.system')}
           value={stats.system}
           icon={Lock}
           iconColor="text-purple-500"
           accentColor="border-purple-500"
         />
         <StatCard
-          label="สิทธิ์ทั้งหมด"
+          label={t('roles.stats.totalPermissions')}
           value={stats.totalPermissions}
           icon={Settings}
           iconColor="text-orange-500"
@@ -309,14 +362,14 @@ export default function RolesPage() {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">ยืนยันการปิดใช้งาน</p>
+                <p className="font-medium text-red-800">{t('roles.deleteConfirm.title')}</p>
                 <p className="text-sm text-red-600">
-                  คุณต้องการปิดใช้งานบทบาท &quot;{selectedRole.name}&quot; หรือไม่?
+                  {t('roles.deleteConfirm.message', { 0: selectedRole.name })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="ยกเลิก"
+                  text={t('common.cancel')}
                   stylingMode="outlined"
                   onClick={() => {
                     setShowDeleteConfirm(false);
@@ -324,7 +377,7 @@ export default function RolesPage() {
                   }}
                 />
                 <Button
-                  text={deactivateMutation.isPending ? 'กำลังลบ...' : 'ปิดใช้งาน'}
+                  text={deactivateMutation.isPending ? t('roles.deleteConfirm.deactivating') : t('roles.deleteConfirm.deactivate')}
                   icon="trash"
                   type="danger"
                   onClick={confirmDelete}
@@ -344,14 +397,14 @@ export default function RolesPage() {
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">ตัวกรอง:</span>
+                <span className="text-sm font-medium text-gray-700">{t('common.filters')}:</span>
               </div>
               <div className="w-56">
                 <TextBox
                   value={searchText}
                   onValueChanged={(e) => setSearchText(e.value || '')}
                   valueChangeEvent="keyup"
-                  placeholder="ค้นหาบทบาท..."
+                  placeholder={t('roles.filters.placeholder')}
                   showClearButton
                   mode="search"
                 />
@@ -363,12 +416,12 @@ export default function RolesPage() {
                   valueExpr="value"
                   value={statusFilter}
                   onValueChanged={(e) => setStatusFilter(e.value)}
-                  placeholder="สถานะ"
+                  placeholder={t('roles.filters.statusPlaceholder')}
                 />
               </div>
               {(searchText || statusFilter) && (
                 <Button
-                  text="ล้าง"
+                  text={t('notifications.filters.clear')}
                   stylingMode="text"
                   onClick={() => {
                     setSearchText('');
@@ -381,7 +434,7 @@ export default function RolesPage() {
             {/* Compact Statistics */}
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-md">
-                <span className="text-gray-500">แสดง:</span>
+                <span className="text-gray-500">{t('common.show')}</span>
                 <span className="font-semibold text-gray-900">{roles.length}</span>
               </div>
             </div>
@@ -393,6 +446,7 @@ export default function RolesPage() {
       <Card data-testid="hr-roles-grid">
         <CardContent className="p-0">
           <DataGrid
+            key={locale}
             dataSource={roles}
             showBorders={false}
             showRowLines
@@ -418,31 +472,45 @@ export default function RolesPage() {
             />
 
             <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
+            <Column
               dataField="code"
-              caption="รหัส"
+              caption={t('roles.columns.code')}
               width={180}
               hidingPriority={2}
               cellRender={renderCodeCell}
             />
-            <Column dataField="name" caption="ชื่อบทบาท" minWidth={150} hidingPriority={0} />
-            <Column dataField="description" caption="คำอธิบาย" minWidth={180} hidingPriority={4} />
+            <Column dataField="name" caption={t('roles.columns.name')} minWidth={150} hidingPriority={0} />
+            <Column dataField="description" caption={t('roles.columns.description')} minWidth={180} hidingPriority={4} />
             <Column
               dataField="permissionCount"
-              caption="จำนวนสิทธิ์"
+              caption={t('roles.columns.permissionCount')}
               width={120}
               alignment="center"
               cellRender={renderPermissionCountCell}
               hidingPriority={3}
             />
             <Column
-              caption="สถานะ"
+              caption={t('roles.columns.status')}
               width={100}
               alignment="center"
               cellRender={renderStatusCell}
               hidingPriority={1}
             />
             <Column
-              caption="จัดการ"
+              caption={t('roles.columns.actions')}
               width={120}
               alignment="center"
               cellRender={renderActionsCell}

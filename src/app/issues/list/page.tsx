@@ -8,13 +8,12 @@
  */
 
 import * as React from 'react';
+import { Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
-import {
-  Bug,
-  ArrowLeft,
-} from 'lucide-react';
+import { Bug } from 'lucide-react';
 import DataGrid, {
   Column,
   Paging,
@@ -30,6 +29,7 @@ import SelectBox from 'devextreme-react/select-box';
 import TextBox from 'devextreme-react/text-box';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge, SeverityBadge, PriorityBadge } from '@/components/issues';
+import { ResponsivePageHeader } from '@/components/shared';
 import type { Issue, IssueCategory } from '@/types/issues';
 
 // ============================================
@@ -79,57 +79,33 @@ async function fetchCategories(): Promise<IssueCategory[]> {
 }
 
 // ============================================
-// Filter Options
-// ============================================
-
-const statusOptions = [
-  { value: '', label: 'All Status' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'submitted', label: 'Submitted' },
-  { value: 'triaged', label: 'Triaged' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'resolved', label: 'Resolved' },
-  { value: 'verified', label: 'Verified' },
-  { value: 'closed', label: 'Closed' },
-];
-
-const severityOptions = [
-  { value: '', label: 'All Severity' },
-  { value: 'critical', label: 'Critical' },
-  { value: 'major', label: 'Major' },
-  { value: 'minor', label: 'Minor' },
-];
-
-// ============================================
 // Page Header Component
 // ============================================
 
 function IssuesListPageHeader() {
+  const router = useRouter();
+  const t = useTranslations('issues');
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-4">
-        <Link href="/issues" className="p-2 hover:bg-gray-100 rounded-lg">
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Bug className="w-6 h-6" />
-            Issues
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Browse, filter, and manage all reported issues
-          </p>
-        </div>
-      </div>
-      <Link href="/issues/new">
-        <Button
-          text="Report Issue"
-          type="default"
-          stylingMode="contained"
-          icon="add"
-          data-testid="new-issue-btn"
-        />
-      </Link>
+    <div className="mb-4 md:mb-6">
+      <ResponsivePageHeader
+        title={t('list.title')}
+        subtitle={t('list.subtitle')}
+        icon={Bug}
+        iconBgColor="bg-rose-100"
+        iconColor="text-rose-600"
+        onBack={() => router.push('/issues')}
+        actions={
+          <Link href="/issues/new">
+            <Button
+              text={t('actions.reportIssue')}
+              type="default"
+              stylingMode="contained"
+              icon="add"
+              data-testid="new-issue-btn"
+            />
+          </Link>
+        }
+      />
     </div>
   );
 }
@@ -138,9 +114,11 @@ function IssuesListPageHeader() {
 // Main Component
 // ============================================
 
-export default function IssuesListPage() {
+function IssuesListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('issues');
+  const locale = useLocale();
 
   // Get initial filters from URL params
   const initialStatus = searchParams.get('status') || '';
@@ -172,6 +150,25 @@ export default function IssuesListPage() {
   });
 
   const items = issuesData?.items || [];
+
+  // Translated filter options
+  const statusOptions = React.useMemo(() => [
+    { value: '', label: t('list.filters.allStatus') },
+    { value: 'draft', label: t('list.status.draft') },
+    { value: 'submitted', label: t('list.status.submitted') },
+    { value: 'triaged', label: t('list.status.triaged') },
+    { value: 'in_progress', label: t('list.status.inProgress') },
+    { value: 'resolved', label: t('list.status.resolved') },
+    { value: 'verified', label: t('list.status.verified') },
+    { value: 'closed', label: t('list.status.closed') },
+  ], [t]);
+
+  const severityOptions = React.useMemo(() => [
+    { value: '', label: t('list.filters.allSeverity') },
+    { value: 'critical', label: t('list.severity.critical') },
+    { value: 'major', label: t('list.severity.major') },
+    { value: 'minor', label: t('list.severity.minor') },
+  ], [t]);
 
   // Cell render functions
   const renderIssueNumber = (cellData: { data: Issue }) => {
@@ -221,30 +218,30 @@ export default function IssuesListPage() {
     return new Date(cellData.data.createdAt).toLocaleDateString();
   };
 
-  const renderActions = (cellData: { data: Issue }) => {
+  const renderActions = React.useCallback((cellData: { data: Issue }) => {
     return (
       <div className="flex items-center gap-1">
         <Button
           icon="search"
-          hint="View Details"
+          hint={t('actions.viewDetails')}
           stylingMode="text"
           onClick={() => router.push(`/issues/${cellData.data.id}`)}
         />
       </div>
     );
-  };
+  }, [router, t]);
 
   // Category options for filter
   const categoryOptions = React.useMemo(() => {
-    const options = [{ id: 0, name: 'All Categories' }];
+    const options = [{ id: 0, name: t('list.filters.allCategories') }];
     if (categories) {
       options.push(...categories.map(c => ({ id: c.id, name: c.name })));
     }
     return options;
-  }, [categories]);
+  }, [categories, t]);
 
   return (
-    <div className="p-6" data-testid="issues-list">
+    <div className="p-4 md:p-6" data-testid="issues-list">
       <IssuesListPageHeader />
 
       {/* Filters */}
@@ -253,7 +250,7 @@ export default function IssuesListPage() {
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex-1 min-w-[200px]">
               <TextBox
-                placeholder="Search issues..."
+                placeholder={t('list.filters.searchPlaceholder')}
                 value={searchText}
                 onValueChanged={(e) => setSearchText(e.value || '')}
                 showClearButton={true}
@@ -264,43 +261,46 @@ export default function IssuesListPage() {
 
             <div className="w-40">
               <SelectBox
+                key={`status-${locale}`}
                 dataSource={statusOptions}
                 value={statusFilter}
                 onValueChanged={(e) => setStatusFilter(e.value)}
                 displayExpr="label"
                 valueExpr="value"
-                placeholder="Status"
+                placeholder={t('list.filters.statusPlaceholder')}
                 data-testid="status-filter"
               />
             </div>
 
             <div className="w-40">
               <SelectBox
+                key={`severity-${locale}`}
                 dataSource={severityOptions}
                 value={severityFilter}
                 onValueChanged={(e) => setSeverityFilter(e.value)}
                 displayExpr="label"
                 valueExpr="value"
-                placeholder="Severity"
+                placeholder={t('list.filters.severityPlaceholder')}
                 data-testid="severity-filter"
               />
             </div>
 
             <div className="w-48">
               <SelectBox
+                key={`category-${locale}`}
                 dataSource={categoryOptions}
                 value={categoryFilter || 0}
                 onValueChanged={(e) => setCategoryFilter(e.value === 0 ? null : e.value)}
                 displayExpr="name"
                 valueExpr="id"
-                placeholder="Category"
+                placeholder={t('list.filters.categoryPlaceholder')}
                 data-testid="category-filter"
               />
             </div>
 
             <div>
               <Button
-                text={assignedToMe ? 'All Issues' : 'Assigned to Me'}
+                text={assignedToMe ? t('list.filters.allIssues') : t('list.filters.assignedToMe')}
                 type={assignedToMe ? 'default' : 'normal'}
                 stylingMode={assignedToMe ? 'contained' : 'outlined'}
                 onClick={() => setAssignedToMe(!assignedToMe)}
@@ -315,6 +315,7 @@ export default function IssuesListPage() {
       <Card>
         <CardContent className="p-0">
           <DataGrid
+            key={locale}
             dataSource={items}
             keyExpr="id"
             showBorders={false}
@@ -340,55 +341,55 @@ export default function IssuesListPage() {
 
             <Column
               dataField="issueNumber"
-              caption="Issue #"
+              caption={t('list.columns.issueNumber')}
               width={120}
               cellRender={renderIssueNumber}
             />
             <Column
               dataField="title"
-              caption="Title"
+              caption={t('list.columns.title')}
               minWidth={200}
               cellRender={renderTitle}
             />
             <Column
               dataField="status"
-              caption="Status"
+              caption={t('list.columns.status')}
               width={120}
               cellRender={renderStatus}
             />
             <Column
               dataField="severity"
-              caption="Severity"
+              caption={t('list.columns.severity')}
               width={100}
               cellRender={renderSeverity}
             />
             <Column
               dataField="priority"
-              caption="Priority"
+              caption={t('list.columns.priority')}
               width={120}
               cellRender={renderPriority}
             />
             <Column
               dataField="category.name"
-              caption="Category"
+              caption={t('list.columns.category')}
               width={140}
               cellRender={renderCategory}
             />
             <Column
               dataField="assignee.name"
-              caption="Assignee"
+              caption={t('list.columns.assignee')}
               width={140}
               cellRender={renderAssignee}
             />
             <Column
               dataField="createdAt"
-              caption="Created"
+              caption={t('list.columns.created')}
               width={110}
               dataType="date"
               cellRender={renderDate}
             />
             <Column
-              caption="Actions"
+              caption={t('list.columns.actions')}
               width={80}
               cellRender={renderActions}
               allowSorting={false}
@@ -400,8 +401,21 @@ export default function IssuesListPage() {
 
       {/* Results summary */}
       <div className="mt-4 text-sm text-gray-500">
-        Showing {items.length} of {issuesData?.total || 0} issues
+        {t('list.summary', { shown: items.length, total: issuesData?.total || 0 })}
       </div>
     </div>
   );
+}
+
+export default function IssuesListPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <IssuesListContent />
+    </Suspense>
+  );
+}
+
+function LoadingFallback() {
+  const t = useTranslations('issues');
+  return <div className="p-8 text-center">{t('actions.loading')}</div>;
 }

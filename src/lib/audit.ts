@@ -14,13 +14,34 @@ export interface AuditLogEntry {
   details?: string;
 }
 
+/**
+ * Try to resolve the current user's ID from the session cookie.
+ * This only works inside a Next.js request context (API routes, server components).
+ * Returns undefined silently if not in a request context or no session exists.
+ */
+async function resolveSessionUserId(): Promise<number | undefined> {
+  try {
+    // Dynamic import to avoid circular dependency and to allow
+    // graceful failure outside request context
+    const { getSession } = await import('./auth');
+    const session = await getSession();
+    return session?.userId;
+  } catch {
+    // Not in a request context (e.g., seed scripts, tests) — silently ignore
+    return undefined;
+  }
+}
+
 export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
   try {
+    // Auto-detect userId from session when not explicitly provided
+    const userId = entry.userId ?? (await resolveSessionUserId());
+
     const db = await getDb();
     const auditTable = isSqlite() ? schema.sqliteAuditTrail : schema.mysqlAuditTrail;
 
     await (db as any).insert(auditTable).values({
-      userId: entry.userId,
+      userId,
       action: entry.action,
       tableName: entry.tableName,
       recordId: entry.recordId,

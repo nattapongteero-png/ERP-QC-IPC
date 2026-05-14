@@ -7,6 +7,7 @@
  */
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
@@ -68,18 +69,8 @@ async function deleteTolerance(id: number): Promise<void> {
   }
 }
 
-const statusOptions = [
-  { value: '', label: 'All Status' },
-  { value: 'true', label: 'Active' },
-  { value: 'false', label: 'Inactive' },
-];
-
-const typeFilterOptions = [
-  { value: '', label: 'All Types' },
-  ...TOLERANCE_TYPE_OPTIONS,
-];
-
 export default function MatchingTolerancesPage() {
+  const t = useTranslations('settings');
   const router = useRouter();
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = React.useState('');
@@ -87,6 +78,17 @@ export default function MatchingTolerancesPage() {
   const [typeFilter, setTypeFilter] = React.useState('');
   const [selectedTolerance, setSelectedTolerance] = React.useState<MatchingTolerance | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+
+  const statusOptions = React.useMemo(() => [
+    { value: '', label: t('matchingTolerances.allStatus') },
+    { value: 'true', label: t('matchingTolerances.active') },
+    { value: 'false', label: t('matchingTolerances.inactive') },
+  ], [t]);
+
+  const typeFilterOptions = React.useMemo(() => [
+    { value: '', label: t('matchingTolerances.allTypes') },
+    ...TOLERANCE_TYPE_OPTIONS,
+  ], [t]);
 
   const { data: tolerancesData, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['matching-tolerances', statusFilter, typeFilter],
@@ -100,7 +102,7 @@ export default function MatchingTolerancesPage() {
     mutationFn: deleteTolerance,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['matching-tolerances'] });
-      notify('Tolerance deleted successfully', 'success', 3000);
+      notify(t('matchingTolerances.deleteSuccess'), 'success', 3000);
       setShowDeleteConfirm(false);
       setSelectedTolerance(null);
     },
@@ -145,16 +147,16 @@ export default function MatchingTolerancesPage() {
           isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
         }`}
       >
-        {isActive ? 'Active' : 'Inactive'}
+        {isActive ? t('matchingTolerances.active') : t('matchingTolerances.inactive')}
       </span>
     );
   };
 
   const renderTypeCell = (cellData: { value: ToleranceType }) => {
     const typeLabels: Record<ToleranceType, { label: string; className: string }> = {
-      quantity: { label: 'Quantity', className: 'bg-blue-100 text-blue-800' },
-      price: { label: 'Price', className: 'bg-purple-100 text-purple-800' },
-      amount: { label: 'Amount', className: 'bg-orange-100 text-orange-800' },
+      quantity: { label: t('matchingTolerances.types.quantity'), className: 'bg-blue-100 text-blue-800' },
+      price: { label: t('matchingTolerances.types.price'), className: 'bg-purple-100 text-purple-800' },
+      amount: { label: t('matchingTolerances.types.amount'), className: 'bg-orange-100 text-orange-800' },
     };
     const config = typeLabels[cellData.value] || { label: cellData.value, className: 'bg-gray-100 text-gray-800' };
     return (
@@ -173,9 +175,10 @@ export default function MatchingTolerancesPage() {
   const renderValueCell = (cellData: { data: MatchingTolerance }) => {
     const item = cellData.data;
     const suffix = item.toleranceMethod === 'percentage' ? '%' : '';
+    const value = item.toleranceValue ?? 0;
     return (
       <span className="font-mono">
-        {item.toleranceValue.toFixed(2)}{suffix}
+        {value.toFixed(2)}{suffix}
       </span>
     );
   };
@@ -189,7 +192,7 @@ export default function MatchingTolerancesPage() {
             router.push(`/settings/matching-tolerances/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="View"
+          title={t('matchingTolerances.view')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -199,7 +202,7 @@ export default function MatchingTolerancesPage() {
             router.push(`/settings/matching-tolerances/${cellData.data.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="Edit"
+          title={t('matchingTolerances.edit')}
         >
           <Edit className="h-4 w-4" />
         </button>
@@ -209,7 +212,7 @@ export default function MatchingTolerancesPage() {
             handleDelete(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Delete"
+          title={t('matchingTolerances.delete')}
           data-testid={`delete-tolerance-${cellData.data.id}`}
         >
           <Trash2 className="h-4 w-4" />
@@ -219,18 +222,18 @@ export default function MatchingTolerancesPage() {
   };
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       {/* Header */}
       <TemplatePageHeader
-        title="Matching Tolerances"
-        subtitle="Configure tolerance thresholds for 3-way matching validation"
+        title={t('matchingTolerances.title')}
+        subtitle={t('matchingTolerances.description')}
         icon={Settings}
         iconClassName="from-indigo-500 to-purple-600"
         onRefresh={() => refetch()}
         isRefreshing={isFetching}
         actions={
           <Button
-            text="New Tolerance"
+            text={t('matchingTolerances.newTolerance')}
             icon="add"
             type="success"
             onClick={() => router.push('/settings/matching-tolerances/new')}
@@ -245,14 +248,14 @@ export default function MatchingTolerancesPage() {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">{t('matchingTolerances.confirmDelete')}</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete &quot;{selectedTolerance.name}&quot;? This action cannot be undone.
+                  {t('matchingTolerances.confirmDeleteMessage', { name: selectedTolerance.name })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text={t('vmiPortalEdit.cancel')}
                   stylingMode="outlined"
                   onClick={() => {
                     setShowDeleteConfirm(false);
@@ -260,7 +263,7 @@ export default function MatchingTolerancesPage() {
                   }}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  text={deleteMutation.isPending ? t('matchingTolerances.deleting') : t('matchingTolerances.delete')}
                   icon={deleteMutation.isPending ? 'spindown' : 'trash'}
                   type="danger"
                   onClick={confirmDelete}
@@ -276,11 +279,9 @@ export default function MatchingTolerancesPage() {
       {/* Info Box */}
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="py-4">
-          <h3 className="text-blue-800 font-medium mb-2">About 3-Way Matching</h3>
+          <h3 className="text-blue-800 font-medium mb-2">{t('matchingTolerances.aboutTitle')}</h3>
           <p className="text-blue-700 text-sm">
-            3-way matching compares Purchase Orders, Goods Receipts, and Invoices to ensure
-            accuracy. Tolerances define acceptable variance thresholds. Variances exceeding
-            tolerances will generate exceptions requiring manual approval.
+            {t('matchingTolerances.aboutDescription')}
           </p>
         </CardContent>
       </Card>
@@ -293,14 +294,14 @@ export default function MatchingTolerancesPage() {
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Filters:</span>
+                <span className="text-sm font-medium text-gray-700">{t('matchingTolerances.filters')}</span>
               </div>
               <div className="w-56">
                 <TextBox
                   value={searchText}
                   onValueChanged={(e) => setSearchText(e.value || '')}
                   valueChangeEvent="keyup"
-                  placeholder="Search tolerances..."
+                  placeholder={t('matchingTolerances.searchPlaceholder')}
                   showClearButton
                   mode="search"
                   data-testid="search-input"
@@ -313,7 +314,7 @@ export default function MatchingTolerancesPage() {
                   valueExpr="value"
                   value={typeFilter}
                   onValueChanged={(e) => setTypeFilter(e.value)}
-                  placeholder="Type"
+                  placeholder={t('matchingTolerances.grid.type')}
                   data-testid="type-filter"
                 />
               </div>
@@ -324,13 +325,13 @@ export default function MatchingTolerancesPage() {
                   valueExpr="value"
                   value={statusFilter}
                   onValueChanged={(e) => setStatusFilter(e.value)}
-                  placeholder="Status"
+                  placeholder={t('matchingTolerances.grid.status')}
                   data-testid="status-filter"
                 />
               </div>
               {(searchText || statusFilter || typeFilter) && (
                 <Button
-                  text="Clear"
+                  text={t('matchingTolerances.clear')}
                   stylingMode="text"
                   onClick={() => {
                     setSearchText('');
@@ -344,25 +345,25 @@ export default function MatchingTolerancesPage() {
             {/* Compact Statistics */}
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-md">
-                <span className="text-gray-500">Total:</span>
+                <span className="text-gray-500">{t('matchingTolerances.total')}:</span>
                 <span className="font-semibold text-gray-900">{tolerancesData?.total || 0}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-md">
-                <span className="text-green-600">Active:</span>
+                <span className="text-green-600">{t('matchingTolerances.active')}:</span>
                 <span className="font-semibold text-green-700">
-                  {tolerances.filter((t) => t.isActive).length}
+                  {tolerances.filter((tol) => tol.isActive).length}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 rounded-md">
-                <span className="text-blue-600">Quantity:</span>
+                <span className="text-blue-600">{t('matchingTolerances.types.quantity')}:</span>
                 <span className="font-semibold text-blue-700">
-                  {tolerances.filter((t) => t.toleranceType === 'quantity').length}
+                  {tolerances.filter((tol) => tol.toleranceType === 'quantity').length}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 rounded-md">
-                <span className="text-purple-600">Price:</span>
+                <span className="text-purple-600">{t('matchingTolerances.types.price')}:</span>
                 <span className="font-semibold text-purple-700">
-                  {tolerances.filter((t) => t.toleranceType === 'price').length}
+                  {tolerances.filter((tol) => tol.toleranceType === 'price').length}
                 </span>
               </div>
             </div>
@@ -398,41 +399,41 @@ export default function MatchingTolerancesPage() {
               showNavigationButtons
             />
 
-            <Column dataField="name" caption="Name" minWidth={200} />
+            <Column dataField="name" caption={t('matchingTolerances.grid.name')} minWidth={200} />
             <Column
               dataField="toleranceType"
-              caption="Type"
+              caption={t('matchingTolerances.grid.type')}
               width={120}
               cellRender={renderTypeCell}
               alignment="center"
             />
             <Column
               dataField="toleranceMethod"
-              caption="Method"
+              caption={t('matchingTolerances.grid.method')}
               width={120}
               cellRender={renderMethodCell}
             />
             <Column
-              caption="Value"
+              caption={t('matchingTolerances.grid.value')}
               width={120}
               cellRender={renderValueCell}
               alignment="right"
             />
             <Column
               dataField="priority"
-              caption="Priority"
+              caption={t('matchingTolerances.grid.priority')}
               width={100}
               alignment="center"
             />
             <Column
               dataField="isActive"
-              caption="Status"
+              caption={t('matchingTolerances.grid.status')}
               width={100}
               cellRender={renderStatusCell}
               alignment="center"
             />
             <Column
-              caption="Actions"
+              caption={t('matchingTolerances.grid.actions')}
               width={120}
               cellRender={renderActionsCell}
               allowFiltering={false}

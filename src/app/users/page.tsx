@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
@@ -11,7 +12,7 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTabs } from '@/components/ui/dx-tabs';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/components/ui/page-header';
+import { ResponsivePageHeader } from '@/components/shared';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   Users,
@@ -47,20 +48,6 @@ interface UsersSummary {
   byDepartment: { department: string; count: number }[];
 }
 
-const roleOptions = [
-  { value: '', label: 'ทุกบทบาท' },
-  { value: 'admin', label: 'ผู้ดูแลระบบ' },
-  { value: 'manager', label: 'ผู้จัดการ' },
-  { value: 'production', label: 'ฝ่ายผลิต' },
-  { value: 'qc', label: 'ฝ่าย QC' },
-  { value: 'warehouse', label: 'ฝ่ายคลัง' },
-  { value: 'purchasing', label: 'ฝ่ายจัดซื้อ' },
-  { value: 'sales', label: 'ฝ่ายขาย' },
-  { value: 'accounting', label: 'ฝ่ายบัญชี' },
-  { value: 'hr', label: 'ฝ่ายบุคคล' },
-  { value: 'user', label: 'ผู้ใช้ทั่วไป' },
-];
-
 const getRoleConfig = (role: string): {
   variant: 'success' | 'info' | 'warning' | 'danger' | 'default';
   icon: React.ReactNode;
@@ -89,11 +76,6 @@ const getRoleConfig = (role: string): {
     default:
       return { variant: 'default', icon: <Users className="h-4 w-4" />, bgColor: 'bg-gray-100', barColor: 'bg-gray-500' };
   }
-};
-
-const formatRole = (role: string): string => {
-  const found = roleOptions.find(r => r.value === role);
-  return found ? found.label : role;
 };
 
 const formatDate = (dateStr: string) => {
@@ -133,6 +115,7 @@ type TabId = 'all' | 'active' | 'inactive';
 
 export default function UsersPage() {
   const router = useRouter();
+  const t = useTranslations('users');
   const [users, setUsers] = useState<User[]>([]);
   const [summary, setSummary] = useState<UsersSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,6 +123,54 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [activeTab, setActiveTab] = useState<TabId>('all');
+
+  // HR Roles fetched from /api/hr/roles — primary source for filter dropdown
+  const [hrRoles, setHrRoles] = useState<{ code: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch('/api/hr/roles')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.data)) {
+          setHrRoles(d.data.map((r: { code: string; name: string }) => ({
+            code: r.code,
+            name: r.name,
+          })));
+        }
+      })
+      .catch(() => {/* silently ignore — fallback to legacy list */});
+  }, []);
+
+  // Role options for filter: HR Roles (live) + legacy codes as fallback so
+  // old users (role="admin", etc.) can still be filtered while codes migrate.
+  const LEGACY_ROLE_CODES = ['admin', 'manager', 'production', 'qc', 'warehouse', 'purchasing', 'sales', 'accounting', 'hr', 'user'] as const;
+
+  const roleOptions = useMemo(() => {
+    const hrItems = hrRoles.map((r) => ({ value: r.code, label: r.name || r.code }));
+    const legacyItems = LEGACY_ROLE_CODES
+      .filter((code) => !hrRoles.some((r) => r.code === code))
+      .map((code) => {
+        let label: string;
+        try { label = t(`roles.${code}`); } catch { label = code; }
+        return { value: code, label };
+      });
+    return [
+      { value: '', label: t('roles.all') },
+      ...hrItems,
+      ...legacyItems,
+    ];
+  }, [t, hrRoles]);
+
+  // Format role label — prefer HR Roles name, fall back to translation, then code
+  const formatRole = useCallback((role: string): string => {
+    const hr = hrRoles.find((r) => r.code === role);
+    if (hr) return hr.name || hr.code;
+    try {
+      return t(`roles.${role}`);
+    } catch {
+      return role;
+    }
+  }, [t, hrRoles]);
 
   const fetchSummary = useCallback(async () => {
     setIsSummaryLoading(true);
@@ -216,17 +247,17 @@ export default function UsersPage() {
   };
 
   const tabIds: TabId[] = ['all', 'active', 'inactive'];
-  const tabs = [
-    { id: 0, text: 'ทั้งหมด', icon: 'group' },
-    { id: 1, text: 'ใช้งาน', icon: 'check' },
-    { id: 2, text: 'ปิดใช้งาน', icon: 'close' },
-  ];
+  const tabs = useMemo(() => [
+    { id: 0, text: t('tabs.all'), icon: 'group' },
+    { id: 1, text: t('tabs.active'), icon: 'check' },
+    { id: 2, text: t('tabs.inactive'), icon: 'close' },
+  ], [t]);
 
   // Grid columns
-  const columns: DxDataGridColumn[] = [
+  const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'name',
-      caption: 'ผู้ใช้งาน',
+      caption: t('grid.user'),
       minWidth: 250,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-3 py-1">
@@ -245,7 +276,7 @@ export default function UsersPage() {
     },
     {
       dataField: 'role',
-      caption: 'บทบาท',
+      caption: t('grid.role'),
       width: 150,
       cellRender: (cellInfo) => {
         const config = getRoleConfig(cellInfo.data.role);
@@ -263,7 +294,7 @@ export default function UsersPage() {
     },
     {
       dataField: 'department',
-      caption: 'แผนก',
+      caption: t('grid.department'),
       width: 150,
       hideOnMobile: true,
       cellRender: (cellInfo) => (
@@ -275,17 +306,17 @@ export default function UsersPage() {
     },
     {
       dataField: 'isActive',
-      caption: 'สถานะ',
+      caption: t('grid.status'),
       width: 120,
       cellRender: (cellInfo) => (
         <Badge variant={cellInfo.data.isActive ? 'success' : 'danger'} dot>
-          {cellInfo.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+          {cellInfo.data.isActive ? t('grid.active') : t('grid.inactive')}
         </Badge>
       ),
     },
     {
       dataField: 'createdAt',
-      caption: 'สร้างเมื่อ',
+      caption: t('grid.createdAt'),
       width: 140,
       dataType: 'date',
       hideOnMobile: true,
@@ -307,7 +338,7 @@ export default function UsersPage() {
           icon="edit"
           type="normal"
           stylingMode="text"
-          hint="แก้ไข"
+          hint={t('grid.edit')}
           data-testid={`users-edit-btn-${cellInfo.data.id}`}
           onClick={(e) => {
             e.event?.stopPropagation();
@@ -316,7 +347,7 @@ export default function UsersPage() {
         />
       ),
     },
-  ];
+  ], [t, formatRole, router]);
 
   // Summary card component
   const SummaryCard = ({
@@ -367,7 +398,7 @@ export default function UsersPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <span className="font-medium text-gray-700">{formatRole(role)}</span>
-            <span className="text-sm text-gray-500">{count} คน</span>
+            <span className="text-sm text-gray-500">{t('grid.count', { count })}</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2">
             <div
@@ -385,12 +416,15 @@ export default function UsersPage() {
     <MainLayout>
       <div className="flex flex-col h-full gap-4 lg:gap-6">
         {/* Header */}
-        <PageHeader
-          title="จัดการผู้ใช้งาน"
-          description="จัดการบัญชีผู้ใช้และกำหนดสิทธิ์การเข้าถึงระบบ"
+        <ResponsivePageHeader
+          title={t('page.title')}
+          subtitle={t('page.description')}
+          icon={Users}
+          iconBgColor="bg-blue-100"
+          iconColor="text-blue-600"
           actions={
             <DxButton
-              text="เพิ่มผู้ใช้"
+              text={t('actions.addUser')}
               icon="plus"
               type="success"
               data-testid="users-add-user-btn"
@@ -402,33 +436,33 @@ export default function UsersPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <SummaryCard
-            title="ผู้ใช้ทั้งหมด"
+            title={t('summary.totalUsers')}
             value={summary?.totalUsers || 0}
             icon={<Users className="h-6 w-6 text-blue-600" />}
             color="text-blue-600"
             bgColor="bg-blue-100"
           />
           <SummaryCard
-            title="ใช้งานอยู่"
+            title={t('summary.activeUsers')}
             value={summary?.activeUsers || 0}
             icon={<UserCheck className="h-6 w-6 text-green-600" />}
             color="text-green-600"
             bgColor="bg-green-100"
           />
           <SummaryCard
-            title="ปิดใช้งาน"
+            title={t('summary.inactiveUsers')}
             value={summary?.inactiveUsers || 0}
             icon={<UserX className="h-6 w-6 text-red-600" />}
             color="text-red-600"
             bgColor="bg-red-100"
           />
           <SummaryCard
-            title="เพิ่มใหม่ (30 วัน)"
+            title={t('summary.recentUsers')}
             value={summary?.recentUsers || 0}
             icon={<UserPlus className="h-6 w-6 text-purple-600" />}
             color="text-purple-600"
             bgColor="bg-purple-100"
-            subtitle={summary?.thisWeekUsers ? `${summary.thisWeekUsers} คนสัปดาห์นี้` : undefined}
+            subtitle={summary?.thisWeekUsers ? t('summary.thisWeek', { count: summary.thisWeekUsers }) : undefined}
           />
         </div>
 
@@ -439,7 +473,7 @@ export default function UsersPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Shield className="h-5 w-5 text-gray-400" />
-                การกระจายตามบทบาท
+                {t('distribution.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -459,7 +493,7 @@ export default function UsersPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-500 py-4">ไม่มีข้อมูล</p>
+                <p className="text-center text-gray-500 py-4">{t('distribution.noData')}</p>
               )}
             </CardContent>
           </Card>
@@ -477,7 +511,7 @@ export default function UsersPage() {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <DxTextBox
-                    placeholder="ค้นหาชื่อ, อีเมล, แผนก..."
+                    placeholder={t('search.placeholder')}
                     value={search}
                     onValueChange={setSearch}
                     showClearButton
@@ -490,7 +524,7 @@ export default function UsersPage() {
                     onValueChange={(value) => {
                       setRoleFilter(value);
                     }}
-                    placeholder="บทบาท"
+                    placeholder={t('search.role')}
                     showClearButton
                     width={160}
                   />
@@ -498,7 +532,7 @@ export default function UsersPage() {
                     icon="refresh"
                     type="normal"
                     stylingMode="outlined"
-                    hint="รีเฟรช"
+                    hint={t('actions.refresh')}
                     onClick={() => {
                       fetchSummary();
                       fetchUsers();
@@ -523,22 +557,22 @@ export default function UsersPage() {
                   virtualScrolling={filteredUsers.length > 100}
                   fillHeight
                   onRowClick={handleRowClick}
-                  noDataText="ไม่พบผู้ใช้งาน"
+                  noDataText={t('grid.noData')}
                 />
               ) : (
                 <EmptyState
                   icon={<Users className="h-12 w-12" />}
-                  title="ไม่พบผู้ใช้งาน"
+                  title={t('empty.title')}
                   description={
                     activeTab === 'inactive'
-                      ? 'ไม่มีผู้ใช้งานที่ถูกปิดใช้งาน'
+                      ? t('empty.inactive')
                       : search || roleFilter
-                        ? 'ลองเปลี่ยนเงื่อนไขการค้นหา'
-                        : 'เริ่มต้นด้วยการเพิ่มผู้ใช้ใหม่'
+                        ? t('empty.changeFilter')
+                        : t('empty.addFirst')
                   }
                   action={
                     !search && !roleFilter && activeTab === 'all' ? {
-                      label: 'เพิ่มผู้ใช้',
+                      label: t('empty.addUser'),
                       onClick: () => router.push('/users/new'),
                     } : undefined
                   }

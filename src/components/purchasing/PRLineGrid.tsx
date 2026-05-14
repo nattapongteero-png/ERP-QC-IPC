@@ -16,6 +16,7 @@ import DataGrid, {
   Item,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
+import { ItemSearchDialog, type Item as InventoryItem } from '@/components/ui/item-search-dialog';
 import type { PRLineInput } from '@/types/purchase-requisition';
 
 interface PRLineGridProps {
@@ -27,6 +28,20 @@ interface PRLineGridProps {
 
 export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGridProps) {
   const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
+  const [itemSearchOpen, setItemSearchOpen] = useState(false);
+
+  const handleSelectFromInventory = useCallback((item: InventoryItem) => {
+    const newLine: PRLineInput = {
+      itemId: item.id,
+      itemCode: item.code,
+      description: item.nameTh || item.code,
+      quantity: 1,
+      unitOfMeasure: item.primaryUnit || 'EA',
+      estimatedUnitPrice: 0,
+    };
+    onChange([...lines, newLine]);
+    setItemSearchOpen(false);
+  }, [lines, onChange]);
 
   const handleRowInserted = useCallback(
     (e: any) => {
@@ -83,93 +98,114 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
   }));
 
   return (
-    <DataGrid
-      dataSource={dataWithKeys}
-      keyExpr="key"
-      showBorders={true}
-      showRowLines={true}
-      columnAutoWidth={true}
-      rowAlternationEnabled={true}
-      onRowInserted={handleRowInserted}
-      onRowUpdated={handleRowUpdated}
-      onRowRemoved={handleRowRemoved}
-      data-testid="pr-lines-grid"
-    >
-      <Editing
-        mode="row"
-        allowAdding={editable}
-        allowUpdating={editable}
-        allowDeleting={editable}
-        useIcons={true}
-      />
-      <Paging defaultPageSize={10} />
-
-      <Toolbar>
-        <Item name="addRowButton" showText="always" />
-      </Toolbar>
-
-      <Column
-        dataField="itemCode"
-        caption="Item Code"
-        width={120}
-        data-testid="col-item-code"
-      />
-      <Column
-        dataField="description"
-        caption="Description"
-        minWidth={200}
-        validationRules={[{ type: 'required', message: 'Description is required' }]}
-        data-testid="col-description"
-      />
-      <Column
-        dataField="quantity"
-        caption="Qty"
-        dataType="number"
-        width={80}
-        validationRules={[
-          { type: 'required', message: 'Quantity is required' },
-          { type: 'range', min: 0.01, message: 'Quantity must be positive' },
-        ]}
-        data-testid="col-quantity"
-      />
-      <Column
-        dataField="unitOfMeasure"
-        caption="UoM"
-        width={80}
-        validationRules={[{ type: 'required', message: 'UoM is required' }]}
-        data-testid="col-uom"
-      />
-      <Column
-        dataField="estimatedUnitPrice"
-        caption="Unit Price"
-        dataType="number"
-        width={120}
-        format={{ type: 'fixedPoint', precision: 2 }}
-        data-testid="col-unit-price"
-      />
-      <Column
-        caption="Amount"
-        width={120}
-        calculateCellValue={calculateAmount}
-        format={{ type: 'fixedPoint', precision: 2 }}
-        allowEditing={false}
-        data-testid="col-amount"
-      />
-      <Column
-        dataField="notes"
-        caption="Notes"
-        width={150}
-        data-testid="col-notes"
-      />
-
-      <Summary>
-        <TotalItem
-          column="Amount"
-          summaryType="sum"
-          valueFormat={{ type: 'fixedPoint', precision: 2 }}
-          displayFormat="Total: {0}"
+    <>
+      <DataGrid
+        dataSource={dataWithKeys}
+        keyExpr="key"
+        showBorders={true}
+        showRowLines={true}
+        columnAutoWidth={true}
+        rowAlternationEnabled={true}
+        onRowInserted={handleRowInserted}
+        onRowUpdated={handleRowUpdated}
+        onRowRemoved={handleRowRemoved}
+        data-testid="pr-lines-grid"
+      >
+        <Editing
+          mode="row"
+          allowAdding={editable}
+          allowUpdating={editable}
+          allowDeleting={editable}
+          useIcons={true}
         />
-      </Summary>
-    </DataGrid>
+        <Paging defaultPageSize={10} />
+
+        <Toolbar>
+          <Item name="addRowButton" showText="always" />
+          <Item location="after">
+            <Button
+              text="Select from Inventory"
+              icon="search"
+              stylingMode="outlined"
+              onClick={() => setItemSearchOpen(true)}
+              disabled={!editable}
+            />
+          </Item>
+        </Toolbar>
+
+        <Column
+          dataField="itemCode"
+          caption="Item Code"
+          width={120}
+          data-testid="col-item-code"
+        />
+        <Column
+          dataField="description"
+          caption="Description"
+          minWidth={200}
+          validationRules={[{ type: 'required', message: 'Description is required' }]}
+          data-testid="col-description"
+        />
+        <Column
+          dataField="quantity"
+          caption="Qty"
+          dataType="number"
+          width={80}
+          validationRules={[
+            { type: 'required', message: 'Quantity is required' },
+            { type: 'range', min: 0.01, message: 'Quantity must be positive' },
+          ]}
+          data-testid="col-quantity"
+        />
+        <Column
+          dataField="unitOfMeasure"
+          caption="UoM"
+          width={80}
+          validationRules={[{ type: 'required', message: 'UoM is required' }]}
+          data-testid="col-uom"
+        />
+        <Column
+          dataField="estimatedUnitPrice"
+          caption="Unit Price"
+          dataType="number"
+          width={120}
+          format={{ type: 'fixedPoint', precision: 2 }}
+          data-testid="col-unit-price"
+        />
+        <Column
+          caption="Amount"
+          width={120}
+          calculateCellValue={calculateAmount}
+          format={{ type: 'fixedPoint', precision: 2 }}
+          allowEditing={false}
+          data-testid="col-amount"
+        />
+        <Column
+          dataField="notes"
+          caption="Notes"
+          width={150}
+          data-testid="col-notes"
+        />
+
+        <Summary>
+          <TotalItem
+            column="Amount"
+            summaryType="sum"
+            valueFormat={{ type: 'fixedPoint', precision: 2 }}
+            displayFormat="Total: {0}"
+          />
+        </Summary>
+      </DataGrid>
+
+      <ItemSearchDialog
+        open={itemSearchOpen}
+        onOpenChange={setItemSearchOpen}
+        onSelect={handleSelectFromInventory}
+        title="Select Item from Inventory"
+        showPrice="cost"
+        excludeIds={lines.filter(l => l.itemId).map(l => l.itemId!)}
+        allowCreate
+      />
+    </>
   );
 }

@@ -58,10 +58,19 @@ export async function POST(
 
       const data = await request.json();
 
-      // Validate required fields
-      if (!data.stepName || data.sequence === undefined) {
-        return errorResponse('Missing required fields: stepName, sequence');
+      // TH is now the required user-facing field. Some master templates
+      // only have TH names (English left blank), so fall back stepName
+      // from stepNameTh when EN is empty — the DB column is NOT NULL.
+      const stepNameTh = (data.stepNameTh ?? '').toString().trim();
+      const stepNameEn = (data.stepName ?? '').toString().trim();
+      if (!stepNameTh && !stepNameEn) {
+        return errorResponse('Missing required field: stepNameTh');
       }
+      if (data.sequence === undefined) {
+        return errorResponse('Missing required field: sequence');
+      }
+      const finalStepName = stepNameEn || stepNameTh;
+      const finalStepNameTh = stepNameTh || stepNameEn;
 
       // Validate parameters and equipmentIds JSON if provided
       if (data.parameters) {
@@ -88,8 +97,8 @@ export async function POST(
         bomId,
         templateId: data.templateId,
         sequence: data.sequence,
-        stepName: data.stepName,
-        stepNameTh: data.stepNameTh,
+        stepName: finalStepName,
+        stepNameTh: finalStepNameTh,
         instructions: data.instructions,
         instructionsTh: data.instructionsTh,
         parameters: typeof data.parameters === 'object'
@@ -99,9 +108,17 @@ export async function POST(
           ? JSON.stringify(data.equipmentIds)
           : data.equipmentIds,
         requiresVerification: data.requiresVerification ?? true,
+        phase: data.phase || 'production',
       });
 
-      return successResponse(step, 'SOP step added to BOM');
+      // Flatten response to match GET shape — consumers expect step.id
+      // at the top level (used by addSOPMutation.onSuccess to wire up
+      // pendingIpcLinks → bom_sop_step_ipc rows).
+      const flatStep = step?.bomStep
+        ? { ...step.bomStep, template: step.template }
+        : step;
+
+      return successResponse(flatStep, 'SOP step added to BOM');
     } catch (error) {
       console.error('Error adding BOM SOP step:', error);
       return serverErrorResponse(error);
@@ -164,6 +181,7 @@ export async function PUT(
           ? JSON.stringify(data.equipmentIds)
           : data.equipmentIds,
         requiresVerification: data.requiresVerification,
+        phase: data.phase,
       });
 
       return successResponse(step, 'SOP step updated');

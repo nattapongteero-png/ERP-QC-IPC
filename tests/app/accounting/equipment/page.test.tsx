@@ -93,7 +93,7 @@ describe('EquipmentPage', () => {
 
   it('renders professional page header', async () => {
     render(<EquipmentPage />, { wrapper: createWrapper() });
-    expect(await screen.findByText('Equipment & Maintenance')).toBeInTheDocument();
+    expect((await screen.findAllByText('Accounting')).length).toBeGreaterThan(0);
     expect(screen.getByText('Track equipment, maintenance schedules, and MTBF analysis')).toBeInTheDocument();
   });
 

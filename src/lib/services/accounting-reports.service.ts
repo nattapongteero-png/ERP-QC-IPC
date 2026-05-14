@@ -375,12 +375,14 @@ export async function generateBalanceSheet(asOfDate: string): Promise<BalanceShe
     }
   }
 
-  // Add retained earnings (net income for the period) - Revenue - Expenses
-  const retainedEarnings = await calculateNetIncome(asOfDate);
+  // Add retained earnings (cumulative net income) - Revenue - Expenses
+  // For balance sheet, we need ALL-TIME retained earnings, not just current fiscal year
+  // Pass a very early date as period start to capture all historical income
+  const retainedEarnings = await calculateNetIncome(asOfDate, '1900-01-01');
   if (retainedEarnings !== 0) {
     equitySectionAccounts.push({
       code: 'RE',
-      name: 'Retained Earnings (Current Period)',
+      name: 'Retained Earnings',
       amount: retainedEarnings,
     });
     equityTotal += retainedEarnings;

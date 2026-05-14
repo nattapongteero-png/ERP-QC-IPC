@@ -117,7 +117,7 @@ services:
       reporting-backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -207,11 +207,15 @@ services:
       reporting-backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    volumes:
+      # HR employee photos — persist across container recreates and isolate
+      # per tenant. Host dir must be owned by uid 1001 (nextjs).
+      - ./uploads/arjaro:/app/public/uploads
     networks:
       - herbal-erp-network
 
@@ -272,11 +276,13 @@ services:
       reporting-backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    volumes:
+      - ./uploads/metaherb:/app/public/uploads
     networks:
       - herbal-erp-network
 
@@ -336,7 +342,7 @@ services:
       reporting-backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -357,6 +363,207 @@ services:
       - ConnectionStrings__DefaultConnection=Server=mysql;Database=herbal_erp_more;User=${MYSQL_USER:-herbal_user};Password=${MYSQL_PASSWORD:-herbal_password};
       - Jwt__Secret=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - Cors__AllowedOrigins=http://localhost:3000,http://localhost:33020,https://herbal-erp.bmscloud.in.th,https://herbal-erp-more.bmscloud.in.th
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health | grep -q healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-network
+
+  # โรงพยาบาลเรณูนคร
+  app-prd-renunakhon:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 16G
+    container_name: herbal-erp-app-renunakhon
+    restart: unless-stopped
+   # profiles: ["donotstart"]
+    ports:
+      - "33026:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_TYPE=mysql
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - DATABASE_URL=mysql://${MYSQL_USER:-herbal_user}:${MYSQL_PASSWORD:-herbal_password}@mysql:3306/herbal_erp_renunakhon
+      - NEXT_PUBLIC_APP_URL=https://herbal-erp-renunakhon.bmscloud.in.th
+      - NEXTAUTH_URL=https://herbal-erp-renunakhon.bmscloud.in.th
+      # Internal reporting backend URL (Docker internal network)
+      - REPORTING_BACKEND_URL=http://reporting-backend-renunakhon:5000
+      # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      reporting-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./uploads/renunakhon:/app/public/uploads
+    networks:
+      - herbal-erp-network
+
+  reporting-backend-renunakhon:
+    build:
+      context: ./reporting-backend
+      dockerfile: Dockerfile
+    container_name: herbal-erp-reporting-renunakhon
+    restart: unless-stopped
+
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=herbal_erp_renunakhon;User=${MYSQL_USER:-herbal_user};Password=${MYSQL_PASSWORD:-herbal_password};
+      - Jwt__Secret=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - Cors__AllowedOrigins=http://localhost:3000,http://localhost:33020,https://herbal-erp.bmscloud.in.th,https://herbal-erp-renunakhon.bmscloud.in.th
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health | grep -q healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-network
+
+  # โรงพยาบาลโพนพิสัย
+  app-prd-phonphisai:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 16G
+    container_name: herbal-erp-app-phonphisai
+    restart: unless-stopped
+   # profiles: ["donotstart"]
+    ports:
+      - "33027:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_TYPE=mysql
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - DATABASE_URL=mysql://${MYSQL_USER:-herbal_user}:${MYSQL_PASSWORD:-herbal_password}@mysql:3306/herbal_erp_phonphisai
+      - NEXT_PUBLIC_APP_URL=https://herbal-erp-phonphisai.bmscloud.in.th
+      - NEXTAUTH_URL=https://herbal-erp-phonphisai.bmscloud.in.th
+      # Internal reporting backend URL (Docker internal network)
+      - REPORTING_BACKEND_URL=http://reporting-backend-phonphisai:5000
+      # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      reporting-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./uploads/phonphisai:/app/public/uploads
+    networks:
+      - herbal-erp-network
+
+  reporting-backend-phonphisai:
+    build:
+      context: ./reporting-backend
+      dockerfile: Dockerfile
+    container_name: herbal-erp-reporting-phonphisai
+    restart: unless-stopped
+
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=herbal_erp_phonphisai;User=${MYSQL_USER:-herbal_user};Password=${MYSQL_PASSWORD:-herbal_password};
+      - Jwt__Secret=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - Cors__AllowedOrigins=http://localhost:3000,http://localhost:33020,https://herbal-erp.bmscloud.in.th,https://herbal-erp-phonphisai.bmscloud.in.th
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health | grep -q healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-network
+
+  # โรงพยาบาลห้วยเกิ้ง
+  app-prd-huaikoeng:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 16G
+    container_name: herbal-erp-app-huaikoeng
+    restart: unless-stopped
+   # profiles: ["donotstart"]
+    ports:
+      - "33028:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_TYPE=mysql
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - DATABASE_URL=mysql://${MYSQL_USER:-herbal_user}:${MYSQL_PASSWORD:-herbal_password}@mysql:3306/herbal_erp_huaikoeng
+      - NEXT_PUBLIC_APP_URL=https://herbal-erp-huaikoeng.bmscloud.in.th
+      - NEXTAUTH_URL=https://herbal-erp-huaikoeng.bmscloud.in.th
+      # Internal reporting backend URL (Docker internal network)
+      - REPORTING_BACKEND_URL=http://reporting-backend-huaikoeng:5000
+      # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      reporting-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./uploads/huaikoeng:/app/public/uploads
+    networks:
+      - herbal-erp-network
+
+  reporting-backend-huaikoeng:
+    build:
+      context: ./reporting-backend
+      dockerfile: Dockerfile
+    container_name: herbal-erp-reporting-huaikoeng
+    restart: unless-stopped
+
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=herbal_erp_huaikoeng;User=${MYSQL_USER:-herbal_user};Password=${MYSQL_PASSWORD:-herbal_password};
+      - Jwt__Secret=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - Cors__AllowedOrigins=http://localhost:3000,http://localhost:33020,https://herbal-erp.bmscloud.in.th,https://herbal-erp-huaikoeng.bmscloud.in.th
     depends_on:
       mysql:
         condition: service_healthy

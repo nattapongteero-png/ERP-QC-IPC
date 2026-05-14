@@ -12,7 +12,10 @@ import { headers } from 'next/headers';
 
 /**
  * POST /api/sales/vmi-orders/poll
- * Scheduled order polling endpoint (for cron jobs)
+ *
+ * NOTE: This endpoint duplicates /api/vmi-sync/scheduled/orders (the canonical cron endpoint).
+ * This endpoint is kept for manual triggering via the VMI orders UI.
+ * The canonical cron endpoint at /api/vmi-sync/scheduled/orders also records sync history.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -24,11 +27,7 @@ export async function POST(request: NextRequest) {
     // Allow if:
     // 1. CRON_SECRET is not set (development mode)
     // 2. CRON_SECRET matches
-    // 3. Request is from localhost (internal call)
-    const isAuthorized =
-      !expectedSecret ||
-      cronSecret === expectedSecret ||
-      request.headers.get('host')?.includes('localhost');
+    const isAuthorized = !expectedSecret || cronSecret === expectedSecret;
 
     if (!isAuthorized) {
       return NextResponse.json({

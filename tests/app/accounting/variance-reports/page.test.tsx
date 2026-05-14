@@ -153,7 +153,7 @@ describe('VarianceReportsPage', () => {
     render(<VarianceReportsPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('page-title')).toHaveTextContent('Variance Reports');
+      expect(screen.getByTestId('page-title')).toHaveTextContent('Accounting');
     });
   });
 

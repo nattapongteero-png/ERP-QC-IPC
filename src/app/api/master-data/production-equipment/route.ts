@@ -12,20 +12,31 @@ import {
   deactivateProductionEquipment,
   getProductionEquipmentById,
 } from '@/lib/services/master-data.service';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { desc, eq } from 'drizzle-orm';
 
 // GET /api/master-data/production-equipment - List production equipment
 export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
       const equipmentType = searchParams.get('equipmentType') || undefined;
       const roomId = searchParams.get('roomId');
       const isActive = searchParams.get('isActive');
 
+      // Fetch single item by ID
+      if (id) {
+        const raw = await getProductionEquipmentById(Number(id));
+        if (!raw) return successResponse(null);
+        const item = { ...raw.equipment, room: raw.room };
+        return successResponse(item);
+      }
+
       const rawEquipment = await getProductionEquipment({
         equipmentType,
         roomId: roomId ? Number(roomId) : undefined,
-        isActive: isActive ? isActive === 'true' : undefined,
+        isActive: isActive !== null ? isActive === 'true' : true,
       });
 
       // Flatten the nested structure for frontend
@@ -48,28 +59,45 @@ export async function POST(request: NextRequest) {
     try {
       const data = await request.json();
 
+      // Auto-generate code if not provided
+      if (!data.code) {
+        const table = getTableRef('productionEquipment');
+        const latest = await executeDbOperation(async (db) => {
+          const rows = await db.select({ code: table.code }).from(table).orderBy(desc(table.id)).limit(1);
+          return rows[0]?.code as string | undefined;
+        });
+        const lastNum = latest ? parseInt(latest.replace(/\D/g, '') || '0') : 0;
+        data.code = `EQ-${String(lastNum + 1).padStart(4, '0')}`;
+      }
+
       // Validate required fields
-      if (!data.code || !data.name || !data.nameTh || !data.equipmentType) {
-        return errorResponse('Missing required fields: code, name, nameTh, equipmentType');
+      if (!data.name || !data.nameTh || !data.equipmentType) {
+        return errorResponse('Missing required fields: name, nameTh, equipmentType');
+      }
+
+      // Upsert — update if code exists
+      const table = getTableRef('productionEquipment');
+      const existing = await executeDbOperation(async (db) => {
+        const rows = await db.select({ id: table.id }).from(table).where(eq(table.code, data.code));
+        return rows[0];
+      });
+
+      if (existing) {
+        const updated = await updateProductionEquipment(existing.id as number, {
+          name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
+          capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
+        });
+        return successResponse(updated, 'Production equipment updated (code existed)');
       }
 
       const equipment = await createProductionEquipment({
-        code: data.code,
-        name: data.name,
-        nameTh: data.nameTh,
-        equipmentType: data.equipmentType,
-        capacity: data.capacity,
-        roomId: data.roomId,
-        description: data.description,
-        isActive: data.isActive ?? true,
+        code: data.code, name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
+        capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
       });
 
       return successResponse(equipment, 'Production equipment created successfully');
     } catch (error) {
       console.error('Error creating production equipment:', error);
-      if ((error as Error).message?.includes('UNIQUE constraint')) {
-        return errorResponse('Equipment code already exists');
-      }
       return serverErrorResponse(error);
     }
   });
@@ -125,8 +153,19 @@ export async function DELETE(request: NextRequest) {
         return errorResponse('Production equipment not found');
       }
 
-      await deactivateProductionEquipment(Number(id));
-      return successResponse(null, 'Production equipment deactivated successfully');
+      const bomEquipment = getTableRef('bOMEquipment');
+      const refs = await executeDbOperation(async (db) => {
+        return db.select({ id: bomEquipment.id }).from(bomEquipment).where(eq(bomEquipment.equipmentId, Number(id))).limit(1);
+      });
+      if (refs.length > 0) {
+        return errorResponse('ไม่สามารถลบได้ เนื่องจากอุปกรณ์นี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
+      }
+
+      const table = getTableRef('productionEquipment');
+      await executeDbOperation(async (db) => {
+        await db.delete(table).where(eq(table.id, Number(id)));
+      });
+      return successResponse(null, 'Production equipment deleted successfully');
     } catch (error) {
       console.error('Error deactivating production equipment:', error);
       return serverErrorResponse(error);

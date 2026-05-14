@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -57,7 +58,9 @@ interface WarehouseDetail {
     type: string;
     lotId: number;
     quantity: number;
-    reference: string;
+    unit: string;
+    direction: 'inbound' | 'outbound';
+    reference: string | null;
     createdAt: string;
   }>;
 }
@@ -65,6 +68,7 @@ interface WarehouseDetail {
 export default function WarehouseDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('inventory');
   const [data, setData] = useState<WarehouseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'transactions' | 'settings'>('overview');
@@ -228,11 +232,27 @@ export default function WarehouseDetailPage() {
       dataField: 'type',
       caption: 'Type',
       width: 120,
-      cellRender: (cellInfo) => (
-        <Badge variant={cellInfo.data.type === 'receive' ? 'success' : cellInfo.data.type === 'issue' ? 'danger' : 'default'}>
-          {cellInfo.data.type}
-        </Badge>
-      )
+      cellRender: (cellInfo) => {
+        const isInbound = cellInfo.data.direction === 'inbound';
+        return (
+          <Badge variant={isInbound ? 'success' : cellInfo.data.type === 'issue' ? 'danger' : 'default'}>
+            {cellInfo.data.type}
+          </Badge>
+        );
+      }
+    },
+    {
+      dataField: 'direction',
+      caption: 'Direction',
+      width: 100,
+      cellRender: (cellInfo) => {
+        const isInbound = cellInfo.data.direction === 'inbound';
+        return (
+          <span className={isInbound ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+            {isInbound ? 'IN' : 'OUT'}
+          </span>
+        );
+      }
     },
     {
       dataField: 'reference',
@@ -242,12 +262,17 @@ export default function WarehouseDetailPage() {
     {
       dataField: 'quantity',
       caption: 'Quantity',
-      width: 120,
-      cellRender: (cellInfo) => (
-        <span className={cellInfo.data.type === 'receive' ? 'text-green-600' : 'text-red-600'}>
-          {cellInfo.data.type === 'receive' ? '+' : '-'}{cellInfo.data.quantity}
-        </span>
-      )
+      width: 150,
+      alignment: 'right',
+      cellRender: (cellInfo) => {
+        const qty = Number(cellInfo.data.quantity) || 0;
+        const isPositive = qty >= 0;
+        return (
+          <span className={isPositive ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+            {isPositive ? '+' : ''}{qty.toLocaleString()} {cellInfo.data.unit || ''}
+          </span>
+        );
+      }
     },
   ];
 
@@ -294,7 +319,7 @@ export default function WarehouseDetailPage() {
                 stylingMode="outlined"
                 onClick={() => router.push('/inventory/warehouses')}
               />
-              <h1 className="text-2xl font-bold text-gray-900">Warehouse: {warehouse.code}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t('warehouses.detail.pageTitle')}: {warehouse.code}</h1>
               <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
                 {warehouse.isActive ? 'Active' : 'Inactive'}
               </Badge>
@@ -399,7 +424,7 @@ export default function WarehouseDetailPage() {
               ></div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {summary.usedCapacity.toLocaleString()} / {summary.storageCapacity.toLocaleString()} units
+              {summary.usedCapacity.toLocaleString()} / {summary.storageCapacity.toLocaleString()} lots
             </p>
           </CardContent>
         </Card>

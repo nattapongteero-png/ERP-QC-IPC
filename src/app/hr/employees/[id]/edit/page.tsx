@@ -4,6 +4,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { EmployeeForm } from '@/components/hr';
@@ -19,6 +20,7 @@ async function fetchEmployeeProfile(id: string): Promise<EmployeeProfile> {
 }
 
 export default function EditEmployeePage() {
+  const t = useTranslations('hr');
   const params = useParams();
   const employeeId = params.id as string;
 
@@ -46,8 +48,8 @@ export default function EditEmployeePage() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">ไม่พบข้อมูลพนักงาน</h2>
-          <p className="text-gray-500 text-sm mb-6">ข้อมูลพนักงานที่คุณต้องการแก้ไขไม่มีในระบบ</p>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">{t('employees.notFound')}</h2>
+          <p className="text-gray-500 text-sm mb-6">{t('employees.notFoundDescription')}</p>
           <Link
             href="/hr/employees"
             className="block w-full py-3 px-4 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors text-center"

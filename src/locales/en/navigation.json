@@ -1,0 +1,140 @@
+{
+  "modules": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "production": "Production",
+    "quality": "Quality",
+    "gmp": "GMP Compliance",
+    "purchasing": "Purchasing",
+    "sales": "Sales",
+    "accounting": "Accounting",
+    "cost": "Cost Management",
+    "vmi": "VMI Portal",
+    "hr": "HR",
+    "template": "Template",
+    "issues": "Issues",
+    "reports": "Reports",
+    "users": "Users",
+    "admin": "Admin",
+    "settings": "Settings",
+    "workflow": "Workflow"
+  },
+  "inventory": {
+    "items": "Items",
+    "lots": "Lots",
+    "warehouses": "Warehouses",
+    "transactions": "Transactions",
+    "returnsInbox": "Returns Inbox",
+    "expiryAlerts": "Expiry Alerts"
+  },
+  "production": {
+    "bom": "BOM/Recipes",
+    "workOrders": "Work Orders",
+    "batchRecords": "Batch Records",
+    "masterData": "Master Data"
+  },
+  "quality": {
+    "qcEntry": "QC Entry",
+    "coa": "Certificate of Analysis",
+    "coaTemplates": "COA Templates",
+    "testPanels": "Test Panels",
+    "tests": "Tests",
+    "specs": "Specifications",
+    "deviations": "Deviations",
+    "auditTrail": "Audit Trail"
+  },
+  "gmp": {
+    "documents": "Documents",
+    "changes": "Changes",
+    "capa": "CAPA",
+    "complaints": "Complaints",
+    "recalls": "Recalls",
+    "sanitation": "Sanitation",
+    "stability": "Stability",
+    "internalAudit": "Internal Audit",
+    "contracts": "Contracts",
+    "pqr": "PQR"
+  },
+  "purchasing": {
+    "requisitions": "Requisitions",
+    "orders": "Purchase Orders",
+    "vendors": "Vendors"
+  },
+  "sales": {
+    "orders": "Sales Orders",
+    "vmiOrders": "VMI Orders",
+    "customers": "Customers"
+  },
+  "accounting": {
+    "dashboard": "Dashboard",
+    "chartOfAccounts": "Chart of Accounts",
+    "accountTypes": "Account Types",
+    "journalEntries": "Journal Entries",
+    "apInvoices": "AP Invoices",
+    "arInvoices": "AR Invoices",
+    "fixedAssets": "Fixed Assets",
+    "equipment": "Equipment",
+    "periodClose": "Period Close",
+    "bankReconciliation": "Bank Reconciliation",
+    "creditDebitNotes": "Credit/Debit Notes",
+    "threeWayMatching": "3-Way Matching",
+    "approvals": "Approvals",
+    "standardCosts": "Standard Costs",
+    "varianceReports": "Variance Reports",
+    "reports": "Reports"
+  },
+  "cost": {
+    "dashboard": "Dashboard",
+    "landedCosts": "Landed Costs",
+    "workCenters": "Work Centers",
+    "costSummary": "Cost Summary"
+  },
+  "vmi": {
+    "dashboard": "Dashboard",
+    "sync": "Sync",
+    "orders": "Orders"
+  },
+  "hr": {
+    "organization": "Organization",
+    "employees": "Employees",
+    "positions": "Positions",
+    "training": "Training",
+    "authorizations": "Authorizations",
+    "healthRecords": "Health Records",
+    "roles": "Roles",
+    "notifications": "Notifications",
+    "auditTrail": "Audit Trail"
+  },
+  "template": {
+    "dashboard": "Dashboard",
+    "items": "Items"
+  },
+  "issues": {
+    "dashboard": "Dashboard",
+    "allIssues": "All Issues",
+    "reportIssue": "Report Issue"
+  },
+  "admin": {
+    "confidentialGroups": "Confidential Groups"
+  },
+  "settings": {
+    "general": "General",
+    "approvalWorkflows": "Approval Workflows",
+    "matchingTolerances": "Matching Tolerances",
+    "workflowTest": "Workflow Test"
+  },
+  "workflow": {
+    "runner": "Workflow Runner"
+  },
+  "header": {
+    "appName": "Herbal Medicine ERP",
+    "logout": "Logout",
+    "profile": "Profile",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "language": "Language"
+  },
+  "breadcrumb": {
+    "home": "Home"
+  }
+}

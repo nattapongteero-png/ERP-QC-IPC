@@ -4,7 +4,8 @@
 // Feature: 007-hr-personnel-management
 // Pattern: Aligned with Template module design
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import DataGrid, {
   Column,
   HeaderFilter,
@@ -80,6 +81,8 @@ const ACTION_COLORS: Record<string, string> = {
 };
 
 export default function AuditLogPage() {
+  const t = useTranslations('hr');
+  const locale = useLocale();
   const [activeTab, setActiveTab] = useState<'logs' | 'summary' | 'access-review'>('logs');
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
@@ -105,8 +108,18 @@ export default function AuditLogPage() {
   const auditLogs = auditResult?.data || [];
   const totalLogs = auditResult?.total || 0;
 
+  const auditLogsWithRowNum = useMemo(
+    () => auditLogs.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [auditLogs]
+  );
+
+  const accessReviewWithRowNum = useMemo(
+    () => accessReview.map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [accessReview]
+  );
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('th-TH', {
+    return new Date(dateString).toLocaleString(locale === 'th' ? 'th-TH' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -133,7 +146,7 @@ export default function AuditLogPage() {
     return (
       <Button
         icon="info"
-        hint="ดูรายละเอียด"
+        hint={t('audit.viewDetailsHint')}
         type="default"
         stylingMode="text"
         onClick={() => {
@@ -150,45 +163,45 @@ export default function AuditLogPage() {
   };
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       {/* Header */}
       <ResponsivePageHeader
-        title="บันทึกการตรวจสอบ"
-        subtitle="ประวัติการเปลี่ยนแปลงข้อมูล HR และการตรวจสอบสิทธิ์"
+        title={t('audit.title')}
+        subtitle={t('audit.description')}
         icon={FileText}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         breadcrumbs={[
           { label: 'HR', href: '/hr' },
-          { label: 'บันทึกการตรวจสอบ' },
+          { label: t('audit.breadcrumb') },
         ]}
       />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
-          label="รายการทั้งหมด"
+          label={t('audit.stats.total')}
           value={totalLogs}
           icon={FileText}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
         />
         <StatCard
-          label="ประเภทกิจกรรม"
+          label={t('audit.stats.activityTypes')}
           value={summary.length}
           icon={BarChart3}
           iconColor="text-green-500"
           accentColor="border-green-500"
         />
         <StatCard
-          label="ผู้มีสิทธิ์"
+          label={t('audit.stats.users')}
           value={accessReview.length}
           icon={ShieldCheck}
           iconColor="text-purple-500"
           accentColor="border-purple-500"
         />
         <StatCard
-          label="กิจกรรมทั้งหมด"
+          label={t('audit.stats.totalActivities')}
           value={summary.reduce((acc, s) => acc + s.count, 0)}
           icon={Calendar}
           iconColor="text-orange-500"
@@ -206,7 +219,7 @@ export default function AuditLogPage() {
           }`}
           onClick={() => setActiveTab('logs')}
         >
-          บันทึกกิจกรรม
+          {t('audit.tabs.logs')}
         </button>
         <button
           className={`px-3 md:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm md:text-base min-h-[44px] ${
@@ -216,7 +229,7 @@ export default function AuditLogPage() {
           }`}
           onClick={() => setActiveTab('summary')}
         >
-          สรุปตามประเภท
+          {t('audit.tabs.summary')}
         </button>
         <button
           className={`px-3 md:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm md:text-base min-h-[44px] ${
@@ -226,7 +239,7 @@ export default function AuditLogPage() {
           }`}
           onClick={() => setActiveTab('access-review')}
         >
-          ตรวจสอบสิทธิ์
+          {t('audit.tabs.accessReview')}
         </button>
       </div>
 
@@ -236,14 +249,14 @@ export default function AuditLogPage() {
           <CardContent className="py-4">
             <div className="flex flex-wrap items-end gap-4">
               <DxDateBox
-                label="จากวันที่"
+                label={t('audit.filters.fromDate')}
                 value={fromDate || ''}
                 onValueChange={setFromDate}
                 width={180}
                 showClearButton
               />
               <DxDateBox
-                label="ถึงวันที่"
+                label={t('audit.filters.toDate')}
                 value={toDate || ''}
                 onValueChange={setToDate}
                 width={180}
@@ -251,7 +264,7 @@ export default function AuditLogPage() {
               />
               {(fromDate || toDate) && (
                 <Button
-                  text="ล้างตัวกรอง"
+                  text={t('audit.filters.clear')}
                   stylingMode="text"
                   onClick={clearFilters}
                 />
@@ -266,7 +279,8 @@ export default function AuditLogPage() {
         <Card>
           <CardContent className="p-0">
             <DataGrid
-              dataSource={auditLogs}
+              key={locale}
+              dataSource={auditLogsWithRowNum}
               showBorders={false}
               showRowLines
               rowAlternationEnabled
@@ -292,31 +306,45 @@ export default function AuditLogPage() {
               />
 
               <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
+              <Column
                 dataField="createdAt"
-                caption="วันที่/เวลา"
+                caption={t('audit.columns.dateTime')}
                 width={180}
                 cellRender={renderDateCell}
                 sortOrder="desc"
               />
               <Column
                 dataField="actionLabel"
-                caption="กิจกรรม"
+                caption={t('audit.columns.activity')}
                 minWidth={160}
                 cellRender={renderActionCell}
               />
               <Column
                 dataField="userName"
-                caption="ผู้ดำเนินการ"
+                caption={t('audit.columns.user')}
                 minWidth={150}
               />
               <Column
                 dataField="tableName"
-                caption="ตาราง"
+                caption={t('audit.columns.table')}
                 minWidth={180}
               />
               <Column
                 dataField="recordId"
-                caption="รหัส"
+                caption={t('audit.columns.recordId')}
                 width={80}
                 alignment="center"
               />
@@ -337,7 +365,7 @@ export default function AuditLogPage() {
       {activeTab === 'summary' && (
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-medium mb-4">สรุปกิจกรรมตามประเภท</h3>
+            <h3 className="text-lg font-medium mb-4">{t('audit.summaryTitle')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {summary.map((item) => (
                 <div
@@ -355,7 +383,7 @@ export default function AuditLogPage() {
               ))}
               {summary.length === 0 && (
                 <div className="col-span-3 text-center text-gray-500 py-12">
-                  ไม่พบข้อมูลสรุป
+                  {t('audit.noSummary')}
                 </div>
               )}
             </div>
@@ -368,7 +396,8 @@ export default function AuditLogPage() {
         <Card>
           <CardContent className="p-0">
             <DataGrid
-              dataSource={accessReview}
+              key={locale}
+              dataSource={accessReviewWithRowNum}
               showBorders={false}
               showRowLines
               rowAlternationEnabled
@@ -388,12 +417,26 @@ export default function AuditLogPage() {
               />
 
               <Column
+                dataField="_rowNumber"
+                caption={t('items.grid.columns.rowNum')}
+                width={60}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                allowGrouping={false}
+                cellRender={(cellInfo) => (
+                  <span className="text-gray-500 text-sm font-medium">
+                    {cellInfo.data._rowNumber}
+                  </span>
+                )}
+              />
+              <Column
                 dataField="employeeName"
-                caption="พนักงาน"
+                caption={t('audit.columns.employee')}
                 minWidth={200}
               />
               <Column
-                caption="บทบาท"
+                caption={t('audit.columns.roles')}
                 minWidth={200}
                 allowFiltering={false}
                 allowSorting={false}
@@ -415,7 +458,7 @@ export default function AuditLogPage() {
                 )}
               />
               <Column
-                caption="สิทธิ์อนุมัติ"
+                caption={t('audit.columns.authorizations')}
                 minWidth={200}
                 allowFiltering={false}
                 allowSorting={false}
@@ -437,7 +480,7 @@ export default function AuditLogPage() {
                 )}
               />
               <Column
-                caption="บทบาทใช้งาน"
+                caption={t('audit.columns.activeRoles')}
                 width={120}
                 alignment="center"
                 calculateCellValue={(data: AccessReviewEntry) =>
@@ -445,7 +488,7 @@ export default function AuditLogPage() {
                 }
               />
               <Column
-                caption="สิทธิ์ใช้งาน"
+                caption={t('audit.columns.activeAuth')}
                 width={120}
                 alignment="center"
                 calculateCellValue={(data: AccessReviewEntry) =>
@@ -457,73 +500,90 @@ export default function AuditLogPage() {
         </Card>
       )}
 
-      {/* Detail Popup */}
+      {/* Detail Popup — must use contentRender for DevExtreme to render inside popup */}
       <Popup
         visible={showDetailPopup}
         onHiding={() => {
           setShowDetailPopup(false);
           setSelectedLog(null);
         }}
-        title="รายละเอียดบันทึก"
+        title={t('audit.detailPopup.title')}
         width={600}
         height="auto"
         showCloseButton
-      >
-        {selectedLog && (
-          <div className="space-y-4 p-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500">
-                  วันที่/เวลา
-                </label>
-                <div>{formatDate(selectedLog.createdAt)}</div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">
-                  ผู้ดำเนินการ
-                </label>
-                <div>{selectedLog.userName || '-'}</div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">
-                  กิจกรรม
-                </label>
-                <div>{selectedLog.actionLabel}</div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">
-                  ตาราง / รหัส
-                </label>
+        contentRender={() => {
+          if (!selectedLog) return null;
+
+          const formatJson = (value: string) => {
+            try {
+              return JSON.stringify(JSON.parse(value), null, 2);
+            } catch {
+              return value;
+            }
+          };
+
+          return (
+            <div className="space-y-4 p-2">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  {selectedLog.tableName} / {selectedLog.recordId}
+                  <label className="block text-sm font-medium text-gray-500">
+                    {t('audit.detailPopup.dateTime')}
+                  </label>
+                  <div>{formatDate(selectedLog.createdAt)}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">
+                    {t('audit.detailPopup.user')}
+                  </label>
+                  <div>{selectedLog.userName || '-'}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">
+                    {t('audit.detailPopup.activity')}
+                  </label>
+                  <div>{selectedLog.actionLabel}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">
+                    {t('audit.detailPopup.tableRecord')}
+                  </label>
+                  <div>
+                    {selectedLog.tableName} / {selectedLog.recordId}
+                  </div>
                 </div>
               </div>
+
+              {selectedLog.oldValue && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                    {t('audit.detailPopup.oldValue')}
+                  </label>
+                  <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
+                    {formatJson(selectedLog.oldValue)}
+                  </pre>
+                </div>
+              )}
+
+              {selectedLog.newValue && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                    {t('audit.detailPopup.newValue')}
+                  </label>
+                  <pre className="bg-green-50 p-3 rounded text-sm overflow-x-auto">
+                    {formatJson(selectedLog.newValue)}
+                  </pre>
+                </div>
+              )}
+
+              {!selectedLog.oldValue && !selectedLog.newValue && (
+                <div className="text-center py-4 text-gray-400">
+                  {t('audit.detailPopup.noChanges')}
+                </div>
+              )}
             </div>
-
-            {selectedLog.oldValue && (
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  ค่าเดิม
-                </label>
-                <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
-                  {JSON.stringify(JSON.parse(selectedLog.oldValue), null, 2)}
-                </pre>
-              </div>
-            )}
-
-            {selectedLog.newValue && (
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  ค่าใหม่
-                </label>
-                <pre className="bg-green-50 p-3 rounded text-sm overflow-x-auto">
-                  {JSON.stringify(JSON.parse(selectedLog.newValue), null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        )}
-      </Popup>
+          );
+        }}
+      />
     </div>
   );
 }

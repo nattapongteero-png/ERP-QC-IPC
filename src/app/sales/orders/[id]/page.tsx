@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -10,6 +11,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxPopup } from '@/components/ui/dx-popup';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils/cn';
 import {
   ArrowLeft,
@@ -121,27 +123,21 @@ interface FulfillmentError {
   suggestions: string[];
 }
 
-// Parse error message to structured error
-function parseErrorMessage(errorMsg: string): FulfillmentError {
+// Parse error message to structured error - returns translation keys for dynamic resolution
+function parseErrorMessage(errorMsg: string, t: (key: string) => string): FulfillmentError {
   // Lot not released error
   const lotStatusMatch = errorMsg.match(/Lot\s+([\w-]+)\s+is not released\s*\(status:\s*(\w+)\)/i);
   if (lotStatusMatch) {
     const [, lotNumber, status] = lotStatusMatch;
-    const statusLabels: Record<string, string> = {
-      quarantine: 'กักกัน (Quarantine)',
-      blocked: 'ถูกบล็อก (Blocked)',
-      rejected: 'ถูกปฏิเสธ (Rejected)',
-      under_test: 'กำลังทดสอบ (Under Test)',
-    };
     return {
       type: 'lot_status',
-      title: 'ไม่สามารถใช้ Lot นี้ได้',
-      message: `Lot ${lotNumber} ยังไม่ได้รับการปล่อย (Release) เพื่อใช้งาน`,
+      title: t('orders.detail.error.lotStatus.title'),
+      message: `Lot ${lotNumber} ${t('orders.detail.error.lotStatus.message')}`,
       details: { lotNumber, lotStatus: status },
       suggestions: [
-        `Lot นี้มีสถานะ "${statusLabels[status] || status}"`,
-        'กรุณาติดต่อฝ่ายควบคุมคุณภาพ (QC) เพื่อตรวจสอบและปล่อย Lot',
-        'หรือเลือก Lot อื่นที่มีสถานะ "Released" แล้ว',
+        `${t(`orders.detail.error.lotStatus.${status}` as 'orders.detail.error.lotStatus.quarantine')}`,
+        t('orders.detail.error.lotStatus.suggestion1'),
+        t('orders.detail.error.lotStatus.suggestion2'),
       ],
     };
   }
@@ -153,14 +149,14 @@ function parseErrorMessage(errorMsg: string): FulfillmentError {
     const requested = parseFloat(insufficientMatch[2]);
     return {
       type: 'insufficient_qty',
-      title: 'สต็อกไม่เพียงพอ',
-      message: `Lot นี้มีจำนวนสินค้าไม่เพียงพอสำหรับการจัดส่ง`,
+      title: t('orders.detail.error.insufficientQty.title'),
+      message: t('orders.detail.error.insufficientQty.message'),
       details: { availableQty: available, requestedQty: requested },
       suggestions: [
-        `มีสินค้าพร้อมใช้: ${available.toLocaleString()} หน่วย`,
-        `ต้องการ: ${requested.toLocaleString()} หน่วย`,
-        'ลดจำนวนที่จะจัดส่งให้ไม่เกินจำนวนที่มี',
-        'หรือเลือก Lot เพิ่มเติมเพื่อให้ครบจำนวน',
+        `${t('orders.detail.error.insufficientQty.available')}: ${available.toLocaleString()}`,
+        `${t('orders.detail.error.insufficientQty.requested')}: ${requested.toLocaleString()}`,
+        t('orders.detail.error.insufficientQty.suggestion1'),
+        t('orders.detail.error.insufficientQty.suggestion2'),
       ],
     };
   }
@@ -173,12 +169,12 @@ function parseErrorMessage(errorMsg: string): FulfillmentError {
     const pending = pendingMatch ? parseFloat(pendingMatch[1]) : undefined;
     return {
       type: 'exceeds_pending',
-      title: 'จำนวนเกินยอดค้างส่ง',
-      message: 'จำนวนที่ต้องการจัดส่งมากกว่ายอดที่ยังค้างอยู่',
+      title: t('orders.detail.error.exceedsPending.title'),
+      message: t('orders.detail.error.exceedsPending.message'),
       details: { pendingQty: pending },
       suggestions: [
-        pending ? `ยอดค้างส่ง: ${pending.toLocaleString()} หน่วย` : 'ตรวจสอบยอดค้างส่ง',
-        'ลดจำนวนที่จะจัดส่งให้ไม่เกินยอดค้าง',
+        pending ? `${t('orders.detail.error.exceedsPending.pending')}: ${pending.toLocaleString()}` : t('orders.detail.error.exceedsPending.pending'),
+        t('orders.detail.error.exceedsPending.suggestion'),
       ],
     };
   }
@@ -187,12 +183,12 @@ function parseErrorMessage(errorMsg: string): FulfillmentError {
   if (errorMsg.toLowerCase().includes('line') && errorMsg.toLowerCase().includes('not found')) {
     return {
       type: 'invalid_line',
-      title: 'ไม่พบรายการสินค้า',
-      message: 'ไม่พบรายการสินค้าที่ระบุในใบสั่งขายนี้',
+      title: t('orders.detail.error.invalidLine.title'),
+      message: t('orders.detail.error.invalidLine.message'),
       details: {},
       suggestions: [
-        'รีเฟรชหน้าและลองใหม่อีกครั้ง',
-        'ตรวจสอบว่าใบสั่งขายยังมีรายการนี้อยู่หรือไม่',
+        t('orders.detail.error.invalidLine.suggestion1'),
+        t('orders.detail.error.invalidLine.suggestion2'),
       ],
     };
   }
@@ -201,12 +197,12 @@ function parseErrorMessage(errorMsg: string): FulfillmentError {
   if (errorMsg.toLowerCase().includes('lot') && errorMsg.toLowerCase().includes('not found')) {
     return {
       type: 'invalid_lot',
-      title: 'ไม่พบ Lot',
-      message: 'ไม่พบ Lot ที่ระบุในระบบ',
+      title: t('orders.detail.error.invalidLot.title'),
+      message: t('orders.detail.error.invalidLot.message'),
       details: {},
       suggestions: [
-        'Lot อาจถูกลบหรือใช้หมดแล้ว',
-        'รีเฟรชหน้าและเลือก Lot ใหม่',
+        t('orders.detail.error.invalidLot.suggestion1'),
+        t('orders.detail.error.invalidLot.suggestion2'),
       ],
     };
   }
@@ -214,12 +210,12 @@ function parseErrorMessage(errorMsg: string): FulfillmentError {
   // Unknown error
   return {
     type: 'unknown',
-    title: 'เกิดข้อผิดพลาด',
-    message: errorMsg || 'ไม่สามารถดำเนินการได้',
+    title: t('orders.detail.error.unknown.title'),
+    message: errorMsg || t('orders.detail.error.unknown.message'),
     details: {},
     suggestions: [
-      'ลองใหม่อีกครั้ง',
-      'หากปัญหายังคงอยู่ กรุณาติดต่อผู้ดูแลระบบ',
+      t('orders.detail.error.unknown.suggestion1'),
+      t('orders.detail.error.unknown.suggestion2'),
     ],
   };
 }
@@ -229,8 +225,7 @@ function parseErrorMessage(errorMsg: string): FulfillmentError {
 // ============================================================================
 
 const STATUS_CONFIG: Record<string, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   color: string;
   bgClass: string;
   textClass: string;
@@ -238,8 +233,7 @@ const STATUS_CONFIG: Record<string, {
   gradient: string;
 }> = {
   draft: {
-    label: 'Draft',
-    labelTh: 'ร่าง',
+    translationKey: 'draft',
     color: '#94a3b8',
     bgClass: 'bg-slate-100',
     textClass: 'text-slate-700',
@@ -247,8 +241,7 @@ const STATUS_CONFIG: Record<string, {
     gradient: 'from-slate-500 to-slate-600',
   },
   confirmed: {
-    label: 'Confirmed',
-    labelTh: 'ยืนยันแล้ว',
+    translationKey: 'confirmed',
     color: '#3b82f6',
     bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
@@ -256,8 +249,7 @@ const STATUS_CONFIG: Record<string, {
     gradient: 'from-blue-500 to-blue-600',
   },
   processing: {
-    label: 'Processing',
-    labelTh: 'กำลังดำเนินการ',
+    translationKey: 'processing',
     color: '#f59e0b',
     bgClass: 'bg-amber-100',
     textClass: 'text-amber-700',
@@ -265,8 +257,7 @@ const STATUS_CONFIG: Record<string, {
     gradient: 'from-amber-500 to-amber-600',
   },
   ready: {
-    label: 'Ready',
-    labelTh: 'พร้อมส่ง',
+    translationKey: 'ready',
     color: '#8b5cf6',
     bgClass: 'bg-violet-100',
     textClass: 'text-violet-700',
@@ -274,8 +265,7 @@ const STATUS_CONFIG: Record<string, {
     gradient: 'from-violet-500 to-violet-600',
   },
   shipped: {
-    label: 'Shipped',
-    labelTh: 'จัดส่งแล้ว',
+    translationKey: 'shipped',
     color: '#06b6d4',
     bgClass: 'bg-cyan-100',
     textClass: 'text-cyan-700',
@@ -283,8 +273,7 @@ const STATUS_CONFIG: Record<string, {
     gradient: 'from-cyan-500 to-cyan-600',
   },
   delivered: {
-    label: 'Delivered',
-    labelTh: 'ส่งมอบแล้ว',
+    translationKey: 'delivered',
     color: '#22c55e',
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
@@ -292,8 +281,7 @@ const STATUS_CONFIG: Record<string, {
     gradient: 'from-green-500 to-green-600',
   },
   cancelled: {
-    label: 'Cancelled',
-    labelTh: 'ยกเลิก',
+    translationKey: 'cancelled',
     color: '#ef4444',
     bgClass: 'bg-red-100',
     textClass: 'text-red-700',
@@ -303,14 +291,13 @@ const STATUS_CONFIG: Record<string, {
 };
 
 const LINE_STATUS_CONFIG: Record<string, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   bgClass: string;
   textClass: string;
 }> = {
-  pending: { label: 'Pending', labelTh: 'รอดำเนินการ', bgClass: 'bg-slate-100', textClass: 'text-slate-700' },
-  partial: { label: 'Partial', labelTh: 'บางส่วน', bgClass: 'bg-amber-100', textClass: 'text-amber-700' },
-  shipped: { label: 'Shipped', labelTh: 'จัดส่งแล้ว', bgClass: 'bg-green-100', textClass: 'text-green-700' },
+  pending: { translationKey: 'pending', bgClass: 'bg-slate-100', textClass: 'text-slate-700' },
+  partial: { translationKey: 'partial', bgClass: 'bg-amber-100', textClass: 'text-amber-700' },
+  shipped: { translationKey: 'shipped', bgClass: 'bg-green-100', textClass: 'text-green-700' },
 };
 
 // ============================================================================
@@ -359,6 +346,8 @@ const getDaysUntilRequired = (requiredDate: string | null) => {
 export default function SalesOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const t = useTranslations('sales');
+  const toast = useToast();
   const [data, setData] = useState<SODetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -443,11 +432,31 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
 
       if (result.success) {
         setShowFulfillModal(false);
+        // Surface partial-success warnings: shipment recorded but the
+        // accounting integration (sales JE / COGS / AR invoice) failed.
+        // Without this the user thinks everything's fine but the books
+        // are silently out of sync.
+        const data = result.data ?? {};
+        if (data.accountingFailed) {
+          toast.error(
+            data.accountingMessage ||
+              'ส่งของสำเร็จแต่สร้างรายการบัญชีไม่ได้ — กรุณาแจ้งฝ่ายบัญชี',
+          );
+        } else if (data.arInvoiceFailed) {
+          toast.error(
+            data.arInvoiceMessage ||
+              'ส่งของสำเร็จแต่ออกใบกำกับภาษีไม่ได้ — กรุณาแจ้งฝ่ายบัญชี',
+          );
+        } else if (data.arInvoiceNumber) {
+          toast.success(
+            `ส่งของและออกใบกำกับภาษี ${data.taxInvoiceNumber || data.arInvoiceNumber} เรียบร้อย`,
+          );
+        }
         fetchSODetail(); // Refresh order data
         fetchDeliveries(); // Refresh delivery history
       } else {
         // Parse and display structured error
-        const parsedError = parseErrorMessage(result.error || 'Unknown error');
+        const parsedError = parseErrorMessage(result.error || 'Unknown error', t);
         setFulfillError(parsedError);
         setShowFulfillModal(false);
         setShowErrorModal(true);
@@ -455,7 +464,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     } catch (error) {
       console.error('Failed to fulfill:', error);
       const parsedError = parseErrorMessage(
-        error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ'
+        error instanceof Error ? error.message : t('orders.detail.error.connection'), t
       );
       setFulfillError(parsedError);
       setShowFulfillModal(false);
@@ -464,6 +473,330 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
       setIsSubmitting(false);
     }
   };
+
+  // ============================================================================
+  // Tabs Configuration (must be before early returns to maintain hooks order)
+  // ============================================================================
+
+  const tabs: { key: TabKey; label: string; icon: React.ElementType; count?: number }[] = useMemo(() => [
+    { key: 'overview', label: t('orders.detail.tabs.overview'), icon: Eye },
+    { key: 'lines', label: t('orders.detail.tabs.lines'), icon: ClipboardList, count: data?.lines?.length ?? 0 },
+    { key: 'fulfillment', label: t('orders.detail.tabs.fulfillment'), icon: BoxSelect },
+    { key: 'shipping', label: t('orders.detail.tabs.shipping'), icon: Truck },
+  ], [t, data?.lines?.length]);
+
+  // ============================================================================
+  // DataGrid Columns
+  // ============================================================================
+
+  const lineColumns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: 'itemCode',
+      caption: t('orders.detail.columns.item'),
+      minWidth: 200,
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <Package className="h-5 w-5 text-indigo-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900">{cellInfo.data.itemCode}</p>
+            <p className="text-sm text-gray-500 truncate">{cellInfo.data.itemName}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      dataField: 'quantity',
+      caption: t('orders.detail.columns.quantity'),
+      width: 120,
+      cellRender: (cellInfo) => (
+        <div className="text-right">
+          <span className="font-semibold">{formatNumber(cellInfo.data.quantity)}</span>
+          <span className="text-gray-500 text-sm ml-1">{cellInfo.data.itemUnit}</span>
+        </div>
+      ),
+    },
+    {
+      dataField: 'unitPrice',
+      caption: t('orders.detail.columns.unitPrice'),
+      width: 130,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-700">{formatCurrency(cellInfo.data.unitPrice)}</span>
+      ),
+    },
+    {
+      dataField: 'lineTotal',
+      caption: t('orders.detail.columns.lineTotal'),
+      width: 140,
+      cellRender: (cellInfo) => (
+        <span className="font-semibold text-green-600">{formatCurrency(cellInfo.data.lineTotal)}</span>
+      ),
+    },
+    {
+      dataField: 'shippedQty',
+      caption: t('orders.detail.columns.shipped'),
+      width: 150,
+      cellRender: (cellInfo) => {
+        const shipped = cellInfo.data.shippedQty || 0;
+        const total = cellInfo.data.quantity;
+        const percentage = total > 0 ? Math.round((shipped / total) * 100) : 0;
+        return (
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-medium">{shipped} / {total}</span>
+              <span className="text-xs text-gray-500">{percentage}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div
+                className="bg-green-500 h-1.5 rounded-full transition-all"
+                style={{ width: `${percentage}%` }}
+              />
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      dataField: 'fulfillmentStatus',
+      caption: t('orders.detail.columns.status'),
+      width: 120,
+      cellRender: (cellInfo) => {
+        const config = LINE_STATUS_CONFIG[cellInfo.data.fulfillmentStatus] || LINE_STATUS_CONFIG.pending;
+        return (
+          <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
+            {t(`orders.detail.lineStatus.${config.translationKey}`)}
+          </span>
+        );
+      },
+    },
+  ], [t]);
+
+  const fulfillmentColumns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: 'itemCode',
+      caption: t('orders.detail.columns.item'),
+      minWidth: 180,
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            'h-9 w-9 rounded-lg flex items-center justify-center',
+            cellInfo.data.canFulfill ? 'bg-green-100' : 'bg-red-100'
+          )}>
+            <Package className={cn('h-4 w-4', cellInfo.data.canFulfill ? 'text-green-600' : 'text-red-600')} />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900">{cellInfo.data.itemCode}</p>
+            <p className="text-xs text-gray-500 truncate">{cellInfo.data.itemName}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      dataField: 'quantity',
+      caption: t('orders.detail.columns.ordered'),
+      width: 90,
+      cellRender: (cellInfo) => (
+        <span className="font-medium">{cellInfo.data.quantity} {cellInfo.data.itemUnit}</span>
+      ),
+    },
+    {
+      dataField: 'shippedQty',
+      caption: t('orders.detail.columns.shipped'),
+      width: 100,
+      cellRender: (cellInfo) => (
+        <span className="text-green-600 font-medium">{cellInfo.data.shippedQty || 0} {cellInfo.data.itemUnit}</span>
+      ),
+    },
+    {
+      dataField: 'pendingQty',
+      caption: t('orders.detail.columns.pendingShip'),
+      width: 100,
+      cellRender: (cellInfo) => (
+        <span className={cn('font-medium', cellInfo.data.pendingQty > 0 ? 'text-amber-600' : 'text-gray-400')}>
+          {cellInfo.data.pendingQty} {cellInfo.data.itemUnit}
+        </span>
+      ),
+    },
+    {
+      dataField: 'availableStock',
+      caption: t('orders.detail.columns.availableStock'),
+      width: 120,
+      cellRender: (cellInfo) => (
+        <div>
+          <span className={cn('font-medium', cellInfo.data.canFulfill ? 'text-green-600' : 'text-red-600')}>
+            {cellInfo.data.availableStock} {cellInfo.data.itemUnit}
+          </span>
+          {!cellInfo.data.canFulfill && (
+            <div className="flex items-center gap-1 text-red-500 text-xs mt-0.5">
+              <AlertTriangle className="h-3 w-3" />
+              <span>{t('orders.detail.fulfillment.insufficient')}</span>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      dataField: 'suggestedLots',
+      caption: t('orders.detail.columns.suggestedLots'),
+      minWidth: 180,
+      cellRender: (cellInfo) => (
+        <div className="space-y-1">
+          {cellInfo.data.suggestedLots.slice(0, 2).map((lot: SOLine['suggestedLots'][0]) => (
+            <div key={lot.id} className="text-xs bg-gray-50 border rounded px-2 py-1 flex items-center justify-between">
+              <span className="font-mono font-medium text-indigo-600">{lot.lotNumber}</span>
+              <span className="text-gray-500">
+                {lot.quantity} • {lot.expiryDate ? formatDate(lot.expiryDate) : 'N/A'}
+              </span>
+            </div>
+          ))}
+          {cellInfo.data.suggestedLots.length === 0 && (
+            <span className="text-red-500 text-xs">{t('orders.detail.fulfillment.noLot')}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      dataField: 'actions',
+      caption: '',
+      width: 130,
+      cellRender: (cellInfo) => (
+        cellInfo.data.pendingQty > 0 && cellInfo.data.canFulfill ? (
+          <DxButton
+            text={t('orders.detail.fulfillment.selectAndShip')}
+            type="success"
+            stylingMode="outlined"
+            onClick={() => handleFulfill(cellInfo.data)}
+          />
+        ) : null
+      ),
+    },
+  ], [t]);
+
+  const deliveryColumns: DxDataGridColumn[] = useMemo(() => [
+    {
+      dataField: 'deliveryNumber',
+      caption: t('orders.detail.columns.deliveryNumber'),
+      width: 150,
+      cellRender: (cellInfo) => (
+        <span className="font-mono font-semibold text-indigo-600">{cellInfo.data.deliveryNumber}</span>
+      ),
+    },
+    {
+      dataField: 'itemCode',
+      caption: t('orders.detail.columns.item'),
+      minWidth: 150,
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-2">
+          <Package className="h-4 w-4 text-gray-400" />
+          <div>
+            <p className="font-medium">{cellInfo.data.itemCode}</p>
+            <p className="text-xs text-gray-500">{cellInfo.data.itemName}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      dataField: 'lotNumber',
+      caption: t('orders.detail.columns.lot'),
+      width: 120,
+      cellRender: (cellInfo) => (
+        <span className="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded">{cellInfo.data.lotNumber}</span>
+      ),
+    },
+    {
+      dataField: 'quantity',
+      caption: t('orders.detail.columns.quantity'),
+      width: 100,
+      cellRender: (cellInfo) => (
+        <span className="font-semibold">{formatNumber(cellInfo.data.quantity)} {cellInfo.data.unit}</span>
+      ),
+    },
+    {
+      dataField: 'deliveryDate',
+      caption: t('orders.detail.columns.deliveryDate'),
+      width: 110,
+      cellRender: (cellInfo) => (
+        <span>{formatDate(cellInfo.data.deliveryDate)}</span>
+      ),
+    },
+    {
+      dataField: 'status',
+      caption: t('orders.detail.columns.status'),
+      width: 100,
+      cellRender: (cellInfo) => {
+        const statusKey = cellInfo.data.status as 'shipped' | 'delivered' | 'returned';
+        const statusStyles: Record<string, { bg: string; text: string }> = {
+          shipped: { bg: 'bg-cyan-100', text: 'text-cyan-700' },
+          delivered: { bg: 'bg-green-100', text: 'text-green-700' },
+          returned: { bg: 'bg-red-100', text: 'text-red-700' },
+        };
+        const config = statusStyles[statusKey] || statusStyles.shipped;
+        return (
+          <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', config.bg, config.text)}>
+            {t(`orders.detail.shipping.deliveryStatus.${statusKey}`)}
+          </span>
+        );
+      },
+    },
+    {
+      dataField: 'journalEntries',
+      caption: t('orders.detail.columns.journalEntries'),
+      width: 180,
+      cellRender: (cellInfo) => {
+        const journalEntries = cellInfo.data.journalEntries || [];
+        if (journalEntries.length === 0) {
+          return <span className="text-gray-400 text-xs">-</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {journalEntries.map((je: { id: number; entryNumber: string; sourceType: string; status: string }) => (
+              <button
+                key={je.id}
+                onClick={() => router.push(`/accounting/journal-entries?id=${je.id}`)}
+                className={cn(
+                  'flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors',
+                  je.sourceType === 'SO_SHIPMENT'
+                    ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                )}
+              >
+                <Receipt className="h-3 w-3" />
+                <span>{je.entryNumber}</span>
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      dataField: 'arInvoices',
+      caption: t('orders.detail.columns.arInvoices'),
+      width: 150,
+      cellRender: (cellInfo) => {
+        const arInvoices = cellInfo.data.arInvoices || [];
+        if (arInvoices.length === 0) {
+          return <span className="text-gray-400 text-xs">-</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {arInvoices.map((inv: { id: number; invoiceNumber: string; taxInvoiceNumber: string; status: string }) => (
+              <button
+                key={inv.id}
+                onClick={() => router.push(`/accounting/ar/invoices?id=${inv.id}`)}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors bg-teal-50 text-teal-700 hover:bg-teal-100"
+              >
+                <FileSpreadsheet className="h-3 w-3" />
+                <span>{inv.invoiceNumber}</span>
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+            ))}
+          </div>
+        );
+      },
+    },
+  ], [t, router]);
 
   // ============================================================================
   // Loading State
@@ -496,10 +829,10 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
             <AlertTriangle className="h-10 w-10 text-gray-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">ไม่พบใบสั่งขาย</h2>
-          <p className="text-gray-500 mb-6">ไม่พบข้อมูลใบสั่งขายที่ร้องขอ</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('orders.detail.notFound')}</h2>
+          <p className="text-gray-500 mb-6">{t('orders.detail.notFoundDescription')}</p>
           <DxButton
-            text="กลับไปหน้ารายการ"
+            text={t('orders.detail.backToList')}
             icon="back"
             type="default"
             onClick={() => router.push('/sales/orders')}
@@ -516,329 +849,6 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   const daysUntil = getDaysUntilRequired(so.requiredDate);
 
   // ============================================================================
-  // Tabs Configuration
-  // ============================================================================
-
-  const tabs: { key: TabKey; label: string; icon: React.ElementType; count?: number }[] = [
-    { key: 'overview', label: 'ภาพรวม', icon: Eye },
-    { key: 'lines', label: 'รายการสินค้า', icon: ClipboardList, count: lines.length },
-    { key: 'fulfillment', label: 'จัดเตรียมสินค้า', icon: BoxSelect },
-    { key: 'shipping', label: 'การจัดส่ง', icon: Truck },
-  ];
-
-  // ============================================================================
-  // DataGrid Columns
-  // ============================================================================
-
-  const lineColumns: DxDataGridColumn[] = [
-    {
-      dataField: 'itemCode',
-      caption: 'สินค้า',
-      minWidth: 200,
-      cellRender: (cellInfo) => (
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-            <Package className="h-5 w-5 text-indigo-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-gray-900">{cellInfo.data.itemCode}</p>
-            <p className="text-sm text-gray-500 truncate">{cellInfo.data.itemName}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      dataField: 'quantity',
-      caption: 'จำนวนสั่ง',
-      width: 120,
-      cellRender: (cellInfo) => (
-        <div className="text-right">
-          <span className="font-semibold">{formatNumber(cellInfo.data.quantity)}</span>
-          <span className="text-gray-500 text-sm ml-1">{cellInfo.data.itemUnit}</span>
-        </div>
-      ),
-    },
-    {
-      dataField: 'unitPrice',
-      caption: 'ราคาต่อหน่วย',
-      width: 130,
-      cellRender: (cellInfo) => (
-        <span className="text-gray-700">{formatCurrency(cellInfo.data.unitPrice)}</span>
-      ),
-    },
-    {
-      dataField: 'lineTotal',
-      caption: 'รวม',
-      width: 140,
-      cellRender: (cellInfo) => (
-        <span className="font-semibold text-green-600">{formatCurrency(cellInfo.data.lineTotal)}</span>
-      ),
-    },
-    {
-      dataField: 'shippedQty',
-      caption: 'จัดส่งแล้ว',
-      width: 150,
-      cellRender: (cellInfo) => {
-        const shipped = cellInfo.data.shippedQty || 0;
-        const total = cellInfo.data.quantity;
-        const percentage = total > 0 ? Math.round((shipped / total) * 100) : 0;
-        return (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium">{shipped} / {total}</span>
-              <span className="text-xs text-gray-500">{percentage}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5">
-              <div
-                className="bg-green-500 h-1.5 rounded-full transition-all"
-                style={{ width: `${percentage}%` }}
-              />
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      dataField: 'fulfillmentStatus',
-      caption: 'สถานะ',
-      width: 120,
-      cellRender: (cellInfo) => {
-        const config = LINE_STATUS_CONFIG[cellInfo.data.fulfillmentStatus] || LINE_STATUS_CONFIG.pending;
-        return (
-          <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
-            {config.labelTh}
-          </span>
-        );
-      },
-    },
-  ];
-
-  const fulfillmentColumns: DxDataGridColumn[] = [
-    {
-      dataField: 'itemCode',
-      caption: 'สินค้า',
-      minWidth: 180,
-      cellRender: (cellInfo) => (
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            'h-9 w-9 rounded-lg flex items-center justify-center',
-            cellInfo.data.canFulfill ? 'bg-green-100' : 'bg-red-100'
-          )}>
-            <Package className={cn('h-4 w-4', cellInfo.data.canFulfill ? 'text-green-600' : 'text-red-600')} />
-          </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-gray-900">{cellInfo.data.itemCode}</p>
-            <p className="text-xs text-gray-500 truncate">{cellInfo.data.itemName}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      dataField: 'quantity',
-      caption: 'สั่งซื้อ',
-      width: 90,
-      cellRender: (cellInfo) => (
-        <span className="font-medium">{cellInfo.data.quantity} {cellInfo.data.itemUnit}</span>
-      ),
-    },
-    {
-      dataField: 'shippedQty',
-      caption: 'จัดส่งแล้ว',
-      width: 100,
-      cellRender: (cellInfo) => (
-        <span className="text-green-600 font-medium">{cellInfo.data.shippedQty || 0} {cellInfo.data.itemUnit}</span>
-      ),
-    },
-    {
-      dataField: 'pendingQty',
-      caption: 'รอจัดส่ง',
-      width: 100,
-      cellRender: (cellInfo) => (
-        <span className={cn('font-medium', cellInfo.data.pendingQty > 0 ? 'text-amber-600' : 'text-gray-400')}>
-          {cellInfo.data.pendingQty} {cellInfo.data.itemUnit}
-        </span>
-      ),
-    },
-    {
-      dataField: 'availableStock',
-      caption: 'สต็อกพร้อมใช้',
-      width: 120,
-      cellRender: (cellInfo) => (
-        <div>
-          <span className={cn('font-medium', cellInfo.data.canFulfill ? 'text-green-600' : 'text-red-600')}>
-            {cellInfo.data.availableStock} {cellInfo.data.itemUnit}
-          </span>
-          {!cellInfo.data.canFulfill && (
-            <div className="flex items-center gap-1 text-red-500 text-xs mt-0.5">
-              <AlertTriangle className="h-3 w-3" />
-              <span>ไม่เพียงพอ</span>
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      dataField: 'suggestedLots',
-      caption: 'Lot แนะนำ (FEFO)',
-      minWidth: 180,
-      cellRender: (cellInfo) => (
-        <div className="space-y-1">
-          {cellInfo.data.suggestedLots.slice(0, 2).map((lot: SOLine['suggestedLots'][0]) => (
-            <div key={lot.id} className="text-xs bg-gray-50 border rounded px-2 py-1 flex items-center justify-between">
-              <span className="font-mono font-medium text-indigo-600">{lot.lotNumber}</span>
-              <span className="text-gray-500">
-                {lot.quantity} • {lot.expiryDate ? formatDate(lot.expiryDate) : 'N/A'}
-              </span>
-            </div>
-          ))}
-          {cellInfo.data.suggestedLots.length === 0 && (
-            <span className="text-red-500 text-xs">ไม่มี Lot พร้อมใช้</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      dataField: 'actions',
-      caption: '',
-      width: 130,
-      cellRender: (cellInfo) => (
-        cellInfo.data.pendingQty > 0 && cellInfo.data.canFulfill ? (
-          <DxButton
-            text="เลือก & ส่ง"
-            type="success"
-            stylingMode="outlined"
-            onClick={() => handleFulfill(cellInfo.data)}
-          />
-        ) : null
-      ),
-    },
-  ];
-
-  const deliveryColumns: DxDataGridColumn[] = [
-    {
-      dataField: 'deliveryNumber',
-      caption: 'เลขที่จัดส่ง',
-      width: 150,
-      cellRender: (cellInfo) => (
-        <span className="font-mono font-semibold text-indigo-600">{cellInfo.data.deliveryNumber}</span>
-      ),
-    },
-    {
-      dataField: 'itemCode',
-      caption: 'สินค้า',
-      minWidth: 150,
-      cellRender: (cellInfo) => (
-        <div className="flex items-center gap-2">
-          <Package className="h-4 w-4 text-gray-400" />
-          <div>
-            <p className="font-medium">{cellInfo.data.itemCode}</p>
-            <p className="text-xs text-gray-500">{cellInfo.data.itemName}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      dataField: 'lotNumber',
-      caption: 'Lot',
-      width: 120,
-      cellRender: (cellInfo) => (
-        <span className="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded">{cellInfo.data.lotNumber}</span>
-      ),
-    },
-    {
-      dataField: 'quantity',
-      caption: 'จำนวน',
-      width: 100,
-      cellRender: (cellInfo) => (
-        <span className="font-semibold">{formatNumber(cellInfo.data.quantity)} {cellInfo.data.unit}</span>
-      ),
-    },
-    {
-      dataField: 'deliveryDate',
-      caption: 'วันที่จัดส่ง',
-      width: 110,
-      cellRender: (cellInfo) => (
-        <span>{formatDate(cellInfo.data.deliveryDate)}</span>
-      ),
-    },
-    {
-      dataField: 'status',
-      caption: 'สถานะ',
-      width: 100,
-      cellRender: (cellInfo) => {
-        const statusMap: Record<string, { label: string; bg: string; text: string }> = {
-          shipped: { label: 'จัดส่งแล้ว', bg: 'bg-cyan-100', text: 'text-cyan-700' },
-          delivered: { label: 'ส่งมอบแล้ว', bg: 'bg-green-100', text: 'text-green-700' },
-          returned: { label: 'ส่งคืน', bg: 'bg-red-100', text: 'text-red-700' },
-        };
-        const config = statusMap[cellInfo.data.status] || statusMap.shipped;
-        return (
-          <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', config.bg, config.text)}>
-            {config.label}
-          </span>
-        );
-      },
-    },
-    {
-      dataField: 'journalEntries',
-      caption: 'รายการบัญชี',
-      width: 180,
-      cellRender: (cellInfo) => {
-        const journalEntries = cellInfo.data.journalEntries || [];
-        if (journalEntries.length === 0) {
-          return <span className="text-gray-400 text-xs">-</span>;
-        }
-        return (
-          <div className="flex flex-col gap-1">
-            {journalEntries.map((je: { id: number; entryNumber: string; sourceType: string; status: string }) => (
-              <button
-                key={je.id}
-                onClick={() => router.push(`/accounting/journal-entries?id=${je.id}`)}
-                className={cn(
-                  'flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors',
-                  je.sourceType === 'SO_SHIPMENT'
-                    ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
-                )}
-              >
-                <Receipt className="h-3 w-3" />
-                <span>{je.entryNumber}</span>
-                <ExternalLink className="h-2.5 w-2.5" />
-              </button>
-            ))}
-          </div>
-        );
-      },
-    },
-    {
-      dataField: 'arInvoices',
-      caption: 'ใบแจ้งหนี้ AR',
-      width: 150,
-      cellRender: (cellInfo) => {
-        const arInvoices = cellInfo.data.arInvoices || [];
-        if (arInvoices.length === 0) {
-          return <span className="text-gray-400 text-xs">-</span>;
-        }
-        return (
-          <div className="flex flex-col gap-1">
-            {arInvoices.map((inv: { id: number; invoiceNumber: string; taxInvoiceNumber: string; status: string }) => (
-              <button
-                key={inv.id}
-                onClick={() => router.push(`/accounting/ar/invoices?id=${inv.id}`)}
-                className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors bg-teal-50 text-teal-700 hover:bg-teal-100"
-              >
-                <FileSpreadsheet className="h-3 w-3" />
-                <span>{inv.invoiceNumber}</span>
-                <ExternalLink className="h-2.5 w-2.5" />
-              </button>
-            ))}
-          </div>
-        );
-      },
-    },
-  ];
-
-  // ============================================================================
   // Tab Content Renderers
   // ============================================================================
 
@@ -849,36 +859,36 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <FileText className="h-5 w-5 text-indigo-500" />
-            ข้อมูลใบสั่งขาย
+            {t('orders.detail.sections.orderInfo')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-500 mb-1">เลขที่ SO</p>
+              <p className="text-xs text-gray-500 mb-1">{t('orders.detail.fields.soNumber')}</p>
               <p className="font-mono font-semibold text-indigo-600">{so.soNumber}</p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-500 mb-1">สถานะ</p>
+              <p className="text-xs text-gray-500 mb-1">{t('orders.detail.fields.status')}</p>
               <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', statusConfig.bgClass, statusConfig.textClass)}>
-                {statusConfig.labelTh}
+                {t(`orders.status.${statusConfig.translationKey}`)}
               </span>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-500 mb-1">จำนวนรายการ</p>
-              <p className="font-semibold">{summary.lineCount} รายการ</p>
+              <p className="text-xs text-gray-500 mb-1">{t('orders.detail.fields.lineCount')}</p>
+              <p className="font-semibold">{summary.lineCount} {t('orders.detail.summary.units')}</p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                <p className="text-xs text-gray-500">วันที่สั่ง</p>
+                <p className="text-xs text-gray-500">{t('orders.detail.fields.orderDate')}</p>
               </div>
               <p className="font-medium">{formatDate(so.orderDate)}</p>
             </div>
             <div className={cn('p-3 rounded-lg', overdue ? 'bg-red-50' : 'bg-gray-50')}>
               <div className="flex items-center gap-1.5 mb-1">
                 <Truck className={cn('h-3.5 w-3.5', overdue ? 'text-red-400' : 'text-gray-400')} />
-                <p className={cn('text-xs', overdue ? 'text-red-500' : 'text-gray-500')}>กำหนดส่ง</p>
+                <p className={cn('text-xs', overdue ? 'text-red-500' : 'text-gray-500')}>{t('orders.detail.fields.requiredDate')}</p>
               </div>
               <p className={cn('font-medium', overdue ? 'text-red-600' : '')}>{formatDate(so.requiredDate)}</p>
               {daysUntil !== null && (
@@ -886,14 +896,14 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                   'text-xs mt-0.5',
                   daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : 'text-gray-500'
                 )}>
-                  {daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)} วัน` : daysUntil === 0 ? 'วันนี้' : `อีก ${daysUntil} วัน`}
+                  {daysUntil < 0 ? t('orders.dates.overdue', { days: Math.abs(daysUntil) }) : daysUntil === 0 ? t('orders.dates.today') : t('orders.dates.daysRemaining', { days: daysUntil })}
                 </p>
               )}
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-1.5 mb-1">
                 <CreditCard className="h-3.5 w-3.5 text-gray-400" />
-                <p className="text-xs text-gray-500">เงื่อนไขการชำระ</p>
+                <p className="text-xs text-gray-500">{t('orders.detail.fields.paymentTerms')}</p>
               </div>
               <p className="font-medium">{so.paymentTerms || '-'}</p>
             </div>
@@ -902,7 +912,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           {/* Notes */}
           {so.notes && (
             <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm font-medium text-amber-800 mb-1">หมายเหตุ</p>
+              <p className="text-sm font-medium text-amber-800 mb-1">{t('orders.detail.fields.notes')}</p>
               <p className="text-sm text-amber-700">{so.notes}</p>
             </div>
           )}
@@ -914,7 +924,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <Building2 className="h-5 w-5 text-purple-500" />
-            ข้อมูลลูกค้า
+            {t('orders.detail.sections.customerInfo')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-4">
@@ -924,7 +934,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-gray-900 truncate">{so.customerName || '-'}</p>
-              <p className="text-sm text-gray-500">ลูกค้า</p>
+              <p className="text-sm text-gray-500">{t('orders.detail.fields.customer')}</p>
             </div>
           </div>
 
@@ -932,7 +942,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
             <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
               <User className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-xs text-gray-500">ผู้ติดต่อ</p>
+                <p className="text-xs text-gray-500">{t('customers.table.columns.contact')}</p>
                 <p className="font-medium">{so.customerContact}</p>
               </div>
             </div>
@@ -942,7 +952,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
             <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
               <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-xs text-gray-500">ที่อยู่จัดส่ง</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.fields.shippingAddress')}</p>
                 <p className="font-medium text-sm">{so.customerAddress}</p>
               </div>
             </div>
@@ -955,14 +965,14 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-5 w-5 text-green-500" />
-            ความคืบหน้าการจัดส่ง
+            {t('orders.detail.sections.fulfillmentProgress')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">ความคืบหน้า</span>
+                <span className="text-sm text-gray-600">{t('orders.detail.summary.progress')}</span>
                 <span className="text-2xl font-bold text-green-600">{summary.fulfillmentProgress}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
@@ -973,19 +983,19 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
             <div className="p-4 bg-gray-50 rounded-xl border">
-              <p className="text-sm text-gray-500 mb-1">ยอดสั่งทั้งหมด</p>
+              <p className="text-sm text-gray-500 mb-1">{t('orders.detail.summary.totalOrdered')}</p>
               <p className="text-xl font-bold text-gray-900">{formatNumber(summary.totalOrdered)}</p>
-              <p className="text-xs text-gray-500">หน่วย</p>
+              <p className="text-xs text-gray-500">{t('orders.detail.summary.units')}</p>
             </div>
             <div className="p-4 bg-green-50 rounded-xl border border-green-200">
-              <p className="text-sm text-gray-500 mb-1">จัดส่งแล้ว</p>
+              <p className="text-sm text-gray-500 mb-1">{t('orders.detail.summary.shipped')}</p>
               <p className="text-xl font-bold text-green-600">{formatNumber(summary.totalShipped)}</p>
-              <p className="text-xs text-gray-500">หน่วย</p>
+              <p className="text-xs text-gray-500">{t('orders.detail.summary.units')}</p>
             </div>
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-              <p className="text-sm text-gray-500 mb-1">รอจัดส่ง</p>
+              <p className="text-sm text-gray-500 mb-1">{t('orders.detail.summary.pending')}</p>
               <p className="text-xl font-bold text-amber-600">{formatNumber(summary.totalPending)}</p>
-              <p className="text-xs text-gray-500">หน่วย</p>
+              <p className="text-xs text-gray-500">{t('orders.detail.summary.units')}</p>
             </div>
           </div>
         </CardContent>
@@ -1002,7 +1012,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         showBorders={false}
         rowAlternationEnabled
         height={450}
-        noDataText="ไม่มีรายการสินค้า"
+        noDataText={t('orders.new.noItems')}
       />
     </div>
   );
@@ -1015,8 +1025,8 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
             <BoxSelect className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-indigo-900">จัดเตรียมสินค้า (FEFO)</h3>
-            <p className="text-sm text-indigo-700">แนะนำ Lot ตามนโยบาย First Expiry, First Out</p>
+            <h3 className="font-semibold text-indigo-900">{t('orders.detail.fulfillment.title')}</h3>
+            <p className="text-sm text-indigo-700">{t('orders.detail.fulfillment.description')}</p>
           </div>
         </div>
       </div>
@@ -1027,7 +1037,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         showBorders={false}
         rowAlternationEnabled
         height={400}
-        noDataText="ไม่มีข้อมูลการจัดเตรียม"
+        noDataText={t('orders.new.noItems')}
       />
     </div>
   );
@@ -1039,11 +1049,11 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <Truck className="h-10 w-10 text-gray-400" />
           </div>
-          <p className="text-gray-500 font-medium">ยังไม่มีการจัดส่ง</p>
-          <p className="text-sm text-gray-400 mt-1">รายการจัดส่งจะแสดงที่นี่เมื่อมีการดำเนินการ</p>
+          <p className="text-gray-500 font-medium">{t('orders.detail.shipping.noDeliveries')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('orders.detail.shipping.noDeliveriesDesc')}</p>
           {summary.totalPending > 0 && summary.allCanFulfill && (
             <DxButton
-              text="ไปจัดเตรียมสินค้า"
+              text={t('orders.detail.actions.goToPrep')}
               icon="arrowright"
               type="default"
               stylingMode="outlined"
@@ -1060,10 +1070,9 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                 <Truck className="h-5 w-5 text-cyan-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-cyan-900">ประวัติการจัดส่ง</h3>
+                <h3 className="font-semibold text-cyan-900">{t('orders.detail.shipping.title')}</h3>
                 <p className="text-sm text-cyan-700">
-                  ทั้งหมด {deliveries.length} รายการ •
-                  จัดส่งแล้ว {formatNumber(deliveries.reduce((sum, d) => sum + Number(d.quantity || 0), 0))} หน่วย
+                  {t('orders.detail.shipping.totalItems', { count: deliveries.length })} • {t('orders.detail.shipping.totalShipped', { count: formatNumber(deliveries.reduce((sum, d) => sum + Number(d.quantity || 0), 0)) })}
                 </p>
               </div>
             </div>
@@ -1075,7 +1084,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
             showBorders={false}
             rowAlternationEnabled
             height={400}
-            noDataText="ไม่มีรายการจัดส่ง"
+            noDataText={t('orders.detail.shipping.noDeliveries')}
           />
         </>
       )}
@@ -1107,12 +1116,12 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                     <span className={cn(
                       'px-2.5 py-1 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm'
                     )}>
-                      {statusConfig.labelTh}
+                      {t(`orders.status.${statusConfig.translationKey}`)}
                     </span>
                     {overdue && (
                       <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/80 text-white flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" />
-                        เกินกำหนด
+                        {t('orders.detail.alerts.overdue')}
                       </span>
                     )}
                   </div>
@@ -1131,7 +1140,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
 
               <div className="flex items-center gap-2">
                 <DxButton
-                  text="กลับ"
+                  text={t('orders.detail.actions.back')}
                   icon="back"
                   type="normal"
                   stylingMode="text"
@@ -1152,7 +1161,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                 </button>
                 {so.status === 'confirmed' && summary.allCanFulfill && (
                   <DxButton
-                    text="ดำเนินการทั้งหมด"
+                    text={t('orders.detail.actions.processAll')}
                     icon="check"
                     type="success"
                   />
@@ -1174,7 +1183,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                       <DollarSign className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ยอดรวม</p>
+                      <p className="text-xs text-gray-500">{t('orders.detail.summary.total')}</p>
                       <p className="text-lg font-bold text-blue-600">{formatCurrency(summary.totalAmount, so.currency)}</p>
                     </div>
                   </div>
@@ -1193,7 +1202,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                       <ClipboardList className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ยอดสั่ง</p>
+                      <p className="text-xs text-gray-500">{t('orders.detail.summary.totalOrdered')}</p>
                       <p className="text-lg font-bold text-gray-900">{formatNumber(summary.totalOrdered)}</p>
                     </div>
                   </div>
@@ -1212,7 +1221,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                       <Truck className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">จัดส่งแล้ว</p>
+                      <p className="text-xs text-gray-500">{t('orders.detail.summary.shipped')}</p>
                       <p className="text-lg font-bold text-green-600">{formatNumber(summary.totalShipped)}</p>
                     </div>
                   </div>
@@ -1231,7 +1240,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                       <Package className="h-5 w-5 text-amber-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">รอจัดส่ง</p>
+                      <p className="text-xs text-gray-500">{t('orders.detail.summary.pending')}</p>
                       <p className="text-lg font-bold text-amber-600">{formatNumber(summary.totalPending)}</p>
                     </div>
                   </div>
@@ -1250,7 +1259,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                       <BarChart3 className="h-5 w-5 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ความคืบหน้า</p>
+                      <p className="text-xs text-gray-500">{t('orders.detail.summary.progress')}</p>
                       <p className="text-lg font-bold text-purple-600">{summary.fulfillmentProgress}%</p>
                     </div>
                   </div>
@@ -1267,9 +1276,9 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               <AlertTriangle className="h-6 w-6 text-red-500" />
             </div>
             <div>
-              <p className="font-semibold text-red-800">สต็อกไม่เพียงพอ</p>
+              <p className="font-semibold text-red-800">{t('orders.detail.alerts.stockInsufficient')}</p>
               <p className="text-sm text-red-600">
-                บางรายการไม่มีสต็อกเพียงพอสำหรับการจัดส่ง ตรวจสอบรายละเอียดในแท็บ &quot;จัดเตรียมสินค้า&quot;
+                {t('orders.detail.alerts.stockInsufficientDesc')}
               </p>
             </div>
           </div>
@@ -1282,13 +1291,13 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               <CheckCircle className="h-6 w-6 text-green-500" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-green-800">พร้อมจัดส่ง</p>
+              <p className="font-semibold text-green-800">{t('orders.detail.alerts.readyToShip')}</p>
               <p className="text-sm text-green-600">
-                สินค้าทุกรายการมีสต็อกเพียงพอ สามารถดำเนินการจัดส่งได้ทันที
+                {t('orders.detail.alerts.readyToShipDesc')}
               </p>
             </div>
             <DxButton
-              text="ไปที่การจัดเตรียม"
+              text={t('orders.detail.actions.goToFulfillment')}
               icon="arrowright"
               type="success"
               onClick={() => setActiveTab('fulfillment')}
@@ -1357,8 +1366,8 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               <Send className="h-6 w-6 text-indigo-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">เลือก Lot และจัดส่ง</h2>
-              <p className="text-sm text-gray-500">เลือก Lot สำหรับการจัดส่งสินค้า</p>
+              <h2 className="text-lg font-bold text-gray-900">{t('orders.detail.modal.selectLotTitle')}</h2>
+              <p className="text-sm text-gray-500">{t('orders.detail.modal.selectLotDesc')}</p>
             </div>
           </div>
 
@@ -1377,11 +1386,11 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">เลือก Lot (FEFO)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('orders.detail.modal.selectLot')}</label>
                 <DxSelectBox
                   items={selectedLine.suggestedLots.map((lot) => ({
                     value: lot.id.toString(),
-                    text: `${lot.lotNumber} - จำนวน: ${lot.quantity} - หมดอายุ: ${lot.expiryDate ? formatDate(lot.expiryDate) : 'N/A'}`,
+                    text: `${lot.lotNumber} - ${lot.quantity} - ${lot.expiryDate ? formatDate(lot.expiryDate) : 'N/A'}`,
                   }))}
                   value={fulfillForm.lotId}
                   onValueChange={(value) => {
@@ -1393,13 +1402,13 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                   }}
                   valueExpr="value"
                   displayExpr="text"
-                  placeholder="เลือก Lot..."
+                  placeholder={t('orders.detail.modal.selectLotPlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  จำนวนที่จะจัดส่ง ({selectedLine.itemUnit})
+                  {t('orders.detail.modal.quantity')} ({selectedLine.itemUnit})
                 </label>
                 <DxNumberBox
                   value={fulfillForm.quantity}
@@ -1407,21 +1416,21 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                   min={0}
                   max={selectedLine.pendingQty}
                 />
-                <p className="text-xs text-gray-500 mt-1">รอจัดส่ง: {selectedLine.pendingQty} {selectedLine.itemUnit}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('orders.detail.modal.pendingQty')}: {selectedLine.pendingQty} {selectedLine.itemUnit}</p>
               </div>
             </div>
           )}
 
           <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('orders.detail.modal.cancel')}
               type="normal"
               stylingMode="outlined"
               onClick={() => setShowFulfillModal(false)}
               disabled={isSubmitting}
             />
             <DxButton
-              text={isSubmitting ? 'กำลังดำเนินการ...' : 'ยืนยันการจัดส่ง'}
+              text={isSubmitting ? t('orders.detail.modal.processing') : t('orders.detail.modal.confirm')}
               icon={isSubmitting ? 'refresh' : 'check'}
               type="success"
               onClick={submitFulfill}
@@ -1479,18 +1488,18 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
                   <div className="flex items-center gap-2 mb-3">
                     <Info className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">รายละเอียด</span>
+                    <span className="text-sm font-medium text-gray-700">{t('orders.detail.error.details')}</span>
                   </div>
                   <div className="space-y-2">
                     {fulfillError.details.lotNumber && (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">Lot Number:</span>
+                        <span className="text-gray-500">{t('orders.detail.error.lotNumber')}:</span>
                         <span className="font-mono font-semibold text-indigo-600">{fulfillError.details.lotNumber}</span>
                       </div>
                     )}
                     {fulfillError.details.lotStatus && (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">สถานะ Lot:</span>
+                        <span className="text-gray-500">{t('orders.detail.error.lotStatusLabel')}:</span>
                         <span className={cn(
                           'px-2 py-0.5 rounded-full text-xs font-medium',
                           fulfillError.details.lotStatus === 'quarantine' ? 'bg-amber-100 text-amber-700' :
@@ -1504,19 +1513,19 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                     )}
                     {fulfillError.details.availableQty !== undefined && (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">จำนวนพร้อมใช้:</span>
+                        <span className="text-gray-500">{t('orders.detail.error.availableQty')}:</span>
                         <span className="font-semibold text-green-600">{fulfillError.details.availableQty.toLocaleString()}</span>
                       </div>
                     )}
                     {fulfillError.details.requestedQty !== undefined && (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">จำนวนที่ต้องการ:</span>
+                        <span className="text-gray-500">{t('orders.detail.error.requestedQty')}:</span>
                         <span className="font-semibold text-red-600">{fulfillError.details.requestedQty.toLocaleString()}</span>
                       </div>
                     )}
                     {fulfillError.details.pendingQty !== undefined && (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">ยอดค้างส่ง:</span>
+                        <span className="text-gray-500">{t('orders.detail.error.pendingQty')}:</span>
                         <span className="font-semibold">{fulfillError.details.pendingQty.toLocaleString()}</span>
                       </div>
                     )}
@@ -1528,7 +1537,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-sm font-medium text-gray-700">วิธีแก้ไข</span>
+                  <span className="text-sm font-medium text-gray-700">{t('orders.detail.error.solutions')}</span>
                 </div>
                 <ul className="space-y-2">
                   {fulfillError.suggestions.map((suggestion, index) => (
@@ -1544,7 +1553,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               <div className="flex justify-end gap-2 pt-4 border-t">
                 {fulfillError.type === 'lot_status' && (
                   <DxButton
-                    text="ไปหน้าควบคุมคุณภาพ"
+                    text={t('orders.detail.error.goToQc')}
                     icon="link"
                     type="default"
                     stylingMode="outlined"
@@ -1552,7 +1561,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                   />
                 )}
                 <DxButton
-                  text="เลือก Lot ใหม่"
+                  text={t('orders.detail.error.selectNewLot')}
                   icon="refresh"
                   type="default"
                   onClick={() => {
@@ -1563,7 +1572,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                   }}
                 />
                 <DxButton
-                  text="ปิด"
+                  text={t('orders.detail.error.close')}
                   type="normal"
                   stylingMode="outlined"
                   onClick={() => setShowErrorModal(false)}

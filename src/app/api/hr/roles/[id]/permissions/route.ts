@@ -14,6 +14,7 @@ import {
   getRolePermissions,
   updateRolePermissions,
 } from '@/lib/services/hr.service';
+import { invalidateRolePermissions } from '@/lib/auth/permission-resolver';
 import { z } from 'zod';
 
 interface RouteParams {
@@ -70,6 +71,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
 
         await updateRolePermissions(roleId, parseResult.data.permissionIds);
+
+        // Drop the in-memory cache so the next request (including the same
+        // admin's next page load) reflects the new assignments immediately
+        // instead of waiting for the 60-second TTL.
+        const role = await getAppRoleById(roleId);
+        if (role) invalidateRolePermissions(role.code);
 
         // Return updated permissions
         const permissions = await getRolePermissions(roleId);

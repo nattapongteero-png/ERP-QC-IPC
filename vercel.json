@@ -11,6 +11,10 @@
     {
       "path": "/api/vmi-sync/scheduled/prices",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/vmi-sync/scheduled/orders",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

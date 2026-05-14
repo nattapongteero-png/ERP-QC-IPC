@@ -1,0 +1,305 @@
+{
+  "page": {
+    "title": "ตั้งค่า",
+    "description": "ตั้งค่าระบบและการกำหนดค่า"
+  },
+  "general": {
+    "title": "ทั่วไป",
+    "description": "การตั้งค่าทั่วไปของระบบ",
+    "companyName": "ชื่อบริษัท",
+    "companyLogo": "โลโก้บริษัท",
+    "timezone": "เขตเวลา",
+    "dateFormat": "รูปแบบวันที่",
+    "currency": "สกุลเงิน"
+  },
+  "users": {
+    "title": "ผู้ใช้งาน",
+    "description": "จัดการผู้ใช้งานและสิทธิ์",
+    "table": {
+      "columns": {
+        "username": "ชื่อผู้ใช้",
+        "email": "อีเมล",
+        "role": "บทบาท",
+        "status": "สถานะ",
+        "lastLogin": "เข้าใช้งานล่าสุด"
+      }
+    },
+    "actions": {
+      "addUser": "เพิ่มผู้ใช้",
+      "editUser": "แก้ไขผู้ใช้",
+      "deleteUser": "ลบผู้ใช้",
+      "resetPassword": "รีเซ็ตรหัสผ่าน"
+    }
+  },
+  "roles": {
+    "title": "บทบาท",
+    "description": "จัดการบทบาทและสิทธิ์การเข้าถึง"
+  },
+  "security": {
+    "title": "ความปลอดภัย",
+    "description": "การตั้งค่าความปลอดภัย",
+    "passwordPolicy": "นโยบายรหัสผ่าน",
+    "sessionTimeout": "หมดเวลาเซสชัน",
+    "twoFactor": "การยืนยันตัวตนสองชั้น"
+  },
+  "notifications": {
+    "title": "การแจ้งเตือน",
+    "description": "ตั้งค่าการแจ้งเตือน",
+    "email": "อีเมล",
+    "inApp": "ในแอพ",
+    "sms": "SMS"
+  },
+  "integrations": {
+    "title": "การเชื่อมต่อ",
+    "description": "จัดการการเชื่อมต่อกับระบบภายนอก"
+  },
+  "backup": {
+    "title": "สำรองข้อมูล",
+    "description": "การสำรองและกู้คืนข้อมูล"
+  },
+  "toast": {
+    "save": {
+      "success": "บันทึกการตั้งค่าสำเร็จ",
+      "error": "ไม่สามารถบันทึกการตั้งค่าได้"
+    }
+  },
+  "settingsPage": {
+    "saving": "กำลังบันทึก...",
+    "saveSettings": "บันทึกการตั้งค่า",
+    "saveSuccess": "บันทึกการตั้งค่าสำเร็จ",
+    "saveError": "ไม่สามารถบันทึกการตั้งค่าได้"
+  },
+  "company": {
+    "title": "ข้อมูลบริษัท",
+    "nameEn": "ชื่อบริษัท (ภาษาอังกฤษ)",
+    "nameTh": "ชื่อบริษัท (ภาษาไทย)",
+    "address": "ที่อยู่",
+    "phone": "โทรศัพท์",
+    "email": "อีเมล"
+  },
+  "regulatory": {
+    "title": "ข้อมูลทะเบียน",
+    "taxId": "เลขประจำตัวผู้เสียภาษี",
+    "fdaLicense": "เลขที่ใบอนุญาต อย.",
+    "gmpCertificate": "เลขที่ใบรับรอง GMP"
+  },
+  "prefixes": {
+    "title": "คำนำหน้าเอกสาร",
+    "lotPrefix": "คำนำหน้า Lot",
+    "poPrefix": "คำนำหน้า PO",
+    "soPrefix": "คำนำหน้า SO",
+    "woPrefix": "คำนำหน้า Work Order"
+  },
+  "confidentiality": {
+    "title": "การตั้งค่าความลับ",
+    "description": "กำหนดบทบาทที่สามารถข้ามข้อจำกัดความลับ BOM ได้",
+    "back": "กลับ",
+    "saveChanges": "บันทึกการเปลี่ยนแปลง",
+    "aboutTitle": "เกี่ยวกับบทบาทข้ามข้อจำกัดความลับ",
+    "aboutDescription": "ผู้ใช้ที่มีบทบาทข้ามข้อจำกัดสามารถดูรายการ BOM ที่เป็นความลับทั้งหมดได้ เหมาะสำหรับผู้ดูแลระบบและผู้บริหารระดับสูงที่ต้องการเห็นข้อมูลทั้งหมด",
+    "bypassRoles": "บทบาทที่ข้ามข้อจำกัด",
+    "selectRolesDescription": "เลือกบทบาทที่สามารถเข้าถึงรายการ BOM ที่เป็นความลับได้โดยอัตโนมัติ บทบาทผู้ดูแลระบบจะรวมอยู่เสมอและไม่สามารถลบได้",
+    "rolesCanBypass": "บทบาทที่สามารถข้ามข้อจำกัดความลับ",
+    "role": "บทบาท",
+    "roles": "บทบาท",
+    "required": "จำเป็น",
+    "loadError": "ไม่สามารถโหลดการตั้งค่าได้",
+    "accessGroups": "กลุ่มควบคุมการเข้าถึง",
+    "accessGroupsDescription": "จัดการกลุ่มควบคุมการเข้าถึงเพื่อให้ผู้ใช้เฉพาะเข้าถึงรายการ BOM ที่เป็นความลับได้โดยไม่ต้องให้บทบาทข้ามข้อจำกัด",
+    "manageGroups": "จัดการกลุ่มควบคุม",
+    "adminCannotRemove": "ไม่สามารถลบบทบาทผู้ดูแลระบบออกจากบทบาทข้ามข้อจำกัดได้",
+    "saveSuccess": "บันทึกบทบาทข้ามข้อจำกัดสำเร็จ",
+    "saveError": "ไม่สามารถบันทึกบทบาทข้ามข้อจำกัดได้",
+    "roleLabels": {
+      "ADMIN": "ผู้ดูแลระบบ",
+      "MANAGER": "ผู้จัดการ",
+      "SUPERVISOR": "หัวหน้างาน",
+      "OPERATOR": "ผู้ปฏิบัติงาน",
+      "QA": "ฝ่ายประกันคุณภาพ",
+      "RND": "ฝ่ายวิจัยและพัฒนา",
+      "PRODUCTION": "ฝ่ายผลิต",
+      "WAREHOUSE": "ฝ่ายคลังสินค้า",
+      "PURCHASING": "ฝ่ายจัดซื้อ",
+      "SALES": "ฝ่ายขาย",
+      "ACCOUNTING": "ฝ่ายบัญชี",
+      "USER": "ผู้ใช้ทั่วไป"
+    },
+    "roleDescriptions": {
+      "ADMIN": "สิทธิ์เข้าถึงระบบทั้งหมด",
+      "MANAGER": "จัดการแผนก",
+      "SUPERVISOR": "ดูแลทีมงาน",
+      "OPERATOR": "ปฏิบัติงานประจำวัน",
+      "QA": "ควบคุมคุณภาพ",
+      "RND": "วิจัยและพัฒนา",
+      "PRODUCTION": "การผลิต",
+      "WAREHOUSE": "จัดการสินค้าคงคลัง",
+      "PURCHASING": "จัดซื้อจัดจ้าง",
+      "SALES": "ปฏิบัติงานขาย",
+      "ACCOUNTING": "ปฏิบัติงานการเงิน",
+      "USER": "ผู้ใช้พื้นฐาน"
+    }
+  },
+  "securityConfidentiality": {
+    "title": "ความปลอดภัยและความลับ",
+    "confidentialityLink": "การตั้งค่าความลับ",
+    "confidentialityDescription": "กำหนดบทบาทข้ามข้อจำกัดและการควบคุมการเข้าถึงรายการ BOM ที่เป็นความลับ"
+  },
+  "vmiSettings": {
+    "title": "ตั้งค่า VMI Portal",
+    "description": "จัดการการเชื่อมต่อกับ VMI Portal ภายนอก ระบบนี้ทำหน้าที่เป็นผู้ขาย/ผู้จัดจำหน่าย ซิงค์สินค้าคงคลังและรับคำสั่งซื้อจากลูกค้าโรงพยาบาล",
+    "backToSettings": "กลับไปตั้งค่า",
+    "vmiPortals": "VMI Portals",
+    "aboutTitle": "เกี่ยวกับการเชื่อมต่อ VMI",
+    "whatIsVmi": "VMI คืออะไร?",
+    "whatIsVmiDescription": "Vendor Managed Inventory ช่วยให้คุณจัดการระดับสินค้าคงคลังที่สถานที่ของลูกค้า เมื่อโรงพยาบาลต้องการสินค้า คำสั่งซื้อจะถูกสร้างอัตโนมัติตามการใช้งานและระดับสินค้าคงคลังขั้นต่ำ",
+    "howItWorks": "วิธีการทำงาน:",
+    "inventorySync": "Inventory Sync: ส่งระดับสต็อกปัจจุบันของคุณไปยัง Portal",
+    "itemsSync": "Items Sync: อัปเดตรายการสินค้าบน Portal",
+    "pricesSync": "Prices Sync: อัปเดตข้อมูลราคาให้เป็นปัจจุบัน",
+    "orderPolling": "Order Polling: รับคำสั่งซื้อใหม่จาก Portal โดยอัตโนมัติ",
+    "gettingStarted": "เริ่มต้นใช้งาน:",
+    "gettingStartedDescription": "คลิก \"เพิ่ม Portal\" เพื่อกำหนดค่าการเชื่อมต่อ VMI Portal ใหม่ คุณจะต้องใช้ URL ของ Portal, Vendor ID และ API Key จากระบบ VMI ของโรงพยาบาล",
+    "vmiPortalConnections": "เชื่อมต่อ VMI Portal",
+    "vmiPortalDescription": "จัดการการเชื่อมต่อ VMI Portal สำหรับลูกค้าโรงพยาบาล"
+  },
+  "vmiPortalEdit": {
+    "newTitle": "VMI Portal ใหม่",
+    "editTitle": "แก้ไข: {name}",
+    "newDescription": "กำหนดค่าการเชื่อมต่อ VMI Portal ใหม่",
+    "editDescription": "แก้ไขการตั้งค่า VMI Portal",
+    "portalNotFound": "ไม่พบ Portal",
+    "error": "ข้อผิดพลาด",
+    "backToPortals": "กลับไป VMI Portals",
+    "cancel": "ยกเลิก",
+    "portalSettings": "การตั้งค่า Portal",
+    "portalName": "ชื่อ Portal",
+    "vendorId": "Vendor ID",
+    "portalUrl": "URL ของ Portal",
+    "apiKey": "API Key",
+    "apiKeyEdit": "API Key (เว้นว่างเพื่อใช้ค่าเดิม)",
+    "status": "สถานะ",
+    "enablePortal": "เปิดใช้งานการเชื่อมต่อ Portal นี้",
+    "syncSettings": "การตั้งค่า Sync",
+    "inventorySyncLabel": "Inventory Sync",
+    "itemsSyncLabel": "Items Sync",
+    "pricesSyncLabel": "Prices Sync",
+    "orderPollingLabel": "Order Polling",
+    "enable": "เปิดใช้งาน",
+    "intervalMinutes": "ช่วงเวลา (นาที)",
+    "syncGuide": "คู่มือช่วงเวลา Sync",
+    "syncGuide5to15": "5-15 นาที: ซิงค์แบบเรียลไทม์ (ใช้ API มาก)",
+    "syncGuide30to60": "30-60 นาที: อัปเดตบ่อย (แนะนำสำหรับ Inventory)",
+    "syncGuide1440": "1440 นาที (24 ชม.): ซิงค์รายวัน (แนะนำสำหรับ Items/Prices)",
+    "testConnection": "ทดสอบการเชื่อมต่อ",
+    "testing": "กำลังทดสอบ...",
+    "saveConfig": "บันทึกการกำหนดค่า",
+    "saving": "กำลังบันทึก...",
+    "connected": "เชื่อมต่อแล้ว",
+    "disconnected": "ไม่ได้เชื่อมต่อ",
+    "connectionSuccess": "เชื่อมต่อสำเร็จ",
+    "connectionFailed": "เชื่อมต่อล้มเหลว",
+    "latency": "เวลาตอบสนอง: {ms}ms",
+    "vendor": "ผู้ขาย: {name}",
+    "lastPoll": "Poll ล่าสุด: {time}",
+    "lastInventorySync": "Inventory Sync ล่าสุด: {time}",
+    "saveThenTest": "กรุณาบันทึกการกำหนดค่า Portal ก่อนทดสอบการเชื่อมต่อ",
+    "saveSuccess": "บันทึกสำเร็จ",
+    "saveError": "ไม่สามารถบันทึกการกำหนดค่า Portal ได้",
+    "loadError": "ไม่สามารถโหลดการกำหนดค่า Portal ได้",
+    "validation": {
+      "nameRequired": "จำเป็นต้องระบุชื่อ Portal",
+      "nameMaxLength": "ชื่อ Portal ต้องมีความยาวไม่เกิน 100 ตัวอักษร",
+      "vendorIdRequired": "จำเป็นต้องระบุ Vendor ID",
+      "vendorIdMaxLength": "Vendor ID ต้องมีความยาวไม่เกิน 50 ตัวอักษร",
+      "urlRequired": "จำเป็นต้องระบุ URL ของ Portal",
+      "urlHttps": "URL ของ Portal ต้องเริ่มต้นด้วย https://",
+      "apiKeyRequired": "จำเป็นต้องระบุ API Key",
+      "apiKeyMaxLength": "API Key ต้องมีความยาวไม่เกิน 500 ตัวอักษร"
+    }
+  },
+  "approvalWorkflows": {
+    "title": "ขั้นตอนการอนุมัติ",
+    "description": "จัดการขั้นตอนการอนุมัติสำหรับเอกสารประเภทต่างๆ",
+    "newWorkflow": "ขั้นตอนใหม่",
+    "confirmDelete": "ยืนยันการลบ",
+    "confirmDeleteMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบ \"{name}\"? การกระทำนี้ไม่สามารถย้อนกลับได้",
+    "deleting": "กำลังลบ...",
+    "deleteSuccess": "ลบขั้นตอนสำเร็จ",
+    "filters": "ตัวกรอง:",
+    "searchPlaceholder": "ค้นหาขั้นตอน...",
+    "documentType": "ประเภทเอกสาร",
+    "allDocumentTypes": "เอกสารทุกประเภท",
+    "allStatus": "สถานะทั้งหมด",
+    "active": "ใช้งาน",
+    "inactive": "ไม่ใช้งาน",
+    "clear": "ล้าง",
+    "total": "ทั้งหมด",
+    "grid": {
+      "id": "ID",
+      "name": "ชื่อ",
+      "documentType": "ประเภทเอกสาร",
+      "priority": "ลำดับความสำคัญ",
+      "status": "สถานะ",
+      "rules": "กฎ",
+      "steps": "ขั้นตอน",
+      "actions": "จัดการ"
+    },
+    "documentTypes": {
+      "purchase_requisition": "ใบขอซื้อ",
+      "purchase_order": "ใบสั่งซื้อ",
+      "ap_invoice": "ใบแจ้งหนี้ AP",
+      "ar_invoice": "ใบแจ้งหนี้ AR",
+      "payment": "การชำระเงิน",
+      "credit_note": "ใบลดหนี้",
+      "debit_note": "ใบเพิ่มหนี้"
+    },
+    "view": "ดู",
+    "edit": "แก้ไข",
+    "delete": "ลบ"
+  },
+  "workflowTest": {
+    "title": "ทดสอบขั้นตอนการทำงาน",
+    "subtitle": "ทดสอบกระบวนการ ERP แบบครบวงจรพร้อมการแสดงผลแบบเรียลไทม์",
+    "configure": "ตั้งค่า",
+    "clear": "ล้าง",
+    "cancel": "ยกเลิก",
+    "running": "กำลังทำงาน...",
+    "runBasicTest": "รันการทดสอบขั้นตอนพื้นฐาน"
+  },
+  "matchingTolerances": {
+    "title": "ค่าเผื่อการจับคู่",
+    "description": "กำหนดค่าเผื่อสำหรับการตรวจสอบ 3-Way Matching",
+    "newTolerance": "ค่าเผื่อใหม่",
+    "confirmDelete": "ยืนยันการลบ",
+    "confirmDeleteMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบ \"{name}\"? การกระทำนี้ไม่สามารถย้อนกลับได้",
+    "deleting": "กำลังลบ...",
+    "deleteSuccess": "ลบค่าเผื่อสำเร็จ",
+    "aboutTitle": "เกี่ยวกับ 3-Way Matching",
+    "aboutDescription": "3-Way Matching เปรียบเทียบใบสั่งซื้อ ใบรับสินค้า และใบแจ้งหนี้เพื่อให้แน่ใจว่าถูกต้อง ค่าเผื่อกำหนดค่าความแตกต่างที่ยอมรับได้ ค่าที่เกินกว่าค่าเผื่อจะสร้างข้อยกเว้นที่ต้องอนุมัติด้วยตนเอง",
+    "filters": "ตัวกรอง:",
+    "searchPlaceholder": "ค้นหาค่าเผื่อ...",
+    "allTypes": "ประเภททั้งหมด",
+    "allStatus": "สถานะทั้งหมด",
+    "active": "ใช้งาน",
+    "inactive": "ไม่ใช้งาน",
+    "clear": "ล้าง",
+    "total": "ทั้งหมด",
+    "grid": {
+      "name": "ชื่อ",
+      "type": "ประเภท",
+      "method": "วิธี",
+      "value": "ค่า",
+      "priority": "ลำดับ",
+      "status": "สถานะ",
+      "actions": "จัดการ"
+    },
+    "types": {
+      "quantity": "ปริมาณ",
+      "price": "ราคา",
+      "amount": "จำนวนเงิน"
+    },
+    "view": "ดู",
+    "edit": "แก้ไข",
+    "delete": "ลบ"
+  }
+}

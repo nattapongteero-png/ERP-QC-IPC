@@ -8,7 +8,7 @@
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toDateSafe } from '../db/date-utils';
+import { toDateSafe, getNow } from '../db/date-utils';
 import {
   sqliteSanitationSchedules,
   sqliteSanitationLogs,
@@ -179,7 +179,7 @@ export async function createSanitationSchedule(
     method: data.method,
     verificationRequired: data.verificationRequired ?? true,
     isActive: true,
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   };
 
   let recordId: number;
@@ -455,7 +455,7 @@ export async function createSanitationLog(
     chemicalsUsed: data.chemicalsUsed || null,
     status: data.status,
     notes: data.notes || null,
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   };
 
   let recordId: number;
@@ -539,11 +539,16 @@ export async function verifySanitationLog(
   const existing = await getSanitationLogById(id);
   if (!existing) return null;
 
+  // Dual control: operator != verifier
+  if (existing.performedBy && Number(existing.performedBy) === userId) {
+    throw new Error('ไม่สามารถตรวจสอบรายการของตนเองได้ ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคนกัน');
+  }
+
   await database
     .update(sqliteSanitationLogs)
     .set({
       verifiedBy: userId,
-      verifiedAt: new Date().toISOString(),
+      verifiedAt: getNow(),
     })
     .where(eq(sqliteSanitationLogs.id, id));
 
@@ -688,7 +693,7 @@ export async function createPestControlLog(
     recommendations: data.recommendations || null,
     followUpRequired: data.followUpRequired ?? false,
     followUpDate: data.followUpDate || null,
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   };
 
   let recordId: number;

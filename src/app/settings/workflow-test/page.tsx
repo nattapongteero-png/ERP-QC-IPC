@@ -7,8 +7,10 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Play, Square, RefreshCw, Settings } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { Play, Square, RefreshCw, Settings, FlaskConical } from 'lucide-react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { ResponsivePageHeader } from '@/components/shared'
 import { cn } from '@/lib/utils/cn'
 import { WorkflowPathway } from '@/components/workflow-test/WorkflowPathway'
 import { WorkflowLogPanel } from '@/components/workflow-test/WorkflowLogPanel'
@@ -17,6 +19,7 @@ import { WorkflowTestConfig } from '@/components/workflow-test/WorkflowTestConfi
 import { useWorkflowTest } from '@/hooks/useWorkflowTest'
 
 export default function WorkflowTestPage() {
+  const t = useTranslations('settings')
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null)
   const [showConfig, setShowConfig] = useState(false)
 
@@ -64,17 +67,16 @@ export default function WorkflowTestPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 p-4 md:p-0">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Workflow Test</h1>
-            <p className="text-gray-500 mt-1">
-              End-to-end ERP process testing with real-time visualization
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
+        <ResponsivePageHeader
+          title={t('workflowTest.title')}
+          subtitle={t('workflowTest.subtitle')}
+          icon={FlaskConical}
+          iconBgColor="bg-emerald-100"
+          iconColor="text-emerald-600"
+          actions={
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
             {/* Config toggle */}
             <button
               onClick={() => setShowConfig(!showConfig)}
@@ -87,7 +89,7 @@ export default function WorkflowTestPage() {
               )}
             >
               <Settings className="h-4 w-4" />
-              Configure
+              {t('workflowTest.configure')}
             </button>
 
             {/* Clear button - show when test is complete */}
@@ -102,7 +104,7 @@ export default function WorkflowTestPage() {
                 )}
               >
                 <RefreshCw className="h-4 w-4" />
-                Clear
+                {t('workflowTest.clear')}
               </button>
             )}
 
@@ -118,7 +120,7 @@ export default function WorkflowTestPage() {
                 )}
               >
                 <Square className="h-4 w-4" />
-                Cancel
+                {t('workflowTest.cancel')}
               </button>
             )}
 
@@ -139,17 +141,18 @@ export default function WorkflowTestPage() {
               {isRunning ? (
                 <>
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  Running...
+                  {t('workflowTest.running')}
                 </>
               ) : (
                 <>
                   <Play className="h-4 w-4" />
-                  Run Basic Workflow Test
+                  {t('workflowTest.runBasicTest')}
                 </>
               )}
             </button>
-          </div>
-        </div>
+            </div>
+          }
+        />
 
         {/* Error message */}
         {error && (

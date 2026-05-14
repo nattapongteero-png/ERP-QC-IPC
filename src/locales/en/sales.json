@@ -1,0 +1,799 @@
+{
+  "common": {
+    "loading": "Loading..."
+  },
+  "page": {
+    "title": "Sales",
+    "description": "Manage sales orders and customers"
+  },
+  "vmiOrders": {
+    "noData": "No VMI orders found",
+    "pollDescription": "Poll for new orders from VMI Portal",
+    "pollOrders": "Poll Orders",
+    "pageTitle": "VMI Orders",
+    "pageSubtitle": "Manage orders from VMI Portals",
+    "breadcrumbSales": "Sales",
+    "breadcrumbVmiOrders": "VMI Orders",
+    "detailTitle": "VMI Order Details",
+    "detailSubtitle": "View and manage orders from VMI Portal",
+    "polling": "Polling...",
+    "refresh": "Refresh",
+    "views": {
+      "grid": "Grid View",
+      "cards": "Cards View",
+      "analytics": "Analytics View"
+    },
+    "stats": {
+      "totalOrders": "Total Orders",
+      "pending": "Pending",
+      "delivered": "Delivered",
+      "overdue": "Overdue"
+    },
+    "status": {
+      "all": "All",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "all": "All Priorities",
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "placeholders": {
+      "allStatus": "All Statuses",
+      "allPriority": "All Priorities",
+      "search": "Search by order ID, hospital, or Portal..."
+    },
+    "columns": {
+      "orderId": "Order ID",
+      "portal": "Portal",
+      "customer": "Hospital/Customer",
+      "orderDate": "Order Date",
+      "deliveryDate": "Delivery Date",
+      "matchItems": "Match Items",
+      "priority": "Priority",
+      "totalAmount": "Amount",
+      "status": "Status"
+    },
+    "list": {
+      "title": "Order List",
+      "showingOf": "Showing {shown} of {total} items",
+      "noMatching": "No orders match criteria",
+      "viewDetails": "View Details"
+    },
+    "dates": {
+      "overdueDays": "Overdue by {days} days",
+      "today": "Today",
+      "daysRemaining": "{days} days remaining",
+      "overdueShort": "{days}d over",
+      "daysShort": "{days}d",
+      "overdueLabel": "Overdue"
+    },
+    "card": {
+      "urgent": "Urgent",
+      "matched": "Matched {matched}/{total}",
+      "overdueMessage": "Overdue for delivery"
+    },
+    "alerts": {
+      "overdueTitle": "{count} orders are overdue",
+      "overdueMessage": "Please review and take immediate action",
+      "unmatchedTitle": "{count} orders have unmatched items",
+      "unmatchedMessage": "Please match items before confirming orders",
+      "urgentTitle": "{count} urgent orders",
+      "urgentMessage": "Action needed urgently",
+      "viewList": "View List"
+    },
+    "charts": {
+      "statusDistribution": "Status Distribution",
+      "priorityDistribution": "Priority Distribution",
+      "noData": "No data",
+      "itemsSuffix": "items"
+    },
+    "sections": {
+      "urgentAction": "Urgent Action Required",
+      "unmatchedItems": "Unmatched Items",
+      "allOrders": "All Orders ({count})",
+      "noMatchingSearch": "No orders match criteria",
+      "viewMore": "View {count} more",
+      "portalStats": "VMI Portals",
+      "summary": "Summary",
+      "totalValue": "Total Value",
+      "deliveredValue": "Delivered",
+      "matchRate": "Match Rate",
+      "fulfillmentRate": "Fulfillment Rate",
+      "recent": "Recent",
+      "noData": "No data",
+      "workflowTitle": "How It Works",
+      "workflow1": "Poll fetches orders from Portals",
+      "workflow2": "Match items (Match)",
+      "workflow3": "Confirm orders (Confirm)",
+      "workflow4": "Ship (Ship)",
+      "pending": "pending",
+      "orders": "orders"
+    },
+    "analytics": {
+      "statusBreakdown": "Status Breakdown",
+      "valueSummary": "Value Summary",
+      "totalValue": "Total Value",
+      "pending": "Pending",
+      "delivered": "Delivered",
+      "fulfillmentRate": "Fulfillment Rate",
+      "portalStats": "Statistics by Portal",
+      "portalOrders": "Orders",
+      "portalValue": "Value",
+      "portalOrdersCount": "{count} orders",
+      "portalPending": "{count} pending",
+      "noPortalData": "No Portal data",
+      "matchRateAnalysis": "Item Match Rate Analysis",
+      "matchRate": "Match Rate",
+      "matchedItems": "Matched Items",
+      "unmatchedItems": "Unmatched Items"
+    },
+    "empty": {
+      "title": "No VMI orders yet",
+      "description": "Fetch the latest orders from connected VMI Portals"
+    },
+    "noResults": {
+      "title": "No orders match criteria",
+      "description": "Try changing your search or filters",
+      "clearFilters": "Clear Filters"
+    }
+  },
+  "webhooks": {
+    "totalWebhooks": "Total Webhooks"
+  },
+  "orders": {
+    "title": "Sales Orders",
+    "pageTitle": "Sales Orders",
+    "description": "Manage sales orders and track delivery status",
+    "table": {
+      "columns": {
+        "orderNumber": "Order Number",
+        "customer": "Customer",
+        "orderDate": "Order Date",
+        "deliveryDate": "Delivery Date",
+        "totalAmount": "Total Amount",
+        "status": "Status",
+        "createdBy": "Created By"
+      }
+    },
+    "grid": {
+      "columns": {
+        "soNumber": "SO Number",
+        "customer": "Customer",
+        "orderDate": "Order Date",
+        "requiredDate": "Required Date",
+        "totalAmount": "Total",
+        "status": "Status"
+      },
+      "showing": "Showing {count} items",
+      "noData": "No sales orders found",
+      "overdue": "Overdue"
+    },
+    "form": {
+      "orderNumber": {
+        "label": "Order Number",
+        "placeholder": "Will be auto-generated"
+      },
+      "customer": {
+        "label": "Customer",
+        "placeholder": "Select customer"
+      },
+      "orderDate": {
+        "label": "Order Date"
+      },
+      "deliveryDate": {
+        "label": "Delivery Date"
+      }
+    },
+    "actions": {
+      "createOrder": "Create Sales Order",
+      "editOrder": "Edit Order",
+      "viewOrder": "View Order",
+      "cancelOrder": "Cancel Order",
+      "confirmOrder": "Confirm Order",
+      "shipOrder": "Ship Order",
+      "refresh": "Refresh",
+      "viewList": "View {count} more"
+    },
+    "status": {
+      "all": "All",
+      "draft": "Draft",
+      "confirmed": "Confirmed",
+      "processing": "Processing",
+      "ready": "Ready",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "ready": "Ready to Ship",
+      "delivered": "Delivered",
+      "overdue": "Overdue",
+      "pendingValue": "Pending Value"
+    },
+    "charts": {
+      "statusDistribution": "Status Distribution",
+      "valueByStatus": "Value by Status",
+      "noData": "No data"
+    },
+    "cards": {
+      "urgentOrders": "Due Soon",
+      "filteredOrders": "Filtered Orders",
+      "noMatchingOrders": "No orders match criteria",
+      "summary": "Summary",
+      "totalValue": "Total Value",
+      "deliveredValue": "Delivered",
+      "customers": "Customers",
+      "fulfillmentRate": "Fulfillment Rate",
+      "topCustomers": "Top Customers",
+      "recent": "Recent",
+      "orders": "{count} orders",
+      "amount": "Amount",
+      "value": "Value"
+    },
+    "analytics": {
+      "statusBreakdown": "Status Breakdown",
+      "valueSummary": "Value Summary",
+      "totalValue": "Total Value",
+      "pending": "Pending",
+      "delivered": "Delivered",
+      "fulfillmentRate": "Fulfillment Rate",
+      "topCustomers": "Top Customers",
+      "noCustomers": "No customer data"
+    },
+    "dates": {
+      "overdue": "Overdue by {days} days",
+      "today": "Today",
+      "daysRemaining": "{days} days remaining",
+      "overdueAlert": "{count} sales orders are overdue",
+      "urgentAction": "Please review and take action",
+      "overdueShort": "{days}d over",
+      "daysShort": "{days}d"
+    },
+    "searchPlaceholder": "Search by SO number or customer name...",
+    "detail": {
+      "notFound": "Sales Order Not Found",
+      "notFoundDescription": "The requested sales order was not found",
+      "backToList": "Back to List",
+      "tabs": {
+        "overview": "Overview",
+        "lines": "Line Items",
+        "fulfillment": "Fulfillment",
+        "shipping": "Shipping"
+      },
+      "sections": {
+        "orderInfo": "Order Information",
+        "customerInfo": "Customer Information",
+        "fulfillmentProgress": "Fulfillment Progress"
+      },
+      "fields": {
+        "soNumber": "SO Number",
+        "status": "Status",
+        "lineCount": "Line Items",
+        "orderDate": "Order Date",
+        "requiredDate": "Required Date",
+        "paymentTerms": "Payment Terms",
+        "notes": "Notes",
+        "customer": "Customer"
+      },
+      "summary": {
+        "progress": "Progress",
+        "totalOrdered": "Total Ordered",
+        "shipped": "Shipped",
+        "pending": "Pending",
+        "total": "Total",
+        "units": "units"
+      },
+      "alerts": {
+        "stockInsufficient": "Insufficient Stock",
+        "stockInsufficientDesc": "Some items don't have enough stock for shipping. Check details in the \"Fulfillment\" tab",
+        "readyToShip": "Ready to Ship",
+        "readyToShipDesc": "All items have sufficient stock and can be shipped immediately",
+        "overdue": "Overdue"
+      },
+      "actions": {
+        "back": "Back",
+        "processAll": "Process All",
+        "goToFulfillment": "Go to Fulfillment",
+        "goToPrep": "Go to Preparation"
+      },
+      "columns": {
+        "item": "Item",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "lineTotal": "Total",
+        "shipped": "Shipped",
+        "status": "Status",
+        "ordered": "Ordered",
+        "pendingShip": "Pending Ship",
+        "availableStock": "Available Stock",
+        "suggestedLots": "Suggested Lots (FEFO)",
+        "deliveryNumber": "Delivery Number",
+        "lot": "Lot",
+        "deliveryDate": "Delivery Date",
+        "journalEntries": "Journal Entries",
+        "arInvoices": "AR Invoices"
+      },
+      "lineStatus": {
+        "pending": "Pending",
+        "partial": "Partial",
+        "shipped": "Shipped"
+      },
+      "fulfillment": {
+        "title": "Prepare Items (FEFO)",
+        "description": "Lots recommended by First Expiry, First Out policy",
+        "selectAndShip": "Select & Ship",
+        "insufficient": "Insufficient",
+        "noLot": "No lots available"
+      },
+      "shipping": {
+        "title": "Shipping History",
+        "totalItems": "Total {count} items",
+        "totalShipped": "Shipped {count} units",
+        "noDeliveries": "No deliveries yet",
+        "noDeliveriesDesc": "Deliveries will appear here when processed",
+        "deliveryStatus": {
+          "shipped": "Shipped",
+          "delivered": "Delivered",
+          "returned": "Returned"
+        }
+      },
+      "modal": {
+        "selectLotTitle": "Select Lot and Ship",
+        "selectLotDesc": "Select lot for shipping",
+        "selectLot": "Select Lot (FEFO)",
+        "selectLotPlaceholder": "Select Lot...",
+        "quantity": "Quantity to Ship",
+        "pendingQty": "Pending",
+        "cancel": "Cancel",
+        "confirm": "Confirm Shipment",
+        "processing": "Processing..."
+      },
+      "error": {
+        "lotStatus": {
+          "title": "Cannot Use This Lot",
+          "message": "Not yet released for use",
+          "quarantine": "Quarantine",
+          "blocked": "Blocked",
+          "rejected": "Rejected",
+          "under_test": "Under Test",
+          "suggestion1": "Please contact Quality Control (QC) to check and release the lot",
+          "suggestion2": "Or select another lot with \"Released\" status"
+        },
+        "insufficientQty": {
+          "title": "Insufficient Stock",
+          "message": "This lot doesn't have enough items for shipping",
+          "available": "Available",
+          "requested": "Requested",
+          "suggestion1": "Reduce quantity to not exceed available amount",
+          "suggestion2": "Or select additional lots to fulfill the order"
+        },
+        "exceedsPending": {
+          "title": "Quantity Exceeds Pending",
+          "message": "Requested quantity exceeds pending amount",
+          "pending": "Pending",
+          "suggestion": "Reduce quantity to not exceed pending amount"
+        },
+        "invalidLine": {
+          "title": "Line Item Not Found",
+          "message": "The specified item was not found in this order",
+          "suggestion1": "Refresh the page and try again",
+          "suggestion2": "Check if the order still has this item"
+        },
+        "invalidLot": {
+          "title": "Lot Not Found",
+          "message": "The specified lot was not found in the system",
+          "suggestion1": "Lot may have been deleted or depleted",
+          "suggestion2": "Refresh the page and select a new lot"
+        },
+        "unknown": {
+          "title": "Error Occurred",
+          "message": "Unable to process the request",
+          "suggestion1": "Please try again",
+          "suggestion2": "If problem persists, contact administrator"
+        },
+        "connection": "Connection error occurred",
+        "details": "Details",
+        "solutions": "Solutions",
+        "lotNumber": "Lot Number",
+        "lotStatusLabel": "Lot Status",
+        "availableQty": "Available Quantity",
+        "requestedQty": "Requested Quantity",
+        "pendingQty": "Pending Quantity",
+        "goToQc": "Go to Quality Control",
+        "selectNewLot": "Select New Lot",
+        "close": "Close"
+      }
+    },
+    "new": {
+      "title": "Create New Sales Order",
+      "description": "Enter customer and item information",
+      "customerSection": "Customer Information",
+      "customerRequired": "Customer",
+      "selectCustomerPlaceholder": "Click to search and select customer...",
+      "shippingAddress": "Shipping Address",
+      "shippingAddressPlaceholder": "Enter shipping address...",
+      "itemsSection": "Line Items",
+      "items": "items",
+      "addItem": "Add Item",
+      "noItems": "No items yet",
+      "noItemsDesc": "Click \"Add Item\" button to start",
+      "addFirstItem": "Add First Item",
+      "totalAmount": "Grand Total",
+      "notesSection": "Notes",
+      "notesPlaceholder": "Additional notes or instructions...",
+      "statusSection": "Order Status",
+      "status": "Status",
+      "orderDetails": "Order Details",
+      "requiredDate": "Required Date",
+      "selectDate": "Select date...",
+      "paymentTerms": "Payment Terms",
+      "selectPaymentTerms": "Select terms...",
+      "orderSummary": "Order Summary",
+      "lineCount": "Line Items",
+      "customer": "Customer",
+      "total": "Total",
+      "statusOptions": {
+        "draft": "Draft",
+        "confirmed": "Confirmed"
+      },
+      "paymentOptions": {
+        "cash": "Cash",
+        "net15": "Net 15 days",
+        "net30": "Net 30 days",
+        "net45": "Net 45 days",
+        "net60": "Net 60 days"
+      },
+      "columns": {
+        "item": "Item",
+        "unit": "Unit",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "total": "Total"
+      },
+      "deleteConfirm": {
+        "title": "Confirm Delete",
+        "message": "Do you want to delete this item?",
+        "cancel": "Cancel",
+        "delete": "Delete"
+      },
+      "validation": {
+        "selectCustomer": "Please select a customer",
+        "addItem": "Please add at least 1 item"
+      },
+      "toast": {
+        "deleteSuccess": "Item deleted successfully",
+        "createSuccess": "Sales order created successfully",
+        "createError": "Failed to create sales order"
+      },
+      "dialog": {
+        "searchCustomer": "Search Customer",
+        "searchItem": "Search Item"
+      },
+      "actions": {
+        "back": "Back",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "change": "Change",
+        "clear": "Clear customer"
+      }
+    }
+  },
+  "customers": {
+    "title": "Customers",
+    "pageTitle": "Customers",
+    "description": "Manage customer information and sales analytics",
+    "table": {
+      "columns": {
+        "code": "Customer Code",
+        "name": "Customer Name",
+        "contact": "Contact",
+        "phone": "Phone",
+        "email": "Email",
+        "status": "Status"
+      }
+    },
+    "grid": {
+      "columns": {
+        "code": "Code",
+        "name": "Customer Name",
+        "phone": "Phone",
+        "email": "Email",
+        "creditLimit": "Credit Limit",
+        "type": "Type",
+        "status": "Status"
+      },
+      "showing": "Showing {count} customers",
+      "noData": "No customers found"
+    },
+    "type": {
+      "all": "All Types",
+      "hospital": "Hospital",
+      "clinic": "Clinic",
+      "pharmacy": "Pharmacy",
+      "distributor": "Distributor",
+      "traditional_medicine": "Traditional Medicine",
+      "spa_wellness": "Spa & Wellness",
+      "government": "Government",
+      "export": "Export",
+      "other": "Other"
+    },
+    "status": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "addCustomer": "Add Customer",
+      "viewMore": "View {count} more",
+      "refresh": "Refresh",
+      "clearFilters": "Clear Filters"
+    },
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "totalCreditLimit": "Total Credit",
+      "mainType": "Main Type"
+    },
+    "cards": {
+      "summary": "Summary",
+      "totalCreditLimit": "Total Credit Limit",
+      "avgCreditLimit": "Average Credit",
+      "highCredit": "High Credit (≥1M)",
+      "recentCustomers": "New (30 days)",
+      "topCreditLimit": "Top Credit Limit",
+      "recent": "Recent",
+      "filteredCustomers": "Filtered Customers",
+      "noMatchingCustomers": "No customers match criteria",
+      "count": "{count} customers",
+      "viewCustomer": "View"
+    },
+    "charts": {
+      "typeDistribution": "Type Distribution",
+      "creditByType": "Credit by Type",
+      "noData": "No data"
+    },
+    "analytics": {
+      "typeBreakdown": "Type Breakdown",
+      "creditSummary": "Credit Summary",
+      "totalCreditLimit": "Total Credit Limit",
+      "avgCreditLimit": "Average Credit",
+      "highCredit": "High Credit (≥1M)",
+      "activeRate": "Active Customer Rate",
+      "topCustomers": "Top 5 Customers by Credit",
+      "noCustomers": "No customer data",
+      "creditLimit": "Credit Limit"
+    },
+    "searchPlaceholder": "Search by code, name, email or phone...",
+    "typePlaceholder": "Type",
+    "empty": {
+      "title": "No customers found",
+      "description": "Get started by adding a new customer"
+    },
+    "detail": {
+      "notFound": "Customer Not Found",
+      "notFoundDescription": "The requested customer was not found",
+      "backToList": "Back to List",
+      "tabs": {
+        "overview": "Overview",
+        "orders": "Sales Orders",
+        "contact": "Contact Info",
+        "credit": "Credit & Payment"
+      },
+      "sections": {
+        "salesSummary": "Sales Summary",
+        "orderStatus": "Order Status",
+        "generalInfo": "General Information",
+        "contact": "Contact",
+        "address": "Address",
+        "creditLimit": "Credit Limit",
+        "creditUsage": "Credit Usage",
+        "paymentHistory": "Recent Payment History"
+      },
+      "fields": {
+        "code": "Customer Code",
+        "type": "Type",
+        "taxId": "Tax ID",
+        "createdAt": "Created At",
+        "mainContact": "Main Contact",
+        "phone": "Phone",
+        "email": "Email",
+        "shippingAddress": "Shipping Address",
+        "creditLimit": "Credit Limit",
+        "creditTerm": "Credit Term",
+        "paymentTerms": "Payment Terms",
+        "available": "Available",
+        "used": "Used",
+        "remaining": "Remaining"
+      },
+      "summary": {
+        "totalOrders": "Total Orders",
+        "totalSales": "Total Sales",
+        "avgOrderValue": "Average Order Value",
+        "delivered": "Delivered",
+        "inProgress": "In Progress",
+        "creditTerm": "Credit Term",
+        "items": "items",
+        "days": "days"
+      },
+      "orders": {
+        "showingRecent": "Showing {count} recent items",
+        "createNew": "Create New Sales Order",
+        "noOrders": "No sales orders yet",
+        "noOrdersDesc": "Create the first sales order for this customer",
+        "create": "Create Sales Order",
+        "view": "View"
+      },
+      "contact": {
+        "noAddress": "No address information"
+      },
+      "credit": {
+        "noPaymentHistory": "No payment history",
+        "paymentHistoryDesc": "Payment history will appear here"
+      },
+      "actions": {
+        "back": "Back",
+        "edit": "Edit",
+        "delete": "Delete Customer",
+        "disabled": "Disabled"
+      },
+      "stats": {
+        "totalOrders": "Total Orders",
+        "totalSales": "Total Sales",
+        "creditLimit": "Credit Limit",
+        "status": "Status"
+      },
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "noOrderData": "No orders yet"
+    },
+    "new": {
+      "title": "Create New Customer",
+      "generatingCode": "Generating code...",
+      "codeReady": "Ready to use",
+      "codeLabel": "Customer Code (Auto-generated)",
+      "sections": {
+        "basic": "Basic Information",
+        "type": "Customer Type",
+        "contact": "Contact Information",
+        "credit": "Credit and Payment Information",
+        "notes": "Notes"
+      },
+      "fields": {
+        "name": "Customer Name",
+        "namePlaceholder": "e.g. ABC Company Ltd.",
+        "type": "Customer Type",
+        "taxId": "Tax ID",
+        "taxIdPlaceholder": "e.g. 0-1234-56789-01-2",
+        "contactPerson": "Contact Person",
+        "contactPlaceholder": "Main contact name",
+        "phone": "Phone",
+        "phonePlaceholder": "02-xxx-xxxx",
+        "email": "Email",
+        "emailPlaceholder": "email@example.com",
+        "address": "Address",
+        "addressPlaceholder": "Shipping address",
+        "creditLimit": "Credit Limit (THB)",
+        "creditTerm": "Credit Term",
+        "paymentTerms": "Payment Terms",
+        "notes": "Notes",
+        "notesPlaceholder": "Additional notes about the customer...",
+        "isActive": "Active"
+      },
+      "creditPreview": {
+        "title": "Configured Credit Limit",
+        "creditTerm": "Credit Term"
+      },
+      "creditTermOptions": {
+        "7": "7 days",
+        "15": "15 days",
+        "30": "30 days",
+        "45": "45 days",
+        "60": "60 days",
+        "90": "90 days"
+      },
+      "paymentOptions": {
+        "cash": "Cash",
+        "net7": "Net 7",
+        "net15": "Net 15",
+        "net30": "Net 30",
+        "net45": "Net 45",
+        "net60": "Net 60",
+        "net90": "Net 90",
+        "cod": "Cash on Delivery (COD)"
+      },
+      "validation": {
+        "waitForCode": "Please wait for customer code generation",
+        "nameRequired": "Please enter customer name"
+      },
+      "toast": {
+        "createError": "Failed to create customer"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save Customer",
+        "saving": "Saving...",
+        "regenerateCode": "Regenerate Code"
+      },
+      "status": "Status"
+    },
+    "edit": {
+      "title": "Edit Customer",
+      "fields": {
+        "code": "Customer Code",
+        "name": "Customer Name",
+        "contactPerson": "Contact Person",
+        "phone": "Phone",
+        "email": "Email",
+        "taxId": "Tax ID",
+        "type": "Customer Type",
+        "creditLimit": "Credit Limit",
+        "creditTermDays": "Credit Term (days)",
+        "paymentTerms": "Payment Terms",
+        "address": "Address",
+        "notes": "Notes",
+        "isActive": "Active"
+      },
+      "placeholders": {
+        "code": "Enter customer code",
+        "name": "Enter customer name",
+        "contactPerson": "Enter contact name",
+        "phone": "Enter phone number",
+        "email": "Enter email",
+        "taxId": "Enter Tax ID",
+        "type": "Select type",
+        "creditLimit": "Enter credit limit",
+        "creditTermDays": "Enter number of days",
+        "paymentTerms": "e.g. Net 30",
+        "address": "Enter address",
+        "notes": "Enter notes"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving..."
+      }
+    },
+    "delete": {
+      "title": "Delete Customer",
+      "confirmTitle": "Confirm Delete Customer",
+      "confirmMessage": "If customer has related sales orders, they will be deactivated instead of deleted",
+      "actions": {
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "deleting": "Deleting..."
+      }
+    }
+  },
+  "shipping": {
+    "title": "Shipping",
+    "description": "Manage order shipments"
+  },
+  "toast": {
+    "createOrder": {
+      "success": "Sales order created successfully",
+      "error": "Failed to create sales order"
+    },
+    "confirmOrder": {
+      "success": "Sales order confirmed successfully",
+      "error": "Failed to confirm sales order"
+    }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

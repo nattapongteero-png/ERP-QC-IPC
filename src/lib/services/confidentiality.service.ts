@@ -470,6 +470,8 @@ export interface BOMLineWithItem {
   itemId: number;
   itemCode?: string;
   itemName?: string;
+  itemType?: string;
+  itemUnit?: string;
   quantity: number;
   unit?: string;
   unitCost?: number;
@@ -510,6 +512,8 @@ export function filterBOMLines(
         itemId: line.itemId,
         itemCode: line.itemCode,
         itemName: line.itemName,
+        itemType: line.itemType,
+        itemUnit: line.itemUnit,
         quantity: line.quantity,
         unit: line.unit,
         unitCost: line.unitCost,

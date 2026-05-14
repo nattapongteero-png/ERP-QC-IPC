@@ -9,14 +9,23 @@ import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 import { eq, and } from 'drizzle-orm';
 
 // Valid phases for environmental monitoring
-const VALID_PHASES = ['production', 'packaging'];
+const VALID_PHASES = ['pre_production', 'production', 'packaging'];
+
+// External API Key for IoT
+const EXTERNAL_API_KEY = process.env.EXTERNAL_ENV_API_KEY || 'env-monitor-2026-secret';
+
+function validateApiKey(request: NextRequest): boolean {
+  const apiKey = request.headers.get('X-API-Key');
+  return !!apiKey && apiKey === EXTERNAL_API_KEY;
+}
 
 // GET /api/production/work-orders/[id]/environmental-condition - Get BOM environmental condition for phase
+// Supports both session cookie (internal) and X-API-Key (external/IoT)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async () => {
+  const handleGet = async () => {
     try {
       const { id } = await params;
       const workOrderId = Number(id);
@@ -34,7 +43,7 @@ export async function GET(
 
       // Get tables
       const workOrders = getTableRef('workOrders');
-      const bomEnvironmentalConditions = getTableRef('bomEnvironmentalConditions');
+      const bomEnvironmentalConditions = getTableRef('bOMEnvironmentalConditions');
       const environmentalConditions = getTableRef('environmentalConditions');
 
       // Get work order's BOM ID
@@ -92,5 +101,11 @@ export async function GET(
       console.error('Error fetching environmental condition:', error);
       return serverErrorResponse(error);
     }
-  });
+  };
+
+  if (validateApiKey(request)) {
+    return handleGet();
+  }
+
+  return withAuth(request, handleGet);
 }

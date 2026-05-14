@@ -5,6 +5,7 @@
 // User Story 5: Generate Financial Statements
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { DateBox } from 'devextreme-react/date-box';
@@ -79,6 +80,7 @@ async function fetchReport(
 }
 
 export default function ReportsPage() {
+  const t = useTranslations('accounting');
   const [selectedReport, setSelectedReport] = useState<ReportType>('trial-balance');
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   const [periodStart, setPeriodStart] = useState<Date>(new Date(new Date().getFullYear(), 0, 1));
@@ -434,7 +436,7 @@ export default function ReportsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30" data-testid="reports-dashboard">
       <AccountingPageHeader
-        title="Financial Reports"
+        title={t('page.title')}
         subtitle="Generate TFRS-compliant financial statements"
         icon="bar-chart"
       />

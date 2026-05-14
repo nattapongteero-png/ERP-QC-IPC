@@ -8,6 +8,8 @@
  */
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import DataGrid, {
   Column,
   Paging,
@@ -148,6 +150,7 @@ export function StabilityStudyList({
   height = 'auto',
 }: StabilityStudyListProps) {
   const router = useRouter();
+  const t = useTranslations('gmp');
 
   const handleExporting = (e: ExportingEvent) => {
     const workbook = new Workbook();
@@ -171,7 +174,7 @@ export function StabilityStudyList({
       workbook.xlsx.writeBuffer().then((buffer) => {
         saveAs(
           new Blob([buffer], { type: 'application/octet-stream' }),
-          `Stability_Studies_${new Date().toISOString().split('T')[0]}.xlsx`
+          `Stability_Studies_${toLocalDateStr(new Date())}.xlsx`
         );
       });
     });
@@ -381,6 +384,20 @@ export function StabilityStudyList({
         )}
 
         {/* Columns */}
+        <Column
+          dataField="_rowNumber"
+          caption={t('items.grid.columns.rowNum')}
+          width={60}
+          alignment="center"
+          allowFiltering={false}
+          allowSorting={false}
+          allowGrouping={false}
+          cellRender={(cellInfo) => (
+            <span className="text-gray-500 text-sm font-medium">
+              {(cellInfo.data as { _rowNumber?: number })._rowNumber}
+            </span>
+          )}
+        />
         <Column
           dataField="studyNumber"
           caption="Study #"

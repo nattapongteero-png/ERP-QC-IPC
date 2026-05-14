@@ -96,6 +96,8 @@ const optionalDateStringSchema = z
   .nullable();
 
 const positiveIntSchema = z.number().int().positive();
+// parentId can be 0 (no parent) from frontend — transform 0 to null
+const parentIdSchema = z.number().int().min(0).transform(v => v === 0 ? null : v).nullable().optional();
 const positiveDecimalSchema = z.number().nonnegative();
 const currencyAmountSchema = z
   .number()
@@ -156,7 +158,7 @@ export const glAccountCreateSchema = z.object({
     .min(1, 'ชื่อบัญชีภาษาอังกฤษจำเป็น')
     .max(200, 'ชื่อบัญชีภาษาอังกฤษต้องไม่เกิน 200 ตัวอักษร'),
   accountTypeId: positiveIntSchema.describe('กรุณาเลือกประเภทบัญชี'),
-  parentId: positiveIntSchema.nullable().optional(),
+  parentId: parentIdSchema,
   isPostable: z.boolean().default(true),
   isBankAccount: z.boolean().default(false),
   bankName: z.string().max(100).optional().nullable(),
@@ -168,7 +170,7 @@ export const glAccountUpdateSchema = z.object({
   nameTh: z.string().min(1).max(200).optional(),
   nameEn: z.string().min(1).max(200).optional(),
   accountTypeId: positiveIntSchema.optional(),
-  parentId: positiveIntSchema.nullable().optional(),
+  parentId: parentIdSchema,
   isActive: z.boolean().optional(),
   isPostable: z.boolean().optional(),
   isBankAccount: z.boolean().optional(),
@@ -179,7 +181,7 @@ export const glAccountUpdateSchema = z.object({
 
 export const glAccountQuerySchema = z.object({
   accountTypeId: z.coerce.number().int().positive().optional(),
-  parentId: z.coerce.number().int().positive().nullable().optional(),
+  parentId: z.coerce.number().int().min(0).transform(v => v === 0 ? null : v).nullable().optional(),
   isActive: z.enum(['true', 'false']).optional(),
   isPostable: z.enum(['true', 'false']).optional(),
   isBankAccount: z.enum(['true', 'false']).optional(),
@@ -382,6 +384,8 @@ export const apInvoiceCreateSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   currency: z.string().max(3).default('THB'),
   exchangeRate: z.number().positive().default(1),
+  vatRate: z.number().min(0).max(100).default(7),
+  vatAmountOverride: z.number().min(0).optional().nullable(),
   lines: z.array(apInvoiceLineCreateSchema).min(1, 'ต้องมีรายการอย่างน้อย 1 รายการ'),
 });
 
@@ -433,6 +437,8 @@ export const arInvoiceCreateSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   currency: z.string().max(3).default('THB'),
   exchangeRate: z.number().positive().default(1),
+  vatRate: z.number().min(0).max(100).default(7),
+  vatAmountOverride: z.number().min(0).optional().nullable(),
   lines: z.array(arInvoiceLineCreateSchema).min(1, 'ต้องมีรายการอย่างน้อย 1 รายการ'),
 });
 

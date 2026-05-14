@@ -1,0 +1,242 @@
+{
+  "loading": "Loading...",
+  "page": {
+    "title": "Purchasing",
+    "description": "Manage purchase orders and suppliers"
+  },
+  "orders": {
+    "title": "Purchase Orders",
+    "pageTitle": "Purchase Orders",
+    "description": "Manage purchase orders for raw materials and supplies",
+    "newTitle": "Create New Purchase Order",
+    "newDescription": "Create a new purchase order for suppliers",
+    "detail": {
+      "title": "PO",
+      "vendor": "Vendor",
+      "status": "Status"
+    },
+    "status": {
+      "all": "All",
+      "draft": "Draft",
+      "pending": "Pending",
+      "pendingApproval": "Pending",
+      "approved": "Approved",
+      "sent": "Sent",
+      "partial": "Partial",
+      "partiallyReceived": "Partially Received",
+      "received": "Received",
+      "cancelled": "Cancelled"
+    },
+    "stats": {
+      "total": "total",
+      "pending": "pending",
+      "awaiting": "awaiting"
+    },
+    "grid": {
+      "columns": {
+        "poNumber": "PO Number",
+        "vendor": "Vendor",
+        "orderDate": "Order Date",
+        "expectedDate": "Expected Date",
+        "totalAmount": "Total Amount",
+        "status": "Status"
+      },
+      "showing": "Showing {count} items",
+      "noData": "No purchase orders found"
+    },
+    "searchPlaceholder": "Search by PO number or vendor name...",
+    "table": {
+      "columns": {
+        "orderNumber": "Order Number",
+        "supplier": "Supplier",
+        "orderDate": "Order Date",
+        "expectedDate": "Expected Date",
+        "totalAmount": "Total Amount",
+        "status": "Status",
+        "createdBy": "Created By"
+      }
+    },
+    "form": {
+      "orderNumber": {
+        "label": "Order Number",
+        "placeholder": "Will be auto-generated"
+      },
+      "supplier": {
+        "label": "Supplier",
+        "placeholder": "Select supplier"
+      },
+      "orderDate": {
+        "label": "Order Date"
+      },
+      "expectedDate": {
+        "label": "Expected Date"
+      },
+      "notes": {
+        "label": "Notes",
+        "placeholder": "Enter notes"
+      }
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "createPO": "Create PO",
+      "createOrder": "Create Order",
+      "editOrder": "Edit Order",
+      "viewOrder": "View Order",
+      "cancelOrder": "Cancel Order",
+      "approveOrder": "Approve Order",
+      "receiveGoods": "Receive Goods"
+    }
+  },
+  "suppliers": {
+    "title": "Suppliers",
+    "description": "Manage supplier information",
+    "table": {
+      "columns": {
+        "code": "Supplier Code",
+        "name": "Supplier Name",
+        "contact": "Contact",
+        "phone": "Phone",
+        "email": "Email",
+        "status": "Status"
+      }
+    }
+  },
+  "vendors": {
+    "pageTitle": "Vendors",
+    "description": "Manage vendors and partners",
+    "newTitle": "New Vendor",
+    "newDescription": "Create a new vendor",
+    "notFound": {
+      "title": "Vendor Not Found",
+      "description": "The specified vendor could not be found in the system"
+    },
+    "status": {
+      "all": "All",
+      "approved": "Approved",
+      "pending": "Pending",
+      "vmi": "VMI",
+      "inactive": "Inactive"
+    },
+    "stats": {
+      "approved": "Approved",
+      "vmi": "VMI",
+      "avgDays": "avg days",
+      "total": "Total Vendors",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "addVendor": "Add Vendor"
+    },
+    "grid": {
+      "columns": {
+        "code": "Code",
+        "name": "Vendor Name",
+        "phone": "Phone",
+        "email": "Email",
+        "leadTime": "Lead Time",
+        "paymentTerms": "Payment Terms",
+        "status": "Status"
+      },
+      "showing": "Showing {count} items",
+      "noData": "No vendors found",
+      "days": "{days} days"
+    },
+    "searchPlaceholder": "Search by code, name, or contact...",
+    "emptyTitle": "No vendors yet",
+    "emptyDescription": "Start managing your suppliers by adding your first vendor",
+    "noResultsTitle": "No vendors match your criteria",
+    "noResultsDescription": "Try changing the search term or selecting a different filter",
+    "clearFilters": "Clear filters",
+    "viewDetails": "View details",
+    "vendorsShown": "{count} vendors shown"
+  },
+  "requisitions": {
+    "pageTitle": "Purchase Requisitions",
+    "description": "Create and manage purchase requisitions with approval workflow",
+    "newPageTitle": "Create New Purchase Requisition",
+    "detailTitle": "Purchase Requisition",
+    "status": {
+      "all": "All",
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "pendingApproval": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled",
+      "converted": "Converted to PO"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "stats": {
+      "total": "total",
+      "pending": "pending",
+      "urgent": "urgent"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "createPR": "Create PR"
+    },
+    "grid": {
+      "columns": {
+        "prNumber": "PR Number",
+        "description": "Description",
+        "priority": "Priority",
+        "totalAmount": "Est. Amount",
+        "requiredDate": "Required By",
+        "createdAt": "Created Date",
+        "status": "Status"
+      },
+      "showing": "Showing {count} items",
+      "noData": "No purchase requisitions found"
+    },
+    "searchPlaceholder": "Search by PR number or description..."
+  },
+  "receiving": {
+    "title": "Receiving",
+    "description": "Record goods receipt from purchase orders"
+  },
+  "vmi": {
+    "pageTitle": "VMI Orders",
+    "description": "Manage orders received from hospitals via VMI Portal",
+    "actions": {
+      "pollAll": "Poll All Vendors",
+      "polling": "Polling...",
+      "pollOrders": "Poll Orders"
+    },
+    "stats": {
+      "total": "Total Orders",
+      "submitted": "Submitted",
+      "confirmed": "Confirmed",
+      "shipped": "Shipped",
+      "received": "Received"
+    },
+    "loading": "Loading order details...",
+    "empty": {
+      "title": "No VMI Orders",
+      "description": "Click 'Poll All Vendors' to fetch new orders from VMI Portal"
+    }
+  },
+  "toast": {
+    "createOrder": {
+      "success": "Purchase order created successfully",
+      "error": "Failed to create purchase order"
+    },
+    "approveOrder": {
+      "success": "Purchase order approved successfully",
+      "error": "Failed to approve purchase order"
+    }
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

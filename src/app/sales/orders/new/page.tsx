@@ -5,6 +5,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
@@ -63,21 +64,11 @@ interface FormData {
 }
 
 // ============================================================================
-// Constants
+// Constants - Translation keys for options
 // ============================================================================
 
-const STATUS_OPTIONS = [
-  { value: 'draft', label: 'ร่าง (Draft)' },
-  { value: 'confirmed', label: 'ยืนยันแล้ว (Confirmed)' },
-];
-
-const PAYMENT_TERMS_OPTIONS = [
-  { value: 'cash', label: 'เงินสด (Cash)' },
-  { value: 'net15', label: 'Net 15 วัน' },
-  { value: 'net30', label: 'Net 30 วัน' },
-  { value: 'net45', label: 'Net 45 วัน' },
-  { value: 'net60', label: 'Net 60 วัน' },
-];
+const STATUS_KEYS = ['draft', 'confirmed'] as const;
+const PAYMENT_TERMS_KEYS = ['cash', 'net15', 'net30', 'net45', 'net60'] as const;
 
 // ============================================================================
 // Helper Functions
@@ -104,7 +95,19 @@ const formatDateForApi = (date: Date | null): string | null => {
 
 export default function NewSalesOrderPage() {
   const router = useRouter();
+  const t = useTranslations('sales');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Memoized options with translations
+  const statusOptions = useMemo(() => STATUS_KEYS.map(key => ({
+    value: key,
+    label: t(`orders.new.statusOptions.${key}` as const),
+  })), [t]);
+
+  const paymentTermsOptions = useMemo(() => PAYMENT_TERMS_KEYS.map(key => ({
+    value: key,
+    label: t(`orders.new.paymentOptions.${key}` as const),
+  })), [t]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
@@ -190,9 +193,9 @@ export default function NewSalesOrderPage() {
       setLines(prev => prev.filter(line => line.id !== selectedLineId));
       setShowDeleteConfirm(false);
       setSelectedLineId(null);
-      notify('ลบรายการสำเร็จ', 'success', 2000);
+      notify(t('orders.new.toast.deleteSuccess'), 'success', 2000);
     }
-  }, [selectedLineId]);
+  }, [selectedLineId, t]);
 
   const handleLineQuantityChange = useCallback((lineId: number, value: number) => {
     setLines(prev => prev.map(line => {
@@ -229,11 +232,11 @@ export default function NewSalesOrderPage() {
   const handleSave = async () => {
     // Validation
     if (!selectedCustomer && !form.customerName) {
-      notify('กรุณาเลือกลูกค้า', 'warning', 3000);
+      notify(t('orders.new.validation.selectCustomer'), 'warning', 3000);
       return;
     }
     if (lines.length === 0) {
-      notify('กรุณาเพิ่มอย่างน้อย 1 รายการสินค้า', 'warning', 3000);
+      notify(t('orders.new.validation.addItem'), 'warning', 3000);
       return;
     }
 
@@ -263,14 +266,14 @@ export default function NewSalesOrderPage() {
       const result = await res.json();
 
       if (result.success) {
-        notify('สร้างใบสั่งขายสำเร็จ', 'success', 3000);
+        notify(t('orders.new.toast.createSuccess'), 'success', 3000);
         router.push(`/sales/orders/${result.data.id}`);
       } else {
-        notify(result.error || 'ไม่สามารถสร้างใบสั่งขายได้', 'error', 5000);
+        notify(result.error || t('orders.new.toast.createError'), 'error', 5000);
       }
     } catch (error) {
       console.error('Failed to create sales order:', error);
-      notify('เกิดข้อผิดพลาดในการสร้างใบสั่งขาย', 'error', 5000);
+      notify(t('orders.new.toast.createError'), 'error', 5000);
     } finally {
       setIsSaving(false);
     }
@@ -326,16 +329,17 @@ export default function NewSalesOrderPage() {
     </span>
   ), []);
 
+  const deleteButtonTitle = t('orders.new.deleteConfirm.delete');
   const renderActionsCell = useCallback((cellInfo: { data: SOLine }) => (
     <button
       type="button"
       onClick={() => handleDeleteLine(cellInfo.data.id)}
       className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
-      title="ลบรายการ"
+      title={deleteButtonTitle}
     >
       <Trash2 className="h-4 w-4" />
     </button>
-  ), [handleDeleteLine]);
+  ), [handleDeleteLine, deleteButtonTitle]);
 
   // ============================================================================
   // Render
@@ -348,7 +352,7 @@ export default function NewSalesOrderPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
-              text="กลับ"
+              text={t('orders.new.actions.back')}
               icon="back"
               stylingMode="text"
               onClick={handleCancel}
@@ -360,14 +364,14 @@ export default function NewSalesOrderPage() {
                 <ShoppingCart className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900" data-testid="so-form-title">สร้างใบสั่งขายใหม่</h1>
-                <p className="text-sm text-gray-500">กรอกข้อมูลลูกค้าและรายการสินค้า</p>
+                <h1 className="text-xl font-semibold text-gray-900" data-testid="so-form-title">{t('orders.new.title')}</h1>
+                <p className="text-sm text-gray-500">{t('orders.new.description')}</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
-              text="ยกเลิก"
+              text={t('orders.new.actions.cancel')}
               icon="close"
               stylingMode="outlined"
               onClick={handleCancel}
@@ -375,7 +379,7 @@ export default function NewSalesOrderPage() {
               elementAttr={{ 'data-testid': 'so-cancel-btn' }}
             />
             <Button
-              text={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+              text={isSaving ? t('orders.new.actions.saving') : t('orders.new.actions.save')}
               icon={isSaving ? 'spindown' : 'save'}
               type="success"
               onClick={handleSave}
@@ -391,14 +395,14 @@ export default function NewSalesOrderPage() {
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                  <p className="font-medium text-red-800">{t('orders.new.deleteConfirm.title')}</p>
                   <p className="text-sm text-red-600">
-                    คุณต้องการลบรายการสินค้านี้หรือไม่?
+                    {t('orders.new.deleteConfirm.message')}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    text="ยกเลิก"
+                    text={t('orders.new.deleteConfirm.cancel')}
                     stylingMode="outlined"
                     onClick={() => {
                       setShowDeleteConfirm(false);
@@ -406,7 +410,7 @@ export default function NewSalesOrderPage() {
                     }}
                   />
                   <Button
-                    text="ลบ"
+                    text={t('orders.new.deleteConfirm.delete')}
                     icon="trash"
                     type="danger"
                     onClick={confirmDeleteLine}
@@ -426,14 +430,14 @@ export default function NewSalesOrderPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Building2 className="h-5 w-5 text-purple-500" />
-                  ข้อมูลลูกค้า
+                  {t('orders.new.customerSection')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Customer Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ลูกค้า <span className="text-red-500">*</span>
+                    {t('orders.new.customerRequired')} <span className="text-red-500">*</span>
                   </label>
                   {selectedCustomer ? (
                     <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
@@ -475,7 +479,7 @@ export default function NewSalesOrderPage() {
                         </div>
                         <div className="flex gap-2">
                           <Button
-                            text="เปลี่ยน"
+                            text={t('orders.new.actions.change')}
                             type="normal"
                             stylingMode="outlined"
                             onClick={() => setIsCustomerDialogOpen(true)}
@@ -485,7 +489,7 @@ export default function NewSalesOrderPage() {
                             type="danger"
                             stylingMode="text"
                             onClick={handleClearCustomer}
-                            hint="ล้างข้อมูลลูกค้า"
+                            hint={t('orders.new.actions.clear')}
                           />
                         </div>
                       </div>
@@ -498,7 +502,7 @@ export default function NewSalesOrderPage() {
                       className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-emerald-400 hover:bg-emerald-50 transition-colors text-gray-500 hover:text-emerald-600"
                     >
                       <Search className="h-5 w-5" />
-                      <span>คลิกเพื่อค้นหาและเลือกลูกค้า...</span>
+                      <span>{t('orders.new.selectCustomerPlaceholder')}</span>
                     </button>
                   )}
                 </div>
@@ -507,12 +511,12 @@ export default function NewSalesOrderPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <MapPin className="h-4 w-4 inline mr-1" />
-                    ที่อยู่จัดส่ง
+                    {t('orders.new.shippingAddress')}
                   </label>
                   <TextArea
                     value={form.customerAddress}
                     onValueChanged={(e) => setForm(prev => ({ ...prev, customerAddress: e.value || '' }))}
-                    placeholder="ระบุที่อยู่สำหรับจัดส่ง..."
+                    placeholder={t('orders.new.shippingAddressPlaceholder')}
                     height={80}
                     elementAttr={{ 'data-testid': 'so-address-input' }}
                   />
@@ -526,15 +530,15 @@ export default function NewSalesOrderPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Package className="h-5 w-5 text-indigo-500" />
-                    รายการสินค้า
+                    {t('orders.new.itemsSection')}
                     {lineCount > 0 && (
                       <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">
-                        {lineCount} รายการ
+                        {lineCount} {t('orders.new.items')}
                       </span>
                     )}
                   </CardTitle>
                   <Button
-                    text="เพิ่มสินค้า"
+                    text={t('orders.new.addItem')}
                     icon="plus"
                     type="default"
                     onClick={() => setIsItemDialogOpen(true)}
@@ -560,34 +564,34 @@ export default function NewSalesOrderPage() {
 
                       <Column
                         dataField="itemCode"
-                        caption="สินค้า"
+                        caption={t('orders.new.columns.item')}
                         minWidth={220}
                         cellRender={renderItemCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="unit"
-                        caption="หน่วย"
+                        caption={t('orders.new.columns.unit')}
                         width={80}
                         alignment="center"
                       />
                       <Column
                         dataField="quantity"
-                        caption="จำนวน"
+                        caption={t('orders.new.columns.quantity')}
                         width={120}
                         cellRender={renderQuantityCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="unitPrice"
-                        caption="ราคา/หน่วย"
+                        caption={t('orders.new.columns.unitPrice')}
                         width={140}
                         cellRender={renderUnitPriceCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="lineTotal"
-                        caption="รวม"
+                        caption={t('orders.new.columns.total')}
                         width={130}
                         cellRender={renderLineTotalCell}
                         alignment="right"
@@ -604,7 +608,7 @@ export default function NewSalesOrderPage() {
                         <TotalItem
                           column="lineTotal"
                           summaryType="sum"
-                          customizeText={(data) => `รวม: ${formatCurrency(data.value as number)}`}
+                          customizeText={(data) => `${t('orders.new.columns.total')}: ${formatCurrency(data.value as number)}`}
                         />
                       </Summary>
                     </DataGrid>
@@ -613,7 +617,7 @@ export default function NewSalesOrderPage() {
                     <div className="p-4 border-t bg-gray-50">
                       <div className="flex justify-end">
                         <div className="text-right">
-                          <p className="text-sm text-gray-500">ยอดรวมทั้งหมด</p>
+                          <p className="text-sm text-gray-500">{t('orders.new.totalAmount')}</p>
                           <p className="text-2xl font-bold text-green-600">{formatCurrency(totalAmount)}</p>
                         </div>
                       </div>
@@ -624,10 +628,10 @@ export default function NewSalesOrderPage() {
                     <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Package className="h-8 w-8 text-gray-400" />
                     </div>
-                    <p className="text-gray-500 font-medium">ยังไม่มีรายการสินค้า</p>
-                    <p className="text-sm text-gray-400 mt-1">คลิกปุ่ม &quot;เพิ่มสินค้า&quot; เพื่อเริ่มต้น</p>
+                    <p className="text-gray-500 font-medium">{t('orders.new.noItems')}</p>
+                    <p className="text-sm text-gray-400 mt-1">{t('orders.new.noItemsDesc')}</p>
                     <Button
-                      text="เพิ่มสินค้ารายการแรก"
+                      text={t('orders.new.addFirstItem')}
                       icon="plus"
                       type="default"
                       stylingMode="outlined"
@@ -644,14 +648,14 @@ export default function NewSalesOrderPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FileText className="h-5 w-5 text-gray-500" />
-                  หมายเหตุ
+                  {t('orders.new.notesSection')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <TextArea
                   value={form.notes}
                   onValueChanged={(e) => setForm(prev => ({ ...prev, notes: e.value || '' }))}
-                  placeholder="หมายเหตุหรือคำแนะนำเพิ่มเติม..."
+                  placeholder={t('orders.new.notesPlaceholder')}
                   height={100}
                 />
               </CardContent>
@@ -663,13 +667,13 @@ export default function NewSalesOrderPage() {
             {/* Order Status */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">สถานะใบสั่งขาย</CardTitle>
+                <CardTitle className="text-base">{t('orders.new.statusSection')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">สถานะ</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('orders.new.status')}</label>
                   <SelectBox
-                    dataSource={STATUS_OPTIONS}
+                    dataSource={statusOptions}
                     displayExpr="label"
                     valueExpr="value"
                     value={form.status}
@@ -684,20 +688,20 @@ export default function NewSalesOrderPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Calendar className="h-5 w-5 text-blue-500" />
-                  รายละเอียดคำสั่งซื้อ
+                  {t('orders.new.orderDetails')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    วันที่ต้องการส่ง
+                    {t('orders.new.requiredDate')}
                   </label>
                   <DateBox
                     value={form.requiredDate}
                     onValueChanged={(e) => setForm(prev => ({ ...prev, requiredDate: e.value }))}
                     type="date"
                     displayFormat="d MMMM yyyy"
-                    placeholder="เลือกวันที่..."
+                    placeholder={t('orders.new.selectDate')}
                     showClearButton
                     useMaskBehavior
                   />
@@ -705,15 +709,15 @@ export default function NewSalesOrderPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <CreditCard className="h-4 w-4 inline mr-1" />
-                    เงื่อนไขการชำระเงิน
+                    {t('orders.new.paymentTerms')}
                   </label>
                   <SelectBox
-                    dataSource={PAYMENT_TERMS_OPTIONS}
+                    dataSource={paymentTermsOptions}
                     displayExpr="label"
                     valueExpr="value"
                     value={form.paymentTerms}
                     onValueChanged={(e) => setForm(prev => ({ ...prev, paymentTerms: e.value }))}
-                    placeholder="เลือกเงื่อนไข..."
+                    placeholder={t('orders.new.selectPaymentTerms')}
                     showClearButton
                     searchEnabled
                   />
@@ -724,22 +728,22 @@ export default function NewSalesOrderPage() {
             {/* Order Summary */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">สรุปคำสั่งซื้อ</CardTitle>
+                <CardTitle className="text-base">{t('orders.new.orderSummary')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">จำนวนรายการ</span>
-                  <span className="font-medium text-gray-900">{lineCount} รายการ</span>
+                  <span className="text-gray-500">{t('orders.new.lineCount')}</span>
+                  <span className="font-medium text-gray-900">{lineCount} {t('orders.new.items')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">ลูกค้า</span>
+                  <span className="text-gray-500">{t('orders.new.customer')}</span>
                   <span className="font-medium text-gray-900 truncate max-w-[150px]">
                     {form.customerName || '-'}
                   </span>
                 </div>
                 <div className="pt-3 border-t">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700 font-medium">ยอดรวม</span>
+                    <span className="text-gray-700 font-medium">{t('orders.new.total')}</span>
                     <span className="text-xl font-bold text-green-600">{formatCurrency(totalAmount)}</span>
                   </div>
                 </div>
@@ -754,7 +758,7 @@ export default function NewSalesOrderPage() {
         open={isCustomerDialogOpen}
         onOpenChange={setIsCustomerDialogOpen}
         onSelect={handleSelectCustomer}
-        title="ค้นหาลูกค้า"
+        title={t('orders.new.dialog.searchCustomer')}
       />
 
       {/* Item Search Dialog */}
@@ -762,7 +766,7 @@ export default function NewSalesOrderPage() {
         open={isItemDialogOpen}
         onOpenChange={setIsItemDialogOpen}
         onSelect={handleSelectItem}
-        title="ค้นหาสินค้า"
+        title={t('orders.new.dialog.searchItem')}
         showPrice="selling"
         excludeIds={lines.map(line => line.itemId)}
       />

@@ -7,8 +7,10 @@
  * Feature: 008-vmi-vendor-sync
  */
 
-import { eq, and, desc, inArray, or, like, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, desc, inArray, or, gte, lte } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
+import { getNow, toDbDate, toQueryDate } from '@/lib/db/date-utils';
+import { createSalesOrderFromVmi } from './sales.service';
 import {
   sqliteItems,
   mysqlItems,
@@ -24,6 +26,7 @@ import {
   type VmiSalesOrderLine,
 } from '@/lib/db/schema';
 import { decrypt } from '@/lib/crypto/encrypt';
+import { createAuditLog } from '@/lib/audit';
 import { vmiPortalConfigService } from './vmi-portal-config.service';
 import type {
   VmiOrderStatus,
@@ -69,24 +72,42 @@ export interface VmiOrderQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
-interface PortalOrder {
-  id: string;
-  customerCode: string;
-  customerName: string;
+/** Summary from GET /api/external/vendor/orders?status=submitted */
+interface PortalOrderSummary {
+  id: number;
+  hospitalCode: string;
+  hospitalName: string;
+  poNumber: string;
+  status: string;
   orderDate: string;
-  requiredDate?: string;
-  totalAmount: number;
-  currency: string;
-  lines: Array<{
-    lineId: string;
-    tppCode?: string;
-    ttmtCode?: string;
-    localCode?: string;
-    itemName: string;
-    quantity: number;
+  expectedDeliveryDate: string | null;
+  totalValue: string;
+  itemCount: number;
+}
+
+/** Detail from GET /api/external/vendor/orders/{id} */
+interface PortalOrderDetail {
+  id: number;
+  hospitalCode: string;
+  hospitalName: string;
+  poNumber: string;
+  status: string;
+  orderDate: string;
+  expectedDeliveryDate: string | null;
+  totalValue: string;
+  itemCount: number;
+  warehouseName?: string;
+  notes?: string;
+  items: Array<{
+    id: number;
+    localCode: string;
+    name: string;
     unit: string;
-    unitPrice: number;
-    lineTotal: number;
+    tppCode: string | null;
+    ttmtCode: string | null;
+    quantityOrdered: string;
+    unitPrice: string;
+    lineTotal: string;
   }>;
 }
 
@@ -95,18 +116,16 @@ interface PortalOrder {
 // ============================================
 
 export class VmiSalesOrderService {
-  private readonly isSqlite: boolean;
-
-  constructor() {
-     
-    this.isSqlite = isSqlite();
+  // Bug L2: use getter instead of caching isSqlite at construction time
+  private get isSqliteDb(): boolean {
+    return isSqlite();
   }
 
   /**
    * Get the appropriate database connection
    */
   private async getDb() {
-    return this.isSqlite ? getSqliteDb() : await getMysqlDb();
+    return this.isSqliteDb ? getSqliteDb() : await getMysqlDb();
   }
 
   /**
@@ -114,11 +133,11 @@ export class VmiSalesOrderService {
    */
   private getTables() {
     return {
-      items: this.isSqlite ? sqliteItems : mysqlItems,
-      customers: this.isSqlite ? sqliteCustomers : mysqlCustomers,
-      portals: this.isSqlite ? sqliteVmiPortalConfig : mysqlVmiPortalConfig,
-      orders: this.isSqlite ? sqliteVmiSalesOrders : mysqlVmiSalesOrders,
-      lines: this.isSqlite ? sqliteVmiSalesOrderLines : mysqlVmiSalesOrderLines,
+      items: this.isSqliteDb ? sqliteItems : mysqlItems,
+      customers: this.isSqliteDb ? sqliteCustomers : mysqlCustomers,
+      portals: this.isSqliteDb ? sqliteVmiPortalConfig : mysqlVmiPortalConfig,
+      orders: this.isSqliteDb ? sqliteVmiSalesOrders : mysqlVmiSalesOrders,
+      lines: this.isSqliteDb ? sqliteVmiSalesOrderLines : mysqlVmiSalesOrderLines,
     };
   }
 
@@ -158,10 +177,10 @@ export class VmiSalesOrderService {
       conditions.push(eq(orders.customerId, query.customerId));
     }
     if (query.fromDate) {
-      conditions.push(gte(orders.orderDate, query.fromDate));
+      conditions.push(gte(orders.orderDate, toQueryDate(query.fromDate)));
     }
     if (query.toDate) {
-      conditions.push(lte(orders.orderDate, query.toDate));
+      conditions.push(lte(orders.orderDate, toQueryDate(query.toDate)));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -413,12 +432,10 @@ export class VmiSalesOrderService {
 
     try {
       // Fetch orders from VMI Portal
-      const response = await fetch(`${portal.portalUrl}/api/vendor/orders/pending`, {
+      const response = await fetch(`${portal.portalUrl}/api/external/vendor/orders?status=submitted`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'X-API-Key': apiKey,
-          'X-Vendor-Id': portal.vendorId,
         },
         signal: AbortSignal.timeout(30000),
       });
@@ -428,19 +445,37 @@ export class VmiSalesOrderService {
       }
 
       const data = await response.json();
-      const portalOrders: PortalOrder[] = data.orders || [];
+      const orderSummaries: PortalOrderSummary[] = data.orders || [];
 
       const createdOrders: VmiSalesOrderSummary[] = [];
 
-      for (const portalOrder of portalOrders) {
+      for (const summary of orderSummaries) {
         // Check if order already exists
-        const existing = await this.findOrderByVmiOrderId(portal.id, portalOrder.id);
+        const existing = await this.findOrderByVmiOrderId(portal.id, String(summary.id));
         if (existing) {
           continue; // Skip already imported orders
         }
 
+        // Fetch order detail to get line items
+        const detailResponse = await fetch(
+          `${portal.portalUrl}/api/external/vendor/orders/${summary.id}`,
+          {
+            method: 'GET',
+            headers: { 'X-API-Key': apiKey },
+            signal: AbortSignal.timeout(30000),
+          }
+        );
+
+        if (!detailResponse.ok) {
+          console.error(`[VMI Poll] Failed to fetch detail for order ${summary.id}: HTTP ${detailResponse.status}`);
+          continue;
+        }
+
+        const detailData = await detailResponse.json();
+        const orderDetail: PortalOrderDetail = detailData.order;
+
         // Create order and lines
-        const order = await this.createOrderFromPortal(portal.id, portalOrder);
+        const order = await this.createOrderFromPortal(portal.id, orderDetail);
         createdOrders.push(order);
       }
 
@@ -478,77 +513,104 @@ export class VmiSalesOrderService {
    */
   private async createOrderFromPortal(
     portalId: number,
-    portalOrder: PortalOrder
+    orderDetail: PortalOrderDetail
   ): Promise<VmiSalesOrderSummary> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = (await this.getDb()) as any;
     const { orders, lines } = this.getTables();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
-    // Create order
-    const [insertedOrder] = await db
-      .insert(orders)
-      .values({
-        portalId,
-        vmiOrderId: portalOrder.id,
-        vmiStatus: 'submitted',
-        localStatus: 'pending',
-        vmiCustomerId: portalOrder.customerCode,
-        vmiCustomerName: portalOrder.customerName,
-        orderDate: portalOrder.orderDate,
-        requiredDate: portalOrder.requiredDate || null,
-        totalAmount: portalOrder.totalAmount.toString(),
-        currency: portalOrder.currency || 'THB',
-        orderDataJson: JSON.stringify(portalOrder),
-        polledAt: now,
-        createdAt: now,
-        updatedAt: now,
-      } as Record<string, unknown>)
-      .$returningId();
+    // Create order (map API fields to DB fields)
+    const orderValues = {
+      portalId,
+      vmiOrderId: String(orderDetail.id),
+      vmiStatus: 'submitted',
+      localStatus: 'pending',
+      vmiCustomerId: orderDetail.hospitalCode,
+      vmiCustomerName: orderDetail.hospitalName,
+      orderDate: toDbDate(orderDetail.orderDate),
+      requiredDate: orderDetail.expectedDeliveryDate ? toDbDate(orderDetail.expectedDeliveryDate) : null,
+      totalAmount: orderDetail.totalValue,
+      currency: 'THB',
+      orderDataJson: JSON.stringify(orderDetail),
+      polledAt: now,
+      createdAt: now,
+      updatedAt: now,
+    } as Record<string, unknown>;
 
-    const orderId = insertedOrder.id;
+    let orderId: number;
+    if (this.isSqliteDb) {
+      const [inserted] = await db
+        .insert(orders)
+        .values(orderValues)
+        .returning({ id: orders.id });
+      orderId = inserted.id;
+    } else {
+      const [inserted] = await db
+        .insert(orders)
+        .values(orderValues)
+        .$returningId();
+      orderId = inserted.id;
+    }
 
     // Create order lines with item matching
-    for (const line of portalOrder.lines) {
-      const matchResult = await this.matchItem(line.tppCode, line.ttmtCode, line.localCode);
+    let unmatchedCount = 0;
+    for (const item of orderDetail.items || []) {
+      const matchResult = await this.matchItem(
+        item.tppCode || undefined,
+        item.ttmtCode || undefined,
+        item.localCode || undefined
+      );
+
+      if (matchResult.status === 'unmatched') unmatchedCount++;
 
       await db.insert(lines).values({
         vmiSalesOrderId: orderId,
-        vmiLineId: line.lineId,
+        vmiLineId: String(item.id),
         itemId: matchResult.itemId,
-        tppCode: line.tppCode || null,
-        ttmtCode: line.ttmtCode || null,
-        localCode: line.localCode || null,
-        itemName: line.itemName,
-        quantity: line.quantity.toString(),
-        unit: line.unit,
-        unitPrice: line.unitPrice.toString(),
-        lineTotal: line.lineTotal.toString(),
+        tppCode: item.tppCode || null,
+        ttmtCode: item.ttmtCode || null,
+        localCode: item.localCode || null,
+        itemName: item.name,
+        quantity: item.quantityOrdered,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
         matchStatus: matchResult.status,
       } as Record<string, unknown>);
     }
 
-    // Return summary
-    const unmatchedCount = portalOrder.lines.filter((l: any) => {
-      const matchResult = this.matchItemSync(l.tppCode, l.ttmtCode, l.localCode);
-      return matchResult.status === 'unmatched';
-    }).length;
+    // Bug L1: Audit log for order creation
+    await createAuditLog({
+      userId: 1,
+      action: 'CREATE',
+      tableName: 'vmi_sales_orders',
+      recordId: orderId,
+      newValue: {
+        portalId,
+        vmiOrderId: String(orderDetail.id),
+        vmiStatus: 'submitted',
+        localStatus: 'pending',
+        vmiCustomerName: orderDetail.hospitalName,
+        lineCount: (orderDetail.items || []).length,
+      },
+    });
 
     return {
       id: orderId,
       portalId,
-      vmiOrderId: portalOrder.id,
+      vmiOrderId: String(orderDetail.id),
       vmiStatus: 'submitted',
       localStatus: 'pending',
       customerId: null,
-      vmiCustomerId: portalOrder.customerCode,
-      vmiCustomerName: portalOrder.customerName,
-      orderDate: new Date(portalOrder.orderDate),
-      requiredDate: portalOrder.requiredDate ? new Date(portalOrder.requiredDate) : null,
-      totalAmount: portalOrder.totalAmount,
-      currency: portalOrder.currency || 'THB',
-      lineCount: portalOrder.lines.length,
+      vmiCustomerId: orderDetail.hospitalCode,
+      vmiCustomerName: orderDetail.hospitalName,
+      orderDate: new Date(orderDetail.orderDate),
+      requiredDate: orderDetail.expectedDeliveryDate ? new Date(orderDetail.expectedDeliveryDate) : null,
+      totalAmount: Number(orderDetail.totalValue),
+      currency: 'THB',
+      lineCount: (orderDetail.items || []).length,
       unmatchedLineCount: unmatchedCount,
       salesOrderId: null,
       polledAt: new Date(),
@@ -605,20 +667,6 @@ export class VmiSalesOrderService {
   }
 
   /**
-   * Synchronous match result for inline use
-   */
-  private matchItemSync(
-    tppCode?: string,
-    ttmtCode?: string,
-    localCode?: string
-  ): { status: VmiItemMatchStatus } {
-    if (!tppCode && !ttmtCode && !localCode) {
-      return { status: 'unmatched' };
-    }
-    return { status: 'matched' }; // Simplified for summary
-  }
-
-  /**
    * Manually match an order line to an item
    */
   async matchOrderLine(
@@ -656,6 +704,16 @@ export class VmiSalesOrderService {
         matchStatus: 'manual_mapped',
       } as Record<string, unknown>)
       .where(eq(lines.id, lineId));
+
+    // Bug L1: Audit log for line match update
+    await createAuditLog({
+      userId: 1,
+      action: 'UPDATE',
+      tableName: 'vmi_sales_order_lines',
+      recordId: lineId,
+      oldValue: { itemId: line.itemId, matchStatus: line.matchStatus },
+      newValue: { itemId, localCode: item.code, matchStatus: 'manual_mapped' },
+    });
 
     // Return updated line
     const [updatedLine] = await db.select().from(lines).where(eq(lines.id, lineId));
@@ -699,7 +757,7 @@ export class VmiSalesOrderService {
       }
     }
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     // Build update data
     const updateData: Record<string, unknown> = {
@@ -710,6 +768,19 @@ export class VmiSalesOrderService {
     if (data.notes !== undefined) updateData.notes = data.notes;
 
     await db.update(orders).set(updateData).where(eq(orders.id, orderId));
+
+    // Bug L1: Audit log for order update
+    await createAuditLog({
+      userId: 1,
+      action: 'UPDATE',
+      tableName: 'vmi_sales_orders',
+      recordId: orderId,
+      oldValue: {
+        customerId: existing.customerId,
+        localStatus: existing.localStatus,
+      },
+      newValue: updateData,
+    });
 
     const updated = await this.getOrderById(orderId);
     return updated!;
@@ -760,14 +831,33 @@ export class VmiSalesOrderService {
       throw new VmiSalesOrderError('PORTAL_NOT_FOUND', 'Portal configuration not found', 404);
     }
 
-    // TODO: Create actual sales order in sales module
-    // For now, simulate sales order creation
-    const salesOrderId = Math.floor(Math.random() * 10000) + 1;
-    const soNumber = `SO-VMI-${Date.now()}`;
+    // Create actual sales order from VMI order
+    const matchedLines = order.lines
+      .filter((l: any) => l.matchStatus !== 'unmatched' && l.itemId)
+      .map((l: any) => ({
+        itemId: l.itemId,
+        quantity: l.quantity,
+        unit: l.unit || 'EA',
+        unitPrice: l.unitPrice,
+      }));
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const salesResult = await createSalesOrderFromVmi({
+      vmiSalesOrderId: orderId,
+      customerName: order.vmiCustomerName || 'Unknown',
+      orderDate: toDbDate(order.orderDate instanceof Date ? order.orderDate.toISOString().split('T')[0] : String(order.orderDate)),
+      requiredDate: order.requiredDate ? toDbDate(order.requiredDate instanceof Date ? order.requiredDate.toISOString().split('T')[0] : String(order.requiredDate)) : null,
+      totalAmount: order.totalAmount,
+      lines: matchedLines,
+      userId: request.userId || 1,
+      notes: `VMI Order #${order.vmiOrderId} from ${order.portalName || 'VMI Portal'}`,
+    });
 
-    // Update VMI order
+    const salesOrderId = salesResult.orderId;
+    const soNumber = salesResult.soNumber;
+
+    const now = getNow();
+
+    // Update VMI order with real sales order ID
     await db
       .update(orders)
       .set({
@@ -782,17 +872,14 @@ export class VmiSalesOrderService {
     // Notify VMI Portal
     try {
       const apiKey = decrypt(portal.apiKeyEncrypted);
-      await fetch(`${portal.portalUrl}/api/vendor/orders/${order.vmiOrderId}/confirm`, {
-        method: 'POST',
+      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'X-API-Key': apiKey,
-          'X-Vendor-Id': portal.vendorId,
         },
         body: JSON.stringify({
-          confirmedAt: new Date().toISOString(),
-          expectedShipDate: request.expectedShipDate,
-          notes: request.notes,
+          action: 'confirm',
         }),
         signal: AbortSignal.timeout(10000),
       });
@@ -857,7 +944,7 @@ export class VmiSalesOrderService {
       throw new VmiSalesOrderError('PORTAL_NOT_FOUND', 'Portal configuration not found', 404);
     }
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     // Update order
     await db
@@ -870,22 +957,28 @@ export class VmiSalesOrderService {
       } as Record<string, unknown>)
       .where(eq(orders.id, orderId));
 
+    // Bug L1: Audit log for ship operation
+    await createAuditLog({
+      userId: 1,
+      action: 'SHIP',
+      tableName: 'vmi_sales_orders',
+      recordId: orderId,
+      oldValue: { localStatus: order.localStatus, vmiStatus: order.vmiStatus },
+      newValue: { localStatus: 'shipped', vmiStatus: 'shipped' },
+    });
+
     // Notify VMI Portal
     try {
       const apiKey = decrypt(portal.apiKeyEncrypted);
-      await fetch(`${portal.portalUrl}/api/vendor/orders/${order.vmiOrderId}/ship`, {
-        method: 'POST',
+      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'X-API-Key': apiKey,
-          'X-Vendor-Id': portal.vendorId,
         },
         body: JSON.stringify({
-          shipmentDate: request.shipmentDate,
+          action: 'ship',
           expectedDeliveryDate: request.expectedDeliveryDate,
-          trackingNumber: request.trackingNumber,
-          carrier: request.carrier,
-          notes: request.notes,
         }),
         signal: AbortSignal.timeout(10000),
       });

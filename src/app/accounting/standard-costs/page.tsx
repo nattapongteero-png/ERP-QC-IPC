@@ -7,6 +7,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
@@ -36,7 +38,7 @@ interface CreateFormData {
 
 const defaultFormData: CreateFormData = {
   itemId: null,
-  effectiveDate: new Date().toISOString().split('T')[0],
+  effectiveDate: toLocalDateStr(new Date()),
   materialCost: 0,
   laborCost: 0,
   overheadCost: 0,
@@ -47,6 +49,7 @@ const defaultFormData: CreateFormData = {
 };
 
 export default function StandardCostsPage() {
+  const t = useTranslations('accounting');
   const [loading, setLoading] = useState(true);
   const [costs, setCosts] = useState<StandardCost[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -173,7 +176,7 @@ export default function StandardCostsPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            Standard Costs
+            {t('page.title')}
           </h1>
           <p className="text-gray-600">
             Manage standard costs for manufacturing variance analysis

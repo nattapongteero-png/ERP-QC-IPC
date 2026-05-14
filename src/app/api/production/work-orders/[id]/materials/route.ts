@@ -143,6 +143,18 @@ export async function POST(
 
       // If lot is provided and actualQuantity, create inventory transaction
       if (lotId && actualQuantity) {
+        // Snapshot balance after reservation
+        const [lotAfter] = await executeDbOperation(async (db) => {
+          return db.select({ quantity: inventoryLots.quantity }).from(inventoryLots).where(eq(inventoryLots.id, lotId));
+        });
+        const lotItemId = (await executeDbOperation(async (db) => {
+          return db.select({ itemId: inventoryLots.itemId }).from(inventoryLots).where(eq(inventoryLots.id, lotId));
+        }))[0]?.itemId;
+        const [itemBalRow] = await executeDbOperation(async (db) => {
+          return db.select({ total: sql`COALESCE(SUM(${inventoryLots.quantity}), 0)` })
+            .from(inventoryLots).where(eq(inventoryLots.itemId, lotItemId));
+        });
+
         await executeDbOperation(async (db) => {
           return db.insert(inventoryTransactions).values({
             lotId,
@@ -154,6 +166,9 @@ export async function POST(
             referenceNumber: workOrder.woNumber,
             reason: 'Material issued to work order',
             performedBy: session.userId,
+            balanceAfter: Number(lotAfter?.quantity) || 0,
+            itemBalanceAfter: Number(itemBalRow?.total) || 0,
+            createdAt: dbDate(),
           });
         });
       }

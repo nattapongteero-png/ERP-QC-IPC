@@ -12,16 +12,20 @@ import {
   sqliteSalesDeliveries,
   sqliteItems,
   sqliteInventoryLots,
+  sqliteARInvoices,
+  sqliteJournalEntries,
   mysqlSalesOrders,
   mysqlSalesOrderLines,
   mysqlSalesDeliveries,
   mysqlItems,
   mysqlInventoryLots,
+  mysqlARInvoices,
+  mysqlJournalEntries,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.service';
 import { getNow, getTodayStr } from '../db/date-utils';
-import { createSOShipmentJournalEntry, createARInvoiceFromSOShipment, THAI_VAT_RATE } from './accounting.service';
+import { createSOShipmentJournalEntry, createARInvoiceFromSOShipment, calculateVAT } from './accounting.service';
 import { calculateCOGS, updateSOLineWithCOGS } from './unit-cost.service';
 
 // Types
@@ -51,6 +55,8 @@ function getTables() {
       salesDeliveries: sqliteSalesDeliveries,
       items: sqliteItems,
       lots: sqliteInventoryLots,
+      arInvoices: sqliteARInvoices,
+      journalEntries: sqliteJournalEntries,
     };
   }
   return {
@@ -59,6 +65,8 @@ function getTables() {
     salesDeliveries: mysqlSalesDeliveries,
     items: mysqlItems,
     lots: mysqlInventoryLots,
+    arInvoices: mysqlARInvoices,
+    journalEntries: mysqlJournalEntries,
   };
 }
 
@@ -116,52 +124,69 @@ export async function createSalesOrder(
     atpResults.push(await checkATP(line.itemId, line.quantity));
   }
 
-  const today = new Date();
-  const prefix = `SO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
-  const lastSO = await database
-    .select({ soNumber: salesOrders.soNumber })
-    .from(salesOrders)
-    .where(sql`${salesOrders.soNumber} LIKE ${prefix + '%'}`)
-    .orderBy(desc(salesOrders.soNumber))
-    .limit(1);
-
-  let sequence = 1;
-  if (lastSO.length > 0) {
-    sequence = parseInt(lastSO[0].soNumber.split('-').pop() || '0') + 1;
-  }
-  const soNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
   const totalAmount = lines.reduce((sum: number, l: { quantity: number; unitPrice: number }) => sum + l.quantity * l.unitPrice, 0);
 
-  let newSOId: number;
-  if (isSqlite()) {
-    const [newSO] = await database
-      .insert(salesOrders)
-      .values({
-        soNumber,
-        customerName: customer.name,
-        customerContact: customer.contact,
-        customerAddress: customer.address,
-        status: 'draft',
-        totalAmount,
-        currency: 'THB',
-        createdBy: userId,
-      })
-      .returning({ id: salesOrders.id });
-    newSOId = newSO.id;
-  } else {
-    const result = await database
-      .insert(salesOrders)
-      .values({
-        soNumber,
-        customerName: customer.name,
-        customerContact: customer.contact,
-        customerAddress: customer.address,
-        status: 'draft',
-        totalAmount,
-        currency: 'THB',
-        createdBy: userId,
-      });
-    newSOId = getInsertId(result);
+  // Generate SO number with retry to prevent duplicate numbers under concurrency
+  const MAX_RETRIES = 3;
+  let newSOId: number = 0;
+  let soNumber: string = '';
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const today = new Date();
+      const prefix = `SO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const lastSO = await database
+        .select({ soNumber: salesOrders.soNumber })
+        .from(salesOrders)
+        .where(sql`${salesOrders.soNumber} LIKE ${prefix + '%'}`)
+        .orderBy(desc(salesOrders.soNumber))
+        .limit(1);
+
+      let sequence = 1;
+      if (lastSO.length > 0) {
+        sequence = parseInt(lastSO[0].soNumber.split('-').pop() || '0') + 1;
+      }
+      const nextSONumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+
+      let insertedId: number;
+      if (isSqlite()) {
+        const [newSO] = await database
+          .insert(salesOrders)
+          .values({
+            soNumber: nextSONumber,
+            customerName: customer.name,
+            customerContact: customer.contact,
+            customerAddress: customer.address,
+            status: 'draft',
+            totalAmount,
+            currency: 'THB',
+            createdBy: userId,
+          })
+          .returning({ id: salesOrders.id });
+        insertedId = newSO.id;
+      } else {
+        const insertResult = await database
+          .insert(salesOrders)
+          .values({
+            soNumber: nextSONumber,
+            customerName: customer.name,
+            customerContact: customer.contact,
+            customerAddress: customer.address,
+            status: 'draft',
+            totalAmount,
+            currency: 'THB',
+            createdBy: userId,
+          });
+        insertedId = getInsertId(insertResult);
+      }
+      newSOId = insertedId;
+      soNumber = nextSONumber;
+      break;
+    } catch (error: any) {
+      if (attempt < MAX_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
   }
 
   for (let i = 0; i < lines.length; i++) {
@@ -179,6 +204,129 @@ export async function createSalesOrder(
 
   await createAuditLog({ userId, action: 'CREATE', tableName: 'sales_orders', recordId: newSOId, newValue: { soNumber, customerName: customer.name, totalAmount } });
   return { orderId: newSOId, atpResults };
+}
+
+/**
+ * Create Sales Order from VMI order confirmation.
+ * Skips ATP checks (VMI orders are committed by hospitals).
+ * Sets status='confirmed', source='vmi', and links vmiSalesOrderId.
+ */
+export async function createSalesOrderFromVmi(data: {
+  vmiSalesOrderId: number;
+  customerName: string;
+  orderDate: Date | string;
+  requiredDate?: Date | string | null;
+  totalAmount: number;
+  lines: Array<{
+    itemId: number;
+    quantity: number;
+    unit: string;
+    unitPrice: number;
+  }>;
+  userId: number;
+  notes?: string;
+}): Promise<{ orderId: number; soNumber: string }> {
+  const { salesOrders, salesOrderLines } = getTables();
+  const database = (await getDb()) as any;
+
+  const now = getNow();
+  const totalAmount = data.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0);
+
+  // Generate SO number with retry to prevent duplicate numbers under concurrency
+  const MAX_SO_RETRIES = 3;
+  let newSOId: number = 0;
+  let soNumber: string = '';
+  for (let attempt = 0; attempt < MAX_SO_RETRIES; attempt++) {
+    try {
+      const today = new Date();
+      const prefix = `SO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const lastSO = await database
+        .select({ soNumber: salesOrders.soNumber })
+        .from(salesOrders)
+        .where(sql`${salesOrders.soNumber} LIKE ${prefix + '%'}`)
+        .orderBy(desc(salesOrders.soNumber))
+        .limit(1);
+
+      let sequence = 1;
+      if (lastSO.length > 0) {
+        sequence = parseInt(lastSO[0].soNumber.split('-').pop() || '0') + 1;
+      }
+      const nextSONumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+
+      let insertedId: number;
+      if (isSqlite()) {
+        const [newSO] = await database
+          .insert(salesOrders)
+          .values({
+            soNumber: nextSONumber,
+            customerName: data.customerName,
+            status: 'confirmed',
+            orderDate: data.orderDate,
+            requiredDate: data.requiredDate || null,
+            totalAmount,
+            currency: 'THB',
+            source: 'vmi',
+            vmiSalesOrderId: data.vmiSalesOrderId,
+            notes: data.notes || null,
+            createdBy: data.userId,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning({ id: salesOrders.id });
+        insertedId = newSO.id;
+      } else {
+        const insertResult = await database
+          .insert(salesOrders)
+          .values({
+            soNumber: nextSONumber,
+            customerName: data.customerName,
+            status: 'confirmed',
+            orderDate: data.orderDate,
+            requiredDate: data.requiredDate || null,
+            totalAmount,
+            currency: 'THB',
+            source: 'vmi',
+            vmiSalesOrderId: data.vmiSalesOrderId,
+            notes: data.notes || null,
+            createdBy: data.userId,
+            createdAt: now,
+            updatedAt: now,
+          });
+        insertedId = getInsertId(insertResult);
+      }
+      newSOId = insertedId;
+      soNumber = nextSONumber;
+      break;
+    } catch (error: any) {
+      if (attempt < MAX_SO_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  // Create order lines
+  for (const line of data.lines) {
+    await database.insert(salesOrderLines).values({
+      soId: newSOId,
+      itemId: line.itemId,
+      quantity: line.quantity,
+      unit: line.unit,
+      unitPrice: line.unitPrice,
+      totalPrice: line.quantity * line.unitPrice,
+      createdAt: now,
+    });
+  }
+
+  await createAuditLog({
+    userId: data.userId,
+    action: 'CREATE',
+    tableName: 'sales_orders',
+    recordId: newSOId,
+    newValue: { soNumber, source: 'vmi', vmiSalesOrderId: data.vmiSalesOrderId, totalAmount },
+  });
+
+  return { orderId: newSOId, soNumber };
 }
 
 /**
@@ -233,11 +381,13 @@ export interface FulfillmentResult {
   cogsJournalEntryId?: number;
   cogsJournalEntryNumber?: string;
   accountingMessage?: string;
+  accountingFailed?: boolean;
   // AR Invoice integration
   arInvoiceId?: number;
   arInvoiceNumber?: string;
   taxInvoiceNumber?: string;
   arInvoiceMessage?: string;
+  arInvoiceFailed?: boolean;
 }
 
 /**
@@ -277,22 +427,6 @@ export async function fulfillSalesOrderLine(
   const [so] = await database.select().from(salesOrders).where(eq(salesOrders.id, input.soId));
   if (!so) throw new Error(`Sales order ${input.soId} not found`);
 
-  // Generate delivery number
-  const today = new Date();
-  const prefix = `DL-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
-  const lastDL = await database
-    .select({ deliveryNumber: salesDeliveries.deliveryNumber })
-    .from(salesDeliveries)
-    .where(sql`${salesDeliveries.deliveryNumber} LIKE ${prefix + '%'}`)
-    .orderBy(desc(salesDeliveries.deliveryNumber))
-    .limit(1);
-
-  let sequence = 1;
-  if (lastDL.length > 0) {
-    sequence = parseInt(lastDL[0].deliveryNumber.split('-').pop() || '0') + 1;
-  }
-  const deliveryNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
-
   // Issue material from inventory (deducts lot quantity)
   await issueMaterial(
     input.lotId,
@@ -304,45 +438,75 @@ export async function fulfillSalesOrderLine(
     `Delivery for SO Line ${input.soLineId}`
   );
 
-  // Create delivery record
-  let newDeliveryId: number;
-  if (isSqlite()) {
-    const [newDelivery] = await database
-      .insert(salesDeliveries)
-      .values({
-        soId: input.soId,
-        soLineId: input.soLineId,
-        itemId: input.itemId,
-        lotId: input.lotId,
-        lotNumber: lot.lotNumber,
-        quantity: input.quantity,
-        unit: soLine.unit,
-        deliveryDate: getNow(),
-        deliveryNumber,
-        status: 'shipped',
-        notes: input.notes,
-        createdBy: userId,
-      })
-      .returning({ id: salesDeliveries.id });
-    newDeliveryId = newDelivery.id;
-  } else {
-    const result = await database
-      .insert(salesDeliveries)
-      .values({
-        soId: input.soId,
-        soLineId: input.soLineId,
-        itemId: input.itemId,
-        lotId: input.lotId,
-        lotNumber: lot.lotNumber,
-        quantity: input.quantity,
-        unit: soLine.unit,
-        deliveryDate: getNow(),
-        deliveryNumber,
-        status: 'shipped',
-        notes: input.notes,
-        createdBy: userId,
-      });
-    newDeliveryId = getInsertId(result);
+  // Generate delivery number and insert inside a transaction to prevent duplicate numbers
+  const MAX_DL_RETRIES = 3;
+  let newDeliveryId: number = 0;
+  let deliveryNumber: string = '';
+  for (let attempt = 0; attempt < MAX_DL_RETRIES; attempt++) {
+    try {
+      const today = new Date();
+      const prefix = `DL-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const lastDL = await database
+        .select({ deliveryNumber: salesDeliveries.deliveryNumber })
+        .from(salesDeliveries)
+        .where(sql`${salesDeliveries.deliveryNumber} LIKE ${prefix + '%'}`)
+        .orderBy(desc(salesDeliveries.deliveryNumber))
+        .limit(1);
+
+      let sequence = 1;
+      if (lastDL.length > 0) {
+        sequence = parseInt(lastDL[0].deliveryNumber.split('-').pop() || '0') + 1;
+      }
+      const nextDeliveryNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+
+      let insertedId: number;
+      if (isSqlite()) {
+        const [newDelivery] = await database
+          .insert(salesDeliveries)
+          .values({
+            soId: input.soId,
+            soLineId: input.soLineId,
+            itemId: input.itemId,
+            lotId: input.lotId,
+            lotNumber: lot.lotNumber,
+            quantity: input.quantity,
+            unit: soLine.unit,
+            deliveryDate: getNow(),
+            deliveryNumber: nextDeliveryNumber,
+            status: 'shipped',
+            notes: input.notes,
+            createdBy: userId,
+          })
+          .returning({ id: salesDeliveries.id });
+        insertedId = newDelivery.id;
+      } else {
+        const insertResult = await database
+          .insert(salesDeliveries)
+          .values({
+            soId: input.soId,
+            soLineId: input.soLineId,
+            itemId: input.itemId,
+            lotId: input.lotId,
+            lotNumber: lot.lotNumber,
+            quantity: input.quantity,
+            unit: soLine.unit,
+            deliveryDate: getNow(),
+            deliveryNumber: nextDeliveryNumber,
+            status: 'shipped',
+            notes: input.notes,
+            createdBy: userId,
+          });
+        insertedId = getInsertId(insertResult);
+      }
+      newDeliveryId = insertedId;
+      deliveryNumber = nextDeliveryNumber;
+      break;
+    } catch (error: any) {
+      if (attempt < MAX_DL_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
   }
 
   // Update SO line shipped quantity
@@ -398,6 +562,8 @@ export async function fulfillSalesOrderLine(
   let arInvoiceNumber: string | undefined;
   let taxInvoiceNumber: string | undefined;
   let arInvoiceMessage: string | undefined;
+  let accountingFailed = false;
+  let arInvoiceFailed = false;
 
   try {
     // Get unit price from SO line
@@ -415,8 +581,13 @@ export async function fulfillSalesOrderLine(
     // Only create journal entries if there's a price
     if (lineTotal > 0) {
       // Calculate VAT (7%)
-      const vatAmount = Math.round(lineTotal * THAI_VAT_RATE * 100) / 100;
-      const netAmount = lineTotal - vatAmount;
+      // SO unit price is VAT-exclusive — VAT is added at shipment when the
+      // tax invoice is issued, so totalAmount must be net + VAT for the
+      // sales JE to balance (Dr. AR = Cr. Sales + Cr. Output VAT).
+      const vatCalc = calculateVAT(lineTotal, false);
+      const vatAmount = vatCalc.vatAmount;
+      const netAmount = vatCalc.baseAmount;
+      const grossAmount = vatCalc.totalAmount;
 
       // Use COGS from the calculated result
       const costOfGoodsSold = cogsResult.totalCost;
@@ -430,7 +601,7 @@ export async function fulfillSalesOrderLine(
           soNumber: so.soNumber,
           customerName: so.customerName,
           shipmentDate: getTodayStr(),
-          totalAmount: lineTotal,
+          totalAmount: grossAmount,
           vatAmount,
           netAmount,
           costOfGoodsSold,
@@ -469,7 +640,7 @@ export async function fulfillSalesOrderLine(
             itemName: itemDetail?.nameTh || itemDetail?.nameEn || 'Unknown',
             quantity: input.quantity,
             unitPrice,
-            totalAmount: lineTotal,
+            totalAmount: grossAmount,
             vatAmount,
             netAmount,
             lotId: input.lotId,
@@ -484,6 +655,7 @@ export async function fulfillSalesOrderLine(
       } catch (arError) {
         console.error('Failed to create AR invoice:', arError);
         arInvoiceMessage = `ไม่สามารถสร้างใบแจ้งหนี้ AR ได้: ${arError instanceof Error ? arError.message : 'Unknown error'}`;
+        arInvoiceFailed = true;
       }
     } else {
       accountingMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างรายการบัญชี';
@@ -493,6 +665,8 @@ export async function fulfillSalesOrderLine(
     // Log error but don't fail the fulfillment
     console.error('Failed to create accounting entries:', accountingError);
     accountingMessage = `ไม่สามารถสร้างรายการบัญชีได้: ${accountingError instanceof Error ? accountingError.message : 'Unknown error'}`;
+    accountingFailed = true;
+    arInvoiceFailed = true;
   }
 
   return {
@@ -504,9 +678,243 @@ export async function fulfillSalesOrderLine(
     cogsJournalEntryId,
     cogsJournalEntryNumber,
     accountingMessage,
+    accountingFailed,
     arInvoiceId,
     arInvoiceNumber,
     taxInvoiceNumber,
     arInvoiceMessage,
+    arInvoiceFailed,
   };
+}
+
+// ============================================================================
+// Retry accounting for an existing shipment
+// ============================================================================
+//
+// Usable when the original fulfill call shipped the goods but the accounting
+// integration failed silently (e.g. the VAT-unbalanced JE bug fixed in
+// 2026-05). Idempotent: skips deliveries that already have a posted sales JE
+// or AR invoice so it's safe to run as a recovery sweep.
+
+export interface RetryAccountingResult {
+  deliveryId: number;
+  deliveryNumber: string;
+  alreadyHadJournal: boolean;
+  alreadyHadInvoice: boolean;
+  salesJournalEntryId?: number;
+  salesJournalEntryNumber?: string;
+  cogsJournalEntryId?: number;
+  cogsJournalEntryNumber?: string;
+  arInvoiceId?: number;
+  arInvoiceNumber?: string;
+  taxInvoiceNumber?: string;
+  message: string;
+}
+
+export async function retryAccountingForDelivery(
+  deliveryId: number,
+  userId: number,
+): Promise<RetryAccountingResult> {
+  const database = (await getDb()) as any;
+  const { salesOrders, salesOrderLines, salesDeliveries, items, arInvoices, journalEntries } =
+    getTables();
+
+  const [delivery] = await database
+    .select()
+    .from(salesDeliveries)
+    .where(eq(salesDeliveries.id, deliveryId));
+  if (!delivery) throw new Error(`Delivery ${deliveryId} not found`);
+
+  const [so] = await database
+    .select()
+    .from(salesOrders)
+    .where(eq(salesOrders.id, delivery.soId));
+  if (!so) throw new Error(`Sales order ${delivery.soId} not found`);
+
+  const [soLine] = await database
+    .select()
+    .from(salesOrderLines)
+    .where(eq(salesOrderLines.id, delivery.soLineId));
+  if (!soLine) throw new Error(`SO line ${delivery.soLineId} not found`);
+
+  const [item] = await database
+    .select()
+    .from(items)
+    .where(eq(items.id, delivery.itemId));
+
+  const existingJournals = await database
+    .select({ id: journalEntries.id })
+    .from(journalEntries)
+    .where(
+      and(
+        eq(journalEntries.sourceType, 'SO_SHIPMENT'),
+        eq(journalEntries.sourceId, deliveryId),
+      ),
+    );
+  const alreadyHadJournal = existingJournals.length > 0;
+
+  const existingInvoices = await database
+    .select({ id: arInvoices.id, invoiceNumber: arInvoices.invoiceNumber })
+    .from(arInvoices)
+    .where(eq(arInvoices.salesOrderId, delivery.soId));
+  const alreadyHadInvoice = existingInvoices.length > 0;
+
+  if (alreadyHadJournal && alreadyHadInvoice) {
+    return {
+      deliveryId,
+      deliveryNumber: delivery.deliveryNumber,
+      alreadyHadJournal,
+      alreadyHadInvoice,
+      message: 'รายการบัญชีและใบกำกับภาษีถูกสร้างไว้แล้ว — ข้าม',
+    };
+  }
+
+  const unitPrice = Number(soLine.unitPrice) || 0;
+  const quantity = Number(delivery.quantity) || 0;
+  const lineTotal = unitPrice * quantity;
+  if (lineTotal <= 0) {
+    return {
+      deliveryId,
+      deliveryNumber: delivery.deliveryNumber,
+      alreadyHadJournal,
+      alreadyHadInvoice,
+      message: 'ไม่มีราคาสินค้า — ไม่ต้องสร้างรายการบัญชี',
+    };
+  }
+
+  const cogsResult = await calculateCOGS(delivery.itemId, quantity, unitPrice);
+  await updateSOLineWithCOGS(delivery.soLineId, cogsResult);
+
+  const vatCalc = calculateVAT(lineTotal, false);
+
+  let salesJournalEntryId: number | undefined;
+  let salesJournalEntryNumber: string | undefined;
+  let cogsJournalEntryId: number | undefined;
+  let cogsJournalEntryNumber: string | undefined;
+  if (!alreadyHadJournal) {
+    const accountingResult = await createSOShipmentJournalEntry(
+      {
+        deliveryId,
+        deliveryNumber: delivery.deliveryNumber,
+        soId: delivery.soId,
+        soNumber: so.soNumber,
+        customerName: so.customerName,
+        shipmentDate: getTodayStr(),
+        totalAmount: vatCalc.totalAmount,
+        vatAmount: vatCalc.vatAmount,
+        netAmount: vatCalc.baseAmount,
+        costOfGoodsSold: cogsResult.totalCost,
+      },
+      userId,
+    );
+    salesJournalEntryId = accountingResult.salesJournalEntryId;
+    salesJournalEntryNumber = accountingResult.salesJournalEntryNumber;
+    cogsJournalEntryId = accountingResult.cogsJournalEntryId;
+    cogsJournalEntryNumber = accountingResult.cogsJournalEntryNumber;
+  }
+
+  let arInvoiceId: number | undefined;
+  let arInvoiceNumber: string | undefined;
+  let taxInvoiceNumber: string | undefined;
+  if (!alreadyHadInvoice) {
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 30);
+    const arResult = await createARInvoiceFromSOShipment(
+      {
+        soId: delivery.soId,
+        soNumber: so.soNumber,
+        customerId: undefined,
+        customerName: so.customerName,
+        shipmentDate: getTodayStr(),
+        dueDate: dueDate.toISOString().split('T')[0],
+        deliveryId,
+        deliveryNumber: delivery.deliveryNumber,
+        itemId: delivery.itemId,
+        itemCode: item?.code || 'Unknown',
+        itemName: item?.nameTh || item?.nameEn || 'Unknown',
+        quantity,
+        unitPrice,
+        totalAmount: vatCalc.totalAmount,
+        vatAmount: vatCalc.vatAmount,
+        netAmount: vatCalc.baseAmount,
+        lotId: delivery.lotId,
+      },
+      userId,
+    );
+    arInvoiceId = arResult.arInvoiceId;
+    arInvoiceNumber = arResult.arInvoiceNumber;
+    taxInvoiceNumber = arResult.taxInvoiceNumber;
+  }
+
+  return {
+    deliveryId,
+    deliveryNumber: delivery.deliveryNumber,
+    alreadyHadJournal,
+    alreadyHadInvoice,
+    salesJournalEntryId,
+    salesJournalEntryNumber,
+    cogsJournalEntryId,
+    cogsJournalEntryNumber,
+    arInvoiceId,
+    arInvoiceNumber,
+    taxInvoiceNumber,
+    message: alreadyHadJournal || alreadyHadInvoice
+      ? 'สร้างรายการบัญชีที่ขาดเรียบร้อย'
+      : 'สร้างรายการบัญชีและใบกำกับภาษีย้อนหลังเรียบร้อย',
+  };
+}
+
+// Sweep recovery: scan all shipped deliveries that are missing accounting
+// artifacts and retry. Returns per-delivery results so the caller can audit.
+export async function retryAccountingForAllPendingDeliveries(
+  userId: number,
+): Promise<{ scanned: number; fixed: number; results: RetryAccountingResult[] }> {
+  const database = (await getDb()) as any;
+  const { salesDeliveries, journalEntries, arInvoices } = getTables();
+
+  const allDeliveries = await database
+    .select({
+      id: salesDeliveries.id,
+      soId: salesDeliveries.soId,
+      status: salesDeliveries.status,
+    })
+    .from(salesDeliveries)
+    .where(eq(salesDeliveries.status, 'shipped'));
+
+  const results: RetryAccountingResult[] = [];
+  let fixed = 0;
+  for (const d of allDeliveries) {
+    const hasJE = await database
+      .select({ id: journalEntries.id })
+      .from(journalEntries)
+      .where(
+        and(
+          eq(journalEntries.sourceType, 'SO_SHIPMENT'),
+          eq(journalEntries.sourceId, d.id),
+        ),
+      )
+      .limit(1);
+    const hasAR = await database
+      .select({ id: arInvoices.id })
+      .from(arInvoices)
+      .where(eq(arInvoices.salesOrderId, d.soId))
+      .limit(1);
+    if (hasJE.length > 0 && hasAR.length > 0) continue;
+
+    try {
+      const r = await retryAccountingForDelivery(d.id, userId);
+      results.push(r);
+      if (!r.alreadyHadJournal || !r.alreadyHadInvoice) fixed += 1;
+    } catch (e) {
+      results.push({
+        deliveryId: d.id,
+        deliveryNumber: '?',
+        alreadyHadJournal: false,
+        alreadyHadInvoice: false,
+        message: `ผิดพลาด: ${e instanceof Error ? e.message : 'unknown'}`,
+      });
+    }
+  }
+
+  return { scanned: allDeliveries.length, fixed, results };
 }

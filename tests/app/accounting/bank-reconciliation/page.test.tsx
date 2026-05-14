@@ -172,7 +172,7 @@ describe('Bank Reconciliation Page', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Bank Reconciliation')).toBeInTheDocument();
+      expect(screen.getByText('Accounting')).toBeInTheDocument();
     });
   });
 
@@ -233,7 +233,7 @@ describe('Bank Reconciliation Page', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Import bank statements and reconcile transactions/i)
+        screen.getByText(/Manage general ledger/i)
       ).toBeInTheDocument();
     });
   });

@@ -5,6 +5,7 @@
 // Redesigned with KPIs, DataGrid, Cards, and Analytics views
 
 import React, { useMemo, useState } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -110,26 +111,33 @@ async function fetchTrainingSessions(): Promise<TrainingSessionWithCourse[]> {
 
 type ViewMode = 'grid' | 'cards' | 'analytics';
 
-// Session status badge component
+// Session status badge component (uses useTranslations)
 function SessionStatusBadge({ status }: { status: TrainingSessionStatus }) {
-  const configs: Record<
+  const t = useTranslations('hr');
+  const variantMap: Record<
     TrainingSessionStatus,
-    { label: string; variant: 'default' | 'secondary' | 'success' | 'destructive' | 'warning' }
+    'default' | 'secondary' | 'success' | 'destructive' | 'warning'
   > = {
-    scheduled: { label: 'รอดำเนินการ', variant: 'secondary' },
-    in_progress: { label: 'กำลังอบรม', variant: 'warning' },
-    completed: { label: 'เสร็จสิ้น', variant: 'success' },
-    cancelled: { label: 'ยกเลิก', variant: 'destructive' },
+    scheduled: 'secondary',
+    in_progress: 'warning',
+    completed: 'success',
+    cancelled: 'destructive',
   };
-  const config = configs[status] || { label: status, variant: 'default' as const };
-  return <Badge variant={config.variant}>{config.label}</Badge>;
+  const labelMap: Record<TrainingSessionStatus, string> = {
+    scheduled: t('training.sessionStatus.scheduled'),
+    in_progress: t('training.sessionStatus.inProgress'),
+    completed: t('training.sessionStatus.completed'),
+    cancelled: t('training.sessionStatus.cancelled'),
+  };
+  return <Badge variant={variantMap[status] || 'default'}>{labelMap[status] || status}</Badge>;
 }
 
 // Course mandatory badge
 function MandatoryBadge({ isMandatory }: { isMandatory: boolean }) {
+  const t = useTranslations('hr');
   return (
     <Badge variant={isMandatory ? 'destructive' : 'secondary'}>
-      {isMandatory ? 'บังคับ' : 'ไม่บังคับ'}
+      {isMandatory ? t('training.mandatory') : t('training.optional')}
     </Badge>
   );
 }
@@ -155,20 +163,6 @@ function getGradientForCode(code: string): string {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
-// Format date for display
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return '-';
-  try {
-    return new Date(dateStr).toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
 // Format time for display
 function formatTime(timeStr: string | null | undefined): string {
   if (!timeStr) return '-';
@@ -176,6 +170,8 @@ function formatTime(timeStr: string | null | undefined): string {
 }
 
 export default function TrainingDashboardPage() {
+  const t = useTranslations('hr');
+  const locale = useLocale();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -224,7 +220,7 @@ export default function TrainingDashboardPage() {
     // Course categories
     const categoryMap = new Map<string, number>();
     courses.forEach((c) => {
-      const cat = c.category || 'ไม่ระบุหมวด';
+      const cat = c.category || t('authorizations.unknown');
       categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
     });
     const categoryDistribution = Array.from(categoryMap.entries()).map(([name, count]) => ({
@@ -234,10 +230,10 @@ export default function TrainingDashboardPage() {
 
     // Session status distribution
     const sessionStatusDistribution = [
-      { name: 'รอดำเนินการ', count: scheduledSessions, color: '#6b7280' },
-      { name: 'กำลังอบรม', count: inProgressSessions, color: '#f59e0b' },
-      { name: 'เสร็จสิ้น', count: completedSessions, color: '#10b981' },
-      { name: 'ยกเลิก', count: cancelledSessions, color: '#ef4444' },
+      { name: t('training.sessionStatus.scheduled'), count: scheduledSessions, color: '#6b7280' },
+      { name: t('training.sessionStatus.inProgress'), count: inProgressSessions, color: '#f59e0b' },
+      { name: t('training.sessionStatus.completed'), count: completedSessions, color: '#10b981' },
+      { name: t('training.sessionStatus.cancelled'), count: cancelledSessions, color: '#ef4444' },
     ].filter((s) => s.count > 0);
 
     // This month's sessions
@@ -276,7 +272,7 @@ export default function TrainingDashboardPage() {
       thisMonthSessions,
       upcomingSessions,
     };
-  }, [courses, sessions]);
+  }, [courses, sessions, t]);
 
   // Filtered data
   const filteredSessions = useMemo(() => {
@@ -290,7 +286,7 @@ export default function TrainingDashboardPage() {
       const matchesStatus = !statusFilter || session.status === statusFilter;
 
       return matchesSearch && matchesStatus;
-    });
+    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [sessions, searchText, statusFilter]);
 
   const filteredCourses = useMemo(() => {
@@ -332,12 +328,15 @@ export default function TrainingDashboardPage() {
   };
 
   // Session status options
-  const statusOptions = [
-    { value: 'scheduled', text: 'รอดำเนินการ' },
-    { value: 'in_progress', text: 'กำลังอบรม' },
-    { value: 'completed', text: 'เสร็จสิ้น' },
-    { value: 'cancelled', text: 'ยกเลิก' },
-  ];
+  const statusOptions = useMemo(
+    () => [
+      { value: 'scheduled', text: t('training.sessionStatus.scheduled') },
+      { value: 'in_progress', text: t('training.sessionStatus.inProgress') },
+      { value: 'completed', text: t('training.sessionStatus.completed') },
+      { value: 'cancelled', text: t('training.sessionStatus.cancelled') },
+    ],
+    [t]
+  );
 
   // Category options from courses
   const categoryOptions = useMemo(() => {
@@ -349,11 +348,11 @@ export default function TrainingDashboardPage() {
   }, [courses]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6" data-title={t('training.title')}>
       {/* Page Header */}
       <ResponsivePageHeader
-        title="ระบบจัดการการอบรม"
-        subtitle="Training Management Dashboard"
+        title={t('training.title')}
+        subtitle={t('training.description')}
         icon={GraduationCap}
         iconBgColor="bg-amber-100"
         iconColor="text-amber-600"
@@ -652,11 +651,25 @@ export default function TrainingDashboardPage() {
             <StateStoring
               enabled
               type="localStorage"
-              storageKey="hr_training_sessions_grid"
+              storageKey="hr_training_sessions_grid_v2"
             />
             <Scrolling mode="virtual" />
             <Export enabled />
 
+            <Column
+              dataField="_rowNumber"
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.data._rowNumber}
+                </span>
+              )}
+            />
             <Column
               dataField="courseCode"
               caption="รหัสหลักสูตร"

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, successResponse, errorResponse } from '@/lib/api-utils';
-import { calculateYield, recordProductionOutput } from '@/lib/services/production.service';
+import { calculateYield, recordProductionOutput, recordBulkOutput } from '@/lib/services/production.service';
 import { getProductionYieldReport } from '@/lib/services/reports.service';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 
 // GET - Get yield calculation for a work order
 export async function GET(request: NextRequest) {
@@ -28,15 +29,32 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// POST - Record production output
+// POST - Record production output (bulk or finished based on ?stage=)
 export async function POST(request: NextRequest) {
   return withAuth(request, async (user) => {
     try {
       const body = await request.json();
-      const { workOrderId, actualQuantity, rejectQuantity, warehouseId } = body;
+      const { workOrderId, actualQuantity, rejectQuantity, warehouseId, stage } = body;
+      const outputStage = (stage === 'bulk' ? 'bulk' : 'finished') as 'bulk' | 'finished';
 
-      if (!workOrderId || actualQuantity === undefined || !warehouseId) {
-        return errorResponse('workOrderId, actualQuantity, and warehouseId are required', 400);
+      if (!workOrderId || actualQuantity === undefined) {
+        return errorResponse('workOrderId and actualQuantity are required', 400);
+      }
+
+      if (outputStage === 'bulk') {
+        await recordBulkOutput(workOrderId, actualQuantity, user.userId);
+        // Notify dashboards / sub-pages on the same WO so they refresh
+        // without manual reload (multi-user / multi-device).
+        try { publishWorkOrderChanged(workOrderId, 'production-output', user.userId, 'bulk'); } catch {}
+        return successResponse({
+          stage: 'bulk',
+          bulkQuantity: actualQuantity,
+          message: 'Bulk product yield recorded successfully',
+        });
+      }
+
+      if (!warehouseId) {
+        return errorResponse('warehouseId is required for finished output stage', 400);
       }
 
       const lotId = await recordProductionOutput(
@@ -49,10 +67,13 @@ export async function POST(request: NextRequest) {
 
       const yieldResult = await calculateYield(workOrderId);
 
+      try { publishWorkOrderChanged(workOrderId, 'production-output', user.userId, 'finished'); } catch {}
+
       return successResponse({
+        stage: 'finished',
         lotId,
         yield: yieldResult,
-        message: yieldResult.status === 'low_yield' 
+        message: yieldResult.status === 'low_yield'
           ? 'Warning: Yield is below target. Deviation may be required.'
           : 'Production output recorded successfully',
       });

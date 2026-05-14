@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -50,6 +51,10 @@ interface QualitySpecDetail {
     result: string;
     numericResult: number | null;
     status: string;
+    specMinValue?: number | null;
+    specMaxValue?: number | null;
+    specSpecification?: string | null;
+    specUnit?: string | null;
     createdAt: string;
   }[];
   stats: {
@@ -64,6 +69,7 @@ interface QualitySpecDetail {
 export default function QualitySpecDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('quality');
   const id = params.id as string;
 
   const [spec, setSpec] = useState<QualitySpecDetail | null>(null);
@@ -222,6 +228,24 @@ export default function QualitySpecDetailPage() {
       ),
     },
     {
+      dataField: 'specMinValue',
+      caption: 'Spec Range (at test)',
+      cellRender: (cellInfo) => {
+        const d = cellInfo.data;
+        const min = d.specMinValue ?? spec?.minValue;
+        const max = d.specMaxValue ?? spec?.maxValue;
+        const unit = d.specUnit ?? spec?.unit ?? '';
+        const hasSnapshot = d.specMinValue !== null && d.specMinValue !== undefined;
+        if (min === null && max === null) return <span className="text-gray-400">-</span>;
+        return (
+          <span className={`text-xs ${hasSnapshot ? 'text-gray-700' : 'text-amber-600 italic'}`}>
+            {min !== null && min !== undefined ? min : '—'} ~ {max !== null && max !== undefined ? max : '—'} {unit}
+            {!hasSnapshot && <span title="ใช้ค่าปัจจุบัน (ไม่มี snapshot)"> *</span>}
+          </span>
+        );
+      },
+    },
+    {
       dataField: 'testDate',
       caption: 'Test Date',
       cellRender: (cellInfo) => formatDate(cellInfo.data.testDate),
@@ -269,7 +293,7 @@ export default function QualitySpecDetailPage() {
     
       <div className="space-y-6">
         <PageHeader
-          title={spec.testName}
+          title={`${t('specifications.title')}: ${spec.testName}`}
           description={`${spec.itemCode} - ${spec.itemName}`}
           backButton={
             <DxButton

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
-import { PageHeader } from '@/components/ui/page-header';
-import { Check, AlertCircle, Wifi, Shield, ChevronRight } from 'lucide-react';
+import { ResponsivePageHeader } from '@/components/shared';
+import { Settings as SettingsIcon, Check, AlertCircle, Wifi, Shield, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import Link from 'next/link';
 
@@ -26,22 +27,42 @@ interface Settings {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('settings');
   const [settings, setSettings] = useState<Settings>({
-    companyName: 'Herbal Medicine Co., Ltd.',
-    companyNameTh: 'บริษัท สมุนไพรไทย จำกัด',
-    address: '123 Herbal Street, Bangkok 10110',
-    phone: '02-123-4567',
-    email: 'info@herbal-medicine.co.th',
-    taxId: '0123456789012',
-    fdaLicense: 'FDA-12345',
-    gmpCertificate: 'GMP-67890',
+    companyName: '',
+    companyNameTh: '',
+    address: '',
+    phone: '',
+    email: '',
+    taxId: '',
+    fdaLicense: '',
+    gmpCertificate: '',
     lotPrefix: 'LOT',
     poPrefix: 'PO',
     soPrefix: 'SO',
     woPrefix: 'WO',
   });
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/settings/company');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSettings(json.data);
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const handleChange = (field: keyof Settings, value: string) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
@@ -51,11 +72,19 @@ export default function SettingsPage() {
     setIsSaving(true);
     setMessage(null);
     try {
-      // In a real app, this would save to the database
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setMessage({ type: 'success', text: 'Settings saved successfully' });
-    } catch {
-      setMessage({ type: 'error', text: 'Failed to save settings' });
+      const res = await fetch('/api/settings/company', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Save failed');
+      }
+      setMessage({ type: 'success', text: t('settingsPage.saveSuccess') });
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      setMessage({ type: 'error', text: t('settingsPage.saveError') });
     } finally {
       setIsSaving(false);
     }
@@ -63,17 +92,20 @@ export default function SettingsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <PageHeader
-          title="Settings"
-          description="ตั้งค่าระบบ"
+      <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+        <ResponsivePageHeader
+          title={t('page.title')}
+          subtitle={t('page.description')}
+          icon={SettingsIcon}
+          iconBgColor="bg-slate-100"
+          iconColor="text-slate-600"
           actions={
             <DxButton
-              text={isSaving ? 'Saving...' : 'Save Settings'}
+              text={isSaving ? t('settingsPage.saving') : t('settingsPage.saveSettings')}
               icon="save"
               type="success"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || isLoading}
             />
           }
         />
@@ -97,16 +129,24 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          </div>
+        )}
+
+        {!isLoading && (
+        <>
         {/* Company Information */}
         <Card elevation="raised">
           <CardHeader>
-            <CardTitle>Company Information</CardTitle>
+            <CardTitle>{t('company.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Company Name (English)
+                  {t('company.nameEn')}
                 </label>
                 <DxTextBox
                   value={settings.companyName}
@@ -115,7 +155,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Company Name (Thai)
+                  {t('company.nameTh')}
                 </label>
                 <DxTextBox
                   value={settings.companyNameTh}
@@ -124,7 +164,7 @@ export default function SettingsPage() {
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address
+                  {t('company.address')}
                 </label>
                 <DxTextBox
                   value={settings.address}
@@ -133,7 +173,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone
+                  {t('company.phone')}
                 </label>
                 <DxTextBox
                   value={settings.phone}
@@ -142,7 +182,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  {t('company.email')}
                 </label>
                 <DxTextBox
                   value={settings.email}
@@ -157,13 +197,13 @@ export default function SettingsPage() {
         {/* Regulatory Information */}
         <Card elevation="raised">
           <CardHeader>
-            <CardTitle>Regulatory Information</CardTitle>
+            <CardTitle>{t('regulatory.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tax ID
+                  {t('regulatory.taxId')}
                 </label>
                 <DxTextBox
                   value={settings.taxId}
@@ -172,7 +212,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  FDA License Number
+                  {t('regulatory.fdaLicense')}
                 </label>
                 <DxTextBox
                   value={settings.fdaLicense}
@@ -181,7 +221,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  GMP Certificate Number
+                  {t('regulatory.gmpCertificate')}
                 </label>
                 <DxTextBox
                   value={settings.gmpCertificate}
@@ -195,13 +235,13 @@ export default function SettingsPage() {
         {/* Document Prefixes */}
         <Card elevation="raised">
           <CardHeader>
-            <CardTitle>Document Prefixes</CardTitle>
+            <CardTitle>{t('prefixes.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Lot Number Prefix
+                  {t('prefixes.lotPrefix')}
                 </label>
                 <DxTextBox
                   value={settings.lotPrefix}
@@ -210,7 +250,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  PO Number Prefix
+                  {t('prefixes.poPrefix')}
                 </label>
                 <DxTextBox
                   value={settings.poPrefix}
@@ -219,7 +259,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  SO Number Prefix
+                  {t('prefixes.soPrefix')}
                 </label>
                 <DxTextBox
                   value={settings.soPrefix}
@@ -228,7 +268,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Work Order Prefix
+                  {t('prefixes.woPrefix')}
                 </label>
                 <DxTextBox
                   value={settings.woPrefix}
@@ -242,7 +282,7 @@ export default function SettingsPage() {
         {/* Security & Confidentiality */}
         <Card elevation="raised">
           <CardHeader>
-            <CardTitle>Security & Confidentiality</CardTitle>
+            <CardTitle>{t('securityConfidentiality.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -255,9 +295,9 @@ export default function SettingsPage() {
                     <Shield className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">Confidentiality Settings</div>
+                    <div className="font-medium text-gray-900">{t('securityConfidentiality.confidentialityLink')}</div>
                     <div className="text-sm text-gray-500">
-                      Configure bypass roles and access control for confidential BOM items
+                      {t('securityConfidentiality.confidentialityDescription')}
                     </div>
                   </div>
                 </div>
@@ -270,7 +310,7 @@ export default function SettingsPage() {
         {/* Integration Settings */}
         <Card elevation="raised">
           <CardHeader>
-            <CardTitle>Integrations</CardTitle>
+            <CardTitle>{t('integrations.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -283,9 +323,9 @@ export default function SettingsPage() {
                     <Wifi className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">VMI Portal Connections</div>
+                    <div className="font-medium text-gray-900">{t('vmiSettings.vmiPortalConnections')}</div>
                     <div className="text-sm text-gray-500">
-                      Manage Vendor Managed Inventory portal connections for hospital customers
+                      {t('vmiSettings.vmiPortalDescription')}
                     </div>
                   </div>
                 </div>
@@ -294,6 +334,8 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
       </div>
     </MainLayout>
   );

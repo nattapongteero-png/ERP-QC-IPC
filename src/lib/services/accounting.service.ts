@@ -366,32 +366,40 @@ export async function createJournalEntry(input: CreateJournalEntryInput): Promis
     fiscalPeriodId = period.id;
   }
 
-  // Generate entry number
-  const entryNumber = await generateEntryNumber(input.entryDate);
-
-  // Insert journal entry
-  const entryValues = {
-    entryNumber,
-    entryDate: toDbDate(input.entryDate),
-    fiscalPeriodId,
-    description: input.description || null,
-    sourceType: input.sourceType || null,
-    sourceId: input.sourceId || null,
-    status: 'draft' as JournalEntryStatus,
-    totalDebit: totalDebit,
-    totalCredit: totalCredit,
-    createdBy: input.createdBy,
-    createdAt: getNow(),
-    updatedAt: getNow(),
-  };
-
-  const insertResult = await database
-    .insert(journalEntries)
-    .values(entryValues as any);
-
-  const journalEntryId = isSqlite()
-    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
-    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+  // Generate entry number and insert header in a transaction to prevent duplicate numbers
+  const MAX_JE_RETRIES = 3;
+  let journalEntryId: number = 0;
+  let entryNumber: string = '';
+  for (let attempt = 0; attempt < MAX_JE_RETRIES; attempt++) {
+    try {
+      const nextEntryNumber = await generateEntryNumber(input.entryDate);
+      const entryValues = {
+        entryNumber: nextEntryNumber,
+        entryDate: toDbDate(input.entryDate),
+        fiscalPeriodId,
+        description: input.description || null,
+        sourceType: input.sourceType || null,
+        sourceId: input.sourceId || null,
+        status: 'draft' as JournalEntryStatus,
+        totalDebit: totalDebit,
+        totalCredit: totalCredit,
+        createdBy: input.createdBy,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      };
+      const insertResult = await database.insert(journalEntries).values(entryValues as any);
+      journalEntryId = isSqlite()
+        ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+        : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+      entryNumber = nextEntryNumber;
+      break;
+    } catch (error: any) {
+      if (attempt < MAX_JE_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
+  }
 
   // Insert journal lines
   const lineValues = input.lines.map((line, index) => ({
@@ -745,6 +753,45 @@ export async function listGLAccountTypes(): Promise<GLAccountType[]> {
     createdAt: formatDateFromDb(type.createdAt),
     updatedAt: formatDateFromDb(type.updatedAt),
   }));
+}
+
+/**
+ * Get GL account types with summary (account counts per type)
+ */
+export async function listGLAccountTypesWithSummary() {
+  const { glAccountTypes, glAccounts } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const types = await database
+    .select()
+    .from(glAccountTypes)
+    .orderBy(asc(glAccountTypes.displayOrder));
+
+  const accounts = await database
+    .select({
+      accountTypeId: glAccounts.accountTypeId,
+      isActive: glAccounts.isActive,
+      isPostable: glAccounts.isPostable,
+      level: glAccounts.level,
+    })
+    .from(glAccounts);
+
+  return types.map((type: (typeof types)[number]) => {
+    const typeAccounts = accounts.filter((a: any) => a.accountTypeId === type.id);
+    return {
+      id: type.id,
+      code: type.code,
+      nameTh: type.nameTh,
+      nameEn: type.nameEn,
+      category: type.category as string,
+      normalBalance: type.normalBalance as string,
+      displayOrder: type.displayOrder,
+      accountCount: typeAccounts.length,
+      activeCount: typeAccounts.filter((a: any) => a.isActive).length,
+      postableCount: typeAccounts.filter((a: any) => a.isPostable).length,
+      groupCount: typeAccounts.filter((a: any) => !a.isPostable).length,
+    };
+  });
 }
 
 /**
@@ -1571,6 +1618,8 @@ export interface CreateAPInvoiceInput {
   description?: string | null;
   currency?: string;
   exchangeRate?: number;
+  vatRate?: number;
+  vatAmountOverride?: number | null;
   lines: {
     description: string;
     itemId?: number | null;
@@ -1627,20 +1676,23 @@ export async function createAPInvoice(
   const { apInvoices, apInvoiceLines } = getAccountingTables();
   const database = (await getDb()) as any;
 
-  // Calculate line amounts and totals
+  // Calculate line amounts and totals using custom VAT rate
+  const effectiveVatRate = (input.vatRate ?? 7) / 100;
   const processedLines = input.lines.map((line, index) => {
     const amount = line.quantity * line.unitPrice;
-    const vatCalc = calculateVAT(amount);
+    const lineVat = Math.round(amount * effectiveVatRate * 100) / 100;
     return {
       ...line,
       lineNumber: index + 1,
       amount,
-      vatAmount: vatCalc.vatAmount,
+      vatAmount: lineVat,
     };
   });
 
   const subtotal = processedLines.reduce((sum, line) => sum + line.amount, 0);
-  const vatAmount = processedLines.reduce((sum, line) => sum + line.vatAmount, 0);
+  const vatAmount = input.vatAmountOverride != null
+    ? input.vatAmountOverride
+    : processedLines.reduce((sum, line) => sum + line.vatAmount, 0);
   const totalAmount = subtotal + vatAmount;
 
   // Insert invoice
@@ -1900,6 +1952,32 @@ export async function updateAPInvoice(
   });
 
   return await getAPInvoiceById(id);
+}
+
+/**
+ * Delete AP invoice (draft only)
+ * Removes invoice and its line items
+ */
+export async function deleteAPInvoice(id: number, deletedBy: number): Promise<void> {
+  const { apInvoices, apInvoiceLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const existing = await getAPInvoiceById(id);
+  if (existing.status !== 'draft') {
+    throw new Error('Can only delete draft invoices');
+  }
+
+  // Delete lines first, then invoice
+  await database.delete(apInvoiceLines).where(eq(apInvoiceLines.apInvoiceId, id));
+  await database.delete(apInvoices).where(eq(apInvoices.id, id));
+
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'ap_invoice',
+    recordId: id,
+    userId: deletedBy,
+    oldValue: { invoiceNumber: existing.invoiceNumber, totalAmount: existing.totalAmount },
+  });
 }
 
 /**
@@ -2198,6 +2276,83 @@ export async function listPayments(filters?: {
 }
 
 /**
+ * Delete payment (pending status only)
+ * Removes payment and its allocations
+ */
+export async function deletePayment(id: number, deletedBy: number): Promise<void> {
+  const { payments, paymentAllocations } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const [existing] = await database
+    .select({ id: payments.id, paymentNumber: payments.paymentNumber, status: payments.status, amount: payments.amount })
+    .from(payments)
+    .where(eq(payments.id, id))
+    .limit(1);
+
+  if (!existing) throw new Error('Payment not found');
+  if (existing.status === 'cancelled') {
+    throw new Error('Cannot delete cancelled payments');
+  }
+
+  await database.delete(paymentAllocations).where(eq(paymentAllocations.paymentId, id));
+  await database.delete(payments).where(eq(payments.id, id));
+
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'payment',
+    recordId: id,
+    userId: deletedBy,
+    oldValue: { paymentNumber: existing.paymentNumber, amount: Number(existing.amount) },
+  });
+}
+
+/**
+ * Update payment details (non-cancelled only)
+ */
+export async function updatePayment(
+  id: number,
+  input: {
+    paymentDate?: string;
+    paymentMethod?: 'cash' | 'check' | 'transfer' | 'other';
+    bankAccountId?: number;
+    referenceNumber?: string | null;
+    description?: string | null;
+  },
+  updatedBy: number
+): Promise<void> {
+  const { payments } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const [existing] = await database
+    .select({ id: payments.id, paymentNumber: payments.paymentNumber, status: payments.status })
+    .from(payments)
+    .where(eq(payments.id, id))
+    .limit(1);
+
+  if (!existing) throw new Error('Payment not found');
+  if (existing.status === 'cancelled') {
+    throw new Error('Cannot update cancelled payments');
+  }
+
+  const updateValues: Record<string, unknown> = { updatedAt: getNow() };
+  if (input.paymentDate !== undefined) updateValues.paymentDate = toDbDate(input.paymentDate);
+  if (input.paymentMethod !== undefined) updateValues.paymentMethod = input.paymentMethod;
+  if (input.bankAccountId !== undefined) updateValues.bankAccountId = input.bankAccountId;
+  if (input.referenceNumber !== undefined) updateValues.referenceNumber = input.referenceNumber;
+  if (input.description !== undefined) updateValues.description = input.description;
+
+  await database.update(payments).set(updateValues).where(eq(payments.id, id));
+
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'payment',
+    recordId: id,
+    userId: updatedBy,
+    newValue: { paymentNumber: existing.paymentNumber, changes: input },
+  });
+}
+
+/**
  * Record payment for AP invoice (supports partial payments)
  * @param apInvoiceId - AP invoice ID
  * @param input - Payment data
@@ -2240,52 +2395,62 @@ export async function recordAPPayment(
     netPayment = whtCalc.netPayment;
   }
 
-  // Generate payment number
-  const paymentDate = new Date(input.paymentDate);
-  const year = paymentDate.getFullYear();
-  const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
-  const paymentPrefix = `PY-${year}${month}-`;
+  // Generate payment number and insert in a transaction to prevent duplicates
+  const MAX_PY_RETRIES = 3;
+  let paymentNumber: string = '';
+  let paymentId: number = 0;
+  for (let attempt = 0; attempt < MAX_PY_RETRIES; attempt++) {
+    try {
+      const paymentDate = new Date(input.paymentDate);
+      const year = paymentDate.getFullYear();
+      const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
+      const paymentPrefix = `PY-${year}${month}-`;
 
-  const [lastPayment] = await database
-    .select({ paymentNumber: payments.paymentNumber })
-    .from(payments)
-    .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
-    .orderBy(desc(payments.paymentNumber))
-    .limit(1);
+      const [lastPayment] = await database
+        .select({ paymentNumber: payments.paymentNumber })
+        .from(payments)
+        .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
+        .orderBy(desc(payments.paymentNumber))
+        .limit(1);
 
-  let sequence = 1;
-  if (lastPayment?.paymentNumber) {
-    const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
-    if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+      let sequence = 1;
+      if (lastPayment?.paymentNumber) {
+        const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
+        if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+      }
+      const nextPaymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
+
+      const paymentValues = {
+        paymentNumber: nextPaymentNumber,
+        paymentType: 'ap' as const,
+        paymentDate: toDbDate(input.paymentDate),
+        vendorId: invoice.vendorId,
+        customerId: null,
+        bankAccountId: input.bankAccountId,
+        paymentMethod: input.paymentMethod,
+        referenceNumber: input.referenceNumber || null,
+        amount: netPayment,
+        whtAmount,
+        description: input.description || `Payment for ${invoice.invoiceNumber}`,
+        status: 'completed' as const,
+        createdBy: recordedBy,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      };
+
+      const insertResult = await database.insert(payments).values(paymentValues as any);
+      paymentId = isSqlite()
+        ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+        : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+      paymentNumber = nextPaymentNumber;
+      break;
+    } catch (error: any) {
+      if (attempt < MAX_PY_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
   }
-  const paymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
-
-  // Insert payment record
-  const paymentValues = {
-    paymentNumber,
-    paymentType: 'ap' as const,
-    paymentDate: toDbDate(input.paymentDate),
-    vendorId: invoice.vendorId,
-    customerId: null,
-    bankAccountId: input.bankAccountId,
-    paymentMethod: input.paymentMethod,
-    referenceNumber: input.referenceNumber || null,
-    amount: netPayment,
-    whtAmount,
-    description: input.description || `Payment for ${invoice.invoiceNumber}`,
-    status: 'completed' as const,
-    createdBy: recordedBy,
-    createdAt: getNow(),
-    updatedAt: getNow(),
-  };
-
-  const insertResult = await database
-    .insert(payments)
-    .values(paymentValues as any);
-
-  const paymentId = isSqlite()
-    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
-    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
 
   // Create payment allocation
   await database
@@ -2592,6 +2757,8 @@ export interface CreateARInvoiceInput {
   description?: string | null;
   currency?: string;
   exchangeRate?: number;
+  vatRate?: number;
+  vatAmountOverride?: number | null;
   lines: {
     description: string;
     itemId?: number | null;
@@ -2681,20 +2848,24 @@ export async function createARInvoice(
   const { arInvoices, arInvoiceLines } = getAccountingTables();
   const database = (await getDb()) as any;
 
-  // Calculate line amounts and totals
+  // Calculate line amounts and totals using custom VAT rate
+  const effectiveVatRate = (input.vatRate ?? 7) / 100;
+
   const processedLines = input.lines.map((line, index) => {
     const amount = line.quantity * line.unitPrice;
-    const vatCalc = calculateVAT(amount);
+    const lineVat = Math.round(amount * effectiveVatRate * 100) / 100;
     return {
       ...line,
       lineNumber: index + 1,
       amount,
-      vatAmount: vatCalc.vatAmount,
+      vatAmount: lineVat,
     };
   });
 
   const subtotal = processedLines.reduce((sum, line) => sum + line.amount, 0);
-  const vatAmount = processedLines.reduce((sum, line) => sum + line.vatAmount, 0);
+  const vatAmount = input.vatAmountOverride != null
+    ? input.vatAmountOverride
+    : processedLines.reduce((sum, line) => sum + line.vatAmount, 0);
   const totalAmount = subtotal + vatAmount;
 
   // Insert invoice
@@ -2958,6 +3129,31 @@ export async function updateARInvoice(
 }
 
 /**
+ * Delete AR invoice (draft only)
+ * Removes invoice and its line items
+ */
+export async function deleteARInvoice(id: number, deletedBy: number): Promise<void> {
+  const { arInvoices, arInvoiceLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const existing = await getARInvoiceById(id);
+  if (existing.status !== 'draft') {
+    throw new Error('Can only delete draft invoices');
+  }
+
+  await database.delete(arInvoiceLines).where(eq(arInvoiceLines.arInvoiceId, id));
+  await database.delete(arInvoices).where(eq(arInvoices.id, id));
+
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'ar_invoice',
+    recordId: id,
+    userId: deletedBy,
+    oldValue: { invoiceNumber: existing.invoiceNumber, totalAmount: existing.totalAmount },
+  });
+}
+
+/**
  * Confirm AR invoice and create journal entry
  * @param id - AR invoice ID
  * @param confirmedBy - User ID confirming the invoice
@@ -3115,52 +3311,62 @@ export async function recordARPayment(
     throw new Error(`Payment amount ${input.amount} exceeds outstanding amount ${outstandingAmount}`);
   }
 
-  // Generate receipt/payment number
-  const paymentDate = new Date(input.paymentDate);
-  const year = paymentDate.getFullYear();
-  const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
-  const paymentPrefix = `RC-${year}${month}-`;
+  // Generate receipt/payment number and insert in a transaction to prevent duplicates
+  const MAX_RC_RETRIES = 3;
+  let paymentNumber: string = '';
+  let paymentId: number = 0;
+  for (let attempt = 0; attempt < MAX_RC_RETRIES; attempt++) {
+    try {
+      const paymentDate = new Date(input.paymentDate);
+      const year = paymentDate.getFullYear();
+      const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
+      const paymentPrefix = `RC-${year}${month}-`;
 
-  const [lastPayment] = await database
-    .select({ paymentNumber: payments.paymentNumber })
-    .from(payments)
-    .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
-    .orderBy(desc(payments.paymentNumber))
-    .limit(1);
+      const [lastPayment] = await database
+        .select({ paymentNumber: payments.paymentNumber })
+        .from(payments)
+        .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
+        .orderBy(desc(payments.paymentNumber))
+        .limit(1);
 
-  let sequence = 1;
-  if (lastPayment?.paymentNumber) {
-    const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
-    if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+      let sequence = 1;
+      if (lastPayment?.paymentNumber) {
+        const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
+        if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+      }
+      const nextPaymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
+
+      const paymentValues = {
+        paymentNumber: nextPaymentNumber,
+        paymentType: 'ar' as const,
+        paymentDate: toDbDate(input.paymentDate),
+        vendorId: null,
+        customerId: invoice.customerId,
+        bankAccountId: input.bankAccountId,
+        paymentMethod: input.paymentMethod,
+        referenceNumber: input.referenceNumber || null,
+        amount: input.amount,
+        whtAmount: 0,
+        description: input.description || `Receipt for ${invoice.invoiceNumber}`,
+        status: 'completed' as const,
+        createdBy: recordedBy,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      };
+
+      const insertResult = await database.insert(payments).values(paymentValues as any);
+      paymentId = isSqlite()
+        ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+        : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+      paymentNumber = nextPaymentNumber;
+      break;
+    } catch (error: any) {
+      if (attempt < MAX_RC_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
   }
-  const paymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
-
-  // Insert payment record
-  const paymentValues = {
-    paymentNumber,
-    paymentType: 'ar' as const,
-    paymentDate: toDbDate(input.paymentDate),
-    vendorId: null,
-    customerId: invoice.customerId,
-    bankAccountId: input.bankAccountId,
-    paymentMethod: input.paymentMethod,
-    referenceNumber: input.referenceNumber || null,
-    amount: input.amount,
-    whtAmount: 0,
-    description: input.description || `Receipt for ${invoice.invoiceNumber}`,
-    status: 'completed' as const,
-    createdBy: recordedBy,
-    createdAt: getNow(),
-    updatedAt: getNow(),
-  };
-
-  const insertResult = await database
-    .insert(payments)
-    .values(paymentValues as any);
-
-  const paymentId = isSqlite()
-    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
-    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
 
   // Create payment allocation
   await database
@@ -3919,12 +4125,6 @@ export async function createWHTTransaction(
   const { whtTransactions } = getAccountingTables();
   const database = (await getDb()) as any;
 
-  // Generate certificate number
-  const certificateNumber = await generateWHTCertificateNumber(
-    input.certificateType,
-    input.paymentDate
-  );
-
   // Calculate WHT amount and net payment
   const whtAmount = (input.paymentAmount * input.whtRate) / 100;
   const netAmount = input.paymentAmount - whtAmount;
@@ -3932,31 +4132,38 @@ export async function createWHTTransaction(
   // Determine tax period (YYYY-MM format)
   const taxPeriod = input.paymentDate.substring(0, 7);
 
-  const values = {
-    certificateNumber,
-    certificateType: input.certificateType,
-    paymentId: input.paymentId,
-    vendorId: input.vendorId,
-    paymentDate: toDbDate(input.paymentDate),
-    taxPeriod,
-    whtType: input.whtType,
-    whtDescription: input.whtDescription,
-    paymentAmount: input.paymentAmount,
-    whtRate: input.whtRate,
-    whtAmount,
-    netAmount,
-    createdAt: getNow(),
-  };
+  // Generate certificate number and insert in a transaction to prevent duplicates
+  const MAX_WHT_RETRIES = 3;
+  for (let attempt = 0; attempt < MAX_WHT_RETRIES; attempt++) {
+    try {
+      const certNumber = await generateWHTCertificateNumber(input.certificateType, input.paymentDate);
 
-  const [inserted] = await database
-    .insert(whtTransactions)
-    .values(values)
-    .$returningId();
+      const values = {
+        certificateNumber: certNumber,
+        certificateType: input.certificateType,
+        paymentId: input.paymentId,
+        vendorId: input.vendorId,
+        paymentDate: toDbDate(input.paymentDate),
+        taxPeriod,
+        whtType: input.whtType,
+        whtDescription: input.whtDescription,
+        paymentAmount: input.paymentAmount,
+        whtRate: input.whtRate,
+        whtAmount,
+        netAmount,
+        createdAt: getNow(),
+      };
 
-  return {
-    id: inserted.id,
-    certificateNumber,
-  };
+      const [inserted] = await database.insert(whtTransactions).values(values).$returningId();
+      return { id: inserted.id, certificateNumber: certNumber };
+    } catch (error: any) {
+      if (attempt < MAX_WHT_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Failed to generate unique WHT certificate number after maximum retries');
 }
 
 /**
@@ -4995,32 +5202,42 @@ export async function createAPInvoiceFromPOReceipt(
     throw new Error('ไม่พบบัญชีสินค้าคงเหลือ (1130)');
   }
 
-  // Generate AP invoice number
-  const apInvoiceNumber = await generateAPInvoiceNumber(input.receiptDate);
-
-  // Create AP invoice
-  const apInvoice = await createAPInvoice(
-    {
-      invoiceNumber: apInvoiceNumber,
-      vendorId: input.vendorId,
-      purchaseOrderId: input.poId,
-      invoiceDate: input.receiptDate,
-      dueDate: input.dueDate,
-      receivedDate: input.receiptDate,
-      description: `รับสินค้า ${input.poNumber} - ${input.itemCode} x ${input.quantity} (Lot: ${input.lotNumber})`,
-      lines: [
+  // Generate AP invoice number and create invoice with retry to prevent duplicate numbers
+  const MAX_AP_RETRIES = 3;
+  let apInvoice: any;
+  for (let attempt = 0; attempt < MAX_AP_RETRIES; attempt++) {
+    try {
+      const apInvoiceNumber = await generateAPInvoiceNumber(input.receiptDate);
+      apInvoice = await createAPInvoice(
         {
-          description: `${input.itemCode} - ${input.itemName}`,
-          itemId: input.itemId,
-          glAccountId: inventoryAccount.id,  // Debit Inventory
-          quantity: input.quantity,
-          unitPrice: input.unitPrice,
-          isCapitalizable: false,
+          invoiceNumber: apInvoiceNumber,
+          vendorId: input.vendorId,
+          purchaseOrderId: input.poId,
+          invoiceDate: input.receiptDate,
+          dueDate: input.dueDate,
+          receivedDate: input.receiptDate,
+          description: `รับสินค้า ${input.poNumber} - ${input.itemCode} x ${input.quantity} (Lot: ${input.lotNumber})`,
+          lines: [
+            {
+              description: `${input.itemCode} - ${input.itemName}`,
+              itemId: input.itemId,
+              glAccountId: inventoryAccount.id,  // Debit Inventory
+              quantity: input.quantity,
+              unitPrice: input.unitPrice,
+              isCapitalizable: false,
+            },
+          ],
         },
-      ],
-    },
-    createdBy
-  );
+        createdBy
+      );
+      break;
+    } catch (error: any) {
+      if (attempt < MAX_AP_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
+  }
 
   // Approve and post the AP invoice (creates journal entry)
   const approvedInvoice = await approveAPInvoice(apInvoice.id, createdBy);
@@ -5121,33 +5338,43 @@ export async function createARInvoiceFromSOShipment(
     throw new Error('ไม่พบบัญชีรายได้จากการขาย (4110)');
   }
 
-  // Generate AR invoice number and tax invoice number
-  const arInvoiceNumber = await generateARInvoiceNumber(input.shipmentDate);
-  const taxInvoiceNumber = await generateTaxInvoiceNumber(input.shipmentDate);
-
-  // Create AR invoice
-  const arInvoice = await createARInvoice(
-    {
-      invoiceNumber: arInvoiceNumber,
-      taxInvoiceNumber: taxInvoiceNumber,
-      customerId: input.customerId || 0,
-      salesOrderId: input.soId,
-      invoiceDate: input.shipmentDate,
-      dueDate: input.dueDate,
-      description: `ขายสินค้า ${input.soNumber} - ${input.itemCode} x ${input.quantity} (Delivery: ${input.deliveryNumber})`,
-      lines: [
+  // Generate AR invoice number, tax invoice number and create invoice with retry to prevent duplicate numbers
+  const MAX_AR_RETRIES = 3;
+  let arInvoice: any;
+  for (let attempt = 0; attempt < MAX_AR_RETRIES; attempt++) {
+    try {
+      const arInvoiceNumber = await generateARInvoiceNumber(input.shipmentDate);
+      const taxInvoiceNumber = await generateTaxInvoiceNumber(input.shipmentDate);
+      arInvoice = await createARInvoice(
         {
-          description: `${input.itemCode} - ${input.itemName}`,
-          itemId: input.itemId,
-          glAccountId: salesAccount.id,  // Credit Sales Revenue
-          quantity: input.quantity,
-          unitPrice: input.unitPrice,
-          lotId: input.lotId,
+          invoiceNumber: arInvoiceNumber,
+          taxInvoiceNumber: taxInvoiceNumber,
+          customerId: input.customerId || 0,
+          salesOrderId: input.soId,
+          invoiceDate: input.shipmentDate,
+          dueDate: input.dueDate,
+          description: `ขายสินค้า ${input.soNumber} - ${input.itemCode} x ${input.quantity} (Delivery: ${input.deliveryNumber})`,
+          lines: [
+            {
+              description: `${input.itemCode} - ${input.itemName}`,
+              itemId: input.itemId,
+              glAccountId: salesAccount.id,  // Credit Sales Revenue
+              quantity: input.quantity,
+              unitPrice: input.unitPrice,
+              lotId: input.lotId,
+            },
+          ],
         },
-      ],
-    },
-    createdBy
-  );
+        createdBy
+      );
+      break;
+    } catch (error: any) {
+      if (attempt < MAX_AR_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+        continue;
+      }
+      throw error;
+    }
+  }
 
   // Confirm and post the AR invoice (creates journal entry)
   const confirmedInvoice = await confirmARInvoice(arInvoice.id, createdBy);

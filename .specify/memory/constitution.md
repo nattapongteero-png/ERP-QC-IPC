@@ -1,9 +1,10 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.2.0 → 1.3.0
+Version change: 1.3.0 → 1.4.0
 Modified principles:
-  - I. Code Quality Standards: Added "Reusable Components" requirement
+  - II. Testing Standards: Upgraded TDD from "encouraged" to MANDATORY
+  - Development Workflow: Added TDD steps (write tests first, observe failure, implement)
 Added sections: None
 Removed sections: None
 Templates requiring updates:
@@ -11,6 +12,9 @@ Templates requiring updates:
   - .specify/templates/spec-template.md: ✅ Compatible (uses testable requirements format)
   - .specify/templates/tasks-template.md: ✅ Compatible (supports test-first workflow)
 Follow-up TODOs: None
+
+Previous changes (1.2.0 → 1.3.0):
+  - I. Code Quality Standards: Added "Reusable Components" requirement
 
 Previous changes (1.1.0 → 1.2.0):
   - III. User Experience Consistency: Added "DevExpress/DevExtreme Components" requirement
@@ -34,7 +38,7 @@ All code in this project MUST adhere to the following non-negotiable quality sta
 - **Single Responsibility**: Each module, component, and function MUST have a single, clearly defined purpose. Functions exceeding 50 lines SHOULD be refactored unless complexity justifies otherwise.
 - **No Hardcoded Values**: Configuration values, API endpoints, and business logic conditions MUST NOT be hardcoded. Use environment variables, configuration files, or database-driven settings.
 - **Error Handling**: All async operations MUST have explicit error handling. API endpoints MUST return appropriate HTTP status codes and structured error responses.
-- **Error Verification**: After completing any code modification, developers MUST check for coding errors by running type checking (`pnpm tsc --noEmit`) and linting (`pnpm lint`). Code with errors MUST NOT be left in the codebase.
+- **Error Verification**: After completing any code modification, developers MUST check for coding errors by running type checking (`bunx tsc --noEmit`) and linting (`bun run lint`). Code with errors MUST NOT be left in the codebase.
 - **Frequent Commits**: Code MUST be committed frequently after each completed task or logical unit of work to prevent loss of progress and enable easy rollback. Uncommitted code is at risk of being lost and makes debugging harder.
 - **Reusable Components**: Common UI patterns MUST be extracted into reusable components rather than inlined in pages. This includes:
   - **Search dialogs**: Item lookup, vendor search, customer search MUST use shared search dialog components.
@@ -50,14 +54,20 @@ All code in this project MUST adhere to the following non-negotiable quality sta
 
 Testing is MANDATORY for production code. The following standards apply:
 
+- **Test-Driven Development (TDD)**: All new features and bug fixes MUST follow the TDD workflow:
+  1. **Red**: Write a failing test that defines expected behavior BEFORE writing implementation code
+  2. **Green**: Write the minimum code necessary to make the test pass
+  3. **Refactor**: Clean up the code while keeping tests green
+  - Tests MUST fail first - if a new test passes immediately, it is likely not testing the right thing
+  - Implementation code MUST NOT be written until a failing test exists
+  - This applies to: new features, bug fixes, API endpoints, UI components, and service functions
 - **Test Coverage**: New features MUST include unit tests covering at least the primary success path and one error path. Critical business logic (inventory calculations, QC decisions, financial calculations) MUST have comprehensive test coverage.
-- **Test-First Encouraged**: For complex features, tests SHOULD be written before implementation (TDD). Test failures MUST be observed before implementation proceeds.
 - **Unit Test Isolation**: Unit tests MUST NOT depend on external services, databases, or network calls. Use mocks and in-memory databases (SQLite) for isolation.
 - **Integration Tests**: API endpoints MUST have integration tests validating request/response contracts. Database operations MUST have integration tests validating data integrity.
 - **Test Naming**: Test names MUST clearly describe the scenario being tested using the pattern: `[unit]_[scenario]_[expectedResult]` or descriptive prose.
 - **Test Maintenance**: Failing tests MUST be fixed or explicitly skipped with documented justification and a TODO for resolution. Tests MUST NOT be deleted to make builds pass.
 
-**Rationale**: Comprehensive testing prevents regressions, documents expected behavior, and enables confident refactoring.
+**Rationale**: TDD ensures code is testable by design, prevents over-engineering, and provides living documentation. Writing tests first forces clear thinking about requirements before implementation. Comprehensive testing prevents regressions, documents expected behavior, and enables confident refactoring.
 
 ### III. User Experience Consistency
 
@@ -105,10 +115,10 @@ All code changes MUST pass the following gates before merge:
 
 | Gate | Requirement | Enforcement |
 |------|-------------|-------------|
-| Type Check | `pnpm tsc --noEmit` passes | CI pipeline |
-| Lint | `pnpm lint` passes with no errors | CI pipeline |
-| Unit Tests | `pnpm test:run` passes | CI pipeline |
-| Build | `pnpm build` succeeds | CI pipeline |
+| Type Check | `bunx tsc --noEmit` passes | CI pipeline |
+| Lint | `bun run lint` passes with no errors | CI pipeline |
+| Unit Tests | `bun run test:run` passes | CI pipeline |
+| Build | `bun run build` succeeds | CI pipeline |
 | Code Review | At least one approval | GitHub branch protection |
 
 ## Development Workflow
@@ -116,16 +126,27 @@ All code changes MUST pass the following gates before merge:
 The following workflow MUST be followed for all changes:
 
 1. **Branch**: Create a feature branch from `main` with descriptive name.
-2. **Implement**: Make changes following constitution principles.
-3. **Verify**: After EACH code modification, MUST run error checks:
-   - Run `pnpm tsc --noEmit` to check for TypeScript errors
-   - Run `pnpm lint` to check for linting errors
+2. **Write Test First (TDD Red Phase)**:
+   - Write a failing test that defines expected behavior
+   - Run the test and observe it FAIL (this is mandatory - skip means the test is wrong)
+   - Commit the failing test with message like "test: add failing test for [feature]"
+3. **Implement (TDD Green Phase)**:
+   - Write the minimum code to make the test pass
+   - Do NOT add extra functionality beyond what the test requires
+4. **Refactor (TDD Refactor Phase)**:
+   - Clean up implementation while keeping tests green
+   - Extract common patterns, improve naming, reduce duplication
+5. **Verify**: After EACH code modification, MUST run error checks:
+   - Run `bunx tsc --noEmit` to check for TypeScript errors
+   - Run `bun run lint` to check for linting errors
+   - Run `bun run test:run` to ensure all tests pass
    - Fix all errors before proceeding
-4. **Commit**: MUST commit code immediately after completing each task or logical unit of work. Create atomic commits with clear messages. Include issue references where applicable.
-5. **Test**: Run local tests and verify functionality.
-6. **Push**: Push to remote and create pull request.
-7. **Review**: Address review feedback.
-8. **Merge**: Squash merge after approval and passing CI.
+6. **Commit**: MUST commit code immediately after completing each task or logical unit of work. Create atomic commits with clear messages. Include issue references where applicable.
+7. **Push**: Push to remote and create pull request.
+8. **Review**: Address review feedback.
+9. **Merge**: Squash merge after approval and passing CI.
+
+**TDD Cycle**: The Red-Green-Refactor cycle MUST be followed for each feature unit. Do not batch multiple features before testing. Small, incremental TDD cycles are more effective than large implementations.
 
 **Commit Frequency**: Commit after completing each logical unit of work to prevent loss of progress and enable granular rollback. This is NON-NEGOTIABLE - uncommitted code represents unprotected work.
 
@@ -157,4 +178,4 @@ For day-to-day development guidance, refer to:
 - `.specify/` directory for feature specification workflows
 - Code comments and existing patterns for implementation guidance
 
-**Version**: 1.3.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-21
+**Version**: 1.4.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2026-02-03

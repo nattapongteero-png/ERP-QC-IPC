@@ -820,20 +820,41 @@ export async function closeCapa(
     throw new Error('CAPA not found');
   }
 
-  // Verify all actions are completed or verified
-  const incompleteActions = existing.actions.filter(
-    (a: CapaAction) => !['completed'].includes(a.status)
-  );
-  if (incompleteActions.length > 0) {
-    throw new Error(`Cannot close CAPA: ${incompleteActions.length} action(s) not completed`);
+  // Comprehensive validation before closing
+  const missing: string[] = [];
+
+  // 1. Must have at least one action
+  if (!existing.actions || existing.actions.length === 0) {
+    missing.push('การดำเนินการ (Action) - ต้องมีอย่างน้อย 1 รายการ');
+  } else {
+    const incompleteActions = existing.actions.filter(
+      (a: CapaAction) => !['completed'].includes(a.status)
+    );
+    if (incompleteActions.length > 0) {
+      missing.push(`การดำเนินการ (Action) - ยังเหลือ ${incompleteActions.length} รายการที่ยังไม่เสร็จ`);
+    }
   }
 
-  // Verify at least one effectiveness check exists and is effective
-  const effectiveChecks = existing.effectivenessChecks.filter(
+  // 2. Must have at least one effective verification
+  const effectiveChecks = existing.effectivenessChecks?.filter(
     (e: CapaEffectiveness) => e.result === 'effective'
-  );
+  ) || [];
   if (effectiveChecks.length === 0) {
-    throw new Error('Cannot close CAPA: No effective verification recorded');
+    missing.push('การประเมินประสิทธิผล (Effectiveness Check) - ต้องมีผลเป็น "Effective" อย่างน้อย 1 รายการ');
+  }
+
+  // 3. Must have risk assessment
+  if (!existing.riskSeverity || !existing.riskProbability) {
+    missing.push('การประเมินความเสี่ยง (Risk Assessment) - ต้องระบุ Severity และ Probability');
+  }
+
+  // 4. Must have root cause analysis
+  if (!existing.rootCauseAnalysis || existing.rootCauseAnalysis.trim() === '') {
+    missing.push('การวิเคราะห์สาเหตุ (Root Cause Analysis) - ต้องระบุสาเหตุ');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(`ไม่สามารถปิด CAPA ได้ เนื่องจากข้อมูลยังไม่ครบ:\n${missing.join('\n')}`);
   }
 
   const now = getNow();
@@ -1090,6 +1111,11 @@ export async function verifyAction(
 
   if (existing[0].status !== 'completed') {
     throw new Error('Can only verify completed actions');
+  }
+
+  // Dual control: assignee != verifier
+  if (existing[0].assigneeId && Number(existing[0].assigneeId) === userId) {
+    throw new Error('ไม่สามารถตรวจสอบรายการของตนเองได้ ผู้ปฏิบัติและผู้ตรวจสอบต้องเป็นคนละคนกัน');
   }
 
   const now = getNow();

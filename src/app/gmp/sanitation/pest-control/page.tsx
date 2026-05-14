@@ -9,6 +9,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { PestControlLogList } from '@/components/sanitation';
@@ -84,12 +86,13 @@ const areaOptions = [
 
 export default function PestControlLogsPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const queryClient = useQueryClient();
 
   const [serviceTypeFilter, setServiceTypeFilter] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState<Partial<PestControlLogCreate>>({
-    serviceDate: new Date().toISOString().split('T')[0],
+    serviceDate: toLocalDateStr(new Date()),
     serviceType: 'routine',
     areasServiced: [],
     findingsCount: 0,
@@ -111,7 +114,7 @@ export default function PestControlLogsPage() {
       queryClient.invalidateQueries({ queryKey: ['sanitation-trends'] });
       setShowCreateDialog(false);
       setFormData({
-        serviceDate: new Date().toISOString().split('T')[0],
+        serviceDate: toLocalDateStr(new Date()),
         serviceType: 'routine',
         areasServiced: [],
         findingsCount: 0,
@@ -143,8 +146,8 @@ export default function PestControlLogsPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Pest Control"
-        subtitle="Record and track pest control services"
+        title={t('sanitation.pestControl.title')}
+        subtitle={t('sanitation.pestControl.description')}
         onBack={() => router.push('/gmp/sanitation')}
         actions={
           <DxButton
@@ -199,7 +202,7 @@ export default function PestControlLogsPage() {
                     serviceDate:
                       typeof e.value === 'string'
                         ? e.value
-                        : e.value?.toISOString().split('T')[0],
+                        : e.value ? toLocalDateStr(e.value) : '',
                   })
                 }
                 type="date"
@@ -290,7 +293,7 @@ export default function PestControlLogsPage() {
                     followUpDate:
                       typeof e.value === 'string'
                         ? e.value
-                        : e.value?.toISOString().split('T')[0],
+                        : e.value ? toLocalDateStr(e.value) : '',
                   })
                 }
                 type="date"

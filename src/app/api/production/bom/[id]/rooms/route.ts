@@ -10,7 +10,10 @@ import {
   addBOMRoom,
   updateBOMRoom,
   removeBOMRoom,
+  addBOMEnvironmentalCondition,
 } from '@/lib/services/bom-configuration.service';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
+import { eq } from 'drizzle-orm';
 
 // Valid phases for room requirements
 const VALID_PHASES = ['pre_production', 'production', 'post_production', 'pre_packaging', 'packaging'];
@@ -37,10 +40,40 @@ export async function GET(
       }
 
       const rawRooms = await getBOMRooms(bomId, phase);
-      // Flatten the nested structure for frontend
+
+      // Get all env conditions for this BOM to attach to rooms
+      const bomEnvTable = getTableRef('bOMEnvironmentalConditions');
+      const envCondTable = getTableRef('environmentalConditions');
+      const allEnvConditions = await executeDbOperation(async (db) => {
+        return db.select({
+          id: bomEnvTable.id,
+          bomRoomId: bomEnvTable.bomRoomId,
+          conditionId: bomEnvTable.conditionId,
+          conditionName: envCondTable.name,
+          conditionCode: envCondTable.code,
+          temperatureMin: envCondTable.temperatureMin,
+          temperatureMax: envCondTable.temperatureMax,
+          humidityMax: envCondTable.humidityMax,
+        })
+        .from(bomEnvTable)
+        .leftJoin(envCondTable, eq(bomEnvTable.conditionId, envCondTable.id))
+        .where(eq(bomEnvTable.bomId, bomId));
+      });
+
+      // Group env conditions by bomRoomId
+      const envByRoom = new Map<number, typeof allEnvConditions>();
+      for (const ec of allEnvConditions) {
+        if (ec.bomRoomId) {
+          if (!envByRoom.has(ec.bomRoomId as number)) envByRoom.set(ec.bomRoomId as number, []);
+          envByRoom.get(ec.bomRoomId as number)!.push(ec);
+        }
+      }
+
+      // Flatten the nested structure for frontend + attach env conditions
       const rooms = rawRooms.map((item: { bomRoom: Record<string, unknown>; room: unknown }) => ({
         ...item.bomRoom,
         room: item.room,
+        environmentalConditions: envByRoom.get(item.bomRoom.id as number) || [],
       }));
       return successResponse(rooms);
     } catch (error) {
@@ -83,6 +116,19 @@ export async function POST(
         isRequired: data.isRequired ?? true,
       });
 
+      // Save environmental conditions linked to this room
+      const conditionIds: number[] = data.environmentalConditionIds || [];
+      if (conditionIds.length > 0 && room?.bomRoom?.id) {
+        for (const conditionId of conditionIds) {
+          await addBOMEnvironmentalCondition({
+            bomId,
+            conditionId,
+            bomRoomId: room.bomRoom.id,
+            phase: data.phase,
+          });
+        }
+      }
+
       return successResponse(room, 'Room requirement added to BOM');
     } catch (error) {
       console.error('Error adding BOM room:', error);
@@ -122,6 +168,25 @@ export async function PUT(
         isRequired: data.isRequired,
       });
 
+      // Update environmental conditions: remove old, insert new
+      const conditionIds: number[] = data.selectedConditionId
+        ? [data.selectedConditionId]
+        : (data.environmentalConditionIds || []);
+      const bomEnvTable = getTableRef('bOMEnvironmentalConditions');
+      await executeDbOperation(async (db) => {
+        await db.delete(bomEnvTable).where(eq(bomEnvTable.bomRoomId, data.bomRoomId));
+      });
+      if (conditionIds.length > 0) {
+        for (const conditionId of conditionIds) {
+          await addBOMEnvironmentalCondition({
+            bomId,
+            conditionId,
+            bomRoomId: data.bomRoomId,
+            phase: data.phase,
+          });
+        }
+      }
+
       return successResponse(room, 'Room requirement updated');
     } catch (error) {
       console.error('Error updating BOM room:', error);
@@ -150,6 +215,12 @@ export async function DELETE(
       if (!bomRoomId) {
         return errorResponse('Missing bomRoomId parameter');
       }
+
+      // Remove linked env conditions first
+      const bomEnvTable = getTableRef('bOMEnvironmentalConditions');
+      await executeDbOperation(async (db) => {
+        return db.delete(bomEnvTable).where(eq(bomEnvTable.bomRoomId, Number(bomRoomId)));
+      });
 
       await removeBOMRoom(Number(bomRoomId));
       return successResponse(null, 'Room requirement removed from BOM');

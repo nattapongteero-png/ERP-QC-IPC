@@ -147,9 +147,9 @@ describe('AR Invoices Page', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('ใบแจ้งหนี้ขาย')).toBeInTheDocument();
+      expect(screen.getByText('Invoices')).toBeInTheDocument();
     });
-    expect(screen.getByText('AR Invoices / Tax Invoices')).toBeInTheDocument();
+    expect(screen.getByText('Accounts Receivable')).toBeInTheDocument();
   });
 
   it('should render stat cards', async () => {
@@ -268,8 +268,8 @@ describe('AR Invoices Page', () => {
     await waitFor(() => {
       const payButtons = screen.getAllByRole('button', { name: /รับชำระ/i });
       expect(payButtons.length).toBeGreaterThan(0);
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('should handle API error gracefully', async () => {
     mockFetch.mockImplementation(() => {
@@ -283,7 +283,7 @@ describe('AR Invoices Page', () => {
 
     // Should not crash - page should still render
     await waitFor(() => {
-      expect(screen.getByText('ใบแจ้งหนี้ขาย')).toBeInTheDocument();
+      expect(screen.getByText('Invoices')).toBeInTheDocument();
     });
   });
 

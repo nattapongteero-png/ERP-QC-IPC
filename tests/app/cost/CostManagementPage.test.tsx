@@ -18,6 +18,80 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+// Mock lucide-react icons
+vi.mock('lucide-react', () => ({
+  DollarSign: () => <span>$</span>,
+  FileText: () => <span>file</span>,
+  Factory: () => <span>factory</span>,
+  Truck: () => <span>truck</span>,
+  Calendar: () => <span>cal</span>,
+  Loader2: () => <span>loading</span>,
+  TrendingUp: () => <span>up</span>,
+  TrendingDown: () => <span>down</span>,
+  AlertTriangle: () => <span>alert</span>,
+  BarChart2: () => <span>chart</span>,
+  Package: () => <span>pkg</span>,
+  ChevronRight: () => <span>&gt;</span>,
+}));
+
+// Mock devextreme select-box
+vi.mock('devextreme-react/select-box', () => ({
+  default: ({ value, onValueChanged, dataSource }: any) => (
+    <select
+      value={value || ''}
+      onChange={(e) => onValueChanged?.({ value: e.target.value })}
+      data-testid="period-select"
+    >
+      {(dataSource || []).map((item: any) => (
+        <option key={item.value} value={item.value}>{item.label}</option>
+      ))}
+    </select>
+  ),
+}));
+
+// Mock @/components/shared
+vi.mock('@/components/shared', () => ({
+  ResponsivePageHeader: ({ title, subtitle }: any) => (
+    <div data-testid="page-header">
+      <h1>{title}</h1>
+      {subtitle && <p>{subtitle}</p>}
+    </div>
+  ),
+  StatCard: ({ label, value }: any) => (
+    <div data-testid={`stat-${label}`}>
+      <span>{label}</span>
+      <span>{value}</span>
+    </div>
+  ),
+}));
+
+// Mock @/components/cost/CostDashboard - renders based on fetch result
+vi.mock('@/components/cost/CostDashboard', () => ({
+  CostDashboard: function MockCostDashboard({ periodType }: any) {
+    const { useState, useEffect } = require('react');
+    const [state, setState] = useState('loading' as 'loading' | 'error' | 'done');
+
+    useEffect(() => {
+      fetch(`/api/cost/dashboard?period=${periodType || 'this_month'}`)
+        .then(r => {
+          if (!r.ok) { setState('error'); return; }
+          return r.json().then(() => setState('done'));
+        })
+        .catch(() => setState('error'));
+    }, [periodType]);
+
+    if (state === 'loading') return <div data-testid="cost-dashboard-loading">Loading...</div>;
+    if (state === 'error') return <div data-testid="cost-dashboard-error">Error loading</div>;
+    return <div data-testid="cost-dashboard">Dashboard loaded</div>;
+  },
+}));
+
+// Mock ui/card
+vi.mock('@/components/ui/card', () => ({
+  Card: ({ children, className }: any) => <div className={className}>{children}</div>,
+  CardContent: ({ children, className }: any) => <div className={className}>{children}</div>,
+}));
+
 // Mock fetch
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -81,7 +155,7 @@ describe('CostManagementPage', () => {
 
     expect(screen.getByText('Cost Management')).toBeInTheDocument();
     expect(
-      screen.getByText('Monitor costs, margins, and variances across your operations')
+      screen.getByText('Executive dashboard for cost control and margin analysis')
     ).toBeInTheDocument();
   });
 

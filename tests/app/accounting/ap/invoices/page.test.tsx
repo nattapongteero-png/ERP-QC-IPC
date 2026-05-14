@@ -28,8 +28,8 @@ describe('APInvoicesPage', () => {
 
   it('renders professional page header with receipt icon', async () => {
     render(<APInvoicesPage />, { wrapper: createWrapper() });
-    expect(screen.getByText('ใบแจ้งหนี้ซื้อ')).toBeInTheDocument();
-    expect(screen.getByText('AP Invoices')).toBeInTheDocument();
+    expect(screen.getByText('Supplier Bills')).toBeInTheDocument();
+    expect(screen.getByText('Accounts Payable')).toBeInTheDocument();
   });
 
   it('renders KPI cards with proper styling', async () => {

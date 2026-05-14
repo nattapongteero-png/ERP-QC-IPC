@@ -70,16 +70,16 @@ export default function EnvironmentalConditionsPage() {
 
   const renderTempRange = (data: EnvironmentalCondition) => {
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-        <Thermometer className="h-3 w-3" />
-        {data.temperatureMin}-{data.temperatureMax}C
+      <span className="dx-cell-tag inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <Thermometer className="h-3 w-3 flex-shrink-0" />
+        {data.temperatureMin}-{data.temperatureMax}°C
       </span>
     );
   };
 
   const renderHumidity = (value: number) => {
     return (
-      <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+      <span className="dx-cell-tag inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
         {value}% RH
       </span>
     );
@@ -87,7 +87,7 @@ export default function EnvironmentalConditionsPage() {
 
   const renderInterval = (value: number) => {
     return (
-      <span className="text-gray-600">
+      <span className="text-gray-600 whitespace-nowrap">
         Every {value} min
       </span>
     );
@@ -102,6 +102,7 @@ export default function EnvironmentalConditionsPage() {
         icon={Thermometer}
         iconBgColor="bg-teal-100"
         iconColor="text-teal-600"
+        onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
           { label: 'Environmental Conditions' },
@@ -119,28 +120,31 @@ export default function EnvironmentalConditionsPage() {
       {/* Data Grid */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <DxDataGrid
-          dataSource={conditions || []}
+          dataSource={(conditions || []).map((c, i) => ({ ...c, _rowNumber: i + 1 }))}
           keyExpr="id"
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
-          height={500}
+          height="auto"
           width="100%"
           columnAutoWidth
         >
           <DxSearchPanel visible placeholder="Search conditions..." width={200} />
-          <DxPaging defaultPageSize={15} />
+          <DxPaging defaultPageSize={20} />
 
+          <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
+            <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
+          )} />
           <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
             <span className="font-mono font-medium text-teal-700">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Profile Name" minWidth={200} />
-          <DxColumn caption="Temperature Range" width={150} cellRender={(cell) => renderTempRange(cell.data)} />
-          <DxColumn dataField="humidityMax" caption="Max Humidity" width={120} cellRender={(cell) => renderHumidity(cell.value)} />
-          <DxColumn dataField="monitoringIntervalMinutes" caption="Monitoring Interval" width={150} cellRender={(cell) => renderInterval(cell.value)} />
+          <DxColumn caption="Temperature Range" minWidth={170} cellRender={(cell) => renderTempRange(cell.data)} />
+          <DxColumn dataField="humidityMax" caption="Max Humidity" minWidth={130} cellRender={(cell) => renderHumidity(cell.value)} />
+          <DxColumn dataField="monitoringIntervalMinutes" caption="Monitoring Interval" minWidth={170} cellRender={(cell) => renderInterval(cell.value)} />
           <DxColumn dataField="notes" caption="Notes" minWidth={200} />
           <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />
@@ -161,7 +165,7 @@ export default function EnvironmentalConditionsPage() {
                 <Edit className="h-4 w-4" />
               </button>
               <button
-                onClick={() => deleteMutation.mutate((cell.data as EnvironmentalCondition).id)}
+                onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as EnvironmentalCondition).name} หรือไม่?`)) deleteMutation.mutate((cell.data as EnvironmentalCondition).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Deactivate"
               >

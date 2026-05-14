@@ -5,7 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toDateSafe } from '../db/date-utils';
+import { toDateSafe, getNow } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
 import {
   sqliteWorkOrders,
@@ -164,7 +164,7 @@ export async function explodeBOM(
     throw new Error(`BOM ${bomId} not found`);
   }
 
-  // Get BOM lines
+  // Get BOM lines with item unit info for conversion
   const lines = await database
     .select({
       id: bomLines.id,
@@ -172,8 +172,12 @@ export async function explodeBOM(
       quantity: bomLines.quantity,
       unit: bomLines.unit,
       itemCode: items.code,
-      itemName: items.nameEn,
+      itemName: items.nameTh,
+      itemNameEn: items.nameEn,
       itemType: items.type,
+      primaryUnit: items.primaryUnit,
+      secondaryUnit: items.secondaryUnit,
+      conversionRate: items.conversionRate,
     })
     .from(bomLines)
     .innerJoin(items, eq(bomLines.itemId, items.id))
@@ -189,7 +193,7 @@ export async function explodeBOM(
       requiredQty = requiredQty / (1 - Number(bomHeader.lossAllowance) / 100);
     }
 
-    // Get available stock
+    // Get available stock (in primary unit from inventory)
     const stockResult = await database
       .select({
         totalAvailable: sql<number>`COALESCE(SUM(${lots.quantity} - ${lots.reservedQuantity}), 0)`,
@@ -202,13 +206,21 @@ export async function explodeBOM(
         )
       );
 
-    const availableStock = Number(stockResult[0]?.totalAvailable) || 0;
+    let availableStock = Number(stockResult[0]?.totalAvailable) || 0;
+
+    // Convert availableStock to BOM line unit if different from primary unit
+    // e.g., inventory is in kg, BOM line is in g → multiply by conversionRate
+    if (line.unit && line.secondaryUnit && line.conversionRate &&
+        line.unit === line.secondaryUnit && Number(line.conversionRate) > 0) {
+      availableStock = availableStock * Number(line.conversionRate);
+    }
+
     const shortage = Math.max(0, requiredQty - availableStock);
 
     results.push({
       itemId: line.itemId,
       itemCode: line.itemCode,
-      itemName: line.itemName || line.itemCode,
+      itemName: line.itemName || line.itemNameEn || line.itemCode,
       requiredQuantity: Math.round(requiredQty * 1000) / 1000,
       unit: line.unit,
       level,
@@ -390,7 +402,7 @@ export async function updateWorkOrderStatus(
   // Update status
   const updateData: Record<string, unknown> = {
     status: newStatus,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   // Set timestamps based on status
@@ -549,7 +561,7 @@ export async function dispenseMaterial(
     unitCost,   // WAC at time of issue
     totalCost,  // quantity × unitCost
     dispensedBy: userId,
-    dispensedAt: new Date().toISOString(),
+    dispensedAt: getNow(),
   });
 
   return { success: true, deviationRequired, message };
@@ -568,6 +580,7 @@ export async function calculateYield(workOrderId: number): Promise<YieldCalculat
     .select({
       plannedQuantity: workOrders.plannedQuantity,
       actualQuantity: workOrders.actualQuantity,
+      rejectQuantity: workOrders.rejectQuantity,
       yieldTarget: bom.yieldTarget,
     })
     .from(workOrders)
@@ -581,13 +594,14 @@ export async function calculateYield(workOrderId: number): Promise<YieldCalculat
   const theoretical = Number(wo.plannedQuantity) || 0;
   const actualGood = Number(wo.actualQuantity) || 0;
   const actualReject = Number(wo.rejectQuantity) || 0;
-  const actualTotal = actualGood + actualReject;
   const yieldTarget = Number(wo.yieldTarget) || 95;
 
   // Calculate percentages
   const yieldPercent = theoretical > 0 ? (actualGood / theoretical) * 100 : 0;
-  const rejectPercent = actualTotal > 0 ? (actualReject / actualTotal) * 100 : 0;
-  const lossPercent = theoretical > 0 ? ((theoretical - actualTotal) / theoretical) * 100 : 0;
+  // FG Loss % = 100 - Yield %
+  const rejectPercent = theoretical > 0 ? (100 - yieldPercent) : 0;
+  // Material loss (theoretical vs total output)
+  const lossPercent = theoretical > 0 ? (100 - yieldPercent) : 0;
 
   // Determine status
   let status: 'normal' | 'low_yield' | 'high_yield' = 'normal';
@@ -611,6 +625,52 @@ export async function calculateYield(workOrderId: number): Promise<YieldCalculat
 /**
  * Record Production Output
  */
+/**
+ * Record Bulk Product Yield — recorded after Post-Production, before Packaging.
+ * Tracks bulk material output (e.g., powder, extract) before it's packaged.
+ * Does NOT create an FG lot (bulk is still in transit to packaging area).
+ */
+export async function recordBulkOutput(
+  workOrderId: number,
+  bulkQuantity: number,
+  userId: number
+): Promise<void> {
+  const { workOrders } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  const [wo] = await database
+    .select({ id: workOrders.id, status: workOrders.status })
+    .from(workOrders)
+    .where(eq(workOrders.id, workOrderId));
+
+  if (!wo) {
+    throw new Error(`Work Order ${workOrderId} not found`);
+  }
+
+  if (wo.status !== 'in_progress') {
+    throw new Error('Work Order must be In Progress to record bulk output');
+  }
+
+  await database
+    .update(workOrders)
+    .set({
+      bulkOutputQty: bulkQuantity,
+      bulkOutputRecordedAt: getNow(),
+      bulkOutputRecordedBy: userId,
+      updatedAt: getNow(),
+    })
+    .where(eq(workOrders.id, workOrderId));
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'work_orders',
+    recordId: workOrderId,
+    newValue: { type: 'BULK_OUTPUT_RECORDED', bulkQuantity },
+  });
+}
+
 export async function recordProductionOutput(
   workOrderId: number,
   actualQuantity: number,
@@ -654,16 +714,19 @@ export async function recordProductionOutput(
   if (product?.shelfLifeDays) {
     const expiry = new Date();
     expiry.setDate(expiry.getDate() + product.shelfLifeDays);
-    expiryDate = expiry.toISOString().split('T')[0];
+    expiryDate = expiry.toISOString().split('T')[0]; // String for receiveMaterial parameter
   }
 
-  // Update work order
+  // Update work order — finished stage audit + legacy fields
   await database
     .update(workOrders)
     .set({
       actualQuantity,
       rejectQuantity,
-      updatedAt: new Date().toISOString(),
+      finishedOutputQty: actualQuantity,
+      finishedOutputRecordedAt: getNow(),
+      finishedOutputRecordedBy: userId,
+      updatedAt: getNow(),
     })
     .where(eq(workOrders.id, workOrderId));
 
@@ -682,7 +745,13 @@ export async function recordProductionOutput(
 
   // Calculate and check yield
   const yieldResult = await calculateYield(workOrderId);
-  
+
+  // Save yield percentage to work order
+  await database
+    .update(workOrders)
+    .set({ yieldPercentage: yieldResult.yieldPercent })
+    .where(eq(workOrders.id, workOrderId));
+
   if (yieldResult.status === 'low_yield') {
     // Create deviation for low yield
     await createAuditLog({
@@ -855,7 +924,7 @@ export async function performLineClearance(
     recordId: workOrderId,
     newValue: {
       checklist,
-      clearedAt: new Date().toISOString(),
+      clearedAt: getNow(),
       clearedBy: userId,
     },
   });
@@ -923,6 +992,9 @@ export async function calculateBOMCost(
   let totalMaterialCost = 0;
 
   // Get BOM lines with item details
+  // onHand / onHandCost are stored in PRIMARY unit — so if BOM line uses
+  // secondaryUnit or weightUnit we must convert qty back to primary before
+  // multiplying by unitCost (THB / primaryUnit).
   const lines = await database
     .select({
       id: bomLines.id,
@@ -933,6 +1005,11 @@ export async function calculateBOMCost(
       itemName: items.nameEn,
       onHand: items.onHand,
       onHandCost: items.onHandCost,
+      primaryUnit: items.primaryUnit,
+      secondaryUnit: items.secondaryUnit,
+      weightUnit: items.weightUnit,
+      conversionRate: items.conversionRate,
+      secondaryToWeightRate: items.secondaryToWeightRate,
     })
     .from(bomLines)
     .innerJoin(items, eq(bomLines.itemId, items.id))
@@ -940,7 +1017,7 @@ export async function calculateBOMCost(
     .orderBy(asc(bomLines.sequence));
 
   for (const line of lines) {
-    // Calculate required quantity
+    // Calculate required quantity (in BOM line unit — what user typed)
     let requiredQty = (Number(line.quantity) * targetQuantity) / Number(bomHeader.batchSize);
 
     // Apply loss allowance if defined
@@ -948,7 +1025,20 @@ export async function calculateBOMCost(
       requiredQty = requiredQty / (1 - Number(bomHeader.lossAllowance) / 100);
     }
 
-    // Calculate unit cost (average cost from inventory)
+    // Convert to primary unit for cost math:
+    //   primary  → no conversion
+    //   secondary→ qty / conversionRate          (SU per PU, e.g. 100,000 cap/box)
+    //   weight   → qty / secondaryToWeightRate / conversionRate  (g → cap → box)
+    const conversionRate = Number(line.conversionRate) || 0;
+    const secondaryToWeightRate = Number(line.secondaryToWeightRate) || 0;
+    let qtyInPrimary = requiredQty;
+    if (line.unit && line.secondaryUnit && line.unit === line.secondaryUnit && conversionRate > 0) {
+      qtyInPrimary = requiredQty / conversionRate;
+    } else if (line.unit && line.weightUnit && line.unit === line.weightUnit && conversionRate > 0 && secondaryToWeightRate > 0) {
+      qtyInPrimary = requiredQty / secondaryToWeightRate / conversionRate;
+    }
+
+    // Calculate unit cost (average cost from inventory, in THB per primary unit)
     let unitCost = 0;
     let costSource: 'average' | 'last_purchase' | 'no_cost' = 'no_cost';
 
@@ -960,7 +1050,10 @@ export async function calculateBOMCost(
       costSource = 'average';
     }
 
-    const lineTotalCost = requiredQty * unitCost;
+    // Cost math runs in primary unit. Display unitCost in the line's own unit
+    // so user sees "THB / g" when line.unit is 'g', not "THB / box".
+    const lineTotalCost = qtyInPrimary * unitCost;
+    const unitCostInLineUnit = requiredQty > 0 ? lineTotalCost / requiredQty : 0;
     totalMaterialCost += lineTotalCost;
 
     breakdown.push({
@@ -969,7 +1062,7 @@ export async function calculateBOMCost(
       itemName: line.itemName || line.itemCode,
       quantity: Math.round(requiredQty * 1000) / 1000,
       unit: line.unit,
-      unitCost: Math.round(unitCost * 100) / 100,
+      unitCost: Math.round(unitCostInLineUnit * 10000) / 10000,
       totalCost: Math.round(lineTotalCost * 100) / 100,
       level: 0,
       costSource,
@@ -1211,7 +1304,7 @@ export async function copyBOM(
     .where(eq(bomLines.bomId, sourceBomId))
     .orderBy(asc(bomLines.sequence));
 
-  const now = new Date().toISOString();
+  const now = getNow();
   const useSqlite = process.env.DB_TYPE === 'sqlite';
 
   // Create new BOM
@@ -1227,8 +1320,8 @@ export async function copyBOM(
     lossAllowance: sourceBom.lossAllowance,
     effectiveDate: null,
     expiryDate: null,
-    createdAt: useSqlite ? now : new Date(),
-    updatedAt: useSqlite ? now : new Date(),
+    createdAt: now,
+    updatedAt: now,
   };
 
   const result = await (database as any).insert(bom).values(newBomValues);
@@ -1244,7 +1337,7 @@ export async function copyBOM(
       sequence: line.sequence,
       isOptional: line.isOptional,
       notes: line.notes,
-      createdAt: useSqlite ? now : new Date(),
+      createdAt: now,
     });
   }
 
@@ -1329,7 +1422,7 @@ export async function addBOMLine(
   }
 
   const useSqlite = process.env.DB_TYPE === 'sqlite';
-  const now = new Date().toISOString();
+  const now = getNow();
 
   // Insert new line
   const result = await (database as any).insert(bomLines).values({
@@ -1340,7 +1433,7 @@ export async function addBOMLine(
     sequence,
     isOptional: line.isOptional || false,
     notes: line.notes || null,
-    createdAt: useSqlite ? now : new Date(),
+    createdAt: now,
   });
 
   const newLineId = useSqlite ? result.lastInsertRowid : result[0].insertId;
@@ -1348,7 +1441,7 @@ export async function addBOMLine(
   // Update BOM timestamp
   await database
     .update(bom)
-    .set({ updatedAt: useSqlite ? now : new Date() })
+    .set({ updatedAt: now })
     .where(eq(bom.id, bomId));
 
   // Audit log
@@ -1392,7 +1485,7 @@ export async function updateBOMLine(
   }
 
   const useSqlite = process.env.DB_TYPE === 'sqlite';
-  const now = new Date().toISOString();
+  const now = getNow();
 
   // Update line
   await database
@@ -1409,7 +1502,7 @@ export async function updateBOMLine(
   // Update BOM timestamp
   await database
     .update(bom)
-    .set({ updatedAt: useSqlite ? now : new Date() })
+    .set({ updatedAt: now })
     .where(eq(bom.id, existingLine.bomId));
 
   // Audit log
@@ -1449,10 +1542,10 @@ export async function removeBOMLine(
 
   // Update BOM timestamp
   const useSqlite = process.env.DB_TYPE === 'sqlite';
-  const now = new Date().toISOString();
+  const now = getNow();
   await database
     .update(bom)
-    .set({ updatedAt: useSqlite ? now : new Date() })
+    .set({ updatedAt: now })
     .where(eq(bom.id, existingLine.bomId));
 
   // Audit log

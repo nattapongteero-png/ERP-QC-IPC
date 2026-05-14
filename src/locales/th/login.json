@@ -1,0 +1,31 @@
+{
+  "title": "Herbal Medicine",
+  "subtitle": "ERP System",
+  "appName": "Herbal Medicine ERP",
+  "tagline": "ระบบบริหารจัดการการผลิตยาสมุนไพรครบวงจร ตั้งแต่วัตถุดิบจนถึงสินค้าสำเร็จรูป",
+  "taglineShort": "ระบบบริหารจัดการการผลิตยาสมุนไพร",
+  "features": {
+    "gmpCompliance": "ควบคุมคุณภาพตามมาตรฐาน GMP",
+    "realTimeTracking": "ติดตามล็อตการผลิตแบบ Real-time",
+    "autoReports": "รายงานและวิเคราะห์ข้อมูลอัตโนมัติ"
+  },
+  "form": {
+    "welcome": "ยินดีต้อนรับ",
+    "welcomeSubtitle": "เข้าสู่ระบบเพื่อดำเนินการต่อ",
+    "email": "อีเมล",
+    "emailPlaceholder": "your@email.com",
+    "password": "รหัสผ่าน",
+    "passwordPlaceholder": "••••••••",
+    "submit": "เข้าสู่ระบบ"
+  },
+  "demo": {
+    "title": "บัญชีทดสอบ"
+  },
+  "errors": {
+    "loginFailed": "เข้าสู่ระบบไม่สำเร็จ",
+    "genericError": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"
+  },
+  "footer": {
+    "copyright": "© 2025 Herbal Medicine ERP. สงวนลิขสิทธิ์"
+  }
+}

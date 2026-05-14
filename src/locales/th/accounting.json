@@ -1,0 +1,878 @@
+{
+  "page": {
+    "title": "บัญชี",
+    "description": "จัดการบัญชีแยกประเภท รายรับ รายจ่าย และรายงานทางการเงิน"
+  },
+  "dashboard": {
+    "title": "แดชบอร์ดบัญชีระดับผู้บริหาร",
+    "description": "ข้อมูลเชิงลึกทางการเงินและตัวชี้วัดที่ใช้ดำเนินการได้",
+    "refresh": "รีเฟรช",
+    "periods": {
+      "mtd": "เดือนนี้",
+      "qtd": "ไตรมาสนี้",
+      "ytd": "ปีนี้"
+    },
+    "sections": {
+      "financialHealth": "สุขภาพทางการเงิน",
+      "businessPerformance": "ผลประกอบการ",
+      "quickAccess": "เข้าถึงด่วน"
+    },
+    "quickLinks": {
+      "financialStatements": "งบการเงิน",
+      "trialBalance": "งบทดลอง",
+      "balanceSheet": "งบดุล",
+      "incomeStatement": "งบกำไรขาดทุน",
+      "cashFlow": "งบกระแสเงินสด",
+      "receivables": "ลูกหนี้",
+      "arInvoices": "ใบแจ้งหนี้ลูกหนี้",
+      "arAging": "อายุลูกหนี้",
+      "receipts": "ใบเสร็จรับเงิน",
+      "payables": "เจ้าหนี้",
+      "apInvoices": "ใบแจ้งหนี้เจ้าหนี้",
+      "apAging": "อายุเจ้าหนี้",
+      "payments": "การชำระเงิน",
+      "assetsOperations": "สินทรัพย์และการดำเนินงาน",
+      "fixedAssets": "สินทรัพย์ถาวร",
+      "equipment": "อุปกรณ์",
+      "periodClose": "ปิดงวดบัญชี"
+    }
+  },
+  "chartOfAccounts": {
+    "title": "ผังบัญชี",
+    "subtitle": "Chart of Accounts",
+    "export": "ส่งออก",
+    "exportSuccess": "ส่งออกสำเร็จ",
+    "exportFailed": "ส่งออกไม่สำเร็จ",
+    "stats": {
+      "total": "บัญชีทั้งหมด",
+      "active": "ใช้งาน",
+      "postable": "ลงบัญชีได้",
+      "bankAccounts": "บัญชีธนาคาร",
+      "inactive": "ไม่ใช้งาน",
+      "byType": "ประเภทบัญชี",
+      "accountsShown": "{count} บัญชีที่แสดง"
+    },
+    "search": {
+      "placeholder": "ค้นหารหัสหรือชื่อบัญชี..."
+    },
+    "empty": {
+      "title": "ยังไม่มีบัญชีในผังบัญชี",
+      "description": "เริ่มต้นตั้งค่าผังบัญชีของคุณโดยเพิ่มบัญชีแรก"
+    },
+    "noResults": {
+      "title": "ไม่พบบัญชีที่ตรงกับเงื่อนไข",
+      "description": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองอื่น"
+    },
+    "filters": {
+      "all": "ทั้งหมด",
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน",
+      "postable": "ลงบัญชีได้",
+      "bank": "บัญชีธนาคาร"
+    },
+    "tabs": {
+      "tree": "มุมมองต้นไม้",
+      "list": "มุมมองรายการ"
+    },
+    "columns": {
+      "code": "รหัสบัญชี",
+      "nameTh": "ชื่อบัญชี (ไทย)",
+      "nameEn": "ชื่อบัญชี (อังกฤษ)",
+      "type": "ประเภท",
+      "level": "ระดับ",
+      "postable": "ลงบัญชี",
+      "postableYes": "ลงบัญชีได้",
+      "status": "สถานะ",
+      "bankAccount": "บัญชีธนาคาร"
+    },
+    "form": {
+      "addTitle": "เพิ่มบัญชีใหม่",
+      "editTitle": "แก้ไขบัญชี: {code}",
+      "sections": {
+        "basic": "ข้อมูลพื้นฐาน",
+        "options": "ตัวเลือก",
+        "bank": "ข้อมูลธนาคาร"
+      },
+      "fields": {
+        "code": "รหัสบัญชี",
+        "codePlaceholder": "เช่น 1-1100-01",
+        "codeRequired": "กรุณาระบุรหัสบัญชี",
+        "codePattern": "รหัสบัญชีต้องเป็นตัวเลข ขีด หรือจุดเท่านั้น",
+        "codeMaxLength": "รหัสบัญชีต้องไม่เกิน 20 ตัวอักษร",
+        "accountType": "ประเภทบัญชี",
+        "accountTypePlaceholder": "เลือกประเภทบัญชี",
+        "accountTypeRequired": "กรุณาเลือกประเภทบัญชี",
+        "nameTh": "ชื่อบัญชี (ภาษาไทย)",
+        "nameThPlaceholder": "ชื่อบัญชีภาษาไทย",
+        "nameThRequired": "กรุณาระบุชื่อบัญชีภาษาไทย",
+        "nameMaxLength": "ชื่อบัญชีต้องไม่เกิน 200 ตัวอักษร",
+        "nameEn": "ชื่อบัญชี (ภาษาอังกฤษ)",
+        "nameEnPlaceholder": "Account Name in English",
+        "nameEnRequired": "กรุณาระบุชื่อบัญชีภาษาอังกฤษ",
+        "parent": "บัญชีแม่",
+        "parentPlaceholder": "เลือกบัญชีแม่ (ถ้ามี)",
+        "noParent": "(ไม่มีบัญชีแม่)",
+        "description": "คำอธิบาย",
+        "descriptionPlaceholder": "คำอธิบายบัญชี (ถ้ามี)",
+        "isPostable": "ลงบัญชีได้",
+        "isPostableText": "สามารถลงบัญชีได้",
+        "isBankAccount": "บัญชีธนาคาร",
+        "isBankAccountText": "เป็นบัญชีธนาคาร",
+        "isActive": "สถานะ",
+        "isActiveText": "ใช้งาน",
+        "bankName": "ชื่อธนาคาร",
+        "bankNamePlaceholder": "เช่น ธนาคารกรุงเทพ",
+        "bankNameMaxLength": "ชื่อธนาคารต้องไม่เกิน 100 ตัวอักษร",
+        "bankAccountNumber": "เลขที่บัญชี",
+        "bankAccountNumberPlaceholder": "เลขที่บัญชีธนาคาร",
+        "bankAccountNumberMaxLength": "เลขที่บัญชีต้องไม่เกิน 50 ตัวอักษร"
+      },
+      "toast": {
+        "createSuccess": "บันทึกบัญชีสำเร็จ",
+        "updateSuccess": "แก้ไขบัญชีสำเร็จ"
+      }
+    },
+    "actions": {
+      "label": "การดำเนินการ",
+      "add": "เพิ่มบัญชี",
+      "cancel": "ยกเลิก",
+      "save": "บันทึก",
+      "saving": "กำลังบันทึก..."
+    }
+  },
+  "accountTypes": {
+    "title": "ประเภทบัญชี",
+    "subtitle": "สรุปประเภทบัญชีและจำนวนบัญชีในแต่ละประเภท",
+    "breadcrumbAccounting": "บัญชี",
+    "refresh": "รีเฟรช",
+    "viewChart": "ผังบัญชี",
+    "search": {
+      "placeholder": "ค้นหารหัส หรือชื่อประเภทบัญชี..."
+    },
+    "showingCount": "แสดง {filtered} / {total} ประเภท",
+    "noDataText": "ไม่พบประเภทบัญชี",
+    "stats": {
+      "totalTypes": "ประเภทบัญชีทั้งหมด",
+      "assetAccounts": "บัญชีสินทรัพย์",
+      "liabilityAccounts": "บัญชีหนี้สิน",
+      "equityAccounts": "บัญชีส่วนของเจ้าของ"
+    },
+    "categories": {
+      "asset": "Assets",
+      "liability": "Liabilities",
+      "equity": "Equity",
+      "revenue": "Revenue",
+      "expense": "Expenses",
+      "assetTh": "สินทรัพย์",
+      "liabilityTh": "หนี้สิน",
+      "equityTh": "ส่วนของผู้ถือหุ้น",
+      "revenueTh": "รายได้",
+      "expenseTh": "ค่าใช้จ่าย"
+    },
+    "filters": {
+      "all": "ทั้งหมด"
+    },
+    "columns": {
+      "code": "รหัส",
+      "name": "ประเภทบัญชี",
+      "category": "หมวด",
+      "normalBalance": "ยอดปกติ",
+      "accounts": "บัญชี",
+      "active": "ใช้งาน",
+      "postable": "บันทึกได้",
+      "groups": "กลุ่ม"
+    },
+    "balance": {
+      "debit": "เดบิต",
+      "credit": "เครดิต"
+    },
+    "card": {
+      "accountsLabel": "บัญชี",
+      "activeLabel": "ใช้งาน",
+      "groupsLabel": "กลุ่ม",
+      "viewChartOfType": "ดูผังบัญชีของประเภทนี้"
+    },
+    "actions": {
+      "viewChart": "ดูผังบัญชี",
+      "retry": "ลองใหม่อีกครั้ง",
+      "clearFilters": "ล้างตัวกรอง"
+    },
+    "tooltips": {
+      "activePercent": "{percent}% ของทั้งหมด"
+    },
+    "empty": {
+      "title": "ยังไม่มีประเภทบัญชี",
+      "description": "ระบบยังไม่มีข้อมูลประเภทบัญชี กรุณาเริ่มต้นตั้งค่าผังบัญชีเพื่อใช้งานโมดูลบัญชี"
+    },
+    "noResults": {
+      "title": "ไม่พบประเภทบัญชีที่ตรงกับเงื่อนไข",
+      "description": "ลองเปลี่ยนคำค้นหาหรือเลือกหมวดอื่น"
+    },
+    "summaryTable": {
+      "title": "ตารางสรุปรวม",
+      "columns": {
+        "category": "หมวด",
+        "types": "ประเภท",
+        "totalAccounts": "บัญชีทั้งหมด",
+        "active": "ใช้งาน",
+        "postable": "บันทึกได้",
+        "groups": "กลุ่มบัญชี"
+      },
+      "total": "รวมทั้งหมด",
+      "activeUsage": "{percent}% ของบัญชีทั้งหมดใช้งาน",
+      "noAccounts": "ยังไม่มีบัญชี"
+    }
+  },
+  "journalEntries": {
+    "title": "รายการบันทึกบัญชี",
+    "subtitle": "Journal Entries",
+    "addEntry": "เพิ่มรายการ",
+    "search": "ค้นหา...",
+    "stats": {
+      "total": "รายการทั้งหมด",
+      "draft": "ร่าง",
+      "posted": "ผ่านแล้ว",
+      "reversed": "กลับรายการ",
+      "thisMonth": "เดือนนี้"
+    },
+    "filters": {
+      "status": "สถานะ",
+      "statusPlaceholder": "กรองสถานะ",
+      "type": "ประเภท",
+      "typePlaceholder": "กรองประเภท",
+      "all": "ทั้งหมด",
+      "allTypes": "ทุกประเภท"
+    },
+    "sourceTypes": {
+      "MANUAL": "บันทึกมือ",
+      "PO_RECEIPT": "รับสินค้า",
+      "SO_SHIPMENT": "ส่งสินค้า",
+      "AP_PAYMENT": "จ่ายเงิน",
+      "AR_RECEIPT": "รับเงิน",
+      "DEPRECIATION": "ค่าเสื่อม",
+      "PAYROLL": "เงินเดือน",
+      "COST_ALLOCATION": "จัดสรรต้นทุน",
+      "PERIOD_CLOSE": "ปิดงวด"
+    },
+    "columns": {
+      "entryNumber": "เลขที่รายการ",
+      "date": "วันที่",
+      "type": "ประเภท",
+      "description": "รายละเอียด",
+      "debit": "เดบิต",
+      "credit": "เครดิต",
+      "status": "สถานะ",
+      "actions": "การดำเนินการ",
+      "account": "บัญชี"
+    },
+    "summary": {
+      "total": "รวม: {0}"
+    },
+    "actions": {
+      "view": "ดูรายละเอียด",
+      "post": "ผ่านรายการ",
+      "reverse": "กลับรายการ"
+    },
+    "dialogs": {
+      "postTitle": "ยืนยันการผ่านรายการ",
+      "postMessage": "คุณต้องการผ่านรายการบันทึก {entryNumber} หรือไม่?",
+      "reverseTitle": "ยืนยันการกลับรายการ",
+      "reverseMessage": "คุณต้องการกลับรายการ {entryNumber} หรือไม่?",
+      "reverseNote": "ระบบจะสร้างรายการกลับอัตโนมัติ"
+    },
+    "toast": {
+      "postSuccess": "ผ่านรายการบันทึกบัญชีแล้ว",
+      "postError": "ไม่สามารถผ่านรายการได้",
+      "reverseSuccess": "กลับรายการบันทึกบัญชีแล้ว",
+      "reverseError": "ไม่สามารถกลับรายการได้"
+    },
+    "detail": {
+      "loading": "กำลังโหลด...",
+      "noLines": "ไม่พบรายการ"
+    },
+    "empty": {
+      "noResultsTitle": "ไม่พบรายการที่ตรงกับตัวกรอง",
+      "noResultsDescription": "ล้างตัวกรองเพื่อดูรายการทั้งหมด"
+    },
+    "refresh": "รีเฟรช",
+    "clearFilters": "ล้างตัวกรอง"
+  },
+  "generalLedger": {
+    "title": "บัญชีแยกประเภท",
+    "description": "จัดการผังบัญชีและรายการบันทึกบัญชี",
+    "chartOfAccounts": {
+      "title": "ผังบัญชี",
+      "table": {
+        "columns": {
+          "accountCode": "รหัสบัญชี",
+          "accountName": "ชื่อบัญชี",
+          "accountType": "ประเภทบัญชี",
+          "parentAccount": "บัญชีหลัก",
+          "balance": "ยอดคงเหลือ",
+          "status": "สถานะ"
+        }
+      }
+    },
+    "journalEntries": {
+      "title": "รายการบันทึกบัญชี",
+      "table": {
+        "columns": {
+          "entryNumber": "เลขที่รายการ",
+          "date": "วันที่",
+          "description": "คำอธิบาย",
+          "debit": "เดบิต",
+          "credit": "เครดิต",
+          "status": "สถานะ",
+          "reference": "อ้างอิง"
+        }
+      },
+      "actions": {
+        "createEntry": "สร้างรายการ",
+        "postEntry": "ลงรายการ",
+        "reverseEntry": "กลับรายการ"
+      }
+    },
+    "accountTypes": {
+      "asset": "สินทรัพย์",
+      "liability": "หนี้สิน",
+      "equity": "ส่วนของผู้ถือหุ้น",
+      "revenue": "รายได้",
+      "expense": "ค่าใช้จ่าย"
+    }
+  },
+  "accountsReceivable": {
+    "title": "บัญชีลูกหนี้",
+    "description": "จัดการใบแจ้งหนี้และการรับชำระเงินจากลูกค้า",
+    "refresh": "รีเฟรช",
+    "quickAccess": "เข้าถึงด่วน",
+    "recentInvoicesTitle": "ใบแจ้งหนี้ลูกหนี้ล่าสุด",
+    "agingSummaryTitle": "สรุปอายุลูกหนี้",
+    "loadingAgingData": "กำลังโหลดข้อมูลอายุหนี้...",
+    "open": "เปิด",
+    "viewAll": "ดูทั้งหมด",
+    "viewAllInvoices": "ดูใบแจ้งหนี้ทั้งหมด",
+    "createInvoice": "สร้างใบแจ้งหนี้",
+    "overdueBadge": "เกินกำหนด",
+    "agingLegend": "จำนวนเงินลูกหนี้",
+    "stats": {
+      "totalReceivable": "ลูกหนี้ทั้งหมด",
+      "overdue": "เกินกำหนด",
+      "pendingInvoices": "ใบแจ้งหนี้รอดำเนินการ",
+      "collectedThisMonth": "เก็บได้เดือนนี้",
+      "onTrack": "อยู่ในเกณฑ์",
+      "invoicesPastDue": "{count} ใบแจ้งหนี้เกินกำหนด",
+      "receiptsCount": "{count} ใบเสร็จ"
+    },
+    "alert": {
+      "title": "ลูกหนี้คงค้าง",
+      "message": "คุณมีลูกหนี้เกินกำหนดทั้งหมด {amount} ใน {count} ใบแจ้งหนี้",
+      "viewOverdue": "ดูใบแจ้งหนี้ที่เกินกำหนด"
+    },
+    "filters": {
+      "all": "ทั้งหมด",
+      "overdue": "เกินกำหนด",
+      "open": "เปิด",
+      "paid": "ชำระแล้ว"
+    },
+    "navCards": {
+      "invoices": {
+        "name": "ใบแจ้งหนี้ลูกหนี้",
+        "description": "จัดการใบแจ้งหนี้และการเรียกเก็บเงินจากลูกค้า"
+      },
+      "receipts": {
+        "name": "ใบเสร็จรับเงิน",
+        "description": "บันทึกและติดตามการรับชำระจากลูกค้า"
+      },
+      "aging": {
+        "name": "รายงานอายุหนี้",
+        "description": "ดูการวิเคราะห์อายุลูกหนี้"
+      }
+    },
+    "agingBuckets": {
+      "current": "ปัจจุบัน",
+      "days1_30": "1-30 วัน",
+      "days31_60": "31-60 วัน",
+      "days61_90": "61-90 วัน",
+      "days90Plus": "90+ วัน"
+    },
+    "emptyRecent": {
+      "title": "ยังไม่มีใบแจ้งหนี้ลูกหนี้",
+      "description": "สร้างใบแจ้งหนี้ลูกค้ารายแรกเพื่อเริ่มติดตามลูกหนี้"
+    },
+    "noResultsRecent": {
+      "title": "ไม่มีใบแจ้งหนี้ตรงกับตัวกรองนี้",
+      "description": "ลองเปลี่ยนเป็นตัวกรองอื่นเพื่อดูผลลัพธ์ที่ตรงกัน",
+      "clear": "ล้างตัวกรอง"
+    },
+    "details": {
+      "noDescription": "ไม่มีรายละเอียด",
+      "dueLabel": "กำหนด",
+      "issuedLabel": "ออก",
+      "received": "รับแล้ว",
+      "balance": "คงเหลือ",
+      "paidInFull": "ชำระเต็มจำนวน"
+    },
+    "footer": {
+      "recentInvoices": "ใบแจ้งหนี้ล่าสุด",
+      "totalOutstanding": "ยอดคงค้างรวม",
+      "overdue": "เกินกำหนด",
+      "collectedThisMonth": "เก็บได้เดือนนี้"
+    },
+    "invoices": {
+      "title": "ใบแจ้งหนี้",
+      "table": {
+        "columns": {
+          "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+          "customer": "ลูกค้า",
+          "invoiceDate": "วันที่ออกใบแจ้งหนี้",
+          "dueDate": "วันครบกำหนด",
+          "amount": "จำนวนเงิน",
+          "paidAmount": "ชำระแล้ว",
+          "balance": "ยอดคงเหลือ",
+          "status": "สถานะ"
+        }
+      },
+      "status": {
+        "draft": "แบบร่าง",
+        "sent": "ส่งแล้ว",
+        "partial": "ชำระบางส่วน",
+        "paid": "ชำระแล้ว",
+        "overdue": "เกินกำหนด",
+        "cancelled": "ยกเลิก"
+      }
+    },
+    "receipts": {
+      "title": "ใบเสร็จรับเงิน",
+      "table": {
+        "columns": {
+          "receiptNumber": "เลขที่ใบเสร็จ",
+          "customer": "ลูกค้า",
+          "date": "วันที่",
+          "amount": "จำนวนเงิน",
+          "paymentMethod": "วิธีการชำระเงิน"
+        }
+      }
+    },
+    "actions": {
+      "createInvoice": "สร้างใบแจ้งหนี้",
+      "recordPayment": "บันทึกการรับชำระ",
+      "sendReminder": "ส่งการแจ้งเตือน",
+      "viewAging": "ดูรายงานอายุหนี้"
+    }
+  },
+  "accountsPayable": {
+    "title": "บัญชีเจ้าหนี้",
+    "description": "จัดการใบแจ้งหนี้ผู้ขายและการชำระเงิน",
+    "quickAccess": "เข้าถึงด่วน",
+    "recentInvoicesTitle": "ใบแจ้งหนี้เจ้าหนี้ล่าสุด",
+    "agingSummaryTitle": "สรุปอายุเจ้าหนี้",
+    "loadingAgingData": "กำลังโหลดข้อมูลอายุหนี้...",
+    "open": "เปิด",
+    "viewAllInvoices": "ดูใบแจ้งหนี้ทั้งหมด",
+    "viewDetails": "ดูรายละเอียด",
+    "stats": {
+      "totalOutstanding": "ยอดค้างทั้งหมด",
+      "overdueAmount": "ยอดเกินกำหนด",
+      "pendingInvoices": "ใบแจ้งหนี้รอดำเนินการ",
+      "paidThisMonth": "ชำระแล้วเดือนนี้",
+      "attentionNeeded": "ต้องดำเนินการ",
+      "onTrack": "อยู่ในเกณฑ์"
+    },
+    "alert": {
+      "title": "ใบแจ้งหนี้เกินกำหนด",
+      "message": "คุณมีเจ้าหนี้เกินกำหนด {amount}",
+      "viewOverdue": "ดูใบแจ้งหนี้เกินกำหนด"
+    },
+    "navCards": {
+      "invoices": {
+        "name": "ใบแจ้งหนี้เจ้าหนี้",
+        "description": "จัดการใบแจ้งหนี้ผู้ขายและการอนุมัติ"
+      },
+      "payments": {
+        "name": "การชำระเงิน",
+        "description": "ดำเนินการและติดตามการชำระเงินผู้ขาย"
+      },
+      "aging": {
+        "name": "รายงานอายุหนี้",
+        "description": "ดูการวิเคราะห์อายุเจ้าหนี้"
+      }
+    },
+    "agingBuckets": {
+      "current": "ปัจจุบัน",
+      "days1_30": "1-30 วัน",
+      "days31_60": "31-60 วัน",
+      "days61_90": "61-90 วัน",
+      "days90Plus": "90+ วัน"
+    },
+    "agingLegend": "จำนวนเงินเจ้าหนี้",
+    "emptyRecent": {
+      "title": "ยังไม่มีใบแจ้งหนี้เจ้าหนี้",
+      "description": "สร้างใบแจ้งหนี้ผู้ขายรายแรกเพื่อเริ่มติดตามเจ้าหนี้",
+      "cta": "ไปที่ใบแจ้งหนี้เจ้าหนี้"
+    },
+    "noAging": {
+      "title": "ไม่มีข้อมูลอายุหนี้",
+      "description": "เมื่อใบแจ้งหนี้ถูกผ่านรายการแล้ว จะแสดงการวิเคราะห์อายุหนี้ที่นี่"
+    },
+    "details": {
+      "dueLabel": "กำหนด",
+      "total": "รวม",
+      "paid": "ชำระแล้ว",
+      "outstanding": "คงค้าง",
+      "overdueBadge": "เกินกำหนด"
+    },
+    "footer": {
+      "recentInvoices": "ใบแจ้งหนี้ล่าสุด",
+      "totalOutstanding": "ยอดคงค้างรวม",
+      "overdue": "เกินกำหนด",
+      "paidThisMonth": "ชำระแล้วเดือนนี้"
+    },
+    "bills": {
+      "title": "ใบแจ้งหนี้ผู้ขาย",
+      "table": {
+        "columns": {
+          "billNumber": "เลขที่ใบแจ้งหนี้",
+          "supplier": "ผู้ขาย",
+          "billDate": "วันที่",
+          "dueDate": "วันครบกำหนด",
+          "amount": "จำนวนเงิน",
+          "paidAmount": "ชำระแล้ว",
+          "balance": "ยอดคงเหลือ",
+          "status": "สถานะ"
+        }
+      }
+    },
+    "payments": {
+      "title": "การชำระเงิน",
+      "table": {
+        "columns": {
+          "paymentNumber": "เลขที่การชำระ",
+          "supplier": "ผู้ขาย",
+          "date": "วันที่",
+          "amount": "จำนวนเงิน",
+          "paymentMethod": "วิธีการชำระเงิน"
+        }
+      }
+    },
+    "actions": {
+      "recordBill": "บันทึกใบแจ้งหนี้",
+      "makePayment": "ชำระเงิน",
+      "viewAging": "ดูรายงานอายุหนี้"
+    }
+  },
+  "fixedAssets": {
+    "title": "สินทรัพย์ถาวร",
+    "description": "จัดการสินทรัพย์ถาวรและค่าเสื่อมราคา",
+    "refresh": "รีเฟรช",
+    "breadcrumbHome": "หน้าแรก",
+    "breadcrumbAccounting": "บัญชี",
+    "search": {
+      "placeholder": "ค้นหารหัสหรือชื่อสินทรัพย์..."
+    },
+    "stats": {
+      "totalAssets": "สินทรัพย์ทั้งหมด",
+      "totalValue": "มูลค่ารวม",
+      "netBookValue": "มูลค่าสุทธิทางบัญชี",
+      "disposed": "จำหน่ายแล้ว"
+    },
+    "status": {
+      "all": "ทั้งหมด",
+      "active": "ใช้งาน",
+      "fullyDepreciated": "คิดค่าเสื่อมเต็ม",
+      "disposed": "จำหน่ายแล้ว"
+    },
+    "empty": {
+      "title": "ยังไม่มีสินทรัพย์ถาวร",
+      "description": "เริ่มติดตามสินทรัพย์ถาวรและค่าเสื่อมราคาด้วยการเพิ่มสินทรัพย์รายการแรก"
+    },
+    "noResults": {
+      "title": "ไม่พบสินทรัพย์ที่ตรงกัน",
+      "description": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองสถานะอื่น"
+    },
+    "deleteDialog": {
+      "title": "ยืนยันการลบ",
+      "message": "คุณแน่ใจหรือไม่ที่จะลบ \"{name}\"? การกระทำนี้ไม่สามารถย้อนกลับได้",
+      "confirm": "ลบ",
+      "deleting": "กำลังลบ...",
+      "cancel": "ยกเลิก"
+    },
+    "toast": {
+      "deleteSuccess": "ลบสินทรัพย์สำเร็จ"
+    },
+    "cardActions": {
+      "view": "ดู",
+      "edit": "แก้ไข",
+      "delete": "ลบ"
+    },
+    "rowActions": {
+      "view": "ดู",
+      "edit": "แก้ไข",
+      "delete": "ลบ"
+    },
+    "table": {
+      "columns": {
+        "assetCode": "รหัสสินทรัพย์",
+        "assetName": "ชื่อสินทรัพย์",
+        "nameTh": "ชื่อ (ไทย)",
+        "nameEn": "ชื่อ (อังกฤษ)",
+        "category": "หมวดหมู่",
+        "acquisitionDate": "วันที่ได้มา",
+        "acquisitionCost": "ราคาทุน",
+        "currentValue": "มูลค่าปัจจุบัน",
+        "depreciation": "ค่าเสื่อมราคาสะสม",
+        "status": "สถานะ"
+      }
+    },
+    "actions": {
+      "addAsset": "เพิ่มสินทรัพย์",
+      "recordDepreciation": "บันทึกค่าเสื่อมราคา",
+      "disposeAsset": "จำหน่ายสินทรัพย์",
+      "clearFilters": "ล้างตัวกรอง"
+    }
+  },
+  "equipment": {
+    "title": "อุปกรณ์และการบำรุงรักษา",
+    "subtitle": "ติดตามอุปกรณ์ ตารางการบำรุงรักษา และการวิเคราะห์ MTBF",
+    "breadcrumbHome": "หน้าแรก",
+    "breadcrumbAccounting": "บัญชี",
+    "breadcrumbEquipment": "อุปกรณ์",
+    "exportJson": "ส่งออก JSON",
+    "addEquipment": "เพิ่มอุปกรณ์",
+    "exportSuccess": "ส่งออกข้อมูลอุปกรณ์สำเร็จ",
+    "deleteSuccess": "ลบอุปกรณ์สำเร็จ",
+    "availability": {
+      "label": "สถานะการใช้งาน",
+      "all": "อุปกรณ์ทั้งหมด",
+      "available": "พร้อมใช้งาน",
+      "unavailable": "ไม่ว่าง / กำลังใช้งาน",
+      "clear": "ล้าง"
+    },
+    "stats": {
+      "totalEquipment": "อุปกรณ์ทั้งหมด",
+      "available": "พร้อมใช้งาน",
+      "inUse": "กำลังใช้งาน",
+      "overdue": "เกินกำหนด",
+      "due7Days": "ครบกำหนด (7 วัน)"
+    },
+    "overdueAlert": {
+      "title": "แจ้งเตือนการบำรุงรักษาเกินกำหนด",
+      "message": "มีงานบำรุงรักษาเกินกำหนด {count} งาน โปรดตรวจสอบและกำหนดการโดยด่วน"
+    },
+    "delete": {
+      "title": "ยืนยันการลบ",
+      "message": "คุณแน่ใจหรือไม่ที่จะลบอุปกรณ์ \"{name}\"?",
+      "cancel": "ยกเลิก",
+      "confirm": "ลบ",
+      "deleting": "กำลังลบ..."
+    },
+    "table": {
+      "columns": {
+        "assetCode": "รหัสสินทรัพย์",
+        "assetName": "ชื่อสินทรัพย์",
+        "serialNumber": "เลขซีเรียล",
+        "manufacturer": "ผู้ผลิต",
+        "model": "รุ่น",
+        "operatingHours": "ชั่วโมงใช้งาน",
+        "lastMaintenance": "บำรุงรักษาล่าสุด",
+        "nextDue": "ครบกำหนดถัดไป",
+        "status": "สถานะ",
+        "actions": "การดำเนินการ"
+      }
+    },
+    "rowActions": {
+      "view": "ดู",
+      "edit": "แก้ไข",
+      "delete": "ลบ"
+    },
+    "detail": {
+      "title": "ตารางการบำรุงรักษา",
+      "noSchedules": "ยังไม่มีการตั้งค่าตารางการบำรุงรักษา",
+      "active": "ใช้งาน",
+      "every": "ทุก",
+      "next": "ครั้งถัดไป"
+    },
+    "upcoming": {
+      "title": "การบำรุงรักษาที่จะมาถึง (7 วันถัดไป)",
+      "due": "กำหนด",
+      "today": "วันนี้",
+      "days": "{count} วัน"
+    }
+  },
+  "periodClose": {
+    "title": "ปิดงวดบัญชี",
+    "subtitle": "ขั้นตอนการปิดสิ้นเดือนและสิ้นปี",
+    "refresh": "รีเฟรช",
+    "stats": {
+      "openPeriods": "งวดที่เปิด",
+      "softClosed": "ปิดชั่วคราว",
+      "closedPeriods": "งวดที่ปิด",
+      "closeProgress": "ความคืบหน้าการปิด"
+    },
+    "charts": {
+      "statusDistribution": "การกระจายสถานะงวดบัญชี",
+      "statusDistributionDescription": "สรุปสถานะงวดบัญชีปัจจุบัน",
+      "yearCloseProgress": "ความคืบหน้าการปิดปี",
+      "yearCloseProgressDescription": "เปอร์เซ็นต์งวดที่ปิดแล้ว",
+      "closeWorkflow": "ขั้นตอนการปิด",
+      "closeWorkflowDescription": "สถานะกระบวนการปิดปัจจุบัน",
+      "noPeriods": "ไม่พบงวดบัญชี"
+    },
+    "statusChart": {
+      "open": "เปิด",
+      "softClosed": "ปิดชั่วคราว",
+      "closed": "ปิด"
+    },
+    "statusBadge": {
+      "open": "เปิด",
+      "softClosed": "ปิดชั่วคราว",
+      "closed": "ปิด"
+    },
+    "statusTabs": {
+      "all": "ทั้งหมด",
+      "open": "เปิด",
+      "softClosed": "ปิดชั่วคราว",
+      "closed": "ปิด"
+    },
+    "fiscalYear": "ปีบัญชี:",
+    "allYears": "ทุกปี",
+    "periodsShown": "แสดง {count} งวด",
+    "workflow": {
+      "selectPeriod": "เลือกงวด",
+      "validate": "ตรวจสอบ",
+      "reviewIssues": "ตรวจสอบปัญหา",
+      "closePeriod": "ปิดงวด",
+      "periodSelected": "เลือกงวดแล้ว",
+      "validationRun": "ตรวจสอบแล้ว",
+      "issuesFound": "พบปัญหา",
+      "noIssues": "ไม่มีปัญหา",
+      "readyToClose": "พร้อมปิด",
+      "fixRequired": "ต้องแก้ไข"
+    },
+    "validation": {
+      "sectionTitle": "การตรวจสอบและการดำเนินการ",
+      "selectPrompt": "เลือกงวดบัญชี",
+      "closeTitle": "ปิด: {periodName}",
+      "descriptionSelected": "ตรวจสอบการยืนยันและดำเนินการปิด",
+      "descriptionNone": "แตะที่งวดด้านบนเพื่อดูสถานะการปิด",
+      "noneSelectedTitle": "ยังไม่ได้เลือกงวด",
+      "noneSelectedDescription": "เลือกงวดจากรายการเพื่อดูผลการตรวจสอบและการดำเนินการปิด",
+      "validating": "กำลังตรวจสอบงวด...",
+      "validatingDetail": "ตรวจสอบรายการ ใบแจ้งหนี้ และงบทดลอง",
+      "readyToClose": "พร้อมปิด",
+      "cannotClose": "ไม่สามารถปิด - พบปัญหา",
+      "errors": "ข้อผิดพลาด ({count})",
+      "warnings": "คำเตือน ({count})",
+      "metrics": "ตัวชี้วัดการตรวจสอบ",
+      "unpostedJEs": "รายการที่ยังไม่ผ่าน",
+      "draftAP": "เจ้าหนี้ร่าง",
+      "draftAR": "ลูกหนี้ร่าง",
+      "trialBalance": "งบทดลอง",
+      "balanced": "สมดุล",
+      "notBalanced": "ไม่สมดุล",
+      "debits": "เดบิต",
+      "credits": "เครดิต"
+    },
+    "actions": {
+      "close": "ปิดงวด",
+      "forceClose": "บังคับปิด (ข้ามการตรวจสอบ)",
+      "forceCloseConfirm": "การบังคับปิดจะข้ามการตรวจสอบ คุณแน่ใจหรือไม่?",
+      "reopen": "เปิดงวดใหม่",
+      "reopenReasonLabel": "เหตุผลในการเปิดใหม่",
+      "reopenReasonPlaceholder": "กรอกเหตุผล...",
+      "reopenReasonRequired": "กรุณากรอกเหตุผลในการเปิดใหม่",
+      "clearFilters": "ล้างตัวกรอง"
+    },
+    "recentClosed": {
+      "title": "ปิดล่าสุด",
+      "description": "5 งวดล่าสุดที่ปิดแล้ว",
+      "closedLabel": "ปิด",
+      "none": "ยังไม่มีงวดที่ปิด"
+    },
+    "guide": {
+      "title": "คู่มือการปิดงวด",
+      "description": "ทำตามขั้นตอนเหล่านี้เพื่อปิดงวดอย่างสมบูรณ์",
+      "step1Title": "ผ่านรายการทั้งหมด",
+      "step1Desc": "ตรวจสอบให้แน่ใจว่ารายการบัญชีทั้งหมดผ่านแล้ว",
+      "step2Title": "ดำเนินการใบแจ้งหนี้",
+      "step2Desc": "ปิดใบแจ้งหนี้เจ้าหนี้/ลูกหนี้ทั้งหมด",
+      "step3Title": "ตรวจสอบความสมดุล",
+      "step3Desc": "ตรวจสอบว่างบทดลองสมดุล",
+      "step4Title": "ปิดงวด",
+      "step4Desc": "ล็อกงวดเพื่อป้องกันการเปลี่ยนแปลง"
+    },
+    "columns": {
+      "period": "งวด",
+      "year": "ปี",
+      "start": "เริ่ม",
+      "end": "สิ้นสุด",
+      "status": "สถานะ",
+      "closedAt": "ปิดเมื่อ"
+    },
+    "cardLabels": {
+      "closedPrefix": "ปิด"
+    },
+    "empty": {
+      "title": "ไม่พบงวดบัญชี",
+      "description": "งวดบัญชีจะแสดงที่นี่หลังจากที่มีการตั้งค่าปีบัญชีในระบบแล้ว"
+    },
+    "noResults": {
+      "title": "ไม่มีงวดที่ตรงกับตัวกรองปัจจุบัน",
+      "description": "ลองเลือกแท็บสถานะหรือปีบัญชีอื่น",
+      "clearFilters": "ล้างตัวกรอง"
+    }
+  },
+  "reports": {
+    "title": "รายงานทางการเงิน",
+    "balanceSheet": "งบดุล",
+    "incomeStatement": "งบกำไรขาดทุน",
+    "cashFlow": "งบกระแสเงินสด",
+    "trialBalance": "งบทดลอง",
+    "agingReport": "รายงานอายุหนี้",
+    "taxReport": "รายงานภาษี"
+  },
+  "periods": {
+    "title": "รอบบัญชี",
+    "actions": {
+      "closePeriod": "ปิดรอบบัญชี",
+      "openPeriod": "เปิดรอบบัญชี",
+      "yearEnd": "ปิดบัญชีประจำปี"
+    }
+  },
+  "operatingActivities": "กิจกรรมดำเนินงาน",
+  "investingActivities": "กิจกรรมลงทุน",
+  "financingActivities": "กิจกรรมจัดหาเงิน",
+  "cashReconciliation": "การกระทบยอดเงินสด",
+  "netIncome": "กำไรสุทธิ",
+  "adjustments": "รายการปรับ",
+  "workingCapitalChanges": "การเปลี่ยนแปลงเงินทุนหมุนเวียน",
+  "netCashFromOperating": "เงินสดสุทธิจากกิจกรรมดำเนินงาน",
+  "investingItems": "รายการลงทุน",
+  "netCashFromInvesting": "เงินสดสุทธิจากกิจกรรมลงทุน",
+  "financingItems": "รายการจัดหาเงิน",
+  "netCashFromFinancing": "เงินสดสุทธิจากกิจกรรมจัดหาเงิน",
+  "beginningCash": "ยอดเงินสดต้นงวด",
+  "actions": {
+    "refresh": "รีเฟรช",
+    "clear": "ล้าง",
+    "edit": "แก้ไข"
+  },
+  "common": {
+    "debit": "เดบิต",
+    "credit": "เครดิต",
+    "balance": "ยอดคงเหลือ",
+    "total": "รวม",
+    "subtotal": "รวมย่อย",
+    "tax": "ภาษี",
+    "discount": "ส่วนลด",
+    "grandTotal": "รวมทั้งสิ้น",
+    "refresh": "รีเฟรช",
+    "clearFilters": "ล้างตัวกรอง"
+  },
+  "items": {
+    "grid": {
+      "columns": {
+        "rowNum": "#"
+      }
+    }
+  }
+}

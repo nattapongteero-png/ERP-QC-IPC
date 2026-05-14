@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -50,7 +51,8 @@ function SectionTable({ section, title }: { section: BalanceSheetSection; title:
 }
 
 function BalanceSheetContent() {
-  const { language, t, formatCurrency } = useReportLanguage();
+  const t = useTranslations('accounting');
+  const { language, t: reportT, formatCurrency } = useReportLanguage();
   const [asOfDate, setAsOfDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const { data, isLoading, refetch } = useQuery({
@@ -133,7 +135,7 @@ function BalanceSheetContent() {
   }, []);
 
   return (
-    <div className="p-6" data-testid="balance-sheet-page">
+    <div className="p-6" data-testid="balance-sheet-page" data-title={t('page.title')}>
       <ReportHeader
         titleKey="balanceSheet"
         subtitle={`${t('asOfDate')}: ${asOfDate}`}

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -26,6 +27,7 @@ export default function DebitNoteDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useTranslations('accounting');
   const { id } = use(params);
   const router = useRouter();
   const noteId = parseInt(id, 10);
@@ -117,7 +119,7 @@ export default function DebitNoteDetailPage({
         <div className="flex justify-between items-start mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-              Debit Note: {note.noteNumber}
+              {t('page.title')}: {note.noteNumber}
             </h1>
             <span className={`mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium ${statusColors[note.status]}`}>
               {note.status}

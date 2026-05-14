@@ -85,8 +85,8 @@ export default function ProductionEquipmentPage() {
   const renderTypeBadge = (type: string) => {
     const typeInfo = equipmentTypes.find((t) => t.value === type);
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-        <Wrench className="h-3 w-3" />
+      <span className="dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+        <Wrench className="h-3 w-3 flex-shrink-0" />
         {typeInfo?.label || type}
       </span>
     );
@@ -101,6 +101,7 @@ export default function ProductionEquipmentPage() {
         icon={Wrench}
         iconBgColor="bg-purple-100"
         iconColor="text-purple-600"
+        onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
           { label: 'Production Equipment' },
@@ -118,31 +119,36 @@ export default function ProductionEquipmentPage() {
       {/* Data Grid */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <DxDataGrid
-          dataSource={equipment || []}
+          dataSource={(equipment || []).map((e, i) => ({ ...e, _rowNumber: i + 1 }))}
           keyExpr="id"
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
-          height={500}
+          height="auto"
           width="100%"
           columnAutoWidth
         >
           <DxSearchPanel visible placeholder="Search equipment..." width={200} />
-          <DxPaging defaultPageSize={15} />
+          <DxPaging defaultPageSize={20} />
 
+          <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
+            <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
+          )} />
           <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
             <span className="font-mono font-medium text-purple-700">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Name (EN)" minWidth={150} />
           <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />
-          <DxColumn dataField="equipmentType" caption="Type" width={120} cellRender={(cell) => renderTypeBadge(cell.value)} />
-          <DxColumn dataField="capacity" caption="Capacity" width={120} />
+          <DxColumn dataField="equipmentType" caption="Type" minWidth={160} cellRender={(cell) => renderTypeBadge(cell.value)} />
+          <DxColumn dataField="capacity" caption="Capacity" minWidth={140} cellRender={(cell) => (
+            <span className="whitespace-nowrap">{cell.value || '-'}</span>
+          )} />
           <DxColumn caption="Default Room" minWidth={150} cellRender={(cell) => {
             const data = cell.data as ProductionEquipment;
             return data.room?.name || data.roomName || '-';
           }} />
           <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />
@@ -163,7 +169,7 @@ export default function ProductionEquipmentPage() {
                 <Edit className="h-4 w-4" />
               </button>
               <button
-                onClick={() => deleteMutation.mutate((cell.data as ProductionEquipment).id)}
+                onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as ProductionEquipment).name} หรือไม่?`)) deleteMutation.mutate((cell.data as ProductionEquipment).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Deactivate"
               >

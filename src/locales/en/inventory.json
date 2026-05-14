@@ -1,0 +1,686 @@
+{
+  "page": {
+    "title": "Inventory",
+    "description": "Manage inventory items, lots, and warehouses"
+  },
+  "common": {
+    "all": "All",
+    "refresh": "Refresh",
+    "search": "Search",
+    "loading": "Loading...",
+    "itemsShown": "{count} items shown",
+    "lotsShown": "{count} lots shown",
+    "warehousesShown": "{count} warehouses shown",
+    "total": "Total",
+    "days": "days",
+    "units": "units",
+    "confirmDelete": "Confirm Delete",
+    "deleteMessage": "Are you sure you want to delete \"{name}\"?",
+    "delete": "Delete",
+    "edit": "Edit",
+    "clearFilters": "Clear filters",
+    "downloadTemplate": "Template",
+    "importExcel": "Import Excel"
+  },
+  "stats": {
+    "total": "Total",
+    "lowStock": "Low Stock",
+    "inQuarantine": "In Quarantine",
+    "nearExpiry": "Near Expiry",
+    "expired": "Expired",
+    "active": "Active",
+    "inactive": "Inactive",
+    "coldStorage": "Cold Storage"
+  },
+  "expiryAlerts": {
+    "pageTitle": "Expiry Alerts",
+    "description": "Monitor expired and near-expiry inventory",
+    "daysOptions": {
+      "next30": "Next 30 days",
+      "next60": "Next 60 days",
+      "next90": "Next 90 days",
+      "next180": "Next 180 days"
+    },
+    "stats": {
+      "expiredLots": "Expired Lots",
+      "expiredValue": "Expired Value",
+      "nearExpiryLots": "Near Expiry Lots",
+      "nearExpiryValue": "Near Expiry Value"
+    },
+    "columns": {
+      "lotNumber": "Lot Number",
+      "itemCode": "Item Code",
+      "itemName": "Item Name",
+      "quantity": "Quantity",
+      "expiryDate": "Expiry Date",
+      "daysExpired": "Days Expired",
+      "daysToExpiry": "Days to Expiry"
+    },
+    "sections": {
+      "expiredTitle": "Expired Lots ({count})",
+      "expiredDescription": "These lots have passed their expiry date and should be quarantined or disposed",
+      "nearExpiryTitle": "Near Expiry Lots ({count})",
+      "nearExpiryDescription": "These lots will expire within {days} days - prioritize for FEFO picking"
+    },
+    "noExpired": "No expired lots",
+    "noNearExpiry": "No near-expiry lots",
+    "badge": {
+      "daysAgo": "{days} days ago",
+      "daysLeft": "{days} days"
+    },
+    "mobile": {
+      "qty": "Qty:",
+      "expired": "Expired:",
+      "expires": "Expires:"
+    },
+    "allClear": {
+      "title": "No lots near expiry",
+      "description": "All your inventory is in good standing"
+    },
+    "refresh": "Refresh"
+  },
+  "transactions": {
+    "pageTitle": "Inventory Transactions",
+    "description": "Track inventory movements",
+    "types": {
+      "all": "All",
+      "receive": "Receive",
+      "issue": "Issue",
+      "transfer": "Transfer",
+      "adjust": "Adjust",
+      "scrap": "Scrap",
+      "return": "Return"
+    },
+    "refTypes": {
+      "none": "None",
+      "purchaseOrder": "Purchase Order",
+      "salesOrder": "Sales Order",
+      "workOrder": "Work Order",
+      "qcRelease": "QC Release",
+      "adjustment": "Adjustment"
+    },
+    "table": {
+      "columns": {
+        "transactionNumber": "Transaction #",
+        "type": "Type",
+        "lotItem": "Lot / Item",
+        "quantity": "Quantity",
+        "warehouse": "Warehouse",
+        "reference": "Reference",
+        "dateBy": "Date / By"
+      }
+    },
+    "stats": {
+      "total": "Total Transactions",
+      "incoming": "Incoming",
+      "outgoing": "Outgoing",
+      "today": "Today"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "viewLots": "View Lots",
+      "newTransaction": "New Transaction",
+      "apply": "Apply",
+      "cancel": "Cancel",
+      "create": "Create Transaction"
+    },
+    "search": {
+      "placeholder": "Search by transaction #, lot, or item...",
+      "fromDate": "From Date",
+      "toDate": "To Date"
+    },
+    "form": {
+      "title": "New Transaction",
+      "transactionType": "Transaction Type",
+      "selectLot": "Select Lot",
+      "selectLotPlaceholder": "Select a lot...",
+      "selectWarehousePlaceholder": "Select warehouse...",
+      "quantity": "Quantity",
+      "toWarehouse": "To Warehouse",
+      "maxAvailable": "Max available: {qty} {unit}",
+      "referenceSection": "Reference (Optional)",
+      "referenceType": "Reference Type",
+      "referenceNumber": "Reference Number",
+      "referencePlaceholder": "PO-2024-001",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes...",
+      "lotInfo": {
+        "item": "Item:",
+        "available": "Available:",
+        "warehouse": "Warehouse:"
+      },
+      "alertSelectLotAndQty": "Please select a lot and enter quantity"
+    },
+    "mobile": {
+      "lotPrefix": "Lot:"
+    },
+    "empty": {
+      "title": "No transactions yet",
+      "description": "Start recording inventory movements"
+    },
+    "noResults": {
+      "title": "No transactions match your filters",
+      "description": "Try a different search term or filter"
+    },
+    "noDataText": "No transactions found"
+  },
+  "items": {
+    "title": "Items",
+    "description": "Inventory items and materials",
+    "pageTitle": "Inventory Items",
+    "viewLots": "View Lots",
+    "addItem": "Add Item",
+    "searchPlaceholder": "Search items...",
+    "confirmDelete": "Are you sure you want to delete this item?",
+    "table": {
+      "columns": {
+        "itemCode": "Item Code",
+        "name": "Item Name",
+        "category": "Category",
+        "type": "Type",
+        "unit": "Unit",
+        "reorderLevel": "Reorder Level",
+        "safetyStock": "Safety Stock",
+        "status": "Status",
+        "totalStock": "Total Stock",
+        "availableStock": "Available Stock",
+        "lastReceived": "Last Received",
+        "lastIssued": "Last Issued"
+      }
+    },
+    "form": {
+      "itemCode": {
+        "label": "Item Code",
+        "placeholder": "Enter item code",
+        "hint": "Unique code for the item"
+      },
+      "name": {
+        "label": "Item Name",
+        "placeholder": "Enter item name"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Enter item description"
+      },
+      "category": {
+        "label": "Category",
+        "placeholder": "Select category"
+      },
+      "unit": {
+        "label": "Unit",
+        "placeholder": "Select unit"
+      },
+      "reorderLevel": {
+        "label": "Reorder Level",
+        "placeholder": "Enter reorder level",
+        "hint": "System will alert when stock falls below this level"
+      },
+      "safetyStock": {
+        "label": "Safety Stock",
+        "placeholder": "Enter safety stock"
+      }
+    },
+    "actions": {
+      "addItem": "Add Item",
+      "editItem": "Edit Item",
+      "viewItem": "View Item Details",
+      "deleteItem": "Delete Item",
+      "adjustStock": "Adjust Stock",
+      "viewLots": "View Lots"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "discontinued": "Discontinued"
+    },
+    "types": {
+      "rawMaterial": "Raw Material",
+      "wip": "Work in Progress",
+      "finishedGoods": "Finished Goods",
+      "packaging": "Packaging",
+      "consumable": "Consumable"
+    },
+    "grid": {
+      "columns": {
+        "rowNum": "#",
+        "code": "Code",
+        "name": "Name",
+        "type": "Type",
+        "category": "Category",
+        "onHand": "On Hand",
+        "onHandQty": "On Hand (Qty)",
+        "totalValue": "Total Value (฿)",
+        "avgCost": "Avg Cost/Unit",
+        "quarantine": "Quarantine",
+        "unit": "Unit",
+        "shelfLife": "Shelf Life",
+        "status": "Status",
+        "vmi": "VMI",
+        "actions": "Actions"
+      },
+      "lowStock": "Low",
+      "vmiReady": "Ready",
+      "shelfLifeDays": "{days} days",
+      "totalCount": "Total: {count}"
+    },
+    "buttons": {
+      "viewDetails": "View Details",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "toast": {
+      "create": {
+        "success": "Item created successfully",
+        "error": "Failed to create item"
+      },
+      "update": {
+        "success": "Item updated successfully",
+        "error": "Failed to update item"
+      },
+      "delete": {
+        "success": "Item deleted successfully",
+        "error": "Failed to delete item"
+      }
+    },
+    "empty": {
+      "title": "No items found",
+      "description": "Get started by adding a new item",
+      "action": "Add First Item"
+    }
+  },
+  "lots": {
+    "title": "Lots",
+    "pageTitle": "Inventory Lots",
+    "description": "Manage Lot/Batch inventory",
+    "days": "days",
+    "detail": {
+      "pageTitle": "Lot"
+    },
+    "viewItems": "View Items",
+    "addLot": "Add New Lot",
+    "searchPlaceholder": "Search by lot number or item...",
+    "noLots": "No lots found",
+    "noLotsDescription": "Start by receiving a new lot or try changing the filter",
+    "reserved": "Reserved",
+    "daysRemaining": "{days}d remaining",
+    "expiredDays": "Expired {days}d ago",
+    "overdueRetest": "Overdue {days}d",
+    "grid": {
+      "columns": {
+        "lotNumber": "Lot Number",
+        "vendorLotNumber": "Vendor Lot No.",
+        "receivedDate": "Received Date",
+        "aging": "Aging",
+        "item": "Item",
+        "quantity": "Quantity",
+        "value": "Value",
+        "warehouse": "Warehouse",
+        "expiryDate": "Expiry Date",
+        "manufacturer": "Manufacturer",
+        "retest": "Retest",
+        "status": "Status"
+      }
+    },
+    "validation": {
+      "lotNumberRequired": "Lot number is required",
+      "selectItem": "Please select an item",
+      "selectWarehouse": "Please select a warehouse",
+      "quantityMin": "Quantity must be greater than 0",
+      "expiryDateRequired": "Expiry date is required",
+      "expiryDateFuture": "Expiry date must be in the future",
+      "mfgBeforeExpiry": "Manufacturing date must be before expiry date",
+      "costRequired": "Cost per unit is required and must be greater than 0"
+    },
+    "form": {
+      "title": "Receive New Lot",
+      "receiveTitle": "Receive goods into warehouse",
+      "initialStatus": "Initial status: Quarantine (awaiting QC)",
+      "lotNumber": "Lot Number",
+      "vendorLotNumber": "Vendor Lot Number",
+      "vendorLotPlaceholder": "Vendor lot number",
+      "item": "Item",
+      "selectItem": "Click to select item...",
+      "changeItem": "Change",
+      "warehouse": "Warehouse",
+      "selectWarehouse": "Select warehouse",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "costPerUnit": "Cost per Unit",
+      "manufacturingDate": "Manufacturing Date",
+      "expiryDate": "Expiry Date",
+      "receivedDate": "Received Date",
+      "vendor": "Vendor",
+      "selectVendor": "Select Vendor (optional)",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes...",
+      "generate": "Generate",
+      "cancel": "Cancel",
+      "submit": "Receive Lot",
+      "gmpSection": "GMP Compliance Information",
+      "manufacturerName": "Manufacturer Name",
+      "manufacturerPlaceholder": "Manufacturer name...",
+      "importerName": "Importer Name",
+      "importerPlaceholder": "Importer name...",
+      "countryOfOrigin": "Country of Origin",
+      "countryPlaceholder": "Country...",
+      "retestDate": "Retest Date",
+      "retestInterval": "Retest Interval (months)"
+    },
+    "qc": {
+      "title": "QC Decision",
+      "awaitingDecision": "Awaiting QC decision",
+      "item": "Item",
+      "quantity": "Quantity",
+      "expiryDate": "Expiry Date",
+      "value": "Value",
+      "warning": "Please ensure QC testing is complete before making a decision",
+      "cancel": "Cancel",
+      "reject": "Reject",
+      "release": "Release"
+    },
+    "trace": {
+      "title": "Lot Traceability",
+      "currentLot": "Current Lot",
+      "item": "Item",
+      "quantity": "Quantity",
+      "status": "Status",
+      "expiryDate": "Expiry",
+      "sourceLots": "Source Lots (materials used)",
+      "destinationLots": "Destination Lots (products made)",
+      "noTraceData": "No traceability data found for this lot",
+      "close": "Close"
+    },
+    "table": {
+      "columns": {
+        "lotNumber": "Lot Number",
+        "itemCode": "Item Code",
+        "itemName": "Item Name",
+        "quantity": "Quantity",
+        "warehouse": "Warehouse",
+        "status": "Status",
+        "expiryDate": "Expiry Date",
+        "receivedDate": "Received Date",
+        "supplier": "Supplier"
+      }
+    },
+    "status": {
+      "available": "Available",
+      "reserved": "Reserved",
+      "quarantine": "Quarantine",
+      "expired": "Expired",
+      "released": "Released",
+      "rejected": "Rejected",
+      "blocked": "Blocked"
+    }
+  },
+  "warehouses": {
+    "title": "Warehouses",
+    "pageTitle": "Warehouses",
+    "description": "Manage warehouses and storage locations",
+    "detail": {
+      "pageTitle": "Warehouse"
+    },
+    "viewLots": "View Lots",
+    "addWarehouse": "Add Warehouse",
+    "searchPlaceholder": "Search by code, name, or location...",
+    "noWarehouses": "No warehouses found",
+    "viewDetails": "View Details",
+    "emptyTitle": "No warehouses yet",
+    "emptyDescription": "Start managing your inventory by adding your first warehouse",
+    "noResultsTitle": "No warehouses match your filters",
+    "noResultsDescription": "Try a different search term or filter",
+    "table": {
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "type": "Type",
+        "location": "Location",
+        "temperature": "Temperature",
+        "humidity": "Humidity",
+        "capacity": "Capacity",
+        "currentUsage": "Current Usage",
+        "status": "Status"
+      }
+    },
+    "types": {
+      "all": "All",
+      "rawMaterial": "Raw Material",
+      "wip": "Work in Progress",
+      "finishedGoods": "Finished Goods",
+      "quarantine": "Quarantine",
+      "rejected": "Rejected",
+      "coldStorage": "Cold Storage"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "confirmDelete": {
+      "title": "Confirm Delete",
+      "message": "Are you sure you want to delete warehouse \"{name}\"?",
+      "confirm": "Delete"
+    }
+  },
+  "stockMovements": {
+    "title": "Stock Movements",
+    "description": "Track receipts, issues, and transfers",
+    "table": {
+      "columns": {
+        "movementNumber": "Movement Number",
+        "type": "Type",
+        "itemCode": "Item Code",
+        "lotNumber": "Lot Number",
+        "quantity": "Quantity",
+        "fromWarehouse": "From Warehouse",
+        "toWarehouse": "To Warehouse",
+        "date": "Date",
+        "reference": "Reference"
+      }
+    },
+    "types": {
+      "receipt": "Receipt",
+      "issue": "Issue",
+      "transfer": "Transfer",
+      "adjustment": "Adjustment",
+      "return": "Return"
+    }
+  },
+  "stockAdjustments": {
+    "title": "Stock Adjustments",
+    "description": "Adjust stock quantities and record reasons",
+    "form": {
+      "reason": {
+        "label": "Reason",
+        "placeholder": "Select reason"
+      },
+      "quantity": {
+        "label": "Adjustment Quantity",
+        "placeholder": "Enter quantity"
+      },
+      "remarks": {
+        "label": "Remarks",
+        "placeholder": "Enter additional remarks"
+      }
+    },
+    "reasons": {
+      "physicalCount": "Physical Count",
+      "damage": "Damage",
+      "expired": "Expired",
+      "loss": "Loss",
+      "other": "Other"
+    }
+  },
+  "itemForm": {
+    "editTitle": "Edit Item",
+    "createTitle": "Create New Item",
+    "editSubtitle": "Editing {code} - {name}",
+    "createSubtitle": "Add a new item to your inventory system",
+    "updateBtn": "Update Item",
+    "createBtn": "Create Item",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "back": "Back",
+    "generate": "Generate",
+    "active": "Active",
+    "inactive": "Inactive",
+    "creatingNew": "Creating new {type}",
+    "lastUpdated": "Last updated: {date}",
+    "sections": {
+      "type": "Item Type",
+      "typeDesc": "Select the type of item you are creating",
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Item identification and naming",
+      "units": "Units of Measurement",
+      "unitsDesc": "Primary and secondary units with conversion factor",
+      "stock": "Inventory Management",
+      "stockDesc": "Stock thresholds and reorder settings",
+      "storage": "Storage Requirements",
+      "storageDesc": "Shelf life and storage conditions",
+      "vmi": "VMI Standard Codes",
+      "vmiDesc": "Thai pharmaceutical and traditional medicine codes for VMI Portal integration",
+      "confidentiality": "Confidentiality",
+      "confidentialityDesc": "Control access to cost and BOM information for this item",
+      "images": "Images",
+      "priceOffers": "Price Offers",
+      "itemStatus": "Item Status",
+      "itemStatusDesc": "Active/Inactive status",
+      "stockStatus": "Current Stock Status",
+      "stockStatusDesc": "Real-time inventory level",
+      "quickSummary": "Quick Summary",
+      "quickSummaryDesc": "Overview of item configuration"
+    },
+    "fields": {
+      "code": "Item Code",
+      "nameTh": "Name (Thai)",
+      "nameEn": "Name (English)",
+      "category": "Category",
+      "primaryUnit": "Primary Unit",
+      "secondaryUnit": "Secondary Unit",
+      "conversionFactor": "Conversion Factor",
+      "minStock": "Minimum Stock",
+      "maxStock": "Maximum Stock",
+      "reorderPoint": "Reorder Point",
+      "shelfLifeDays": "Shelf Life (Days)",
+      "shelfLifeYears": "Shelf Life",
+      "storageConditions": "Storage Conditions",
+      "strength": "Strength/Dosage",
+      "gRegNumber": "G-Registration Number",
+      "drugCode24": "Drug Code 24 Digits",
+      "tppCode": "TPP Code",
+      "tppName": "TPP Name",
+      "ttmtCode": "TTMT Code",
+      "ttmtName": "TTMT Name",
+      "active": "Active",
+      "vmiSyncEnabled": "VMI Sync Enabled",
+      "confidentialityLevel": "Confidentiality Level",
+      "defaultConfidential": "Default Confidential in BOM",
+      "type": "Type",
+      "shelfLife": "Shelf Life",
+      "vmiStatus": "VMI Status"
+    },
+    "placeholders": {
+      "code": "RM-0001",
+      "nameTh": "ชื่อสินค้าภาษาไทย",
+      "nameEn": "English name (optional)",
+      "category": "Select category",
+      "unit": "Select unit",
+      "strength": "e.g., 500mg, 250mg/5ml",
+      "gRegNumber": "e.g., G 123/45",
+      "storageConditions": "e.g., 15-25°C, Dry, Away from light",
+      "conversionFactor": "e.g., 1000",
+      "shelfLifeDays": "e.g., 365",
+      "years": "Years",
+      "months": "Months",
+      "tppCode": "13-digit code",
+      "ttmtCode": "A + 8 digits",
+      "drugCode24": "24-digit drug registration code",
+      "confidentialityLevel": "Select confidentiality level"
+    },
+    "types": {
+      "raw_material": "Raw Material",
+      "packaging": "Packaging",
+      "wip": "Work in Progress",
+      "finished_goods": "Finished Goods",
+      "consumable": "Consumable"
+    },
+    "confidentialityLevels": {
+      "public": "Public",
+      "publicDesc": "Visible to all users",
+      "internal": "Internal",
+      "internalDesc": "Visible to internal staff only",
+      "confidential": "Confidential",
+      "confidentialDesc": "Restricted access only"
+    },
+    "stock": {
+      "currentLevel": "Current Stock Level",
+      "low": "Low Stock",
+      "nearReorder": "Near Reorder",
+      "overstock": "Overstock",
+      "healthy": "Healthy",
+      "onHand": "On Hand",
+      "quarantine": "Quarantine",
+      "belowMinimum": "Below minimum stock",
+      "approachingReorder": "Approaching reorder point",
+      "stockHealthy": "Stock level is healthy",
+      "min": "Min: {value}",
+      "reorder": "Reorder: {value}",
+      "max": "Max: {value}"
+    },
+    "hints": {
+      "secondaryUnit": "Optional alternative unit",
+      "conversionFactor": "1 primary = X secondary",
+      "minStock": "Alert when stock falls below",
+      "maxStock": "Maximum storage capacity",
+      "reorderPoint": "Trigger reorder when reached",
+      "shelfLifeDays": "Days until expiration",
+      "storageConditions": "Temperature, humidity, special requirements",
+      "strength": "Dosage strength for GMP compliance",
+      "gRegNumber": "Drug registration number (G number)",
+      "tppCode": "Thai Pharmaceutical Product code (13 digits)",
+      "ttmtCode": "Thai Traditional Medicine Terminology code",
+      "drugCode24": "24-digit standard drug code for VMI identification",
+      "defaultConfidential": "When used as a component, mark as confidential by default"
+    },
+    "vmi": {
+      "enableSync": "Enable VMI Sync",
+      "enableSyncDesc": "Include this item in VMI Portal synchronization",
+      "ready": "VMI Ready:",
+      "readyDesc": "This item will be synced to VMI Portal",
+      "addCodes": "Add Standard Codes:",
+      "addCodesDesc": "TPP or TTMT code recommended for proper VMI Portal identification",
+      "searchTpp": "Search TPP codes from VMI Portal",
+      "searchTtmt": "Search TTMT codes from VMI Portal",
+      "vmiReady": "Ready",
+      "noVmiCodes": "No VMI codes"
+    },
+    "quickFill": {
+      "title": "Quick Fill from TTMT Database",
+      "description": "Search well-known Thai Traditional Medicine products and auto-fill the form",
+      "searchBtn": "Search TTMT Products",
+      "dialogTitle": "Quick Fill from TTMT Products"
+    },
+    "conversion": {
+      "label": "Conversion:",
+      "format": "1 {primary} = {factor} {secondary}"
+    },
+    "activeItem": {
+      "label": "Active Item",
+      "description": "Item can be used in transactions"
+    },
+    "confidentialWarning": {
+      "title": "Restricted Access:",
+      "description": "Only users with confidential access will see cost and BOM details"
+    },
+    "validation": {
+      "readyToSave": "Ready to Save",
+      "allFieldsFilled": "All required fields are filled",
+      "requiredFields": "Required Fields",
+      "codeRequired": "Item Code is required",
+      "nameThRequired": "Thai Name is required"
+    },
+    "days": "days",
+    "years": "years",
+    "months": "months"
+  }
+}

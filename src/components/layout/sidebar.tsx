@@ -59,8 +59,16 @@ import {
   CheckCircle,
   TrendingUp,
   Play,
+  Layers,
+  ListChecks,
+  Award,
+  ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { expandRole } from '@/lib/auth/role-mapping';
+import { navLabel } from '@/lib/i18n/nav-labels';
+import { useTranslations } from 'next-intl';
+import { SidebarLanguageToggle } from '@/components/shared/language-switcher';
 
 interface NavItem {
   name: string;
@@ -86,6 +94,8 @@ const navigation: NavItem[] = [
       { name: 'Lots', href: '/inventory/lots', icon: Package },
       { name: 'Warehouses', href: '/inventory/warehouses', icon: Warehouse },
       { name: 'Transactions', href: '/inventory/transactions', icon: ArrowLeftRight },
+      { name: 'ใบเบิกวัตถุดิบ', href: '/inventory/requisitions', icon: ClipboardList },
+      { name: 'Returns Inbox', href: '/inventory/returns', icon: Undo2 },
       { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: AlertTriangle },
     ],
   },
@@ -107,9 +117,14 @@ const navigation: NavItem[] = [
     icon: ClipboardCheck,
     roles: ['admin', 'manager', 'production', 'qc'],
     children: [
+      { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
+      { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
+      { name: 'COA Templates', href: '/quality/coa/templates', icon: Layers },
+      { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       { name: 'Specifications', href: '/quality/specs', icon: FileText },
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
+      { name: 'QC Audit Trail', href: '/quality/audit-trail', icon: ScrollText },
     ],
   },
   {
@@ -119,6 +134,7 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager', 'qc', 'qa', 'production'],
     children: [
       { name: 'Documents', href: '/gmp/documents', icon: FileSearch },
+      { name: 'Changes', href: '/gmp/changes', icon: History },
       { name: 'CAPA', href: '/gmp/capa', icon: Target },
       { name: 'Complaints', href: '/gmp/complaints', icon: MessageSquare },
       { name: 'Recalls', href: '/gmp/recalls', icon: Undo2 },
@@ -159,6 +175,7 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Dashboard', href: '/accounting', icon: LayoutDashboard },
       { name: 'Chart of Accounts', href: '/accounting/chart-of-accounts', icon: Landmark },
+      { name: 'Account Types', href: '/accounting/account-types', icon: Layers },
       { name: 'Journal Entries', href: '/accounting/journal-entries', icon: FileText },
       { name: 'AP Invoices', href: '/accounting/ap', icon: Receipt },
       { name: 'AR Invoices', href: '/accounting/ar', icon: DollarSign },
@@ -218,7 +235,7 @@ const navigation: NavItem[] = [
     name: 'Template',
     href: '/template',
     icon: LayoutGrid,
-    roles: [], // Accessible to all authenticated users
+    roles: ['admin'], // Admin-family only (dev reference module — not for end users)
     children: [
       { name: 'Dashboard', href: '/template', icon: LayoutDashboard },
       { name: 'Items', href: '/template/items', icon: Package },
@@ -270,32 +287,51 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
-// Helper function to filter navigation based on role
+// Helper function to filter navigation based on role.
+//
+// Uses `expandRole()` so an HR role code like "QC_ANALYST" (stored on
+// users.role when set via /users/new) gets translated to the legacy
+// lowercase equivalents (["qc"]) that the menu definitions above compare
+// against. Without this, HR-coded users see an empty sidebar because the
+// string "qc_analyst" is not in any item.roles list.
 function getFilteredNavigation(role: string | undefined): NavItem[] {
+  const expanded = expandRole(role);
+  const isAdmin = expanded.includes('admin');
   return navigation.filter((item) => {
-    // If no roles specified, item is visible to all authenticated users
+    // Administrator sees all menu items — bypass role filtering.
+    if (isAdmin) return true;
+    // If no roles specified, item is visible to all authenticated users.
     if (!item.roles || item.roles.length === 0) {
       return true;
     }
-    // Check if user's role is in the allowed roles
-    if (role) {
-      return item.roles.includes(role.toLowerCase());
-    }
-    return false;
+    // User's role passes if ANY of its expanded aliases is in the allow-list.
+    return item.roles.some((allowed) => expanded.includes(allowed.toLowerCase()));
   });
 }
 
 // Helper to find parent item for current pathname
 function findParentForPath(pathname: string, navItems: NavItem[]): string | null {
-  const parentItem = navItems.find(
+  // First check if pathname matches the parent href directly
+  const directMatch = navItems.find(
     (item) => item.children && pathname.startsWith(item.href)
   );
-  return parentItem?.name ?? null;
+  if (directMatch) return directMatch.name;
+
+  // Also check children hrefs (e.g. /master-data is a child of Production at /production)
+  const childMatch = navItems.find(
+    (item) => item.children?.some(
+      (child) => pathname === child.href || pathname.startsWith(child.href + '/')
+    )
+  );
+  return childMatch?.name ?? null;
 }
 
 export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
+  // Sidebar nav array uses English labels as the source; navLabel resolves
+  // them to Thai/English at render time via src/locales/*/navigation.json.
+  const tNav = useTranslations('navigation');
 
   // Filter navigation items based on user role
   const filteredNavigation = getFilteredNavigation(user?.role);
@@ -421,7 +457,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                       >
                         <item.icon className="h-4 w-4" />
                       </div>
-                      <span className="text-sm">{item.name}</span>
+                      <span className="text-sm">{navLabel(item.name, tNav)}</span>
                     </div>
                     <ChevronDown
                       className={cn(
@@ -467,7 +503,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                               )}
                             />
                           )}
-                          <span>{child.name}</span>
+                          <span>{navLabel(child.name, tNav)}</span>
                         </Link>
                       ))}
                     </div>
@@ -500,7 +536,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                   >
                     <item.icon className="h-4 w-4" />
                   </div>
-                  <span className="text-sm">{item.name}</span>
+                  <span className="text-sm">{navLabel(item.name, tNav)}</span>
                 </Link>
               )}
             </div>
@@ -562,6 +598,11 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
             >
               <LogOut className="h-4 w-4 md:h-5 md:w-5" />
             </button>
+          </div>
+
+          {/* Language Toggle — native HTML button (reliable on Chrome/Firefox/Edge) */}
+          <div className="mt-3 px-1 sidebar-language-switcher">
+            <SidebarLanguageToggle />
           </div>
         </div>
       )}

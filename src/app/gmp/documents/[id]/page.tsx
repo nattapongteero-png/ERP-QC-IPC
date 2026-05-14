@@ -8,7 +8,8 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
@@ -55,7 +56,15 @@ async function fetchDocument(id: number): Promise<DocumentDetails> {
 
 async function createVersion(
   documentId: number,
-  data: { content?: string; changeDescription?: string; isMajorRevision?: boolean }
+  data: {
+    content?: string;
+    changeDescription?: string;
+    isMajorRevision?: boolean;
+    fileData?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+  }
 ): Promise<DocumentVersion> {
   const response = await fetch(`/api/documents/${documentId}/versions`, {
     method: 'POST',
@@ -350,11 +359,13 @@ function NoContentPlaceholder() {
 
 export default function DocumentDetailPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const params = useParams();
+  const searchParams = useSearchParams();
   const documentId = Number(params.id);
 
   // State
-  const [showEditForm, setShowEditForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(searchParams.get('edit') === '1');
   const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [newVersionContent, setNewVersionContent] = useState('');
@@ -381,7 +392,7 @@ export default function DocumentDetailPage() {
 
   // Create version mutation
   const createVersionMutation = useMutation({
-    mutationFn: (data: { content?: string; changeDescription?: string; isMajorRevision?: boolean; filePath?: string }) =>
+    mutationFn: (data: { content?: string; changeDescription?: string; isMajorRevision?: boolean; fileData?: string; fileName?: string; fileSize?: number; mimeType?: string }) =>
       createVersion(documentId, data),
     onSuccess: () => {
       setShowNewVersionDialog(false);
@@ -433,7 +444,10 @@ export default function DocumentDetailPage() {
 
   // Handle new version creation
   const handleCreateVersion = async () => {
-    let filePath: string | undefined;
+    let fileData: string | undefined;
+    let fileName: string | undefined;
+    let fileSize: number | undefined;
+    let mimeType: string | undefined;
 
     if (selectedFile) {
       setIsUploading(true);
@@ -451,7 +465,10 @@ export default function DocumentDetailPage() {
         if (!result.success) {
           throw new Error(result.error || 'Failed to upload file');
         }
-        filePath = result.data.filePath;
+        fileData = result.data.fileData;
+        fileName = result.data.fileName;
+        fileSize = result.data.fileSize;
+        mimeType = result.data.mimeType;
       } catch (error) {
         console.error('File upload failed:', error);
         setIsUploading(false);
@@ -464,7 +481,10 @@ export default function DocumentDetailPage() {
       content: newVersionContent || undefined,
       changeDescription: newVersionDescription || undefined,
       isMajorRevision,
-      filePath,
+      fileData,
+      fileName,
+      fileSize,
+      mimeType,
     });
   };
 
@@ -501,7 +521,8 @@ export default function DocumentDetailPage() {
   const canEdit = document.status === 'draft';
   const canCreateVersion = document.status === 'active' || document.status === 'draft';
   const hasDraftVersion = document.currentVersion?.status === 'draft';
-  const fileName = selectedVersion?.filePath?.split('/').pop() || 'document';
+  const hasFile = !!(selectedVersion?.filePath || selectedVersion?.fileName || selectedVersion?.hasFileData);
+  const fileName = selectedVersion?.fileName || selectedVersion?.filePath?.split('/').pop() || 'document';
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -513,7 +534,7 @@ export default function DocumentDetailPage() {
             <button
               onClick={() => router.push('/gmp/documents')}
               className="p-2 rounded-md hover:bg-muted transition-colors"
-              title="Back to Documents"
+              title={t('documents.title')}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -536,6 +557,19 @@ export default function DocumentDetailPage() {
                   <>
                     <span>•</span>
                     <span>{document.departmentName}</span>
+                  </>
+                )}
+                {document.trainingCourseId && (
+                  <>
+                    <span>•</span>
+                    <a
+                      href={`/hr/training/courses/${document.trainingCourseId}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      {document.trainingCourseName
+                        ? `Training: ${document.trainingCourseCode} - ${document.trainingCourseName}`
+                        : `Training Course #${document.trainingCourseId}`}
+                    </a>
                   </>
                 )}
               </div>
@@ -601,6 +635,11 @@ export default function DocumentDetailPage() {
                   day: 'numeric',
                 })}
               </span>
+              {selectedVersion.effectiveDate && (
+                <span className="text-green-700 dark:text-green-400 font-medium">
+                  Effective: {new Date(selectedVersion.effectiveDate).toLocaleDateString('th-TH')}
+                </span>
+              )}
               {selectedVersion.changeDescription && (
                 <span className="text-muted-foreground truncate max-w-md">
                   — {selectedVersion.changeDescription}
@@ -615,17 +654,18 @@ export default function DocumentDetailPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Document Preview Panel (Left - 2/3 width) */}
         <main className="flex-1 flex flex-col border-r overflow-hidden">
-          {selectedVersion?.filePath ? (
+          {hasFile ? (
             <DocumentPreview
-              versionId={selectedVersion.id}
-              filePath={selectedVersion.filePath}
+              key={selectedVersion!.id}
+              versionId={selectedVersion!.id}
+              filePath={selectedVersion?.filePath || selectedVersion?.fileName || 'document'}
               fileName={fileName}
-              versionNumber={selectedVersion.versionNumber}
+              versionNumber={selectedVersion!.versionNumber}
               isFullscreen={isPreviewFullscreen}
               onToggleFullscreen={() => setIsPreviewFullscreen(!isPreviewFullscreen)}
             />
           ) : selectedVersion?.content ? (
-            <TextContentPreview content={selectedVersion.content} />
+            <TextContentPreview key={selectedVersion.id} content={selectedVersion.content} />
           ) : (
             <NoContentPlaceholder />
           )}
@@ -706,7 +746,7 @@ export default function DocumentDetailPage() {
           )}
 
           {/* Version History */}
-          <div className="p-4">
+          <div className="p-4 border-b">
             <DocumentVersionHistory
               documentId={documentId}
               currentVersionId={document.currentVersionId || undefined}
@@ -714,6 +754,8 @@ export default function DocumentDetailPage() {
               onVersionSelect={handleVersionSelect}
             />
           </div>
+
+          {/* Attachments removed - file upload is handled via Create/Edit document and New Version */}
         </aside>
       </div>
 

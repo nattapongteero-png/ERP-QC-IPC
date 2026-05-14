@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 
 interface DatePickerProps {
   value?: string;
@@ -365,7 +366,7 @@ const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
 
     // Handle date selection
     const handleSelect = (date: Date) => {
-      const isoDate = date.toISOString().split('T')[0];
+      const isoDate = toLocalDateStr(date);
       onChange?.(isoDate);
       setIsOpen(false);
     };
@@ -380,7 +381,7 @@ const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
     // Quick actions
     const handleToday = (e: React.MouseEvent) => {
       e.preventDefault();
-      const today = new Date().toISOString().split('T')[0];
+      const today = toLocalDateStr(new Date());
       onChange?.(today);
     };
 
@@ -388,14 +389,14 @@ const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       e.preventDefault();
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      onChange?.(tomorrow.toISOString().split('T')[0]);
+      onChange?.(toLocalDateStr(tomorrow));
     };
 
     const handleNextWeek = (e: React.MouseEvent) => {
       e.preventDefault();
       const nextWeek = new Date();
       nextWeek.setDate(nextWeek.getDate() + 7);
-      onChange?.(nextWeek.toISOString().split('T')[0]);
+      onChange?.(toLocalDateStr(nextWeek));
     };
 
     // Close on outside click
@@ -513,7 +514,7 @@ const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
               onClick={handleToday}
               className={cn(
                 'px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-                value === new Date().toISOString().split('T')[0]
+                value === toLocalDateStr(new Date())
                   ? 'bg-emerald-100 text-emerald-700'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
@@ -588,8 +589,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
 
-    onStartDateChange?.(startOfWeek.toISOString().split('T')[0]);
-    onEndDateChange?.(endOfWeek.toISOString().split('T')[0]);
+    onStartDateChange?.(toLocalDateStr(startOfWeek));
+    onEndDateChange?.(toLocalDateStr(endOfWeek));
   };
 
   const handleThisMonth = () => {
@@ -597,8 +598,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-    onStartDateChange?.(startOfMonth.toISOString().split('T')[0]);
-    onEndDateChange?.(endOfMonth.toISOString().split('T')[0]);
+    onStartDateChange?.(toLocalDateStr(startOfMonth));
+    onEndDateChange?.(toLocalDateStr(endOfMonth));
   };
 
   const handleLast30Days = () => {
@@ -606,8 +607,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 30);
 
-    onStartDateChange?.(thirtyDaysAgo.toISOString().split('T')[0]);
-    onEndDateChange?.(today.toISOString().split('T')[0]);
+    onStartDateChange?.(toLocalDateStr(thirtyDaysAgo));
+    onEndDateChange?.(toLocalDateStr(today));
   };
 
   const handleLast90Days = () => {
@@ -615,8 +616,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const ninetyDaysAgo = new Date(today);
     ninetyDaysAgo.setDate(today.getDate() - 90);
 
-    onStartDateChange?.(ninetyDaysAgo.toISOString().split('T')[0]);
-    onEndDateChange?.(today.toISOString().split('T')[0]);
+    onStartDateChange?.(toLocalDateStr(ninetyDaysAgo));
+    onEndDateChange?.(toLocalDateStr(today));
   };
 
   const handleClear = () => {

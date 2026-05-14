@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -24,6 +25,7 @@ interface LotDetail {
   unit: string;
   status: string;
   cost: number | null;
+  vendorLotNumber: string | null;
   manufacturingDate: string | null;
   expiryDate: string | null;
   receivedDate: string | null;
@@ -89,6 +91,7 @@ interface LotDetail {
 export default function LotDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('inventory');
   const [lot, setLot] = useState<LotDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -96,6 +99,9 @@ export default function LotDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     batchNumber: '',
+    vendorLotNumber: '',
+    quantity: 0,
+    cost: 0,
     manufacturingDate: '',
     expiryDate: '',
     coaNumber: '',
@@ -115,6 +121,9 @@ export default function LotDetailPage() {
         setLot(data.data);
         setEditForm({
           batchNumber: data.data.batchNumber || '',
+          vendorLotNumber: data.data.vendorLotNumber || '',
+          quantity: Number(data.data.quantity) || 0,
+          cost: Number(data.data.cost) || 0,
           manufacturingDate: data.data.manufacturingDate || '',
           expiryDate: data.data.expiryDate || '',
           coaNumber: data.data.coaNumber || '',
@@ -271,17 +280,42 @@ export default function LotDetailPage() {
 
   // QC tests table columns
   const qcTestColumns: DxDataGridColumn[] = [
-    { dataField: 'sampleNumber', caption: 'Sample Number', cellRender: (cellInfo) => <span className="font-medium">{cellInfo.data.sampleNumber || '-'}</span> },
-    { dataField: 'testType', caption: 'Test Type' },
+    { dataField: 'testName', caption: 'Test Name', width: 160, cellRender: (cellInfo) => <span className="font-medium">{cellInfo.data.testName || cellInfo.data.sampleNumber || '-'}</span> },
+    { dataField: 'testType', caption: 'Type', width: 100, cellRender: (cellInfo) => {
+      const typeLabels: Record<string, string> = { incoming: 'Incoming', in_process: 'In-Process', final: 'Final' };
+      return <span className="text-xs">{typeLabels[cellInfo.data.testType] || cellInfo.data.testType}</span>;
+    }},
     {
       dataField: 'status',
       caption: 'Status',
-      width: 120,
+      width: 90,
       cellRender: (cellInfo) => <Badge variant={getQcStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>
     },
-    { dataField: 'result', caption: 'Result', cellRender: (cellInfo) => cellInfo.data.result || '-' },
-    { dataField: 'testedByName', caption: 'Tested By', cellRender: (cellInfo) => cellInfo.data.testedByName || '-' },
-    { dataField: 'testDate', caption: 'Test Date', width: 130, cellRender: (cellInfo) => formatDate(cellInfo.data.testDate) },
+    { dataField: 'numericResult', caption: 'Result', width: 120, cellRender: (cellInfo) => {
+      const d = cellInfo.data;
+      if (d.numericResult != null) {
+        return <span className="font-medium">{Number(d.numericResult).toFixed(2)}{d.specUnit ? ` ${d.specUnit}` : ''}</span>;
+      }
+      return <span>{d.result || '-'}</span>;
+    }},
+    { dataField: 'specMinValue', caption: 'Spec Range', width: 130, cellRender: (cellInfo) => {
+      const d = cellInfo.data;
+      if (d.specMinValue != null && d.specMaxValue != null) {
+        return <span className="text-xs text-gray-600">{Number(d.specMinValue).toFixed(2)} - {Number(d.specMaxValue).toFixed(2)}{d.specUnit ? ` ${d.specUnit}` : ''}</span>;
+      }
+      if (d.specSpecification) return <span className="text-xs text-gray-600">{d.specSpecification}</span>;
+      return <span className="text-gray-400">-</span>;
+    }},
+    { dataField: 'disposition', caption: 'Disposition', width: 110, cellRender: (cellInfo) => {
+      const d = cellInfo.data.disposition;
+      if (!d) return <span className="text-gray-400">-</span>;
+      const colors: Record<string, string> = { accept: 'bg-green-100 text-green-800', reject: 'bg-red-100 text-red-800', rework: 'bg-amber-100 text-amber-800', pending: 'bg-gray-100 text-gray-600' };
+      return <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${colors[d] || 'bg-gray-100 text-gray-600'}`}>{d}</span>;
+    }},
+    { dataField: 'testedByName', caption: 'Tested By', width: 120, cellRender: (cellInfo) => cellInfo.data.testedByName || '-' },
+    { dataField: 'approvedByName', caption: 'Approved By', width: 120, cellRender: (cellInfo) => cellInfo.data.approvedByName || '-' },
+    { dataField: 'testDate', caption: 'Test Date', width: 110, cellRender: (cellInfo) => formatDate(cellInfo.data.testDate) },
+    { dataField: 'notes', caption: 'Notes', cellRender: (cellInfo) => cellInfo.data.notes ? <span className="text-xs text-gray-600 truncate block max-w-[200px]" title={cellInfo.data.notes}>{cellInfo.data.notes}</span> : '-' },
   ];
 
   // Work orders table columns
@@ -348,7 +382,7 @@ export default function LotDetailPage() {
                 stylingMode="outlined"
                 onClick={() => router.push('/inventory/lots')}
               />
-              <h1 className="text-2xl font-bold text-gray-900">Lot: {lot.lotNumber}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t('lots.detail.pageTitle')}: {lot.lotNumber}</h1>
               <Badge variant={getStatusVariant(lot.status)}>{lot.status}</Badge>
             </div>
             <p className="text-gray-500 mt-1">Lot/Batch inventory details</p>
@@ -600,6 +634,19 @@ export default function LotDetailPage() {
                       <p className="font-medium">{lot.lotNumber}</p>
                     </div>
                     <div>
+                      <label className="text-sm text-gray-500">Vendor Lot Number</label>
+                      {isEditing ? (
+                        <DxTextBox
+                          value={editForm.vendorLotNumber}
+                          onValueChange={(value) => setEditForm({ ...editForm, vendorLotNumber: value })}
+                        />
+                      ) : (
+                        <p className="font-medium">{lot.vendorLotNumber || '-'}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
                       <label className="text-sm text-gray-500">Batch Number</label>
                       {isEditing ? (
                         <DxTextBox
@@ -608,6 +655,58 @@ export default function LotDetailPage() {
                         />
                       ) : (
                         <p className="font-medium">{lot.batchNumber || '-'}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-500">COA Number</label>
+                      {isEditing ? (
+                        <DxTextBox
+                          value={editForm.coaNumber}
+                          onValueChange={(value) => setEditForm({ ...editForm, coaNumber: value })}
+                        />
+                      ) : (
+                        <p className="font-medium">{lot.coaNumber || '-'}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-500">Quantity</label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          value={editForm.quantity || ''}
+                          onChange={(e) => setEditForm({ ...editForm, quantity: parseFloat(e.target.value) || 0 })}
+                          min="0"
+                          step="0.001"
+                        />
+                      ) : (
+                        <p className="font-medium">{Number(lot.quantity).toLocaleString()} {lot.unit}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-500">Unit</label>
+                      <p className="font-medium">{lot.unit}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-500">Cost Per Unit</label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          value={editForm.cost || ''}
+                          onChange={(e) => setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 })}
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                        />
+                      ) : (
+                        <p className="font-medium">
+                          {lot.cost && Number(lot.cost) > 0
+                            ? `฿${Number(lot.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                            : '-'}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -643,20 +742,9 @@ export default function LotDetailPage() {
                       <p className="font-medium">{formatDate(lot.receivedDate)}</p>
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">COA Number</label>
-                      {isEditing ? (
-                        <DxTextBox
-                          value={editForm.coaNumber}
-                          onValueChange={(value) => setEditForm({ ...editForm, coaNumber: value })}
-                        />
-                      ) : (
-                        <p className="font-medium">{lot.coaNumber || '-'}</p>
-                      )}
+                      <label className="text-sm text-gray-500">PO Number</label>
+                      <p className="font-medium">{lot.poNumber || '-'}</p>
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-500">PO Number</label>
-                    <p className="font-medium">{lot.poNumber || '-'}</p>
                   </div>
                 </div>
               </CardContent>

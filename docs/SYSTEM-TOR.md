@@ -1,0 +1,1357 @@
+# Terms of Reference (TOR)
+## โครงการพัฒนาระบบบริหารจัดการการผลิตยาสมุนไพร  (Herbal Medicine ERP)
+
+---
+
+**เอกสารฉบับ**: 1.0  
+**วันที่จัดทำ**: 13 พฤษภาคม พ.ศ. 2569  
+**ผู้จัดทำ**: ทีม IT Project Management / System Analyst  
+**ระดับความลับ**: เฉพาะภายในและคู่ค้า
+
+---
+
+## สารบัญ
+
+1. [บทนำ (Introduction)](#1-บทนำ)
+2. [วัตถุประสงค์และขอบเขตของโครงการ (Objectives & Scope)](#2-วัตถุประสงค์และขอบเขต)
+3. [คำจำกัดความและคำย่อ (Definitions & Acronyms)](#3-คำจำกัดความ)
+4. [ผู้ใช้งานเป้าหมาย (User Personas)](#4-ผู้ใช้งานเป้าหมาย)
+5. [กระบวนการทางธุรกิจหลัก (Business Processes)](#5-กระบวนการทางธุรกิจ)
+6. [ข้อกำหนดเชิงฟังก์ชัน (Functional Requirements)](#6-ข้อกำหนดเชิงฟังก์ชัน)
+7. [ข้อกำหนดที่ไม่ใช่ฟังก์ชัน (Non-Functional Requirements)](#7-non-functional-requirements)
+8. [สถาปัตยกรรมและเทคโนโลยี (Architecture)](#8-สถาปัตยกรรม)
+9. [ความปลอดภัยและการปฏิบัติตามมาตรฐาน (Security & Compliance)](#9-security--compliance)
+10. [มาตรฐาน UX/UI](#10-มาตรฐาน-uxui)
+11. [การบริหารโครงการ (Project Management)](#11-การบริหารโครงการ)
+12. [การประกันคุณภาพและการทดสอบ (QA & Testing)](#12-qa--testing)
+13. [การบริหารความเสี่ยง (Risk Management)](#13-การบริหารความเสี่ยง)
+14. [ส่งมอบงาน (Deliverables)](#14-deliverables)
+15. [การฝึกอบรมและการสนับสนุน (Training & Support)](#15-training--support)
+16. [การรับประกันและบำรุงรักษา (Warranty)](#16-warranty)
+17. [คุณสมบัติของผู้รับจ้าง (Vendor Qualifications)](#17-vendor-qualifications)
+18. [เกณฑ์การประเมินข้อเสนอ (Evaluation Criteria)](#18-evaluation-criteria)
+19. [เงื่อนไขทางการเงิน (Financial Terms)](#19-financial-terms)
+20. [ภาคผนวก (Appendices)](#20-ภาคผนวก)
+
+---
+
+## 1. บทนำ
+
+### 1.1 ความเป็นมา
+
+อุตสาหกรรมยาสมุนไพรไทยกำลังขยายตัวอย่างต่อเนื่อง โดยมีโรงงานผลิตยาแผนไทยและโรงพยาบาลแพทย์แผนไทยจำนวนมากที่ต้องปฏิบัติตามมาตรฐาน **GMP (Good Manufacturing Practice)** ของ สำนักงานคณะกรรมการอาหารและยา (อย.) ประเทศไทย และมาตรฐาน **PIC/S GMP** ระดับสากล รวมถึง **21 CFR Part 11** สำหรับการบันทึกข้อมูลอิเล็กทรอนิกส์
+
+ปัจจุบันโรงงานส่วนใหญ่ยังใช้กระบวนการบันทึกด้วยมือ (paper-based) หรือใช้ระบบสำเร็จรูปที่ไม่รองรับลักษณะเฉพาะของยาสมุนไพร (เช่น หน่วยการชั่ง 3 ระดับ — กล่อง → แคปซูล → กรัม) ทำให้:
+
+- เกิดข้อผิดพลาดในการบันทึก (Transcription error)
+- เสียเวลาในการตรวจสอบย้อนกลับ (Traceability)
+- ไม่สามารถบริหารต้นทุนได้แม่นยำ
+- การ audit GMP ใช้เวลานานและมีความเสี่ยงไม่ผ่าน
+
+ระบบ **Herbal Medicine ERP** จึงถูกพัฒนาขึ้นเพื่อแก้ปัญหาเหล่านี้แบบครบวงจร
+
+### 1.2 ลักษณะของระบบ
+
+- ระบบ web-based รองรับการใช้งานบน Desktop, Tablet และ Mobile
+- รองรับ **Multi-Tenant** — หนึ่งระบบรองรับหลายโรงงาน/โรงพยาบาล โดยแต่ละองค์กรมี database แยกอิสระ
+- บูรณาการกระบวนการตั้งแต่จัดซื้อ → ผลิต → ควบคุมคุณภาพ → ขาย → บัญชี
+- รองรับ Electronic Batch Manufacturing Record (EBMR) + Electronic Signature ตามมาตรฐาน 21 CFR Part 11
+- รองรับ Real-time synchronization (Server-Sent Events) — ลด refresh ไป-มา
+
+### 1.3 ผู้มีส่วนได้ส่วนเสีย (Stakeholders)
+
+| กลุ่ม | บทบาท | ความสำคัญ |
+|---|---|---|
+| **ผู้บริหาร** (Top Management) | ผู้อนุมัติงบประมาณ + ติดตาม KPI | สูง |
+| **เจ้าหน้าที่ผลิต** (Production Staff) | ผู้ใช้งานหลัก daily operations | สูงมาก |
+| **เจ้าหน้าที่ QA/QC** | ผู้รับผิดชอบมาตรฐาน GMP | สูงมาก |
+| **เจ้าหน้าที่คลัง** (Warehouse) | ผู้บริหารวัตถุดิบและสต็อก | สูง |
+| **ฝ่ายบัญชี/การเงิน** | ผู้บริหารงบประมาณและต้นทุน | สูง |
+| **ฝ่ายขาย/จัดซื้อ** | ผู้รับผิดชอบ partner ภายนอก | กลาง |
+| **ฝ่าย HR** | ผู้บริหารบุคลากร + Training | กลาง |
+| **อย.** (FDA Thailand) | ผู้ตรวจสอบมาตรฐาน | สูง |
+| **คู่ค้า/Vendor/Customer** | ผู้ใช้ผ่าน VMI Portal | กลาง |
+
+---
+
+## 2. วัตถุประสงค์และขอบเขต
+
+### 2.1 วัตถุประสงค์ทางธุรกิจ (Business Objectives)
+
+1. **ลดข้อผิดพลาดในการผลิต** ไม่น้อยกว่า 90% โดยเปลี่ยนจาก paper-based เป็น electronic record
+2. **ลดเวลา audit GMP** จาก 7 วัน เหลือ 2 วัน โดยมี Electronic Audit Trail พร้อม
+3. **เพิ่ม inventory turnover** อย่างน้อย 20% โดยใช้ FEFO + reorder point
+4. **ลดต้นทุนการผลิต** ไม่น้อยกว่า 5% โดยใช้ Weighted Average Cost + Variance Analysis
+5. **รองรับการเติบโต** จาก 1 โรงงาน เป็น 10+ โรงงาน โดยไม่ต้องปรับโครงสร้างหลักของระบบ
+
+### 2.2 วัตถุประสงค์ของระบบ (System Objectives)
+
+1. บริหารจัดการ Master Data ของวัตถุดิบ ผลิตภัณฑ์ ห้องผลิต เครื่องจักร และมาตรฐาน QC
+2. จัดการ Bill of Materials (BOM) พร้อม IPC (In-Process Control) Phase Level
+3. สร้างและติดตามใบสั่งผลิต (Work Order) ตั้งแต่ Released → Completed
+4. รองรับการเบิก-คืนวัตถุดิบพร้อมการตัด stock อัตโนมัติ (FEFO)
+5. บันทึก Electronic Batch Record (EBMR) ครบทุก step พร้อม E-Signature
+6. ออก Certificate of Analysis (COA) แบบ template-driven
+7. บริหาร GMP Compliance — CAPA, Change Control, Deviation, Stability, Internal Audit
+8. รองรับ Procure-to-Pay (P2P) cycle ครบ — PR → PO → GR → AP
+9. รองรับ Order-to-Cash (O2C) cycle ครบ — SO → Delivery → AR
+10. บริหารบัญชีทั่วไป + รายงานบัญชีตามมาตรฐาน
+11. รายงาน Cost Management (Landed Cost, Standard Cost, Variance)
+12. รองรับ VMI Portal สำหรับ partner ภายนอก
+
+### 2.3 ขอบเขตของระบบ (System Scope)
+
+**อยู่ในขอบเขต (In-Scope)**:
+
+- ระบบหลัก 11 โมดูล (รายละเอียดในข้อ 6)
+- Multi-tenant deployment (รองรับ 6+ องค์กร)
+- Multi-language (Thai เป็นหลัก, English เป็นรอง)
+- Mobile-responsive UI
+- Integration กับ VMI Portal
+- Integration กับ Reporting Backend (DevExpress)
+- Electronic Signature + Audit Trail
+- ทดสอบและ Validation IQ/OQ/PQ
+
+**ไม่อยู่ในขอบเขต (Out-of-Scope)**:
+
+- การพัฒนา Native Mobile App (iOS/Android) — ใช้ Responsive Web แทน
+- การเชื่อมต่อกับเครื่องจักรผลิตโดยตรง (จัดเป็น Phase 2/integration option)
+- การพัฒนา POS (Point of Sale) สำหรับร้านขายปลีก
+- การพัฒนา CRM ขั้นสูง — ใช้ basic Customer Management ใน Sales module
+- การทำ Marketing Automation
+- การพัฒนา IoT Gateway สำหรับ environmental sensor (มี API spec แต่ไม่รวมการพัฒนา hardware)
+
+### 2.4 ข้อสมมติฐาน (Assumptions)
+
+- ลูกค้าจัดเตรียม Network infrastructure ที่เสถียร (uptime ≥ 99%) — ระหว่างโรงงานและ datacenter
+- ลูกค้าจัดเตรียม Server hardware ตาม spec ที่กำหนด (ดู [ข้อ 8](#8-สถาปัตยกรรม))
+- ลูกค้ามอบหมายบุคลากรเป็น Product Owner / Key User เพื่อร่วมพัฒนาและทดสอบ
+- ข้อมูลตั้งต้น (Master Data) ลูกค้าจัดเตรียมและตรวจสอบความถูกต้องเอง
+
+### 2.5 ข้อจำกัด (Constraints)
+
+- งบประมาณตาม contract
+- ระยะเวลาตาม timeline ที่ตกลง
+- ทรัพยากรบุคคลของลูกค้าที่จัดสรรให้โครงการ
+- มาตรฐาน GMP / FDA Thailand / PIC/S เป็นข้อบังคับสูงสุด
+
+---
+
+## 3. คำจำกัดความ
+
+### 3.1 คำย่อ (Acronyms)
+
+| คำย่อ | ความหมาย |
+|---|---|
+| ERP | Enterprise Resource Planning |
+| GMP | Good Manufacturing Practice |
+| PIC/S | Pharmaceutical Inspection Co-operation Scheme |
+| BOM | Bill of Materials |
+| WO | Work Order — ใบสั่งผลิต |
+| EBMR | Electronic Batch Manufacturing Record |
+| IPC | In-Process Control |
+| QC | Quality Control |
+| QA | Quality Assurance |
+| COA | Certificate of Analysis |
+| SOP | Standard Operating Procedure |
+| CAPA | Corrective and Preventive Action |
+| PR / PO | Purchase Requisition / Purchase Order |
+| SO | Sales Order |
+| AP / AR | Accounts Payable / Accounts Receivable |
+| GL | General Ledger |
+| WAC | Weighted Average Cost |
+| FEFO | First Expired First Out |
+| VMI | Vendor Managed Inventory |
+| PQR | Product Quality Review |
+| 21 CFR Part 11 | US FDA — Electronic Records & Electronic Signatures |
+| ALCOA+ | Attributable, Legible, Contemporaneous, Original, Accurate (Plus Complete, Consistent, Enduring, Available) |
+| RBAC | Role-Based Access Control |
+| SLA | Service Level Agreement |
+| WBS | Work Breakdown Structure |
+| UAT | User Acceptance Test |
+| IQ / OQ / PQ | Installation / Operational / Performance Qualification |
+| PDPA | Personal Data Protection Act (Thailand) |
+| SSE | Server-Sent Events |
+
+### 3.2 คำจำกัดความเฉพาะ
+
+- **Tenant**: องค์กรหนึ่งๆ ที่ใช้ระบบ — มี database แยกจาก tenant อื่น (เช่น โรงงาน "เมต้าเฮิร์บ" และ "อาราจาโร่" เป็นคนละ tenant)
+- **3-Level Unit**: ระบบหน่วยการชั่ง 3 ระดับสำหรับวัตถุดิบยา ได้แก่ Primary Unit (PU เช่น กล่อง) → Secondary Unit (SU เช่น แคปซูล) → Weighing Unit (WU เช่น กรัม)
+- **Dual-Control**: หลัก GMP ที่ผู้ปฏิบัติงาน (Operator) ห้ามตรวจสอบ (Verify) งานของตัวเอง ต้องให้บุคคลที่สองดำเนินการ
+- **Phase Level IPC**: การกำหนด IPC test ระดับ BOM (ก่อนผูกเข้ากับ SOP Step) — เป็น scope/master list สำหรับ BOM นั้น
+- **Confidential Group**: กลุ่มความลับ — BOM ที่อยู่ใน group เปิดดูได้เฉพาะสมาชิก (เพื่อปกป้องสูตรลับ)
+
+---
+
+## 4. ผู้ใช้งานเป้าหมาย
+
+### 4.1 User Personas
+
+#### Persona 1 — Operator ฝ่ายผลิต (Production Operator)
+
+- **ชื่อสมมุติ**: คุณสมศักดิ์
+- **บทบาท**: ปฏิบัติงานตาม SOP ที่ระบบกำหนด ชั่งวัตถุดิบ บันทึกผล IPC
+- **อุปกรณ์หลัก**: Tablet 10" หรือ Desktop ในไลน์ผลิต
+- **ทักษะ IT**: พื้นฐาน — ใช้ระบบที่ง่าย ไม่ซับซ้อน
+- **ความคาดหวัง**: ระบบโหลดเร็ว ปุ่มชัดเจน เครื่องชั่งติด barcode อ่านได้
+
+#### Persona 2 — QA Specialist
+
+- **ชื่อสมมุติ**: คุณวรินทร์
+- **บทบาท**: ตรวจสอบ QC test, ตรวจ Line Clearance, อนุมัติ COA, จัดการ Deviation/CAPA
+- **อุปกรณ์**: Desktop + Tablet เคลื่อนที่ในห้องผลิต
+- **ทักษะ IT**: กลาง — เข้าใจ workflow + audit trail
+- **ความคาดหวัง**: รายงานครบ ตรวจย้อนหลังง่าย Electronic Signature ปลอดภัย
+
+#### Persona 3 — Warehouse Staff
+
+- **ชื่อสมมุติ**: คุณสุภาพร
+- **บทบาท**: ดูแลคลัง รับสินค้าเข้า ปล่อยใบเบิก จัดการ lot
+- **อุปกรณ์**: Desktop + Scanner barcode
+- **ทักษะ IT**: กลาง
+- **ความคาดหวัง**: ระบบเตือนเมื่อใกล้หมดอายุ ใบเบิกแบ่งสีตามสถานะ
+
+#### Persona 4 — Accountant
+
+- **ชื่อสมมุติ**: คุณปิยะ
+- **บทบาท**: ปิดงวด ตรวจ 3-way matching ทำรายงานต้นทุน
+- **อุปกรณ์**: Desktop หลัก
+- **ทักษะ IT**: สูง (เคยใช้ ERP รุ่นเก่า)
+- **ความคาดหวัง**: รายงาน customize ได้ Export Excel ได้ทุกหน้า
+
+#### Persona 5 — Manager
+
+- **ชื่อสมมุติ**: คุณอรุณ
+- **บทบาท**: ดู KPI ภาพรวม อนุมัติ workflow ระดับสูง
+- **อุปกรณ์**: Mobile หลัก, Desktop รอง
+- **ทักษะ IT**: กลาง
+- **ความคาดหวัง**: Dashboard สดเปิดบนมือถือได้, แจ้งเตือนงานที่ต้องอนุมัติ
+
+#### Persona 6 — System Administrator
+
+- **ชื่อสมมุติ**: คุณภาคภูมิ
+- **บทบาท**: บริหาร user, permission, configuration, troubleshoot
+- **อุปกรณ์**: Desktop + access SSH server
+- **ทักษะ IT**: สูงมาก
+- **ความคาดหวัง**: Log ครบ Audit Trail ถาวร Permission ละเอียด
+
+### 4.2 Roles (RBAC Matrix)
+
+| Role | Inventory | Production | QC | GMP | Purchasing | Sales | Accounting | HR | Admin |
+|---|---|---|---|---|---|---|---|---|---|
+| **ADMIN** | RWXD | RWXD | RWXD | RWXD | RWXD | RWXD | RWXD | RWXD | RWXD |
+| **MANAGER** | RWX | RWX | RWX | RWX | RWX | RWX | R | RW | - |
+| **PRODUCTION_OPERATOR** | R | RW | R | - | - | - | - | - | - |
+| **QA_SPECIALIST** | R | R | RWX | RW | - | - | - | R | - |
+| **WAREHOUSE_STAFF** | RWX | R | - | - | R | - | - | - | - |
+| **PROCUREMENT** | R | - | - | - | RWX | - | R | - | - |
+| **SALES** | R | - | - | - | - | RWX | R | - | - |
+| **ACCOUNTING** | R | R | - | - | R | R | RWX | - | - |
+| **HR** | - | - | - | - | - | - | - | RWX | - |
+| **VIEWER** | R | R | R | R | R | R | R | R | - |
+
+> R = Read, W = Write, X = eXecute action (approve/sign), D = Delete
+
+---
+
+## 5. กระบวนการทางธุรกิจ
+
+### 5.1 Procure-to-Pay (P2P) Cycle
+
+```
+1. ผลิตภัณฑ์ใกล้หมด → Reorder Alert
+   ↓
+2. ฝ่ายจัดซื้อสร้าง Purchase Requisition (PR)
+   ↓
+3. Manager อนุมัติ PR
+   ↓
+4. แปลง PR → Purchase Order (PO)
+   ↓
+5. Vendor ส่งของ → Goods Receipt (GR)
+   ↓
+6. รับ Invoice → 3-Way Matching (PO + GR + Invoice)
+   ↓
+7. AP Approval → จ่ายเงิน
+   ↓
+8. Journal Entry อัตโนมัติเข้า GL
+```
+
+### 5.2 Production Workflow (Plan-to-Produce)
+
+```
+1. รับ SO หรือ Production Plan
+   ↓
+2. ตรวจ BOM + Inventory Available
+   ↓
+3. สร้าง Work Order (Status: PLANNED → RELEASED)
+   ↓
+4. ฝ่ายผลิตขอเบิกวัตถุดิบ (Material Requisition)
+   ↓
+5. คลังอนุมัติใบเบิก → ตัด stock FEFO
+   ↓
+6. Line Clearance (6-item checklist + E-Sign by Operator + Verify by QA)
+   ↓
+7. SOP Execution (step by step + IPC inline + E-Sign)
+   ↓
+8. Material Weighing (ชั่งจริง + บันทึก variance)
+   ↓
+9. ผลิตเสร็จ → คืนของเหลือเข้าคลัง (Zero Cost lot)
+   ↓
+10. QA verify EBMR → Status: COMPLETED
+   ↓
+11. Cost calculation → WAC update + finished_goods lot
+```
+
+### 5.3 Order-to-Cash (O2C) Cycle
+
+```
+1. รับใบสั่งซื้อจากลูกค้า → Sales Order
+   ↓
+2. ตรวจ stock → จองสินค้า
+   ↓
+3. ส่งของ → Delivery Note
+   ↓
+4. ออก Invoice → AR
+   ↓
+5. ติดตามการรับชำระ → Journal Entry
+```
+
+### 5.4 Quality Management Process
+
+```
+1. Specification กำหนดเกณฑ์ (Master Data)
+   ↓
+2. ระหว่างผลิต → IPC Test
+   ↓
+3. หลังผลิต → Final QC Test
+   ↓
+4. ผ่านเกณฑ์ → ออก COA
+   ↓
+5. ไม่ผ่าน → บันทึก Deviation → CAPA → Retest
+   ↓
+6. รับเรื่องร้องเรียน → Complaint Investigation
+   ↓
+7. ถ้าจำเป็น → Recall + Notification
+   ↓
+8. ทบทวนรายปี → PQR (Product Quality Review)
+```
+
+---
+
+## 6. ข้อกำหนดเชิงฟังก์ชัน
+
+### 6.1 Module: Inventory (คลังสินค้า)
+
+#### FR-INV-001: รายการสินค้า (Items)
+
+**Description**: ระบบต้องสามารถบริหารจัดการสินค้าและวัตถุดิบได้
+
+**Acceptance Criteria**:
+- ✅ รองรับ 3-level Unit (PU/SU/WU) พร้อม conversion rate
+- ✅ กำหนด primary unit, secondary unit, weight unit ต่อ item
+- ✅ บันทึก storage condition (Standard / Cold / Frozen)
+- ✅ กำหนด shelf life (days), reorder point, min stock, max stock
+- ✅ Item code ห้ามซ้ำใน tenant เดียวกัน
+- ✅ มี Audit Trail ทุก field
+
+#### FR-INV-002: ล็อตคงคลัง (Lots)
+
+**Acceptance Criteria**:
+- ✅ ทุก lot บันทึก expiry date, quantity, cost per unit
+- ✅ FEFO algorithm — เบิกออก lot ที่ expire ก่อน
+- ✅ Lot status: ON_HOLD / RELEASED / QUARANTINE / RECALLED
+- ✅ แสดง available quantity = on-hand − reserved
+- ✅ เปลี่ยน lot status ต้องมี approval
+
+#### FR-INV-003: ใบเบิกวัตถุดิบ (Material Requisitions)
+
+**Acceptance Criteria**:
+- ✅ Inbox แสดงใบเบิกที่ฝ่ายผลิตส่งมา
+- ✅ Stat: รออนุมัติ / อนุมัติแล้ว / วัตถุดิบไม่พอ
+- ✅ ต้องตรวจ insufficient ด้วย unit-aware comparison
+- ✅ Approve → ตัด stock FEFO + create inventory_transactions
+- ✅ Realtime sync ระหว่าง browser หลายคน
+
+#### FR-INV-004: คืนวัตถุดิบ (Returns)
+
+**Acceptance Criteria**:
+- ✅ Weight-based input (toggle g ↔ cap)
+- ✅ Auto-derive return quantity ตาม formula
+- ✅ สร้าง RTN lot ใน primary unit (Zero Cost)
+- ✅ Cancel approval ได้ถ้า lot ยังไม่ถูกใช้
+
+#### FR-INV-005: แจ้งเตือนหมดอายุ
+
+**Acceptance Criteria**:
+- ✅ Threshold ตั้งได้: warning (90 days), critical (30 days), expired
+- ✅ Email/in-app notification รายวัน
+- ✅ Dashboard แสดง lot ใกล้หมดอายุ
+
+### 6.2 Module: Production (การผลิต)
+
+#### FR-PROD-001: Bill of Materials (BOM)
+
+**Acceptance Criteria**:
+- ✅ สร้าง BOM ผูกกับ finished product
+- ✅ BOM line รองรับ 3-level unit dropdown
+- ✅ Cost calculation 3-level conversion (WU→SU→PU) ก่อน multiply unit cost
+- ✅ Version control — BOM versioning (v1.0, v1.1, ...)
+- ✅ Confidential BOM — เปิดดูได้เฉพาะ group member
+
+#### FR-PROD-002: BOM Configuration
+
+**Acceptance Criteria**:
+- ✅ 4 tabs: Rooms / Equipment / SOP Steps / IPC — Phase Level
+- ✅ Tab badges แสดงจำนวน + warning เมื่อ IPC=0
+- ✅ Multi-select bulk add IPC criteria
+- ✅ SOP Step → IPC linker constrained to Phase Level IPCs
+- ✅ Empty-state navigate button
+
+#### FR-PROD-003: Work Orders
+
+**Acceptance Criteria**:
+- ✅ Status machine: DRAFT → PLANNED → RELEASED → IN_PROGRESS → COMPLETED → CLOSED
+- ✅ ลำดับขั้นห้าม skip (เช่น DRAFT → COMPLETED ตรงๆ ไม่ได้)
+- ✅ ทุกการเปลี่ยน status บันทึก Audit Trail พร้อม timestamp + user
+
+#### FR-PROD-004: Line Clearance
+
+**Acceptance Criteria**:
+- ✅ Checklist 6 ข้อต้องผ่านทุกข้อก่อน sign
+- ✅ E-Signature โดย Operator (status: pending → performed)
+- ✅ E-Signature โดย QA Verifier (status: performed → verified)
+- ✅ Dual-Control: ห้าม operator คนเดียวกัน verify
+- ✅ Rejected → กลับไป status: rejected พร้อม reason
+
+#### FR-PROD-005: SOP Execution
+
+**Acceptance Criteria**:
+- ✅ ลำดับขั้นบังคับ — step N ต้องรอ step N-1 verified
+- ✅ บันทึก actualParameters + notes ต่อ step
+- ✅ IPC inline recording — บันทึก IPC ระหว่าง complete step
+- ✅ Multi-sample + multi-round recording
+- ✅ Retest reason (justified / unjustified) บังคับใน round 2+
+- ✅ Sub-step confirmation flow
+
+#### FR-PROD-006: Material Weighing
+
+**Acceptance Criteria**:
+- ✅ บันทึก weighedQty ใน BOM line unit
+- ✅ แสดง variance (weighed − planned) ใน unit เดียวกัน
+- ✅ E-Signature ทุกการชั่ง
+- ✅ ไม่ตัด stock ซ้ำถ้าตัดไปแล้วตอน requisition approve
+
+#### FR-PROD-007: Electronic Batch Manufacturing Record (EBMR)
+
+**Acceptance Criteria**:
+- ✅ รวมข้อมูล batch ครบทุก section (Material, SOP, IPC, QC)
+- ✅ Print เป็น PDF พร้อม e-signature ทุก step
+- ✅ Material Consumption table แสดงหน่วยตาม BOM line unit
+- ✅ Actual column = weighedQty เท่านั้น (ไม่ fallback)
+- ✅ ค้นย้อนหลังได้ตามวัน/batch/product
+
+### 6.3 Module: Quality (คุณภาพ)
+
+#### FR-QC-001: QC Entry
+
+**Acceptance Criteria**:
+- ✅ บันทึก test result ตาม specification ที่กำหนด
+- ✅ Multi-sample (เช่น sample 1, 2, 3 ของ batch เดียวกัน)
+- ✅ Multi-round (retest ได้)
+- ✅ ผลพิจารณา Pass/Fail/Pending อัตโนมัติตาม spec range
+
+#### FR-QC-002: Certificate of Analysis (COA)
+
+**Acceptance Criteria**:
+- ✅ Template-driven — มี template editor + per-category default
+- ✅ Logo upload (PNG/JPG ≤ 2 MB)
+- ✅ Regenerate COA หลัง revoke
+- ✅ PDF rendering ผ่าน Alpine Chromium (server-side)
+
+#### FR-QC-003: Test Panels
+
+**Acceptance Criteria**:
+- ✅ จับกลุ่ม test ที่ใช้ร่วมกัน
+- ✅ เลือก panel เดียวสร้าง multiple test รวด
+
+#### FR-QC-004: Deviations & CAPA
+
+**Acceptance Criteria**:
+- ✅ บันทึก deviation จาก QC fail หรือ manual
+- ✅ Root cause analysis (5-Why method)
+- ✅ Corrective + Preventive action plan
+- ✅ Follow-up + closure approval
+
+### 6.4 Module: GMP Compliance
+
+#### FR-GMP-001: Document Management
+
+**Acceptance Criteria**:
+- ✅ Version control — เก็บประวัติทุก revision
+- ✅ Approval workflow before effective
+- ✅ Document type: SOP / WI / FORM / SPEC / POLICY
+- ✅ Effective date + review date + obsolete date
+
+#### FR-GMP-002: Change Control
+
+**Acceptance Criteria**:
+- ✅ Categorize: Minor / Major / Critical
+- ✅ Impact assessment (Quality / Regulatory / Validation)
+- ✅ Approval chain ตาม category
+- ✅ Implementation plan + verification
+
+#### FR-GMP-003: Stability Studies
+
+**Acceptance Criteria**:
+- ✅ Schedule samples ตาม time points (0, 3, 6, 9, 12 months)
+- ✅ Storage condition tracking (25°C/60% RH, 40°C/75% RH, ...)
+- ✅ Trend analysis ของ critical attributes
+- ✅ Out-of-Trend (OOT) detection
+
+#### FR-GMP-004: Internal Audit
+
+**Acceptance Criteria**:
+- ✅ Annual audit schedule
+- ✅ Checklist-based audit
+- ✅ Finding categorization (Critical / Major / Minor / Observation)
+- ✅ Audit report + management review
+
+#### FR-GMP-005: Product Quality Review (PQR)
+
+**Acceptance Criteria**:
+- ✅ Auto-generate รายงานรายปีต่อผลิตภัณฑ์
+- ✅ รวม: production volume, batch failures, deviations, complaints, recalls, stability
+- ✅ Trend analysis charts
+- ✅ Management approval
+
+### 6.5 Module: Purchasing
+
+**FR-PUR-001: Purchase Requisition (PR)**: สร้าง PR จาก reorder point หรือ manual + approval workflow  
+**FR-PUR-002: Purchase Order (PO)**: รองรับ split-VAT / inclusive-VAT toggle + multiple delivery dates  
+**FR-PUR-003: Vendors**: ฐานข้อมูล vendor + Approved Vendor List (AVL) + qualification expiry
+
+### 6.6 Module: Sales
+
+**FR-SAL-001: Sales Order**: รองรับ multi-currency, multi-warehouse fulfillment, partial delivery  
+**FR-SAL-002: Customers**: Customer master + credit limit + payment terms  
+**FR-SAL-003: VMI Orders**: รับ order จาก VMI Portal ผ่าน webhook + auto-confirm
+
+### 6.7 Module: Accounting (16 sub-modules)
+
+ทุก transaction (PO, GR, AP, SO, AR, Delivery) สร้าง Journal Entry อัตโนมัติเข้า GL พร้อม:
+
+- Chart of Accounts (109 standard accounts seed)
+- Account Types (5 types: Asset, Liability, Equity, Revenue, Expense)
+- Journal Entries (manual + auto)
+- AP Invoices + 3-Way Matching
+- AR Invoices + Aging Report
+- Fixed Assets + depreciation
+- Equipment master + maintenance schedule
+- Period Close — lock entries หลังปิด
+- Bank Reconciliation
+- Credit/Debit Notes
+- Standard Costs + Variance Reports
+
+### 6.8 Module: Cost Management
+
+**FR-COST-001: Landed Cost**: รวมต้นทุน freight, duty, insurance ลงใน item cost  
+**FR-COST-002: Work Centers**: บริหาร cost ที่แต่ละ work center  
+**FR-COST-003: WAC**: คำนวณ Weighted Average Cost อัตโนมัติเมื่อรับสินค้าเข้า
+
+### 6.9 Module: VMI Portal
+
+**FR-VMI-001**: Vendor login portal — เห็น sales/inventory ของลูกค้าตน  
+**FR-VMI-002**: Sync orders ผ่าน webhook  
+**FR-VMI-003**: API keys ต่อ vendor
+
+### 6.10 Module: HR
+
+**FR-HR-001**: Organization tree  
+**FR-HR-002**: Employee master + position + JD  
+**FR-HR-003**: Training records — course / session / attendees / certification expiry  
+**FR-HR-004**: Authorizations & Delegations  
+**FR-HR-005**: Health records (GMP gate — ห้ามผู้ป่วยเข้าห้องผลิต)  
+**FR-HR-006**: Role + Permission management — DB-backed (เปลี่ยน permission มีผลทันที)
+
+### 6.11 Module: Reports
+
+**FR-RPT-001**: DevExpress Report Designer — สร้าง custom report ได้  
+**FR-RPT-002**: Export format: PDF, Excel, CSV, RTF, HTML  
+**FR-RPT-003**: Scheduled reports (email)  
+**FR-RPT-004**: Role-based report visibility
+
+---
+
+## 7. Non-Functional Requirements
+
+### 7.1 Performance
+
+| Metric | Target |
+|---|---|
+| Page load (first contentful paint) | ≤ 2 วินาที |
+| API response time (95th percentile) | ≤ 500 ms |
+| Database query (typical) | ≤ 100 ms |
+| Report generation (small) | ≤ 5 วินาที |
+| Report generation (large, 1000+ rows) | ≤ 30 วินาที |
+| Concurrent users per tenant | 50+ |
+
+### 7.2 Scalability
+
+- รองรับเพิ่ม tenant ใหม่โดยไม่ต้อง deploy code ใหม่ (เพียงสร้าง container + database)
+- รองรับ data growth — 100,000+ batches ต่อ tenant ภายใน 5 ปี
+- Horizontal scaling ทำได้ผ่าน Docker Swarm / Kubernetes (Phase 2)
+
+### 7.3 Availability
+
+| Service | SLA |
+|---|---|
+| Production system (Mon-Fri, 06:00-22:00) | 99.5% uptime |
+| Production system (off-peak) | 99% uptime |
+| Maintenance window | Sat 22:00 - Sun 02:00 (announce ล่วงหน้า 7 วัน) |
+
+### 7.4 Reliability
+
+- RPO (Recovery Point Objective) ≤ 24 ชั่วโมง (daily backup)
+- RTO (Recovery Time Objective) ≤ 4 ชั่วโมง (จาก disaster)
+- Backup retention: 30 วัน on-site + 90 วัน off-site
+
+### 7.5 Security
+
+ดู [ข้อ 9](#9-security--compliance)
+
+### 7.6 Usability
+
+- Learnability — new user ใช้ basic flow ได้ภายใน 30 นาที training
+- Efficiency — common action ≤ 3 clicks
+- Memorability — กลับมาใช้หลังพักงาน 1 สัปดาห์ใช้ได้ทันที
+- Error tolerance — ทุก destructive action มี confirmation
+- Satisfaction — System Usability Scale (SUS) score ≥ 75
+
+### 7.7 Compatibility
+
+| Browser | Min Version |
+|---|---|
+| Google Chrome | 110+ |
+| Microsoft Edge | 110+ |
+| Apple Safari | 16+ |
+| Mozilla Firefox | 110+ |
+
+> Internet Explorer และ Legacy browsers **ไม่รองรับ**
+
+### 7.8 Maintainability
+
+- Code coverage ≥ 70%
+- TypeScript strict mode + zero `any` ที่ไม่มี justification
+- Component reusability — DRY principle
+- Service layer abstraction
+- Git history clean — squash + meaningful commit messages
+
+### 7.9 Localization
+
+- Default: Thai (ไทย)
+- Secondary: English (อังกฤษ)
+- Date format: dd/MM/yyyy พ.ศ. (เลือกได้ค.ศ.)
+- Currency: THB เป็นหลัก
+- Number format: 1,234,567.89
+
+---
+
+## 8. สถาปัตยกรรม
+
+### 8.1 High-Level Architecture
+
+```
+┌────────────────────────────────────────────────┐
+│         Browser (Chrome/Edge/Safari)           │
+│         Desktop / Tablet / Mobile              │
+└────────────────────────┬───────────────────────┘
+                         │ HTTPS (TLS 1.3)
+                         ↓
+┌────────────────────────────────────────────────┐
+│        Nginx Reverse Proxy + TLS Cert          │
+│        herbal-erp-<tenant>.example.com         │
+└────────────────────────┬───────────────────────┘
+                         │
+        ┌────────────────┴────────────────┐
+        ↓                                 ↓
+┌──────────────────┐            ┌──────────────────┐
+│  Next.js App     │            │   .NET Reporting │
+│  (per tenant)    │            │   Backend        │
+│  - React 19      │            │   - DevExpress   │
+│  - DevExtreme    │            │     Report       │
+│  - Drizzle ORM   │            │   - PDF Render   │
+└────────┬─────────┘            └────────┬─────────┘
+         │                                │
+         └───────────────┬────────────────┘
+                         ↓
+        ┌──────────────────────────────────┐
+        │      MySQL 8.0 (shared)          │
+        │   - herbal_erp_arjaro            │
+        │   - herbal_erp_metaherb          │
+        │   - herbal_erp_more              │
+        │   - herbal_erp_renunakhon        │
+        │   - ... (one DB per tenant)      │
+        └──────────────────────────────────┘
+```
+
+### 8.2 Technology Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend Framework** | Next.js 16 (App Router) |
+| **UI Library** | React 19 |
+| **Language** | TypeScript 5.x (strict) |
+| **UI Components** | DevExtreme React 25.2.3 |
+| **Styling** | Tailwind CSS + custom design tokens |
+| **State/Data** | TanStack Query 5.x |
+| **Forms** | DevExtreme Form + Zod validation |
+| **ORM** | Drizzle ORM (dual SQLite/MySQL) |
+| **Database** | MySQL 8.0 |
+| **Auth** | Session cookie + bcryptjs (12 rounds) |
+| **i18n** | next-intl |
+| **Realtime** | Server-Sent Events (SSE) |
+| **Excel** | ExcelJS |
+| **PDF** | DevExpress Reports + Alpine Chromium |
+| **Deployment** | Docker Compose |
+| **Testing** | Vitest + RTL + Playwright |
+| **CI/CD** | GitHub Actions (planned) |
+
+### 8.3 Database Strategy
+
+- **Multi-tenant by database** — แต่ละ tenant มี MySQL database แยก (ไม่ใช่ schema/row-level)
+- เหตุผล: isolation สูง backup ง่าย restore ทำต่อ tenant ได้
+- Dual-schema (Drizzle) — SQLite สำหรับ test in-memory, MySQL สำหรับ production
+- Migration ผ่าน Drizzle script + version control
+
+### 8.4 Hardware Requirements
+
+#### Server (per cluster supporting 6-10 tenants)
+
+| Component | Minimum | Recommended |
+|---|---|---|
+| CPU | 8 cores | 16 cores |
+| RAM | 32 GB | 64 GB |
+| Storage (SSD) | 500 GB | 1 TB NVMe |
+| Network | 1 Gbps | 10 Gbps |
+| OS | Ubuntu 22.04 LTS | Ubuntu 24.04 LTS |
+| Docker | 24+ | 26+ |
+
+#### Workstation/Client
+
+| Component | Minimum |
+|---|---|
+| CPU | Intel i3 / equiv. |
+| RAM | 4 GB |
+| Browser | ตาม [7.7](#77-compatibility) |
+| Display | 1366×768 ขึ้นไป |
+
+---
+
+## 9. Security & Compliance
+
+### 9.1 21 CFR Part 11 Compliance
+
+| ข้อกำหนด | การรองรับ |
+|---|---|
+| §11.10(a) Validation | IQ/OQ/PQ documentation ที่ส่งมอบ |
+| §11.10(b) Records retention | DB backup 30 วัน on-site + 90 วัน off-site + ไม่สามารถลบ audit trail |
+| §11.10(c) System protection | Role-based access + activity logs |
+| §11.10(d) Limit access | RBAC + session timeout + lock after 3 failed login |
+| §11.10(e) Audit trails | ทุก operation บันทึก who/when/old/new ที่ tampering-proof |
+| §11.10(f) Operational checks | Status machine (DRAFT→APPROVED) บังคับลำดับ |
+| §11.10(g) Authority checks | Permission check ทุก action |
+| §11.10(h) Device checks | (Future) Workstation authorization |
+| §11.10(i) Training | Training record ใน HR module |
+| §11.50 Signature manifestation | Signature record: name + date/time + meaning |
+| §11.70 Signature linking | Signature ผูกกับ record permanently (FK constraint) |
+| §11.100 Unique identification | Username + password — ห้ามใช้ร่วม |
+| §11.200 Two distinct components | Password (มี) + (option) 2FA TOTP สำหรับ admin |
+| §11.300 Controls for IDs | Password expiry, complexity, history (10 ครั้ง) |
+
+### 9.2 ALCOA+ Data Integrity
+
+- **Attributable** — ทุก record ระบุ userId/employeeName
+- **Legible** — UI Thai/English ชัด เก็บข้อมูลด้วย UTF-8
+- **Contemporaneous** — timestamp อัตโนมัติทุก action
+- **Original** — เก็บ raw data ห้ามแก้ — แก้ผ่าน Change Control เท่านั้น
+- **Accurate** — Validation rules + business logic check
+- **Complete** — required fields บังคับ ไม่ปล่อยว่าง
+- **Consistent** — เวลา server UTC + แสดง local time ตาม timezone
+- **Enduring** — DB persistent + Backup
+- **Available** — Search + Export ได้ทุก field
+
+### 9.3 GMP PIC/S Requirements
+
+ดู section 6.4 (GMP Compliance) สำหรับ functional requirements ที่ map กับ GMP
+
+### 9.4 PDPA (Thailand)
+
+- เก็บข้อมูลส่วนบุคคลของพนักงานเฉพาะที่จำเป็น
+- Consent management สำหรับ data subject
+- Data subject rights (access, rectification, erasure) — ผ่าน HR module
+- Data Retention Policy — เก็บข้อมูล employee 7 ปีหลังเลิกจ้าง
+
+### 9.5 Authentication & Authorization
+
+- Session-based authentication (HTTP-only cookie)
+- bcrypt 12 rounds for password hashing
+- Session timeout: 12 ชั่วโมง
+- Failed login lockout: 5 ครั้ง → lock 15 นาที
+- Password policy: 8 chars + 1 upper + 1 lower + 1 digit
+- Password history: ห้ามใช้ซ้ำ 10 ครั้งล่าสุด
+
+### 9.6 Data Protection
+
+- TLS 1.3 (in-transit)
+- bcrypt (passwords at rest)
+- ไม่เก็บ plain text password ทุกที่
+- Database backup encrypted (AES-256)
+- Network isolation — DB ไม่ expose external port
+
+### 9.7 Audit Trail
+
+ทุก critical table มี:
+- created_at, updated_at, created_by, updated_by
+- Trigger audit log บน insert/update/delete
+- เก็บ old_value, new_value (JSON snapshot)
+- ค้นได้ตาม table/entity_id/user/date range
+
+### 9.8 Vulnerability Management
+
+- Dependency scanning ทุกเดือน (npm audit)
+- Penetration test รายปี โดย third-party
+- OWASP Top 10 compliance
+- Security patches ภายใน 72 ชั่วโมง สำหรับ critical CVEs
+
+---
+
+## 10. มาตรฐาน UX/UI
+
+### 10.1 Design Principles
+
+1. **Consistency** — element pattern เหมือนกันทุกหน้า
+2. **Clarity** — label ชัดเจน ไม่กำกวม
+3. **Forgiveness** — ทุก destructive action มี confirmation + undo (ถ้าเป็นไปได้)
+4. **Feedback** — แสดง loading/success/error ทุก action
+5. **Efficiency** — common task ≤ 3 clicks
+6. **Accessibility** — keyboard navigation + screen reader compatible
+
+### 10.2 Color Coding
+
+| สี | ความหมาย |
+|---|---|
+| Emerald / Green | Success, Approved, Active |
+| Amber / Yellow | Warning, Pending, Requires attention |
+| Red | Error, Rejected, Critical, Destructive |
+| Blue | Information, In progress |
+| Gray | Inactive, Disabled |
+
+### 10.3 Responsive Design
+
+- Desktop: 1920×1080, 1366×768
+- Tablet: 1024×768 (iPad)
+- Mobile: 414×896 (iPhone), 360×800 (Android)
+- Breakpoints: 640, 768, 1024, 1280, 1536 (Tailwind defaults)
+
+### 10.4 Accessibility (WCAG 2.1 Level AA)
+
+- Color contrast ratio ≥ 4.5:1
+- Keyboard navigation รองรับทุก action
+- Skip-to-content link
+- Form labels เชื่อมกับ input
+- Error messages อ่านโดย screen reader
+
+---
+
+## 11. การบริหารโครงการ
+
+### 11.1 Project Phases (Work Breakdown Structure)
+
+#### Phase 1: Discovery & Planning (เดือน 1)
+
+- Stakeholder interview
+- Business process mapping (AS-IS / TO-BE)
+- Requirements finalization
+- Architecture design approval
+- Project plan + WBS
+
+**Deliverable**: BRD (Business Requirement Document), SRS (Software Requirement Specification), Architecture Document
+
+#### Phase 2: Inventory + Production + QC (เดือน 2-4)
+
+- Item master + 3-level unit
+- Lots + Warehouses
+- BOM + Configuration
+- Work Orders + EBMR
+- Material Weighing + IPC
+- QC Entry + COA
+- Audit Trail
+
+**Deliverable**: Working module + Unit test + UAT plan
+
+#### Phase 3: GMP Compliance + Accounting (เดือน 5-7)
+
+- Documents + Change Control + CAPA
+- Complaints + Recalls + Sanitation
+- Stability + Internal Audit + PQR
+- Chart of Accounts + Journal Entries
+- AP + AR + Period Close
+
+**Deliverable**: Working module + GMP validation document
+
+#### Phase 4: Sales + Purchasing + Cost (เดือน 8-9)
+
+- PR + PO + Vendors + 3-Way Matching
+- SO + Customers + Delivery
+- Landed Cost + Work Centers + WAC
+- Standard Cost + Variance Reports
+
+**Deliverable**: End-to-end P2P + O2C flows + Cost reports
+
+#### Phase 5: HR + VMI + Reports (เดือน 10-11)
+
+- Organization + Employees + Positions
+- Training + Authorizations + Health Records
+- Roles + Permissions + Notifications
+- VMI Portal + Webhook integration
+- DevExpress Reports + i18n complete
+
+**Deliverable**: All modules complete + Reports library
+
+#### Phase 6: Hardening & Hand-over (เดือน 12)
+
+- Performance tuning
+- Security audit + penetration test
+- Documentation finalization
+- Training delivery (3 รอบ — operator/QA/manager)
+- Production deployment
+- Go-Live support (2 สัปดาห์)
+
+**Deliverable**: Production live + User trained + IQ/OQ/PQ document
+
+### 11.2 Timeline Gantt (สรุป)
+
+| เดือน | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Discovery | ▓▓ | | | | | | | | | | | |
+| Inv+Prod+QC | | ▓▓ | ▓▓ | ▓▓ | | | | | | | | |
+| GMP+Acc | | | | | ▓▓ | ▓▓ | ▓▓ | | | | | |
+| Sales+Pur+Cost | | | | | | | | ▓▓ | ▓▓ | | | |
+| HR+VMI+Report | | | | | | | | | | ▓▓ | ▓▓ | |
+| Hardening | | | | | | | | | | | | ▓▓ |
+
+### 11.3 Milestones
+
+| # | Milestone | Target Date | Acceptance |
+|---|---|---|---|
+| M1 | Project Kick-off | สิ้นเดือน 1 | Charter signed |
+| M2 | Inventory + Production Live (Phase 2) | สิ้นเดือน 4 | UAT pass |
+| M3 | GMP + Accounting Live (Phase 3) | สิ้นเดือน 7 | UAT pass + GMP review |
+| M4 | Sales + Purchasing Live (Phase 4) | สิ้นเดือน 9 | UAT pass |
+| M5 | HR + VMI + Reports Live (Phase 5) | สิ้นเดือน 11 | UAT pass |
+| M6 | Production Go-Live | สิ้นเดือน 12 | Production stable 14 วัน |
+
+### 11.4 Project Team Structure
+
+| Role | จำนวน | ความรับผิดชอบ |
+|---|---|---|
+| Project Manager | 1 | บริหารโครงการ ติดตาม risk |
+| System Analyst | 2 | วิเคราะห์ requirement + spec |
+| Solution Architect | 1 | ออกแบบ architecture |
+| Senior Developer | 3 | พัฒนา feature + review |
+| Developer | 4 | พัฒนา feature |
+| QA Engineer | 2 | ทดสอบ + automation |
+| UI/UX Designer | 1 | ออกแบบ UI + prototype |
+| DevOps Engineer | 1 | Deployment + monitoring |
+| GMP Consultant | 1 | Validation + compliance |
+
+### 11.5 Communication Plan
+
+| Type | Frequency | Audience | Format |
+|---|---|---|---|
+| Daily Standup | ทุกวัน | Dev team | 15 นาที video |
+| Sprint Review | ทุก 2 สัปดาห์ | Dev + PO | Demo + retrospective |
+| Steering Committee | ทุก 4 สัปดาห์ | Management | Slide + report |
+| Status Report | สัปดาห์ละ 1 | All stakeholders | Email + dashboard |
+
+---
+
+## 12. QA & Testing
+
+### 12.1 Testing Strategy
+
+| Type | Tool | Coverage Target |
+|---|---|---|
+| Unit Test | Vitest | ≥ 70% line coverage |
+| Component Test | React Testing Library | All major components |
+| Integration Test | Vitest + In-memory SQLite | All API endpoints |
+| E2E Test | Playwright | Critical user journeys |
+| Performance Test | k6 / Apache JMeter | 50 concurrent users |
+| Security Test | OWASP ZAP + manual penetration | Annual |
+| Accessibility Test | axe-core | WCAG 2.1 Level AA |
+
+### 12.2 Test Phases
+
+1. **Developer Test** — ระหว่างเขียน code
+2. **Code Review** — peer review ทุก PR
+3. **QA Test** — manual + automated หลัง merge
+4. **UAT** — user ทดสอบจริงตาม test script
+5. **Performance Test** — โหลด 50+ concurrent users
+6. **Security Test** — Penetration test
+7. **GMP Validation** — IQ/OQ/PQ
+
+### 12.3 Definition of Done
+
+ฟีเจอร์จะถือว่า "เสร็จ" เมื่อ:
+
+- ✅ Code passes lint + TypeScript compile
+- ✅ Unit test coverage ≥ 70%
+- ✅ Integration test pass
+- ✅ Code reviewed + approved
+- ✅ Documentation updated
+- ✅ Deployed to staging
+- ✅ UAT signed by Product Owner
+
+### 12.4 UAT Approach
+
+- เตรียม UAT test script ก่อน feature delivery
+- ลูกค้า key user เข้าทดสอบบน staging environment
+- บันทึก defects ใน issue tracker
+- Severity: Critical (block) / Major / Minor / Cosmetic
+- Acceptance criteria: Critical = 0, Major ≤ 3 ก่อน sign-off
+
+### 12.5 GMP Validation (IQ/OQ/PQ)
+
+- **IQ (Installation Qualification)** — ตรวจ infra setup ถูกต้อง
+- **OQ (Operational Qualification)** — ตรวจ ฟังก์ชันทำงานตาม spec
+- **PQ (Performance Qualification)** — ตรวจ ระบบทำงานได้จริงในสภาพการใช้งานจริง
+
+---
+
+## 13. การบริหารความเสี่ยง
+
+### 13.1 Risk Register
+
+| # | Risk | Impact | Probability | Mitigation |
+|---|---|---|---|---|
+| R-01 | ลูกค้าเปลี่ยน requirement ระหว่างทาง (scope creep) | สูง | กลาง | Change Request process + impact analysis |
+| R-02 | บุคลากรลูกค้าไม่ว่างทำ UAT | สูง | กลาง | Schedule lock + management commitment |
+| R-03 | Performance ไม่ผ่านที่ 50 concurrent users | สูง | ต่ำ | Load test ตั้งแต่ Phase 3 |
+| R-04 | GMP audit ไม่ผ่าน | สูงมาก | ต่ำ | GMP consultant ร่วมตั้งแต่ Phase 1 |
+| R-05 | ข้อมูล migration จาก legacy ไม่สมบูรณ์ | สูง | กลาง | Data cleansing workshop ก่อน migrate |
+| R-06 | Vendor team turn-over | กลาง | กลาง | Knowledge transfer + documentation |
+| R-07 | Browser bug ใหม่ที่ DevExtreme รองรับช้า | กลาง | ต่ำ | Pin version + test ก่อน upgrade |
+| R-08 | Network downtime ในโรงงาน | สูง | ต่ำ | Offline-capable critical pages (Phase 2 enhancement) |
+| R-09 | Data breach (compromise password DB) | สูงมาก | ต่ำมาก | bcrypt + breach notification process |
+| R-10 | Cost over-run | สูง | กลาง | Fixed-price phases + change request management |
+
+### 13.2 Risk Review Cycle
+
+- Risk register review ทุก sprint
+- New risk added ทันทีที่ identified
+- Mitigation plan ทุก risk ระดับ "สูง" ขึ้นไป
+- Escalate ถึง Steering Committee เมื่อ risk เปลี่ยนเป็น issue
+
+---
+
+## 14. Deliverables
+
+### 14.1 Phase-end Deliverables
+
+ทุก phase ต้องส่งมอบ:
+
+1. **Working software** — feature complete + deployed to staging
+2. **Source code** — Git repository + clean history
+3. **Database schema** — Drizzle migrations + ER diagram
+4. **API documentation** — OpenAPI spec + Postman collection
+5. **Test reports** — unit/integration/e2e
+6. **User manual** (incremental) — TH + EN
+7. **Release notes**
+
+### 14.2 Final Deliverables (Go-Live)
+
+นอกเหนือจากที่ส่งทุก phase:
+
+1. **Complete user manual** (TH + EN, 200+ หน้า) — แยกตาม persona
+2. **Admin manual** — System configuration + troubleshooting
+3. **GMP Compliance Matrix** — map ระหว่าง requirement กับ implementation
+4. **Validation Document Package** — IQ + OQ + PQ
+5. **Performance benchmark report**
+6. **Security audit report**
+7. **Training materials** — Video + Slide + Handbook (3 รอบ)
+8. **Source code ownership transfer** — full repository + license
+9. **Maintenance handbook** — operations runbook
+10. **Disaster recovery plan**
+
+---
+
+## 15. Training & Support
+
+### 15.1 Training Scope
+
+| Audience | Duration | Format | Topics |
+|---|---|---|---|
+| Operator | 1 วัน | Hands-on workshop | Daily operations: Material Weighing, SOP Execution, Line Clearance |
+| QA Specialist | 2 วัน | Workshop + case study | QC Entry, COA, Deviation, CAPA, GMP modules |
+| Warehouse | 1 วัน | Hands-on | Inventory, Requisitions, Returns, Lot management |
+| Accountant | 2 วัน | Workshop + scenarios | All Accounting + Cost Management + Reports |
+| Sales/Purchasing | 1 วัน | Hands-on | P2P + O2C cycle |
+| HR | 0.5 วัน | Workshop | HR module + Role management |
+| Manager | 0.5 วัน | Demo + Q&A | Dashboard + KPI + Approval flow |
+| System Admin | 2 วัน | Technical | Configuration, RBAC, backup, troubleshooting |
+
+### 15.2 Training Materials
+
+- Slide deck (TH/EN)
+- Video tutorial — แต่ละหัวข้อ 5-15 นาที
+- Handbook (printed + digital)
+- Test environment สำหรับ practice
+- Quick reference card (1-page cheat sheet)
+
+### 15.3 Post Go-Live Support
+
+#### Hyper-care Period (2 สัปดาห์หลัง Go-Live)
+
+- On-site support 8 ชั่วโมง/วัน
+- Response time ≤ 30 นาที สำหรับ critical
+- Daily check-in กับ management
+
+#### Warranty Period (12 เดือนหลัง Go-Live)
+
+ดู [ข้อ 16](#16-warranty)
+
+#### Extended Support (หลัง warranty)
+
+- Annual maintenance contract (optional)
+- 15-20% ของ contract value
+- รวม: bug fixes + security patches + minor enhancement + business hour support
+
+---
+
+## 16. Warranty
+
+### 16.1 Warranty Scope
+
+ระหว่าง warranty period (12 เดือน):
+
+- ✅ แก้ bug ที่เกิดจากความผิดพลาดของระบบ — ไม่คิดค่าใช้จ่าย
+- ✅ Security patches — ไม่คิดค่าใช้จ่าย
+- ✅ Production support — business hour
+- ❌ New feature development — ต้อง change request
+- ❌ Data correction จาก user error — คิดค่าใช้จ่ายตาม case
+- ❌ Integration กับระบบใหม่ — ต้อง change request
+
+### 16.2 SLA (Service Level Agreement)
+
+| Severity | Response Time | Resolution Time |
+|---|---|---|
+| Critical (Production down) | 1 ชั่วโมง | 4 ชั่วโมง |
+| Major (Module unusable) | 4 ชั่วโมง | 24 ชั่วโมง |
+| Minor (Feature degraded) | 1 วันทำการ | 5 วันทำการ |
+| Cosmetic | 2 วันทำการ | Next release |
+
+### 16.3 Support Hours
+
+- Business hours: จันทร์-ศุกร์ 09:00-18:00 (ไม่รวมวันหยุดราชการ)
+- After-hours emergency: เฉพาะ Critical severity (ผ่าน on-call rotation)
+
+### 16.4 Reporting Channel
+
+- Issue tracker (จากเมนู /issues ในระบบ)
+- Email: support@vendor.example
+- Phone: +66-X-XXX-XXXX (เฉพาะ critical)
+
+---
+
+## 17. Vendor Qualifications
+
+### 17.1 ขั้นต่ำ (Minimum Requirements)
+
+ผู้รับจ้างต้องมีคุณสมบัติดังนี้:
+
+1. **จดทะเบียนนิติบุคคล** ไทย ≥ 5 ปี
+2. **มีพนักงาน** อย่างน้อย 20 คน — รวม developer, QA, PM
+3. **มี reference project** ERP ขนาด medium-large อย่างน้อย 2 โครงการในรอบ 3 ปี
+4. **มีประสบการณ์ GMP** — เคยทำระบบที่ผ่าน GMP audit หรือมี GMP consultant ในทีม
+5. **มีใบรับรอง** ISO 27001 (Information Security) หรือ ISO 9001 (Quality Management)
+6. **มี SLA** กระบวนการ support ที่ชัดเจน
+
+### 17.2 ทีมงานที่จัดทำ
+
+ทีม developer ที่จัดทำต้องมี:
+
+- **PM**: PMP / PRINCE2 / Agile certified
+- **Solution Architect**: AWS/Azure cert + 10+ ปี experience
+- **Senior Developer**: ≥ 5 ปี ใน React + TypeScript + Node.js
+- **QA Engineer**: ISTQB certified
+- **GMP Consultant**: ≥ 7 ปี ใน pharmaceutical industry
+
+### 17.3 เอกสารยืนยัน
+
+- หนังสือรับรองบริษัท
+- งบการเงิน 3 ปีย้อนหลัง
+- รายชื่อ reference project + customer contact
+- CV ของทีมงาน + certificates
+- ISO certificates
+
+---
+
+## 18. Evaluation Criteria
+
+### 18.1 Technical Proposal (70%)
+
+| หัวข้อ | คะแนน |
+|---|---|
+| ความเข้าใจในขอบเขตงาน | 10 |
+| Approach & Methodology | 15 |
+| Architecture & Technology Stack | 15 |
+| Project Plan & Timeline | 10 |
+| Team Qualifications | 10 |
+| Quality Assurance Plan | 5 |
+| Risk Management Plan | 5 |
+
+### 18.2 Financial Proposal (20%)
+
+- ราคารวมทั้งโครงการ
+- Payment terms
+- Maintenance fee structure
+
+### 18.3 Company Profile (10%)
+
+- ประสบการณ์ + reference projects
+- ความมั่นคงทางการเงิน
+- ISO certifications
+
+### 18.4 Scoring Method
+
+- **คะแนนรวม** = (Technical × 0.7) + (Financial × 0.2) + (Company × 0.1)
+- **ผ่านขั้นต่ำ** — Technical ≥ 50 คะแนน (จาก 70)
+- **ผู้ชนะ** — คะแนนรวมสูงสุด
+
+---
+
+## 19. Financial Terms
+
+### 19.1 Payment Schedule
+
+| Milestone | % ของ Contract Value |
+|---|---|
+| M1: Kick-off (advance) | 15% |
+| M2: Inventory + Production Live | 20% |
+| M3: GMP + Accounting Live | 20% |
+| M4: Sales + Purchasing Live | 15% |
+| M5: HR + VMI + Reports Live | 15% |
+| M6: Production Go-Live + Acceptance | 10% |
+| Final Retention (after warranty) | 5% |
+
+### 19.2 Penalty Clause
+
+- Delay > 14 วันโดยไม่มีเหตุผลสมควร → ปรับ 0.1% ของ contract value/วัน (max 10%)
+- ระบบไม่ผ่าน UAT ≥ 3 รอบ → ปรับ 0.5% ของ contract value
+- Critical defect ใน production หลัง Go-Live → ปรับ 0.5% ต่อ incident
+- ระบบไม่ผ่าน GMP audit → ผู้รับจ้างรับผิดชอบค่าใช้จ่ายในการแก้ไข
+
+### 19.3 Cost Estimate Range (ปรับตาม scope)
+
+| Category | Range (THB) |
+|---|---|
+| Software development | 6,000,000 - 12,000,000 |
+| Training + Documentation | 500,000 - 1,000,000 |
+| Hardware (server) | 800,000 - 1,500,000 |
+| Annual Maintenance (Year 2+) | 1,000,000 - 2,500,000 |
+| **Total Year 1** | **7,300,000 - 14,500,000** |
+
+> ตัวเลขข้างต้นเป็นค่าประมาณ — ราคาจริงขึ้นกับ scope ที่ตกลงและ vendor
+
+---
+
+## 20. ภาคผนวก
+
+### Appendix A: Glossary
+
+ดู [ข้อ 3](#3-คำจำกัดความ)
+
+### Appendix B: Reference Standards
+
+- **GMP PIC/S** — Guide to Good Manufacturing Practice for Medicinal Products
+- **WHO TRS 1003** — Annex 2, WHO Good Manufacturing Practices
+- **21 CFR Part 11** — US FDA, Electronic Records; Electronic Signatures
+- **ICH Q9** — Quality Risk Management
+- **ICH Q10** — Pharmaceutical Quality System
+- **อย. ประกาศ** — กระทรวงสาธารณสุขเรื่อง GMP ของยาแผนไทย
+- **PDPA** — พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562
+
+### Appendix C: System Module Map (สรุป)
+
+```
+┌─────────────────────────────────────────────────┐
+│                  Dashboard                      │
+└────────────────────┬────────────────────────────┘
+                     │
+   ┌─────────────────┼─────────────────┐
+   ↓                 ↓                 ↓
+[Inventory]   [Production]      [Quality]
+  └─ Items        └─ BOM              └─ QC Entry
+  └─ Lots         └─ WO               └─ COA
+  └─ Whses        └─ EBMR             └─ Deviation
+  └─ Reqs         └─ Master Data      └─ Audit Trail
+
+[GMP]         [Purchasing]      [Sales]
+  └─ CAPA         └─ PR             └─ SO
+  └─ Change       └─ PO             └─ VMI
+  └─ Stability    └─ Vendors        └─ Customers
+  └─ PQR
+
+[Accounting]  [Cost]            [VMI Portal]   [HR]
+  └─ COA          └─ Landed         └─ Dashboard   └─ Org
+  └─ Journal      └─ Standard       └─ Sync        └─ Employees
+  └─ AP/AR        └─ Variance       └─ Orders      └─ Roles
+  └─ Period Close                                  └─ Training
+```
+
+### Appendix D: API Endpoint Categories
+
+ระบบมี REST API ครอบคลุม:
+
+- `/api/auth/*` — Authentication
+- `/api/inventory/*` — Inventory management
+- `/api/production/*` — Production + WO + BOM
+- `/api/quality/*` — QC + COA + Tests
+- `/api/gmp/*` — Compliance modules
+- `/api/purchasing/*` — Procurement
+- `/api/sales/*` — Sales + customers
+- `/api/accounting/*` — Financial
+- `/api/cost/*` — Cost management
+- `/api/hr/*` — Human resources
+- `/api/admin/*` — System administration
+- `/api/reports/*` — Reporting
+
+รวมประมาณ **300+ endpoints**
+
+### Appendix E: Document References
+
+- BRD (Business Requirements Document)
+- SRS (Software Requirements Specification)
+- Architecture Document
+- ER Diagram (Database)
+- API Documentation (OpenAPI)
+- User Manual (TH/EN)
+- Admin Manual
+- Validation Plan (IQ/OQ/PQ)
+
+### Appendix F: Approval & Sign-off
+
+| Role | Name | Signature | Date |
+|---|---|---|---|
+| Project Sponsor | _____________________ | _____________________ | _________ |
+| Project Manager (Client) | _____________________ | _____________________ | _________ |
+| Project Manager (Vendor) | _____________________ | _____________________ | _________ |
+| QA Manager | _____________________ | _____________________ | _________ |
+| IT Manager | _____________________ | _____________________ | _________ |
+| Production Manager | _____________________ | _____________________ | _________ |
+
+---
+
+**— จบเอกสาร TOR —**
+
+*เอกสารฉบับนี้เป็นทรัพย์สินของบริษัทผู้ว่าจ้าง การคัดลอก/เผยแพร่ต้องได้รับอนุญาต*

@@ -6,6 +6,7 @@
  * FR-049: Expiry Alerts
  */
 
+import { useTranslations } from 'next-intl';
 import { KpiCard } from './kpi-card';
 import { Calendar } from 'lucide-react';
 import type { ExpiryAlerts } from '@/lib/services/audit-dashboard-service';
@@ -16,14 +17,15 @@ interface ExpiryAlertCardProps {
 }
 
 export function ExpiryAlertCard({ data, onClick }: ExpiryAlertCardProps) {
+  const t = useTranslations('dashboard.auditCards.expiryAlert');
   const totalAlerts = data.expired + data.expiringSoon + data.expiringWarning;
   const status = data.expired > 0 ? 'critical' : data.expiringSoon > 0 ? 'warning' : 'normal';
 
   return (
     <KpiCard
-      title="Expiry Alerts"
+      title={t('title')}
       value={totalAlerts}
-      subtitle="lots"
+      subtitle={t('subtitle')}
       icon={<Calendar className="w-5 h-5 text-orange-600" />}
       status={status}
       onClick={onClick}
@@ -31,17 +33,17 @@ export function ExpiryAlertCard({ data, onClick }: ExpiryAlertCardProps) {
       <div className="flex flex-wrap gap-2 text-xs">
         {data.expired > 0 && (
           <span className="px-2 py-1 bg-red-100 text-red-700 rounded">
-            Expired: {data.expired}
+            {t('expired')}: {data.expired}
           </span>
         )}
         {data.expiringSoon > 0 && (
           <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded">
-            30 days: {data.expiringSoon}
+            {t('expiringSoon')}: {data.expiringSoon}
           </span>
         )}
         {data.expiringWarning > 0 && (
           <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded">
-            90 days: {data.expiringWarning}
+            {t('expiringWarning')}: {data.expiringWarning}
           </span>
         )}
       </div>

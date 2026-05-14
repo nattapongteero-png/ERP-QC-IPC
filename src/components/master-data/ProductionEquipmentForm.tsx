@@ -54,13 +54,6 @@ const equipmentTypes = [
 ];
 
 export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const [formData, setFormData] = React.useState<Partial<ProductionEquipment>>({
-    isActive: true,
-  });
-
   // Fetch existing equipment for edit mode
   const { data: existingEquipment, isLoading: isLoadingEquipment } = useQuery<ProductionEquipment>({
     queryKey: ['production-equipment', id],
@@ -68,20 +61,43 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
       const res = await fetch(`/api/master-data/production-equipment?id=${id}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-      // API returns array, get the single item
-      const items = data.data;
-      const item = Array.isArray(items) ? items.find((i: ProductionEquipment) => i.id === id) : items;
-      return item;
+      return data.data;
     },
     enabled: mode === 'edit' && !!id,
   });
 
-  // Populate form when editing
-  React.useEffect(() => {
-    if (existingEquipment) {
-      setFormData(existingEquipment);
-    }
-  }, [existingEquipment]);
+  // Block render until data is loaded — then mount inner form with key to ensure
+  // DevExtreme TextBox gets correct initial values (it doesn't re-render from '' → value)
+  if (mode === 'edit' && (isLoadingEquipment || !existingEquipment)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  const initialData: Partial<ProductionEquipment> = existingEquipment
+    ? {
+        code: existingEquipment.code || '',
+        name: existingEquipment.name || '',
+        nameTh: existingEquipment.nameTh || '',
+        equipmentType: existingEquipment.equipmentType || '',
+        capacity: existingEquipment.capacity || '',
+        roomId: existingEquipment.roomId,
+        description: existingEquipment.description || '',
+        isActive: existingEquipment.isActive ?? true,
+      }
+    : { code: '', name: '', nameTh: '', equipmentType: '', capacity: '', roomId: undefined, description: '', isActive: true };
+
+  return <ProductionEquipmentFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingEquipment={existingEquipment} />;
+}
+
+function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment }: ProductionEquipmentFormProps & { initialData: Partial<ProductionEquipment>; existingEquipment?: ProductionEquipment | null }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const [formData, setFormData] = React.useState<Partial<ProductionEquipment>>(initialData);
 
   // Fetch rooms for dropdown
   const { data: rooms } = useQuery<ProductionRoom[]>({
@@ -97,9 +113,7 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
   // Create/Update mutation
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<ProductionEquipment>) => {
-      const url = mode === 'edit'
-        ? '/api/master-data/production-equipment'
-        : '/api/master-data/production-equipment';
+      const url = '/api/master-data/production-equipment';
       const method = mode === 'edit' ? 'PUT' : 'POST';
 
       const payload = mode === 'edit' ? { ...data, id } : data;
@@ -127,8 +141,8 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
   });
 
   const handleSave = () => {
-    if (!formData.code || !formData.name || !formData.nameTh || !formData.equipmentType) {
-      toast.error('Validation Error', 'Please fill in all required fields.');
+    if (!formData.name || !formData.nameTh || !formData.equipmentType) {
+      toast.error('Validation Error', 'กรุณากรอก ชื่อ EN, ชื่อ TH, และประเภทอุปกรณ์');
       return;
     }
     saveMutation.mutate(formData);
@@ -137,14 +151,6 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
   const handleCancel = () => {
     router.push('/master-data/production-equipment');
   };
-
-  if (mode === 'edit' && isLoadingEquipment) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-4xl mx-auto">
@@ -191,11 +197,11 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Code <span className="text-gray-400 font-normal">(สร้างอัตโนมัติ ถ้าไม่กรอก)</span></label>
               <DxTextBox
                 value={formData.code || ''}
                 onValueChanged={(e) => setFormData({ ...formData, code: e.value })}
-                placeholder="e.g., EQ-001"
+                placeholder="EQ-XXXX (auto)"
               />
             </div>
             <div>

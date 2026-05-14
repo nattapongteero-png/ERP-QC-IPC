@@ -6,9 +6,56 @@
  * and handles approval request submission, evaluation, and actions.
  */
 
-import { eq, and, desc, asc, gte, lte, isNull, or } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte, isNull, or, sql } from 'drizzle-orm';
 import { executeDbOperation, getTableRef, getInsertId } from '../db/db-helper';
 import { getNow, toQueryDate, getTodayStr } from '../db/date-utils';
+import { getRolePermissionSet } from '../auth/permission-resolver';
+
+/**
+ * Per-document-type permission code that grants HR-role-based approval.
+ * If a user holds this permission via their assigned role (in
+ * hr_role_permissions), they may approve the request EVEN IF they are
+ * not the explicit `assigned_to` for the step. This bridges the gap
+ * between the legacy single-user assignment model and the granular
+ * HR role/permission system without forcing every admin to wire each
+ * approver by hand.
+ */
+const APPROVE_PERMISSION_BY_DOC_TYPE: Record<string, string> = {
+  purchase_requisition: 'purchasing:requisition:approve',
+  purchase_order: 'purchasing:approve',
+  ap_invoice: 'accounting:approve',
+  ar_invoice: 'sales:approve',
+  payment: 'accounting:approve',
+  credit_note: 'accounting:approve',
+  debit_note: 'accounting:approve',
+};
+
+/**
+ * Returns true when the user's HR role grants the approve-permission for
+ * the given document type. Used as a secondary authorization path so a
+ * Purchasing Head with the right permission can act even when the step's
+ * `assigned_to` references a different individual.
+ */
+async function userHasRoleBasedApproval(
+  db: any,
+  documentType: string,
+  userId: number,
+): Promise<boolean> {
+  const permissionCode = APPROVE_PERMISSION_BY_DOC_TYPE[documentType];
+  if (!permissionCode) return false;
+  try {
+    const usersTable = getTableRef('users');
+    const [u] = await db
+      .select({ role: usersTable.role })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    if (!u?.role) return false;
+    const perms = await getRolePermissionSet(u.role);
+    return perms.has(permissionCode);
+  } catch {
+    return false;
+  }
+}
 import type {
   DocumentType,
   ApprovalFlowInput,
@@ -146,7 +193,7 @@ export async function listApprovalFlows(options: {
 
     // Get total count
     const [countResult] = await db
-      .select({ count: tables.flows.id })
+      .select({ count: sql<number>`count(*)` })
       .from(tables.flows)
       .where(whereClause);
 
@@ -175,7 +222,7 @@ export async function listApprovalFlows(options: {
 
     return {
       data: flowsWithDetails,
-      total: Array.isArray(countResult) ? countResult.length : 1,
+      total: Number(countResult?.count || 0),
     };
   });
 }
@@ -602,6 +649,32 @@ async function resolveApprover(
 // ============================================
 
 /**
+ * Look up an approver's display name + role so error messages can name
+ * the person the operator needs to contact, rather than the generic
+ * "you are not authorized". Returns "name (role)" — falls back to
+ * "user #id" if the row can't be resolved.
+ */
+async function resolveApproverDisplayName(
+  db: any,
+  _tables: ReturnType<typeof getTables>,
+  userId: number | null | undefined,
+): Promise<string> {
+  if (!userId) return 'ผู้อนุมัติที่ระบุไว้';
+  try {
+    const usersTable = getTableRef('users');
+    const [u] = await db
+      .select({ name: usersTable.name, email: usersTable.email, role: usersTable.role })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    if (!u) return `user #${userId}`;
+    const display = u.name || u.email || `user #${userId}`;
+    return u.role ? `${display} (${u.role})` : display;
+  } catch {
+    return `user #${userId}`;
+  }
+}
+
+/**
  * Approve a request step
  */
 export async function approveRequest(
@@ -654,12 +727,22 @@ export async function approveRequest(
         );
 
       if (delegatedStep) {
-        // Check if approverId is a valid delegate
+        // 3-way authorization for this step:
+        //  1. Explicit delegation table row (delegated_from → user_id)
+        //  2. HR role-based approval — user has the document-type's
+        //     approve permission via their HR role assignment
+        //  3. Otherwise reject with a message naming the assignee
         const isDelegate = await checkDelegation(delegatedStep.assignedTo, approverId, request.documentType);
-        if (!isDelegate) {
-          throw new Error('NOT_AUTHORIZED: You are not authorized to approve this request');
+        const hasRolePermission = !isDelegate
+          ? await userHasRoleBasedApproval(db, request.documentType, approverId)
+          : false;
+        if (!isDelegate && !hasRolePermission) {
+          const assigneeInfo = await resolveApproverDisplayName(db, tables, delegatedStep.assignedTo);
+          throw new Error(
+            `NOT_AUTHORIZED: ขั้นตอนนี้ต้องอนุมัติโดย ${assigneeInfo} (หรือผู้ที่ได้รับมอบหมาย / ผู้มี role อนุมัติเอกสาร) — กรุณาติดต่อผู้รับผิดชอบ`,
+          );
         }
-        // Update with delegation info
+        // Update with delegation/role-bypass info
         await db
           .update(tables.requestSteps)
           .set({
@@ -671,7 +754,37 @@ export async function approveRequest(
           })
           .where(eq(tables.requestSteps.id, delegatedStep.id));
       } else {
-        throw new Error('NOT_AUTHORIZED: You are not authorized to approve this request');
+        // No pending step at all for this step order — try role-based fallback,
+        // and otherwise surface who the assignee was.
+        const hasRolePermission = await userHasRoleBasedApproval(db, request.documentType, approverId);
+        const [anyStep] = await db
+          .select({ id: tables.requestSteps.id, assignedTo: tables.requestSteps.assignedTo })
+          .from(tables.requestSteps)
+          .where(
+            and(
+              eq(tables.requestSteps.requestId, requestId),
+              eq(tables.requestSteps.stepOrder, request.currentStepOrder),
+            ),
+          );
+        if (hasRolePermission && anyStep) {
+          await db
+            .update(tables.requestSteps)
+            .set({
+              delegatedFrom: anyStep.assignedTo,
+              assignedTo: approverId,
+              status: 'approved' as ApprovalRequestStepStatus,
+              actionDate: getNow(),
+              comments: comments || null,
+            })
+            .where(eq(tables.requestSteps.id, anyStep.id));
+        } else {
+          const assigneeInfo = anyStep
+            ? await resolveApproverDisplayName(db, tables, anyStep.assignedTo)
+            : 'ผู้อนุมัติที่ระบุไว้';
+          throw new Error(
+            `NOT_AUTHORIZED: ขั้นตอนนี้ต้องอนุมัติโดย ${assigneeInfo} (หรือผู้มี role อนุมัติเอกสาร) — กรุณาติดต่อผู้รับผิดชอบ`,
+          );
+        }
       }
     } else {
       // Mark current step as approved
@@ -1046,13 +1159,13 @@ export async function listApprovalRequests(options: {
 
     // Get total count
     const [countResult] = await db
-      .select({ count: tables.requests.id })
+      .select({ count: sql<number>`count(*)` })
       .from(tables.requests)
       .where(whereClause);
 
     return {
       data: fullRequests,
-      total: Array.isArray(countResult) ? countResult.length : 1,
+      total: Number(countResult?.count || 0),
     };
   });
 }
@@ -1122,13 +1235,13 @@ export async function listApprovalDelegations(options: {
       .offset(offset);
 
     const [countResult] = await db
-      .select({ count: tables.delegations.id })
+      .select({ count: sql<number>`count(*)` })
       .from(tables.delegations)
       .where(whereClause);
 
     return {
       data: delegations,
-      total: Array.isArray(countResult) ? countResult.length : 1,
+      total: Number(countResult?.count || 0),
     };
   });
 }

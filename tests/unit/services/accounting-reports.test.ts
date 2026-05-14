@@ -236,6 +236,36 @@ describe('Accounting Reports Service', () => {
         expect(apAccount.amount).toBe(5350);
       }
     });
+
+    it('should be balanced when transactions span across fiscal years', async () => {
+      // Add a transaction from previous year (2024-12-15)
+      // This tests that retained earnings includes ALL historical income, not just current fiscal year
+      testSqlite.exec(`
+        INSERT INTO journal_entries (id, entry_number, entry_date, description, status, source_type, created_by, created_at, updated_at)
+        VALUES (999, 'JE-PREV-YEAR', '2024-12-15', 'Previous Year Sale', 'posted', 'manual', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `);
+
+      // Get account IDs for AR (1121) and Sales Revenue (4110)
+      const arAccount = testSqlite.prepare(`SELECT id FROM gl_accounts WHERE code = '1121'`).get() as { id: number };
+      const salesAccount = testSqlite.prepare(`SELECT id FROM gl_accounts WHERE code = '4110'`).get() as { id: number };
+
+      // Debit AR 1000, Credit Sales 1000
+      testSqlite.exec(`
+        INSERT INTO journal_lines (journal_entry_id, line_number, gl_account_id, debit, credit, description, created_at)
+        VALUES
+          (999, 1, ${arAccount.id}, 1000, 0, 'AR from 2024', CURRENT_TIMESTAMP),
+          (999, 2, ${salesAccount.id}, 0, 1000, 'Revenue from 2024', CURRENT_TIMESTAMP)
+      `);
+
+      // Generate balance sheet for 2025 (next fiscal year)
+      const report = await generateBalanceSheet('2025-01-31');
+
+      // Should still be balanced - retained earnings should include 2024 revenue
+      expect(report.isBalanced).toBe(true);
+      expect(
+        Math.abs(report.assets.totalAssets - report.totalLiabilitiesAndEquity)
+      ).toBeLessThan(0.01);
+    });
   });
 
   // =============================================

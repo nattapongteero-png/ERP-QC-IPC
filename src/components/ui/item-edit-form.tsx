@@ -41,6 +41,7 @@ import { TppSearchDialog, TppItem } from '@/components/ui/tpp-search-dialog';
 import { TtmtSearchDialog, TtmtItem } from '@/components/ui/ttmt-search-dialog';
 import { ItemImagesSection } from '@/components/ui/item-images-section';
 import { ItemPriceOffersSection } from '@/components/ui/item-price-offers-section';
+import { useTranslations } from 'next-intl';
 
 // ============================================================================
 // Types
@@ -58,6 +59,10 @@ export interface Item {
   primaryUnit: string;
   secondaryUnit: string | null;
   conversionFactor: number | null;
+  // 3-level unit conversion (PU → SU → WU)
+  weightUnit?: string | null;
+  secondaryToWeightRate?: number | null;
+  weightTrackingEnabled?: boolean;
   minStock: number | null;
   maxStock: number | null;
   reorderPoint: number | null;
@@ -73,9 +78,11 @@ export interface Item {
   tppName: string | null;
   ttmtCode: string | null;
   ttmtName: string | null;
+  drugCode24: string | null;
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string | null;
+  gRegNumber: string | null;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
   defaultConfidential: boolean;
@@ -90,6 +97,10 @@ export interface ItemFormData {
   primaryUnit: string;
   secondaryUnit: string;
   conversionFactor: number | null;
+  // 3-level unit conversion (PU → SU → WU)
+  weightUnit: string;
+  secondaryToWeightRate: number | null;
+  weightTrackingEnabled: boolean;
   minStock: number | null;
   maxStock: number | null;
   reorderPoint: number | null;
@@ -101,9 +112,11 @@ export interface ItemFormData {
   tppName: string;
   ttmtCode: string;
   ttmtName: string;
+  drugCode24: string;
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string;
+  gRegNumber: string;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
   defaultConfidential: boolean;
@@ -125,17 +138,17 @@ export interface ItemEditFormProps {
 // ============================================================================
 
 export const itemTypes = [
-  { value: 'raw_material', label: 'Raw Material', icon: Leaf, color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-200' },
-  { value: 'packaging', label: 'Packaging', icon: Box, color: 'text-blue-600', bgColor: 'bg-blue-100', borderColor: 'border-blue-200' },
-  { value: 'wip', label: 'Work in Progress', icon: FlaskConical, color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-200' },
-  { value: 'finished_goods', label: 'Finished Goods', icon: Pill, color: 'text-purple-600', bgColor: 'bg-purple-100', borderColor: 'border-purple-200' },
-  { value: 'consumable', label: 'Consumable', icon: Package, color: 'text-gray-600', bgColor: 'bg-gray-100', borderColor: 'border-gray-200' },
+  { value: 'raw_material', label: 'Raw Material', translationKey: 'itemForm.types.raw_material', icon: Leaf, color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-200' },
+  { value: 'packaging', label: 'Packaging', translationKey: 'itemForm.types.packaging', icon: Box, color: 'text-blue-600', bgColor: 'bg-blue-100', borderColor: 'border-blue-200' },
+  { value: 'wip', label: 'Work in Progress', translationKey: 'itemForm.types.wip', icon: FlaskConical, color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-200' },
+  { value: 'finished_goods', label: 'Finished Goods', translationKey: 'itemForm.types.finished_goods', icon: Pill, color: 'text-purple-600', bgColor: 'bg-purple-100', borderColor: 'border-purple-200' },
+  { value: 'consumable', label: 'Consumable', translationKey: 'itemForm.types.consumable', icon: Package, color: 'text-gray-600', bgColor: 'bg-gray-100', borderColor: 'border-gray-200' },
 ];
 
 export const confidentialityLevelOptions = [
-  { value: 'public', label: 'Public', description: 'Visible to all users' },
-  { value: 'internal', label: 'Internal', description: 'Visible to internal staff only' },
-  { value: 'confidential', label: 'Confidential', description: 'Restricted access only' },
+  { value: 'public', label: 'Public', description: 'Visible to all users', translationKey: 'itemForm.confidentialityLevels.public', descriptionKey: 'itemForm.confidentialityLevels.publicDesc' },
+  { value: 'internal', label: 'Internal', description: 'Visible to internal staff only', translationKey: 'itemForm.confidentialityLevels.internal', descriptionKey: 'itemForm.confidentialityLevels.internalDesc' },
+  { value: 'confidential', label: 'Confidential', description: 'Restricted access only', translationKey: 'itemForm.confidentialityLevels.confidential', descriptionKey: 'itemForm.confidentialityLevels.confidentialDesc' },
 ];
 
 // ============================================================================
@@ -151,6 +164,9 @@ export const getDefaultFormData = (): ItemFormData => ({
   primaryUnit: 'kg',
   secondaryUnit: '',
   conversionFactor: null,
+  weightUnit: '',
+  secondaryToWeightRate: null,
+  weightTrackingEnabled: false,
   minStock: null,
   maxStock: null,
   reorderPoint: null,
@@ -161,13 +177,22 @@ export const getDefaultFormData = (): ItemFormData => ({
   tppName: '',
   ttmtCode: '',
   ttmtName: '',
+  drugCode24: '',
   vmiSyncEnabled: false,
   strength: '',
+  gRegNumber: '',
   confidentialityLevel: 'public',
   defaultConfidential: false,
 });
 
-export const itemToFormData = (item: Item): ItemFormData => ({
+export const itemToFormData = (item: Item): ItemFormData => {
+  // API may return conversionRate (DB field) or conversionFactor (mapped field)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = item as any;
+  const conversionValue = raw.conversionFactor ?? raw.conversionRate ?? null;
+  const conversionFactor = conversionValue != null ? Number(conversionValue) : null;
+
+  return {
   code: item.code,
   nameTh: item.nameTh,
   nameEn: item.nameEn || '',
@@ -175,32 +200,43 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   category: item.category || '',
   primaryUnit: item.primaryUnit,
   secondaryUnit: item.secondaryUnit || '',
-  conversionFactor: item.conversionFactor,
-  minStock: item.minStock,
-  maxStock: item.maxStock,
-  reorderPoint: item.reorderPoint,
+  conversionFactor: isNaN(conversionFactor as number) ? null : conversionFactor,
+  weightUnit: item.weightUnit || '',
+  secondaryToWeightRate:
+    item.secondaryToWeightRate != null ? Number(item.secondaryToWeightRate) : null,
+  weightTrackingEnabled: item.weightTrackingEnabled === true,
+  minStock: item.minStock != null ? Number(item.minStock) : null,
+  maxStock: item.maxStock != null ? Number(item.maxStock) : null,
+  reorderPoint: item.reorderPoint != null ? Number(item.reorderPoint) : null,
   shelfLifeDays: item.shelfLifeDays,
-  storageConditions: item.storageConditions || '',
+  storageConditions: item.storageConditions || (raw.storageCondition as string) || '',
   isActive: item.isActive,
   tppCode: item.tppCode || '',
   tppName: item.tppName || '',
   ttmtCode: item.ttmtCode || '',
   ttmtName: item.ttmtName || '',
+  drugCode24: item.drugCode24 || '',
   vmiSyncEnabled: item.vmiSyncEnabled || false,
   strength: item.strength || '',
+  gRegNumber: item.gRegNumber || '',
   confidentialityLevel: item.confidentialityLevel || 'public',
   defaultConfidential: item.defaultConfidential || false,
-});
+};
+};
 
 export const getTypeConfig = (type: string) => {
   return itemTypes.find(t => t.value === type) || itemTypes[4];
 };
 
-const generateItemCode = (type: string): string => {
+// Fallback — used only when the server API is unreachable.
+// Prefer calling `/api/items/next-code?type=...` for proper sequential, gap-filling codes.
+const generateItemCodeFallback = (type: string): string => {
   const prefix = type === 'raw_material' ? 'RM'
     : type === 'packaging' ? 'PK'
     : type === 'wip' ? 'WIP'
     : type === 'finished_goods' ? 'FG'
+    : type === 'extract' ? 'EX'
+    : type === 'consumable' ? 'CN'
     : 'ITM';
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `${prefix}-${random}`;
@@ -275,36 +311,62 @@ interface StockStatusProps {
 }
 
 export function StockStatus({ item }: StockStatusProps) {
-  const onHand = item.onHand ?? 0;
-  const minStock = item.minStock ?? 0;
-  const maxStock = item.maxStock ?? 0;
-  const reorderPoint = item.reorderPoint ?? 0;
+  const t = useTranslations('inventory');
+  const onHand = Number(item.onHand) || 0;
+  const minStock = Number(item.minStock) || 0;
+  const maxStock = Number(item.maxStock) || 0;
+  const reorderPoint = Number(item.reorderPoint) || 0;
 
   const isLow = minStock > 0 && onHand < minStock;
   const isNearReorder = reorderPoint > 0 && onHand <= reorderPoint && !isLow;
   const isOverstock = maxStock > 0 && onHand > maxStock;
   const isHealthy = !isLow && !isNearReorder && !isOverstock;
 
+  // Format number with commas and consistent decimals
+  // Use fewer decimals for large-unit conversions (g, ml) to avoid noise
+  const fmt = (n: number, maxDecimals = 4, minDecimals = 0) =>
+    n.toLocaleString('en-US', { minimumFractionDigits: minDecimals, maximumFractionDigits: maxDecimals });
+
+  // Secondary unit conversion — round to avoid floating-point noise
+  const convFactor = Number(item.conversionFactor) || 0;
+  const hasSecondary = !!(item.secondaryUnit && convFactor > 0);
+  const secondaryOnHand = hasSecondary ? Math.round(onHand * convFactor * 10000) / 10000 : 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700">Current Stock Level</span>
+        <span className="text-sm font-medium text-gray-700">{t('itemForm.stock.currentLevel')}</span>
         <Badge
           variant={isLow ? 'danger' : isNearReorder ? 'warning' : isOverstock ? 'info' : 'success'}
           dot
         >
-          {isLow ? 'Low Stock' : isNearReorder ? 'Near Reorder' : isOverstock ? 'Overstock' : 'Healthy'}
+          {isLow ? t('itemForm.stock.low') : isNearReorder ? t('itemForm.stock.nearReorder') : isOverstock ? t('itemForm.stock.overstock') : t('itemForm.stock.healthy')}
         </Badge>
       </div>
 
-      <div className="flex items-baseline gap-2">
-        <span className={cn(
-          'text-4xl font-bold tracking-tight',
-          isLow ? 'text-red-600' : isNearReorder ? 'text-amber-600' : 'text-gray-900'
-        )}>
-          {onHand.toLocaleString()}
-        </span>
-        <span className="text-lg text-gray-500">{item.primaryUnit}</span>
+      {/* Primary unit — fixed 2 decimal places for Current Stock Level */}
+      <div>
+        <div className="flex items-baseline gap-2">
+          <span className={cn(
+            'text-4xl font-bold tracking-tight',
+            isLow ? 'text-red-600' : isNearReorder ? 'text-amber-600' : 'text-gray-900'
+          )}>
+            {fmt(onHand, 2, 2)}
+          </span>
+          <span className="text-lg text-gray-500">{item.primaryUnit}</span>
+        </div>
+        {/* Secondary unit (only if secondaryUnit + conversionFactor are defined) */}
+        {hasSecondary && (
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className={cn(
+              'text-xl font-semibold',
+              isLow ? 'text-red-500' : isNearReorder ? 'text-amber-500' : 'text-gray-600'
+            )}>
+              {fmt(secondaryOnHand, convFactor >= 100 ? 2 : 4)}
+            </span>
+            <span className="text-sm text-gray-400">{item.secondaryUnit}</span>
+          </div>
+        )}
       </div>
 
       {maxStock > 0 && (
@@ -322,9 +384,9 @@ export function StockStatus({ item }: StockStatusProps) {
             />
           </div>
           <div className="flex justify-between text-xs text-gray-500">
-            <span>Min: {minStock.toLocaleString()}</span>
-            <span>Reorder: {reorderPoint.toLocaleString()}</span>
-            <span>Max: {maxStock.toLocaleString()}</span>
+            <span>{t('itemForm.stock.min', { value: fmt(minStock) })}</span>
+            <span>{t('itemForm.stock.reorder', { value: fmt(reorderPoint) })}</span>
+            <span>{t('itemForm.stock.max', { value: fmt(maxStock) })}</span>
           </div>
         </div>
       )}
@@ -333,19 +395,19 @@ export function StockStatus({ item }: StockStatusProps) {
         {isLow && (
           <div className="flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-3 py-1.5 rounded-full border border-red-100">
             <AlertTriangle className="h-3.5 w-3.5" />
-            Below minimum stock
+            {t('itemForm.stock.belowMinimum')}
           </div>
         )}
         {isNearReorder && (
           <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100">
             <Info className="h-3.5 w-3.5" />
-            Approaching reorder point
+            {t('itemForm.stock.approachingReorder')}
           </div>
         )}
         {isHealthy && !isOverstock && (
           <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
             <CheckCircle className="h-3.5 w-3.5" />
-            Stock level is healthy
+            {t('itemForm.stock.stockHealthy')}
           </div>
         )}
       </div>
@@ -363,6 +425,7 @@ interface TypeSelectorProps {
 }
 
 export function TypeSelector({ value, onChange }: TypeSelectorProps) {
+  const t = useTranslations('inventory');
   return (
     <div className="grid grid-cols-5 gap-3">
       {itemTypes.map((type) => {
@@ -390,7 +453,7 @@ export function TypeSelector({ value, onChange }: TypeSelectorProps) {
               'text-xs font-medium text-center leading-tight',
               isSelected ? 'text-gray-900' : 'text-gray-600'
             )}>
-              {type.label}
+              {t(type.translationKey)}
             </span>
           </button>
         );
@@ -413,6 +476,7 @@ export function ItemEditForm({
   showDelete = false,
   className,
 }: ItemEditFormProps) {
+  const t = useTranslations('inventory');
   const [formData, setFormData] = React.useState<ItemFormData>(
     item ? itemToFormData(item) : getDefaultFormData()
   );
@@ -448,11 +512,29 @@ export function ItemEditForm({
   }, [item]);
 
   const handleSave = async () => {
-    await onSave(formData);
+    // The API expects the singular field name `storageCondition` (matching the
+    // DB column `storage_condition`). Our form state uses the plural form, so
+    // map at the boundary — without this, the API silently drops the value.
+    const payload = {
+      ...formData,
+      storageCondition: formData.storageConditions,
+    } as ItemFormData & { storageCondition: string };
+    await onSave(payload);
   };
 
-  const handleGenerateCode = () => {
-    setFormData(prev => ({ ...prev, code: generateItemCode(prev.type) }));
+  const handleGenerateCode = async () => {
+    try {
+      const res = await fetch(`/api/items/next-code?type=${encodeURIComponent(formData.type)}`);
+      const json = await res.json();
+      if (json?.success && json?.data?.code) {
+        setFormData(prev => ({ ...prev, code: json.data.code }));
+        return;
+      }
+      throw new Error(json?.error || 'Failed to generate code');
+    } catch (err) {
+      console.warn('next-code API failed, using random fallback:', err);
+      setFormData(prev => ({ ...prev, code: generateItemCodeFallback(prev.type) }));
+    }
   };
 
   const updateFormData = <K extends keyof ItemFormData>(key: K, value: ItemFormData[K]) => {
@@ -497,7 +579,7 @@ export function ItemEditForm({
       // Enable VMI sync since this is from TTMT database
       vmiSyncEnabled: true,
       // Generate a code based on type
-      code: generateItemCode('finished_goods'),
+      code: generateItemCodeFallback('finished_goods'),
     }));
     setShowTtmtQuickFill(false);
   }, []);
@@ -506,15 +588,15 @@ export function ItemEditForm({
   const TypeIcon = typeConfig.icon;
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
+    <div className={cn('flex flex-col h-full min-h-0', className)}>
       {/* Header */}
       {showHeader && (
-        <div className="flex-none px-8 py-5 border-b bg-white">
+        <div className="flex-none px-4 md:px-6 py-4 border-b bg-white z-10">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center gap-4">
               {onCancel && (
                 <DxButton
-                  text="Back"
+                  text={t('itemForm.back')}
                   icon="back"
                   type="normal"
                   stylingMode="text"
@@ -526,12 +608,12 @@ export function ItemEditForm({
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {isEditing ? 'Edit Item' : 'Create New Item'}
+                  {isEditing ? t('itemForm.editTitle') : t('itemForm.createTitle')}
                 </h1>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {isEditing
-                    ? `Editing ${item.code} - ${item.nameTh}`
-                    : 'Add a new item to your inventory system'}
+                    ? t('itemForm.editSubtitle', { code: item.code, name: item.nameTh })
+                    : t('itemForm.createSubtitle')}
                 </p>
               </div>
             </div>
@@ -543,12 +625,12 @@ export function ItemEditForm({
                   dot
                   className="text-sm px-3 py-1"
                 >
-                  {item.isActive ? 'Active' : 'Inactive'}
+                  {item.isActive ? t('itemForm.active') : t('itemForm.inactive')}
                 </Badge>
               )}
               {showDelete && onDelete && (
                 <DxButton
-                  text="Delete"
+                  text={t('itemForm.delete')}
                   icon="trash"
                   type="danger"
                   onClick={onDelete}
@@ -560,8 +642,8 @@ export function ItemEditForm({
       )}
 
       {/* Scrollable Body */}
-      <div className="flex-1 overflow-y-auto bg-gray-50/50">
-        <div className="max-w-7xl mx-auto px-8 py-8">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/50">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 lg:py-8">
           <div className="grid grid-cols-12 gap-6">
 
             {/* Left Column - Main Form (8 cols) */}
@@ -576,14 +658,14 @@ export function ItemEditForm({
                         <Sparkles className="h-6 w-6 text-green-600" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Quick Fill from TTMT Database</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">{t('itemForm.quickFill.title')}</h3>
                         <p className="text-sm text-gray-600 mt-0.5">
-                          Search well-known Thai Traditional Medicine products and auto-fill the form
+                          {t('itemForm.quickFill.description')}
                         </p>
                       </div>
                     </div>
                     <DxButton
-                      text="Search TTMT Products"
+                      text={t('itemForm.quickFill.searchBtn')}
                       icon="search"
                       type="success"
                       stylingMode="contained"
@@ -596,8 +678,8 @@ export function ItemEditForm({
               {/* Item Type Selection */}
               <SectionCard
                 icon={<Tag className="h-5 w-5 text-gray-600" />}
-                title="Item Type"
-                description="Select the type of item you are creating"
+                title={t('itemForm.sections.type')}
+                description={t('itemForm.sections.typeDesc')}
               >
                 <TypeSelector
                   value={formData.type}
@@ -608,21 +690,21 @@ export function ItemEditForm({
               {/* Basic Information */}
               <SectionCard
                 icon={<Hash className="h-5 w-5 text-gray-600" />}
-                title="Basic Information"
-                description="Item identification and naming"
+                title={t('itemForm.sections.basicInfo')}
+                description={t('itemForm.sections.basicInfoDesc')}
               >
                 <div className="grid grid-cols-2 gap-5">
                   <div className="col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Item Code</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.code')}</label>
                     <div className="flex gap-2">
                       <DxTextBox
                         value={formData.code}
                         onValueChange={(value) => updateFormData('code', value)}
-                        placeholder="RM-0001"
+                        placeholder={t('itemForm.placeholders.code')}
                         className="flex-1"
                       />
                       <DxButton
-                        text="Generate"
+                        text={t('itemForm.generate')}
                         type="normal"
                         stylingMode="outlined"
                         onClick={handleGenerateCode}
@@ -630,7 +712,7 @@ export function ItemEditForm({
                     </div>
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.category')}</label>
                     <DxSelectBox
                       items={categoryOptions}
                       value={formData.category}
@@ -638,35 +720,48 @@ export function ItemEditForm({
                       valueExpr="value"
                       displayExpr="label"
                       disabled={categoriesLoading}
-                      placeholder="Select category"
+                      placeholder={t('itemForm.placeholders.category')}
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name (Thai)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.nameTh')}</label>
                     <DxTextBox
                       value={formData.nameTh}
                       onValueChange={(value) => updateFormData('nameTh', value)}
-                      placeholder="ชื่อสินค้าภาษาไทย"
+                      placeholder={t('itemForm.placeholders.nameTh')}
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.nameEn')}</label>
                     <DxTextBox
                       value={formData.nameEn}
                       onValueChange={(value) => updateFormData('nameEn', value)}
-                      placeholder="English name (optional)"
+                      placeholder={t('itemForm.placeholders.nameEn')}
                     />
                   </div>
                   {/* FR-059: Strength field for finished goods */}
                   {formData.type === 'finished_goods' && (
                     <div className="col-span-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Strength/Dosage</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.strength')}</label>
                       <DxTextBox
                         value={formData.strength}
                         onValueChange={(value) => updateFormData('strength', value)}
-                        placeholder="e.g., 500mg, 250mg/5ml"
+                        placeholder={t('itemForm.placeholders.strength')}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Dosage strength for GMP compliance</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.strength')}</p>
+                    </div>
+                  )}
+                  {/* เลขที่ทะเบียน G */}
+                  {formData.type === 'finished_goods' && (
+                    <div className="col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.gRegNumber')}</label>
+                      <DxTextBox
+                        value={formData.gRegNumber}
+                        onValueChange={(value) => updateFormData('gRegNumber', value)}
+                        placeholder={t('itemForm.placeholders.gRegNumber')}
+                        maxLength={50}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.gRegNumber')}</p>
                     </div>
                   )}
                 </div>
@@ -676,8 +771,8 @@ export function ItemEditForm({
               {formData.type === 'finished_goods' && (
               <SectionCard
                 icon={<Barcode className="h-5 w-5 text-gray-600" />}
-                title="VMI Standard Codes"
-                description="Thai pharmaceutical and traditional medicine codes for VMI Portal integration"
+                title={t('itemForm.sections.vmi')}
+                description={t('itemForm.sections.vmiDesc')}
               >
                 {/* VMI Sync Enable Toggle */}
                 <div className="mb-5 p-4 bg-blue-50 rounded-xl border border-blue-100">
@@ -687,8 +782,8 @@ export function ItemEditForm({
                         <RefreshCw className={`h-5 w-5 ${formData.vmiSyncEnabled ? 'text-blue-600' : 'text-gray-400'}`} />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">Enable VMI Sync</p>
-                        <p className="text-xs text-gray-500">Include this item in VMI Portal synchronization</p>
+                        <p className="font-medium text-gray-900">{t('itemForm.vmi.enableSync')}</p>
+                        <p className="text-xs text-gray-500">{t('itemForm.vmi.enableSyncDesc')}</p>
                       </div>
                     </div>
                     <DxCheckBox
@@ -701,7 +796,7 @@ export function ItemEditForm({
                 <div className="grid grid-cols-2 gap-5">
                   {/* TPP Code */}
                   <div className="col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">TPP Code</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.tppCode')}</label>
                     <div className="flex gap-2">
                       <div className="flex-1">
                         <DxTextBox
@@ -710,13 +805,13 @@ export function ItemEditForm({
                             updateFormData('tppCode', value);
                             if (!value) updateFormData('tppName', '');
                           }}
-                          placeholder="13-digit code"
+                          placeholder={t('itemForm.placeholders.tppCode')}
                           maxLength={13}
                         />
                       </div>
                       <DxButton
                         icon="search"
-                        hint="Search TPP codes from VMI Portal"
+                        hint={t('itemForm.vmi.searchTpp')}
                         type="default"
                         stylingMode="outlined"
                         onClick={() => setShowTppSearch(true)}
@@ -727,12 +822,12 @@ export function ItemEditForm({
                         {formData.tppName}
                       </p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">Thai Pharmaceutical Product code (13 digits)</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.tppCode')}</p>
                   </div>
 
                   {/* TTMT Code */}
                   <div className="col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">TTMT Code</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.ttmtCode')}</label>
                     <div className="flex gap-2">
                       <div className="flex-1">
                         <DxTextBox
@@ -741,13 +836,13 @@ export function ItemEditForm({
                             updateFormData('ttmtCode', value);
                             if (!value) updateFormData('ttmtName', '');
                           }}
-                          placeholder="A + 8 digits"
+                          placeholder={t('itemForm.placeholders.ttmtCode')}
                           maxLength={10}
                         />
                       </div>
                       <DxButton
                         icon="search"
-                        hint="Search TTMT codes from VMI Portal"
+                        hint={t('itemForm.vmi.searchTtmt')}
                         type="default"
                         stylingMode="outlined"
                         onClick={() => setShowTtmtSearch(true)}
@@ -758,16 +853,29 @@ export function ItemEditForm({
                         {formData.ttmtName}
                       </p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">Thai Traditional Medicine Terminology code</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.ttmtCode')}</p>
                   </div>
                 </div>
+
+                {/* Drug Code 24 digits */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.drugCode24')}</label>
+                  <DxTextBox
+                    value={formData.drugCode24}
+                    onValueChange={(value) => updateFormData('drugCode24', value)}
+                    placeholder={t('itemForm.placeholders.drugCode24')}
+                    maxLength={24}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.drugCode24')}</p>
+                </div>
+
                 {formData.vmiSyncEnabled && (formData.tppCode || formData.ttmtCode) && (
                   <div className="mt-4 bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
                     <div className="p-2 bg-emerald-100 rounded-lg">
                       <CheckCircle className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div className="text-sm text-emerald-700">
-                      <span className="font-semibold">VMI Ready:</span> This item will be synced to VMI Portal
+                      <span className="font-semibold">{t('itemForm.vmi.ready')}</span> {t('itemForm.vmi.readyDesc')}
                     </div>
                   </div>
                 )}
@@ -777,7 +885,7 @@ export function ItemEditForm({
                       <AlertTriangle className="h-4 w-4 text-amber-600" />
                     </div>
                     <div className="text-sm text-amber-700">
-                      <span className="font-semibold">Add Standard Codes:</span> TPP or TTMT code recommended for proper VMI Portal identification
+                      <span className="font-semibold">{t('itemForm.vmi.addCodes')}</span> {t('itemForm.vmi.addCodesDesc')}
                     </div>
                   </div>
                 )}
@@ -800,19 +908,19 @@ export function ItemEditForm({
                 open={showTtmtQuickFill}
                 onOpenChange={setShowTtmtQuickFill}
                 onSelect={handleTtmtQuickFill}
-                title="Quick Fill from TTMT Products"
+                title={t('itemForm.quickFill.dialogTitle')}
               />
 
               {/* Units of Measurement */}
               <SectionCard
                 icon={<Scale className="h-5 w-5 text-gray-600" />}
-                title="Units of Measurement"
-                description="Primary and secondary units with conversion factor"
+                title={t('itemForm.sections.units')}
+                description={t('itemForm.sections.unitsDesc')}
               >
                 <div className="space-y-5">
                   <div className="grid grid-cols-3 gap-5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Primary Unit</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.primaryUnit')}</label>
                       <DxSelectBox
                         items={unitOptions}
                         value={formData.primaryUnit}
@@ -823,7 +931,7 @@ export function ItemEditForm({
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Unit</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.secondaryUnit')}</label>
                       <DxSelectBox
                         items={unitOptionsWithNone}
                         value={formData.secondaryUnit}
@@ -832,18 +940,18 @@ export function ItemEditForm({
                         displayExpr="label"
                         disabled={unitsLoading}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Optional alternative unit</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.secondaryUnit')}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Conversion Factor</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.conversionFactor')}</label>
                       <DxNumberBox
                         value={formData.conversionFactor}
                         onValueChange={(value) => updateFormData('conversionFactor', value)}
-                        placeholder="e.g., 1000"
+                        placeholder={t('itemForm.placeholders.conversionFactor')}
                         disabled={!formData.secondaryUnit}
                         format="#,##0.###"
                       />
-                      <p className="text-xs text-gray-500 mt-1">1 primary = X secondary</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.conversionFactor')}</p>
                     </div>
                   </div>
 
@@ -853,49 +961,112 @@ export function ItemEditForm({
                         <Info className="h-4 w-4 text-blue-600" />
                       </div>
                       <div className="text-sm text-blue-700">
-                        <span className="font-semibold">Conversion:</span> 1 {unitOptions.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit} = {formData.conversionFactor.toLocaleString()} {unitOptions.find(u => u.value === formData.secondaryUnit)?.label || formData.secondaryUnit}
+                        <span className="font-semibold">{t('itemForm.conversion.label')}</span> 1 {unitOptions.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit} = {formData.conversionFactor.toLocaleString()} {unitOptions.find(u => u.value === formData.secondaryUnit)?.label || formData.secondaryUnit}
                       </div>
                     </div>
                   )}
+
+                  {/* Weight tracking (3rd level) — for items issued by SU but consumed by weight */}
+                  <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                    <DxCheckBox
+                      text="เปิดใช้งานหน่วยชั่ง (Weight Unit) — สำหรับการเบิกจ่ายเป็นน้ำหนัก"
+                      value={formData.weightTrackingEnabled}
+                      onValueChange={(v) => updateFormData('weightTrackingEnabled', v)}
+                      disabled={!formData.secondaryUnit || !formData.conversionFactor}
+                    />
+                    {formData.weightTrackingEnabled && (
+                      <>
+                        <div className="grid grid-cols-2 gap-5 mt-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              หน่วยชั่ง (Weight Unit)
+                            </label>
+                            <DxSelectBox
+                              items={unitOptionsWithNone}
+                              value={formData.weightUnit}
+                              onValueChange={(value) => updateFormData('weightUnit', value)}
+                              valueExpr="value"
+                              displayExpr="label"
+                              disabled={unitsLoading}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              เช่น g (กรัม), ml (มิลลิลิตร)
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              อัตราแปลง (1 {unitOptions.find(u => u.value === formData.secondaryUnit)?.label || formData.secondaryUnit || 'SU'} = ? {unitOptions.find(u => u.value === formData.weightUnit)?.label || formData.weightUnit || 'WU'})
+                            </label>
+                            <DxNumberBox
+                              value={formData.secondaryToWeightRate}
+                              onValueChange={(value) => updateFormData('secondaryToWeightRate', value)}
+                              placeholder="เช่น 0.1"
+                              disabled={!formData.weightUnit}
+                              format="#,##0.######"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              น้ำหนักต่อ 1 หน่วยรอง
+                            </p>
+                          </div>
+                        </div>
+
+                        {formData.weightUnit && formData.secondaryToWeightRate && formData.conversionFactor && (
+                          <div className="mt-4 bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
+                            <div className="p-2 bg-emerald-100 rounded-lg">
+                              <Info className="h-4 w-4 text-emerald-600" />
+                            </div>
+                            <div className="text-sm text-emerald-700">
+                              <span className="font-semibold">3-Level conversion:</span>{' '}
+                              1 {unitOptions.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit}
+                              {' = '}
+                              {formData.conversionFactor.toLocaleString()} {unitOptions.find(u => u.value === formData.secondaryUnit)?.label || formData.secondaryUnit}
+                              {' = '}
+                              {(formData.conversionFactor * formData.secondaryToWeightRate).toLocaleString(undefined, { maximumFractionDigits: 4 })} {unitOptions.find(u => u.value === formData.weightUnit)?.label || formData.weightUnit}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </SectionCard>
 
               {/* Inventory Management */}
               <SectionCard
                 icon={<Warehouse className="h-5 w-5 text-gray-600" />}
-                title="Inventory Management"
-                description="Stock thresholds and reorder settings"
+                title={t('itemForm.sections.stock')}
+                description={t('itemForm.sections.stockDesc')}
               >
                 <div className="grid grid-cols-3 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Stock</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.minStock')}</label>
                     <DxNumberBox
                       value={formData.minStock}
                       onValueChange={(value) => updateFormData('minStock', value)}
                       placeholder="0"
                       format="#,##0.##"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Alert when stock falls below</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.minStock')}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Stock</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.maxStock')}</label>
                     <DxNumberBox
                       value={formData.maxStock}
                       onValueChange={(value) => updateFormData('maxStock', value)}
                       placeholder="0"
                       format="#,##0.##"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Maximum storage capacity</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.maxStock')}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Reorder Point</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.reorderPoint')}</label>
                     <DxNumberBox
                       value={formData.reorderPoint}
                       onValueChange={(value) => updateFormData('reorderPoint', value)}
                       placeholder="0"
                       format="#,##0.##"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Trigger reorder when reached</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.reorderPoint')}</p>
                   </div>
                 </div>
               </SectionCard>
@@ -903,28 +1074,64 @@ export function ItemEditForm({
               {/* Storage Requirements */}
               <SectionCard
                 icon={<Thermometer className="h-5 w-5 text-gray-600" />}
-                title="Storage Requirements"
-                description="Shelf life and storage conditions"
+                title={t('itemForm.sections.storage')}
+                description={t('itemForm.sections.storageDesc')}
               >
                 <div className="grid grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Shelf Life (Days)</label>
-                    <DxNumberBox
-                      value={formData.shelfLifeDays}
-                      onValueChange={(value) => updateFormData('shelfLifeDays', value)}
-                      placeholder="e.g., 365"
-                      format="#,##0"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Days until expiration</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.shelfLifeYears')}</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <DxNumberBox
+                          value={formData.shelfLifeDays !== null ? Math.floor(formData.shelfLifeDays / 365) : null}
+                          onValueChange={(value) => {
+                            const years = value || 0;
+                            const currentMonths = formData.shelfLifeDays !== null ? Math.round((formData.shelfLifeDays % 365) / 30) : 0;
+                            const next = (years * 365) + (currentMonths * 30) || null;
+                            if (next !== formData.shelfLifeDays) {
+                              updateFormData('shelfLifeDays', next);
+                            }
+                          }}
+                          placeholder={t('itemForm.placeholders.years')}
+                          min={0}
+                          max={99}
+                          format="#0"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">{t('itemForm.placeholders.years')}</p>
+                      </div>
+                      <div>
+                        <DxNumberBox
+                          value={formData.shelfLifeDays !== null ? Math.round((formData.shelfLifeDays % 365) / 30) : null}
+                          onValueChange={(value) => {
+                            const months = value || 0;
+                            const currentYears = formData.shelfLifeDays !== null ? Math.floor(formData.shelfLifeDays / 365) : 0;
+                            const next = (currentYears * 365) + (months * 30) || null;
+                            if (next !== formData.shelfLifeDays) {
+                              updateFormData('shelfLifeDays', next);
+                            }
+                          }}
+                          placeholder={t('itemForm.placeholders.months')}
+                          min={0}
+                          max={11}
+                          format="#0"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">{t('itemForm.placeholders.months')}</p>
+                      </div>
+                    </div>
+                    {formData.shelfLifeDays !== null && formData.shelfLifeDays > 0 && (
+                      <p className="text-xs text-emerald-600 mt-1">
+                        = {formData.shelfLifeDays.toLocaleString()} {t('itemForm.days')}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Storage Conditions</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.storageConditions')}</label>
                     <DxTextBox
                       value={formData.storageConditions}
                       onValueChange={(value) => updateFormData('storageConditions', value)}
-                      placeholder="e.g., 15-25°C, Dry, Away from light"
+                      placeholder={t('itemForm.placeholders.storageConditions')}
                     />
-                    <p className="text-xs text-gray-500 mt-1">Temperature, humidity, special requirements</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.storageConditions')}</p>
                   </div>
                 </div>
               </SectionCard>
@@ -932,22 +1139,25 @@ export function ItemEditForm({
               {/* BOM Confidentiality Settings */}
               <SectionCard
                 icon={<Lock className="h-5 w-5 text-gray-600" />}
-                title="Confidentiality"
-                description="Control access to cost and BOM information for this item"
+                title={t('itemForm.sections.confidentiality')}
+                description={t('itemForm.sections.confidentialityDesc')}
               >
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Confidentiality Level</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.confidentialityLevel')}</label>
                     <DxSelectBox
-                      items={confidentialityLevelOptions}
+                      items={confidentialityLevelOptions.map(o => ({ ...o, label: t(o.translationKey) }))}
                       value={formData.confidentialityLevel}
                       onValueChange={(value) => updateFormData('confidentialityLevel', value as ConfidentialityLevel)}
                       valueExpr="value"
                       displayExpr="label"
-                      placeholder="Select confidentiality level"
+                      placeholder={t('itemForm.placeholders.confidentialityLevel')}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      {confidentialityLevelOptions.find(o => o.value === formData.confidentialityLevel)?.description || 'Select a level'}
+                      {(() => {
+                        const opt = confidentialityLevelOptions.find(o => o.value === formData.confidentialityLevel);
+                        return opt ? t(opt.descriptionKey) : t('itemForm.placeholders.confidentialityLevel');
+                      })()}
                     </p>
                   </div>
 
@@ -958,8 +1168,8 @@ export function ItemEditForm({
                           <Lock className={`h-5 w-5 ${formData.defaultConfidential ? 'text-amber-600' : 'text-gray-400'}`} />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">Default Confidential in BOM</p>
-                          <p className="text-xs text-gray-500">When used as a component, mark as confidential by default</p>
+                          <p className="font-medium text-gray-900">{t('itemForm.fields.defaultConfidential')}</p>
+                          <p className="text-xs text-gray-500">{t('itemForm.hints.defaultConfidential')}</p>
                         </div>
                       </div>
                       <DxCheckBox
@@ -975,7 +1185,7 @@ export function ItemEditForm({
                         <AlertTriangle className="h-4 w-4 text-amber-600" />
                       </div>
                       <div className="text-sm text-amber-700">
-                        <span className="font-semibold">Restricted Access:</span> Only users with confidential access will see cost and BOM details
+                        <span className="font-semibold">{t('itemForm.confidentialWarning.title')}</span> {t('itemForm.confidentialWarning.description')}
                       </div>
                     </div>
                   )}
@@ -990,8 +1200,8 @@ export function ItemEditForm({
               {isEditing && item.onHand !== undefined && (
                 <SectionCard
                   icon={<ClipboardList className="h-5 w-5 text-emerald-600" />}
-                  title="Current Stock Status"
-                  description="Real-time inventory level"
+                  title={t('itemForm.sections.stockStatus')}
+                  description={t('itemForm.sections.stockStatusDesc')}
                   variant="highlight"
                 >
                   <StockStatus item={item} />
@@ -1011,8 +1221,8 @@ export function ItemEditForm({
               {/* Item Status */}
               <SectionCard
                 icon={<ShieldCheck className="h-5 w-5 text-gray-600" />}
-                title="Item Status"
-                description="Active/Inactive status"
+                title={t('itemForm.sections.itemStatus')}
+                description={t('itemForm.sections.itemStatusDesc')}
               >
                 <div className="space-y-4">
                   <label className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-200 cursor-pointer transition-colors">
@@ -1023,9 +1233,9 @@ export function ItemEditForm({
                       className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                     />
                     <div className="flex-1">
-                      <span className="text-sm font-semibold text-gray-900">Active Item</span>
+                      <span className="text-sm font-semibold text-gray-900">{t('itemForm.activeItem.label')}</span>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        Item can be used in transactions
+                        {t('itemForm.activeItem.description')}
                       </p>
                     </div>
                     {formData.isActive ? (
@@ -1040,58 +1250,63 @@ export function ItemEditForm({
               {/* Quick Summary */}
               <SectionCard
                 icon={<Settings className="h-5 w-5 text-gray-600" />}
-                title="Quick Summary"
-                description="Overview of item configuration"
+                title={t('itemForm.sections.quickSummary')}
+                description={t('itemForm.sections.quickSummaryDesc')}
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-500">Type</span>
+                    <span className="text-sm text-gray-500">{t('itemForm.fields.type')}</span>
                     <div className="flex items-center gap-2">
                       <TypeIcon className={cn('h-4 w-4', typeConfig.color)} />
-                      <span className="text-sm font-medium text-gray-900">{typeConfig.label}</span>
+                      <span className="text-sm font-medium text-gray-900">{t(typeConfig.translationKey)}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-500">Primary Unit</span>
+                    <span className="text-sm text-gray-500">{t('itemForm.fields.primaryUnit')}</span>
                     <span className="text-sm font-medium text-gray-900">
                       {unitOptions.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit}
                     </span>
                   </div>
                   {formData.category && (
                     <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-500">Category</span>
+                      <span className="text-sm text-gray-500">{t('itemForm.fields.category')}</span>
                       <span className="text-sm font-medium text-gray-900">
                         {categoryOptions.find(c => c.value === formData.category)?.label || formData.category}
                       </span>
                     </div>
                   )}
-                  {formData.shelfLifeDays && (
+                  {formData.shelfLifeDays && formData.shelfLifeDays > 0 && (
                     <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-500">Shelf Life</span>
-                      <span className="text-sm font-medium text-gray-900">{formData.shelfLifeDays} days</span>
+                      <span className="text-sm text-gray-500">{t('itemForm.fields.shelfLife')}</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {Math.floor(formData.shelfLifeDays / 365) > 0 && `${Math.floor(formData.shelfLifeDays / 365)} ${t('itemForm.years')}`}
+                        {Math.floor(formData.shelfLifeDays / 365) > 0 && Math.round((formData.shelfLifeDays % 365) / 30) > 0 && ' '}
+                        {Math.round((formData.shelfLifeDays % 365) / 30) > 0 && `${Math.round((formData.shelfLifeDays % 365) / 30)} ${t('itemForm.months')}`}
+                        {' '}({formData.shelfLifeDays} {t('itemForm.days')})
+                      </span>
                     </div>
                   )}
                   {formData.minStock !== null && (
                     <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-500">Min Stock</span>
+                      <span className="text-sm text-gray-500">{t('itemForm.fields.minStock')}</span>
                       <span className="text-sm font-medium text-gray-900">{formData.minStock?.toLocaleString()}</span>
                     </div>
                   )}
                   {formData.reorderPoint !== null && (
                     <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-500">Reorder Point</span>
+                      <span className="text-sm text-gray-500">{t('itemForm.fields.reorderPoint')}</span>
                       <span className="text-sm font-medium text-gray-900">{formData.reorderPoint?.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm text-gray-500">VMI Status</span>
+                    <span className="text-sm text-gray-500">{t('itemForm.fields.vmiStatus')}</span>
                     {formData.tppCode || formData.ttmtCode ? (
                       <div className="flex items-center gap-1.5">
                         <CheckCircle className="h-4 w-4 text-emerald-500" />
-                        <span className="text-sm font-medium text-emerald-600">Ready</span>
+                        <span className="text-sm font-medium text-emerald-600">{t('itemForm.vmi.vmiReady')}</span>
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-400">No VMI codes</span>
+                      <span className="text-sm text-gray-400">{t('itemForm.vmi.noVmiCodes')}</span>
                     )}
                   </div>
                 </div>
@@ -1109,18 +1324,18 @@ export function ItemEditForm({
                     <>
                       <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-semibold text-emerald-800">Ready to Save</p>
-                        <p className="text-xs text-emerald-600 mt-0.5">All required fields are filled</p>
+                        <p className="text-sm font-semibold text-emerald-800">{t('itemForm.validation.readyToSave')}</p>
+                        <p className="text-xs text-emerald-600 mt-0.5">{t('itemForm.validation.allFieldsFilled')}</p>
                       </div>
                     </>
                   ) : (
                     <>
                       <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-semibold text-amber-800">Required Fields</p>
+                        <p className="text-sm font-semibold text-amber-800">{t('itemForm.validation.requiredFields')}</p>
                         <ul className="text-xs text-amber-600 mt-1 space-y-0.5">
-                          {!formData.code && <li>• Item Code is required</li>}
-                          {!formData.nameTh && <li>• Thai Name is required</li>}
+                          {!formData.code && <li>• {t('itemForm.validation.codeRequired')}</li>}
+                          {!formData.nameTh && <li>• {t('itemForm.validation.nameThRequired')}</li>}
                         </ul>
                       </div>
                     </>
@@ -1130,30 +1345,36 @@ export function ItemEditForm({
             </div>
           </div>
         </div>
+
       </div>
 
-      {/* Fixed Footer */}
-      <div className="flex-none px-8 py-4 border-t bg-white">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="text-sm text-gray-500">
+      {/* Footer - pinned at bottom via flex layout */}
+      <div className="flex-none border-t border-gray-200 bg-gray-50/80 backdrop-blur-sm z-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-gray-400">
             {isEditing && item?.createdAt ? (
-              <>Last updated: {new Date(item.createdAt).toLocaleDateString()}</>
+              <>
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {t('itemForm.lastUpdated', { date: new Date(item.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) })}
+              </>
             ) : (
-              <>Creating new {typeConfig.label.toLowerCase()}</>
+              <>{t('itemForm.creatingNew', { type: t(typeConfig.translationKey).toLowerCase() })}</>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {onCancel && (
               <DxButton
-                text="Cancel"
+                text={t('itemForm.cancel')}
                 type="normal"
-                stylingMode="text"
+                stylingMode="outlined"
                 onClick={onCancel}
                 disabled={isSaving}
               />
             )}
             <DxButton
-              text={isSaving ? 'Saving...' : isEditing ? 'Update Item' : 'Create Item'}
+              text={isSaving ? t('itemForm.saving') : isEditing ? t('itemForm.updateBtn') : t('itemForm.createBtn')}
               icon="save"
               type="success"
               onClick={handleSave}

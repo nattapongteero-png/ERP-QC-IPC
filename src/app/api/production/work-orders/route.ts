@@ -21,9 +21,18 @@ function generateWONumber(): string {
   return `WO${year}${month}${day}${random}`;
 }
 
+// External API Key — same key used across APIs for IoT/sensor
+const EXTERNAL_API_KEY = process.env.EXTERNAL_ENV_API_KEY || 'env-monitor-2026-secret';
+
+function validateApiKey(request: NextRequest): boolean {
+  const apiKey = request.headers.get('X-API-Key');
+  return !!apiKey && apiKey === EXTERNAL_API_KEY;
+}
+
 // GET /api/production/work-orders - List work orders
+// Supports both session cookie (internal) and X-API-Key (external/IoT)
 export async function GET(request: NextRequest) {
-  return withAuth(request, async () => {
+  const handleGet = async () => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
@@ -32,13 +41,15 @@ export async function GET(request: NextRequest) {
 
       const workOrdersTable = getTableRef('workOrders');
       const itemsTable = getTableRef('items');
+      const bomTable = getTableRef('bOM');
 
       const conditions: (SQL | undefined)[] = [];
       if (search) {
         conditions.push(
           or(
             like(workOrdersTable.woNumber, `%${search}%`),
-            like(workOrdersTable.batchNumber, `%${search}%`)
+            like(workOrdersTable.batchNumber, `%${search}%`),
+            like(bomTable.code, `%${search}%`)
           )
         );
       }
@@ -46,9 +57,12 @@ export async function GET(request: NextRequest) {
         conditions.push(eq(workOrdersTable.status, status));
       }
 
-      // Count query
+      // Count query (must join bom if search references it)
       const total = await executeDbOperation(async (db) => {
-        let countQuery = db.select({ count: sql`count(*)` }).from(workOrdersTable);
+        let countQuery = db
+          .select({ count: sql`count(*)` })
+          .from(workOrdersTable)
+          .leftJoin(bomTable, eq(workOrdersTable.bomId, bomTable.id));
         if (conditions.length > 0) {
           countQuery = countQuery.where(and(...conditions));
         }
@@ -56,7 +70,7 @@ export async function GET(request: NextRequest) {
         return Number(countResult[0]?.count || 0);
       });
 
-      // Data query with product join
+      // Data query with product + BOM join
       const offset = (pagination.page - 1) * pagination.limit;
       const workOrders = await executeDbOperation(async (db) => {
         let query = db
@@ -73,14 +87,21 @@ export async function GET(request: NextRequest) {
             plannedEndDate: workOrdersTable.plannedEndDate,
             actualStartDate: workOrdersTable.actualStartDate,
             actualEndDate: workOrdersTable.actualEndDate,
+            deliveryDate: workOrdersTable.deliveryDate,
             yieldPercentage: workOrdersTable.yieldPercentage,
             productId: workOrdersTable.productId,
             productCode: itemsTable.code,
             productName: itemsTable.nameTh,
+            bomId: workOrdersTable.bomId,
+            bomCode: bomTable.code,
+            bomName: bomTable.name,
+            bomVersion: bomTable.version,
+            notes: workOrdersTable.notes,
             createdAt: workOrdersTable.createdAt,
           })
           .from(workOrdersTable)
-          .leftJoin(itemsTable, eq(workOrdersTable.productId, itemsTable.id));
+          .leftJoin(itemsTable, eq(workOrdersTable.productId, itemsTable.id))
+          .leftJoin(bomTable, eq(workOrdersTable.bomId, bomTable.id));
 
         if (conditions.length > 0) {
           query = query.where(and(...conditions));
@@ -93,7 +114,15 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       return serverErrorResponse(error);
     }
-  }, ['production:read']);
+  };
+
+  // API Key auth (external/IoT)
+  if (validateApiKey(request)) {
+    return handleGet();
+  }
+
+  // Session auth (internal)
+  return withAuth(request, handleGet, ['production:read']);
 }
 
 // POST /api/production/work-orders - Create work order
@@ -110,6 +139,7 @@ export async function POST(request: NextRequest) {
         priority,
         plannedStartDate,
         plannedEndDate,
+        deliveryDate,
         notes,
       } = body;
 
@@ -163,7 +193,7 @@ export async function POST(request: NextRequest) {
           .orderBy(bomLinesTable.sequence);
       });
 
-      // Create work order
+      // Create work order with auto-requisition (status: requested)
       const result = await executeDbOperation(async (db) => {
         return db.insert(workOrdersTable).values({
           woNumber,
@@ -176,7 +206,11 @@ export async function POST(request: NextRequest) {
           priority: priority || 5,
           plannedStartDate: parseDbDate(plannedStartDate),
           plannedEndDate: parseDbDate(plannedEndDate),
+          deliveryDate: parseDbDate(deliveryDate),
           notes,
+          requisitionStatus: 'requested',
+          requisitionRequestedBy: session.userId,
+          requisitionRequestedAt: dbDate(),
           createdBy: session.userId,
           createdAt: dbDate(),
           updatedAt: dbDate(),

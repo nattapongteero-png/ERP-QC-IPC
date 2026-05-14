@@ -8,7 +8,7 @@
  * Designed for both desktop and mobile devices.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -16,9 +16,9 @@ import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, X } from 'lucide-react';
+import { FileText, X, Upload, File as FileIcon, Eye, RotateCw } from 'lucide-react';
 import { useMobile } from '@/hooks/use-mobile';
-import type { DocumentType, DocumentCreate, Document } from '@/types/documents';
+import type { DocumentType, DocumentCreate, Document, DocumentDetails } from '@/types/documents';
 
 // ============================================
 // Types
@@ -30,7 +30,7 @@ interface DocumentFormDialogProps {
   /** Callback when dialog should close */
   onOpenChange: (open: boolean) => void;
   /** Existing document for editing (null for new document) */
-  document?: Document | null;
+  document?: (Document & Partial<DocumentDetails>) | null;
   /** Callback after successful save */
   onSave?: (document: Document) => void;
   /** Dialog title override */
@@ -41,6 +41,7 @@ interface FormData {
   title: string;
   typeId: number | null;
   departmentId: number | null;
+  trainingCourseId: number | null;
   content: string;
   retentionYears: number;
 }
@@ -121,6 +122,7 @@ export function DocumentFormDialog({
     title: document?.title || '',
     typeId: document?.typeId || null,
     departmentId: document?.departmentId || null,
+    trainingCourseId: document?.trainingCourseId || null,
     content: '',
     retentionYears: document?.retentionYears || 5,
   }), [document]);
@@ -128,12 +130,18 @@ export function DocumentFormDialog({
   // Form state - uses key to reset when dialog opens
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [existingFileDeleted, setExistingFileDeleted] = useState(false);
+  const [isDeletingFile, setIsDeletingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset form data when formKey changes (dialog opens with new/different document)
   useMemo(() => {
     if (open) {
       setFormData(initialFormData);
       setErrors({});
+      setSelectedFile(null);
+      setExistingFileDeleted(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formKey]);
@@ -152,10 +160,26 @@ export function DocumentFormDialog({
     enabled: open,
   });
 
+  // Fetch training courses
+  const { data: trainingCourses } = useQuery({
+    queryKey: ['training-courses'],
+    queryFn: async () => {
+      const res = await fetch('/api/hr/training/courses');
+      const data = await res.json();
+      if (!data.success) return [];
+      return data.data;
+    },
+    enabled: open,
+  });
+
   // Create mutation
   const createMutation = useMutation({
     mutationFn: createDocument,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Upload file as initial version if selected
+      if (selectedFile) {
+        await uploadFileForDocument(data.id);
+      }
       // Invalidate documents query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       onSave?.(data);
@@ -170,10 +194,15 @@ export function DocumentFormDialog({
   const updateMutation = useMutation({
     mutationFn: (data: Partial<DocumentCreate>) =>
       updateDocument(document!.id, data),
-    onSuccess: (data) => {
-      // Invalidate documents query to refresh the list
+    onSuccess: async (data) => {
+      // Upload new file to current version if selected (edit mode re-upload)
+      if (selectedFile && document?.currentVersion) {
+        await uploadFileToVersion(document.currentVersion.id);
+      } else if (selectedFile && document) {
+        // No version exists yet - create initial version with file
+        await uploadFileForDocument(document.id);
+      }
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      // Also invalidate the specific document query
       queryClient.invalidateQueries({ queryKey: ['document', document!.id] });
       onSave?.(data);
       onOpenChange(false);
@@ -202,13 +231,14 @@ export function DocumentFormDialog({
   };
 
   // Handle submit
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
 
     const data: DocumentCreate = {
       title: formData.title.trim(),
       typeId: formData.typeId!,
       departmentId: formData.departmentId,
+      trainingCourseId: formData.trainingCourseId,
       content: formData.content || undefined,
       retentionYears: formData.retentionYears,
     };
@@ -217,9 +247,91 @@ export function DocumentFormDialog({
       updateMutation.mutate({
         title: data.title,
         departmentId: data.departmentId,
+        trainingCourseId: data.trainingCourseId,
       });
     } else {
       createMutation.mutate(data);
+    }
+  };
+
+  // After document is created, upload file as initial version if selected
+  const uploadFileForDocument = async (documentId: number) => {
+    if (!selectedFile) return;
+
+    try {
+      // Upload file to get base64 data
+      const uploadForm = new FormData();
+      uploadForm.append('file', selectedFile);
+      uploadForm.append('documentId', String(documentId));
+
+      const uploadRes = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: uploadForm,
+      });
+      const uploadResult = await uploadRes.json();
+      if (!uploadResult.success) {
+        console.error('File upload failed:', uploadResult.error);
+        return;
+      }
+
+      // Create initial version with the file
+      const versionRes = await fetch(`/api/documents/${documentId}/versions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileData: uploadResult.data.fileData,
+          fileName: uploadResult.data.fileName,
+          fileSize: uploadResult.data.fileSize,
+          mimeType: uploadResult.data.mimeType,
+          changeDescription: 'Initial document upload',
+        }),
+      });
+      const versionResult = await versionRes.json();
+      if (!versionResult.success) {
+        console.error('Version creation failed:', versionResult.error);
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+    }
+  };
+
+  // Upload file to an existing version (for edit mode re-upload)
+  const uploadFileToVersion = async (_versionId: number) => {
+    if (!selectedFile || !document) return;
+
+    try {
+      const uploadForm = new FormData();
+      uploadForm.append('file', selectedFile);
+      uploadForm.append('documentId', String(document.id));
+
+      const uploadRes = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: uploadForm,
+      });
+      const uploadResult = await uploadRes.json();
+      if (!uploadResult.success) {
+        console.error('File upload failed:', uploadResult.error);
+        return;
+      }
+
+      // Update the version with new file data
+      const versionRes = await fetch(`/api/documents/${document.id}/versions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileData: uploadResult.data.fileData,
+          fileName: uploadResult.data.fileName,
+          fileSize: uploadResult.data.fileSize,
+          mimeType: uploadResult.data.mimeType,
+          changeDescription: existingFileDeleted ? 'Replaced attached file' : 'Attached new file',
+        }),
+      });
+      const versionResult = await versionRes.json();
+      if (!versionResult.success) {
+        console.error('Version creation failed:', versionResult.error);
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
     }
   };
 
@@ -330,6 +442,27 @@ export function DocumentFormDialog({
             />
           </div>
 
+          {/* Related Training Course Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Related Training Course (หลักสูตรอบรมที่เกี่ยวข้อง)</label>
+            <DxSelectBox
+              items={(trainingCourses || []).map((c: any) => ({
+                value: c.id,
+                label: `${c.code} - ${c.name}`,
+              }))}
+              value={formData.trainingCourseId}
+              valueExpr="value"
+              displayExpr="label"
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, trainingCourseId: value }))
+              }
+              placeholder="Select training course (optional)"
+              showClearButton
+              disabled={isSubmitting}
+              searchEnabled
+            />
+          </div>
+
           {/* Retention Period Field */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
@@ -355,6 +488,152 @@ export function DocumentFormDialog({
             </p>
           </div>
 
+          {/* Current Attached File (only in edit mode) */}
+          {isEditing && document?.currentVersion && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Attached File</label>
+              {!existingFileDeleted && (document.currentVersion.fileName || document.currentVersion.hasFileData) ? (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+                  <FileIcon className="h-8 w-8 text-primary flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {document.currentVersion.fileName || 'Attached document'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Version {document.currentVersion.versionNumber}
+                      {document.currentVersion.fileSize
+                        ? ` — ${(document.currentVersion.fileSize / 1024).toFixed(1)} KB`
+                        : ''}
+                    </p>
+                  </div>
+                  <a
+                    href={`/api/documents/versions/${document.currentVersion.id}/file`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded hover:bg-muted transition-colors"
+                    title="Preview file"
+                  >
+                    <Eye className="h-4 w-4 text-gray-600" />
+                  </a>
+                  {document.currentVersion.status === 'draft' && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const confirmed = window.confirm('ลบไฟล์แนบนี้?\nไฟล์ที่ลบแล้วจะไม่สามารถกู้คืนได้');
+                        if (!confirmed) return;
+                        setIsDeletingFile(true);
+                        try {
+                          const res = await fetch(
+                            `/api/documents/versions/${document.currentVersion!.id}/file`,
+                            { method: 'DELETE' }
+                          );
+                          const result = await res.json();
+                          if (res.ok && result.success) {
+                            setExistingFileDeleted(true);
+                          } else {
+                            setErrors(prev => ({ ...prev, file: result.error || 'Failed to delete file' }));
+                          }
+                        } catch {
+                          setErrors(prev => ({ ...prev, file: 'Failed to delete file' }));
+                        }
+                        setIsDeletingFile(false);
+                      }}
+                      className="p-1.5 rounded hover:bg-destructive/10 text-destructive transition-colors"
+                      title="Delete file"
+                      disabled={isDeletingFile || isSubmitting}
+                    >
+                      {isDeletingFile
+                        ? <RotateCw className="h-4 w-4 animate-spin" />
+                        : <X className="h-4 w-4" />
+                      }
+                    </button>
+                  )}
+                </div>
+              ) : document.status === 'draft' ? (
+                /* Allow re-upload when draft and file deleted or no file */
+                selectedFile ? (
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+                    <FileIcon className="h-8 w-8 text-primary flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024).toFixed(1)} KB — new file
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="p-1 rounded hover:bg-destructive/10 text-destructive"
+                      disabled={isSubmitting}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) {
+                        if (file.size > 10 * 1024 * 1024) {
+                          setErrors(prev => ({ ...prev, file: 'File size must be less than 10MB' }));
+                          return;
+                        }
+                        const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+                        if (!['.pdf', '.doc', '.docx', '.xls', '.xlsx'].includes(ext)) {
+                          setErrors(prev => ({ ...prev, file: 'Only PDF, DOC, DOCX, XLS, XLSX files are allowed' }));
+                          return;
+                        }
+                        setSelectedFile(file);
+                        setErrors(prev => { const { file: _, ...rest } = prev; return rest; });
+                      }
+                    }}
+                  >
+                    <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
+                    <p className="text-sm text-muted-foreground">
+                      {existingFileDeleted ? 'Upload replacement file' : 'Click to upload file'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PDF, DOC, DOCX, XLS, XLSX (max 10MB)
+                    </p>
+                  </div>
+                )
+              ) : (
+                <div className="p-3 bg-muted/30 rounded-lg border border-dashed text-center">
+                  <p className="text-sm text-muted-foreground">No file attached</p>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    if (file.size > 10 * 1024 * 1024) {
+                      setErrors(prev => ({ ...prev, file: 'File size must be less than 10MB' }));
+                      return;
+                    }
+                    setSelectedFile(file);
+                    setErrors(prev => { const { file: _, ...rest } = prev; return rest; });
+                  }
+                }}
+                disabled={isSubmitting}
+              />
+              {errors.file && (
+                <p className="text-sm text-destructive">{errors.file}</p>
+              )}
+            </div>
+          )}
+
           {/* Content Field (only for new documents) */}
           {!isEditing && (
             <div className="space-y-2">
@@ -371,6 +650,88 @@ export function DocumentFormDialog({
               <p className="text-xs text-muted-foreground">
                 You can add or update content in document versions later
               </p>
+            </div>
+          )}
+
+          {/* File Upload Field (only for new documents) */}
+          {!isEditing && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Upload Document</label>
+              {selectedFile ? (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+                  <FileIcon className="h-8 w-8 text-primary flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(selectedFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="p-1 rounded hover:bg-destructive/10 text-destructive"
+                    disabled={isSubmitting}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      if (file.size > 10 * 1024 * 1024) {
+                        setErrors(prev => ({ ...prev, file: 'File size must be less than 10MB' }));
+                        return;
+                      }
+                      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+                      if (!['.pdf', '.doc', '.docx', '.xls', '.xlsx'].includes(ext)) {
+                        setErrors(prev => ({ ...prev, file: 'Only PDF, DOC, DOCX, XLS, XLSX files are allowed' }));
+                        return;
+                      }
+                      setSelectedFile(file);
+                      setErrors(prev => { const { file: _, ...rest } = prev; return rest; });
+                    }
+                  }}
+                >
+                  <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Click to upload or drag and drop
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    PDF, DOC, DOCX, XLS, XLSX (max 10MB)
+                  </p>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    if (file.size > 10 * 1024 * 1024) {
+                      setErrors(prev => ({ ...prev, file: 'File size must be less than 10MB' }));
+                      return;
+                    }
+                    setSelectedFile(file);
+                    setErrors(prev => { const { file: _, ...rest } = prev; return rest; });
+                  }
+                }}
+                disabled={isSubmitting}
+              />
+              {errors.file && (
+                <p className="text-sm text-destructive">{errors.file}</p>
+              )}
             </div>
           )}
         </div>

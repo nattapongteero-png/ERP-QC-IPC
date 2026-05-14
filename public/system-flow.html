@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herbal Medicine ERP - System Flow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f4f8; color: #1a202c; }
+
+  .header { background: linear-gradient(135deg, #0d9488, #0891b2); color: white; padding: 32px 0; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,.15); }
+  .header h1 { font-size: 28px; font-weight: 700; }
+  .header p { opacity: .85; margin-top: 6px; font-size: 14px; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
+
+  /* Tab navigation */
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; justify-content: center; }
+  .tab { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; border: 2px solid #e2e8f0; background: white; transition: all .2s; }
+  .tab:hover { border-color: #0d9488; color: #0d9488; }
+  .tab.active { background: #0d9488; color: white; border-color: #0d9488; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Module overview grid */
+  .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .module-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); border-left: 4px solid; transition: transform .2s, box-shadow .2s; }
+  .module-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+  .module-card h3 { font-size: 16px; margin-bottom: 4px; }
+  .module-card .subtitle { font-size: 12px; color: #64748b; margin-bottom: 12px; }
+  .module-card .pages { font-size: 11px; color: #94a3b8; }
+  .module-card ul { list-style: none; padding: 0; }
+  .module-card li { padding: 3px 0; font-size: 13px; color: #475569; }
+  .module-card li::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 8px; }
+
+  /* Color coding */
+  .c-teal { border-color: #0d9488; } .c-teal li::before { background: #0d9488; }
+  .c-blue { border-color: #2563eb; } .c-blue li::before { background: #2563eb; }
+  .c-purple { border-color: #7c3aed; } .c-purple li::before { background: #7c3aed; }
+  .c-orange { border-color: #ea580c; } .c-orange li::before { background: #ea580c; }
+  .c-green { border-color: #16a34a; } .c-green li::before { background: #16a34a; }
+  .c-red { border-color: #dc2626; } .c-red li::before { background: #dc2626; }
+  .c-amber { border-color: #d97706; } .c-amber li::before { background: #d97706; }
+  .c-pink { border-color: #db2777; } .c-pink li::before { background: #db2777; }
+  .c-indigo { border-color: #4f46e5; } .c-indigo li::before { background: #4f46e5; }
+  .c-cyan { border-color: #0891b2; } .c-cyan li::before { background: #0891b2; }
+  .c-slate { border-color: #475569; } .c-slate li::before { background: #475569; }
+  .c-lime { border-color: #65a30d; } .c-lime li::before { background: #65a30d; }
+  .c-rose { border-color: #e11d48; } .c-rose li::before { background: #e11d48; }
+
+  /* Flow diagrams */
+  .flow { background: white; border-radius: 12px; padding: 32px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow-x: auto; }
+  .flow h2 { font-size: 20px; margin-bottom: 8px; color: #0f172a; }
+  .flow .desc { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+
+  /* Flow steps */
+  .flow-row { display: flex; align-items: flex-start; gap: 12px; flex-wrap: nowrap; min-width: max-content; padding: 8px 0; }
+  .flow-step { min-width: 160px; max-width: 200px; border-radius: 10px; padding: 14px 16px; text-align: center; position: relative; flex-shrink: 0; }
+  .flow-step .step-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .flow-step .step-desc { font-size: 11px; opacity: .8; }
+  .flow-step .step-module { font-size: 10px; margin-top: 6px; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+
+  .step-start { background: #ecfdf5; border: 2px solid #10b981; color: #065f46; }
+  .step-start .step-module { background: #d1fae5; color: #065f46; }
+  .step-process { background: #eff6ff; border: 2px solid #3b82f6; color: #1e40af; }
+  .step-process .step-module { background: #dbeafe; color: #1e40af; }
+  .step-decision { background: #fef3c7; border: 2px solid #f59e0b; color: #92400e; border-radius: 10px; }
+  .step-decision .step-module { background: #fde68a; color: #92400e; }
+  .step-action { background: #f0f9ff; border: 2px solid #0ea5e9; color: #0c4a6e; }
+  .step-action .step-module { background: #e0f2fe; color: #0c4a6e; }
+  .step-end { background: #fdf2f8; border: 2px solid #ec4899; color: #831843; }
+  .step-end .step-module { background: #fce7f3; color: #831843; }
+  .step-accounting { background: #f5f3ff; border: 2px solid #8b5cf6; color: #5b21b6; }
+  .step-accounting .step-module { background: #ede9fe; color: #5b21b6; }
+  .step-quality { background: #fff7ed; border: 2px solid #f97316; color: #9a3412; }
+  .step-quality .step-module { background: #ffedd5; color: #9a3412; }
+  .step-inventory { background: #ecfdf5; border: 2px solid #10b981; color: #065f46; }
+  .step-inventory .step-module { background: #d1fae5; color: #065f46; }
+  .step-production { background: #eff6ff; border: 2px solid #2563eb; color: #1e3a8a; }
+  .step-production .step-module { background: #dbeafe; color: #1e3a8a; }
+
+  .arrow { display: flex; align-items: center; justify-content: center; min-width: 40px; color: #94a3b8; font-size: 24px; flex-shrink: 0; padding-top: 8px; }
+  .arrow-down { text-align: center; color: #94a3b8; font-size: 24px; padding: 4px 0; }
+
+  /* Vertical flow */
+  .flow-vertical { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .flow-vertical .flow-step { min-width: 260px; max-width: 320px; }
+
+  /* Parallel branches */
+  .flow-branches { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin: 16px 0; }
+  .flow-branch { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px; background: #f8fafc; border-radius: 10px; border: 1px dashed #cbd5e1; min-width: 200px; }
+  .flow-branch .branch-label { font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+
+  /* Stats bar */
+  .stats-bar { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 24px; }
+  .stat-item { background: white; padding: 16px 24px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); min-width: 140px; }
+  .stat-item .stat-number { font-size: 28px; font-weight: 700; color: #0d9488; }
+  .stat-item .stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 16px 0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748b; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; border: 2px solid; }
+
+  /* Integration map */
+  .integration-map { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .integration-row { background: #f8fafc; border-radius: 10px; padding: 16px 20px; border-left: 4px solid #0d9488; }
+  .integration-row h4 { font-size: 14px; color: #0f172a; margin-bottom: 6px; }
+  .integration-row p { font-size: 12px; color: #64748b; }
+  .integration-row .int-modules { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .integration-row .int-mod { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+  .int-mod.m-inv { background: #ecfdf5; color: #065f46; }
+  .int-mod.m-prod { background: #eff6ff; color: #1e40af; }
+  .int-mod.m-pur { background: #fef3c7; color: #92400e; }
+  .int-mod.m-sale { background: #fdf2f8; color: #831843; }
+  .int-mod.m-acct { background: #f5f3ff; color: #5b21b6; }
+  .int-mod.m-qc { background: #fff7ed; color: #9a3412; }
+  .int-mod.m-gmp { background: #fef2f2; color: #991b1b; }
+  .int-mod.m-hr { background: #f0f9ff; color: #0c4a6e; }
+  .int-mod.m-cost { background: #f0fdf4; color: #166534; }
+  .int-mod.m-vmi { background: #fdf4ff; color: #86198f; }
+
+  @media print { .tabs { display: none; } .section { display: block !important; page-break-before: always; } .header { position: static; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Herbal Medicine ERP - System Flow</h1>
+  <p>ระบบบริหารจัดการโรงงานผลิตยาสมุนไพร | MetaHerb ERP</p>
+</div>
+
+<div class="container">
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-number">17</div><div class="stat-label">โมดูลหลัก</div></div>
+  <div class="stat-item"><div class="stat-number">79</div><div class="stat-label">หน้าจอ</div></div>
+  <div class="stat-item"><div class="stat-number">44</div><div class="stat-label">API Endpoints</div></div>
+  <div class="stat-item"><div class="stat-number">86</div><div class="stat-label">Services</div></div>
+  <div class="stat-item"><div class="stat-number">2</div><div class="stat-label">ภาษา (TH/EN)</div></div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview')">ภาพรวมโมดูล</div>
+  <div class="tab" onclick="showTab('procurement')">จัดซื้อ - คลังสินค้า</div>
+  <div class="tab" onclick="showTab('production')">การผลิต - eBMR</div>
+  <div class="tab" onclick="showTab('quality')">คุณภาพ - GMP</div>
+  <div class="tab" onclick="showTab('sales')">ขาย - VMI</div>
+  <div class="tab" onclick="showTab('accounting')">บัญชี - การเงิน</div>
+  <div class="tab" onclick="showTab('hr')">ทรัพยากรบุคคล</div>
+  <div class="tab" onclick="showTab('integration')">การเชื่อมโยงระบบ</div>
+</div>
+
+<!-- ==================== TAB 1: OVERVIEW ==================== -->
+<div id="overview" class="section active">
+  <div class="module-grid">
+
+    <div class="module-card c-teal">
+      <h3>Dashboard</h3>
+      <div class="subtitle">แดชบอร์ดภาพรวม</div>
+      <ul>
+        <li>KPI สรุปภาพรวมทั้งระบบ</li>
+        <li>แจ้งเตือนสำคัญ</li>
+        <li>สรุปยอดผลิต/ขาย/ซื้อ</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-green">
+      <h3>Inventory (คลังสินค้า)</h3>
+      <div class="subtitle">บริหารจัดการวัตถุดิบ สินค้า และ Lot</div>
+      <ul>
+        <li>รายการสินค้า (Items)</li>
+        <li>Lot Management</li>
+        <li>คลังสินค้า (Warehouses)</li>
+        <li>รายการเคลื่อนไหว (Transactions)</li>
+        <li>แจ้งเตือนหมดอายุ (Expiry Alerts)</li>
+        <li>ใบเบิกวัตถุดิบ (Requisitions)</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-blue">
+      <h3>Production (การผลิต)</h3>
+      <div class="subtitle">วางแผนและควบคุมการผลิต</div>
+      <ul>
+        <li>สูตรการผลิต (BOM/Recipes)</li>
+        <li>ใบสั่งผลิต (Work Orders)</li>
+        <li>บันทึกการผลิต eBMR</li>
+        <li>ชั่งวัตถุดิบ (Material Weighing)</li>
+        <li>ขั้นตอน SOP Execution</li>
+        <li>บันทึกสภาพแวดล้อม</li>
+        <li>ตรวจสอบสินค้าสำเร็จรูป</li>
+        <li>Master Data (ห้อง, อุปกรณ์, IPC)</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-orange">
+      <h3>Quality (คุณภาพ)</h3>
+      <div class="subtitle">ทดสอบและควบคุมคุณภาพ</div>
+      <ul>
+        <li>ผลทดสอบ (QC Tests)</li>
+        <li>ข้อกำหนด (Specifications)</li>
+        <li>การเบี่ยงเบน (Deviations)</li>
+        <li>QC Disposition (ปล่อยผ่าน/ปฏิเสธ)</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-red">
+      <h3>GMP Compliance</h3>
+      <div class="subtitle">ระบบ GMP และเอกสารคุณภาพ</div>
+      <ul>
+        <li>เอกสาร (Document Control)</li>
+        <li>การเปลี่ยนแปลง (Change Control)</li>
+        <li>CAPA</li>
+        <li>ข้อร้องเรียน (Complaints)</li>
+        <li>เรียกคืน (Recalls)</li>
+        <li>สุขาภิบาล (Sanitation)</li>
+        <li>ความคงตัว (Stability)</li>
+        <li>ตรวจสอบภายใน (Internal Audit)</li>
+        <li>สัญญา (Contracts)</li>
+        <li>PQR (Product Quality Review)</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-amber">
+      <h3>Purchasing (จัดซื้อ)</h3>
+      <div class="subtitle">จัดซื้อจัดจ้างวัตถุดิบ</div>
+      <ul>
+        <li>ใบขอซื้อ (Purchase Requisitions)</li>
+        <li>ใบสั่งซื้อ (Purchase Orders)</li>
+        <li>ผู้ขาย (Vendors)</li>
+        <li>รับสินค้า (Goods Receiving)</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-pink">
+      <h3>Sales (ขาย)</h3>
+      <div class="subtitle">บริหารการขายและลูกค้า</div>
+      <ul>
+        <li>ใบสั่งขาย (Sales Orders)</li>
+        <li>VMI Orders</li>
+        <li>ลูกค้า (Customers)</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-purple">
+      <h3>Accounting (บัญชี)</h3>
+      <div class="subtitle">ระบบบัญชีคู่ ภาษี VAT/WHT</div>
+      <ul>
+        <li>ผังบัญชี (Chart of Accounts)</li>
+        <li>ประเภทบัญชี (Account Types)</li>
+        <li>สมุดรายวัน (Journal Entries)</li>
+        <li>เจ้าหนี้ AP (Invoices, Aging, Payments)</li>
+        <li>ลูกหนี้ AR (Invoices, Aging, Receipts)</li>
+        <li>สินทรัพย์ถาวร / อุปกรณ์</li>
+        <li>กระทบยอดธนาคาร</li>
+        <li>ใบลดหนี้/ใบเพิ่มหนี้</li>
+        <li>3-Way Matching</li>
+        <li>ปิดงวด / อนุมัติ</li>
+        <li>รายงาน (Trial Balance, งบการเงิน, VAT, WHT)</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-lime">
+      <h3>Cost Management (ต้นทุน)</h3>
+      <div class="subtitle">วิเคราะห์และบริหารต้นทุน</div>
+      <ul>
+        <li>Dashboard ต้นทุน</li>
+        <li>ต้นทุนเพิ่มเติม (Landed Costs)</li>
+        <li>ศูนย์ต้นทุน (Work Centers)</li>
+        <li>สรุปต้นทุน (Cost Summary)</li>
+        <li>ต้นทุนมาตรฐาน / ผลต่าง</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-rose">
+      <h3>VMI Portal</h3>
+      <div class="subtitle">Vendor Managed Inventory</div>
+      <ul>
+        <li>VMI Dashboard</li>
+        <li>Sync ข้อมูล</li>
+        <li>VMI Orders</li>
+        <li>Webhook Integration</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-cyan">
+      <h3>HR (ทรัพยากรบุคคล)</h3>
+      <div class="subtitle">บริหารบุคลากรและสิทธิ์</div>
+      <ul>
+        <li>โครงสร้างองค์กร</li>
+        <li>พนักงาน / ตำแหน่ง</li>
+        <li>ฝึกอบรม (Training)</li>
+        <li>มอบอำนาจ (Authorizations)</li>
+        <li>สุขภาพ (Health Records)</li>
+        <li>บทบาท / สิทธิ์</li>
+        <li>Audit Trail</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-indigo">
+      <h3>Issues (ปัญหา/แจ้งซ่อม)</h3>
+      <div class="subtitle">ระบบแจ้งปัญหาและติดตาม</div>
+      <ul>
+        <li>Dashboard</li>
+        <li>รายการปัญหาทั้งหมด</li>
+        <li>แจ้งปัญหาใหม่</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-slate">
+      <h3>Admin & Settings</h3>
+      <div class="subtitle">ตั้งค่าระบบและสิทธิ์</div>
+      <ul>
+        <li>จัดการผู้ใช้ (Users)</li>
+        <li>Confidential Groups</li>
+        <li>Approval Workflows</li>
+        <li>Matching Tolerances</li>
+        <li>Reports / Reporting</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== TAB 2: PROCUREMENT ==================== -->
+<div id="procurement" class="section">
+
+  <div class="flow">
+    <h2>กระบวนการจัดซื้อ - รับสินค้า - เข้าคลัง</h2>
+    <div class="desc">ตั้งแต่ใบขอซื้อจนถึงรับสินค้าเข้าคลังและบันทึกบัญชี</div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#ecfdf5;border-color:#10b981;"></div> เริ่มต้น</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#eff6ff;border-color:#3b82f6;"></div> กระบวนการ</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fef3c7;border-color:#f59e0b;"></div> ตรวจสอบ/อนุมัติ</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5f3ff;border-color:#8b5cf6;"></div> บัญชี</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fff7ed;border-color:#f97316;"></div> คุณภาพ</div>
+    </div>
+
+    <div class="flow-row">
+      <div class="flow-step step-start">
+        <div class="step-title">1. สร้างใบขอซื้อ (PR)</div>
+        <div class="step-desc">ฝ่ายผลิต/คลัง ร้องขอวัตถุดิบ</div>
+        <div class="step-module">Purchasing</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">2. อนุมัติ PR</div>
+        <div class="step-desc">ผู้จัดการ ตรวจสอบและอนุมัติ</div>
+        <div class="step-module">Approval Workflow</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">3. สร้างใบสั่งซื้อ (PO)</div>
+        <div class="step-desc">เลือก Vendor, กำหนดราคา/จำนวน</div>
+        <div class="step-module">Purchasing</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">4. อนุมัติ PO</div>
+        <div class="step-desc">ตรวจสอบงบประมาณ อนุมัติ</div>
+        <div class="step-module">Approval Workflow</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">5. ส่ง PO ให้ Vendor</div>
+        <div class="step-desc">ส่งอีเมล/พิมพ์เอกสาร</div>
+        <div class="step-module">Purchasing</div>
+      </div>
+    </div>
+
+    <div class="arrow-down">&#11015;</div>
+
+    <div class="flow-row">
+      <div class="flow-step step-inventory">
+        <div class="step-title">6. รับสินค้า (GR)</div>
+        <div class="step-desc">คลังรับของ ตรวจนับจำนวน สร้าง Lot</div>
+        <div class="step-module">Inventory</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-quality">
+        <div class="step-title">7. ส่งตรวจ QC</div>
+        <div class="step-desc">สุ่มตัวอย่าง ทดสอบคุณภาพ</div>
+        <div class="step-module">Quality</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">8. QC Disposition</div>
+        <div class="step-desc">ผ่าน = Released, ไม่ผ่าน = Rejected</div>
+        <div class="step-module">Quality</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-inventory">
+        <div class="step-title">9. เข้าคลัง</div>
+        <div class="step-desc">สถานะ Lot = Available พร้อมใช้</div>
+        <div class="step-module">Inventory</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-accounting">
+        <div class="step-title">10. บันทึก AP Invoice</div>
+        <div class="step-desc">3-Way Matching (PO/GR/Invoice)</div>
+        <div class="step-module">Accounting</div>
+      </div>
+    </div>
+
+    <div class="arrow-down">&#11015;</div>
+
+    <div class="flow-row">
+      <div class="flow-step step-accounting">
+        <div class="step-title">11. จ่ายเงิน</div>
+        <div class="step-desc">ชำระเจ้าหนี้ บันทึกจ่าย</div>
+        <div class="step-module">AP Payments</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-accounting">
+        <div class="step-title">12. บันทึก Landed Cost</div>
+        <div class="step-desc">ค่าขนส่ง ภาษี ฯลฯ รวมเข้าต้นทุน</div>
+        <div class="step-module">Cost Management</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-end">
+        <div class="step-title">13. ต้นทุนสินค้าอัปเดต</div>
+        <div class="step-desc">WAC / Unit Cost คำนวณใหม่</div>
+        <div class="step-module">Cost Management</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: PRODUCTION ==================== -->
+<div id="production" class="section">
+
+  <div class="flow">
+    <h2>กระบวนการผลิต - eBMR (Electronic Batch Manufacturing Record)</h2>
+    <div class="desc">วางแผนผลิต &#8594; เบิกวัตถุดิบ &#8594; ผลิต &#8594; ตรวจสอบ &#8594; สินค้าสำเร็จรูป</div>
+
+    <div class="flow-row">
+      <div class="flow-step step-start">
+        <div class="step-title">1. สร้างสูตร BOM</div>
+        <div class="step-desc">กำหนดส่วนประกอบ ปริมาณ ขั้นตอน</div>
+        <div class="step-module">Production</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">2. สร้าง Work Order</div>
+        <div class="step-desc">สถานะ: Planned กำหนดวันผลิต</div>
+        <div class="step-module">Production</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">3. ส่งใบเบิกวัตถุดิบ</div>
+        <div class="step-desc">ฝ่ายผลิตส่งคำขอเบิก</div>
+        <div class="step-module">Requisition</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">4. คลังอนุมัติใบเบิก</div>
+        <div class="step-desc">ตรวจสอบสต๊อก อนุมัติ</div>
+        <div class="step-module">Inventory</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-inventory">
+        <div class="step-title">5. ชั่งวัตถุดิบ</div>
+        <div class="step-desc">บันทึกน้ำหนัก Lot, ตัดสต๊อก</div>
+        <div class="step-module">Material Weighing</div>
+      </div>
+    </div>
+
+    <div class="arrow-down">&#11015;</div>
+
+    <div class="flow-row">
+      <div class="flow-step step-production">
+        <div class="step-title">6. ปล่อยผลิต (Released)</div>
+        <div class="step-desc">WO Status = Released</div>
+        <div class="step-module">Production</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-production">
+        <div class="step-title">7. เริ่มผลิต (In Progress)</div>
+        <div class="step-desc">ดำเนินการตาม SOP Steps</div>
+        <div class="step-module">eBMR Execution</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-quality">
+        <div class="step-title">8. ตรวจ IPC</div>
+        <div class="step-desc">In-Process Control ระหว่างผลิต</div>
+        <div class="step-module">Quality</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">9. บันทึกสภาพแวดล้อม</div>
+        <div class="step-desc">อุณหภูมิ ความชื้น (Sensor/Manual)</div>
+        <div class="step-module">Environmental</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">10. บันทึกทำความสะอาด</div>
+        <div class="step-desc">Line Clearance, Cleaning Logs</div>
+        <div class="step-module">eBMR</div>
+      </div>
+    </div>
+
+    <div class="arrow-down">&#11015;</div>
+
+    <div class="flow-row">
+      <div class="flow-step step-quality">
+        <div class="step-title">11. ตรวจสินค้าสำเร็จรูป</div>
+        <div class="step-desc">Finished Product Inspection</div>
+        <div class="step-module">Quality</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">12. QC Final Release</div>
+        <div class="step-desc">ปล่อยผ่าน / ปฏิเสธ</div>
+        <div class="step-module">Quality</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-inventory">
+        <div class="step-title">13. รับเข้าคลัง FG</div>
+        <div class="step-desc">สินค้าสำเร็จรูปพร้อมขาย</div>
+        <div class="step-module">Inventory</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-accounting">
+        <div class="step-title">14. คำนวณต้นทุนผลิต</div>
+        <div class="step-desc">วัตถุดิบ + แรงงาน + โสหุ้ย</div>
+        <div class="step-module">Cost Management</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-end">
+        <div class="step-title">15. ปิด Work Order</div>
+        <div class="step-desc">WO Status = Completed</div>
+        <div class="step-module">Production</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 4: QUALITY / GMP ==================== -->
+<div id="quality" class="section">
+
+  <div class="flow">
+    <h2>ระบบคุณภาพและ GMP Compliance</h2>
+    <div class="desc">ระบบเอกสาร การเปลี่ยนแปลง CAPA ข้อร้องเรียน และการตรวจสอบ</div>
+
+    <div class="flow-branches">
+      <div class="flow-branch">
+        <div class="branch-label">Document Control</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">สร้าง/แก้ไขเอกสาร</div>
+          <div class="step-desc">SOP, WI, Form, Policy</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-decision" style="min-width:180px;">
+          <div class="step-title">ทบทวน/อนุมัติ</div>
+          <div class="step-desc">Electronic Signature</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-end" style="min-width:180px;">
+          <div class="step-title">เผยแพร่</div>
+          <div class="step-desc">Version Control</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">Change Control</div>
+        <div class="flow-step step-start" style="min-width:180px;">
+          <div class="step-title">เสนอการเปลี่ยนแปลง</div>
+          <div class="step-desc">Impact Assessment</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-decision" style="min-width:180px;">
+          <div class="step-title">อนุมัติ</div>
+          <div class="step-desc">คณะกรรมการ</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">ดำเนินการ</div>
+          <div class="step-desc">ติดตามและปิด</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">CAPA</div>
+        <div class="flow-step step-quality" style="min-width:180px;">
+          <div class="step-title">เปิด CAPA</div>
+          <div class="step-desc">Root Cause Analysis</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">แผนแก้ไข</div>
+          <div class="step-desc">Corrective/Preventive</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-decision" style="min-width:180px;">
+          <div class="step-title">ประเมินประสิทธิผล</div>
+          <div class="step-desc">Effectiveness Review</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">Complaints & Recall</div>
+        <div class="flow-step step-quality" style="min-width:180px;">
+          <div class="step-title">รับข้อร้องเรียน</div>
+          <div class="step-desc">บันทึก/สอบสวน</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-decision" style="min-width:180px;">
+          <div class="step-title">ประเมินความเสี่ยง</div>
+          <div class="step-desc">ต้องเรียกคืนหรือไม่</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-end" style="min-width:180px;">
+          <div class="step-title">เรียกคืน / ปิดเคส</div>
+          <div class="step-desc">Recall / Close</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">อื่นๆ</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">Sanitation</div>
+          <div class="step-desc">สุขาภิบาล/Pest Control</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">Stability Study</div>
+          <div class="step-desc">ทดสอบความคงตัว</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">Internal Audit / PQR</div>
+          <div class="step-desc">ตรวจสอบภายใน</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <h2>กระบวนการ Deviation (การเบี่ยงเบน)</h2>
+    <div class="desc">เมื่อเกิดเหตุการณ์เบี่ยงเบนจากข้อกำหนดระหว่างผลิต</div>
+    <div class="flow-row">
+      <div class="flow-step step-quality">
+        <div class="step-title">พบเหตุเบี่ยงเบน</div>
+        <div class="step-desc">ระหว่างผลิต/ตรวจสอบ</div>
+        <div class="step-module">Quality</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">บันทึก Deviation</div>
+        <div class="step-desc">รายละเอียด ผลกระทบ</div>
+        <div class="step-module">Quality</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">ประเมินความรุนแรง</div>
+        <div class="step-desc">Minor / Major / Critical</div>
+        <div class="step-module">QA</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">สอบสวน & แก้ไข</div>
+        <div class="step-desc">Root Cause &#8594; เปิด CAPA</div>
+        <div class="step-module">CAPA</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-end">
+        <div class="step-title">ปิด Deviation</div>
+        <div class="step-desc">อนุมัติปิด</div>
+        <div class="step-module">QA</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 5: SALES / VMI ==================== -->
+<div id="sales" class="section">
+
+  <div class="flow">
+    <h2>กระบวนการขาย - ส่งสินค้า</h2>
+    <div class="desc">รับออเดอร์ &#8594; จัดสินค้า &#8594; ส่ง &#8594; วางบิล &#8594; รับเงิน</div>
+    <div class="flow-row">
+      <div class="flow-step step-start">
+        <div class="step-title">1. รับ Sales Order</div>
+        <div class="step-desc">ลูกค้าสั่งซื้อ / VMI Auto</div>
+        <div class="step-module">Sales</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">2. ตรวจสอบสต๊อก</div>
+        <div class="step-desc">มีพอส่ง? จอง Lot</div>
+        <div class="step-module">Inventory</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">3. จัดสินค้า</div>
+        <div class="step-desc">Pick & Pack</div>
+        <div class="step-module">Inventory</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">4. ส่งสินค้า</div>
+        <div class="step-desc">Delivery / Shipment</div>
+        <div class="step-module">Sales</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-accounting">
+        <div class="step-title">5. ออก AR Invoice</div>
+        <div class="step-desc">วางบิล ลูกหนี้</div>
+        <div class="step-module">Accounting</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-end">
+        <div class="step-title">6. รับชำระเงิน</div>
+        <div class="step-desc">AR Receipt</div>
+        <div class="step-module">Accounting</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <h2>VMI (Vendor Managed Inventory)</h2>
+    <div class="desc">ระบบ Sync สต๊อกอัตโนมัติกับคู่ค้า</div>
+    <div class="flow-row">
+      <div class="flow-step step-start">
+        <div class="step-title">VMI Config</div>
+        <div class="step-desc">ตั้งค่า API Key, Min/Max</div>
+        <div class="step-module">VMI Portal</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">Sync Stock Level</div>
+        <div class="step-desc">อัปเดตระดับสต๊อก</div>
+        <div class="step-module">VMI Sync</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">Below Min?</div>
+        <div class="step-desc">สต๊อกต่ำกว่าขั้นต่ำ</div>
+        <div class="step-module">VMI Portal</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">Auto Create Order</div>
+        <div class="step-desc">สร้าง VMI Order อัตโนมัติ</div>
+        <div class="step-module">VMI</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">Webhook Notify</div>
+        <div class="step-desc">แจ้ง Vendor ทาง API</div>
+        <div class="step-module">VMI Webhook</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-end">
+        <div class="step-title">Vendor จัดส่ง</div>
+        <div class="step-desc">เข้ากระบวนการรับสินค้า</div>
+        <div class="step-module">Purchasing</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 6: ACCOUNTING ==================== -->
+<div id="accounting" class="section">
+
+  <div class="flow">
+    <h2>ระบบบัญชีคู่ (Double-Entry Bookkeeping)</h2>
+    <div class="desc">ผังบัญชี &#8594; สมุดรายวัน &#8594; รายงานการเงิน</div>
+
+    <div class="flow-branches">
+      <div class="flow-branch">
+        <div class="branch-label">เจ้าหนี้ (AP)</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">AP Invoice</div>
+          <div class="step-desc">บันทึกจากใบส่งของ Vendor</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-decision" style="min-width:200px;">
+          <div class="step-title">3-Way Matching</div>
+          <div class="step-desc">PO / GR / Invoice ตรงกัน</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">AP Payment</div>
+          <div class="step-desc">ชำระเงิน เจ้าหนี้ลด</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">AP Aging</div>
+          <div class="step-desc">วิเคราะห์อายุหนี้</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">ลูกหนี้ (AR)</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">AR Invoice</div>
+          <div class="step-desc">วางบิล/ออกใบแจ้งหนี้</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">AR Receipt</div>
+          <div class="step-desc">รับชำระเงิน ลูกหนี้ลด</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">AR Aging</div>
+          <div class="step-desc">วิเคราะห์อายุลูกหนี้</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">ใบลดหนี้/เพิ่มหนี้</div>
+          <div class="step-desc">Credit/Debit Notes</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">สมุดรายวัน</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">Journal Entry</div>
+          <div class="step-desc">Dr/Cr ต้องเท่ากัน</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-decision" style="min-width:200px;">
+          <div class="step-title">อนุมัติ</div>
+          <div class="step-desc">ผู้มีอำนาจอนุมัติ</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">ผ่านรายการ (Post)</div>
+          <div class="step-desc">บันทึกเข้าบัญชีแยกประเภท</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-end" style="min-width:200px;">
+          <div class="step-title">ปิดงวด</div>
+          <div class="step-desc">Period Close</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">รายงาน</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">งบทดลอง</div>
+          <div class="step-desc">Trial Balance</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">งบแสดงฐานะ</div>
+          <div class="step-desc">Balance Sheet</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">งบกำไรขาดทุน</div>
+          <div class="step-desc">Income Statement</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">รายงาน VAT / WHT</div>
+          <div class="step-desc">ภาษีมูลค่าเพิ่ม / หัก ณ ที่จ่าย</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">สินทรัพย์</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">Fixed Assets</div>
+          <div class="step-desc">ทะเบียนสินทรัพย์ถาวร</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">Depreciation</div>
+          <div class="step-desc">คำนวณค่าเสื่อมราคา</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">Equipment</div>
+          <div class="step-desc">อุปกรณ์ & บำรุงรักษา</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">Bank Reconciliation</div>
+          <div class="step-desc">กระทบยอดธนาคาร</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 7: HR ==================== -->
+<div id="hr" class="section">
+
+  <div class="flow">
+    <h2>ระบบทรัพยากรบุคคล (HR)</h2>
+    <div class="desc">บริหารบุคลากร โครงสร้างองค์กร ฝึกอบรม และสิทธิ์การเข้าถึง</div>
+
+    <div class="flow-branches">
+      <div class="flow-branch">
+        <div class="branch-label">Organization</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">โครงสร้างองค์กร</div>
+          <div class="step-desc">แผนผัง Org Chart</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">ตำแหน่งงาน</div>
+          <div class="step-desc">Positions & Roles</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">ข้อมูลพนักงาน</div>
+          <div class="step-desc">Employee Records</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">Training</div>
+        <div class="flow-step step-start" style="min-width:180px;">
+          <div class="step-title">วางแผนฝึกอบรม</div>
+          <div class="step-desc">หลักสูตร GMP / SOP</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">ดำเนินการอบรม</div>
+          <div class="step-desc">บันทึกการเข้าร่วม</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-decision" style="min-width:180px;">
+          <div class="step-title">ประเมินผล</div>
+          <div class="step-desc">ผ่าน / ไม่ผ่าน</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">Authorization</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">กำหนดบทบาท</div>
+          <div class="step-desc">Admin, Manager, QC, etc.</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">มอบอำนาจ</div>
+          <div class="step-desc">Authorization Matrix</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">สุขภาพ</div>
+          <div class="step-desc">Health Records</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">Audit</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">Audit Trail</div>
+          <div class="step-desc">บันทึกการเปลี่ยนแปลง</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">Notifications</div>
+          <div class="step-desc">แจ้งเตือนภายใน</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:180px;">
+          <div class="step-title">User Management</div>
+          <div class="step-desc">จัดการผู้ใช้ระบบ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 8: INTEGRATION ==================== -->
+<div id="integration" class="section">
+
+  <div class="flow">
+    <h2>การเชื่อมโยงระหว่างโมดูล</h2>
+    <div class="desc">แสดงจุดเชื่อมต่อข้อมูลหลักระหว่างแต่ละโมดูล</div>
+
+    <div class="integration-map">
+
+      <div class="integration-row" style="border-color:#d97706;">
+        <h4>1. จัดซื้อ &#8594; คลัง &#8594; คุณภาพ &#8594; บัญชี</h4>
+        <p>PO &#8594; Goods Receiving &#8594; QC Test &#8594; Lot Released &#8594; AP Invoice &#8594; 3-Way Matching &#8594; Payment</p>
+        <div class="int-modules">
+          <span class="int-mod m-pur">Purchasing</span>
+          <span class="int-mod m-inv">Inventory</span>
+          <span class="int-mod m-qc">Quality</span>
+          <span class="int-mod m-acct">Accounting</span>
+          <span class="int-mod m-cost">Cost</span>
+        </div>
+      </div>
+
+      <div class="integration-row" style="border-color:#2563eb;">
+        <h4>2. การผลิต &#8594; คลัง &#8594; คุณภาพ &#8594; ต้นทุน</h4>
+        <p>BOM &#8594; Work Order &#8594; Material Requisition &#8594; Weighing &#8594; eBMR &#8594; IPC/QC &#8594; FG Receipt &#8594; Cost Calc</p>
+        <div class="int-modules">
+          <span class="int-mod m-prod">Production</span>
+          <span class="int-mod m-inv">Inventory</span>
+          <span class="int-mod m-qc">Quality</span>
+          <span class="int-mod m-cost">Cost</span>
+        </div>
+      </div>
+
+      <div class="integration-row" style="border-color:#db2777;">
+        <h4>3. ขาย &#8594; คลัง &#8594; บัญชี</h4>
+        <p>Sales Order &#8594; Stock Check &#8594; Pick/Pack &#8594; Delivery &#8594; AR Invoice &#8594; AR Receipt</p>
+        <div class="int-modules">
+          <span class="int-mod m-sale">Sales</span>
+          <span class="int-mod m-inv">Inventory</span>
+          <span class="int-mod m-acct">Accounting</span>
+        </div>
+      </div>
+
+      <div class="integration-row" style="border-color:#86198f;">
+        <h4>4. VMI &#8594; ขาย &#8594; คลัง</h4>
+        <p>VMI Sync &#8594; Auto Order &#8594; Webhook &#8594; Sales Order &#8594; Fulfillment</p>
+        <div class="int-modules">
+          <span class="int-mod m-vmi">VMI Portal</span>
+          <span class="int-mod m-sale">Sales</span>
+          <span class="int-mod m-inv">Inventory</span>
+        </div>
+      </div>
+
+      <div class="integration-row" style="border-color:#dc2626;">
+        <h4>5. GMP &#8594; การผลิต &#8594; คุณภาพ</h4>
+        <p>SOP Document &#8594; BOM Steps &#8594; eBMR Execution &#8594; Deviation &#8594; CAPA &#8594; Change Control</p>
+        <div class="int-modules">
+          <span class="int-mod m-gmp">GMP</span>
+          <span class="int-mod m-prod">Production</span>
+          <span class="int-mod m-qc">Quality</span>
+        </div>
+      </div>
+
+      <div class="integration-row" style="border-color:#0891b2;">
+        <h4>6. HR &#8594; ทุกโมดูล (สิทธิ์ & Audit)</h4>
+        <p>User Roles &#8594; Permission Check &#8594; Authorization Matrix &#8594; Audit Trail &#8594; Electronic Signature</p>
+        <div class="int-modules">
+          <span class="int-mod m-hr">HR</span>
+          <span class="int-mod m-prod">Production</span>
+          <span class="int-mod m-qc">Quality</span>
+          <span class="int-mod m-acct">Accounting</span>
+          <span class="int-mod m-gmp">GMP</span>
+        </div>
+      </div>
+
+      <div class="integration-row" style="border-color:#16a34a;">
+        <h4>7. ต้นทุน &#8594; บัญชี &#8594; รายงาน</h4>
+        <p>Unit Cost &#8594; Standard Cost &#8594; Variance Analysis &#8594; Journal Entry &#8594; Financial Reports</p>
+        <div class="int-modules">
+          <span class="int-mod m-cost">Cost</span>
+          <span class="int-mod m-acct">Accounting</span>
+          <span class="int-mod m-inv">Inventory</span>
+          <span class="int-mod m-prod">Production</span>
+        </div>
+      </div>
+
+      <div class="integration-row" style="border-color:#4f46e5;">
+        <h4>8. External API Integration</h4>
+        <p>Environmental Sensor &#8594; API Key Auth &#8594; Auto Log &#8594; eBMR | VMI Webhook &#8594; Vendor System</p>
+        <div class="int-modules">
+          <span class="int-mod m-prod">Production</span>
+          <span class="int-mod m-vmi">VMI</span>
+          <span class="int-mod m-pur">Purchasing</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="flow">
+    <h2>Technology Stack</h2>
+    <div class="desc">เทคโนโลยีหลักที่ใช้ในระบบ</div>
+
+    <div class="flow-branches">
+      <div class="flow-branch">
+        <div class="branch-label">Frontend</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">Next.js 16 + React 19</div>
+          <div class="step-desc">App Router, Server Components</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">DevExtreme React 25.x</div>
+          <div class="step-desc">DataGrid, Form, Popup, Chart</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">TanStack Query 5.x</div>
+          <div class="step-desc">Data Fetching & Caching</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-process" style="min-width:200px;">
+          <div class="step-title">next-intl (TH/EN)</div>
+          <div class="step-desc">Internationalization</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">Backend</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">TypeScript 5.x</div>
+          <div class="step-desc">Strict Mode</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">Drizzle ORM</div>
+          <div class="step-desc">Dual Schema (SQLite/MySQL)</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">Zod 4.x</div>
+          <div class="step-desc">Validation</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-accounting" style="min-width:200px;">
+          <div class="step-title">NextAuth.js</div>
+          <div class="step-desc">Authentication & RBAC</div>
+        </div>
+      </div>
+
+      <div class="flow-branch">
+        <div class="branch-label">Infrastructure</div>
+        <div class="flow-step step-inventory" style="min-width:200px;">
+          <div class="step-title">MySQL 8.x</div>
+          <div class="step-desc">Production Database</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-inventory" style="min-width:200px;">
+          <div class="step-title">Docker Compose</div>
+          <div class="step-desc">Container Orchestration</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-inventory" style="min-width:200px;">
+          <div class="step-title">Bun Runtime</div>
+          <div class="step-desc">Package Manager & Runtime</div>
+        </div>
+        <div class="arrow-down">&#11015;</div>
+        <div class="flow-step step-inventory" style="min-width:200px;">
+          <div class="step-title">SQLite (Testing)</div>
+          <div class="step-desc">Unit & Integration Tests</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<div style="text-align:center;padding:32px;color:#94a3b8;font-size:12px;">
+  Herbal Medicine ERP &mdash; MetaHerb &mdash; Updated: April 2026<br/>
+  17 Modules &bull; 79 Pages &bull; 44 API Endpoints &bull; 86 Services
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo({ top: 200, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>

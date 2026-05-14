@@ -6,15 +6,19 @@
  * Form Sections: 7, 10.2
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader } from '@/components/shared';
+import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDataGrid, DxColumn, DxPaging } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxTabs } from '@/components/ui/dx-tabs';
 import type { DxTabItem } from '@/components/ui/dx-tabs';
@@ -22,7 +26,6 @@ import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import {
   Thermometer,
-  Droplets,
   CheckCircle2,
   AlertCircle,
   Clock,
@@ -31,6 +34,9 @@ import {
 interface EnvironmentalLog {
   id: number;
   workOrderId: number;
+  roomId?: number;
+  roomName?: string;
+  roomCode?: string;
   phase: string;
   recordedDate: string;
   recordedTime: string;
@@ -58,12 +64,44 @@ interface WorkOrderBasic {
   batchNumber: string;
   productName: string;
   status: string;
+  bomId?: number;
+  bomCode?: string | null;
+  bomName?: string | null;
+  bomVersion?: string | null;
 }
 
-const tabItems: DxTabItem[] = [
-  { id: 0, text: 'Production', icon: 'product' },
-  { id: 1, text: 'Packaging', icon: 'box' },
-];
+type PhaseStatusValue = 'pending' | 'active' | 'completed';
+interface PhaseInfo {
+  status: PhaseStatusValue;
+  startedAt: string | null;
+  completedAt: string | null;
+  progress: { completed: number; total: number };
+  hasRoomMapping: boolean;
+}
+interface PhaseStatusResponse {
+  workOrderId: number;
+  workOrderStatus: string;
+  bomId: number | null;
+  activePhase: 'pre_production' | 'production' | 'packaging' | null;
+  pre_production: PhaseInfo;
+  production: PhaseInfo;
+  packaging: PhaseInfo;
+}
+
+interface BOMRoom {
+  id: number;
+  roomId: number;
+  room?: { id: number; code: string; name: string };
+  phase: string;
+}
+
+const PHASE_MAP = ['pre_production', 'production', 'packaging'] as const;
+
+const PHASE_LABELS: Record<typeof PHASE_MAP[number], string> = {
+  pre_production: 'Pre-Production',
+  production: 'Production',
+  packaging: 'Packaging',
+};
 
 export default function EnvironmentalMonitoringPage() {
   const params = useParams();
@@ -71,18 +109,28 @@ export default function EnvironmentalMonitoringPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const toast = useToast();
+
   const workOrderId = Number(params.id);
 
-  const initialPhase = searchParams.get('phase') === 'packaging' ? 1 : 0;
+  const phaseParam = searchParams.get('phase');
+  const initialPhase = phaseParam === 'packaging' ? 2 : phaseParam === 'production' ? 1 : 0;
   const [activeTab, setActiveTab] = useState(initialPhase);
+
+  // Keep tab in sync with URL ?phase= when navigating via back/forward
+  useEffect(() => {
+    const idx = phaseParam === 'packaging' ? 2 : phaseParam === 'production' ? 1 : 0;
+    setActiveTab(idx);
+  }, [phaseParam]);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
+    roomId: undefined as number | undefined,
     temperature: 25,
     humidity: 50,
     notes: '',
   });
 
-  const currentPhase = activeTab === 0 ? 'production' : 'packaging';
+  const currentPhase = PHASE_MAP[activeTab] || 'pre_production';
 
   // Fetch Work Order basic info
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderBasic>({
@@ -95,15 +143,61 @@ export default function EnvironmentalMonitoringPage() {
     },
   });
 
-  // Fetch environmental logs
+  // Fetch environmental logs (auto-refresh every 10s to pick up new IoT readings)
   const { data: logs, isLoading: logsLoading } = useQuery<EnvironmentalLog[]>({
     queryKey: ['wo-environmental-logs', workOrderId, currentPhase],
     queryFn: async () => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/environmental-logs?phase=${currentPhase}`);
+      const res = await fetch(`/api/environmental-logs?workOrderId=${workOrderId}&phase=${currentPhase}`);
       const data = await res.json();
       if (!data.success) return [];
       return data.data;
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: false,
+  });
+
+  // Auto-refresh when any user records / updates an environmental log on this WO
+  useRealtimeTopic('work-order-changed', (data) => {
+    if (data.workOrderId !== workOrderId) return;
+    if (data.section !== 'environmental' && data.section !== 'status') return;
+    queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['wo-phase-status', workOrderId] });
+    queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
+  });
+
+  // Fetch computed phase status — drives per-tab badges + active-phase banner.
+  // Auto-refresh every 10s so UI keeps up when activities are updated elsewhere.
+  const { data: phaseStatus } = useQuery<PhaseStatusResponse>({
+    queryKey: ['wo-phase-status', workOrderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/phase/status`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.data;
+    },
+    refetchInterval: 10000,
+    refetchIntervalInBackground: false,
+  });
+
+  const currentPhaseInfo = phaseStatus?.[currentPhase];
+
+  // Build dynamic tab items with status badges (Active/Frozen/Pending)
+  // next to each phase label. Status reflects computed phase state.
+  const tabItems: DxTabItem[] = PHASE_MAP.map((phaseKey, idx) => {
+    const info = phaseStatus?.[phaseKey];
+    const label = PHASE_LABELS[phaseKey];
+    let suffix = '';
+    if (info?.status === 'active') suffix = ' 🟢';
+    else if (info?.status === 'completed') suffix = ' ✓';
+    else suffix = ' ⏳';
+    return {
+      id: idx,
+      text: `${label}${suffix}`,
+      icon: phaseKey === 'pre_production' ? 'clock' : phaseKey === 'production' ? 'product' : 'box',
+    };
   });
 
   // Fetch BOM environmental condition for this phase
@@ -117,16 +211,30 @@ export default function EnvironmentalMonitoringPage() {
     },
   });
 
+  // Fetch BOM rooms for current phase (for room selector in dialog)
+  const { data: bomRooms } = useQuery<BOMRoom[]>({
+    queryKey: ['bom-rooms-phase', workOrder?.bomId, currentPhase],
+    queryFn: async () => {
+      if (!workOrder?.bomId) return [];
+      const res = await fetch(`/api/production/bom/${workOrder.bomId}/rooms?phase=${currentPhase}`);
+      const data = await res.json();
+      if (!data.success) return [];
+      return data.data || [];
+    },
+    enabled: !!workOrder?.bomId,
+  });
+
   // Add log mutation
   const addLogMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const now = new Date();
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/environmental-logs`, {
+      const res = await fetch(`/api/environmental-logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          workOrderId,
           phase: currentPhase,
-          recordedDate: now.toISOString().split('T')[0],
+          recordedDate: toLocalDateStr(now),
           recordedTime: now.toTimeString().slice(0, 5),
           ...data,
         }),
@@ -139,15 +247,69 @@ export default function EnvironmentalMonitoringPage() {
       queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId, currentPhase] });
       toast.success('Log Added', 'Environmental reading has been recorded.');
       setShowAddDialog(false);
-      setFormData({ temperature: 25, humidity: 50, notes: '' });
+      setFormData({ roomId: undefined, temperature: 25, humidity: 50, notes: '' });
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
     },
   });
 
-  const handleAdd = () => {
-    addLogMutation.mutate(formData);
+  // Edit log mutation
+  const editLogMutation = useMutation({
+    mutationFn: async (data: typeof formData & { logId: number }) => {
+      const res = await fetch(`/api/environmental-logs`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, workOrderId, phase: currentPhase }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId, currentPhase] });
+      toast.success('อัปเดตสำเร็จ', 'แก้ไขข้อมูลสภาวะแวดล้อมเรียบร้อย');
+      setShowAddDialog(false);
+      setEditingLogId(null);
+      setFormData({ roomId: undefined, temperature: 25, humidity: 50, notes: '' });
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  // Delete log mutation
+  const deleteLogMutation = useMutation({
+    mutationFn: async (logId: number) => {
+      const res = await fetch(`/api/environmental-logs?logId=${logId}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId, currentPhase] });
+      toast.success('ลบสำเร็จ', 'ลบข้อมูลสภาวะแวดล้อมเรียบร้อย');
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const handleOpenEdit = (log: EnvironmentalLog) => {
+    setEditingLogId(log.id);
+    setFormData({
+      roomId: log.roomId || undefined,
+      temperature: log.temperature,
+      humidity: log.humidity,
+      notes: log.notes || '',
+    });
+    setShowAddDialog(true);
+  };
+
+  const handleSave = () => {
+    if (editingLogId) {
+      editLogMutation.mutate({ ...formData, logId: editingLogId });
+    } else {
+      addLogMutation.mutate(formData);
+    }
   };
 
   const isWithinLimits = (temp: number, humidity: number) => {
@@ -201,7 +363,7 @@ export default function EnvironmentalMonitoringPage() {
       {/* Header */}
       <ResponsivePageHeader
         title="Environmental Monitoring"
-        subtitle={`${workOrder.woNumber} | Batch: ${workOrder.batchNumber}`}
+        subtitle={`${workOrder.woNumber} | Batch: ${workOrder.batchNumber}${workOrder.bomCode ? ` | BOM: ${workOrder.bomCode}${workOrder.bomVersion ? ` v${workOrder.bomVersion}` : ''}` : ''}`}
         icon={Thermometer}
         iconBgColor="bg-teal-100"
         iconColor="text-teal-600"
@@ -230,45 +392,14 @@ export default function EnvironmentalMonitoringPage() {
         }
       />
 
-      {/* Condition Limits Card */}
-      {condition && (
-        <Card className="border-teal-200 bg-teal-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Thermometer className="h-5 w-5 text-teal-600" />
-                <span className="text-teal-800">
-                  Temperature: <strong>{condition.temperatureMin}-{condition.temperatureMax}°C</strong>
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Droplets className="h-5 w-5 text-teal-600" />
-                <span className="text-teal-800">
-                  Humidity: <strong>≤{condition.humidityMax}% RH</strong>
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-teal-600" />
-                <span className="text-teal-800">
-                  Interval: <strong>Every {condition.monitoringIntervalMinutes} min</strong>
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!condition && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600" />
-            <p className="text-amber-800">
-              No environmental condition profile configured for this phase in the BOM.
-              Readings will still be recorded but limits won&apos;t be enforced.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* BOM Environmental Requirements — remount on phase change to force fresh filter */}
+      <BOMConfigReferencePanel
+        key={currentPhase}
+        workOrderId={workOrderId}
+        phase={currentPhase}
+        showOnly={['environmental']}
+        defaultExpanded={true}
+      />
 
       {/* Phase Tabs */}
       <Card>
@@ -277,6 +408,15 @@ export default function EnvironmentalMonitoringPage() {
             items={tabItems}
             selectedIndex={activeTab}
             onSelectedIndexChange={(idx) => setActiveTab(idx)}
+          />
+
+          {/* Per-phase status banner (Active / Frozen / Pending / Missing mapping) */}
+          <PhaseStatusBanner
+            workOrderStatus={workOrder.status}
+            phaseLabel={PHASE_LABELS[currentPhase]}
+            info={currentPhaseInfo}
+            activePhase={phaseStatus?.activePhase}
+            bomId={phaseStatus?.bomId}
           />
 
           <div className="p-4">
@@ -291,9 +431,17 @@ export default function EnvironmentalMonitoringPage() {
             >
               <DxPaging defaultPageSize={15} />
 
-              <DxColumn dataField="recordedDate" caption="Date" width={120} />
-              <DxColumn dataField="recordedTime" caption="Time" width={100} />
-              <DxColumn dataField="temperature" caption="Temperature (°C)" width={140} cellRender={(cell) => (
+              <DxColumn dataField="roomName" caption="Room" minWidth={120} cellRender={(cell) => {
+                const name = cell.data.roomName || cell.data.roomCode;
+                return name ? (
+                  <span className="text-sm">{name}</span>
+                ) : (
+                  <span className="text-xs text-gray-400">-</span>
+                );
+              }} />
+              <DxColumn dataField="recordedDate" caption="Date" width={100} />
+              <DxColumn dataField="recordedTime" caption="Time" width={80} />
+              <DxColumn dataField="temperature" caption="Temp (°C)" minWidth={100} cellRender={(cell) => (
                 <span className={`font-medium ${
                   condition && (cell.value < condition.temperatureMin || cell.value > condition.temperatureMax)
                     ? 'text-red-600'
@@ -302,18 +450,37 @@ export default function EnvironmentalMonitoringPage() {
                   {cell.value}°C
                 </span>
               )} />
-              <DxColumn dataField="humidity" caption="Humidity (% RH)" width={140} cellRender={(cell) => (
+              <DxColumn dataField="humidity" caption="Humidity (%)" minWidth={100} cellRender={(cell) => (
                 <span className={`font-medium ${
                   condition && cell.value > condition.humidityMax
                     ? 'text-red-600'
                     : 'text-gray-900'
                 }`}>
-                  {cell.value}% RH
+                  {cell.value}%
                 </span>
               )} />
-              <DxColumn dataField="isNormal" caption="Status" width={120} cellRender={(cell) => renderStatusBadge(cell.value)} />
-              <DxColumn dataField="operatorName" caption="Recorded By" width={150} />
-              <DxColumn dataField="notes" caption="Notes" />
+              <DxColumn dataField="isNormal" caption="Status" width={110} cellRender={(cell) => renderStatusBadge(cell.value)} />
+              <DxColumn dataField="operatorName" caption="Recorded By" minWidth={110} />
+              <DxColumn dataField="notes" caption="Notes" minWidth={120} cellRender={(cell) => (
+                cell.value ? (
+                  <span
+                    title={cell.value}
+                    className="text-xs text-gray-600 block truncate"
+                  >
+                    {cell.value}
+                  </span>
+                ) : <span className="text-xs text-gray-400">-</span>
+              )} />
+              <DxColumn caption="" width={90} allowSorting={false} allowFiltering={false} cellRender={(cell) => (
+                <div className="flex gap-0.5">
+                  <DxButton icon="edit" stylingMode="text" hint="แก้ไข" onClick={() => handleOpenEdit(cell.data)} />
+                  <DxButton icon="trash" stylingMode="text" hint="ลบ" onClick={() => {
+                    if (confirm('ต้องการลบข้อมูลนี้หรือไม่?')) {
+                      deleteLogMutation.mutate(cell.data.id);
+                    }
+                  }} />
+                </div>
+              )} />
             </DxDataGrid>
           </div>
         </CardContent>
@@ -322,19 +489,41 @@ export default function EnvironmentalMonitoringPage() {
       {/* Add Reading Dialog */}
       <DxPopup
         visible={showAddDialog}
-        onHiding={() => setShowAddDialog(false)}
-        title="Record Environmental Reading"
-        width={450}
+        onHiding={() => { setShowAddDialog(false); setEditingLogId(null); }}
+        title={editingLogId ? 'แก้ไขข้อมูลสภาวะแวดล้อม' : 'Record Environmental Reading'}
+        width={500}
         height="auto"
         showCloseButton
         dragEnabled={false}
       >
         <div className="p-4 space-y-4">
           <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-            <strong>Phase:</strong> {currentPhase === 'production' ? 'Production' : 'Packaging'}
+            <strong>Phase:</strong> {currentPhase === 'pre_production' ? 'Pre-Production' : currentPhase === 'production' ? 'Production' : 'Packaging'}
             <br />
             <strong>Time:</strong> {new Date().toLocaleString()}
           </div>
+
+          {/* Room Selector */}
+          {bomRooms && bomRooms.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ห้อง (Room) *
+              </label>
+              <DxSelectBox
+                value={formData.roomId}
+                onValueChange={(value) => setFormData({ ...formData, roomId: value || undefined })}
+                dataSource={bomRooms.map((r: BOMRoom) => ({
+                  id: r.room?.id || r.roomId,
+                  display: `${r.room?.code || ''} - ${r.room?.name || ''}`,
+                }))}
+                valueExpr="id"
+                displayExpr="display"
+                placeholder="เลือกห้องที่บันทึก"
+                searchEnabled
+                showClearButton
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -407,16 +596,193 @@ export default function EnvironmentalMonitoringPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowAddDialog(false)} />
+            <DxButton text="Cancel" stylingMode="outlined" onClick={() => { setShowAddDialog(false); setEditingLogId(null); }} />
             <DxButton
-              text="Save Reading"
+              text={editingLogId ? 'บันทึกการแก้ไข' : 'Save Reading'}
               type="success"
-              onClick={handleAdd}
-              disabled={addLogMutation.isPending}
+              onClick={handleSave}
+              disabled={addLogMutation.isPending || editLogMutation.isPending}
             />
           </div>
         </div>
       </DxPopup>
+    </div>
+  );
+}
+
+// ============================================
+// PhaseStatusBanner — per-tab status indicator
+// ============================================
+
+function PhaseStatusBanner({
+  workOrderStatus,
+  phaseLabel,
+  info,
+  activePhase,
+  bomId,
+}: {
+  workOrderStatus: string;
+  phaseLabel: string;
+  info?: PhaseInfo;
+  activePhase?: 'pre_production' | 'production' | 'packaging' | null;
+  bomId?: number | null;
+}) {
+  // Format a timestamp as "HH:mm" (local time)
+  const fmtTime = (iso: string | null): string => {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleString('th-TH', {
+      year: '2-digit',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  // WO still planned — reference notice
+  if (workOrderStatus === 'planned') {
+    return (
+      <div className="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-semibold text-amber-900">WO ยังไม่ได้ Release</p>
+          <p className="text-amber-800 mt-0.5">
+            ระบบยังไม่เริ่มบันทึกข้อมูลสภาพแวดล้อม — กด Release WO เพื่อให้ Pre-Production เริ่มบันทึกอัตโนมัติภายใน 10-20 วินาที
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // WO completed — all phases frozen
+  if (workOrderStatus === 'completed') {
+    return (
+      <div className="mx-4 mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
+        <CheckCircle2 className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-semibold text-gray-800">WO เสร็จสมบูรณ์แล้ว</p>
+          <p className="text-gray-600 mt-0.5">
+            ข้อมูลสภาพแวดล้อมทุก phase ถูก frozen เพื่อเป็นบันทึกตามข้อกำหนด GMP — แก้ไขไม่ได้แล้ว
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // No phase info yet (loading)
+  if (!info) {
+    return null;
+  }
+
+  // BOM is missing a room mapping for this phase — highest-priority warning.
+  // Without a mapping, IoT can never route readings to this tab, so show
+  // a clear call-to-action to fix BOM Rooms setup.
+  if (!info.hasRoomMapping) {
+    return (
+      <div className="mx-4 mt-3 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 flex items-start gap-3">
+        <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+        <div className="text-sm flex-1">
+          <p className="font-semibold text-orange-900">
+            BOM ไม่มี Room Mapping สำหรับ {phaseLabel}
+          </p>
+          <p className="text-orange-800 mt-0.5">
+            IoT จะไม่ส่งข้อมูลเข้า tab นี้จนกว่าจะเพิ่มห้องที่ใช้งานใน phase {phaseLabel} ใน BOM
+          </p>
+          {bomId && (
+            <div className="mt-2">
+              <a
+                href={`/production/bom/${bomId}`}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium transition-colors"
+              >
+                ไปตั้ง BOM Rooms →
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Phase Active (currently being logged)
+  if (info.status === 'active') {
+    const hasData = !!info.startedAt;
+    return (
+      <div className={`mx-4 mt-3 rounded-lg border px-4 py-3 flex items-start gap-3 ${
+        hasData
+          ? 'border-emerald-200 bg-emerald-50'
+          : 'border-amber-200 bg-amber-50'
+      }`}>
+        <div className="flex-shrink-0 mt-0.5">
+          <span className="relative flex h-3 w-3">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+              hasData ? 'bg-emerald-400' : 'bg-amber-400'
+            }`}></span>
+            <span className={`relative inline-flex rounded-full h-3 w-3 ${
+              hasData ? 'bg-emerald-600' : 'bg-amber-600'
+            }`}></span>
+          </span>
+        </div>
+        <div className="text-sm flex-1">
+          {hasData ? (
+            <>
+              <p className="font-semibold text-emerald-900">
+                {phaseLabel} Active — กำลังบันทึกข้อมูลจาก IoT
+              </p>
+              <p className="text-emerald-800 mt-0.5">
+                เริ่มเมื่อ: {fmtTime(info.startedAt)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-semibold text-amber-900">
+                {phaseLabel} Active — เพิ่งเริ่ม รอข้อมูลครั้งแรกจาก IoT
+              </p>
+              <p className="text-amber-800 mt-0.5">
+                ระบบพร้อมรับข้อมูลแล้ว
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                ℹ️ ถ้ารอนานเกินไป ตรวจสอบว่า BOM มี room mapping สำหรับ phase นี้หรือไม่
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Phase Completed (frozen — read-only history)
+  if (info.status === 'completed') {
+    return (
+      <div className="mx-4 mt-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 flex items-start gap-3">
+        <CheckCircle2 className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div className="text-sm flex-1">
+          <p className="font-semibold text-blue-900">
+            {phaseLabel} Frozen — ข้อมูลย้อนหลัง (Read-only)
+          </p>
+          <p className="text-blue-800 mt-0.5">
+            เริ่ม: {fmtTime(info.startedAt)} · สิ้นสุด: {fmtTime(info.completedAt)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Phase Pending (not yet active — waiting for previous phase to finish)
+  return (
+    <div className="mx-4 mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
+      <Clock className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+      <div className="text-sm flex-1">
+        <p className="font-semibold text-gray-800">
+          {phaseLabel} Pending — ยังไม่เริ่ม
+        </p>
+        <p className="text-gray-600 mt-0.5">
+          {activePhase
+            ? `ตอนนี้กำลังอยู่ที่ phase ${PHASE_LABELS[activePhase]} — เมื่อ phase นี้เสร็จระบบจะย้ายมา ${phaseLabel} อัตโนมัติ`
+            : 'รอ phase ก่อนหน้าเสร็จก่อน'}
+        </p>
+      </div>
     </div>
   );
 }

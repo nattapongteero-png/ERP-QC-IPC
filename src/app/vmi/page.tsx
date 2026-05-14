@@ -9,7 +9,9 @@
  * Feature: 008-vmi-vendor-sync
  */
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -91,22 +93,21 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
   const lastItemsSync = syncItems.find((s: { syncType: string }) => s.syncType === 'items');
   const lastPricesSync = syncItems.find((s: { syncType: string }) => s.syncType === 'prices');
 
-  // Process orders data
+  // Process orders data - API returns VmiSalesOrderSummary with localStatus/unmatchedLineCount
   const orders = ordersData.success ? ordersData.data?.items || [] : [];
-  const pendingOrders = orders.filter((o: { status: string }) => o.status === 'pending').length;
-  const confirmedOrders = orders.filter((o: { status: string }) => o.status === 'confirmed').length;
-  const processingOrders = orders.filter((o: { status: string }) => o.status === 'processing').length;
-  const deliveredOrders = orders.filter((o: { status: string }) => o.status === 'delivered').length;
-  const today = new Date().toISOString().split('T')[0];
-  const shippedToday = orders.filter((o: { status: string; shippedAt?: string }) =>
-    o.status === 'shipped' && o.shippedAt?.startsWith(today)
+  const pendingOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'pending').length;
+  const confirmedOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'confirmed').length;
+  const processingOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'processing').length;
+  const deliveredOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'delivered').length;
+  const today = toLocalDateStr(new Date());
+  const shippedToday = orders.filter((o: { localStatus: string; shippedAt?: string }) =>
+    o.localStatus === 'shipped' && o.shippedAt?.startsWith(today)
   ).length;
   const unmatchedItems = orders
-    .filter((o: { status: string }) => o.status === 'pending')
-    .reduce((sum: number, o: { unmatchedItems?: number }) => sum + (o.unmatchedItems || 0), 0);
-  const urgentOrders = orders.filter((o: { priority: string; status: string }) =>
-    o.priority === 'urgent' && o.status !== 'shipped' && o.status !== 'delivered' && o.status !== 'cancelled'
-  ).length;
+    .filter((o: { localStatus: string }) => o.localStatus === 'pending')
+    .reduce((sum: number, o: { unmatchedLineCount?: number }) => sum + (o.unmatchedLineCount || 0), 0);
+  // priority is not stored in DB - skip urgentOrders
+  const urgentOrders = 0;
 
   // Process portals data
   const portals = portalsData.success ? portalsData.data || [] : [];
@@ -139,42 +140,43 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
 }
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-const formatTimeAgo = (dateString?: string) => {
-  if (!dateString) return 'ไม่เคย';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'เมื่อสักครู่';
-  if (diffMins < 60) return `${diffMins} นาทีที่แล้ว`;
-  if (diffHours < 24) return `${diffHours} ชั่วโมงที่แล้ว`;
-  return `${diffDays} วันที่แล้ว`;
-};
-
-const getSyncStatusConfig = (status?: string) => {
-  if (!status) return { icon: Clock, color: 'text-gray-400', bg: 'bg-gray-100', label: 'ไม่ทราบ' };
-  if (status === 'completed') return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100', label: 'สำเร็จ' };
-  if (status === 'running') return { icon: RefreshCw, color: 'text-blue-600', bg: 'bg-blue-100', label: 'กำลังทำงาน', animate: true };
-  if (status === 'failed') return { icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100', label: 'ล้มเหลว' };
-  return { icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-100', label: 'มีปัญหา' };
-};
-
-// ============================================================================
 // Main Component
 // ============================================================================
 
 export default function VmiPage() {
+  const t = useTranslations('vmi');
   const { data: stats, isLoading, refetch } = useQuery({
     queryKey: ['vmi-dashboard'],
     queryFn: fetchDashboardStats,
     refetchInterval: 60000,
   });
+
+  // ============================================================================
+  // Helper Functions (inside component to use t())
+  // ============================================================================
+
+  const formatTimeAgo = useCallback((dateString?: string) => {
+    if (!dateString) return t('syncStatus.never');
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return t('syncStatus.justNow');
+    if (diffMins < 60) return t('syncStatus.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('syncStatus.hoursAgo', { count: diffHours });
+    return t('syncStatus.daysAgo', { count: diffDays });
+  }, [t]);
+
+  const getSyncStatusConfig = useCallback((status?: string) => {
+    if (!status) return { icon: Clock, color: 'text-gray-400', bg: 'bg-gray-100', label: t('syncStatus.unknown') };
+    if (status === 'completed') return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100', label: t('syncStatus.completed') };
+    if (status === 'running') return { icon: RefreshCw, color: 'text-blue-600', bg: 'bg-blue-100', label: t('syncStatus.running'), animate: true };
+    if (status === 'failed') return { icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100', label: t('syncStatus.failed') };
+    return { icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-100', label: t('syncStatus.hasIssues') };
+  }, [t]);
 
   // ============================================================================
   // Loading State
@@ -223,8 +225,8 @@ export default function VmiPage() {
                   <Link2 className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">VMI Integration</h1>
-                  <p className="text-white/80 text-sm">Vendor Managed Inventory - เชื่อมต่อกับระบบโรงพยาบาล</p>
+                  <h1 className="text-2xl font-bold text-white">{t('dashboard.title')}</h1>
+                  <p className="text-white/80 text-sm">{t('dashboard.subtitle')}</p>
                 </div>
               </div>
 
@@ -237,14 +239,14 @@ export default function VmiPage() {
                 </button>
                 <Link href="/vmi/sync">
                   <DxButton
-                    text="จัดการ Sync"
+                    text={t('dashboard.manageSync')}
                     icon="refresh"
                     type="default"
                   />
                 </Link>
                 <Link href="/sales/vmi-orders">
                   <DxButton
-                    text="ดูคำสั่งซื้อ"
+                    text={t('dashboard.viewOrders')}
                     icon="cart"
                     type="success"
                   />
@@ -255,24 +257,24 @@ export default function VmiPage() {
             {/* Quick Stats in Header */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
               <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">Portal ที่เชื่อมต่อ</p>
+                <p className="text-white/70 text-xs">{t('dashboard.connectedPortals')}</p>
                 <p className="text-2xl font-bold text-white">
                   {stats?.portals.activePortals || 0}/{stats?.portals.totalPortals || 0}
                 </p>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">คำสั่งซื้อรอดำเนินการ</p>
+                <p className="text-white/70 text-xs">{t('dashboard.pendingOrders')}</p>
                 <p className="text-2xl font-bold text-white">{totalActiveOrders}</p>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">ส่งวันนี้</p>
+                <p className="text-white/70 text-xs">{t('dashboard.shippedToday')}</p>
                 <p className="text-2xl font-bold text-white">{stats?.orders.shippedToday || 0}</p>
               </div>
               <div className={cn(
                 'backdrop-blur-sm rounded-lg p-3',
                 (stats?.orders.urgentOrders || 0) > 0 ? 'bg-red-500/50' : 'bg-white/20'
               )}>
-                <p className="text-white/70 text-xs">คำสั่งซื้อเร่งด่วน</p>
+                <p className="text-white/70 text-xs">{t('dashboard.urgentOrders')}</p>
                 <p className="text-2xl font-bold text-white">{stats?.orders.urgentOrders || 0}</p>
               </div>
             </div>
@@ -291,7 +293,7 @@ export default function VmiPage() {
                       <Clock className="h-5 w-5 text-amber-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">รอยืนยัน</p>
+                      <p className="text-xs text-gray-500">{t('orderStatus.pending')}</p>
                       <p className="text-lg font-bold text-amber-600">{stats?.orders.pendingOrders || 0}</p>
                     </div>
                   </div>
@@ -310,7 +312,7 @@ export default function VmiPage() {
                       <CheckCircle className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ยืนยันแล้ว</p>
+                      <p className="text-xs text-gray-500">{t('orderStatus.confirmed')}</p>
                       <p className="text-lg font-bold text-blue-600">{stats?.orders.confirmedOrders || 0}</p>
                     </div>
                   </div>
@@ -329,7 +331,7 @@ export default function VmiPage() {
                       <Package className="h-5 w-5 text-violet-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">กำลังจัดเตรียม</p>
+                      <p className="text-xs text-gray-500">{t('orderStatus.processing')}</p>
                       <p className="text-lg font-bold text-violet-600">{stats?.orders.processingOrders || 0}</p>
                     </div>
                   </div>
@@ -348,7 +350,7 @@ export default function VmiPage() {
                       <Truck className="h-5 w-5 text-cyan-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ส่งวันนี้</p>
+                      <p className="text-xs text-gray-500">{t('orderStatus.shippedToday')}</p>
                       <p className="text-lg font-bold text-cyan-600">{stats?.orders.shippedToday || 0}</p>
                     </div>
                   </div>
@@ -367,7 +369,7 @@ export default function VmiPage() {
                       <TrendingUp className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ส่งมอบแล้ว</p>
+                      <p className="text-xs text-gray-500">{t('orderStatus.delivered')}</p>
                       <p className="text-lg font-bold text-green-600">{stats?.orders.deliveredOrders || 0}</p>
                     </div>
                   </div>
@@ -395,7 +397,7 @@ export default function VmiPage() {
                       )} />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">รอจับคู่สินค้า</p>
+                      <p className="text-xs text-gray-500">{t('orderStatus.unmatched')}</p>
                       <p className={cn(
                         'text-lg font-bold',
                         (stats?.orders.unmatchedItems || 0) > 0 ? 'text-red-600' : 'text-gray-400'
@@ -418,7 +420,7 @@ export default function VmiPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Activity className="h-5 w-5 text-cyan-500" />
-                  สถานะการ Sync
+                  {t('syncStatus.title')}
                 </CardTitle>
                 <button
                   onClick={() => refetch()}
@@ -441,7 +443,7 @@ export default function VmiPage() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">Inventory</p>
-                        <p className="text-xs text-gray-500">สต็อกสินค้า</p>
+                        <p className="text-xs text-gray-500">{t('syncStatus.inventory')}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -464,7 +466,7 @@ export default function VmiPage() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">Items</p>
-                        <p className="text-xs text-gray-500">รายการสินค้า</p>
+                        <p className="text-xs text-gray-500">{t('syncStatus.items')}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -487,7 +489,7 @@ export default function VmiPage() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">Prices</p>
-                        <p className="text-xs text-gray-500">ราคาสินค้า</p>
+                        <p className="text-xs text-gray-500">{t('syncStatus.prices')}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -506,8 +508,8 @@ export default function VmiPage() {
                       <Globe className="h-5 w-5 text-cyan-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">VMI Portals</p>
-                      <p className="text-xs text-gray-500">เชื่อมต่อโรงพยาบาล</p>
+                      <p className="font-medium text-gray-900">{t('portals.title')}</p>
+                      <p className="text-xs text-gray-500">{t('portals.subtitle')}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -515,7 +517,7 @@ export default function VmiPage() {
                       {stats?.portals.activePortals || 0}
                       <span className="text-sm font-normal text-gray-500">/{stats?.portals.totalPortals || 0}</span>
                     </p>
-                    <p className="text-xs text-gray-500">พอร์ทัลที่ใช้งาน</p>
+                    <p className="text-xs text-gray-500">{t('portals.activePortals')}</p>
                   </div>
                 </div>
               </div>
@@ -527,7 +529,7 @@ export default function VmiPage() {
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Zap className="h-5 w-5 text-amber-500" />
-                Quick Actions
+                {t('quickActions.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -537,10 +539,10 @@ export default function VmiPage() {
                     <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                       <ShoppingCart className="h-6 w-6 text-blue-600" />
                     </div>
-                    <p className="font-semibold text-gray-900">จัดการคำสั่งซื้อ</p>
-                    <p className="text-xs text-gray-500 mt-1">ดูและจัดการ VMI Orders</p>
+                    <p className="font-semibold text-gray-900">{t('quickActions.manageOrders')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('quickActions.manageOrdersDescription')}</p>
                     <div className="flex items-center gap-1 text-blue-600 text-xs mt-2">
-                      <span>ดูรายการ</span>
+                      <span>{t('quickActions.viewList')}</span>
                       <ArrowRight className="h-3 w-3" />
                     </div>
                   </div>
@@ -551,10 +553,10 @@ export default function VmiPage() {
                     <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                       <RefreshCw className="h-6 w-6 text-green-600" />
                     </div>
-                    <p className="font-semibold text-gray-900">Sync Management</p>
-                    <p className="text-xs text-gray-500 mt-1">จัดการการ Sync ข้อมูล</p>
+                    <p className="font-semibold text-gray-900">{t('quickActions.syncManagement')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('quickActions.syncDescription')}</p>
                     <div className="flex items-center gap-1 text-green-600 text-xs mt-2">
-                      <span>ไปที่หน้า Sync</span>
+                      <span>{t('quickActions.goToSync')}</span>
                       <ArrowRight className="h-3 w-3" />
                     </div>
                   </div>
@@ -565,10 +567,10 @@ export default function VmiPage() {
                     <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                       <Settings className="h-6 w-6 text-purple-600" />
                     </div>
-                    <p className="font-semibold text-gray-900">Portal Settings</p>
-                    <p className="text-xs text-gray-500 mt-1">ตั้งค่าการเชื่อมต่อ Portal</p>
+                    <p className="font-semibold text-gray-900">{t('quickActions.portalSettings')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('quickActions.portalSettingsDescription')}</p>
                     <div className="flex items-center gap-1 text-purple-600 text-xs mt-2">
-                      <span>ตั้งค่า</span>
+                      <span>{t('quickActions.settings')}</span>
                       <ArrowRight className="h-3 w-3" />
                     </div>
                   </div>
@@ -579,10 +581,10 @@ export default function VmiPage() {
                     <div className="h-12 w-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                       <Database className="h-6 w-6 text-indigo-600" />
                     </div>
-                    <p className="font-semibold text-gray-900">Item Mapping</p>
-                    <p className="text-xs text-gray-500 mt-1">จับคู่รหัสสินค้า</p>
+                    <p className="font-semibold text-gray-900">{t('quickActions.itemMapping')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('quickActions.itemMappingDescription')}</p>
                     <div className="flex items-center gap-1 text-indigo-600 text-xs mt-2">
-                      <span>จัดการสินค้า</span>
+                      <span>{t('quickActions.manageItems')}</span>
                       <ArrowRight className="h-3 w-3" />
                     </div>
                   </div>
@@ -593,10 +595,10 @@ export default function VmiPage() {
                     <div className="h-12 w-12 bg-cyan-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                       <Package className="h-6 w-6 text-cyan-600" />
                     </div>
-                    <p className="font-semibold text-gray-900">Inventory Lots</p>
-                    <p className="text-xs text-gray-500 mt-1">จัดการ Lot สินค้า</p>
+                    <p className="font-semibold text-gray-900">{t('quickActions.inventoryLots')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('quickActions.lotsDescription')}</p>
                     <div className="flex items-center gap-1 text-cyan-600 text-xs mt-2">
-                      <span>ดู Lots</span>
+                      <span>{t('quickActions.viewLots')}</span>
                       <ArrowRight className="h-3 w-3" />
                     </div>
                   </div>
@@ -607,10 +609,10 @@ export default function VmiPage() {
                     <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                       <Building2 className="h-6 w-6 text-amber-600" />
                     </div>
-                    <p className="font-semibold text-gray-900">Hospital Partners</p>
-                    <p className="text-xs text-gray-500 mt-1">จัดการคู่ค้าโรงพยาบาล</p>
+                    <p className="font-semibold text-gray-900">{t('quickActions.hospitalPartners')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('quickActions.partnersDescription')}</p>
                     <div className="flex items-center gap-1 text-amber-600 text-xs mt-2">
-                      <span>ดูรายการ</span>
+                      <span>{t('quickActions.viewList')}</span>
                       <ArrowRight className="h-3 w-3" />
                     </div>
                   </div>
@@ -626,13 +628,13 @@ export default function VmiPage() {
                         <AlertTriangle className="h-6 w-6 text-red-500" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-red-800">รายการรอจับคู่สินค้า</p>
+                        <p className="font-semibold text-red-800">{t('alerts.unmatchedTitle')}</p>
                         <p className="text-sm text-red-600">
-                          มี {stats?.orders.unmatchedItems} รายการที่ต้องจับคู่รหัสสินค้าก่อนดำเนินการ
+                          {t('alerts.unmatchedDescription', { count: stats?.orders.unmatchedItems ?? 0 })}
                         </p>
                       </div>
                       <Link href="/sales/vmi-orders?filter=unmatched">
-                        <DxButton text="ดูรายการ" type="danger" stylingMode="outlined" />
+                        <DxButton text={t('alerts.viewItems')} type="danger" stylingMode="outlined" />
                       </Link>
                     </div>
                   )}
@@ -643,13 +645,13 @@ export default function VmiPage() {
                         <Bell className="h-6 w-6 text-amber-500" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-amber-800">คำสั่งซื้อเร่งด่วน</p>
+                        <p className="font-semibold text-amber-800">{t('alerts.urgentTitle')}</p>
                         <p className="text-sm text-amber-600">
-                          มี {stats?.orders.urgentOrders} คำสั่งซื้อที่ต้องดำเนินการเร่งด่วน
+                          {t('alerts.urgentDescription', { count: stats?.orders.urgentOrders ?? 0 })}
                         </p>
                       </div>
                       <Link href="/sales/vmi-orders?priority=urgent">
-                        <DxButton text="ดูรายการ" type="default" stylingMode="outlined" />
+                        <DxButton text={t('alerts.viewItems')} type="default" stylingMode="outlined" />
                       </Link>
                     </div>
                   )}

@@ -7,7 +7,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toDateSafe } from '../db/date-utils';
+import { toDateSafe, getNow } from '../db/date-utils';
 import { eq, and, desc, like, count, lte, gte } from 'drizzle-orm';
 import {
   sqliteStabilityProtocols,
@@ -196,7 +196,7 @@ export async function createProtocol(
     timepoints: JSON.stringify(data.timepoints),
     testsRequired: JSON.stringify(data.testsRequired),
     status: 'draft',
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   });
 
   const protocolId = Number(insertResult.lastInsertRowid);
@@ -343,7 +343,7 @@ export async function approveProtocol(id: number, userId: number): Promise<Stabi
     throw new Error('Only draft protocols can be approved');
   }
 
-  const now = new Date().toISOString();
+  const now = getNow();
   await database
     .update(sqliteStabilityProtocols)
     .set({
@@ -394,7 +394,7 @@ export async function createStudy(
     notes: data.notes || null,
     status: 'active',
     createdBy: userId,
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   });
 
   const studyId = Number(insertResult.lastInsertRowid);
@@ -441,7 +441,7 @@ async function generateSampleSchedule(
       timepoint,
       scheduledDate: scheduledDate.toISOString().split('T')[0],
       status: 'pending',
-      createdAt: new Date().toISOString(),
+      createdAt: getNow(),
     });
   }
 }
@@ -1159,7 +1159,7 @@ export async function triggerOOSInvestigation(
         sourceType: 'stability_test',
         sourceId: sampleId,
         reportedBy: userId,
-        reportedAt: new Date().toISOString(),
+        reportedAt: getNow(),
       })
       .returning({ id: sqliteDeviations.id });
     deviationId = Number(deviation.id);
@@ -1175,7 +1175,7 @@ export async function triggerOOSInvestigation(
         sourceType: 'stability_test',
         sourceId: sampleId,
         reportedBy: userId,
-        reportedAt: new Date().toISOString(),
+        reportedAt: getNow(),
       });
     deviationId = getInsertId(result);
   }

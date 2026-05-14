@@ -51,7 +51,7 @@ export const contractListParamsSchema = z.object({
   contractorType: contractorTypeEnum.optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  limit: z.coerce.number().int().positive().max(1000).optional().default(20),
 });
 
 // ============================================
@@ -80,7 +80,7 @@ export const batchListParamsSchema = z.object({
   contractId: z.coerce.number().int().positive().optional(),
   activityType: activityTypeEnum.optional(),
   page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  limit: z.coerce.number().int().positive().max(1000).optional().default(20),
 });
 
 // ============================================

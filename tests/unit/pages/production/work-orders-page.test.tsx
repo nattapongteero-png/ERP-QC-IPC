@@ -101,7 +101,7 @@ describe('WorkOrdersPage', () => {
       renderWithProviders(<WorkOrdersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Production Management/)).toBeInTheDocument();
+        expect(screen.getByText('Manage production work orders and track progress')).toBeInTheDocument();
       });
     });
 

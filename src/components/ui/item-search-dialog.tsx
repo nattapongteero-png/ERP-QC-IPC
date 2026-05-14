@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dx-data-grid';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 import { DxTabs } from '@/components/ui/dx-tabs';
+import { useToast } from '@/hooks/use-toast';
+import { ItemEditDialog, type ItemFormData } from '@/components/ui/item-edit-dialog';
 import {
   Package,
   Leaf,
@@ -36,6 +38,9 @@ export interface Item {
   nameTh: string;
   nameEn: string;
   primaryUnit: string;
+  secondaryUnit?: string | null;
+  conversionRate?: number | null;
+  weightUnit?: string | null;
   sellingPrice?: number;
   costPrice?: number;
   category?: string;
@@ -54,10 +59,16 @@ interface ItemSearchDialogProps {
   onSelect: (item: Item) => void;
   title?: string;
   showPrice?: 'selling' | 'cost' | 'both' | 'none';
-  filterType?: string;
+  /**
+   * Restrict the picker to one or more item types. A single string pins the
+   * dialog to that type (no tab switching); an array renders one tab per
+   * type so the user can pick from any of them.
+   */
+  filterType?: string | string[];
   excludeType?: string;
   excludeIds?: number[];
   showStock?: boolean;
+  allowCreate?: boolean;
 }
 
 // Item type configuration with icons and colors
@@ -95,12 +106,15 @@ export function ItemSearchDialog({
   excludeType,
   excludeIds = [],
   showStock = true,
+  allowCreate = false,
 }: ItemSearchDialogProps) {
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [allResults, setAllResults] = useState<Item[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedTypeTab, setSelectedTypeTab] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Use ref to avoid infinite loop from excludeIds array reference changes
   const excludeIdsRef = useRef(excludeIds);
@@ -109,42 +123,39 @@ export function ItemSearchDialog({
   // Track last clicked row for manual double-click detection (more reliable with virtual scrolling)
   const lastClickRef = useRef<{ id: number | null; time: number }>({ id: null, time: 0 });
 
-  // Type tabs configuration - dynamically built from results
+  // Type tabs configuration - fixed enum (not dynamic from results)
+  // Fetch-per-tab approach: each tab triggers its own API call with ?type=
+  // so tabs always appear even when the "All" query truncates at the limit.
   const typeTabs = useMemo(() => {
-    const types = new Map<string, number>();
-    allResults.forEach(item => {
-      const type = item.type || 'unknown';
-      types.set(type, (types.get(type) || 0) + 1);
-    });
+    // filterType can be a single string (pinned to one type) or an array
+    // (pinned to a small set, rendered as individual tabs so the user can
+    // switch between them — used by BOM new to offer both finished_goods
+    // and WIP as valid products).
+    if (filterType) {
+      const types = Array.isArray(filterType) ? filterType : [filterType];
+      if (types.length === 1) {
+        const t = types[0];
+        const config = itemTypeConfig[t] || { label: t };
+        return [{ text: config.label, value: t }];
+      }
+      return types.map((t) => {
+        const config = itemTypeConfig[t] || { label: t };
+        return { text: config.label, value: t };
+      });
+    }
 
-    const tabs = [{ text: `All (${allResults.length})`, value: '' }];
-
-    // Add type tabs in specific order
     const orderedTypes = ['raw_material', 'packaging', 'wip', 'finished_goods', 'extract', 'consumable'];
+    const tabs: { text: string; value: string }[] = [{ text: 'All', value: '' }];
     orderedTypes.forEach(type => {
-      const count = types.get(type);
-      if (count) {
-        const config = itemTypeConfig[type] || { label: type };
-        tabs.push({ text: `${config.label} (${count})`, value: type });
-      }
+      if (type === excludeType) return;
+      const config = itemTypeConfig[type] || { label: type };
+      tabs.push({ text: config.label, value: type });
     });
-
-    // Add any remaining types
-    types.forEach((count, type) => {
-      if (!orderedTypes.includes(type) && type !== 'unknown') {
-        tabs.push({ text: `${type} (${count})`, value: type });
-      }
-    });
-
     return tabs;
-  }, [allResults]);
+  }, [filterType, excludeType]);
 
-  // Filtered results based on selected tab
-  const filteredResults = useMemo(() => {
-    const selectedType = typeTabs[selectedTypeTab]?.value || '';
-    if (!selectedType) return allResults;
-    return allResults.filter(item => item.type === selectedType);
-  }, [allResults, selectedTypeTab, typeTabs]);
+  // Server already filtered by type + search; no client filter needed
+  const filteredResults = allResults;
 
   // Statistics
   const stats = useMemo(() => {
@@ -165,15 +176,43 @@ export function ItemSearchDialog({
     onOpenChange(false);
   }, [onSelect, onOpenChange]);
 
-  const searchItems = useCallback(async (query: string) => {
+  const handleSaveNewItem = async (data: ItemFormData) => {
+    const res = await fetch('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || 'Failed to create item');
+
+    toast.success('สร้างรายการสำเร็จ', `${data.code} - ${data.nameTh}`);
+    setShowCreateDialog(false);
+
+    // Re-search to include new item
+    await searchItems('');
+  };
+
+  const searchItems = useCallback(async (query: string, type?: string) => {
     setIsSearching(true);
     try {
-      const params = new URLSearchParams({ limit: '100' });
+      // All-tab pulls a larger page since it mixes every type;
+      // type-tabs stay at 200 since they are already narrowed server-side.
+      // When filterType is an array the selected tab value (`type` arg) is
+      // authoritative — collapsing the whole array into a single query param
+      // would produce "finished_goods,wip" which the API doesn't understand.
+      const pinnedType =
+        typeof filterType === 'string'
+          ? filterType
+          : Array.isArray(filterType) && filterType.length === 1
+            ? filterType[0]
+            : '';
+      const effectiveType = pinnedType || type || '';
+      const params = new URLSearchParams({ limit: effectiveType ? '200' : '500' });
       if (query && query.trim()) {
         params.set('search', query.trim());
       }
-      if (filterType) {
-        params.set('type', filterType);
+      if (effectiveType) {
+        params.set('type', effectiveType);
       }
 
       const res = await fetch(`/api/items?${params}`);
@@ -185,11 +224,12 @@ export function ItemSearchDialog({
         if (currentExcludeIds.length > 0) {
           items = items.filter((item: Item) => !currentExcludeIds.includes(item.id));
         }
-        if (excludeType) {
+        // Only apply client-side excludeType on the "All" tab; type-tabs already
+        // filter server-side so the exclude tab is simply hidden from the tab list.
+        if (excludeType && !effectiveType) {
           items = items.filter((item: Item) => item.type !== excludeType);
         }
         setAllResults(items);
-        setSelectedTypeTab(0);
       }
     } catch (error) {
       console.error('Failed to search items:', error);
@@ -199,21 +239,16 @@ export function ItemSearchDialog({
     }
   }, [filterType, excludeType]);
 
-  // Initial load when dialog opens
-  useEffect(() => {
-    if (open) {
-      searchItems('');
-    }
-  }, [open, searchItems]);
-
-  // Debounced search when typing
+  // Load items when dialog opens, tab switches, or search changes.
+  // Single useEffect avoids duplicate fetches and re-fetches per tab.
   useEffect(() => {
     if (!open) return;
+    const type = typeTabs[selectedTypeTab]?.value;
     const timer = setTimeout(() => {
-      searchItems(search);
-    }, 300);
+      searchItems(search, type);
+    }, search ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [search, open, searchItems]);
+  }, [open, search, selectedTypeTab, typeTabs, searchItems]);
 
   // Reset when dialog closes
   useEffect(() => {
@@ -222,6 +257,7 @@ export function ItemSearchDialog({
       setAllResults([]);
       setSelectedTypeTab(0);
       setSelectedItem(null);
+      setShowCreateDialog(false);
     }
   }, [open]);
 
@@ -422,6 +458,15 @@ export function ItemSearchDialog({
               elementAttr={{ 'data-testid': 'item-search-input' }}
             />
           </div>
+          {allowCreate && (
+            <DxButton
+              text="+ เพิ่มรายการใหม่"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setShowCreateDialog(true)}
+              elementAttr={{ 'data-testid': 'item-create-btn' }}
+            />
+          )}
           {selectedItem && (
             <DxButton
               text="Confirm Selection"
@@ -433,8 +478,9 @@ export function ItemSearchDialog({
           )}
         </div>
 
-        {/* Type Filter Tabs */}
-        {typeTabs.length > 1 && !filterType && (
+        {/* Type Filter Tabs — shown when no filterType, OR when filterType is
+            a multi-value array (user can still switch between allowed types). */}
+        {typeTabs.length > 1 && (
           <DxTabs
             items={typeTabs.map(tab => ({ text: tab.text }))}
             selectedIndex={selectedTypeTab}
@@ -442,8 +488,8 @@ export function ItemSearchDialog({
           />
         )}
 
-        {/* Filter indicator */}
-        {filterType && (
+        {/* Filter indicator — only for a single pinned type (no tab switching) */}
+        {typeof filterType === 'string' && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Filtering by:</span>
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${itemTypeConfig[filterType]?.bgColor || 'bg-gray-100'} ${itemTypeConfig[filterType]?.color || 'text-gray-700'}`}>
@@ -547,7 +593,16 @@ export function ItemSearchDialog({
             ) : (
               <p className="text-gray-500 mb-4">No items available in the system</p>
             )}
-            {search && (
+            {allowCreate && (
+              <DxButton
+                text="+ เพิ่มรายการใหม่"
+                type="default"
+                stylingMode="contained"
+                onClick={() => setShowCreateDialog(true)}
+                className="mt-2"
+              />
+            )}
+            {search && !allowCreate && (
               <div className="bg-white rounded-xl p-4 border max-w-md text-left">
                 <p className="font-medium text-gray-700 mb-2">Search tips:</p>
                 <ul className="list-disc list-inside space-y-1 text-sm text-gray-500">
@@ -605,18 +660,29 @@ export function ItemSearchDialog({
   );
 
   return (
-    <DxPopup
-      visible={open}
-      onHiding={() => onOpenChange(false)}
-      title=""
-      width="95%"
-      maxWidth={1200}
-      height="90%"
-      maxHeight={900}
-      showCloseButton
-      showTitle={false}
-    >
-      {renderDialogContent()}
-    </DxPopup>
+    <>
+      <DxPopup
+        visible={open}
+        onHiding={() => onOpenChange(false)}
+        title=""
+        width="95%"
+        maxWidth={1200}
+        height="90%"
+        maxHeight={900}
+        showCloseButton
+        showTitle={false}
+      >
+        {renderDialogContent()}
+      </DxPopup>
+
+      {/* Full Item Create Dialog (same as inventory create item page) */}
+      {allowCreate && (
+        <ItemEditDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSave={handleSaveNewItem}
+        />
+      )}
+    </>
   );
 }

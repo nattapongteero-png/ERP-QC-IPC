@@ -108,26 +108,24 @@ describe('ChartOfAccountsPage', () => {
     render(<ChartOfAccountsPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('ผังบัญชี')).toBeInTheDocument();
+      expect(screen.getAllByText('Chart of Accounts').length).toBeGreaterThan(0);
     });
-
-    expect(screen.getByText('Chart of Accounts')).toBeInTheDocument();
   });
 
   it('renders KPI cards with proper styling', async () => {
     render(<ChartOfAccountsPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('บัญชีทั้งหมด')).toBeInTheDocument();
+      expect(screen.getByText('Total Accounts')).toBeInTheDocument();
     });
 
     // Check all KPI card labels exist (may appear in multiple places like grid headers)
-    const activeLabels = screen.getAllByText('ใช้งาน');
+    const activeLabels = screen.getAllByText('Active');
     expect(activeLabels.length).toBeGreaterThan(0);
 
-    expect(screen.getByText('ลงบัญชีได้')).toBeInTheDocument();
+    expect(screen.getAllByText('Postable').length).toBeGreaterThan(0);
 
-    const bankAccountLabels = screen.getAllByText('บัญชีธนาคาร');
+    const bankAccountLabels = screen.getAllByText('Bank Accounts');
     expect(bankAccountLabels.length).toBeGreaterThan(0);
   });
 
@@ -160,7 +158,7 @@ describe('ChartOfAccountsPage', () => {
     render(<ChartOfAccountsPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('บัญชีทั้งหมด')).toBeInTheDocument();
+      expect(screen.getByText('Total Accounts')).toBeInTheDocument();
     });
   });
 });

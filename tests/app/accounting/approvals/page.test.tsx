@@ -167,7 +167,7 @@ describe('Approval Dashboard Page', () => {
       expect(screen.getByTestId('page-title')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('page-title')).toHaveTextContent('Approval Dashboard');
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Accounting');
   });
 
   it('renders the main layout', async () => {
@@ -209,7 +209,7 @@ describe('Approval Dashboard Page', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Review and action pending approval requests/i)
+        screen.getByText(/Manage general ledger/i)
       ).toBeInTheDocument();
     });
   });

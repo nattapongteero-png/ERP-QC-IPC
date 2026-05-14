@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { runMatching } from '@/lib/services/matching.service';
 
 interface RouteContext {
@@ -11,52 +12,55 @@ interface RouteContext {
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  try {
-    const { id } = await context.params;
-    const invoiceId = parseInt(id, 10);
-
-    if (isNaN(invoiceId)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid invoice ID' },
-        { status: 400 }
-      );
-    }
-
-    // Get optional tolerance overrides from body
-    let toleranceOverrides;
+  return withAuth(request, async (session) => {
     try {
-      const body = await request.json();
-      toleranceOverrides = body.toleranceOverrides;
-    } catch {
-      // No body provided, use defaults
-    }
+      const { id } = await context.params;
+      const invoiceId = parseInt(id, 10);
 
-    // TODO: Get actual user ID from session
-    const userId = 1;
+      if (isNaN(invoiceId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid invoice ID' },
+          { status: 400 }
+        );
+      }
 
-    const result = await runMatching(
-      { invoiceId, toleranceOverrides },
-      userId
-    );
+      // Get optional tolerance overrides from body
+      let toleranceOverrides;
+      try {
+        const body = await request.json();
+        toleranceOverrides = body.toleranceOverrides;
+      } catch {
+        // No body provided, use defaults
+      }
 
-    if (!result.success) {
+      // TODO: Get actual user ID from session
+      const userId = session.userId;
+
+      const result = await runMatching(
+        { invoiceId, toleranceOverrides },
+        userId
+      );
+
+      if (!result.success) {
+        return NextResponse.json(
+          { success: false, error: result.error },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        matchingResultId: result.matchingResultId,
+        status: result.status,
+        exceptions: result.exceptions,
+      });
+    } catch (error) {
+      console.error('Error running matching:', error);
       return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
+        { success: false, error: (error as Error).message },
+        { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      matchingResultId: result.matchingResultId,
-      status: result.status,
-      exceptions: result.exceptions,
-    });
-  } catch (error) {
-    console.error('Error running matching:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  });
 }

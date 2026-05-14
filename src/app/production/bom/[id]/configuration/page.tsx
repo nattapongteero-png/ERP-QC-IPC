@@ -6,11 +6,12 @@
  * and packaging QC criteria for a specific BOM.
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDataGrid, DxColumn, DxPaging } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -20,7 +21,6 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSwitch } from '@/components/ui/dx-switch';
 import { DxTabs } from '@/components/ui/dx-tabs';
-import type { DxTabItem } from '@/components/ui/dx-tabs';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import { SwitchTypes } from 'devextreme-react/switch';
@@ -31,9 +31,356 @@ import {
   Thermometer,
   FileText,
   Scale,
-  ArrowLeft,
-  Copy
+  FlaskConical,
+  Plus,
+  Trash2,
+  Pencil,
 } from 'lucide-react';
+
+// IPC Configuration Section Component
+type IPCPhase = 'pre_production' | 'production' | 'post_production' | 'packaging';
+const IPC_PHASE_OPTIONS: Array<{ value: IPCPhase; label: string }> = [
+  { value: 'pre_production', label: 'Pre-Production' },
+  { value: 'production', label: 'Production' },
+  { value: 'post_production', label: 'Post-Production' },
+  { value: 'packaging', label: 'Packaging' },
+];
+
+function IPCConfigSection({ bomId }: { bomId: number }) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [editingIpcId, setEditingIpcId] = useState<number | null>(null);
+  // Add mode = multi-select bulk add. Edit mode still works on a single
+  // row, so we keep both shapes side by side.
+  const [selectedCriteriaIds, setSelectedCriteriaIds] = useState<number[]>([]);
+  const [criteriaSearch, setCriteriaSearch] = useState('');
+  const [sampleSize, setSampleSize] = useState(5);
+  const [isCritical, setIsCritical] = useState(false);
+  const [phase, setPhase] = useState<IPCPhase>('production');
+
+  const { data: configs = [], isLoading } = useQuery<any[]>({
+    queryKey: ['bom-ipc', bomId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/bom/${bomId}/ipc`);
+      const d = await res.json();
+      return d.success ? d.data : [];
+    },
+  });
+
+  const { data: allCriteria = [] } = useQuery<any[]>({
+    queryKey: ['ipc-criteria-active'],
+    queryFn: async () => {
+      const res = await fetch('/api/master-data/ipc-criteria?isActive=true');
+      const d = await res.json();
+      return d.success ? d.data : [];
+    },
+  });
+
+  const available = editingIpcId
+    ? allCriteria // When editing, show all criteria including current
+    : allCriteria.filter((c: any) => !configs.some((cfg: any) => cfg.criteriaId === c.id));
+
+  const resetForm = () => {
+    setShowForm(false); setEditingIpcId(null);
+    setSelectedCriteriaIds([]); setCriteriaSearch('');
+    setSampleSize(5); setIsCritical(false); setPhase('production');
+  };
+
+  // Bulk add: POST one row per selected criterion, each with that
+  // criterion's master defaults for sampleSize / isCritical (operator can
+  // still edit per-row after add). Phase is shared across the batch.
+  const addMut = useMutation({
+    mutationFn: async () => {
+      const results = await Promise.all(
+        selectedCriteriaIds.map(async (id) => {
+          const master = allCriteria.find((c: any) => c.id === id) as any;
+          const res = await fetch(`/api/production/bom/${bomId}/ipc`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              criteriaId: id,
+              sampleSize: master?.sampleSize ?? 5,
+              isCritical: master?.isCritical ?? false,
+              phase,
+            }),
+          });
+          return res.json();
+        }),
+      );
+      const failed = results.filter((r) => !r.success);
+      if (failed.length > 0) {
+        throw new Error(`${failed.length}/${results.length} failed: ${failed[0]?.error ?? 'unknown'}`);
+      }
+      return { added: results.length };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['bom-ipc', bomId] });
+      resetForm();
+      toast.success('Added', `เพิ่ม IPC criteria ${data.added} รายการสำเร็จ`);
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const editMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/production/bom/${bomId}/ipc`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bomIpcId: editingIpcId, sampleSize, isCritical, phase }),
+      });
+      const r = await res.json();
+      if (!r.success) throw new Error(r.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-ipc', bomId] });
+      resetForm();
+      toast.success('Updated', 'IPC criteria updated.');
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const delMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/production/bom/${bomId}/ipc?bomIpcId=${id}`, { method: 'DELETE' });
+      const r = await res.json();
+      if (!r.success) throw new Error(r.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-ipc', bomId] });
+      toast.success('Removed', 'IPC criteria removed.');
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const openEdit = (cfg: any) => {
+    setEditingIpcId(cfg.id);
+    setSampleSize(cfg.sampleSize);
+    setIsCritical(cfg.isCritical);
+    setPhase(((cfg.phase as string) || 'production') as IPCPhase);
+    setShowForm(true);
+  };
+
+  return (
+    <Card>
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="h-5 w-5 text-emerald-600" />
+            <h3 className="text-lg font-medium">In-Process Control (IPC) — Phase Level</h3>
+          </div>
+          {!showForm && (
+            <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200">
+              <Plus className="h-4 w-4" /> Add IPC Criteria
+            </button>
+          )}
+        </div>
+
+        {/* New workflow: Phase Level is now the master scope for this BOM
+            (must be populated first). SOP Steps reference IPCs from here —
+            cannot bind anything that isn't declared at phase level. */}
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/70 px-3 py-2.5 text-xs text-blue-900 leading-relaxed">
+          <p className="font-semibold mb-0.5">ขั้นตอนการกำหนด IPC สำหรับ BOM นี้</p>
+          <ol className="list-decimal pl-5 space-y-0.5">
+            <li>
+              <strong>tab นี้ (IPC — Phase Level):</strong> กำหนด IPC criteria ทั้งหมดที่จะใช้ใน BOM นี้ก่อน
+            </li>
+            <li>
+              <strong>tab &quot;SOP Steps&quot; → ปุ่ม &quot;Manage&quot; ในแต่ละ step:</strong> เลือก IPC จากที่กำหนดในข้อ 1 มาผูกกับ step หรือ sub-step เฉพาะ
+            </li>
+          </ol>
+          <p className="mt-1.5 text-[11px] text-blue-700">
+            IPC ที่ไม่ได้กำหนดในข้อ 1 จะไม่สามารถผูกกับ SOP step ได้
+          </p>
+        </div>
+
+        {isLoading && <div className="text-center py-6 text-gray-400">Loading...</div>}
+
+        {!isLoading && configs.length === 0 && !showForm && (
+          <div className="text-center py-6 text-gray-500 text-sm">No IPC criteria configured.</div>
+        )}
+
+        <div className="space-y-2">
+          {configs.map((cfg: any, idx: number) => (
+            <div key={cfg.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-white group">
+              <span className="flex-none w-7 h-7 rounded bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center">{idx + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-emerald-600">{cfg.criteriaCode}</span>
+                  <span className="font-medium">{cfg.criteriaNameTh || cfg.criteriaName}</span>
+                  {cfg.isCritical && <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Critical</span>}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {cfg.specification && <span>{cfg.specification} | </span>}
+                  {cfg.minValue != null && <span>Range: {cfg.minValue}-{cfg.maxValue} {cfg.unit} | </span>}
+                  Samples: {cfg.sampleSize}
+                </div>
+              </div>
+              <button onClick={() => openEdit(cfg)} className="p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100">
+                <Pencil className="h-4 w-4" />
+              </button>
+              <button onClick={() => { if (confirm('Remove?')) delMut.mutate(cfg.id); }} className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {showForm && (
+          <div className="mt-3 border border-emerald-200 bg-emerald-50/50 rounded-lg p-4 space-y-3">
+            {!editingIpcId && (() => {
+              // Filter master list: hide already-configured criteria + apply search.
+              const term = criteriaSearch.trim().toLowerCase();
+              const filtered = (available as any[]).filter((c: any) => {
+                if (!term) return true;
+                return (
+                  (c.code || '').toLowerCase().includes(term) ||
+                  (c.nameTh || '').toLowerCase().includes(term) ||
+                  (c.name || '').toLowerCase().includes(term)
+                );
+              });
+              const allFilteredIds = filtered.map((c: any) => c.id);
+              const allSelected = filtered.length > 0 && filtered.every((c: any) => selectedCriteriaIds.includes(c.id));
+              const toggleAll = () => {
+                if (allSelected) {
+                  setSelectedCriteriaIds((s) => s.filter((id) => !allFilteredIds.includes(id)));
+                } else {
+                  setSelectedCriteriaIds((s) => Array.from(new Set([...s, ...allFilteredIds])));
+                }
+              };
+              return (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    IPC Criteria * <span className="text-xs text-gray-500 font-normal">(ติ๊กเลือกได้หลายตัว)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={criteriaSearch}
+                    onChange={(e) => setCriteriaSearch(e.target.value)}
+                    placeholder="ค้นหา code / ชื่อ..."
+                    className="w-full mb-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-emerald-500 focus:outline-none"
+                  />
+                  <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white">
+                    {filtered.length === 0 ? (
+                      <div className="text-center py-6 text-sm">
+                        {allCriteria.length === 0 ? (
+                          <div className="text-amber-700">
+                            <p className="font-medium mb-1">ยังไม่มี IPC criteria ใน Master Data</p>
+                            <p className="text-xs text-gray-500">กรุณาเพิ่มที่ <strong>Master Data → IPC Criteria</strong> ก่อน</p>
+                          </div>
+                        ) : available.length === 0 ? (
+                          <span className="text-gray-400">IPC criteria ทั้งหมดถูกเพิ่มไปยัง BOM นี้แล้ว</span>
+                        ) : (
+                          <span className="text-gray-400">ไม่พบรายการที่ค้นหา</span>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <label className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50 cursor-pointer hover:bg-gray-100 text-xs font-medium text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onChange={toggleAll}
+                            className="rounded"
+                          />
+                          <span>{allSelected ? 'ยกเลิกการเลือกทั้งหมด' : `เลือกทั้งหมด (${filtered.length})`}</span>
+                        </label>
+                        {filtered.map((c: any) => {
+                          const checked = selectedCriteriaIds.includes(c.id);
+                          return (
+                            <label
+                              key={c.id}
+                              className={`flex items-start gap-2 px-3 py-2 border-b border-gray-100 cursor-pointer hover:bg-emerald-50 ${checked ? 'bg-emerald-50/60' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedCriteriaIds((s) => [...s, c.id]);
+                                  } else {
+                                    setSelectedCriteriaIds((s) => s.filter((id) => id !== c.id));
+                                  }
+                                }}
+                                className="mt-0.5 rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-xs text-emerald-600">{c.code}</span>
+                                  <span className="text-sm font-medium">{c.nameTh || c.name}</span>
+                                  {c.isCritical && (
+                                    <span className="text-[10px] text-red-600 bg-red-50 px-1 py-0.5 rounded">Critical</span>
+                                  )}
+                                </div>
+                                {c.specification && (
+                                  <div className="text-xs text-gray-500">{c.specification}</div>
+                                )}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                  {selectedCriteriaIds.length > 0 && (
+                    <p className="mt-2 text-xs text-emerald-700">
+                      เลือกแล้ว <strong>{selectedCriteriaIds.length}</strong> รายการ — Sample size / Critical จะใช้ค่า default ของแต่ละ criterion (แก้ภายหลังได้)
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+            {editingIpcId && (
+              <>
+                <div className="text-sm font-medium text-gray-700">
+                  Editing: {configs.find((c: any) => c.id === editingIpcId)?.criteriaNameTh || configs.find((c: any) => c.id === editingIpcId)?.criteriaName}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sample Size</label>
+                    <DxNumberBox value={sampleSize} onValueChanged={(e) => setSampleSize(e.value)} min={1} />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <DxSwitch value={isCritical} onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setIsCritical(e.value)} />
+                    <span className="text-sm">Critical</span>
+                  </div>
+                </div>
+              </>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
+              <DxSelectBox
+                dataSource={IPC_PHASE_OPTIONS as unknown as Record<string, unknown>[]}
+                displayExpr="label"
+                valueExpr="value"
+                value={phase}
+                onValueChanged={(e) => setPhase(e.value)}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {editingIpcId
+                  ? 'เลือก phase ที่จะให้ IPC test นี้แสดงใน Execution Dashboard'
+                  : 'Phase นี้จะใช้กับ IPC ที่เลือกทั้งหมด — สามารถเปลี่ยนทีหลังในแต่ละรายการ'}
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <DxButton text="Cancel" stylingMode="text" onClick={resetForm} />
+              <DxButton
+                text={
+                  editingIpcId
+                    ? 'Save'
+                    : (selectedCriteriaIds.length > 0
+                        ? `Add ${selectedCriteriaIds.length} to BOM`
+                        : 'Add to BOM')
+                }
+                type="success"
+                onClick={() => editingIpcId ? editMut.mutate() : addMut.mutate()}
+                disabled={(!editingIpcId && selectedCriteriaIds.length === 0) || addMut.isPending || editMut.isPending}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
 
 // Types
 interface BOMBasic {
@@ -142,20 +489,31 @@ interface BOMPackagingQC {
   criteria?: PackagingQCCriteria;
 }
 
+// pre_packaging phase merged into packaging — operator records both line
+// clearance + packaging cleanliness from the Packaging Cleaning card. Existing
+// BOM rows with phase='pre_packaging' still render (color mapping kept below)
+// but new rooms/equipment can only be assigned to the 4 phases below.
 const phases = [
   { value: 'pre_production', label: 'Pre-Production' },
   { value: 'production', label: 'Production' },
   { value: 'post_production', label: 'Post-Production' },
-  { value: 'pre_packaging', label: 'Pre-Packaging' },
   { value: 'packaging', label: 'Packaging' },
 ];
 
-const tabItems: DxTabItem[] = [
+// Packaging QC tab removed — packaging-specific QC criteria are now defined
+// as IPC criteria (phase=packaging). Legacy bom_packaging_qc data remains in
+// the database but is no longer reachable from the UI. Tab IDs 3+ keep their
+// numeric position so existing tab-content blocks don't need re-wiring.
+// Tab items are now built inside the component so each tab label can carry
+// a live count badge (e.g. "Rooms 4"). The base shape stays declarative.
+// IPC tab is renamed to make the legacy phase-level scope explicit — the
+// new per-sub-step linker lives under "SOP Steps → Manage IPC" so operators
+// don't accidentally double-record the same criterion in both places.
+const tabBlueprint: Array<{ id: number; text: string; icon: string }> = [
   { id: 0, text: 'Rooms', icon: 'home' },
   { id: 1, text: 'Equipment', icon: 'toolbox' },
-  { id: 2, text: 'Environmental', icon: 'globe' },
-  { id: 3, text: 'SOP Steps', icon: 'textdocument' },
-  { id: 4, text: 'Packaging QC', icon: 'box' },
+  { id: 2, text: 'SOP Steps', icon: 'textdocument' },
+  { id: 4, text: 'IPC — Phase Level', icon: 'checklist' },
 ];
 
 export default function BOMConfigurationPage() {
@@ -163,12 +521,63 @@ export default function BOMConfigurationPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const t = useTranslations('production');
+
+  // Use translation for page title
+  const pageTitle = t('bomConfiguration.title');
   const bomId = Number(params.id);
 
   const [activeTab, setActiveTab] = useState(0);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [dialogType, setDialogType] = useState<'room' | 'equipment' | 'condition' | 'sop' | 'qc'>('room');
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
+
+  // BOM SOP-step IPC linker state.
+  // selectedStepForIPC = the BOM SOP step the operator is managing IPCs for.
+  // showIPCLinkDialog opens the per-step IPC management popup.
+  // editingIpcLinkId tracks which existing link is being edited (null = new).
+  const [selectedStepForIPC, setSelectedStepForIPC] = useState<BOMSOPStep | null>(null);
+  const [showIPCLinkDialog, setShowIPCLinkDialog] = useState(false);
+  const [editingIpcLinkId, setEditingIpcLinkId] = useState<number | null>(null);
+  const [ipcLinkForm, setIpcLinkForm] = useState({
+    criteriaId: null as number | null,
+    procedureStepId: null as number | null,
+    sampleSize: 1,
+    sequence: 1,
+    isCritical: false,
+    maxRetestRounds: null as number | null,
+    notes: '',
+  });
+
+  // Pending IPC links — staged client-side while creating a new BOM SOP step.
+  // Once the step itself is saved (addSOPMutation), each entry is POSTed to
+  // /api/production/bom/[id]/sop-step-ipc with the freshly-minted bomStepId.
+  type PendingIpcLink = {
+    tempId: string;
+    procedureStepId: number | null;
+    criteriaId: number;
+    sequence: number;
+    sampleSize: number;
+    isCritical: boolean;
+    maxRetestRounds: number | null;
+    notes: string;
+  };
+  const [pendingIpcLinks, setPendingIpcLinks] = useState<PendingIpcLink[]>([]);
+  const [pendingIpcEditingId, setPendingIpcEditingId] = useState<string | null>(null);
+  const [pendingIpcForm, setPendingIpcForm] = useState({
+    criteriaId: null as number | null,
+    procedureStepId: null as number | null,
+    sampleSize: 1,
+    sequence: 1,
+    isCritical: false,
+    maxRetestRounds: null as number | null,
+    notes: '',
+  });
+  // Active sub-step the inline ADD-mode form is currently targeting. null
+  // means the form is closed; pendingIpcActiveSubStepId === <number> means
+  // "Add IPC for sub-step #X" is open. Sentinel -1 = whole-step (no sub-step).
+  const [pendingIpcActiveSubStepId, setPendingIpcActiveSubStepId] = useState<number | null>(null);
 
   // Fetch BOM basic info
   const { data: bom, isLoading: bomLoading } = useQuery<BOMBasic>({
@@ -236,6 +645,53 @@ export default function BOMConfigurationPage() {
     },
   });
 
+  // Fetch BOM SOP-step IPC links — joined with IPC master so the grid can
+  // show code/name/spec without a second roundtrip per row.
+  const { data: bomStepIpcLinks = [], isLoading: stepIpcLinksLoading } = useQuery<any[]>({
+    queryKey: ['bom-sop-step-ipc-links', bomId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.data;
+    },
+  });
+
+  // Master IPC criteria list (active only) — used for dictionary lookups
+  // (display name, master defaults) when an existing link references a
+  // criterion that may no longer be in phase-level config.
+  const { data: ipcCriteriaMaster = [] } = useQuery<any[]>({
+    queryKey: ['ipc-criteria-active'],
+    queryFn: async () => {
+      const res = await fetch('/api/master-data/ipc-criteria?isActive=true');
+      const d = await res.json();
+      return d.success ? d.data : [];
+    },
+  });
+
+  // Phase-level IPC configs for THIS BOM. Drives which IPC criteria appear
+  // in SOP-step / sub-step linker dropdowns — operators may only bind IPC
+  // tests that have been pre-declared at the BOM phase level (in the
+  // "IPC — Phase Level" tab).
+  const { data: bomIpcConfigs = [] } = useQuery<any[]>({
+    queryKey: ['bom-ipc', bomId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/bom/${bomId}/ipc`);
+      const d = await res.json();
+      return d.success ? d.data : [];
+    },
+  });
+
+  // IPC criteria that are eligible to bind into SOP steps — derived from
+  // ipcCriteriaMaster ∩ bomIpcConfigs.criteriaId. Stable identity via memo
+  // so DxSelectBox doesn't see fresh dataSource on every render.
+  const bomPhaseIpcCriteria = useMemo(() => {
+    const allowedIds = new Set<number>(
+      (bomIpcConfigs as any[]).map((c) => Number(c.criteriaId))
+    );
+    return (ipcCriteriaMaster as any[]).filter((c: any) => allowedIds.has(Number(c.id)));
+  }, [ipcCriteriaMaster, bomIpcConfigs]);
+
   // Fetch Master Data for dropdowns
   const { data: rooms } = useQuery<ProductionRoom[]>({
     queryKey: ['production-rooms'],
@@ -273,6 +729,28 @@ export default function BOMConfigurationPage() {
     },
   });
 
+  // Memoize the SOP-template dropdown items. Without this, the inline
+  // .filter().map() rebuilt the array on every render, and DxSelectBox saw
+  // a fresh dataSource reference each time. After the user clicked an
+  // item, the next render swapped in a "new" array, which made the widget
+  // re-emit onValueChanged(null) — wiping templateId back to 0 and hiding
+  // the IPC sub-step linker. Stable identity → no spurious null emit.
+  const sopTemplateOptions = useMemo(
+    () =>
+      (sopTemplates || [])
+        .filter((t) => t.isActive)
+        .map((t) => {
+          const th = (t.nameTh || '').trim();
+          const en = (t.name || '').trim();
+          const both = th && en && th !== en ? `${th} / ${en}` : (th || en || '—');
+          return {
+            ...t,
+            displayLabel: `${t.code} — ${both}`,
+          };
+        }),
+    [sopTemplates],
+  );
+
   const { data: qcCriteria } = useQuery<PackagingQCCriteria[]>({
     queryKey: ['packaging-qc-criteria'],
     queryFn: async () => {
@@ -288,6 +766,7 @@ export default function BOMConfigurationPage() {
     phase: 'production' as string,
     sequence: 1,
     isRequired: true,
+    selectedConditionId: null as number | null,
   });
 
   // Add Equipment form state
@@ -304,7 +783,8 @@ export default function BOMConfigurationPage() {
     phase: 'production' as string,
   });
 
-  // Add SOP Step form state
+  // Add SOP Step form state — phase drives which Execution Dashboard card
+  // hosts this step (per-phase SOP cards).
   const [sopForm, setSOPForm] = useState({
     templateId: 0,
     stepName: '',
@@ -313,6 +793,42 @@ export default function BOMConfigurationPage() {
     instructionsTh: '',
     parameters: '',
     requiresVerification: true,
+    phase: 'production' as 'pre_production' | 'production' | 'post_production' | 'packaging',
+  });
+
+  // Clear pendingIpcLinks + pending form state whenever the user switches
+  // the template in the Add Step dialog. Otherwise IPC entries staged for
+  // template A would carry over (with stale procedure_step_id) when the
+  // operator changes their mind and picks template B — which would silently
+  // create cross-template links on save.
+  useEffect(() => {
+    if (showAddDialog && dialogType === 'sop') {
+      setPendingIpcLinks([]);
+      setPendingIpcEditingId(null);
+      setPendingIpcActiveSubStepId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sopForm.templateId]);
+
+  // Sub-steps (procedure_step_id targets) for the template currently in
+  // play. The two dialogs that need this MUST NOT mix sources — that caused
+  // sticky stale state when the user picked a different template:
+  //  - Manage IPC popup (showIPCLinkDialog): use selectedStepForIPC.templateId
+  //  - Add/Edit Step dialog (showAddDialog + dialogType='sop'): use sopForm.templateId
+  const activeTemplateIdForSubSteps = showIPCLinkDialog
+    ? (selectedStepForIPC?.templateId ?? null)
+    : (showAddDialog && dialogType === 'sop' && sopForm.templateId > 0 ? sopForm.templateId : null);
+  const { data: subStepsForSelectedBomStep = [], isFetching: subStepsFetching } = useQuery<any[]>({
+    queryKey: ['sop-template-sub-steps', activeTemplateIdForSubSteps],
+    queryFn: async () => {
+      const res = await fetch(`/api/master-data/sop-templates/${activeTemplateIdForSubSteps}/steps`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.data;
+    },
+    enabled: !!activeTemplateIdForSubSteps,
+    staleTime: 60_000,
+    refetchOnMount: true,
   });
 
   // Add Packaging QC form state
@@ -323,7 +839,7 @@ export default function BOMConfigurationPage() {
   // Delete mutations
   const deleteRoomMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/production/bom/${bomId}/rooms?roomId=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/rooms?bomRoomId=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data;
@@ -339,7 +855,7 @@ export default function BOMConfigurationPage() {
 
   const deleteEquipmentMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/production/bom/${bomId}/equipment?equipmentId=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/equipment?bomEquipmentId=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data;
@@ -355,7 +871,7 @@ export default function BOMConfigurationPage() {
 
   const deleteConditionMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/production/bom/${bomId}/environmental-conditions?conditionId=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/environmental-conditions?bomConditionId=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data;
@@ -371,13 +887,15 @@ export default function BOMConfigurationPage() {
 
   const deleteSOPMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/production/bom/${bomId}/sop-steps?stepId=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/sop-steps?bomStepId=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
+      // Removing a step cascades the IPC links server-side; clear the cache.
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
       toast.success('SOP Step Removed', 'SOP step has been removed.');
     },
     onError: (error: Error) => {
@@ -401,11 +919,11 @@ export default function BOMConfigurationPage() {
     },
   });
 
-  // Add mutations
-  const addRoomMutation = useMutation({
-    mutationFn: async (data: typeof roomForm) => {
+  // Edit mutations
+  const editRoomMutation = useMutation({
+    mutationFn: async (data: typeof roomForm & { bomRoomId: number }) => {
       const res = await fetch(`/api/production/bom/${bomId}/rooms`, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
@@ -415,9 +933,120 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-rooms', bomId] });
+      toast.success('Room Updated', 'Room requirement has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const editEquipmentMutation = useMutation({
+    mutationFn: async (data: typeof equipmentForm & { bomEquipmentId: number }) => {
+      const res = await fetch(`/api/production/bom/${bomId}/equipment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-equipment', bomId] });
+      toast.success('Equipment Updated', 'Equipment requirement has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const editConditionMutation = useMutation({
+    mutationFn: async (data: { oldId: number; conditionId: number; phase: string }) => {
+      // Environmental conditions has no PUT - delete old + add new
+      await fetch(`/api/production/bom/${bomId}/environmental-conditions?bomConditionId=${data.oldId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/environmental-conditions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conditionId: data.conditionId, phase: data.phase }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-environmental-conditions', bomId] });
+      toast.success('Condition Updated', 'Environmental condition has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const editSOPMutation = useMutation({
+    mutationFn: async (data: typeof sopForm & { bomStepId: number; sequence: number }) => {
+      const res = await fetch(`/api/production/bom/${bomId}/sop-steps`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
+      toast.success('SOP Step Updated', 'SOP step has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  const editQCMutation = useMutation({
+    mutationFn: async (data: { criteriaId: number }) => {
+      // Packaging QC has no PUT - delete all for this BOM + add new
+      await fetch(`/api/production/bom/${bomId}/packaging-qc`, { method: 'DELETE' });
+      const res = await fetch(`/api/production/bom/${bomId}/packaging-qc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-packaging-qc', bomId] });
+      toast.success('QC Criteria Updated', 'Packaging QC criteria has been updated.');
+      setShowAddDialog(false);
+      setEditingId(null);
+    },
+    onError: (error: Error) => toast.error('Error', error.message),
+  });
+
+  // Add mutations
+  const addRoomMutation = useMutation({
+    mutationFn: async (data: typeof roomForm) => {
+      const res = await fetch(`/api/production/bom/${bomId}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: data.roomId,
+          phase: data.phase,
+          sequence: data.sequence,
+          isRequired: data.isRequired,
+          environmentalConditionIds: data.selectedConditionId ? [data.selectedConditionId] : [],
+        }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-rooms', bomId] });
       toast.success('Room Added', 'Room requirement has been added.');
       setShowAddDialog(false);
-      setRoomForm({ roomId: 0, phase: 'production', sequence: 1, isRequired: true });
+      setRoomForm({ roomId: 0, phase: 'production', sequence: 1, isRequired: true, selectedConditionId: null });
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -483,11 +1112,67 @@ export default function BOMConfigurationPage() {
       if (!result.success) throw new Error(result.error);
       return result;
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
-      toast.success('SOP Step Added', 'SOP step has been added.');
+
+      // Batch-insert any IPC links the operator staged in pendingIpcLinks
+      // before the step itself was saved. POST /sop-steps now flattens the
+      // response so result.data.id is the bomStep id; the legacy nested
+      // shape result.data.bomStep.id is checked too in case an older
+      // server build is in front of a freshly-deployed UI.
+      const newBomStepId: number | undefined =
+        result?.data?.id ??
+        result?.data?.bomStep?.id ??
+        result?.data?.bomStepId;
+      const pending = pendingIpcLinks;
+      let linkedCount = 0;
+      let linkErrors = 0;
+      if (newBomStepId && pending.length > 0) {
+        for (const link of pending) {
+          try {
+            const linkRes = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                bomStepId: newBomStepId,
+                procedureStepId: link.procedureStepId,
+                criteriaId: link.criteriaId,
+                sequence: link.sequence,
+                sampleSize: link.sampleSize,
+                isCritical: link.isCritical,
+                maxRetestRounds: link.maxRetestRounds,
+                notes: link.notes || null,
+              }),
+            });
+            const linkJson = await linkRes.json();
+            if (linkJson.success) linkedCount++;
+            else linkErrors++;
+          } catch {
+            linkErrors++;
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
+      }
+
+      if (linkedCount > 0) {
+        toast.success('SOP Step Added', `บันทึกแล้ว — ${linkedCount} IPC link${linkedCount === 1 ? '' : 's'}${linkErrors > 0 ? ` (${linkErrors} failed)` : ''}`);
+      } else {
+        toast.success('SOP Step Added', 'SOP step has been added.');
+      }
       setShowAddDialog(false);
-      setSOPForm({ templateId: 0, stepName: '', stepNameTh: '', instructions: '', instructionsTh: '', parameters: '', requiresVerification: true });
+      setSOPForm({ templateId: 0, stepName: '', stepNameTh: '', instructions: '', instructionsTh: '', parameters: '', requiresVerification: true, phase: 'production' });
+      setPendingIpcLinks([]);
+      setPendingIpcEditingId(null);
+      setPendingIpcActiveSubStepId(null);
+      setPendingIpcForm({
+        criteriaId: null,
+        procedureStepId: null,
+        sampleSize: 1,
+        sequence: 1,
+        isCritical: false,
+        maxRetestRounds: null,
+        notes: '',
+      });
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -516,6 +1201,122 @@ export default function BOMConfigurationPage() {
     },
   });
 
+  // IPC linker mutations — wired against /api/production/bom/[id]/sop-step-ipc.
+  // bomStepId is captured from selectedStepForIPC at submit time so the
+  // form itself only carries criteria-level fields.
+  const createIpcLinkMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedStepForIPC) throw new Error('No SOP step selected');
+      if (!ipcLinkForm.criteriaId) throw new Error('กรุณาเลือก IPC Criterion');
+      // IPC must bind to a sub-step (procedureStepId) when sub-steps exist —
+      // WO Execution renders IPC under sub-steps, so unrooted IPCs are
+      // unreachable to operators.
+      if (subStepsForSelectedBomStep.length > 0 && !ipcLinkForm.procedureStepId) {
+        throw new Error('กรุณาเลือกขั้นตอนย่อย (sub-step) ที่ IPC ผูก');
+      }
+      const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bomStepId: selectedStepForIPC.id,
+          procedureStepId: ipcLinkForm.procedureStepId,
+          criteriaId: ipcLinkForm.criteriaId,
+          sampleSize: ipcLinkForm.sampleSize,
+          sequence: ipcLinkForm.sequence,
+          isCritical: ipcLinkForm.isCritical,
+          maxRetestRounds: ipcLinkForm.maxRetestRounds,
+          notes: ipcLinkForm.notes || null,
+        }),
+      });
+      const r = await res.json();
+      if (!r.success) throw new Error(r.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
+      resetIpcLinkForm();
+      toast.success('IPC Linked', 'IPC criterion attached to SOP step.');
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const updateIpcLinkMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingIpcLinkId) throw new Error('No IPC link selected');
+      const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingIpcLinkId,
+          sampleSize: ipcLinkForm.sampleSize,
+          sequence: ipcLinkForm.sequence,
+          isCritical: ipcLinkForm.isCritical,
+          maxRetestRounds: ipcLinkForm.maxRetestRounds,
+          notes: ipcLinkForm.notes || null,
+        }),
+      });
+      const r = await res.json();
+      if (!r.success) throw new Error(r.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
+      resetIpcLinkForm();
+      toast.success('IPC Updated', 'IPC link updated.');
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const deleteIpcLinkMutation = useMutation({
+    mutationFn: async (linkId: number) => {
+      const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc?linkId=${linkId}`, {
+        method: 'DELETE',
+      });
+      const r = await res.json();
+      if (!r.success) throw new Error(r.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
+      toast.success('IPC Removed', 'IPC link removed from step.');
+    },
+    onError: (e: Error) => toast.error('Error', e.message),
+  });
+
+  const resetIpcLinkForm = () => {
+    setEditingIpcLinkId(null);
+    setIpcLinkForm({
+      criteriaId: null,
+      procedureStepId: null,
+      sampleSize: 1,
+      sequence: 1,
+      isCritical: false,
+      maxRetestRounds: null,
+      notes: '',
+    });
+  };
+
+  const openIpcManageDialog = (step: BOMSOPStep) => {
+    setSelectedStepForIPC(step);
+    resetIpcLinkForm();
+    setShowIPCLinkDialog(true);
+  };
+
+  const openAddIpcForSubStep = (procedureStepId: number | null) => {
+    resetIpcLinkForm();
+    setIpcLinkForm((f) => ({ ...f, procedureStepId }));
+  };
+
+  const openEditIpcLink = (link: any) => {
+    setEditingIpcLinkId(link.id);
+    setIpcLinkForm({
+      criteriaId: link.criteriaId,
+      procedureStepId: link.procedureStepId ?? null,
+      sampleSize: link.sampleSize ?? 1,
+      sequence: link.sequence ?? 1,
+      isCritical: !!link.isCritical,
+      maxRetestRounds: link.maxRetestRounds ?? null,
+      notes: link.notes || '',
+    });
+  };
+
   // Copy configuration mutation
   const copyConfigMutation = useMutation({
     mutationFn: async (sourceBomId: number) => {
@@ -534,6 +1335,7 @@ export default function BOMConfigurationPage() {
       queryClient.invalidateQueries({ queryKey: ['bom-environmental-conditions', bomId] });
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
       queryClient.invalidateQueries({ queryKey: ['bom-packaging-qc', bomId] });
+      queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
       toast.success('Configuration Copied', 'BOM configuration has been copied successfully.');
       setShowCopyDialog(false);
     },
@@ -544,45 +1346,162 @@ export default function BOMConfigurationPage() {
 
   const openAddDialog = (type: typeof dialogType) => {
     setDialogType(type);
+    setEditingId(null);
+    // Reset pending IPC state — only relevant for SOP, but cheap to always reset.
+    setPendingIpcLinks([]);
+    setPendingIpcEditingId(null);
+    setPendingIpcActiveSubStepId(null);
+    setPendingIpcForm({
+      criteriaId: null,
+      procedureStepId: null,
+      sampleSize: 1,
+      sequence: 1,
+      isCritical: false,
+      maxRetestRounds: null,
+      notes: '',
+    });
+    // Reset sopForm so the previous session's templateId doesn't bleed in
+    // (this caused the "have to open/close several times to see sub-steps"
+    // bug — a stale templateId made the picker show selected without
+    // triggering the sub-steps fetch).
+    if (type === 'sop') {
+      setSOPForm({
+        templateId: 0,
+        stepName: '',
+        stepNameTh: '',
+        instructions: '',
+        instructionsTh: '',
+        parameters: '',
+        requiresVerification: true,
+        phase: 'production',
+      });
+    }
+    // Also clear any lingering selectedStepForIPC that would shadow
+    // sopForm.templateId via activeTemplateIdForSubSteps.
+    setSelectedStepForIPC(null);
     setShowAddDialog(true);
   };
 
-  const handleAdd = () => {
+  const resetPendingIpcForm = () => {
+    setPendingIpcEditingId(null);
+    setPendingIpcActiveSubStepId(null);
+    setPendingIpcForm({
+      criteriaId: null,
+      procedureStepId: null,
+      sampleSize: 1,
+      sequence: 1,
+      isCritical: false,
+      maxRetestRounds: null,
+      notes: '',
+    });
+  };
+
+  const openEditDialog = (type: typeof dialogType, item: Record<string, unknown>) => {
+    setDialogType(type);
+    setEditingId(item.id as number);
+    switch (type) {
+      case 'room':
+        setRoomForm({
+          roomId: (item.roomId as number) || 0,
+          phase: (item.phase as string) || 'production',
+          sequence: (item.sequence as number) || 1,
+          isRequired: item.isRequired !== false,
+          selectedConditionId: ((item.environmentalConditions as any[]) || [])[0]?.conditionId ?? null,
+        });
+        break;
+      case 'equipment':
+        setEquipmentForm({
+          equipmentId: (item.equipmentId as number) || 0,
+          phase: (item.phase as string) || 'production',
+          sequence: (item.sequence as number) || 1,
+          isRequired: item.isRequired !== false,
+        });
+        break;
+      case 'condition':
+        setConditionForm({
+          conditionId: (item.conditionId as number) || 0,
+          phase: (item.phase as string) || 'production',
+        });
+        break;
+      case 'sop':
+        setSOPForm({
+          templateId: (item.templateId as number) || 0,
+          stepName: (item.stepName as string) || '',
+          stepNameTh: (item.stepNameTh as string) || '',
+          instructions: (item.instructions as string) || '',
+          instructionsTh: (item.instructionsTh as string) || '',
+          parameters: (item.parameters as string) || '',
+          requiresVerification: item.requiresVerification !== false,
+          phase: ((item.phase as string) || 'production') as 'pre_production' | 'production' | 'post_production' | 'packaging',
+        });
+        break;
+      case 'qc':
+        setQCForm({
+          criteriaId: (item.criteriaId as number) || 0,
+        });
+        break;
+    }
+    setShowAddDialog(true);
+  };
+
+  const handleSave = () => {
     switch (dialogType) {
       case 'room':
         if (!roomForm.roomId) {
           toast.error('Validation Error', 'Please select a room.');
           return;
         }
-        addRoomMutation.mutate(roomForm);
+        if (editingId) {
+          editRoomMutation.mutate({ ...roomForm, bomRoomId: editingId });
+        } else {
+          addRoomMutation.mutate(roomForm);
+        }
         break;
       case 'equipment':
         if (!equipmentForm.equipmentId) {
           toast.error('Validation Error', 'Please select equipment.');
           return;
         }
-        addEquipmentMutation.mutate(equipmentForm);
+        if (editingId) {
+          editEquipmentMutation.mutate({ ...equipmentForm, bomEquipmentId: editingId });
+        } else {
+          addEquipmentMutation.mutate(equipmentForm);
+        }
         break;
       case 'condition':
         if (!conditionForm.conditionId) {
           toast.error('Validation Error', 'Please select a condition profile.');
           return;
         }
-        addConditionMutation.mutate(conditionForm);
+        if (editingId) {
+          editConditionMutation.mutate({ oldId: editingId, ...conditionForm });
+        } else {
+          addConditionMutation.mutate(conditionForm);
+        }
         break;
-      case 'sop':
-        if (!sopForm.stepName) {
-          toast.error('Validation Error', 'Please enter a step name.');
+      case 'sop': {
+        if (!sopForm.stepNameTh) {
+          toast.error('Validation Error', 'กรุณากรอกชื่อขั้นตอน (ภาษาไทย)');
           return;
         }
-        addSOPMutation.mutate(sopForm);
+        if (editingId) {
+          const existingStep = bomSOPSteps?.find(s => s.id === editingId);
+          editSOPMutation.mutate({ ...sopForm, bomStepId: editingId, sequence: existingStep?.sequence || 1 });
+        } else {
+          addSOPMutation.mutate(sopForm);
+        }
         break;
+      }
       case 'qc':
         if (!qcForm.criteriaId) {
           toast.error('Validation Error', 'Please select QC criteria.');
           return;
         }
-        addQCMutation.mutate(qcForm);
+        if (editingId) {
+          editQCMutation.mutate(qcForm);
+        } else {
+          addQCMutation.mutate(qcForm);
+        }
         break;
     }
   };
@@ -662,11 +1581,27 @@ export default function BOMConfigurationPage() {
         }
       />
 
-      {/* Tabs */}
+      {/* Tabs — labels carry live counts so the operator sees what's
+          configured at a glance ("Rooms 4 · Equipment 6 · …"). */}
       <Card>
         <CardContent className="p-0">
           <DxTabs
-            items={tabItems}
+            items={tabBlueprint.map((t) => {
+              const count =
+                t.id === 0 ? (bomRooms?.length ?? 0)
+                : t.id === 1 ? (bomEquipment?.length ?? 0)
+                : t.id === 2 ? (bomSOPSteps?.length ?? 0)
+                : t.id === 4 ? (bomIpcConfigs?.length ?? 0)
+                : 0;
+              // IPC—Phase Level is required setup. When 0, show a "⚠" marker
+              // instead of hiding the badge so the operator notices that this
+              // tab must be configured before they can bind IPC at step level.
+              const badge =
+                t.id === 4
+                  ? (count > 0 ? count : '⚠ 0')
+                  : (count > 0 ? count : undefined);
+              return { ...t, badge };
+            })}
             selectedIndex={activeTab}
             onSelectedIndexChange={(idx) => setActiveTab(idx)}
           />
@@ -697,17 +1632,33 @@ export default function BOMConfigurationPage() {
                   noDataText="No rooms configured. Click 'Add Room' to add requirements."
                 >
                   <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="sequence" caption="#" width={60} />
+                  <DxColumn dataField="sequence" caption="#" width={60} sortOrder="asc" sortIndex={0} />
+                  <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="room.code" caption="Room Code" width={120} />
                   <DxColumn dataField="room.name" caption="Room Name" />
-                  <DxColumn dataField="phase" caption="Phase" width={150} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="isRequired" caption="Required" width={100} cellRender={(cell) => (
                     <span className={`px-2 py-0.5 rounded text-xs ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                       {cell.value ? 'Yes' : 'Optional'}
                     </span>
                   )} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteRoomMutation.mutate(cell.data.id)} />
+                  <DxColumn caption="Env. Conditions" cellRender={(cell) => {
+                    const envConds = cell.data.environmentalConditions || [];
+                    if (envConds.length === 0) return <span className="text-xs text-gray-400">-</span>;
+                    return (
+                      <div className="flex flex-wrap gap-1">
+                        {envConds.map((ec: { id: number; conditionName: string }) => (
+                          <span key={ec.id} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-teal-100 text-teal-800 border border-teal-200">
+                            {ec.conditionName || 'Condition'}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  }} />
+                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                    <div className="flex gap-0.5">
+                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('room', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteRoomMutation.mutate(cell.data.id)} />
+                    </div>
                   )} />
                 </DxDataGrid>
               </div>
@@ -738,68 +1689,29 @@ export default function BOMConfigurationPage() {
                   noDataText="No equipment configured. Click 'Add Equipment' to add requirements."
                 >
                   <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="sequence" caption="#" width={60} />
+                  <DxColumn dataField="sequence" caption="#" width={60} sortOrder="asc" sortIndex={0} />
+                  <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="equipment.code" caption="Equipment Code" width={120} />
                   <DxColumn dataField="equipment.name" caption="Equipment Name" />
                   <DxColumn dataField="equipment.capacity" caption="Capacity" width={120} />
-                  <DxColumn dataField="phase" caption="Phase" width={150} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="isRequired" caption="Required" width={100} cellRender={(cell) => (
                     <span className={`px-2 py-0.5 rounded text-xs ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                       {cell.value ? 'Yes' : 'Optional'}
                     </span>
                   )} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteEquipmentMutation.mutate(cell.data.id)} />
+                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                    <div className="flex gap-0.5">
+                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('equipment', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteEquipmentMutation.mutate(cell.data.id)} />
+                    </div>
                   )} />
                 </DxDataGrid>
               </div>
             )}
 
             {/* Environmental Conditions Tab */}
-            {activeTab === 2 && (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Thermometer className="h-5 w-5 text-teal-600" />
-                    <h3 className="text-lg font-medium">Environmental Conditions</h3>
-                  </div>
-                  <DxButton
-                    text="Add Condition"
-                    icon="plus"
-                    type="success"
-                    onClick={() => openAddDialog('condition')}
-                  />
-                </div>
-                <DxDataGrid
-                  dataSource={bomConditions || []}
-                  keyExpr="id"
-                  showBorders={false}
-                  rowAlternationEnabled
-                  loading={conditionsLoading}
-                  height={400}
-                  noDataText="No environmental conditions configured. Click 'Add Condition' to add requirements."
-                >
-                  <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="condition.code" caption="Profile Code" width={120} />
-                  <DxColumn dataField="condition.name" caption="Profile Name" />
-                  <DxColumn caption="Temperature Range" width={150} cellRender={(cell) => (
-                    <span className="text-blue-700">
-                      {cell.data.condition?.temperatureMin}-{cell.data.condition?.temperatureMax}°C
-                    </span>
-                  )} />
-                  <DxColumn caption="Max Humidity" width={120} cellRender={(cell) => (
-                    <span className="text-teal-700">≤{cell.data.condition?.humidityMax}% RH</span>
-                  )} />
-                  <DxColumn dataField="phase" caption="Phase" width={150} cellRender={(cell) => renderPhaseBadge(cell.value)} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteConditionMutation.mutate(cell.data.id)} />
-                  )} />
-                </DxDataGrid>
-              </div>
-            )}
-
             {/* SOP Steps Tab */}
-            {activeTab === 3 && (
+            {activeTab === 2 && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -823,7 +1735,8 @@ export default function BOMConfigurationPage() {
                   noDataText="No SOP steps configured. Click 'Add Step' to add production steps."
                 >
                   <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="sequence" caption="Step" width={70} />
+                  <DxColumn dataField="sequence" caption="Step" width={70} sortOrder="asc" sortIndex={0} />
+                  <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
                   <DxColumn dataField="stepName" caption="Step Name (EN)" />
                   <DxColumn dataField="stepNameTh" caption="Step Name (TH)" />
                   <DxColumn dataField="requiresVerification" caption="Verification" width={120} cellRender={(cell) => (
@@ -831,24 +1744,37 @@ export default function BOMConfigurationPage() {
                       {cell.value ? 'Required' : 'Not Required'}
                     </span>
                   )} />
-                  <DxColumn dataField="parameters" caption="Parameters" width={200} cellRender={(cell) => {
-                    if (!cell.value) return '-';
-                    try {
-                      const params = JSON.parse(cell.value);
-                      return Object.entries(params).map(([k, v]) => `${k}: ${v}`).join(', ');
-                    } catch {
-                      return cell.value;
-                    }
+                  <DxColumn caption="IPC" width={140} cellRender={(cell) => {
+                    // Count IPC links attached to this BOM SOP step. Click
+                    // "Manage" to open the per-step IPC linker dialog.
+                    const stepId = cell.data.id as number;
+                    const count = bomStepIpcLinks.filter((l: any) => l.bomStepId === stepId).length;
+                    return (
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded text-xs font-medium ${count > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'}`}>
+                          {count}
+                        </span>
+                        <button
+                          onClick={() => openIpcManageDialog(cell.data as BOMSOPStep)}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200"
+                        >
+                          <FlaskConical className="h-3 w-3" /> Manage
+                        </button>
+                      </div>
+                    );
                   }} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteSOPMutation.mutate(cell.data.id)} />
+                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                    <div className="flex gap-0.5">
+                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('sop', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteSOPMutation.mutate(cell.data.id)} />
+                    </div>
                   )} />
                 </DxDataGrid>
               </div>
             )}
 
             {/* Packaging QC Tab */}
-            {activeTab === 4 && (
+            {activeTab === 3 && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -880,8 +1806,11 @@ export default function BOMConfigurationPage() {
                   <DxColumn caption="Sample Criteria" width={150} cellRender={(cell) => (
                     <span className="text-gray-600">≤{cell.data.criteria?.maxFailures}/{cell.data.criteria?.sampleSize} fail</span>
                   )} />
-                  <DxColumn caption="Actions" width={80} cellRender={(cell) => (
-                    <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteQCMutation.mutate(cell.data.id)} />
+                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                    <div className="flex gap-0.5">
+                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('qc', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteQCMutation.mutate(cell.data.id)} />
+                    </div>
                   )} />
                 </DxDataGrid>
               </div>
@@ -890,23 +1819,41 @@ export default function BOMConfigurationPage() {
         </CardContent>
       </Card>
 
+      {/* Tab 5: IPC Criteria */}
+      {activeTab === 4 && (
+        <IPCConfigSection bomId={bomId} />
+      )}
+
       {/* Add Dialog */}
       <DxPopup
         visible={showAddDialog}
-        onHiding={() => setShowAddDialog(false)}
+        onHiding={() => {
+          setShowAddDialog(false);
+          setEditingId(null);
+          setPendingIpcLinks([]);
+          setPendingIpcEditingId(null);
+          setPendingIpcActiveSubStepId(null);
+        }}
         title={
-          dialogType === 'room' ? 'Add Room Requirement' :
-          dialogType === 'equipment' ? 'Add Equipment Requirement' :
-          dialogType === 'condition' ? 'Add Environmental Condition' :
-          dialogType === 'sop' ? 'Add SOP Step' :
-          'Add Packaging QC Criteria'
+          editingId
+            ? (dialogType === 'room' ? 'Edit Room Requirement' :
+               dialogType === 'equipment' ? 'Edit Equipment Requirement' :
+               dialogType === 'condition' ? 'Edit Environmental Condition' :
+               dialogType === 'sop' ? 'Edit SOP Step' :
+               'Edit Packaging QC Criteria')
+            : (dialogType === 'room' ? 'Add Room Requirement' :
+               dialogType === 'equipment' ? 'Add Equipment Requirement' :
+               dialogType === 'condition' ? 'Add Environmental Condition' :
+               dialogType === 'sop' ? 'Add SOP Step' :
+               'Add Packaging QC Criteria')
         }
-        width={dialogType === 'sop' ? 650 : 500}
-        height="auto"
+        width={dialogType === 'sop' ? 650 : dialogType === 'room' ? 600 : 500}
+        height={dialogType === 'sop' ? '90vh' : 'auto'}
         showCloseButton
         dragEnabled={false}
       >
-        <div className="p-4 space-y-4">
+        <div className={dialogType === 'sop' ? 'flex flex-col h-full' : 'p-4 space-y-4'}>
+        <div className={dialogType === 'sop' ? 'p-4 space-y-4 overflow-y-auto flex-1' : 'contents'}>
           {/* Room Form */}
           {dialogType === 'room' && (
             <>
@@ -947,6 +1894,21 @@ export default function BOMConfigurationPage() {
                   onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setRoomForm({ ...roomForm, isRequired: e.value ?? true })}
                 />
                 <span className="text-sm text-gray-700">Required for production</span>
+              </div>
+
+              {/* Environmental Condition — single select */}
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Environmental Condition</label>
+                <DxSelectBox
+                  dataSource={(conditions || []).filter((c: EnvironmentalCondition) => c.isActive) as unknown as Record<string, unknown>[]}
+                  displayExpr="name"
+                  valueExpr="id"
+                  value={roomForm.selectedConditionId}
+                  onValueChanged={(e) => setRoomForm({ ...roomForm, selectedConditionId: e.value })}
+                  placeholder="เลือก Environmental Condition..."
+                  searchEnabled
+                  showClearButton
+                />
               </div>
             </>
           )}
@@ -1013,7 +1975,7 @@ export default function BOMConfigurationPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
                 <DxSelectBox
-                  dataSource={phases.filter(p => ['production', 'packaging'].includes(p.value))}
+                  dataSource={phases.filter(p => ['pre_production', 'production', 'packaging'].includes(p.value))}
                   displayExpr="label"
                   valueExpr="value"
                   value={conditionForm.phase}
@@ -1040,79 +2002,578 @@ export default function BOMConfigurationPage() {
           {dialogType === 'sop' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">From Template (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  From Template <span className="text-gray-400">(Optional)</span>
+                </label>
                 <DxSelectBox
-                  dataSource={(sopTemplates || []).filter(t => t.isActive) as unknown as Record<string, unknown>[]}
-                  displayExpr="name"
+                  dataSource={sopTemplateOptions as unknown as Record<string, unknown>[]}
+                  displayExpr="displayLabel"
                   valueExpr="id"
+                  searchExpr={['displayLabel', 'nameTh', 'name', 'code']}
                   value={sopForm.templateId || null}
                   onValueChanged={(e) => {
-                    const template = sopTemplates?.find(t => t.id === e.value);
-                    if (template) {
-                      setSOPForm({
-                        ...sopForm,
-                        templateId: e.value,
-                        stepName: template.name,
-                        stepNameTh: template.nameTh,
-                      });
-                    } else {
-                      setSOPForm({ ...sopForm, templateId: 0 });
-                    }
+                    // Guard: spurious null emit (no DOM event) means the
+                    // widget reset itself after a programmatic value change
+                    // — don't honor it, the user didn't clear.
+                    if (e.value == null && !e.event) return;
+                    const template = sopTemplates?.find((t) => t.id === e.value);
+                    // Use functional setState so the spread reads the LATEST
+                    // sopForm. Without this, sibling DxTextBox handlers
+                    // emitting on prop change can revert templateId back to
+                    // 0 via a stale closure spread (their closure still has
+                    // the pre-pick sopForm).
+                    setSOPForm((prev) =>
+                      template
+                        ? { ...prev, templateId: e.value, stepName: template.name, stepNameTh: template.nameTh }
+                        : { ...prev, templateId: 0 }
+                    );
                   }}
-                  placeholder="Select template or leave empty for custom"
+                  placeholder="เลือก Template หรือเว้นว่างเพื่อกรอกเอง"
                   searchEnabled
                   showClearButton
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  รายการแสดงเป็น &quot;Code — ชื่อไทย / ชื่อ EN&quot; (ค้นหาได้ทั้ง 3 ฟิลด์)
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (EN) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (TH) *</label>
                   <DxTextBox
-                    value={sopForm.stepName}
-                    onValueChanged={(e) => setSOPForm({ ...sopForm, stepName: e.value })}
-                    placeholder="e.g., Mix ingredients"
+                    value={sopForm.stepNameTh}
+                    onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, stepNameTh: e.value }))}
+                    placeholder="เช่น ผสมส่วนผสม"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (TH)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Step Name (EN) <span className="text-gray-400">(Optional)</span>
+                  </label>
                   <DxTextBox
-                    value={sopForm.stepNameTh}
-                    onValueChanged={(e) => setSOPForm({ ...sopForm, stepNameTh: e.value })}
-                    placeholder="e.g., ผสมส่วนผสม"
+                    value={sopForm.stepName}
+                    onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, stepName: e.value }))}
+                    placeholder="e.g., Mix ingredients"
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
-                <DxTextArea
-                  value={sopForm.instructions}
-                  onValueChanged={(e) => setSOPForm({ ...sopForm, instructions: e.value })}
-                  height={60}
-                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (TH)</label>
                 <DxTextArea
                   value={sopForm.instructionsTh}
-                  onValueChanged={(e) => setSOPForm({ ...sopForm, instructionsTh: e.value })}
+                  onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, instructionsTh: e.value }))}
                   height={60}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Parameters (JSON)</label>
-                <DxTextBox
-                  value={sopForm.parameters}
-                  onValueChanged={(e) => setSOPForm({ ...sopForm, parameters: e.value })}
-                  placeholder='e.g., {"temperature": 75, "duration": 5}'
-                />
-              </div>
+              <details className="rounded-lg border border-gray-200 bg-gray-50/50 group">
+                <summary className="cursor-pointer select-none flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100/70 rounded-lg">
+                  <Settings className="h-4 w-4 text-gray-500 transition-transform group-open:rotate-90" />
+                  ตั้งค่าขั้นสูง (Advanced)
+                  <span className="ml-auto text-xs text-gray-400 font-normal">Instructions (EN), Parameters JSON</span>
+                </summary>
+                <div className="px-3 pb-3 pt-1 space-y-3 border-t border-gray-200">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
+                    <DxTextArea
+                      value={sopForm.instructions}
+                      onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, instructions: e.value }))}
+                      height={60}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Parameters (JSON)</label>
+                    <DxTextBox
+                      value={sopForm.parameters}
+                      onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, parameters: e.value }))}
+                      placeholder='e.g., {"temperature": 75, "duration": 5}'
+                    />
+                  </div>
+                </div>
+              </details>
               <div className="flex items-center gap-2">
                 <DxSwitch
                   value={sopForm.requiresVerification}
-                  onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setSOPForm({ ...sopForm, requiresVerification: e.value ?? true })}
+                  onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setSOPForm((prev) => ({ ...prev, requiresVerification: e.value ?? true }))}
                 />
                 <span className="text-sm text-gray-700">Requires verification by supervisor</span>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
+                <DxSelectBox
+                  dataSource={phases as unknown as Record<string, unknown>[]}
+                  displayExpr="label"
+                  valueExpr="value"
+                  value={sopForm.phase}
+                  onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, phase: e.value }))}
+                />
+                <p className="text-xs text-gray-500 mt-1">เลือก phase ที่จะให้ขั้นตอนนี้แสดงใน Execution Dashboard</p>
+              </div>
+
+              {/* Inline IPC linker — shown when template is picked. Allows
+                  user to attach IPC criteria to specific sub-steps right
+                  here in the same Step dialog. */}
+              {sopForm.templateId > 0 && (() => {
+                if (!editingId) {
+                  // ADD mode — pre-stage IPC links in pendingIpcLinks. They
+                  // get batch-POSTed to /sop-step-ipc once the parent step is
+                  // saved (see addSOPMutation.onSuccess).
+                  const subSteps = subStepsForSelectedBomStep as any[];
+                  // Group pending entries by procedureStepId.
+                  const pendingBySubStep = new Map<number | null, PendingIpcLink[]>();
+                  for (const link of pendingIpcLinks) {
+                    const key = link.procedureStepId ?? null;
+                    if (!pendingBySubStep.has(key)) pendingBySubStep.set(key, []);
+                    pendingBySubStep.get(key)!.push(link);
+                  }
+
+                  // Pending form — render only when user clicked "+ เพิ่ม IPC"
+                  // on a sub-step (or whole-step). pendingIpcActiveSubStepId
+                  // === null means form is hidden. Sentinel -1 = whole-step.
+                  const formOpen = pendingIpcActiveSubStepId !== null || pendingIpcEditingId !== null;
+                  const formSubStepId =
+                    pendingIpcEditingId !== null
+                      ? pendingIpcForm.procedureStepId
+                      : pendingIpcActiveSubStepId === -1
+                        ? null
+                        : pendingIpcActiveSubStepId;
+
+                  // Filter out criteria already staged for THIS sub-step (or
+                  // whole-step). When editing a pending entry, allow current.
+                  const criteriaUsedForThisSlot = new Set(
+                    pendingIpcLinks
+                      .filter((p) => (p.procedureStepId ?? null) === (formSubStepId ?? null))
+                      .filter((p) => p.tempId !== pendingIpcEditingId)
+                      .map((p) => p.criteriaId)
+                  );
+                  // Selection list = IPCs declared at THIS BOM's phase level only.
+                  const availablePendingCriteria = bomPhaseIpcCriteria.filter((c: any) => !criteriaUsedForThisSlot.has(c.id));
+
+                  const openPendingForm = (subStepId: number | null) => {
+                    // Pre-fill defaults; sentinel -1 = whole-step.
+                    setPendingIpcEditingId(null);
+                    setPendingIpcActiveSubStepId(subStepId === null ? -1 : subStepId);
+                    setPendingIpcForm({
+                      criteriaId: null,
+                      procedureStepId: subStepId,
+                      sampleSize: 1,
+                      sequence: (pendingBySubStep.get(subStepId)?.length ?? 0) + 1,
+                      isCritical: false,
+                      maxRetestRounds: null,
+                      notes: '',
+                    });
+                  };
+
+                  const editPendingEntry = (entry: PendingIpcLink) => {
+                    setPendingIpcEditingId(entry.tempId);
+                    setPendingIpcActiveSubStepId(entry.procedureStepId === null ? -1 : entry.procedureStepId);
+                    setPendingIpcForm({
+                      criteriaId: entry.criteriaId,
+                      procedureStepId: entry.procedureStepId,
+                      sampleSize: entry.sampleSize,
+                      sequence: entry.sequence,
+                      isCritical: entry.isCritical,
+                      maxRetestRounds: entry.maxRetestRounds,
+                      notes: entry.notes,
+                    });
+                  };
+
+                  const deletePendingEntry = (tempId: string) => {
+                    setPendingIpcLinks((prev) => prev.filter((p) => p.tempId !== tempId));
+                    if (pendingIpcEditingId === tempId) resetPendingIpcForm();
+                  };
+
+                  const submitPendingForm = () => {
+                    if (!pendingIpcForm.criteriaId) {
+                      toast.error('Validation Error', 'กรุณาเลือก IPC Criterion');
+                      return;
+                    }
+                    if (pendingIpcEditingId !== null) {
+                      // Update existing pending entry.
+                      setPendingIpcLinks((prev) =>
+                        prev.map((p) =>
+                          p.tempId === pendingIpcEditingId
+                            ? {
+                                ...p,
+                                criteriaId: pendingIpcForm.criteriaId!,
+                                procedureStepId: pendingIpcForm.procedureStepId,
+                                sampleSize: pendingIpcForm.sampleSize,
+                                sequence: pendingIpcForm.sequence,
+                                isCritical: pendingIpcForm.isCritical,
+                                maxRetestRounds: pendingIpcForm.maxRetestRounds,
+                                notes: pendingIpcForm.notes,
+                              }
+                            : p
+                        )
+                      );
+                    } else {
+                      // Append new pending entry.
+                      const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+                      setPendingIpcLinks((prev) => [
+                        ...prev,
+                        {
+                          tempId,
+                          criteriaId: pendingIpcForm.criteriaId!,
+                          procedureStepId: pendingIpcForm.procedureStepId,
+                          sampleSize: pendingIpcForm.sampleSize,
+                          sequence: pendingIpcForm.sequence,
+                          isCritical: pendingIpcForm.isCritical,
+                          maxRetestRounds: pendingIpcForm.maxRetestRounds,
+                          notes: pendingIpcForm.notes,
+                        },
+                      ]);
+                    }
+                    resetPendingIpcForm();
+                  };
+
+                  // Render a single pending entry row (sub-step linked).
+                  const renderPendingRow = (entry: PendingIpcLink) => {
+                    const criterion = ipcCriteriaMaster.find((c: any) => c.id === entry.criteriaId) as any;
+                    return (
+                      <div
+                        key={entry.tempId}
+                        className={`flex items-start gap-3 p-2.5 rounded-md border bg-white ${pendingIpcEditingId === entry.tempId ? 'border-emerald-400 bg-emerald-50/40' : 'border-gray-200'}`}
+                      >
+                        <span className="flex-none w-6 h-6 rounded bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center mt-0.5">
+                          {entry.sequence}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-xs text-emerald-700">{criterion?.code ?? '—'}</span>
+                            <span className="text-sm font-medium truncate">
+                              {criterion?.nameTh || criterion?.name || 'Unknown criterion'}
+                            </span>
+                            {entry.isCritical && (
+                              <span className="text-[10px] text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">
+                                Critical
+                              </span>
+                            )}
+                            <span className="text-[10px] text-amber-700 bg-amber-50 px-1 py-0.5 rounded border border-amber-200">
+                              ยังไม่บันทึก
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            Sample: {entry.sampleSize}
+                            {entry.maxRetestRounds != null && <span> · Max retests: {entry.maxRetestRounds}</span>}
+                            {entry.notes && <span> · {entry.notes}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => editPendingEntry(entry)}
+                            className="p-1 text-gray-400 hover:text-blue-600"
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deletePendingEntry(entry.tempId)}
+                            className="p-1 text-gray-400 hover:text-red-600"
+                            title="Remove"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  };
+
+                  return (
+                    <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                          <FlaskConical className="h-4 w-4 text-emerald-600" />
+                          IPC Tests by Sub-Step ({pendingIpcLinks.length})
+                        </h4>
+                        <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          จะบันทึกพร้อม step
+                        </span>
+                      </div>
+
+                      {subStepsFetching && subSteps.length === 0 ? (
+                        <div className="flex items-center gap-2 py-3 text-sm text-emerald-700">
+                          <span className="inline-block w-3 h-3 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin" />
+                          <span>กำลังโหลด sub-steps จาก template...</span>
+                        </div>
+                      ) : subSteps.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic py-3">
+                          Template นี้ไม่มี sub-step — ไม่สามารถผูก IPC ได้
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {subSteps.map((sub: any, idx: number) => {
+                            const subPending = pendingBySubStep.get(sub.id) ?? [];
+                            const isFormTargetingThisSub =
+                              pendingIpcEditingId === null && pendingIpcActiveSubStepId === sub.id;
+                            return (
+                              <div
+                                key={sub.id}
+                                className={`rounded-md border ${isFormTargetingThisSub ? 'border-emerald-400 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}
+                              >
+                                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50/50 rounded-t-md">
+                                  <div className="flex items-center gap-2">
+                                    <span className="flex-none w-5 h-5 rounded bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center">
+                                      {idx + 1}
+                                    </span>
+                                    <span className="text-sm font-medium text-gray-800 truncate">
+                                      {sub.stepNameTh || sub.stepName}
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">({subPending.length} IPC)</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => openPendingForm(sub.id)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    เพิ่ม IPC
+                                  </button>
+                                </div>
+                                {subPending.length === 0 ? (
+                                  <div className="px-3 py-2.5 text-xs text-gray-400 italic">
+                                    ยังไม่มี IPC ผูกกับขั้นตอนย่อยนี้
+                                  </div>
+                                ) : (
+                                  <div className="p-2 space-y-2">{subPending.map(renderPendingRow)}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* IPC ต้องผูกกับ sub-step เสมอ (ไม่อนุญาตให้ผูกที่ระดับ
+                              step เพราะ WO Execution ต้องใช้ sub-step ในการบันทึก IPC) */}
+                        </div>
+                      )}
+
+                      {/* Inline pending Add/Edit form — shown only when an
+                          "+ เพิ่ม IPC" button is clicked. */}
+                      {formOpen && (
+                        <div className="border border-emerald-300 bg-white rounded-md p-3 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                              <Plus className="h-3.5 w-3.5" />
+                              {pendingIpcEditingId !== null ? 'แก้ไข IPC' : 'เพิ่ม IPC ใหม่'}
+                              {formSubStepId !== null && subSteps.length > 0 && (
+                                <span className="text-gray-500 font-normal">
+                                  — {(() => {
+                                    const found = subSteps.find((s: any) => s.id === formSubStepId);
+                                    return found ? found.stepNameTh || found.stepName : '';
+                                  })()}
+                                </span>
+                              )}
+                            </h5>
+                            <button
+                              type="button"
+                              onClick={resetPendingIpcForm}
+                              className="text-xs text-gray-500 hover:text-gray-700"
+                            >
+                              ยกเลิก
+                            </button>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">IPC Criterion *</label>
+                            {bomPhaseIpcCriteria.length === 0 ? (
+                              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2 space-y-2">
+                                <p>ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้</p>
+                                <p className="text-[11px] text-amber-700">ต้องกำหนด IPC ที่ Phase Level ก่อน แล้วจึงเลือกมาผูกกับ SOP step</p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowAddDialog(false);
+                                    setActiveTab(4);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded transition-colors"
+                                >
+                                  ไปที่ Tab IPC — Phase Level ทันที →
+                                </button>
+                              </div>
+                            ) : (
+                              <DxSelectBox
+                                dataSource={availablePendingCriteria.map((c: any) => ({
+                                  id: c.id,
+                                  display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
+                                }))}
+                                displayExpr="display"
+                                valueExpr="id"
+                                value={pendingIpcForm.criteriaId}
+                                onValueChanged={(e) => {
+                                  const picked = ipcCriteriaMaster.find((c: any) => c.id === e.value) as any;
+                                  setPendingIpcForm((f) => ({
+                                    ...f,
+                                    criteriaId: e.value,
+                                    sampleSize: picked?.sampleSize ?? f.sampleSize,
+                                    isCritical: picked?.isCritical ?? f.isCritical,
+                                  }));
+                                }}
+                                placeholder="เลือก IPC criterion"
+                                searchEnabled
+                              />
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Sequence</label>
+                              <DxNumberBox
+                                value={pendingIpcForm.sequence}
+                                onValueChanged={(e) => setPendingIpcForm((f) => ({ ...f, sequence: e.value ?? 1 }))}
+                                min={1}
+                                showSpinButtons
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Sample Size</label>
+                              <DxNumberBox
+                                value={pendingIpcForm.sampleSize}
+                                onValueChanged={(e) => setPendingIpcForm((f) => ({ ...f, sampleSize: e.value ?? 1 }))}
+                                min={1}
+                                showSpinButtons
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Max Retest</label>
+                              <DxNumberBox
+                                value={pendingIpcForm.maxRetestRounds ?? null}
+                                onValueChanged={(e) =>
+                                  setPendingIpcForm((f) => ({
+                                    ...f,
+                                    maxRetestRounds:
+                                      e.value === null || e.value === undefined ? null : Number(e.value),
+                                  }))
+                                }
+                                min={0}
+                                showClearButton
+                                placeholder="default"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <DxSwitch
+                              value={pendingIpcForm.isCritical}
+                              onValueChanged={(e: SwitchTypes.ValueChangedEvent) =>
+                                setPendingIpcForm((f) => ({ ...f, isCritical: e.value ?? false }))
+                              }
+                            />
+                            <span className="text-xs text-gray-700">Critical (failure must be flagged for QA review)</span>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                            <DxTextArea
+                              value={pendingIpcForm.notes}
+                              onValueChanged={(e) => setPendingIpcForm((f) => ({ ...f, notes: e.value ?? '' }))}
+                              height={48}
+                              placeholder="Optional"
+                            />
+                          </div>
+
+                          <div className="flex justify-end gap-2 pt-1 border-t border-emerald-100">
+                            <DxButton
+                              text="ยกเลิก"
+                              stylingMode="text"
+                              onClick={resetPendingIpcForm}
+                            />
+                            <DxButton
+                              text={pendingIpcEditingId !== null ? 'บันทึกการแก้ไข' : 'เพิ่ม'}
+                              type="success"
+                              icon={pendingIpcEditingId !== null ? 'save' : 'plus'}
+                              onClick={submitPendingForm}
+                              disabled={!pendingIpcForm.criteriaId}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-[11px] text-gray-500 italic">
+                        IPC ที่เพิ่มในนี้จะถูกบันทึกเมื่อกด &quot;Add&quot; — ยังไม่ได้บันทึกลงฐานข้อมูล
+                      </p>
+                    </div>
+                  );
+                }
+                // Edit mode — render full inline linker for the editing step.
+                const stepLinks = bomStepIpcLinks.filter((l: any) => l.bomStepId === editingId);
+                const linksBySubStep = new Map<number | null, any[]>();
+                for (const link of stepLinks) {
+                  const key = link.procedureStepId ?? null;
+                  if (!linksBySubStep.has(key)) linksBySubStep.set(key, []);
+                  linksBySubStep.get(key)!.push(link);
+                }
+                // Use the same templateId from form (live) — fetch sub-steps if mismatch with selected step.
+                const subSteps = (selectedStepForIPC?.templateId === sopForm.templateId
+                  ? subStepsForSelectedBomStep
+                  : []) as any[];
+                return (
+                  <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                        <FlaskConical className="h-4 w-4 text-emerald-600" />
+                        IPC Tests by Sub-Step ({stepLinks.length})
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Open the standalone Manage dialog so the user gets the full
+                          // editor with form, edit/delete, etc. We pass the current step.
+                          const currentStep = (bomSOPSteps || []).find((s: any) => s.id === editingId);
+                          if (currentStep) {
+                            setSelectedStepForIPC(currentStep as BOMSOPStep);
+                            setShowIPCLinkDialog(true);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white border border-emerald-300 hover:bg-emerald-50 rounded transition-colors"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        จัดการ IPC แบบเต็ม
+                      </button>
+                    </div>
+                    {subSteps.length === 0 ? (
+                      <p className="text-xs text-gray-500 italic">
+                        Loading sub-steps... หรือ template นี้ไม่มี sub-step
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {subSteps.map((sub: any, idx: number) => {
+                          const subLinks = linksBySubStep.get(sub.id) ?? [];
+                          return (
+                            <div key={sub.id} className="rounded-md bg-white border border-gray-200 p-2.5">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="flex-none w-5 h-5 rounded bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="text-sm font-medium text-gray-800 truncate">{sub.stepNameTh || sub.stepName}</span>
+                                  <span className="flex-none text-[10px] text-gray-500">({subLinks.length} IPC)</span>
+                                </div>
+                              </div>
+                              {subLinks.length === 0 ? (
+                                <div className="text-xs text-gray-400 italic pl-7">— ยังไม่ได้ผูก IPC —</div>
+                              ) : (
+                                <div className="pl-7 space-y-1">
+                                  {subLinks.map((link: any) => (
+                                    <div key={link.id} className="flex items-center gap-2 text-xs">
+                                      <span className="font-mono text-emerald-700">{link.criteriaCode}</span>
+                                      <span className="text-gray-700 truncate">{link.criteriaNameTh || link.criteriaName}</span>
+                                      {link.isCritical && (
+                                        <span className="text-[10px] text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">Critical</span>
+                                      )}
+                                      <span className="text-gray-500">· Sample: {link.sampleSize}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500 italic">
+                      เพิ่ม / แก้ไข / ลบ IPC ผ่านปุ่ม &quot;จัดการ IPC แบบเต็ม&quot;
+                    </p>
+                  </div>
+                );
+              })()}
             </>
           )}
 
@@ -1148,12 +2609,24 @@ export default function BOMConfigurationPage() {
             </>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowAddDialog(false)} />
+          </div>
+          <div className={dialogType === 'sop'
+            ? 'flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0'
+            : 'flex justify-end gap-2 pt-4 border-t'}>
             <DxButton
-              text="Add"
+              text="Cancel"
+              stylingMode="outlined"
+              onClick={() => {
+                setShowAddDialog(false);
+                setEditingId(null);
+                setPendingIpcLinks([]);
+                resetPendingIpcForm();
+              }}
+            />
+            <DxButton
+              text={editingId ? 'Save' : 'Add'}
               type="success"
-              onClick={handleAdd}
+              onClick={handleSave}
               disabled={
                 (dialogType === 'room' && addRoomMutation.isPending) ||
                 (dialogType === 'equipment' && addEquipmentMutation.isPending) ||
@@ -1163,6 +2636,368 @@ export default function BOMConfigurationPage() {
               }
             />
           </div>
+        </div>
+      </DxPopup>
+
+      {/* BOM SOP Step IPC Linker Dialog */}
+      {/* Opened from the "Manage" button on the IPC column of the SOP Steps grid. */}
+      {/* Shows existing links + an inline Add/Edit form, all scoped to one BOM step. */}
+      <DxPopup
+        visible={showIPCLinkDialog}
+        onHiding={() => { setShowIPCLinkDialog(false); resetIpcLinkForm(); setSelectedStepForIPC(null); }}
+        title={selectedStepForIPC ? `IPC Tests — Step ${selectedStepForIPC.sequence}: ${selectedStepForIPC.stepNameTh || selectedStepForIPC.stepName}` : 'IPC Tests'}
+        width={780}
+        height="90vh"
+        showCloseButton
+        dragEnabled={false}
+      >
+        <div className="flex flex-col h-full">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
+          {selectedStepForIPC && (() => {
+            const stepLinks = bomStepIpcLinks.filter((l: any) => l.bomStepId === selectedStepForIPC.id);
+            const linkedCriteriaIds = new Set(stepLinks.map((l: any) => l.criteriaId));
+            const editingLink = editingIpcLinkId ? stepLinks.find((l: any) => l.id === editingIpcLinkId) : null;
+            // Selection source = phase-level IPCs of THIS BOM. If editing a
+            // legacy link whose criterion is no longer in phase config,
+            // keep it visible so the dropdown still shows the current value.
+            const phaseIpcsForLinker = (() => {
+              if (editingLink && !bomPhaseIpcCriteria.some((c: any) => c.id === editingLink.criteriaId)) {
+                const fromMaster = ipcCriteriaMaster.find((c: any) => c.id === editingLink.criteriaId);
+                if (fromMaster) return [...bomPhaseIpcCriteria, fromMaster];
+              }
+              return bomPhaseIpcCriteria;
+            })();
+            // When editing, show all phase-level IPCs; otherwise filter out
+            // ones already linked to this step.
+            const availableCriteria = phaseIpcsForLinker.filter((c: any) =>
+              editingIpcLinkId ? true : !linkedCriteriaIds.has(c.id)
+            );
+
+            // Group existing IPC links by procedureStepId (sub-step). null
+            // = not tied to any specific sub-step ("whole step" IPCs).
+            const linksBySubStep = new Map<number | null, any[]>();
+            for (const link of stepLinks) {
+              const key = link.procedureStepId ?? null;
+              if (!linksBySubStep.has(key)) linksBySubStep.set(key, []);
+              linksBySubStep.get(key)!.push(link);
+            }
+
+            // Render a single IPC link row (used by both grouped and ungrouped views).
+            const renderLinkRow = (link: any) => (
+              <div key={link.id} className={`flex items-start gap-3 p-3 rounded-lg border bg-white group ${editingIpcLinkId === link.id ? 'border-emerald-400 bg-emerald-50/40' : 'border-gray-200'}`}>
+                <span className="flex-none w-7 h-7 rounded bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center mt-0.5">
+                  {link.sequence}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs text-emerald-700">{link.criteriaCode}</span>
+                    <span className="font-medium">{link.criteriaNameTh || link.criteriaName}</span>
+                    {link.isCritical && (
+                      <span className="text-xs text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Critical</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {link.specification && <span>Spec: {link.specification} | </span>}
+                    <span>Sample: {link.sampleSize}</span>
+                    <span> | Max retests: {link.maxRetestRounds != null
+                      ? link.maxRetestRounds
+                      : <span className="italic">Master default ({link.masterMaxRetestRounds ?? '—'})</span>}
+                    </span>
+                  </div>
+                  {link.notes && (
+                    <div className="text-xs text-gray-600 mt-1 italic">{link.notes}</div>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => openEditIpcLink(link)}
+                    className="p-1 text-gray-400 hover:text-blue-600"
+                    title="Edit"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => { if (confirm('Remove this IPC link?')) deleteIpcLinkMutation.mutate(link.id); }}
+                    className="p-1 text-gray-400 hover:text-red-600"
+                    title="Remove"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+
+            return (
+              <>
+                {/* Step header summary */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div className="text-xs text-gray-500">SOP Step</div>
+                  <div className="font-medium">
+                    {selectedStepForIPC.stepName}
+                    {selectedStepForIPC.stepNameTh && (
+                      <span className="text-gray-500 font-normal"> — {selectedStepForIPC.stepNameTh}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sub-step grouped IPC list — when the BOM step uses an SOP
+                    template with sub-steps, render each sub-step as its own
+                    section. Operator clicks "+ Add IPC" on the sub-step they
+                    want to attach to. */}
+                {subStepsForSelectedBomStep.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <FlaskConical className="h-4 w-4 text-emerald-600" />
+                        IPC Tests by Sub-Step ({stepLinks.length})
+                      </h4>
+                    </div>
+                    {subStepsForSelectedBomStep.map((sub: any, idx: number) => {
+                      const subLinks = linksBySubStep.get(sub.id) ?? [];
+                      const subName = sub.stepNameTh || sub.stepName;
+                      const isFormTargetingThisSub = !editingIpcLinkId && ipcLinkForm.procedureStepId === sub.id;
+                      return (
+                        <div key={sub.id} className={`rounded-lg border ${isFormTargetingThisSub ? 'border-emerald-400 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
+                          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50/50 rounded-t-lg">
+                            <div className="flex items-center gap-2">
+                              <span className="flex-none w-6 h-6 rounded bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center">
+                                {idx + 1}
+                              </span>
+                              <span className="text-sm font-medium text-gray-800">{subName}</span>
+                              <span className="text-xs text-gray-500">({subLinks.length} IPC)</span>
+                            </div>
+                            <button
+                              onClick={() => openAddIpcForSubStep(sub.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              เพิ่ม IPC
+                            </button>
+                          </div>
+                          {subLinks.length === 0 ? (
+                            <div className="px-3 py-3 text-xs text-gray-400 italic">
+                              ยังไม่มี IPC ผูกกับขั้นตอนย่อยนี้
+                            </div>
+                          ) : (
+                            <div className="p-2 space-y-2">
+                              {subLinks.map(renderLinkRow)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {/* "Whole step" IPCs — links without a procedureStepId */}
+                    {(() => {
+                      const wholeStepLinks = linksBySubStep.get(null) ?? [];
+                      if (wholeStepLinks.length === 0) return null;
+                      return (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50/20">
+                          <div className="px-3 py-2 border-b border-amber-200 bg-amber-50/50 rounded-t-lg">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-amber-800">⚠ ผูกกับ step ทั้งหมด (ไม่ระบุ sub-step)</span>
+                              <span className="text-xs text-amber-700">({wholeStepLinks.length} IPC)</span>
+                            </div>
+                          </div>
+                          <div className="p-2 space-y-2">
+                            {wholeStepLinks.map(renderLinkRow)}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  // Fallback: BOM step has no template/sub-steps — flat list.
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <FlaskConical className="h-4 w-4 text-emerald-600" />
+                        IPC Tests ({stepLinks.length})
+                      </h4>
+                    </div>
+                    {stepIpcLinksLoading ? (
+                      <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
+                    ) : stepLinks.length === 0 ? (
+                      <div className="text-center py-6 text-gray-500 text-sm border border-dashed border-gray-200 rounded-lg">
+                        ยังไม่มี IPC ผูกกับ step นี้
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {stepLinks.map(renderLinkRow)}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Add / Edit form */}
+                <div className="border border-emerald-200 bg-emerald-50/50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      {editingIpcLinkId ? 'Edit IPC link' : 'Add IPC test'}
+                    </h4>
+                    {editingIpcLinkId && (
+                      <button
+                        onClick={resetIpcLinkForm}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Cancel edit
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sub-step picker — IPC ต้องผูกกับ sub-step เสมอ (จำเป็น) */}
+                  {subStepsForSelectedBomStep.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        ขั้นตอนย่อย (Sub-step) <span className="text-red-500">*</span>
+                        <span className="text-xs text-gray-500 font-normal ml-1">— เลือกขั้นตอนย่อยที่ IPC ผูก</span>
+                      </label>
+                      <DxSelectBox
+                        dataSource={subStepsForSelectedBomStep.map((s: any, idx: number) => ({
+                          id: s.id,
+                          display: `${idx + 1}. ${s.stepNameTh || s.stepName}`,
+                        }))}
+                        displayExpr="display"
+                        valueExpr="id"
+                        value={ipcLinkForm.procedureStepId}
+                        onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, procedureStepId: e.value }))}
+                        placeholder="เลือก sub-step..."
+                      />
+                    </div>
+                  )}
+
+                  {!editingIpcLinkId && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">IPC Criterion *</label>
+                      {bomPhaseIpcCriteria.length === 0 ? (
+                        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2.5 space-y-2">
+                          <p>ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้</p>
+                          <p className="text-xs text-amber-700">ต้องกำหนด IPC ที่ Phase Level ก่อน แล้วจึงเลือกมาผูกกับ SOP step</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStepForIPC(null);
+                              setActiveTab(4);
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded transition-colors"
+                          >
+                            ไปที่ Tab IPC — Phase Level ทันที →
+                          </button>
+                        </div>
+                      ) : (
+                        <DxSelectBox
+                          dataSource={availableCriteria.map((c: any) => ({
+                            id: c.id,
+                            display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
+                          }))}
+                          displayExpr="display"
+                          valueExpr="id"
+                          value={ipcLinkForm.criteriaId}
+                          onValueChanged={(e) => {
+                            const picked = ipcCriteriaMaster.find((c: any) => c.id === e.value);
+                            // Pre-fill sampleSize/critical from master defaults so
+                            // the operator doesn't have to retype them.
+                            setIpcLinkForm((f) => ({
+                              ...f,
+                              criteriaId: e.value,
+                              sampleSize: picked?.sampleSize ?? f.sampleSize,
+                              isCritical: picked?.isCritical ?? f.isCritical,
+                            }));
+                          }}
+                          placeholder="Select IPC criterion"
+                          searchEnabled
+                        />
+                      )}
+                    </div>
+                  )}
+                  {editingIpcLinkId && editingLink && (
+                    <div className="text-sm font-medium text-gray-700">
+                      Editing: <span className="font-mono text-xs text-emerald-700">{editingLink.criteriaCode}</span> {editingLink.criteriaNameTh || editingLink.criteriaName}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sequence</label>
+                      <DxNumberBox
+                        value={ipcLinkForm.sequence}
+                        onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, sequence: e.value ?? 1 }))}
+                        min={1}
+                        showSpinButtons
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sample Size</label>
+                      <DxNumberBox
+                        value={ipcLinkForm.sampleSize}
+                        onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, sampleSize: e.value ?? 1 }))}
+                        min={1}
+                        showSpinButtons
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Max Retest Rounds</label>
+                      <DxNumberBox
+                        value={ipcLinkForm.maxRetestRounds ?? null}
+                        onValueChanged={(e) => setIpcLinkForm((f) => ({
+                          ...f,
+                          maxRetestRounds: e.value === null || e.value === undefined ? null : Number(e.value),
+                        }))}
+                        min={0}
+                        showClearButton
+                        placeholder="Use master default"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <DxSwitch
+                      value={ipcLinkForm.isCritical}
+                      onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setIpcLinkForm((f) => ({ ...f, isCritical: e.value ?? false }))}
+                    />
+                    <span className="text-sm text-gray-700">Critical (failure must be flagged for QA review)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <DxTextArea
+                      value={ipcLinkForm.notes}
+                      onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, notes: e.value ?? '' }))}
+                      height={60}
+                      placeholder="Optional — special instructions for this step's IPC test"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-emerald-200">
+                    <DxButton
+                      text={editingIpcLinkId ? 'Save changes' : 'Add IPC'}
+                      type="success"
+                      icon={editingIpcLinkId ? 'save' : 'plus'}
+                      onClick={() => editingIpcLinkId ? updateIpcLinkMutation.mutate() : createIpcLinkMutation.mutate()}
+                      disabled={
+                        (!editingIpcLinkId && !ipcLinkForm.criteriaId) ||
+                        createIpcLinkMutation.isPending ||
+                        updateIpcLinkMutation.isPending
+                      }
+                    />
+                  </div>
+                </div>
+
+              </>
+            );
+          })()}
+        </div>
+        {/* Sticky footer — Close button always visible regardless of how
+            long the IPC list grows. Without flex+sticky the button slid
+            off-screen on tall lists and the operator had no way to
+            dismiss the dialog except via the header X. */}
+        <div className="flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0">
+          <DxButton
+            text="Close"
+            stylingMode="outlined"
+            onClick={() => { setShowIPCLinkDialog(false); resetIpcLinkForm(); setSelectedStepForIPC(null); }}
+          />
+        </div>
         </div>
       </DxPopup>
 

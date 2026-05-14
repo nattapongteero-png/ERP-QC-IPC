@@ -8,10 +8,11 @@
  */
 
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, Bug, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Bug, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { IssueForm } from '@/components/issues';
+import { ResponsivePageHeader } from '@/components/shared';
 import type { Issue } from '@/types/issues';
 
 // ============================================
@@ -19,20 +20,18 @@ import type { Issue } from '@/types/issues';
 // ============================================
 
 function NewIssuePageHeader() {
+  const router = useRouter();
+  const t = useTranslations('issues');
   return (
-    <div className="flex items-center gap-4 mb-6">
-      <Link href="/issues" className="p-2 hover:bg-gray-100 rounded-lg">
-        <ArrowLeft className="w-5 h-5 text-gray-600" />
-      </Link>
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Bug className="w-6 h-6" />
-          Report New Issue
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Submit a new issue for tracking and resolution
-        </p>
-      </div>
+    <div className="mb-4 md:mb-6">
+      <ResponsivePageHeader
+        title={t('new.title')}
+        subtitle={t('new.subtitle')}
+        icon={Bug}
+        iconBgColor="bg-rose-100"
+        iconColor="text-rose-600"
+        onBack={() => router.push('/issues')}
+      />
     </div>
   );
 }
@@ -42,29 +41,83 @@ function NewIssuePageHeader() {
 // ============================================
 
 function GuidelinesCard() {
+  const t = useTranslations('issues');
   return (
     <Card className="bg-blue-50 border-blue-200">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2 text-blue-700">
           <AlertCircle className="w-5 h-5" />
-          Issue Reporting Guidelines
+          {t('new.guidelines.title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="text-sm text-blue-600 space-y-2">
         <p>
-          <strong>Clear Title:</strong> Use a descriptive title that summarizes the issue.
+          <strong>{t('new.guidelines.clearTitle')}</strong> {t('new.guidelines.clearTitleText')}
         </p>
         <p>
-          <strong>Detailed Summary:</strong> Explain what happened, when, and where.
+          <strong>{t('new.guidelines.detailedSummary')}</strong> {t('new.guidelines.detailedSummaryText')}
         </p>
         <p>
-          <strong>Impact Assessment:</strong> Describe who or what is affected.
+          <strong>{t('new.guidelines.impactAssessment')}</strong> {t('new.guidelines.impactAssessmentText')}
         </p>
         <p>
-          <strong>For Bugs:</strong> Include steps to reproduce, expected vs actual behavior.
+          <strong>{t('new.guidelines.forBugs')}</strong> {t('new.guidelines.forBugsText')}
         </p>
         <p className="text-blue-700 font-medium mt-4">
-          AI validation will check your issue for completeness before submission.
+          {t('new.guidelines.aiValidation')}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================
+// Tips Card
+// ============================================
+
+function TipsCard() {
+  const t = useTranslations('issues');
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">{t('new.tips.title')}</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm text-gray-600 space-y-2">
+        <ul className="list-disc list-inside space-y-1">
+          <li>{t('new.tips.includeErrorMessages')}</li>
+          <li>{t('new.tips.attachScreenshots')}</li>
+          <li>{t('new.tips.mentionRecentChanges')}</li>
+          <li>{t('new.tips.noteReproducible')}</li>
+          <li>{t('new.tips.specifyEnvironment')}</li>
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================
+// Category Help Card
+// ============================================
+
+function CategoryHelpCard() {
+  const t = useTranslations('issues');
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">{t('new.categoryHelp.title')}</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm text-gray-600 space-y-2">
+        <p>
+          <strong>{t('new.categoryHelp.bug')}</strong> {t('new.categoryHelp.bugText')}
+        </p>
+        <p>
+          <strong>{t('new.categoryHelp.featureRequest')}</strong> {t('new.categoryHelp.featureRequestText')}
+        </p>
+        <p>
+          <strong>{t('new.categoryHelp.documentation')}</strong> {t('new.categoryHelp.documentationText')}
+        </p>
+        <p>
+          <strong>{t('new.categoryHelp.support')}</strong> {t('new.categoryHelp.supportText')}
         </p>
       </CardContent>
     </Card>
@@ -103,43 +156,8 @@ export default function NewIssuePage() {
         {/* Sidebar */}
         <div className="space-y-6">
           <GuidelinesCard />
-
-          {/* Additional Tips */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Tips for Fast Resolution</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-gray-600 space-y-2">
-              <ul className="list-disc list-inside space-y-1">
-                <li>Include error messages or codes</li>
-                <li>Attach screenshots when relevant</li>
-                <li>Mention any recent changes</li>
-                <li>Note if issue is reproducible</li>
-                <li>Specify environment details</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* Category Help */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Choosing a Category</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-gray-600 space-y-2">
-              <p>
-                <strong>Bug:</strong> Something isn&apos;t working as expected
-              </p>
-              <p>
-                <strong>Feature Request:</strong> New functionality suggestion
-              </p>
-              <p>
-                <strong>Documentation:</strong> Docs updates or corrections
-              </p>
-              <p>
-                <strong>Support:</strong> Help with using the system
-              </p>
-            </CardContent>
-          </Card>
+          <TipsCard />
+          <CategoryHelpCard />
         </div>
       </div>
     </div>

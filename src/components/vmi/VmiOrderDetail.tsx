@@ -96,7 +96,52 @@ async function fetchOrderDetail(orderId: number): Promise<VmiOrderDetail> {
   if (!result.success) {
     throw new Error(result.error || 'Failed to fetch order');
   }
-  return result.data;
+  // Map API VmiSalesOrderDetail fields to component VmiOrderDetail fields
+  const data = result.data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lines: VmiOrderLine[] = (data.lines || []).map((line: any, idx: number) => ({
+    id: line.id,
+    lineNumber: idx + 1,
+    portalItemCode: line.localCode || line.vmiLineId || '',
+    portalItemName: line.itemName,
+    tppCode: line.tppCode,
+    ttmtCode: line.ttmtCode,
+    matchedItemId: line.matchedItem?.id || line.itemId || null,
+    matchedItemCode: line.matchedItem?.code || null,
+    matchedItemName: line.matchedItem?.nameTh || line.matchedItem?.nameEn || null,
+    matchMethod: line.matchStatus === 'manual_mapped' ? 'manual'
+      : line.matchStatus === 'matched' ? 'code'
+      : null,
+    quantity: line.quantity,
+    unit: line.unit,
+    unitPrice: line.unitPrice,
+    lineTotal: line.lineTotal,
+  }));
+  const matchedCount = lines.filter(l => l.matchedItemId).length;
+  return {
+    id: data.id,
+    portalId: data.portalId,
+    portalName: data.portalName,
+    portalOrderId: data.vmiOrderId,
+    orderDate: data.orderDate,
+    customerId: data.customerId,
+    customerName: data.vmiCustomerName || data.customer?.name || 'Unknown',
+    hospitalCode: data.vmiCustomerId,
+    status: data.localStatus || 'pending',
+    priority: 'normal',
+    totalItems: data.lineCount || lines.length,
+    totalAmount: data.totalAmount,
+    matchedItems: matchedCount,
+    unmatchedItems: (data.lineCount || lines.length) - matchedCount,
+    requestedDeliveryDate: data.requiredDate,
+    notes: data.notes,
+    confirmedAt: data.confirmedAt,
+    salesOrderId: data.salesOrderId,
+    shippedAt: data.shippedAt,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    lines,
+  };
 }
 
 async function matchLine(

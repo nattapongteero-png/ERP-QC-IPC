@@ -103,7 +103,7 @@ describe('ChartOfAccountsPage', () => {
       renderWithProviders(<ChartOfAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ผังบัญชี')).toBeInTheDocument();
+        expect(screen.getAllByText('Chart of Accounts').length).toBeGreaterThan(0);
       });
     });
 
@@ -113,7 +113,7 @@ describe('ChartOfAccountsPage', () => {
       renderWithProviders(<ChartOfAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Chart of Accounts')).toBeInTheDocument();
+        expect(screen.getAllByText('Chart of Accounts').length).toBeGreaterThan(0);
       });
     });
 
@@ -133,7 +133,7 @@ describe('ChartOfAccountsPage', () => {
       renderWithProviders(<ChartOfAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ส่งออก')).toBeInTheDocument();
+        expect(screen.getByText('Export')).toBeInTheDocument();
       });
     });
   });
@@ -145,7 +145,7 @@ describe('ChartOfAccountsPage', () => {
       renderWithProviders(<ChartOfAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('บัญชีทั้งหมด')).toBeInTheDocument();
+        expect(screen.getByText('Total Accounts')).toBeInTheDocument();
       });
     });
 
@@ -155,7 +155,7 @@ describe('ChartOfAccountsPage', () => {
       renderWithProviders(<ChartOfAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ใช้งาน')).toBeInTheDocument();
+        expect(screen.getByText('Active')).toBeInTheDocument();
       });
     });
 
@@ -165,7 +165,7 @@ describe('ChartOfAccountsPage', () => {
       renderWithProviders(<ChartOfAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ลงบัญชีได้')).toBeInTheDocument();
+        expect(screen.getByText('Postable')).toBeInTheDocument();
       });
     });
 
@@ -175,7 +175,7 @@ describe('ChartOfAccountsPage', () => {
       renderWithProviders(<ChartOfAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('บัญชีธนาคาร')).toBeInTheDocument();
+        expect(screen.getByText('Bank Accounts')).toBeInTheDocument();
       });
     });
   });
@@ -207,7 +207,7 @@ describe('ChartOfAccountsPage', () => {
       renderWithProviders(<ChartOfAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('เพิ่มบัญชี')).toBeInTheDocument();
+        expect(screen.getByText('Add Account')).toBeInTheDocument();
       });
     });
   });
@@ -254,7 +254,7 @@ describe('ChartOfAccountsPage', () => {
       renderWithProviders(<ChartOfAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ผังบัญชี')).toBeInTheDocument();
+        expect(screen.getAllByText('Chart of Accounts').length).toBeGreaterThan(0);
       });
     });
 
@@ -303,7 +303,7 @@ describe('ChartOfAccountsPage', () => {
 
       await waitFor(() => {
         // Total accounts = MOCK_GL_ACCOUNTS.length = 10
-        expect(screen.getByTestId('kpi-บัญชีทั้งหมด')).toHaveTextContent('10');
+        expect(screen.getByTestId('kpi-total-accounts')).toHaveTextContent('10');
       });
     });
 
@@ -314,7 +314,7 @@ describe('ChartOfAccountsPage', () => {
 
       await waitFor(() => {
         // Active accounts = accounts with isActive=true = 9
-        expect(screen.getByTestId('kpi-ใช้งาน')).toHaveTextContent('9');
+        expect(screen.getByTestId('kpi-active')).toHaveTextContent('9');
       });
     });
 
@@ -325,7 +325,7 @@ describe('ChartOfAccountsPage', () => {
 
       await waitFor(() => {
         // Postable accounts = accounts with isPostable=true = 5 (ids: 3, 4, 5, 7, 9)
-        expect(screen.getByTestId('kpi-ลงบัญชีได้')).toHaveTextContent('5');
+        expect(screen.getByTestId('kpi-postable')).toHaveTextContent('5');
       });
     });
 
@@ -336,7 +336,7 @@ describe('ChartOfAccountsPage', () => {
 
       await waitFor(() => {
         // Bank accounts = accounts with isBankAccount=true = 1
-        expect(screen.getByTestId('kpi-บัญชีธนาคาร')).toHaveTextContent('1');
+        expect(screen.getByTestId('kpi-bank-accounts')).toHaveTextContent('1');
       });
     });
   });

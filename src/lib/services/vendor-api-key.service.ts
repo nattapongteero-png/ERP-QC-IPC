@@ -130,7 +130,7 @@ export class VendorApiKeyService {
 
     if (usingSqlite) {
       const db = getSqliteDb();
-      const now = new Date().toISOString();
+      const now = getNow() as string;
 
       const results = await db
         .select({

@@ -27,6 +27,7 @@ import {
   Phone,
   FileText,
 } from 'lucide-react';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import type {
   Complaint,
   ComplaintCreate,
@@ -170,7 +171,7 @@ export function ComplaintDataEntryDialog({
   const initialFormData = useMemo((): FormData => {
     if (complaint) {
       return {
-        receivedDate: complaint.receivedDate || new Date().toISOString().split('T')[0],
+        receivedDate: complaint.receivedDate || toLocalDateStr(new Date()),
         source: complaint.source || 'customer',
         customerName: complaint.customerName || '',
         customerContact: complaint.customerContact || '',
@@ -184,7 +185,7 @@ export function ComplaintDataEntryDialog({
     }
 
     return {
-      receivedDate: new Date().toISOString().split('T')[0],
+      receivedDate: toLocalDateStr(new Date()),
       source: 'customer',
       customerName: '',
       customerContact: '',
@@ -370,7 +371,7 @@ export function ComplaintDataEntryDialog({
                 onValueChange={(value) =>
                   handleFieldChange(
                     'receivedDate',
-                    value ? new Date(value).toISOString().split('T')[0] : ''
+                    value ? toLocalDateStr(new Date(value)) : ''
                   )
                 }
                 type="date"

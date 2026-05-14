@@ -7,6 +7,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
@@ -61,6 +62,7 @@ async function fetchDashboard() {
 // ============================================
 
 export default function ComplaintTrendsPage() {
+  const t = useTranslations('gmp');
   const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
   const [customDateRange, setCustomDateRange] = useState<{
     from: string;
@@ -165,9 +167,9 @@ export default function ComplaintTrendsPage() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Complaint Trends Analysis</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('complaints.trends.title')}</h1>
         <p className="text-muted-foreground mt-2">
-          Analyze complaint patterns by category, severity, product, and time period
+          {t('complaints.trends.description')}
         </p>
       </div>
 

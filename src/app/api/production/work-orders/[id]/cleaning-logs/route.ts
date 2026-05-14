@@ -7,13 +7,18 @@ import {
 } from '@/lib/api-utils';
 import {
   getWOCleaningLogs,
+  getCleaningRequirements,
   createWOCleaningLog,
   verifyWOCleaningLog,
   getWOCleaningStatus,
 } from '@/lib/services/wo-execution.service';
+import { publishWorkOrderChanged } from '@/lib/realtime';
 
-// Valid phases for cleaning
-const VALID_PHASES = ['pre_production', 'post_production', 'pre_packaging'];
+// Valid phases for cleaning — must match the 5 phases supported by BOM
+// rooms/equipment config (pre_production / production / post_production /
+// pre_packaging / packaging). Earlier this list only allowed 3 phases and
+// rejected GET ?phase=production / ?phase=packaging.
+const VALID_PHASES = ['pre_production', 'production', 'post_production', 'pre_packaging', 'packaging'];
 
 // Valid item types
 const VALID_ITEM_TYPES = ['room', 'equipment'];
@@ -40,13 +45,20 @@ export async function GET(
         return errorResponse(`Invalid phase. Must be one of: ${VALID_PHASES.join(', ')}`);
       }
 
-      const logs = await getWOCleaningLogs(workOrderId, phase);
+      // When phase is specified, return BOM-merged requirements (rooms + equipment + logs)
+      if (phase) {
+        const requirements = await getCleaningRequirements(workOrderId, phase);
 
-      if (includeStatus && phase) {
-        const status = await getWOCleaningStatus(workOrderId, phase);
-        return successResponse({ logs, status });
+        if (includeStatus) {
+          const status = await getWOCleaningStatus(workOrderId, phase);
+          return successResponse({ requirements, status });
+        }
+
+        return successResponse(requirements);
       }
 
+      // Without phase, return raw logs (for status/summary endpoints)
+      const logs = await getWOCleaningLogs(workOrderId);
       return successResponse(logs);
     } catch (error) {
       console.error('Error fetching WO cleaning logs:', error);
@@ -107,6 +119,8 @@ export async function POST(
         notes: data.notes,
       });
 
+      publishWorkOrderChanged(workOrderId, 'cleaning', session.userId, data.phase);
+
       return successResponse(log, 'Cleaning log recorded');
     } catch (error) {
       console.error('Error creating WO cleaning log:', error);
@@ -135,13 +149,26 @@ export async function PATCH(
         return errorResponse('Missing logId');
       }
 
+      // Support pass/fail verify result
+      const verifyResult = data.verifyResult || 'pass';
+      if (!['pass', 'fail'].includes(verifyResult)) {
+        return errorResponse('verifyResult must be "pass" or "fail"');
+      }
+
       // Use session user as verifier if not specified
       const verifierId = data.verifierId || session.userId;
 
-      const log = await verifyWOCleaningLog(data.logId, verifierId);
-      return successResponse(log, 'Cleaning log verified');
+      const log = await verifyWOCleaningLog(data.logId, verifierId, verifyResult);
+      publishWorkOrderChanged(workOrderId, 'cleaning', session.userId);
+      const msg = verifyResult === 'pass' ? 'Cleaning verified — Pass' : 'Cleaning verified — Fail (requires re-cleaning)';
+      return successResponse(log, msg);
     } catch (error) {
       console.error('Error verifying WO cleaning log:', error);
+      // Surface known business-logic errors (e.g. dual-control violation)
+      // directly to the caller instead of hiding them as "Internal server error".
+      if (error instanceof Error && error.message) {
+        return errorResponse(error.message);
+      }
       return serverErrorResponse(error);
     }
   });

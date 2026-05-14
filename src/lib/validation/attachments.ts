@@ -46,6 +46,7 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 // Module names that can have attachments
 export const VALID_MODULES = [
   // Quality/GMP modules
+  'gmp_document',
   'capa',
   'deviation',
   'complaint',

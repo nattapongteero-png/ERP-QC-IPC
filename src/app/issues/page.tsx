@@ -8,6 +8,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -39,6 +40,7 @@ import { KPICard, KPICardSkeleton } from '@/components/ui/kpi-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
 import { StatusBadge, SeverityBadge, PriorityBadge } from '@/components/issues';
+import { ResponsivePageHeader } from '@/components/shared';
 import type { IssueDashboardMetrics, Issue } from '@/types/issues';
 
 // ============================================
@@ -84,33 +86,37 @@ const SEVERITY_COLORS: Record<string, string> = {
 // ============================================
 
 function IssuesPageHeader() {
+  const t = useTranslations('issues');
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Issue Tracker</h1>
-        <p className="text-gray-600 mt-1">
-          Monitor, track, and resolve issues across your organization
-        </p>
-      </div>
-      <div className="flex items-center gap-3">
-        <Link href="/issues/list">
-          <Button
-            text="View All Issues"
-            type="normal"
-            stylingMode="outlined"
-            icon="search"
-          />
-        </Link>
-        <Link href="/issues/new">
-          <Button
-            text="Report Issue"
-            type="default"
-            stylingMode="contained"
-            icon="add"
-            data-testid="new-issue-btn"
-          />
-        </Link>
-      </div>
+    <div className="mb-4 md:mb-6">
+      <ResponsivePageHeader
+        title={t('page.title')}
+        subtitle={t('page.description')}
+        icon={Bug}
+        iconBgColor="bg-rose-100"
+        iconColor="text-rose-600"
+        actions={
+          <>
+            <Link href="/issues/list">
+              <Button
+                text={t('actions.viewAll')}
+                type="normal"
+                stylingMode="outlined"
+                icon="search"
+              />
+            </Link>
+            <Link href="/issues/new">
+              <Button
+                text={t('actions.reportIssue')}
+                type="default"
+                stylingMode="contained"
+                icon="add"
+                data-testid="new-issue-btn"
+              />
+            </Link>
+          </>
+        }
+      />
     </div>
   );
 }
@@ -120,6 +126,7 @@ function IssuesPageHeader() {
 // ============================================
 
 function KPICardsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
+  const t = useTranslations('issues');
   // Find critical count from severity breakdown
   const criticalCount = metrics.issuesBySeverity.find(s => s.severity === 'critical')?.count || 0;
   // Convert avgResolutionTime from hours to days
@@ -128,33 +135,33 @@ function KPICardsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <KPICard
-        label="Open Issues"
+        label={t('kpi.openIssues')}
         value={metrics.openIssues}
         icon={<AlertCircle className="w-5 h-5" />}
         trend={metrics.openIssues > 0 ? 'up' : 'neutral'}
-        subtitle="Issues requiring attention"
+        subtitle={t('kpi.issuesRequiringAttention')}
       />
       <KPICard
-        label="Critical Issues"
+        label={t('kpi.criticalIssues')}
         value={criticalCount}
         icon={<AlertTriangle className="w-5 h-5" />}
         trend={criticalCount > 0 ? 'up' : 'neutral'}
-        trendValue={criticalCount > 0 ? 'Action Required' : 'All Clear'}
+        trendValue={criticalCount > 0 ? t('kpi.actionRequired') : t('kpi.allClear')}
         className={criticalCount > 0 ? 'border-red-200 bg-red-50' : ''}
       />
       <KPICard
-        label="Resolved This Week"
+        label={t('kpi.resolvedThisWeek')}
         value={metrics.issuesResolvedThisWeek}
         icon={<CheckCircle className="w-5 h-5" />}
         trend="up"
-        subtitle="Issues closed this week"
+        subtitle={t('kpi.issuesClosedThisWeek')}
       />
       <KPICard
-        label="Avg Resolution Time"
-        value={`${avgResolutionDays} days`}
+        label={t('kpi.avgResolutionTime')}
+        value={`${avgResolutionDays} ${t('kpi.days')}`}
         icon={<Clock className="w-5 h-5" />}
         trend={avgResolutionDays < 7 ? 'down' : 'up'}
-        subtitle="Average time to resolve"
+        subtitle={t('kpi.averageTimeToResolve')}
       />
     </div>
   );
@@ -165,6 +172,8 @@ function KPICardsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
 // ============================================
 
 function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
+  const t = useTranslations('issues');
+  const locale = useLocale();
   // Transform data for pie charts
   const statusData = metrics.issuesByStatus.map((item) => ({
     status: item.status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -179,7 +188,7 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
   }));
 
   const categoryData = metrics.issuesByCategory.map((item) => ({
-    category: item.categoryName || 'Uncategorized',
+    category: item.categoryName || t('recent.uncategorized'),
     count: item.count,
   }));
 
@@ -190,27 +199,40 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ListTodo className="w-5 h-5" />
-            Issues by Status
+            {t('charts.byStatus')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <PieChart
+            key={locale}
             dataSource={statusData}
             palette={statusData.map((d) => d.color)}
             resolveLabelOverlapping="shift"
+            diameter={0.65}
+            sizeGroup="issues-pie"
           >
             <Series argumentField="status" valueField="count">
-              <Label visible={true} position="outside">
-                <Connector visible={true} />
+              <Label
+                visible={true}
+                position="columns"
+                backgroundColor="none"
+                customizeText={(arg: { argumentText: string; valueText: string; percentText: string }) =>
+                  `${arg.argumentText}: ${arg.valueText} (${arg.percentText})`
+                }
+                font={{ size: 11 }}
+              >
+                <Connector visible={true} width={1} />
               </Label>
             </Series>
             <Legend
               orientation="horizontal"
               horizontalAlignment="center"
               verticalAlignment="bottom"
+              font={{ size: 11 }}
+              rowCount={1}
             />
             <Tooltip enabled={true} />
-            <Size height={250} />
+            <Size height={300} />
           </PieChart>
         </CardContent>
       </Card>
@@ -220,28 +242,42 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5" />
-            Issues by Severity
+            {t('charts.bySeverity')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <PieChart
+            key={locale}
             dataSource={severityData}
             palette={severityData.map((d) => d.color)}
             type="doughnut"
             innerRadius={0.5}
+            resolveLabelOverlapping="shift"
+            diameter={0.65}
+            sizeGroup="issues-pie"
           >
             <Series argumentField="severity" valueField="count">
-              <Label visible={true} format="fixedPoint">
-                <Connector visible={true} />
+              <Label
+                visible={true}
+                position="columns"
+                backgroundColor="none"
+                customizeText={(arg: { argumentText: string; valueText: string; percentText: string }) =>
+                  `${arg.argumentText}: ${arg.valueText} (${arg.percentText})`
+                }
+                font={{ size: 11 }}
+              >
+                <Connector visible={true} width={1} />
               </Label>
             </Series>
             <Legend
               orientation="horizontal"
               horizontalAlignment="center"
               verticalAlignment="bottom"
+              font={{ size: 11 }}
+              rowCount={1}
             />
             <Tooltip enabled={true} />
-            <Size height={250} />
+            <Size height={300} />
           </PieChart>
         </CardContent>
       </Card>
@@ -251,13 +287,13 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bug className="w-5 h-5" />
-            Issues by Category
+            {t('charts.byCategory')}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Chart dataSource={categoryData}>
+          <Chart key={locale} dataSource={categoryData}>
             <CommonSeriesSettings type="bar" argumentField="category" />
-            <ChartSeries valueField="count" name="Issues" color="#3B82F6" />
+            <ChartSeries valueField="count" name={t('charts.seriesName')} color="#3B82F6" />
             <ArgumentAxis>
               <AxisLabel rotationAngle={-45} />
             </ArgumentAxis>
@@ -277,21 +313,22 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
 // ============================================
 
 function RecentIssuesSection({ issues }: { issues: Issue[] }) {
+  const t = useTranslations('issues');
   if (issues.length === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
-            Recent Issues
+            {t('recent.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-gray-500">
             <Bug className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No issues reported yet</p>
+            <p>{t('recent.noIssues')}</p>
             <Link href="/issues/new" className="text-blue-600 hover:underline mt-2 inline-block">
-              Report your first issue
+              {t('recent.reportFirst')}
             </Link>
           </div>
         </CardContent>
@@ -304,10 +341,10 @@ function RecentIssuesSection({ issues }: { issues: Issue[] }) {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Clock className="w-5 h-5" />
-          Recent Issues
+          {t('recent.title')}
         </CardTitle>
         <Link href="/issues/list" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-          View All <ChevronRight className="w-4 h-4" />
+          {t('recent.viewAll')} <ChevronRight className="w-4 h-4" />
         </Link>
       </CardHeader>
       <CardContent>
@@ -337,7 +374,7 @@ function RecentIssuesSection({ issues }: { issues: Issue[] }) {
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <span>
-                  {issue.category?.name || 'Uncategorized'}
+                  {issue.category?.name || t('recent.uncategorized')}
                 </span>
                 <span>
                   {new Date(issue.createdAt).toLocaleDateString()}
@@ -362,31 +399,32 @@ function RecentIssuesSection({ issues }: { issues: Issue[] }) {
 // ============================================
 
 function QuickActionsSection() {
+  const t = useTranslations('issues');
   const actions = [
     {
-      title: 'Report New Issue',
-      description: 'Submit a new issue with AI-assisted validation',
+      title: t('quickActions.reportNew'),
+      description: t('quickActions.reportNewDescription'),
       href: '/issues/new',
       icon: <Plus className="w-5 h-5" />,
       color: 'bg-blue-100 text-blue-600',
     },
     {
-      title: 'View All Issues',
-      description: 'Browse and filter all reported issues',
+      title: t('quickActions.viewAll'),
+      description: t('quickActions.viewAllDescription'),
       href: '/issues/list',
       icon: <ListTodo className="w-5 h-5" />,
       color: 'bg-purple-100 text-purple-600',
     },
     {
-      title: 'Critical Issues',
-      description: 'View issues requiring immediate attention',
+      title: t('quickActions.criticalIssues'),
+      description: t('quickActions.criticalDescription'),
       href: '/issues/list?severity=critical',
       icon: <AlertTriangle className="w-5 h-5" />,
       color: 'bg-red-100 text-red-600',
     },
     {
-      title: 'My Assigned',
-      description: 'View issues assigned to you',
+      title: t('quickActions.myAssigned'),
+      description: t('quickActions.myAssignedDescription'),
       href: '/issues/list?assignedToMe=true',
       icon: <Users className="w-5 h-5" />,
       color: 'bg-green-100 text-green-600',
@@ -398,7 +436,7 @@ function QuickActionsSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5" />
-          Quick Actions
+          {t('quickActions.title')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -451,6 +489,7 @@ function DashboardSkeleton() {
 // ============================================
 
 export default function IssuesDashboardPage() {
+  const t = useTranslations('issues');
   const { data: metrics, isLoading: metricsLoading, error: metricsError } = useQuery({
     queryKey: ['issues-dashboard'],
     queryFn: fetchDashboardMetrics,
@@ -472,10 +511,10 @@ export default function IssuesDashboardPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-red-500" />
           <h2 className="text-lg font-semibold text-red-700 mb-2">
-            Failed to Load Dashboard
+            {t('error.loadFailed')}
           </h2>
           <p className="text-red-600">
-            {metricsError.message || 'An error occurred while loading the dashboard'}
+            {metricsError.message || t('error.genericError')}
           </p>
         </div>
       </div>
@@ -487,11 +526,11 @@ export default function IssuesDashboardPage() {
   }
 
   return (
-    <div className="p-6" data-testid="issues-dashboard">
+    <div className="p-4 md:p-6" data-testid="issues-dashboard">
       <IssuesPageHeader />
       <KPICardsSection metrics={metrics} />
       <ChartsSection metrics={metrics} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <RecentIssuesSection issues={recentIssues || []} />
         <QuickActionsSection />
       </div>

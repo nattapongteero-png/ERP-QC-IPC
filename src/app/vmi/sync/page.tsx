@@ -10,6 +10,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
@@ -32,6 +33,8 @@ import { exportDataGrid } from 'devextreme/excel_exporter';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
 import { DxButton } from '@/components/ui/dx-button';
+import { MobileListView } from '@/components/shared';
+import { useMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   RefreshCw,
@@ -56,6 +59,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 import type { VmiSyncType, VmiSyncStatus } from '@/types/vmi';
 
@@ -100,54 +104,39 @@ const SYNC_TYPE_CONFIG: Record<
   VmiSyncType,
   {
     icon: typeof Package;
-    label: string;
-    labelTh: string;
     color: string;
     bgColor: string;
     borderColor: string;
     iconBg: string;
-    description: string;
   }
 > = {
   inventory: {
     icon: Package,
-    label: 'Inventory',
-    labelTh: 'สินค้าคงคลัง',
     color: 'text-blue-600',
     bgColor: 'bg-blue-50',
     borderColor: 'border-blue-200',
     iconBg: 'bg-blue-100',
-    description: 'ส่งระดับสต็อกปัจจุบันไปยัง VMI Portal',
   },
   items: {
     icon: Tag,
-    label: 'Items',
-    labelTh: 'รายการสินค้า',
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
     borderColor: 'border-purple-200',
     iconBg: 'bg-purple-100',
-    description: 'อัปเดตแคตตาล็อกสินค้าพร้อมรหัส TPP/TTMT',
   },
   prices: {
     icon: DollarSign,
-    label: 'Prices',
-    labelTh: 'ราคา',
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-50',
     borderColor: 'border-emerald-200',
     iconBg: 'bg-emerald-100',
-    description: 'ส่งข้อมูลราคาปัจจุบัน',
   },
   orders: {
     icon: Database,
-    label: 'Orders',
-    labelTh: 'คำสั่งซื้อ',
     color: 'text-orange-600',
     bgColor: 'bg-orange-50',
     borderColor: 'border-orange-200',
     iconBg: 'bg-orange-100',
-    description: 'ดึงคำสั่งซื้อจาก VMI Portal',
   },
 };
 
@@ -155,8 +144,6 @@ const STATUS_CONFIG: Record<
   VmiSyncStatus,
   {
     icon: typeof CheckCircle;
-    label: string;
-    labelTh: string;
     color: string;
     bgColor: string;
     textColor: string;
@@ -165,8 +152,6 @@ const STATUS_CONFIG: Record<
 > = {
   running: {
     icon: Loader2,
-    label: 'Running',
-    labelTh: 'กำลังทำงาน',
     color: 'text-blue-600',
     bgColor: 'bg-blue-50',
     textColor: 'text-blue-700',
@@ -174,8 +159,6 @@ const STATUS_CONFIG: Record<
   },
   completed: {
     icon: CheckCircle,
-    label: 'Completed',
-    labelTh: 'สำเร็จ',
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-50',
     textColor: 'text-emerald-700',
@@ -183,8 +166,6 @@ const STATUS_CONFIG: Record<
   },
   partial: {
     icon: AlertTriangle,
-    label: 'Partial',
-    labelTh: 'บางส่วน',
     color: 'text-amber-600',
     bgColor: 'bg-amber-50',
     textColor: 'text-amber-700',
@@ -192,8 +173,6 @@ const STATUS_CONFIG: Record<
   },
   failed: {
     icon: XCircle,
-    label: 'Failed',
-    labelTh: 'ล้มเหลว',
     color: 'text-red-600',
     bgColor: 'bg-red-50',
     textColor: 'text-red-700',
@@ -201,11 +180,11 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const TRIGGER_CONFIG: Record<string, { label: string; labelTh: string; icon: typeof Play }> = {
-  manual: { label: 'Manual', labelTh: 'Manual', icon: Play },
-  scheduled: { label: 'Scheduled', labelTh: 'Scheduled', icon: Clock },
-  threshold: { label: 'Threshold', labelTh: 'Threshold', icon: Zap },
-  auto: { label: 'Auto', labelTh: 'Auto', icon: RefreshCw },
+const TRIGGER_CONFIG: Record<string, { icon: typeof Play }> = {
+  manual: { icon: Play },
+  scheduled: { icon: Clock },
+  threshold: { icon: Zap },
+  auto: { icon: RefreshCw },
 };
 
 // ============================================
@@ -246,22 +225,8 @@ async function triggerSync(syncType: VmiSyncType): Promise<SyncResult[]> {
 // Helper Functions
 // ============================================
 
-function formatTimeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'เมื่อสักครู่';
-  if (diffMins < 60) return `${diffMins} นาทีที่แล้ว`;
-  if (diffHours < 24) return `${diffHours} ชั่วโมงที่แล้ว`;
-  return `${diffDays} วันที่แล้ว`;
-}
-
-function formatDateTime(dateString: string): string {
-  return new Date(dateString).toLocaleString('th-TH', {
+function formatDateTime(dateString: string, locale: string): string {
+  return new Date(dateString).toLocaleString(locale === 'th' ? 'th-TH' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -286,13 +251,30 @@ function formatDuration(startedAt: string, completedAt?: string | null): string 
 // ============================================
 
 export default function VmiSyncPage() {
+  const t = useTranslations('vmi');
+  const locale = useLocale();
   const queryClient = useQueryClient();
+  const { isMobile } = useMobile();
   const [lastResults, setLastResults] = useState<Record<VmiSyncType, SyncResult[] | null>>({
     inventory: null,
     items: null,
     prices: null,
     orders: null,
   });
+
+  const formatTimeAgo = useCallback((dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return t('sync.time.justNow');
+    if (diffMins < 60) return t('sync.time.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('sync.time.hoursAgo', { count: diffHours });
+    return t('sync.time.daysAgo', { count: diffDays });
+  }, [t]);
 
   // Fetch sync history
   const {
@@ -341,6 +323,11 @@ export default function VmiSyncPage() {
     return matching.length > 0 ? matching[matching.length - 1] : null;
   }, [historyData]);
 
+  // History items with row numbers for DataGrid
+  const historyItemsWithRowNum = useMemo(() => {
+    return (historyData?.items || []).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+  }, [historyData]);
+
   // Calculate stats with useMemo
   const stats = useMemo(() => {
     const today = new Date().toDateString();
@@ -378,7 +365,7 @@ export default function VmiSyncPage() {
       workbook.xlsx.writeBuffer().then((buffer) => {
         saveAs(
           new Blob([buffer], { type: 'application/octet-stream' }),
-          `vmi-sync-history-${new Date().toISOString().split('T')[0]}.xlsx`
+          `vmi-sync-history-${toLocalDateStr(new Date())}.xlsx`
         );
       });
     });
@@ -397,12 +384,12 @@ export default function VmiSyncPage() {
           <Icon className={cn('h-4 w-4', config.color)} />
         </div>
         <div>
-          <div className="font-medium text-gray-900">{config.labelTh}</div>
-          <div className="text-xs text-gray-500">{config.label}</div>
+          <div className="font-medium text-gray-900">{t(`sync.syncTypes.${type}.name`)}</div>
+          <div className="text-xs text-gray-500">{t(`sync.syncTypes.${type}.label`)}</div>
         </div>
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderStatusCell = useCallback((cellInfo: DataGridTypes.ColumnCellTemplateData) => {
     const status = cellInfo.value as VmiSyncStatus;
@@ -420,21 +407,25 @@ export default function VmiSyncPage() {
         )}
       >
         <Icon className={cn('h-3.5 w-3.5', status === 'running' && 'animate-spin')} />
-        {config.labelTh}
+        {t(`sync.status.${status}`)}
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderTriggerCell = useCallback((cellInfo: DataGridTypes.ColumnCellTemplateData) => {
-    const trigger = TRIGGER_CONFIG[cellInfo.value as string] || TRIGGER_CONFIG.manual;
+    const triggerKey = (cellInfo.value as string) || 'manual';
+    const trigger = TRIGGER_CONFIG[triggerKey] || TRIGGER_CONFIG.manual;
     const Icon = trigger.icon;
+    const triggerLabelKey = (['manual', 'scheduled', 'threshold', 'auto'].includes(triggerKey)
+      ? triggerKey
+      : 'manual') as 'manual' | 'scheduled' | 'threshold' | 'auto';
     return (
       <div className="flex items-center gap-1.5 text-gray-600">
         <Icon className="h-3.5 w-3.5" />
-        <span className="text-sm">{trigger.labelTh}</span>
+        <span className="text-sm">{t(`sync.trigger.${triggerLabelKey}`)}</span>
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderProgressCell = useCallback((cellInfo: DataGridTypes.ColumnCellTemplateData) => {
     const rowData = cellInfo.data as SyncHistoryItem;
@@ -468,12 +459,12 @@ export default function VmiSyncPage() {
         {hasFailures && (
           <div className="flex items-center gap-1 mt-1 text-xs text-red-600">
             <XCircle className="h-3 w-3" />
-            <span>{rowData.itemsFailed} ล้มเหลว</span>
+            <span>{rowData.itemsFailed} {t('sync.history.failedSuffix')}</span>
           </div>
         )}
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderDateTimeCell = useCallback((cellInfo: DataGridTypes.ColumnCellTemplateData) => {
     if (!cellInfo.value) return <span className="text-gray-400">-</span>;
@@ -483,7 +474,7 @@ export default function VmiSyncPage() {
       <div className="py-1">
         <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
           <Calendar className="h-3.5 w-3.5 text-gray-400" />
-          {formatDateTime(dateStr)}
+          {formatDateTime(dateStr, locale)}
         </div>
         <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5 ml-5">
           <Timer className="h-3 w-3" />
@@ -491,7 +482,7 @@ export default function VmiSyncPage() {
         </div>
       </div>
     );
-  }, []);
+  }, [formatTimeAgo, locale]);
 
   const renderDurationCell = useCallback((cellInfo: DataGridTypes.ColumnCellTemplateData) => {
     const rowData = cellInfo.data as SyncHistoryItem;
@@ -519,67 +510,178 @@ export default function VmiSyncPage() {
     );
   }, []);
 
+  // Mobile card renderer for sync history
+  const renderSyncHistoryCard = useCallback((item: SyncHistoryItem) => {
+    const syncConfig = SYNC_TYPE_CONFIG[item.syncType];
+    const statusConfig = STATUS_CONFIG[item.status];
+    const SyncIcon = syncConfig?.icon || Package;
+    const StatusIcon = statusConfig?.icon || CheckCircle;
+    const percentage = item.itemsTotal > 0
+      ? Math.round((item.itemsProcessed / item.itemsTotal) * 100)
+      : 0;
+    const duration = formatDuration(item.startedAt, item.completedAt);
+
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-300 transition-all">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            {syncConfig && (
+              <div className={cn('p-2 rounded-lg flex-shrink-0', syncConfig.iconBg)}>
+                <SyncIcon className={cn('h-4 w-4', syncConfig.color)} />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-gray-900 truncate">
+                {syncConfig ? t(`sync.syncTypes.${item.syncType}.name`) : item.syncType}
+              </p>
+              {item.portalName && (
+                <p className="text-xs text-gray-500 truncate">{item.portalName}</p>
+              )}
+            </div>
+          </div>
+          {statusConfig && (
+            <div
+              className={cn(
+                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0',
+                statusConfig.bgColor,
+                statusConfig.textColor,
+                statusConfig.borderColor,
+              )}
+            >
+              <StatusIcon
+                className={cn('h-3 w-3', item.status === 'running' && 'animate-spin')}
+              />
+              {t(`sync.status.${item.status}`)}
+            </div>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        <div className="mb-3">
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-gray-600">
+              {item.itemsProcessed.toLocaleString()}/{item.itemsTotal.toLocaleString()}
+            </span>
+            <span
+              className={cn(
+                'font-semibold',
+                percentage === 100 && item.itemsFailed === 0
+                  ? 'text-emerald-600'
+                  : item.itemsFailed > 0
+                  ? 'text-amber-600'
+                  : 'text-gray-600',
+              )}
+            >
+              {percentage}%
+            </span>
+          </div>
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={cn(
+                'h-full rounded-full transition-all duration-300',
+                item.itemsFailed > 0
+                  ? 'bg-amber-500'
+                  : item.status === 'failed'
+                  ? 'bg-red-500'
+                  : 'bg-emerald-500',
+              )}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          {item.itemsFailed > 0 && (
+            <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+              <XCircle className="h-3 w-3" />
+              {item.itemsFailed} {t('sync.history.failedSuffix')}
+            </p>
+          )}
+        </div>
+
+        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <Calendar className="h-3 w-3" />
+            {formatTimeAgo(item.startedAt)}
+          </div>
+          {duration !== '-' && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Timer className="h-3 w-3" />
+              {duration}
+            </div>
+          )}
+        </div>
+
+        {item.errorMessage && (
+          <div className="mt-2 pt-2 border-t border-red-100 text-xs text-red-700 bg-red-50 -mx-4 -mb-4 px-4 py-2 rounded-b-xl">
+            <span className="font-semibold">{t('sync.mobileCard.errorLabel')}</span> {item.errorMessage}
+          </div>
+        )}
+      </div>
+    );
+  }, [t, formatTimeAgo]);
+
   // Master detail render
   const renderMasterDetail = useCallback((e: DataGridTypes.MasterDetailTemplateData) => {
     const rowData = e.data as SyncHistoryItem;
+    const triggerKey = (['manual', 'scheduled', 'threshold', 'auto'].includes(rowData.triggerType)
+      ? rowData.triggerType
+      : 'manual') as 'manual' | 'scheduled' | 'threshold' | 'auto';
     return (
       <div className="p-4 bg-gray-50 border-t border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              ข้อมูลการซิงค์
+              {t('sync.masterDetail.syncInfo')}
             </h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Sync ID:</span>
+                <span className="text-gray-500">{t('sync.masterDetail.syncId')}</span>
                 <span className="font-mono text-gray-900">#{rowData.id}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Portal ID:</span>
+                <span className="text-gray-500">{t('sync.masterDetail.portalId')}</span>
                 <span className="font-mono text-gray-900">#{rowData.portalId}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">ระยะเวลา:</span>
+                <span className="text-gray-500">{t('sync.masterDetail.duration')}</span>
                 <span className="text-gray-900">{formatDuration(rowData.startedAt, rowData.completedAt)}</span>
               </div>
             </div>
           </div>
           <div>
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              ผลลัพธ์
+              {t('sync.masterDetail.results')}
             </h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">ประมวลผลแล้ว:</span>
-                <span className="text-emerald-600 font-medium">{rowData.itemsProcessed.toLocaleString()} รายการ</span>
+                <span className="text-gray-500">{t('sync.masterDetail.processed')}</span>
+                <span className="text-emerald-600 font-medium">{rowData.itemsProcessed.toLocaleString()} {t('sync.masterDetail.itemsUnit')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">ล้มเหลว:</span>
+                <span className="text-gray-500">{t('sync.masterDetail.failed')}</span>
                 <span className={cn(
                   'font-medium',
                   rowData.itemsFailed > 0 ? 'text-red-600' : 'text-gray-400'
                 )}>
-                  {rowData.itemsFailed > 0 ? `${rowData.itemsFailed.toLocaleString()} รายการ` : '-'}
+                  {rowData.itemsFailed > 0 ? `${rowData.itemsFailed.toLocaleString()} ${t('sync.masterDetail.itemsUnit')}` : '-'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">ทั้งหมด:</span>
-                <span className="text-gray-900 font-medium">{rowData.itemsTotal.toLocaleString()} รายการ</span>
+                <span className="text-gray-500">{t('sync.masterDetail.total')}</span>
+                <span className="text-gray-900 font-medium">{rowData.itemsTotal.toLocaleString()} {t('sync.masterDetail.itemsUnit')}</span>
               </div>
             </div>
           </div>
           <div>
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              ผู้ดำเนินการ
+              {t('sync.masterDetail.executedBy')}
             </h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Trigger:</span>
-                <span className="text-gray-900">{TRIGGER_CONFIG[rowData.triggerType]?.labelTh || rowData.triggerType}</span>
+                <span className="text-gray-500">{t('sync.masterDetail.trigger')}</span>
+                <span className="text-gray-900">{TRIGGER_CONFIG[rowData.triggerType] ? t(`sync.trigger.${triggerKey}`) : rowData.triggerType}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">โดย:</span>
-                <span className="text-gray-900">{rowData.triggeredByName || 'System'}</span>
+                <span className="text-gray-500">{t('sync.masterDetail.by')}</span>
+                <span className="text-gray-900">{rowData.triggeredByName || t('sync.masterDetail.system')}</span>
               </div>
             </div>
           </div>
@@ -587,14 +689,14 @@ export default function VmiSyncPage() {
         {rowData.errorMessage && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
             <h4 className="text-xs font-semibold text-red-800 uppercase tracking-wide mb-1">
-              Error Message
+              {t('sync.masterDetail.errorMessage')}
             </h4>
             <p className="text-sm text-red-700 font-mono">{rowData.errorMessage}</p>
           </div>
         )}
       </div>
     );
-  }, []);
+  }, [t]);
 
   // Render sync control card
   const renderSyncCard = (
@@ -621,10 +723,12 @@ export default function VmiSyncPage() {
         const failed = lastResult.reduce((sum, r) => sum + r.itemsFailed, 0);
 
         if (total === 0) {
-          return { text: 'ไม่พบรายการที่ต้องซิงค์', type: 'warning' as const };
+          return { text: t('sync.card.noItemsToSync'), type: 'warning' as const };
         }
         return {
-          text: `ซิงค์สำเร็จ ${processed} รายการ${failed > 0 ? `, ล้มเหลว ${failed}` : ''}`,
+          text: failed > 0
+            ? t('sync.card.syncSuccessWithFailures', { processed, failed })
+            : t('sync.card.syncSuccess', { processed }),
           type: failed > 0 ? ('warning' as const) : ('success' as const),
         };
       }
@@ -649,8 +753,8 @@ export default function VmiSyncPage() {
                 <Icon className={cn('h-6 w-6', config.color)} />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900">{config.labelTh}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{config.description}</p>
+                <h3 className="font-bold text-gray-900">{t(`sync.syncTypes.${syncType}.name`)}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{t(`sync.syncTypes.${syncType}.description`)}</p>
               </div>
             </div>
           </div>
@@ -673,7 +777,7 @@ export default function VmiSyncPage() {
                           )}
                         />
                         <span className={cn('text-sm font-medium', statusConfig.color)}>
-                          {statusConfig.labelTh}
+                          {t(`sync.status.${lastSync.status}`)}
                         </span>
                       </>
                     );
@@ -691,7 +795,7 @@ export default function VmiSyncPage() {
 
           {!lastSync && (
             <div className="p-3 rounded-lg bg-gray-50 mb-4 text-center">
-              <span className="text-sm text-gray-500">ยังไม่มีประวัติการซิงค์</span>
+              <span className="text-sm text-gray-500">{t('sync.card.noHistory')}</span>
             </div>
           )}
 
@@ -714,7 +818,7 @@ export default function VmiSyncPage() {
 
           {/* Sync button */}
           <DxButton
-            text={isRunning ? 'กำลังซิงค์...' : `ซิงค์${config.labelTh}`}
+            text={isRunning ? t('sync.card.syncing') : t('sync.card.syncLabel', { label: t(`sync.syncTypes.${syncType}.name`) })}
             icon={isRunning ? undefined : 'refresh'}
             type="default"
             stylingMode="contained"
@@ -746,17 +850,17 @@ export default function VmiSyncPage() {
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-indigo-200 mb-4">
               <Link href="/vmi" className="hover:text-white transition-colors">
-                VMI Portal
+                {t('sync.breadcrumb.portal')}
               </Link>
               <ChevronRight className="h-4 w-4" />
-              <span className="text-white font-medium">Synchronization</span>
+              <span className="text-white font-medium">{t('sync.breadcrumb.synchronization')}</span>
             </nav>
 
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div>
-                <h1 className="text-3xl font-bold mb-2">VMI Synchronization</h1>
+                <h1 className="text-3xl font-bold mb-2">{t('sync.header.title')}</h1>
                 <p className="text-indigo-200 text-lg">
-                  จัดการการซิงค์ข้อมูลไปยัง VMI Portal
+                  {t('sync.header.subtitle')}
                 </p>
               </div>
 
@@ -764,20 +868,20 @@ export default function VmiSyncPage() {
               <div className="flex flex-wrap items-center gap-4 lg:gap-6">
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 min-w-[90px]">
                   <div className="text-3xl font-bold">{stats.totalSyncs}</div>
-                  <div className="text-xs text-indigo-200 mt-0.5">ทั้งหมด</div>
+                  <div className="text-xs text-indigo-200 mt-0.5">{t('sync.header.totalSyncs')}</div>
                 </div>
                 <div className="bg-emerald-500/20 backdrop-blur-sm rounded-xl px-4 py-3 min-w-[90px] border border-emerald-400/30">
                   <div className="text-3xl font-bold text-emerald-300">{stats.successfulToday}</div>
-                  <div className="text-xs text-emerald-200 mt-0.5">สำเร็จวันนี้</div>
+                  <div className="text-xs text-emerald-200 mt-0.5">{t('sync.header.successfulToday')}</div>
                 </div>
                 <div className="bg-red-500/20 backdrop-blur-sm rounded-xl px-4 py-3 min-w-[90px] border border-red-400/30">
                   <div className="text-3xl font-bold text-red-300">{stats.failedToday}</div>
-                  <div className="text-xs text-red-200 mt-0.5">ล้มเหลววันนี้</div>
+                  <div className="text-xs text-red-200 mt-0.5">{t('sync.header.failedToday')}</div>
                 </div>
                 {stats.isRunning && (
                   <div className="bg-yellow-500/20 backdrop-blur-sm rounded-xl px-4 py-3 border border-yellow-400/30 flex items-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin text-yellow-300" />
-                    <span className="text-sm text-yellow-200">กำลังทำงาน</span>
+                    <span className="text-sm text-yellow-200">{t('sync.header.running')}</span>
                   </div>
                 )}
               </div>
@@ -787,7 +891,7 @@ export default function VmiSyncPage() {
             <div className="flex items-center gap-3 mt-6">
               <DxButton
                 icon="refresh"
-                text="รีเฟรช"
+                text={t('sync.header.refresh')}
                 type="normal"
                 stylingMode="text"
                 onClick={() => refetch()}
@@ -796,7 +900,7 @@ export default function VmiSyncPage() {
               <Link href="/settings/vmi">
                 <DxButton
                   icon="preferences"
-                  text="ตั้งค่า Portal"
+                  text={t('sync.header.portalSettings')}
                   type="normal"
                   stylingMode="text"
                   className="!text-white hover:!bg-white/10"
@@ -821,14 +925,14 @@ export default function VmiSyncPage() {
                 <Zap className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 text-lg">ซิงค์ทั้งหมด</h3>
+                <h3 className="font-bold text-gray-900 text-lg">{t('sync.syncAll.title')}</h3>
                 <p className="text-sm text-gray-600">
-                  ซิงค์ข้อมูลทุกประเภทตามลำดับ: Inventory → Items → Prices
+                  {t('sync.syncAll.description')}
                 </p>
               </div>
             </div>
             <DxButton
-              text={isAnySyncing ? 'กำลังซิงค์...' : 'ซิงค์ทั้งหมด'}
+              text={isAnySyncing ? t('sync.syncAll.syncing') : t('sync.syncAll.button')}
               icon={isAnySyncing ? undefined : 'refresh'}
               type="success"
               stylingMode="contained"
@@ -856,26 +960,26 @@ export default function VmiSyncPage() {
               </div>
               <div className="flex-1">
                 <h4 className="font-semibold text-amber-900 mb-2">
-                  ไม่พบรายการที่ต้องซิงค์?
+                  {t('sync.help.title')}
                 </h4>
                 <div className="text-sm text-amber-800 space-y-2">
-                  <p>ในการซิงค์รายการไปยัง VMI Portal คุณต้อง:</p>
+                  <p>{t('sync.help.intro')}</p>
                   <ol className="list-decimal list-inside space-y-1.5 ml-2">
                     <li>
-                      <strong>กำหนดค่า VMI Portal</strong> - ตั้งค่าการเชื่อมต่ออย่างน้อย 1 portal ใน{' '}
+                      <strong>{t('sync.help.step1Label')}</strong> - {t('sync.help.step1Detail')}{' '}
                       <Link href="/settings/vmi" className="underline hover:text-amber-900 font-medium">
-                        ตั้งค่า → VMI Portals
+                        {t('sync.help.step1Link')}
                       </Link>
                     </li>
                     <li>
-                      <strong>เปิดใช้งาน VMI Sync บนสินค้า</strong> - ไปที่{' '}
+                      <strong>{t('sync.help.step2Label')}</strong> - {t('sync.help.step2Detail')}{' '}
                       <Link href="/inventory/items" className="underline hover:text-amber-900 font-medium">
-                        คลังสินค้า → รายการสินค้า
+                        {t('sync.help.step2Link')}
                       </Link>{' '}
-                      และเปิดใช้งาน &quot;VMI Sync Enabled&quot;
+                      {t('sync.help.step2Suffix')}
                     </li>
                     <li>
-                      <strong>เพิ่มรหัสมาตรฐาน VMI</strong> - เพิ่มรหัส TPP/TTMT ในส่วน VMI Standard Codes
+                      <strong>{t('sync.help.step3Label')}</strong> - {t('sync.help.step3Detail')}
                     </li>
                   </ol>
                 </div>
@@ -893,9 +997,9 @@ export default function VmiSyncPage() {
                 <Activity className="h-5 w-5 text-indigo-600" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 text-lg">ประวัติการซิงค์</h3>
+                <h3 className="font-bold text-gray-900 text-lg">{t('sync.history.title')}</h3>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  คลิกที่แถวเพื่อดูรายละเอียดเพิ่มเติม
+                  {t('sync.history.subtitle')}
                 </p>
               </div>
             </div>
@@ -905,7 +1009,7 @@ export default function VmiSyncPage() {
                 type="normal"
                 stylingMode="text"
                 onClick={() => refetch()}
-                hint="รีเฟรช"
+                hint={t('sync.history.refreshHint')}
               />
             </div>
           </div>
@@ -914,13 +1018,45 @@ export default function VmiSyncPage() {
           {error && (
             <div className="flex items-center gap-3 p-4 m-4 rounded-lg bg-red-50 text-red-800 border border-red-200">
               <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
-              <span>{error instanceof Error ? error.message : 'ไม่สามารถโหลดประวัติการซิงค์'}</span>
+              <span>{error instanceof Error ? error.message : t('sync.history.loadError')}</span>
             </div>
           )}
 
-          {/* DataGrid */}
+          {/* Mobile Card View */}
+          {isMobile ? (
+            <div className="p-4">
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-32 rounded-xl bg-gray-100 animate-pulse" />
+                  ))}
+                </div>
+              ) : !historyData?.items || historyData.items.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center mb-3">
+                    <Activity className="h-8 w-8 text-indigo-600" />
+                  </div>
+                  <p className="text-lg font-semibold text-gray-900 mb-1">
+                    {t('sync.history.empty')}
+                  </p>
+                  <p className="text-sm text-gray-500 max-w-sm">
+                    {t('sync.history.emptyHint')}
+                  </p>
+                </div>
+              ) : (
+                <MobileListView
+                  items={historyData.items}
+                  keyExpr="id"
+                  renderCard={renderSyncHistoryCard}
+                  emptyMessage={t('sync.history.empty')}
+                  gap="md"
+                />
+              )}
+            </div>
+          ) : (
           <DataGrid
-            dataSource={historyData?.items || []}
+            key={locale}
+            dataSource={historyItemsWithRowNum}
             keyExpr="id"
             showBorders={false}
             showRowLines={true}
@@ -931,12 +1067,12 @@ export default function VmiSyncPage() {
             columnAutoWidth={true}
             wordWrapEnabled={false}
             height={500}
-            noDataText="ไม่มีประวัติการซิงค์"
+            noDataText={t('sync.history.empty')}
             onExporting={handleExporting}
             className="dx-card-grid"
           >
             <LoadPanel enabled={isLoading} />
-            <SearchPanel visible={true} placeholder="ค้นหา..." width={250} />
+            <SearchPanel visible={true} placeholder={t('sync.history.searchPlaceholder')} width={250} />
             <FilterRow visible={true} />
             <HeaderFilter visible={true} />
             <Sorting mode="multiple" />
@@ -949,61 +1085,76 @@ export default function VmiSyncPage() {
               <Item location="after">
                 <DxButton
                   icon="filter"
-                  text="ตัวกรอง"
+                  text={t('sync.history.filterButton')}
                   type="normal"
                   stylingMode="text"
-                  hint="แสดง/ซ่อนตัวกรอง"
+                  hint={t('sync.history.filterHint')}
                 />
               </Item>
               <Item name="exportButton" location="after" />
             </Toolbar>
 
             <Column
+              caption={t('items.grid.columns.rowNum')}
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              allowExporting={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.rowIndex + 1}
+                </span>
+              )}
+            />
+
+            <Column
               dataField="syncType"
-              caption="ประเภท"
+              caption={t('sync.history.columns.syncType')}
               width={160}
               cellRender={renderSyncTypeCell}
               allowHeaderFiltering={true}
             >
               <HeaderFilter dataSource={[
-                { text: 'สินค้าคงคลัง', value: 'inventory' },
-                { text: 'รายการสินค้า', value: 'items' },
-                { text: 'ราคา', value: 'prices' },
+                { text: t('sync.history.headerFilter.inventory'), value: 'inventory' },
+                { text: t('sync.history.headerFilter.items'), value: 'items' },
+                { text: t('sync.history.headerFilter.prices'), value: 'prices' },
               ]} />
             </Column>
 
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('sync.history.columns.status')}
               width={130}
               cellRender={renderStatusCell}
               allowHeaderFiltering={true}
             >
               <HeaderFilter dataSource={[
-                { text: 'สำเร็จ', value: 'completed' },
-                { text: 'ล้มเหลว', value: 'failed' },
-                { text: 'บางส่วน', value: 'partial' },
-                { text: 'กำลังทำงาน', value: 'running' },
+                { text: t('sync.history.headerFilter.completed'), value: 'completed' },
+                { text: t('sync.history.headerFilter.failed'), value: 'failed' },
+                { text: t('sync.history.headerFilter.partial'), value: 'partial' },
+                { text: t('sync.history.headerFilter.running'), value: 'running' },
               ]} />
             </Column>
 
             <Column
               dataField="triggerType"
-              caption="Trigger"
+              caption={t('sync.history.columns.trigger')}
               width={100}
               cellRender={renderTriggerCell}
               allowHeaderFiltering={true}
             >
               <HeaderFilter dataSource={[
-                { text: 'Manual', value: 'manual' },
-                { text: 'Scheduled', value: 'scheduled' },
-                { text: 'Auto', value: 'auto' },
+                { text: t('sync.history.headerFilter.manual'), value: 'manual' },
+                { text: t('sync.history.headerFilter.scheduled'), value: 'scheduled' },
+                { text: t('sync.history.headerFilter.auto'), value: 'auto' },
               ]} />
             </Column>
 
             <Column
               dataField="itemsProcessed"
-              caption="ความคืบหน้า"
+              caption={t('sync.history.columns.progress')}
               width={180}
               cellRender={renderProgressCell}
               allowFiltering={false}
@@ -1012,7 +1163,7 @@ export default function VmiSyncPage() {
 
             <Column
               dataField="startedAt"
-              caption="เวลาเริ่มต้น"
+              caption={t('sync.history.columns.startedAt')}
               dataType="datetime"
               width={180}
               cellRender={renderDateTimeCell}
@@ -1022,7 +1173,7 @@ export default function VmiSyncPage() {
 
             <Column
               dataField="completedAt"
-              caption="ระยะเวลา"
+              caption={t('sync.history.columns.duration')}
               width={100}
               cellRender={renderDurationCell}
               allowFiltering={false}
@@ -1030,7 +1181,7 @@ export default function VmiSyncPage() {
 
             <Column
               dataField="portalName"
-              caption="Portal"
+              caption={t('sync.history.columns.portal')}
               width={140}
               cellRender={renderPortalCell}
               allowHeaderFiltering={true}
@@ -1042,13 +1193,14 @@ export default function VmiSyncPage() {
               showPageSizeSelector={true}
               allowedPageSizes={[10, 20, 50, 100]}
               showInfo={true}
-              infoText="หน้า {0} จาก {1} ({2} รายการ)"
+              infoText={t('sync.history.pagerInfoText')}
             />
 
             <Summary>
-              <TotalItem column="itemsProcessed" summaryType="sum" displayFormat="รวม: {0} รายการ" />
+              <TotalItem column="itemsProcessed" summaryType="sum" displayFormat={t('sync.history.totalSummary')} />
             </Summary>
           </DataGrid>
+          )}
         </div>
 
         {/* Info Section */}
@@ -1059,7 +1211,7 @@ export default function VmiSyncPage() {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-indigo-900 mb-4">
-                เกี่ยวกับ VMI Synchronization
+                {t('sync.info.title')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {Object.entries(SYNC_TYPE_CONFIG)
@@ -1070,10 +1222,10 @@ export default function VmiSyncPage() {
                       <div key={key} className="bg-white/60 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Icon className={cn('h-5 w-5', config.color)} />
-                          <strong className="text-indigo-900">{config.label} Sync</strong>
+                          <strong className="text-indigo-900">{t(`sync.syncTypes.${key as VmiSyncType}.label`)} {t('sync.info.syncSuffix')}</strong>
                         </div>
                         <p className="text-sm text-indigo-700">
-                          {config.description}
+                          {t(`sync.syncTypes.${key as VmiSyncType}.description`)}
                         </p>
                       </div>
                     );
@@ -1081,8 +1233,8 @@ export default function VmiSyncPage() {
               </div>
               <div className="mt-4 pt-4 border-t border-indigo-200 flex items-center gap-2 text-sm text-indigo-700">
                 <TrendingUp className="h-4 w-4" />
-                <strong>Auto Sync:</strong>{' '}
-                ระบบจะซิงค์อัตโนมัติทุก 15 นาที ทั้งแบบ Client-side และ Server-side (Vercel Cron)
+                <strong>{t('sync.info.autoSyncLabel')}</strong>{' '}
+                {t('sync.info.autoSyncDescription')}
               </div>
             </div>
           </div>

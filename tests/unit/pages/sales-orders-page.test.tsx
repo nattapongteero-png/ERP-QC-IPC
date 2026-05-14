@@ -226,26 +226,26 @@ describe('SalesOrdersPage', () => {
     it('renders the page header correctly', () => {
       render(<SalesOrdersPage />);
 
-      expect(screen.getByText('ใบสั่งขาย')).toBeInTheDocument();
-      expect(screen.getByText('จัดการใบสั่งขายและติดตามสถานะการส่งมอบ')).toBeInTheDocument();
+      expect(screen.getByText('Sales Orders')).toBeInTheDocument();
+      expect(screen.getByText('Manage sales orders and track delivery status')).toBeInTheDocument();
     });
 
     it('renders stat cards', () => {
       render(<SalesOrdersPage />);
 
-      expect(screen.getAllByText('ทั้งหมด').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('กำลังดำเนินการ').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('พร้อมส่ง').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('ส่งมอบแล้ว').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('เกินกำหนด').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('รอดำเนินการ').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Total').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Active').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Ready to Ship').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Delivered').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Overdue').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Pending Value').length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders action buttons', () => {
       render(<SalesOrdersPage />);
 
       expect(screen.getByTestId('so-add-btn')).toBeInTheDocument();
-      expect(screen.getByText('สร้างใบสั่งขาย')).toBeInTheDocument();
+      expect(screen.getByText('Create Sales Order')).toBeInTheDocument();
     });
 
     it('renders filter controls', () => {
@@ -427,7 +427,7 @@ describe('SalesOrdersPage', () => {
     it('navigates to new order page', () => {
       render(<SalesOrdersPage />);
 
-      const addButton = screen.getByText('สร้างใบสั่งขาย');
+      const addButton = screen.getByText('Create Sales Order');
       fireEvent.click(addButton);
 
       expect(mockPush).toHaveBeenCalledWith('/sales/orders/new');
@@ -477,7 +477,7 @@ describe('SalesOrdersPage', () => {
 
       fireEvent.click(screen.getByTitle('Cards View'));
 
-      expect(screen.getAllByText('ไม่มีข้อมูล').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('No data').length).toBeGreaterThan(0);
     });
   });
 
@@ -509,7 +509,7 @@ describe('SalesOrdersPage', () => {
 
       fireEvent.click(screen.getByTitle('Analytics View'));
 
-      expect(screen.getByText('ลูกค้าหลัก')).toBeInTheDocument();
+      expect(screen.getByText('Top Customers')).toBeInTheDocument();
     });
   });
 
