@@ -421,6 +421,20 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Work Order Assignees — team members planned for a batch (GMP traceability).
+// Separate from `*_by` audit fields which log who performed actions after the fact;
+// this captures who was assigned before work began. One WO → many assignees, each with a role.
+export const sqliteWorkOrderAssignees = sqliteTable('work_order_assignees', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').notNull().references(() => sqliteHREmployees.id),
+  positionId: integer('position_id').references(() => sqliteHRPositions.id), // Snapshot of position; nullable in case employee has no primary position
+  role: text('role').notNull(), // operator | supervisor | qa_verifier | ipc_checker | pharmacist
+  notes: text('notes'),
+  assignedBy: integer('assigned_by').references(() => sqliteUsers.id),
+  assignedAt: text('assigned_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Batch Records (eBMR)
 export const sqliteBatchRecords = sqliteTable('batch_records', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -464,6 +478,9 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   lotId: integer('lot_id').notNull().references(() => sqliteInventoryLots.id),
   specId: integer('spec_id').references(() => sqliteQualitySpecs.id), // nullable for tests without specs
+  // Soft FK to ipc_criteria.id when this row snapshots an IPC criteria (testType='in_process').
+  // Nullable for non-IPC tests and for legacy rows created before this column existed.
+  ipcCriteriaId: integer('ipc_criteria_id'),
   testType: text('test_type').notNull(), // incoming, in_process, final
   sampleNumber: text('sample_number'),
   sampleSize: integer('sample_size'), // AQL sample size
@@ -1349,7 +1366,11 @@ export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
   isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   dosageForm: text('dosage_form'),
-  criteriaType: text('criteria_type').notNull().default('numeric'), // numeric, checkbox
+  criteriaType: text('criteria_type').notNull().default('numeric'), // numeric, pass_fail, visual, text, multi_point, tare (legacy: checkbox)
+  // Soft reference to another ipc_criteria.id (criteriaType='tare').
+  // Used by multi_point recording to auto-subtract Gross − Tare. No FK
+  // constraint — referenced criteria may be archived independently.
+  tareSourceCriteriaId: integer('tare_source_criteria_id'),
   tolerancePercent: real('tolerance_percent').notNull().default(0), // sample-failure tolerance %
   // Target-based spec (pharmacy/chemistry concept: "300 ± 5%")
   // When specTarget is set, minValue/maxValue are derived from it at save time
@@ -1364,6 +1385,40 @@ export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
   // Critical criteria force this to 0 at runtime (deviation immediately on round 1 fail).
   maxRetestRounds: integer('max_retest_rounds').notNull().default(1),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// IPC Recording Rounds — criteria-centric immutable submission log.
+// Replaces the WO-coupled quality_tests path. One row per (criteria, batch, round).
+// Submitted rounds are read-only — multi-round support comes from inserting
+// additional rows with incremented roundNumber.
+export const sqliteIPCRecordingRounds = sqliteTable('ipc_recording_rounds', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
+  // Batch identifier — string to allow non-WO contexts (cleaning verify, equipment qual).
+  // Empty string = "ad-hoc" recording not tied to a batch.
+  batchNumber: text('batch_number').notNull().default(''),
+  // Round index within (criteriaId, batchNumber). Starts at 1 — incremented when
+  // operator clicks "+ บันทึกรอบใหม่" after a fail.
+  roundNumber: integer('round_number').notNull().default(1),
+  reason: text('reason'), // e.g. "หลังปรับ tamping pin"
+  // Round payload — JSON shape varies by criteriaType:
+  //   numeric/tare:  { value: '12.3' }
+  //   pass_fail:     { value: 'pass' | 'fail' }
+  //   visual:        { checks: { 0: true, 1: false, ... } }
+  //   text:          { value: '...' }
+  //   multi_point:   { points: ['0.5', '0.49', ...] }
+  data: text('data').notNull().default('{}'),
+  startedAt: text('started_at').notNull().default('CURRENT_TIMESTAMP'),
+  startedById: integer('started_by_id').notNull().references(() => sqliteUsers.id),
+  // Submit info — locked once set (immutable from API layer).
+  submittedAt: text('submitted_at'),
+  submittedById: integer('submitted_by_id').references(() => sqliteUsers.id),
+  // Pinned to specific criteria revision at submit time (NULL until versioning ships).
+  criteriaVersionId: integer('criteria_version_id'),
+  // Server-side computed at submit.
+  passed: integer('passed', { mode: 'boolean' }),
+  computedMean: real('computed_mean'),
+  outcomeNote: text('outcome_note'),
 });
 
 export const sqliteBOMInProcessQC = sqliteTable('bom_in_process_qc', {
@@ -1925,6 +1980,18 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Work Order Assignees — team members planned for a batch (GMP traceability).
+export const mysqlWorkOrderAssignees = mysqlTable('work_order_assignees', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id, { onDelete: 'cascade' }),
+  employeeId: int('employee_id').notNull().references(() => mysqlHREmployees.id),
+  positionId: int('position_id').references(() => mysqlHRPositions.id),
+  role: varchar('role', { length: 30 }).notNull(),
+  notes: mysqlText('notes'),
+  assignedBy: int('assigned_by').references(() => mysqlUsers.id),
+  assignedAt: datetime('assigned_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Batch Records
 export const mysqlBatchRecords = mysqlTable('batch_records', {
   id: int('id').primaryKey().autoincrement(),
@@ -1968,6 +2035,9 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   id: int('id').primaryKey().autoincrement(),
   lotId: int('lot_id').notNull().references(() => mysqlInventoryLots.id),
   specId: int('spec_id').references(() => mysqlQualitySpecs.id), // nullable for tests without specs
+  // Soft FK to ipc_criteria.id when this row snapshots an IPC criteria.
+  // Nullable for non-IPC tests and legacy rows.
+  ipcCriteriaId: int('ipc_criteria_id'),
   testType: varchar('test_type', { length: 50 }).notNull(),
   sampleNumber: varchar('sample_number', { length: 100 }),
   sampleSize: int('sample_size'), // AQL sample size
@@ -4629,7 +4699,9 @@ export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
   isCritical: mysqlBoolean('is_critical').notNull().default(false),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   dosageForm: varchar('dosage_form', { length: 100 }),
-  criteriaType: varchar('criteria_type', { length: 20 }).notNull().default('numeric'),
+  criteriaType: varchar('criteria_type', { length: 20 }).notNull().default('numeric'), // numeric, pass_fail, visual, text, multi_point, tare
+  // Soft reference to another ipc_criteria.id (criteriaType='tare'). No FK constraint.
+  tareSourceCriteriaId: int('tare_source_criteria_id'),
   tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).notNull().default('0'), // sample-failure tolerance %
   // Target-based spec (pharmacy/chemistry concept: "300 ± 5%")
   // When specTarget is set, minValue/maxValue are derived from it at save time
@@ -4642,6 +4714,25 @@ export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
   // Max retest rounds before forcing deviation (FDA OOS 2006 / PIC/S).
   maxRetestRounds: int('max_retest_rounds').notNull().default(1),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// IPC Recording Rounds — MySQL mirror of sqliteIPCRecordingRounds.
+// Criteria-centric immutable submission log; submitted rows are read-only.
+export const mysqlIPCRecordingRounds = mysqlTable('ipc_recording_rounds', {
+  id: int('id').primaryKey().autoincrement(),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
+  batchNumber: varchar('batch_number', { length: 100 }).notNull().default(''),
+  roundNumber: int('round_number').notNull().default(1),
+  reason: mysqlText('reason'),
+  data: mysqlText('data').notNull(),
+  startedAt: datetime('started_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  startedById: int('started_by_id').notNull().references(() => mysqlUsers.id),
+  submittedAt: datetime('submitted_at'),
+  submittedById: int('submitted_by_id').references(() => mysqlUsers.id),
+  criteriaVersionId: int('criteria_version_id'),
+  passed: mysqlBoolean('passed'),
+  computedMean: decimal('computed_mean', { precision: 15, scale: 4 }),
+  outcomeNote: mysqlText('outcome_note'),
 });
 
 export const mysqlBOMInProcessQC = mysqlTable('bom_in_process_qc', {

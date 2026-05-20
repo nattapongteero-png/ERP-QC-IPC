@@ -571,7 +571,7 @@ export default function NewBOMPage() {
         onOpenChange={setProductDialogOpen}
         onSelect={handleSelectProduct}
         title="Select Product"
-        filterType="finished_goods"
+        filterType={['finished_goods', 'wip']}
         allowCreate
       />
 

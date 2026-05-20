@@ -135,10 +135,11 @@
 
 <!-- Stats -->
 <div class="stats-bar">
-  <div class="stat-item"><div class="stat-number">17</div><div class="stat-label">โมดูลหลัก</div></div>
-  <div class="stat-item"><div class="stat-number">79</div><div class="stat-label">หน้าจอ</div></div>
-  <div class="stat-item"><div class="stat-number">44</div><div class="stat-label">API Endpoints</div></div>
-  <div class="stat-item"><div class="stat-number">86</div><div class="stat-label">Services</div></div>
+  <div class="stat-item"><div class="stat-number">18</div><div class="stat-label">โมดูลหลัก</div></div>
+  <div class="stat-item"><div class="stat-number">182</div><div class="stat-label">หน้าจอ</div></div>
+  <div class="stat-item"><div class="stat-number">538</div><div class="stat-label">API Endpoints</div></div>
+  <div class="stat-item"><div class="stat-number">54</div><div class="stat-label">Services</div></div>
+  <div class="stat-item"><div class="stat-number">6</div><div class="stat-label">Tenants</div></div>
   <div class="stat-item"><div class="stat-number">2</div><div class="stat-label">ภาษา (TH/EN)</div></div>
 </div>
 
@@ -172,12 +173,13 @@
       <h3>Inventory (คลังสินค้า)</h3>
       <div class="subtitle">บริหารจัดการวัตถุดิบ สินค้า และ Lot</div>
       <ul>
-        <li>รายการสินค้า (Items)</li>
+        <li>รายการสินค้า (Items) — 3-level unit conversion</li>
         <li>Lot Management</li>
         <li>คลังสินค้า (Warehouses)</li>
         <li>รายการเคลื่อนไหว (Transactions)</li>
         <li>แจ้งเตือนหมดอายุ (Expiry Alerts)</li>
         <li>ใบเบิกวัตถุดิบ (Requisitions)</li>
+        <li>คืนวัตถุดิบ (Material Returns) <span style="color:#16a34a;">●ใหม่</span></li>
       </ul>
     </div>
 
@@ -185,25 +187,33 @@
       <h3>Production (การผลิต)</h3>
       <div class="subtitle">วางแผนและควบคุมการผลิต</div>
       <ul>
-        <li>สูตรการผลิต (BOM/Recipes)</li>
+        <li>สูตรการผลิต (BOM/Recipes) — IPC Phase-Level Linker</li>
         <li>ใบสั่งผลิต (Work Orders)</li>
         <li>บันทึกการผลิต eBMR</li>
         <li>ชั่งวัตถุดิบ (Material Weighing)</li>
-        <li>ขั้นตอน SOP Execution</li>
+        <li>SOP Execution — Sequential Phase Gating <span style="color:#16a34a;">●ใหม่</span></li>
+        <li>Line Clearance + Sign &amp; Complete</li>
         <li>บันทึกสภาพแวดล้อม</li>
+        <li>Label Verification</li>
         <li>ตรวจสอบสินค้าสำเร็จรูป</li>
-        <li>Master Data (ห้อง, อุปกรณ์, IPC)</li>
+        <li>Master Data (ห้อง, อุปกรณ์, QC &amp; IPC Criteria)</li>
       </ul>
     </div>
 
     <div class="module-card c-orange">
       <h3>Quality (คุณภาพ)</h3>
-      <div class="subtitle">ทดสอบและควบคุมคุณภาพ</div>
+      <div class="subtitle">ทดสอบและควบคุมคุณภาพ + COA</div>
       <ul>
-        <li>ผลทดสอบ (QC Tests)</li>
+        <li>QC Entry — Multi-sample &amp; Multi-round <span style="color:#16a34a;">●ใหม่</span></li>
+        <li>Test Catalog &amp; Test Panels <span style="color:#16a34a;">●ใหม่</span></li>
         <li>ข้อกำหนด (Specifications)</li>
-        <li>การเบี่ยงเบน (Deviations)</li>
+        <li>การเบี่ยงเบน (Deviations) — Auto-create from IPC fail</li>
+        <li>OOS Investigation — 21 CFR Part 11 sign-off <span style="color:#16a34a;">●ใหม่</span></li>
         <li>QC Disposition (ปล่อยผ่าน/ปฏิเสธ)</li>
+        <li>COA Generator + Puppeteer PDF <span style="color:#16a34a;">●ใหม่</span></li>
+        <li>COA Template Editor (per-category)</li>
+        <li>Public COA Verify Portal</li>
+        <li>QC Audit Trail Viewer</li>
       </ul>
     </div>
 
@@ -316,9 +326,22 @@
       <ul>
         <li>จัดการผู้ใช้ (Users)</li>
         <li>Confidential Groups</li>
-        <li>Approval Workflows</li>
+        <li>Approval Workflows + Role-based Bypass <span style="color:#16a34a;">●ใหม่</span></li>
         <li>Matching Tolerances</li>
         <li>Reports / Reporting</li>
+        <li>HR Role Permissions (DB grants)</li>
+      </ul>
+    </div>
+
+    <div class="module-card c-indigo">
+      <h3>System Documentation <span style="color:#16a34a;">●ใหม่</span></h3>
+      <div class="subtitle">เอกสารระบบสำหรับ IT PM/SA</div>
+      <ul>
+        <li>TOR Markdown Viewer (20 sections)</li>
+        <li>TOR Excel Download</li>
+        <li>System Flow Diagram</li>
+        <li>Changelog (Modern UI)</li>
+        <li>Data Flow + Setup Guide (Quality)</li>
       </ul>
     </div>
 
@@ -473,67 +496,109 @@
 
     <div class="flow-row">
       <div class="flow-step step-production">
-        <div class="step-title">6. ปล่อยผลิต (Released)</div>
+        <div class="step-title">6. Line Clearance</div>
+        <div class="step-desc">เคลียร์พื้นที่ + Sign &amp; Complete</div>
+        <div class="step-module">Production</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-production">
+        <div class="step-title">7. ปล่อยผลิต (Released)</div>
         <div class="step-desc">WO Status = Released</div>
         <div class="step-module">Production</div>
       </div>
       <div class="arrow">&#10140;</div>
       <div class="flow-step step-production">
-        <div class="step-title">7. เริ่มผลิต (In Progress)</div>
-        <div class="step-desc">ดำเนินการตาม SOP Steps</div>
+        <div class="step-title">8. SOP Execution</div>
+        <div class="step-desc">Sequential Phase Gating + Dual-Control</div>
         <div class="step-module">eBMR Execution</div>
       </div>
       <div class="arrow">&#10140;</div>
       <div class="flow-step step-quality">
-        <div class="step-title">8. ตรวจ IPC</div>
-        <div class="step-desc">In-Process Control ระหว่างผลิต</div>
-        <div class="step-module">Quality</div>
+        <div class="step-title">9. ตรวจ IPC (Phase Gate)</div>
+        <div class="step-desc">Phase-Level + Sub-Step IPC + Retest</div>
+        <div class="step-module">Quality / IPC</div>
       </div>
       <div class="arrow">&#10140;</div>
       <div class="flow-step step-process">
-        <div class="step-title">9. บันทึกสภาพแวดล้อม</div>
+        <div class="step-title">10. บันทึกสภาพแวดล้อม</div>
         <div class="step-desc">อุณหภูมิ ความชื้น (Sensor/Manual)</div>
         <div class="step-module">Environmental</div>
-      </div>
-      <div class="arrow">&#10140;</div>
-      <div class="flow-step step-process">
-        <div class="step-title">10. บันทึกทำความสะอาด</div>
-        <div class="step-desc">Line Clearance, Cleaning Logs</div>
-        <div class="step-module">eBMR</div>
       </div>
     </div>
 
     <div class="arrow-down">&#11015;</div>
 
     <div class="flow-row">
+      <div class="flow-step step-process">
+        <div class="step-title">11. Material Return</div>
+        <div class="step-desc">คืนวัตถุดิบเหลือเข้าคลัง</div>
+        <div class="step-module">Inventory</div>
+      </div>
+      <div class="arrow">&#10140;</div>
       <div class="flow-step step-quality">
-        <div class="step-title">11. ตรวจสินค้าสำเร็จรูป</div>
-        <div class="step-desc">Finished Product Inspection</div>
+        <div class="step-title">12. ตรวจสินค้าสำเร็จรูป</div>
+        <div class="step-desc">Finished Product Inspection + OOS</div>
         <div class="step-module">Quality</div>
       </div>
       <div class="arrow">&#10140;</div>
       <div class="flow-step step-decision">
-        <div class="step-title">12. QC Final Release</div>
-        <div class="step-desc">ปล่อยผ่าน / ปฏิเสธ</div>
+        <div class="step-title">13. QC Final Release</div>
+        <div class="step-desc">21 CFR Part 11 e-Sign-off</div>
         <div class="step-module">Quality</div>
       </div>
       <div class="arrow">&#10140;</div>
+      <div class="flow-step step-quality">
+        <div class="step-title">14. ออก COA</div>
+        <div class="step-desc">Generate PDF + Verify URL</div>
+        <div class="step-module">COA</div>
+      </div>
+      <div class="arrow">&#10140;</div>
       <div class="flow-step step-inventory">
-        <div class="step-title">13. รับเข้าคลัง FG</div>
+        <div class="step-title">15. รับเข้าคลัง FG</div>
         <div class="step-desc">สินค้าสำเร็จรูปพร้อมขาย</div>
         <div class="step-module">Inventory</div>
       </div>
       <div class="arrow">&#10140;</div>
-      <div class="flow-step step-accounting">
-        <div class="step-title">14. คำนวณต้นทุนผลิต</div>
-        <div class="step-desc">วัตถุดิบ + แรงงาน + โสหุ้ย</div>
-        <div class="step-module">Cost Management</div>
+      <div class="flow-step step-end">
+        <div class="step-title">16. ปิด Work Order</div>
+        <div class="step-desc">Cost Calc + WO Completed</div>
+        <div class="step-module">Production</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <h2>IPC Criteria Workflow (Phase-Level + Sub-Step)</h2>
+    <div class="desc">การออกแบบใหม่ของ IPC ใน BOM Configuration และ SOP Execution (มิ.ย. 2026)</div>
+    <div class="flow-row">
+      <div class="flow-step step-start">
+        <div class="step-title">1. กำหนด IPC ใน BOM</div>
+        <div class="step-desc">Phase-Level (Initial/Mid/Final)</div>
+        <div class="step-module">BOM Config</div>
       </div>
       <div class="arrow">&#10140;</div>
-      <div class="flow-step step-end">
-        <div class="step-title">15. ปิด Work Order</div>
-        <div class="step-desc">WO Status = Completed</div>
-        <div class="step-module">Production</div>
+      <div class="flow-step step-process">
+        <div class="step-title">2. Link เข้า SOP Step</div>
+        <div class="step-desc">Inline IPC Linker ใน Add/Edit Step</div>
+        <div class="step-module">BOM SOP Steps</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-production">
+        <div class="step-title">3. รัน SOP Step</div>
+        <div class="step-desc">ก่อน complete → ต้องบันทึก IPC</div>
+        <div class="step-module">SOP Execution</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-quality">
+        <div class="step-title">4. Record IPC (auth-only)</div>
+        <div class="step-desc">Multi-sample + Numeric/Text/Result</div>
+        <div class="step-module">QC Entry</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">5. ผ่าน / ไม่ผ่าน</div>
+        <div class="step-desc">Pass → next phase | Fail → Retest / Deviation</div>
+        <div class="step-module">IPC Gate</div>
       </div>
     </div>
   </div>
@@ -641,17 +706,17 @@
 
   <div class="flow">
     <h2>กระบวนการ Deviation (การเบี่ยงเบน)</h2>
-    <div class="desc">เมื่อเกิดเหตุการณ์เบี่ยงเบนจากข้อกำหนดระหว่างผลิต</div>
+    <div class="desc">เมื่อเกิดเหตุการณ์เบี่ยงเบนจากข้อกำหนดระหว่างผลิต — IPC ที่ Fail จะสร้าง Deviation ให้อัตโนมัติ</div>
     <div class="flow-row">
       <div class="flow-step step-quality">
         <div class="step-title">พบเหตุเบี่ยงเบน</div>
-        <div class="step-desc">ระหว่างผลิต/ตรวจสอบ</div>
+        <div class="step-desc">IPC Fail (auto) / ระหว่างผลิต</div>
         <div class="step-module">Quality</div>
       </div>
       <div class="arrow">&#10140;</div>
       <div class="flow-step step-process">
         <div class="step-title">บันทึก Deviation</div>
-        <div class="step-desc">รายละเอียด ผลกระทบ</div>
+        <div class="step-desc">เหตุผล + ผลกระทบ + ผู้รับผิดชอบ</div>
         <div class="step-module">Quality</div>
       </div>
       <div class="arrow">&#10140;</div>
@@ -662,15 +727,93 @@
       </div>
       <div class="arrow">&#10140;</div>
       <div class="flow-step step-process">
-        <div class="step-title">สอบสวน & แก้ไข</div>
-        <div class="step-desc">Root Cause &#8594; เปิด CAPA</div>
+        <div class="step-title">OOS Investigation</div>
+        <div class="step-desc">Root Cause + 21 CFR Part 11 sign-off</div>
+        <div class="step-module">OOS</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">เปิด CAPA</div>
+        <div class="step-desc">Corrective &amp; Preventive Action</div>
         <div class="step-module">CAPA</div>
       </div>
       <div class="arrow">&#10140;</div>
       <div class="flow-step step-end">
         <div class="step-title">ปิด Deviation</div>
-        <div class="step-desc">อนุมัติปิด</div>
+        <div class="step-desc">อนุมัติปิด + Sign-off</div>
         <div class="step-module">QA</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <h2>COA (Certificate of Analysis) Workflow</h2>
+    <div class="desc">ออกใบรับรองคุณภาพให้ลูกค้า — ตั้งแต่ออกแบบ template จนถึง verify ผ่าน QR/URL</div>
+    <div class="flow-row">
+      <div class="flow-step step-start">
+        <div class="step-title">1. ตั้ง COA Template</div>
+        <div class="step-desc">Editor — default per category + logo upload</div>
+        <div class="step-module">COA Template</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-quality">
+        <div class="step-title">2. บันทึกผล QC</div>
+        <div class="step-desc">Test Catalog + Test Panels + Samples</div>
+        <div class="step-module">QC Entry</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">3. Sign-off (21 CFR Part 11)</div>
+        <div class="step-desc">Electronic Signature + Reason</div>
+        <div class="step-module">e-Signature</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">4. Generate COA PDF</div>
+        <div class="step-desc">Puppeteer + Alpine Chromium</div>
+        <div class="step-module">COA Generator</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-end">
+        <div class="step-title">5. Public Verify Portal</div>
+        <div class="step-desc">/coa/verify — QR/URL + Audit Trail</div>
+        <div class="step-module">COA Verify</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <h2>Material Return Workflow (คืนวัตถุดิบ)</h2>
+    <div class="desc">การกระทบยอด issue ↔ return ของวัตถุดิบที่เบิกไปแต่ใช้ไม่หมด</div>
+    <div class="flow-row">
+      <div class="flow-step step-start">
+        <div class="step-title">1. ชั่ง + ใช้วัตถุดิบ</div>
+        <div class="step-desc">Operator บันทึก used vs planned</div>
+        <div class="step-module">Weighing</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">2. Auto-fill return</div>
+        <div class="step-desc">ระบบคำนวณส่วนเหลือให้</div>
+        <div class="step-module">Material Return</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-process">
+        <div class="step-title">3. Operator Dialog</div>
+        <div class="step-desc">ยืนยันจำนวนคืน + เหตุผล</div>
+        <div class="step-module">Material Return</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-decision">
+        <div class="step-title">4. Warehouse Inbox</div>
+        <div class="step-desc">คลังตรวจรับและยืนยัน</div>
+        <div class="step-module">Inventory</div>
+      </div>
+      <div class="arrow">&#10140;</div>
+      <div class="flow-step step-end">
+        <div class="step-title">5. รับคืนเข้า Lot</div>
+        <div class="step-desc">Stock + Cost ปรับยอด</div>
+        <div class="step-module">Inventory</div>
       </div>
     </div>
   </div>
@@ -996,11 +1139,12 @@
 
       <div class="integration-row" style="border-color:#2563eb;">
         <h4>2. การผลิต &#8594; คลัง &#8594; คุณภาพ &#8594; ต้นทุน</h4>
-        <p>BOM &#8594; Work Order &#8594; Material Requisition &#8594; Weighing &#8594; eBMR &#8594; IPC/QC &#8594; FG Receipt &#8594; Cost Calc</p>
+        <p>BOM (IPC Phase-Level) &#8594; Work Order &#8594; Line Clearance &#8594; Requisition &#8594; Weighing &#8594; SOP Execution (Sequential Phase Gate) &#8594; IPC/QC &#8594; Material Return &#8594; FG Inspection &#8594; COA &#8594; Cost Calc</p>
         <div class="int-modules">
           <span class="int-mod m-prod">Production</span>
           <span class="int-mod m-inv">Inventory</span>
           <span class="int-mod m-qc">Quality</span>
+          <span class="int-mod m-qc">COA</span>
           <span class="int-mod m-cost">Cost</span>
         </div>
       </div>
@@ -1060,11 +1204,36 @@
 
       <div class="integration-row" style="border-color:#4f46e5;">
         <h4>8. External API Integration</h4>
-        <p>Environmental Sensor &#8594; API Key Auth &#8594; Auto Log &#8594; eBMR | VMI Webhook &#8594; Vendor System</p>
+        <p>Environmental Sensor &#8594; API Key Auth &#8594; Auto Log &#8594; eBMR | VMI Webhook &#8594; Vendor System | Public COA Verify URL</p>
         <div class="int-modules">
           <span class="int-mod m-prod">Production</span>
           <span class="int-mod m-vmi">VMI</span>
           <span class="int-mod m-pur">Purchasing</span>
+          <span class="int-mod m-qc">COA Verify</span>
+        </div>
+      </div>
+
+      <div class="integration-row" style="border-color:#0d9488;">
+        <h4>9. Multi-Tenant Deployment (6 Tenants)</h4>
+        <p>Docker Compose &#8594; Per-tenant images &#8594; Isolated MySQL DBs (herbal_erp_&lt;tenant&gt;) &#8594; Shared MySQL Server</p>
+        <div class="int-modules">
+          <span class="int-mod m-acct" style="background:#ccfbf1;color:#0f766e;">metaherb</span>
+          <span class="int-mod m-acct" style="background:#ccfbf1;color:#0f766e;">arjaro</span>
+          <span class="int-mod m-acct" style="background:#ccfbf1;color:#0f766e;">more</span>
+          <span class="int-mod m-acct" style="background:#ccfbf1;color:#0f766e;">renunakhon</span>
+          <span class="int-mod m-acct" style="background:#ccfbf1;color:#0f766e;">phonphisai</span>
+          <span class="int-mod m-acct" style="background:#ccfbf1;color:#0f766e;">huaikoeng</span>
+        </div>
+      </div>
+
+      <div class="integration-row" style="border-color:#7c3aed;">
+        <h4>10. 21 CFR Part 11 Compliance Chain</h4>
+        <p>Electronic Signature &#8594; Audit Trail &#8594; SOP Execution (Dual-Control) &#8594; QC Sign-off &#8594; COA Generation &#8594; Tamper-evident PDF</p>
+        <div class="int-modules">
+          <span class="int-mod m-hr">HR / e-Sign</span>
+          <span class="int-mod m-prod">Production</span>
+          <span class="int-mod m-qc">Quality / OOS</span>
+          <span class="int-mod m-gmp">GMP</span>
         </div>
       </div>
 
@@ -1151,8 +1320,9 @@
 </div><!-- /container -->
 
 <div style="text-align:center;padding:32px;color:#94a3b8;font-size:12px;">
-  Herbal Medicine ERP &mdash; MetaHerb &mdash; Updated: April 2026<br/>
-  17 Modules &bull; 79 Pages &bull; 44 API Endpoints &bull; 86 Services
+  Herbal Medicine ERP &mdash; MetaHerb &mdash; Updated: May 2026<br/>
+  18 Modules &bull; 182 Pages &bull; 538 API Endpoints &bull; 54 Services &bull; 6 Tenants<br/>
+  Recent: IPC Criteria Redesign &bull; QC COA System &bull; Material Return &bull; 21 CFR Part 11 e-Sign-off &bull; Admin TOR
 </div>
 
 <script>

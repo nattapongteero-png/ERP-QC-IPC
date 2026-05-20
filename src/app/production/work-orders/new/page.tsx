@@ -10,7 +10,7 @@ import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
-import { Package, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { Package, AlertTriangle, CheckCircle, Loader2, Users, Trash2 } from 'lucide-react';
 
 interface BOM {
   id: number;
@@ -55,6 +55,30 @@ const priorityOptions = [
   { value: '10', label: 'Very Low (10)' },
 ];
 
+const ROLE_OPTIONS = [
+  { value: 'operator', label: 'Operator (ผู้ปฏิบัติงาน)' },
+  { value: 'supervisor', label: 'Supervisor (หัวหน้าคุม)' },
+  { value: 'qa_verifier', label: 'QA Verifier (ตรวจสอบ QA)' },
+  { value: 'ipc_checker', label: 'IPC Checker (ตรวจ IPC)' },
+  { value: 'pharmacist', label: 'Pharmacist (เภสัชกรผู้ควบคุม)' },
+];
+
+interface EmployeeOption {
+  id: number;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  positionId: number | null;
+  positionTitle: string | null;
+}
+
+interface Assignee {
+  employeeId: number | null;
+  role: string;
+  positionId: number | null;
+  notes: string;
+}
+
 function NewWorkOrderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,6 +105,59 @@ function NewWorkOrderContent() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Assignees state — team members assigned to this batch.
+  // Snapshot of positionId is kept per row so it doesn't drift if the employee
+  // changes positions later. UI auto-fills positionId when an employee is picked.
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setLoadingEmployees(true);
+      try {
+        const res = await fetch('/api/hr/employees?limit=500&isActive=true');
+        const data = await res.json();
+        if (data.success) {
+          // API returns shape may be data.items or data.data — be defensive
+          const raw = data.data?.items || data.data || [];
+          setEmployees(
+            raw.map((e: { id: number; employeeCode: string; firstName: string; lastName: string; positionId?: number | null; positionTitle?: string | null }) => ({
+              id: e.id,
+              employeeCode: e.employeeCode,
+              firstName: e.firstName,
+              lastName: e.lastName,
+              positionId: e.positionId ?? null,
+              positionTitle: e.positionTitle ?? null,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error('Failed to load employees:', err);
+      } finally {
+        setLoadingEmployees(false);
+      }
+    })();
+  }, []);
+
+  const addAssignee = () => {
+    setAssignees((prev) => [...prev, { employeeId: null, role: 'operator', positionId: null, notes: '' }]);
+  };
+
+  const removeAssignee = (index: number) => {
+    setAssignees((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateAssignee = (index: number, patch: Partial<Assignee>) => {
+    setAssignees((prev) => prev.map((a, i) => (i === index ? { ...a, ...patch } : a)));
+  };
+
+  // When user picks an employee, auto-fill their primary position
+  const handleEmployeeChange = (index: number, employeeId: number | null) => {
+    const emp = employees.find((e) => e.id === employeeId);
+    updateAssignee(index, { employeeId, positionId: emp?.positionId ?? null });
+  };
 
   // Fetch BOMs - Only approved BOMs can be used for work orders
   const fetchBoms = async (search = '', includeAllStatuses = false) => {
@@ -222,6 +299,15 @@ function NewWorkOrderContent() {
           plannedEndDate: formData.plannedEndDate || null,
           deliveryDate: formData.deliveryDate || null,
           notes: formData.notes || null,
+          // Only send valid rows (employeeId picked + role set)
+          assignees: assignees
+            .filter((a) => a.employeeId && a.role)
+            .map((a) => ({
+              employeeId: a.employeeId,
+              role: a.role,
+              positionId: a.positionId,
+              notes: a.notes || undefined,
+            })),
         }),
       });
 
@@ -495,12 +581,103 @@ function NewWorkOrderContent() {
               </CardContent>
             </Card>
 
+            {/* Assigned Team */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-emerald-600" />
+                    3. Assigned Team (เจ้าหน้าที่ผู้ปฏิบัติงาน)
+                  </CardTitle>
+                  <DxButton
+                    icon="plus"
+                    text="เพิ่มเจ้าหน้าที่"
+                    type="default"
+                    stylingMode="outlined"
+                    onClick={addAssignee}
+                    disabled={loadingEmployees}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {assignees.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="h-10 w-10 mx-auto text-gray-300 mb-2" />
+                    <p className="text-sm">ยังไม่มีเจ้าหน้าที่ — กดปุ่ม &ldquo;เพิ่มเจ้าหน้าที่&rdquo; เพื่อมอบหมายทีมงาน</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      ไม่บังคับ (optional) — แต่แนะนำตามมาตรฐาน GMP ให้ระบุ Operator + Verifier (dual-control)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {assignees.map((a, idx) => {
+                      const emp = employees.find((e) => e.id === a.employeeId);
+                      return (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg border border-gray-200"
+                        >
+                          <div className="col-span-12 md:col-span-5">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              เจ้าหน้าที่ <span className="text-red-500">*</span>
+                            </label>
+                            <DxSelectBox
+                              items={employees.map((e) => ({
+                                value: e.id.toString(),
+                                label: `${e.employeeCode} — ${e.firstName} ${e.lastName}`,
+                              }))}
+                              value={a.employeeId?.toString() || ''}
+                              onValueChange={(v) => handleEmployeeChange(idx, v ? parseInt(v) : null)}
+                              placeholder={loadingEmployees ? 'กำลังโหลด...' : '-- เลือกเจ้าหน้าที่ --'}
+                              disabled={loadingEmployees}
+                            />
+                          </div>
+                          <div className="col-span-12 md:col-span-3">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              บทบาท <span className="text-red-500">*</span>
+                            </label>
+                            <DxSelectBox
+                              items={ROLE_OPTIONS}
+                              value={a.role}
+                              onValueChange={(v) => updateAssignee(idx, { role: v })}
+                              placeholder="-- เลือกบทบาท --"
+                            />
+                          </div>
+                          <div className="col-span-10 md:col-span-3">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              ตำแหน่ง (auto)
+                            </label>
+                            <div className="px-3 py-2 bg-white border border-gray-200 rounded text-sm text-gray-700 truncate min-h-[34px] flex items-center">
+                              {emp?.positionTitle || <span className="text-gray-400 italic">—</span>}
+                            </div>
+                          </div>
+                          <div className="col-span-2 md:col-span-1 flex items-end justify-end h-full">
+                            <button
+                              type="button"
+                              onClick={() => removeAssignee(idx)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-md transition"
+                              title="ลบ"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-gray-500 pt-2">
+                      💡 ตำแหน่งดึงจากข้อมูล HR (ตำแหน่งหลักของพนักงาน) — สามารถเพิ่มเจ้าหน้าที่ได้หลายคน คนเดียวกันมีหลาย role ได้
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Material Requirements Preview */}
             {selectedBom && formData.plannedQuantity && (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>3. Material Requirements Preview</CardTitle>
+                    <CardTitle>4. Material Requirements Preview</CardTitle>
                     {loadingExplosion && (
                       <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                     )}

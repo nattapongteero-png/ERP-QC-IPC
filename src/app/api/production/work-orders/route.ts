@@ -141,10 +141,26 @@ export async function POST(request: NextRequest) {
         plannedEndDate,
         deliveryDate,
         notes,
+        assignees,
       } = body;
 
       if (!bomId || !productId || !batchNumber || !plannedQuantity || !unit) {
         return errorResponse('BOM ID, product ID, batch number, planned quantity, and unit are required');
+      }
+
+      const VALID_ROLES = ['operator', 'supervisor', 'qa_verifier', 'ipc_checker', 'pharmacist'];
+      if (assignees !== undefined) {
+        if (!Array.isArray(assignees)) {
+          return errorResponse('assignees must be an array');
+        }
+        for (const a of assignees) {
+          if (!a?.employeeId || !a?.role) {
+            return errorResponse('Each assignee requires employeeId and role');
+          }
+          if (!VALID_ROLES.includes(a.role)) {
+            return errorResponse(`Invalid role '${a.role}'. Must be one of: ${VALID_ROLES.join(', ')}`);
+          }
+        }
       }
 
       const workOrdersTable = getTableRef('workOrders');
@@ -244,18 +260,39 @@ export async function POST(request: NextRequest) {
         materialsCreated++;
       }
 
+      // Persist assignees if provided. Each row links employee+role to the WO;
+      // positionId is optional snapshot — service can read live position from hr_employees later.
+      let assigneesCreated = 0;
+      if (Array.isArray(assignees) && assignees.length > 0) {
+        const assigneesTable = getTableRef('workOrderAssignees');
+        for (const a of assignees) {
+          await executeDbOperation(async (db) => {
+            return db.insert(assigneesTable).values({
+              workOrderId: Number(workOrderId),
+              employeeId: Number(a.employeeId),
+              positionId: a.positionId ? Number(a.positionId) : null,
+              role: a.role,
+              notes: a.notes || null,
+              assignedBy: session.userId,
+              assignedAt: dbDate(),
+            });
+          });
+          assigneesCreated++;
+        }
+      }
+
       await createAuditLog({
         userId: session.userId,
         action: 'CREATE',
         tableName: 'work_orders',
         recordId: Number(workOrderId),
-        newValue: { woNumber, batchNumber, plannedQuantity, status: 'planned', materialsFromBom: materialsCreated },
+        newValue: { woNumber, batchNumber, plannedQuantity, status: 'planned', materialsFromBom: materialsCreated, assignees: assigneesCreated },
         ipAddress: getClientIP(request),
       });
 
       return successResponse(
-        { id: Number(workOrderId), woNumber, materialsCreated },
-        `Work order created successfully with ${materialsCreated} materials from BOM`
+        { id: Number(workOrderId), woNumber, materialsCreated, assigneesCreated },
+        `Work order created successfully with ${materialsCreated} materials${assigneesCreated > 0 ? ` and ${assigneesCreated} assignees` : ''}`
       );
     } catch (error) {
       return serverErrorResponse(error);

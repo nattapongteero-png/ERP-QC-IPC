@@ -7,7 +7,7 @@
  * Redesigned with DevExtreme UI components following GMP module patterns.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -73,7 +73,37 @@ import {
   Trash2,
   Target,
   Activity,
+  Users,
 } from 'lucide-react';
+
+// ============================================
+// Assigned Team — types and constants
+// ============================================
+
+const ROLE_OPTIONS = [
+  { value: 'operator', label: 'Operator (ผู้ปฏิบัติงาน)' },
+  { value: 'supervisor', label: 'Supervisor (หัวหน้าคุม)' },
+  { value: 'qa_verifier', label: 'QA Verifier' },
+  { value: 'ipc_checker', label: 'IPC Checker' },
+  { value: 'pharmacist', label: 'Pharmacist' },
+];
+
+interface EmployeeOption {
+  id: number;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  positionId: number | null;
+  positionTitle: string | null;
+}
+
+interface EditAssignee {
+  id?: number; // existing row id (undefined if newly added in this session)
+  employeeId: number | null;
+  role: string;
+  positionId: number | null;
+  notes: string;
+}
 
 // ============================================
 // Types
@@ -224,6 +254,53 @@ export default function WorkOrdersPage() {
     notes: '',
   });
 
+  // Assigned Team state — lives at page level so dialog can show + edit
+  const [editAssignees, setEditAssignees] = useState<EditAssignee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+
+  // Fetch employees once on mount — used by both new and edit flows
+  useEffect(() => {
+    (async () => {
+      setLoadingEmployees(true);
+      try {
+        const res = await fetch('/api/hr/employees?limit=500&isActive=true');
+        const data = await res.json();
+        if (data.success) {
+          const raw = data.data?.items || data.data || [];
+          setEmployees(
+            raw.map((e: { id: number; employeeCode: string; firstName: string; lastName: string; positionId?: number | null; positionTitle?: string | null }) => ({
+              id: e.id,
+              employeeCode: e.employeeCode,
+              firstName: e.firstName,
+              lastName: e.lastName,
+              positionId: e.positionId ?? null,
+              positionTitle: e.positionTitle ?? null,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error('Failed to load employees:', err);
+      } finally {
+        setLoadingEmployees(false);
+      }
+    })();
+  }, []);
+
+  const addEditAssignee = () => {
+    setEditAssignees((prev) => [...prev, { employeeId: null, role: 'operator', positionId: null, notes: '' }]);
+  };
+  const removeEditAssignee = (index: number) => {
+    setEditAssignees((prev) => prev.filter((_, i) => i !== index));
+  };
+  const updateEditAssignee = (index: number, patch: Partial<EditAssignee>) => {
+    setEditAssignees((prev) => prev.map((a, i) => (i === index ? { ...a, ...patch } : a)));
+  };
+  const handleEditEmployeeChange = (index: number, employeeId: number | null) => {
+    const emp = employees.find((e) => e.id === employeeId);
+    updateEditAssignee(index, { employeeId, positionId: emp?.positionId ?? null });
+  };
+
   // Fetch work orders
   const { data: workOrders = [], isLoading, refetch } = useQuery({
     queryKey: ['work-orders'],
@@ -295,6 +372,24 @@ export default function WorkOrdersPage() {
       deliveryDate: wo.deliveryDate ? new Date(wo.deliveryDate) : null,
       notes: wo.notes || '',
     });
+    // Reset then fetch existing assignees for this WO
+    setEditAssignees([]);
+    fetch(`/api/production/work-orders/${wo.id}/assignees`)
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.success && Array.isArray(result.data)) {
+          setEditAssignees(
+            result.data.map((a: { id: number; employeeId: number; positionId: number | null; role: string; notes: string | null }) => ({
+              id: a.id,
+              employeeId: a.employeeId,
+              role: a.role,
+              positionId: a.positionId,
+              notes: a.notes || '',
+            }))
+          );
+        }
+      })
+      .catch((err) => console.error('Failed to load assignees:', err));
     setEditDialogVisible(true);
   }, []);
 
@@ -304,8 +399,29 @@ export default function WorkOrdersPage() {
     setDeleteDialogVisible(true);
   }, []);
 
-  const handleSaveEdit = useCallback(() => {
+  const handleSaveEdit = useCallback(async () => {
     if (!selectedWO) return;
+
+    // Persist assignees first (separate endpoint, replace-all semantics).
+    // If this fails we still let the WO update proceed — assignees can be retried.
+    try {
+      const validAssignees = editAssignees
+        .filter((a) => a.employeeId && a.role)
+        .map((a) => ({
+          employeeId: a.employeeId,
+          role: a.role,
+          positionId: a.positionId,
+          notes: a.notes || undefined,
+        }));
+      await fetch(`/api/production/work-orders/${selectedWO.id}/assignees`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignees: validAssignees }),
+      });
+    } catch (err) {
+      console.error('Failed to save assignees:', err);
+    }
+
     updateMutation.mutate({
       id: selectedWO.id,
       body: {
@@ -318,7 +434,7 @@ export default function WorkOrdersPage() {
         notes: editForm.notes || null,
       },
     });
-  }, [selectedWO, editForm, updateMutation]);
+  }, [selectedWO, editForm, editAssignees, updateMutation]);
 
   const handleConfirmDelete = useCallback(() => {
     if (!selectedWO) return;
@@ -1203,6 +1319,79 @@ export default function WorkOrdersPage() {
               onValueChanged={(e) => setEditForm(prev => ({ ...prev, notes: e.value }))}
               height={80}
             />
+          </div>
+
+          {/* Assigned Team — view + add + remove + change role inline */}
+          <div className="pt-3 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <Users className="h-4 w-4 text-emerald-600" />
+                Assigned Team (เจ้าหน้าที่ผู้ปฏิบัติงาน)
+                {editAssignees.length > 0 && (
+                  <span className="text-xs text-gray-500 font-normal">({editAssignees.length})</span>
+                )}
+              </label>
+              <button
+                type="button"
+                onClick={addEditAssignee}
+                disabled={loadingEmployees}
+                className="text-xs px-2.5 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+              >
+                + เพิ่ม
+              </button>
+            </div>
+            {editAssignees.length === 0 ? (
+              <p className="text-xs text-gray-500 italic py-2">ยังไม่มีการมอบหมายเจ้าหน้าที่ — กดปุ่ม &ldquo;+ เพิ่ม&rdquo; เพื่อระบุทีม</p>
+            ) : (
+              <div className="space-y-2 max-h-56 overflow-y-auto">
+                {editAssignees.map((a, idx) => {
+                  const emp = employees.find((e) => e.id === a.employeeId);
+                  return (
+                    <div key={idx} className="grid grid-cols-12 gap-1.5 items-start p-2 bg-gray-50 rounded border border-gray-200">
+                      <div className="col-span-12 sm:col-span-6">
+                        <SelectBox
+                          dataSource={employees.map((e) => ({
+                            id: e.id,
+                            label: `${e.employeeCode} — ${e.firstName} ${e.lastName}`,
+                          }))}
+                          displayExpr="label"
+                          valueExpr="id"
+                          value={a.employeeId}
+                          onValueChanged={(ev) => handleEditEmployeeChange(idx, ev.value as number | null)}
+                          placeholder={loadingEmployees ? 'กำลังโหลด...' : 'เลือกเจ้าหน้าที่'}
+                          disabled={loadingEmployees}
+                          searchEnabled
+                          stylingMode="outlined"
+                        />
+                        {emp?.positionTitle && (
+                          <p className="text-xs text-gray-500 mt-0.5 truncate px-1">{emp.positionTitle}</p>
+                        )}
+                      </div>
+                      <div className="col-span-10 sm:col-span-5">
+                        <SelectBox
+                          dataSource={ROLE_OPTIONS}
+                          displayExpr="label"
+                          valueExpr="value"
+                          value={a.role}
+                          onValueChanged={(ev) => updateEditAssignee(idx, { role: ev.value as string })}
+                          stylingMode="outlined"
+                        />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1 flex items-start justify-end">
+                        <button
+                          type="button"
+                          onClick={() => removeEditAssignee(idx)}
+                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition"
+                          title="ลบ"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </DxPopup>
