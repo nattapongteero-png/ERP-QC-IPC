@@ -4690,7 +4690,7 @@ export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
   name: varchar('name', { length: 255 }).notNull(),
   nameTh: varchar('name_th', { length: 255 }),
   testMethod: varchar('test_method', { length: 255 }),
-  specification: varchar('specification', { length: 255 }), // e.g., "200 ± 10 mg"
+  specification: mysqlText('specification'), // JSON envelope for criteria type payload + triggers + derived calcs (often >255 chars)
   minValue: decimal('min_value', { precision: 15, scale: 4 }),
   maxValue: decimal('max_value', { precision: 15, scale: 4 }),
   unit: varchar('unit', { length: 50 }), // e.g., "mg", "mm", "min"

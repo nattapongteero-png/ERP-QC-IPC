@@ -122,6 +122,11 @@ export function DxTagBox({
       stylingMode={stylingMode}
       acceptCustomValue={acceptCustomValue}
       isValid={!isRequired || (value && value.length > 0)}
+      // Render dropdown at document.body — Chrome blocks dropdown interaction
+      // when an ancestor has CSS transform (DxPopup wrapper, mobile sidebar
+      // translateX). Firefox handles this differently and still works without
+      // the override. Matches DxSelectBox's fix.
+      dropDownOptions={{ container: 'body' }}
     />
   );
 }
