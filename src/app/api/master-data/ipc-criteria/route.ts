@@ -5,11 +5,13 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { executeDbOperation, getTableRef, getInsertId } from '@/lib/db/db-helper';
-import { getNow } from '@/lib/db/date-utils';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 import { eq, asc, desc } from 'drizzle-orm';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 import { serializeAcceptanceStages } from '@/lib/master-data/ipc-stages';
+import { auditedInsert, auditedUpdate, auditedDelete, getClientIP } from '@/lib/db/audit-wrapper';
+
+const AUDIT_TABLE = 'iPCCriteria';
 
 function getTable() {
   return getTableRef('iPCCriteria');
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/master-data/ipc-criteria
 export async function POST(request: NextRequest) {
-  return withAuth(request, async () => {
+  return withAuth(request, async (session) => {
     try {
       const data = await request.json();
 
@@ -106,6 +108,8 @@ export async function POST(request: NextRequest) {
         acceptanceStages,
         // FDA OOS 2006 retest budget — Critical forces 0 server-side as well.
         maxRetestRounds: (data.isCritical ?? false) ? 0 : Math.max(0, Math.min(5, Number(data.maxRetestRounds ?? 1))),
+        // Soft FK to another ipc_criteria.id (tare type). null = no tare linked.
+        tareSourceCriteriaId: data.tareSourceCriteriaId != null ? Number(data.tareSourceCriteriaId) : null,
       };
 
       // Upsert
@@ -115,8 +119,12 @@ export async function POST(request: NextRequest) {
       });
 
       if (existing) {
-        await executeDbOperation(async (db) => {
-          return db.update(table).set(ipcValues).where(eq(table.id, existing.id as number));
+        await auditedUpdate({
+          table: AUDIT_TABLE,
+          id: existing.id as number,
+          data: ipcValues,
+          userId: session.userId,
+          ipAddress: getClientIP(request),
         });
         const [updated] = await executeDbOperation(async (db) => {
           return db.select().from(table).where(eq(table.id, existing.id as number));
@@ -124,10 +132,12 @@ export async function POST(request: NextRequest) {
         return successResponse(updated, 'IPC criteria updated (code existed)');
       }
 
-      const result = await executeDbOperation(async (db) => {
-        return db.insert(table).values({ code: data.code, ...ipcValues, createdAt: getNow() } as any);
+      const insertId = await auditedInsert({
+        table: AUDIT_TABLE,
+        data: { code: data.code, ...ipcValues },
+        userId: session.userId,
+        ipAddress: getClientIP(request),
       });
-      const insertId = getInsertId(result);
       const [created] = await executeDbOperation(async (db) => {
         return db.select().from(table).where(eq(table.id, insertId));
       });
@@ -142,7 +152,7 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/master-data/ipc-criteria?id=X - Deactivate
 export async function DELETE(request: NextRequest) {
-  return withAuth(request, async () => {
+  return withAuth(request, async (session) => {
     try {
       const { searchParams } = new URL(request.url);
       const id = searchParams.get('id');
@@ -156,9 +166,11 @@ export async function DELETE(request: NextRequest) {
         return errorResponse('ไม่สามารถลบได้ เนื่องจากเกณฑ์ IPC นี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
       }
 
-      const table = getTable();
-      await executeDbOperation(async (db) => {
-        await db.delete(table).where(eq(table.id, Number(id)));
+      await auditedDelete({
+        table: AUDIT_TABLE,
+        id: Number(id),
+        userId: session.userId,
+        ipAddress: getClientIP(request),
       });
       return successResponse(null, 'IPC criteria deleted');
     } catch (error) {
@@ -169,7 +181,7 @@ export async function DELETE(request: NextRequest) {
 
 // PUT /api/master-data/ipc-criteria
 export async function PUT(request: NextRequest) {
-  return withAuth(request, async () => {
+  return withAuth(request, async (session) => {
     try {
       const data = await request.json();
       if (!data.id) return errorResponse('Missing criteria ID');
@@ -182,9 +194,15 @@ export async function PUT(request: NextRequest) {
         'unit', 'sampleSize', 'checkIntervalMinutes', 'isCritical', 'isActive',
         'dosageForm', 'criteriaType', 'tolerancePercent',
         'specTarget', 'specTolerancePercent',
+        'tareSourceCriteriaId',
       ];
       for (const field of fields) {
         if (data[field] !== undefined) updateData[field] = data[field];
+      }
+      // Normalise tareSourceCriteriaId to number | null
+      if (updateData.tareSourceCriteriaId !== undefined) {
+        updateData.tareSourceCriteriaId =
+          updateData.tareSourceCriteriaId != null ? Number(updateData.tareSourceCriteriaId) : null;
       }
 
       // Retest budget: Critical forces 0; otherwise clamp to [0, 5].
@@ -217,8 +235,12 @@ export async function PUT(request: NextRequest) {
         updateData.maxValue = calc.max;
       }
 
-      await executeDbOperation(async (db) => {
-        return db.update(table).set(updateData as any).where(eq(table.id, data.id));
+      await auditedUpdate({
+        table: AUDIT_TABLE,
+        id: Number(data.id),
+        data: updateData,
+        userId: session.userId,
+        ipAddress: getClientIP(request),
       });
 
       const [updated] = await executeDbOperation(async (db) => {

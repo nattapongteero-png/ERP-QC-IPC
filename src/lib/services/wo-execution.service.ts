@@ -1999,6 +1999,8 @@ export async function getWOIPCTests(workOrderId: number) {
         id: tables.qualityTests.id,
         lotId: tables.qualityTests.lotId,
         specId: tables.qualityTests.specId,
+        // Soft FK to ipc_criteria.id. Null for legacy rows seeded before this column.
+        ipcCriteriaId: tables.qualityTests.ipcCriteriaId,
         testType: tables.qualityTests.testType,
         sampleNumber: tables.qualityTests.sampleNumber,
         sampleSize: tables.qualityTests.sampleSize,
@@ -2736,6 +2738,8 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
 
       const testResult = await db.insert(tables.qualityTests).values({
         lotId: targetLotId,
+        // Soft FK so WO IPC tab can route new-type tests to recording_rounds path.
+        ipcCriteriaId: config.criteriaId,
         testType: 'in_process',
         sampleNumber,
         sampleSize: config.sampleSize,

@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { ResponsivePageHeader } from '@/components/shared';
 import { SearchableSelect, type SearchableSelectOption } from '@/components/master-data/SearchableSelect';
-import { FlaskConical, Shield, Eye, FileText, Layers, Dice5, Plus, Trash2, AlertTriangle, Sparkles, ArrowDown } from 'lucide-react';
+import { FlaskConical, Shield, Eye, FileText, Layers, Dice5, Plus, Trash2, AlertTriangle, Sparkles, ArrowDown, Clock, Package, Target, Zap, RotateCcw, Calculator, BookOpen, X } from 'lucide-react';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -31,12 +31,25 @@ import {
 } from '@/lib/master-data/ipc-stages';
 import {
   parseSpecPayload,
-  serializeSpecPayload,
   defaultPayload,
+  parseSharedExtras,
+  serializeSpecification,
+  USE_CONTEXT_OPTIONS,
   type SpecPayload,
   type PassFailPayload,
   type VisualPayload,
   type TextPayload,
+  type MultiPointPayload,
+  type TarePayload,
+  type CalibrationPayload,
+  type CalculatedPayload,
+  type CalculatedInput,
+  type CustomMultiFieldPayload,
+  type CustomField,
+  type SharedSpecExtras,
+  type SopStepRef,
+  type Triggers,
+  type DerivedCalc,
 } from '@/lib/master-data/ipc-spec-payload';
 
 // ────────────────────────────────────────────────────────────────────
@@ -78,6 +91,10 @@ interface IPCCriteria {
   // FDA OOS 2006 / PIC/S retest budget. 0 = deviation immediately on round 1 fail.
   // Critical criteria force this to 0 at runtime.
   maxRetestRounds: number;
+  // Multi-Point criteria reference a Tare criteria via this FK (id of another
+  // ipc_criteria row with criteriaType='tare'). Persisted alongside the
+  // tareSourceCode in spec payload to survive criteria-code renames.
+  tareSourceCriteriaId: number | null;
 }
 
 interface Props {
@@ -100,6 +117,7 @@ function normalizeRecord(raw: IPCCriteria | undefined): IPCCriteria | undefined 
     specTarget: toNum(raw.specTarget),
     specTolerancePercent: toNum(raw.specTolerancePercent) ?? 0,
     maxRetestRounds: toNum(raw.maxRetestRounds) ?? 1,
+    tareSourceCriteriaId: toNum(raw.tareSourceCriteriaId),
     isCritical: !!raw.isCritical,
     isActive: raw.isActive !== false,
     criteriaType: normalizeCriteriaType(raw.criteriaType),
@@ -132,7 +150,7 @@ export function IPCCriteriaForm({ mode, id }: Props) {
     checkIntervalMinutes: 30, isCritical: false, isActive: true,
     dosageForm: null, criteriaType: 'numeric', tolerancePercent: 0,
     specTarget: null, specTolerancePercent: 0, acceptanceStages: null,
-    maxRetestRounds: 1,
+    maxRetestRounds: 1, tareSourceCriteriaId: null,
   };
 
   return <IPCCriteriaFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} />;
@@ -158,6 +176,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   // Numeric uses target/tolerance fields directly.
   const [specPayload, setSpecPayload] = React.useState<SpecPayload | null>(() =>
     parseSpecPayload(initialData.criteriaType ?? 'numeric', initialData.specification)
+  );
+  // Shared extras (apply regardless of criteria type): use context, SOP step ref,
+  // triggers, derived calcs. Persisted into the same `specification` JSON envelope.
+  const [sharedExtras, setSharedExtras] = React.useState<SharedSpecExtras>(() =>
+    parseSharedExtras(initialData.specification),
   );
 
   const [autoFilled, setAutoFilled] = React.useState<Set<string>>(new Set());
@@ -317,8 +340,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       return;
     }
 
-    // Serialize per-type payload back into specification field
-    const specification = criteriaType === 'numeric' ? null : serializeSpecPayload(specPayload);
+    // Serialize per-type payload + shared extras into a single JSON envelope.
+    // Numeric criteria still use specTarget/tolerance columns; the envelope only
+    // carries the shared extras for them.
+    const specification = serializeSpecification(specPayload, sharedExtras, criteriaType);
 
     saveMutation.mutate({
       ...formData,
@@ -359,6 +384,61 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   }, [stages]);
 
   const isAutoFilled = (k: string) => autoFilled.has(k);
+
+  // ── Shared extras helpers ─────────────────────────────────────────
+  const updateSopStepRef = (key: keyof SopStepRef, value: string) =>
+    setSharedExtras((prev) => ({ ...prev, sopStepRef: { ...prev.sopStepRef, [key]: value } }));
+
+  const updateTriggers = (patch: (t: Triggers) => Triggers) =>
+    setSharedExtras((prev) => ({ ...prev, triggers: patch(prev.triggers) }));
+
+  const toggleMilestoneOption = (id: string) =>
+    updateTriggers((t) => ({
+      ...t,
+      milestone: {
+        ...t.milestone,
+        options: t.milestone.options.map((o) => (o.id === id ? { ...o, on: !o.on } : o)),
+      },
+    }));
+
+  const toggleEventOption = (id: string) =>
+    updateTriggers((t) => ({
+      ...t,
+      event: {
+        ...t.event,
+        options: t.event.options.map((o) => (o.id === id ? { ...o, on: !o.on } : o)),
+      },
+    }));
+
+  const addDerivedCalc = () => setSharedExtras((prev) => ({
+    ...prev,
+    derivedCalcs: [
+      ...prev.derivedCalcs,
+      {
+        id: `dc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        label: '', formula: '', sources: '', resultUnit: '',
+        triggerWhen: '', acceptanceMin: '', acceptanceMax: '',
+        onFail: 'reject', note: '',
+      },
+    ],
+  }));
+
+  const updateDerivedCalc = (id: string, patch: Partial<DerivedCalc>) =>
+    setSharedExtras((prev) => ({
+      ...prev,
+      derivedCalcs: prev.derivedCalcs.map((dc) => (dc.id === id ? { ...dc, ...patch } : dc)),
+    }));
+
+  const removeDerivedCalc = (id: string) =>
+    setSharedExtras((prev) => ({
+      ...prev,
+      derivedCalcs: prev.derivedCalcs.filter((dc) => dc.id !== id),
+    }));
+
+  const activeTriggerCount = (() => {
+    const t = sharedExtras.triggers;
+    return [t.time.on, t.quantity.on, t.milestone.on, t.event.on, t.oncePerBatch.on].filter(Boolean).length;
+  })();
 
   // ────────────────────────────────────────────────────────────────
   // Render
@@ -505,9 +585,86 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     { value: 'pass_fail', label: 'Pass/Fail — ผ่าน/ไม่ผ่าน' },
                     { value: 'visual', label: 'Visual — ตรวจด้วยสายตา' },
                     { value: 'text', label: 'Text — บันทึกข้อความ' },
+                    { value: 'multi_point', label: 'Multi-Point — วัดหลายจุด + aggregate (mean/rsd/all-pass)' },
+                    { value: 'tare', label: 'Tare — น้ำหนักภาชนะเปล่า (ใช้ reference โดย multi_point)' },
+                    { value: 'calibration', label: 'Calibration — เทียบสอบ instrument' },
+                    { value: 'calculated', label: 'Calculated — คำนวณจาก criteria อื่น (Yield, %LOD)' },
+                    { value: 'custom_multi_field', label: 'Custom Multi-Field — หลายฟิลด์ผสม' },
                   ]}
                   showClear={false}
                 />
+              </div>
+
+              {/* Use Context — multi-select chips */}
+              <div className="sm:col-span-2">
+                <label className={FIELD_LABEL}>Use Context <span className="text-slate-400 font-normal">(เลือกได้หลายข้อ)</span></label>
+                <div className="flex flex-wrap gap-2">
+                  {USE_CONTEXT_OPTIONS.map((opt) => {
+                    const active = sharedExtras.useContext.includes(opt.value);
+                    return (
+                      <button
+                        type="button"
+                        key={opt.value}
+                        onClick={() => setSharedExtras((prev) => ({
+                          ...prev,
+                          useContext: active
+                            ? prev.useContext.filter((v) => v !== opt.value)
+                            : [...prev.useContext, opt.value],
+                        }))}
+                        className={cn(
+                          'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                          active
+                            ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700',
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className={FIELD_HELPER}>เกณฑ์นี้ใช้ในบริบทใดบ้าง — ช่วยกรอง criteria ตอน operator เลือก</p>
+              </div>
+
+              {/* SOP Step Reference — collapsible fieldset */}
+              <div className="sm:col-span-2 border border-slate-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <BookOpen className="w-4 h-4 text-slate-500" />
+                  <h4 className="text-sm font-semibold text-slate-700">SOP Step Reference</h4>
+                  <span className="text-[11px] text-slate-400 ml-auto">เชื่อมกับขั้นตอนใน SOP (ถ้ามี)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input
+                    className={FIELD_INPUT}
+                    placeholder="SOP Code (เช่น SOP-PRD-001)"
+                    value={sharedExtras.sopStepRef.sopCode}
+                    onChange={(e) => updateSopStepRef('sopCode', e.target.value)}
+                  />
+                  <input
+                    className={FIELD_INPUT}
+                    placeholder="Version"
+                    value={sharedExtras.sopStepRef.sopVersion}
+                    onChange={(e) => updateSopStepRef('sopVersion', e.target.value)}
+                  />
+                  <input
+                    className={FIELD_INPUT}
+                    placeholder="Step #"
+                    value={sharedExtras.sopStepRef.stepNumber}
+                    onChange={(e) => updateSopStepRef('stepNumber', e.target.value)}
+                  />
+                  <input
+                    className={FIELD_INPUT}
+                    placeholder="Link (URL)"
+                    value={sharedExtras.sopStepRef.link}
+                    onChange={(e) => updateSopStepRef('link', e.target.value)}
+                  />
+                  <input
+                    className={cn(FIELD_INPUT, 'sm:col-span-4')}
+                    placeholder="คำอธิบายขั้นตอน (Step Description)"
+                    value={sharedExtras.sopStepRef.stepDescription}
+                    onChange={(e) => updateSopStepRef('stepDescription', e.target.value)}
+                  />
+                </div>
               </div>
 
               {/* Section 2 — Specification */}
@@ -624,8 +781,39 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 <TextSection payload={specPayload} onChange={setSpecPayload} />
               )}
 
-              {/* Section 3 — Sampling & Acceptance */}
-              <SectionHeader number={3} thai="การสุ่มและเกณฑ์ยอมรับ" en="Sampling & Acceptance" />
+              {/* Multi-Point */}
+              {criteriaType === 'multi_point' && specPayload?.type === 'multi_point' && (
+                <MultiPointSection
+                  payload={specPayload}
+                  onChange={setSpecPayload}
+                  tareSourceId={formData.tareSourceCriteriaId ?? null}
+                  onTareSourceIdChange={(id) => setFormData((prev) => ({ ...prev, tareSourceCriteriaId: id }))}
+                  currentId={id}
+                />
+              )}
+
+              {/* Tare */}
+              {criteriaType === 'tare' && specPayload?.type === 'tare' && (
+                <TareSection payload={specPayload} onChange={setSpecPayload} />
+              )}
+
+              {/* Calibration */}
+              {criteriaType === 'calibration' && specPayload?.type === 'calibration' && (
+                <CalibrationSection payload={specPayload} onChange={setSpecPayload} />
+              )}
+
+              {/* Calculated */}
+              {criteriaType === 'calculated' && specPayload?.type === 'calculated' && (
+                <CalculatedSection payload={specPayload} onChange={setSpecPayload} />
+              )}
+
+              {/* Custom Multi-Field */}
+              {criteriaType === 'custom_multi_field' && specPayload?.type === 'custom_multi_field' && (
+                <CustomFieldsSection payload={specPayload} onChange={setSpecPayload} />
+              )}
+
+              {/* Section 3 — Sampling Plan */}
+              <SectionHeader number={3} thai="แผนการสุ่ม" en="Sampling Plan" />
 
               {/* Sampling Plan sub-panel */}
               <div className={cn(SUB_PANEL, 'sm:col-span-2 p-5')}>
@@ -661,8 +849,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 </div>
               </div>
 
+              {/* Section 4 — Multi-Stage Acceptance */}
+              <SectionHeader number={4} thai="เกณฑ์การยอมรับแบบหลายขั้น" en="Multi-Stage Acceptance" />
+
               {/* Multi-Stage Acceptance panel */}
-              <div className="sm:col-span-2 mt-2 rounded-2xl border-2 border-dashed border-emerald-200 bg-white p-5">
+              <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-emerald-200 bg-white p-5">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Layers className="w-5 h-5 text-emerald-700" />
@@ -823,8 +1014,184 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 )}
               </div>
 
-              {/* Section 4 — Settings */}
-              <SectionHeader number={4} thai="การตั้งค่า" en="Settings" />
+              {/* Section 5 — Multi-Trigger Inspection (Triggers) */}
+              <SectionHeader number={5} thai="ตรวจสอบเมื่อ" en="Multi-Trigger Inspection" />
+              <div className="sm:col-span-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500">เลือกได้หลายแบบ — เปิด toggle เพื่อตั้งรายละเอียด</p>
+                  <span className={CHIP_GREEN}>เปิด {activeTriggerCount}/5</span>
+                </div>
+
+                {/* Time trigger */}
+                <TriggerCard
+                  icon={<Clock className="w-4 h-4" />}
+                  title="ตามช่วงเวลา (Time)"
+                  desc="ทุก N นาที"
+                  on={sharedExtras.triggers.time.on}
+                  onToggle={() => updateTriggers((t) => ({ ...t, time: { ...t.time, on: !t.time.on } }))}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">ทุก</span>
+                    <input
+                      type="number"
+                      className={cn(FIELD_INPUT, 'w-24')}
+                      placeholder="30"
+                      value={sharedExtras.triggers.time.every}
+                      onChange={(e) => updateTriggers((t) => ({ ...t, time: { ...t.time, every: e.target.value } }))}
+                    />
+                    <span className="text-xs text-slate-500">นาที</span>
+                  </div>
+                </TriggerCard>
+
+                {/* Quantity trigger */}
+                <TriggerCard
+                  icon={<Package className="w-4 h-4" />}
+                  title="ตามจำนวนผลิต (Quantity)"
+                  desc="ทุก N หน่วย / % ของ batch"
+                  on={sharedExtras.triggers.quantity.on}
+                  onToggle={() => updateTriggers((t) => ({ ...t, quantity: { ...t.quantity, on: !t.quantity.on } }))}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-slate-500">โหมด</span>
+                    <select
+                      className={cn(FIELD_INPUT, 'w-32')}
+                      value={sharedExtras.triggers.quantity.mode}
+                      onChange={(e) => updateTriggers((t) => ({
+                        ...t,
+                        quantity: { ...t.quantity, mode: e.target.value === 'percent' ? 'percent' : 'fixed' },
+                      }))}
+                    >
+                      <option value="fixed">Fixed (หน่วย)</option>
+                      <option value="percent">Percent (% ของ batch)</option>
+                    </select>
+                    {sharedExtras.triggers.quantity.mode === 'fixed' ? (
+                      <>
+                        <span className="text-xs text-slate-500">ทุก</span>
+                        <input
+                          type="number"
+                          className={cn(FIELD_INPUT, 'w-24')}
+                          placeholder="1000"
+                          value={sharedExtras.triggers.quantity.every}
+                          onChange={(e) => updateTriggers((t) => ({ ...t, quantity: { ...t.quantity, every: e.target.value } }))}
+                        />
+                        <input
+                          className={cn(FIELD_INPUT, 'w-20')}
+                          placeholder="หน่วย"
+                          value={sharedExtras.triggers.quantity.unit}
+                          onChange={(e) => updateTriggers((t) => ({ ...t, quantity: { ...t.quantity, unit: e.target.value } }))}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-xs text-slate-500">ทุก</span>
+                        <input
+                          type="number"
+                          className={cn(FIELD_INPUT, 'w-24')}
+                          placeholder="25"
+                          value={sharedExtras.triggers.quantity.percent}
+                          onChange={(e) => updateTriggers((t) => ({ ...t, quantity: { ...t.quantity, percent: e.target.value } }))}
+                        />
+                        <span className="text-xs text-slate-500">%</span>
+                      </>
+                    )}
+                  </div>
+                </TriggerCard>
+
+                {/* Milestone trigger */}
+                <TriggerCard
+                  icon={<Target className="w-4 h-4" />}
+                  title="ที่ milestone"
+                  desc="ตามขั้นตอนสำคัญใน batch"
+                  on={sharedExtras.triggers.milestone.on}
+                  onToggle={() => updateTriggers((t) => ({ ...t, milestone: { ...t.milestone, on: !t.milestone.on } }))}
+                >
+                  <div className="flex flex-wrap gap-2">
+                    {sharedExtras.triggers.milestone.options.map((opt) => (
+                      <button
+                        type="button"
+                        key={opt.id}
+                        onClick={() => toggleMilestoneOption(opt.id)}
+                        className={cn(
+                          'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
+                          opt.on
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300',
+                        )}
+                      >
+                        {opt.label ?? opt.id}
+                      </button>
+                    ))}
+                  </div>
+                </TriggerCard>
+
+                {/* Event trigger */}
+                <TriggerCard
+                  icon={<Zap className="w-4 h-4" />}
+                  title="เมื่อมีเหตุการณ์ (Event)"
+                  desc="changeover / lot change / cleaning / parameter / maintenance"
+                  on={sharedExtras.triggers.event.on}
+                  onToggle={() => updateTriggers((t) => ({ ...t, event: { ...t.event, on: !t.event.on } }))}
+                >
+                  <div className="flex flex-wrap gap-2">
+                    {sharedExtras.triggers.event.options.map((opt) => (
+                      <button
+                        type="button"
+                        key={opt.id}
+                        onClick={() => toggleEventOption(opt.id)}
+                        className={cn(
+                          'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
+                          opt.on
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300',
+                        )}
+                      >
+                        {opt.label ?? opt.id}
+                      </button>
+                    ))}
+                  </div>
+                </TriggerCard>
+
+                {/* Once-per-batch */}
+                <TriggerCard
+                  icon={<RotateCcw className="w-4 h-4" />}
+                  title="ครั้งเดียวต่อ batch"
+                  desc="บันทึกเพียง 1 ครั้งตลอด batch"
+                  on={sharedExtras.triggers.oncePerBatch.on}
+                  onToggle={() => updateTriggers((t) => ({ ...t, oncePerBatch: { on: !t.oncePerBatch.on } }))}
+                />
+              </div>
+
+              {/* Section 6 — Derived Calculations */}
+              <SectionHeader number={6} thai="การคำนวณที่ได้จากผล" en="Derived Calculations" />
+              <div className="sm:col-span-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500">คำนวณข้ามขั้นตอน เช่น Yield = output / input, %LOD = (wet − dry) / wet × 100</p>
+                  <button
+                    type="button"
+                    onClick={addDerivedCalc}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full border border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> เพิ่มสูตร
+                  </button>
+                </div>
+                {sharedExtras.derivedCalcs.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/40 p-5 text-center text-xs text-slate-400">
+                    ยังไม่มีสูตรคำนวณ — กด "เพิ่มสูตร" เพื่อเริ่ม
+                  </div>
+                ) : (
+                  sharedExtras.derivedCalcs.map((dc) => (
+                    <DerivedCalcCard
+                      key={dc.id}
+                      calc={dc}
+                      onChange={(patch) => updateDerivedCalc(dc.id, patch)}
+                      onRemove={() => removeDerivedCalc(dc.id)}
+                    />
+                  ))
+                )}
+              </div>
+
+              {/* Section 7 — Settings */}
+              <SectionHeader number={7} thai="การตั้งค่า" en="Settings" />
 
               <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <ToggleCard
@@ -1020,6 +1387,748 @@ function StatTile({ label, value, unit, tone }: StatTileProps) {
       <div className="text-[10px] uppercase tracking-wide opacity-70">{label}</div>
       <div className="text-base font-bold">{value}</div>
       <div className="text-[10px] opacity-60">{unit}</div>
+    </div>
+  );
+}
+
+// ── Trigger card (collapsible toggle + nested config) ──────────────
+interface TriggerCardProps {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  on: boolean;
+  onToggle: () => void;
+  children?: React.ReactNode;
+}
+
+function TriggerCard({ icon, title, desc, on, onToggle, children }: TriggerCardProps) {
+  return (
+    <div className={cn(
+      'rounded-xl border transition-colors',
+      on ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white',
+    )}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 p-3 text-left hover:bg-slate-50/40"
+      >
+        <span className={cn(
+          'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+          on ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500',
+        )}>
+          {icon}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-slate-900">{title}</div>
+          <div className="text-[11px] text-slate-500 truncate">{desc}</div>
+        </div>
+        <span className={cn(
+          'relative w-9 h-5 rounded-full transition-colors flex-shrink-0',
+          on ? 'bg-emerald-500' : 'bg-slate-300',
+        )}>
+          <span className={cn(
+            'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform',
+            on ? 'translate-x-4' : 'translate-x-0',
+          )} />
+        </span>
+      </button>
+      {on && children && (
+        <div className="border-t border-emerald-200 px-4 py-3">{children}</div>
+      )}
+    </div>
+  );
+}
+
+// ── Derived calc card ──────────────────────────────────────────────
+interface DerivedCalcCardProps {
+  calc: DerivedCalc;
+  onChange: (patch: Partial<DerivedCalc>) => void;
+  onRemove: () => void;
+}
+
+function DerivedCalcCard({ calc, onChange, onRemove }: DerivedCalcCardProps) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Calculator className="w-4 h-4 text-emerald-600" />
+        <input
+          className={cn('flex-1 px-2 py-1 border border-slate-200 rounded text-sm font-semibold text-slate-800 focus:outline-none focus:border-emerald-500')}
+          placeholder="ชื่อสูตร เช่น Yield"
+          value={calc.label}
+          onChange={(e) => onChange({ label: e.target.value })}
+        />
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-slate-400 hover:text-red-600 p-1 rounded transition"
+          title="ลบ"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="sm:col-span-2">
+          <label className={cn(FIELD_LABEL, 'text-[11px]')}>Formula</label>
+          <input
+            className={cn(FIELD_INPUT, 'font-mono text-xs')}
+            placeholder="(output - waste) / input * 100"
+            value={calc.formula}
+            onChange={(e) => onChange({ formula: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={cn(FIELD_LABEL, 'text-[11px]')}>Sources (criteria codes, comma-separated)</label>
+          <input
+            className={cn(FIELD_INPUT, 'text-xs')}
+            placeholder="IPC-WV-001, IPC-LOD-001"
+            value={calc.sources}
+            onChange={(e) => onChange({ sources: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={cn(FIELD_LABEL, 'text-[11px]')}>Result Unit</label>
+          <input
+            className={cn(FIELD_INPUT, 'text-xs')}
+            placeholder="%"
+            value={calc.resultUnit}
+            onChange={(e) => onChange({ resultUnit: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={cn(FIELD_LABEL, 'text-[11px]')}>Trigger When</label>
+          <input
+            className={cn(FIELD_INPUT, 'text-xs')}
+            placeholder="ปิด batch / หลังสูตร X"
+            value={calc.triggerWhen}
+            onChange={(e) => onChange({ triggerWhen: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={cn(FIELD_LABEL, 'text-[11px]')}>On Fail</label>
+          <select
+            className={cn(FIELD_INPUT, 'text-xs')}
+            value={calc.onFail}
+            onChange={(e) => onChange({ onFail: e.target.value as DerivedCalc['onFail'] })}
+          >
+            <option value="reject">Reject Batch</option>
+            <option value="deviation">Create Deviation</option>
+            <option value="note">Note only</option>
+          </select>
+        </div>
+        <div>
+          <label className={cn(FIELD_LABEL, 'text-[11px]')}>Acceptance Min</label>
+          <input
+            className={cn(FIELD_INPUT, 'text-xs')}
+            placeholder="90"
+            value={calc.acceptanceMin}
+            onChange={(e) => onChange({ acceptanceMin: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={cn(FIELD_LABEL, 'text-[11px]')}>Acceptance Max</label>
+          <input
+            className={cn(FIELD_INPUT, 'text-xs')}
+            placeholder="105"
+            value={calc.acceptanceMax}
+            onChange={(e) => onChange({ acceptanceMax: e.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={cn(FIELD_LABEL, 'text-[11px]')}>Note</label>
+          <input
+            className={cn(FIELD_INPUT, 'text-xs')}
+            placeholder="หมายเหตุ"
+            value={calc.note}
+            onChange={(e) => onChange({ note: e.target.value })}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Multi-Point section ────────────────────────────────────────────
+interface TareCriteriaOption {
+  id: number;
+  code: string;
+  name: string;
+}
+
+function MultiPointSection({
+  payload,
+  onChange,
+  tareSourceId,
+  onTareSourceIdChange,
+  currentId,
+}: {
+  payload: MultiPointPayload;
+  onChange: (p: MultiPointPayload) => void;
+  tareSourceId: number | null;
+  onTareSourceIdChange: (id: number | null) => void;
+  currentId?: number;
+}) {
+  // Fetch list of tare criteria for cross-reference dropdown
+  const { data: tareList = [], refetch } = useQuery<TareCriteriaOption[]>({
+    queryKey: ['ipc-criteria-tare-list'],
+    queryFn: async () => {
+      const res = await fetch('/api/master-data/ipc-criteria?isActive=true');
+      const data = await res.json();
+      if (!data.success) return [];
+      const all: { id: number; code: string; name: string; criteriaType: string }[] = data.data || [];
+      return all
+        .filter((c) => c.criteriaType === 'tare' && c.id !== currentId)
+        .map((c) => ({ id: c.id, code: c.code, name: c.name }));
+    },
+    staleTime: 30_000,
+  });
+
+  // Auto-compute aggregateLimit for mean/min_max (target ± tolerance%)
+  React.useEffect(() => {
+    if (payload.aggregateRule !== 'mean' && payload.aggregateRule !== 'min_max') return;
+    const tgt = Number(payload.perPointTarget);
+    const tol = Number(payload.perPointTolerance);
+    if (!Number.isFinite(tgt) || !Number.isFinite(tol) || tgt === 0) return;
+    const min = tgt * (1 - tol / 100);
+    const max = tgt * (1 + tol / 100);
+    const next = `${min.toFixed(4)}-${max.toFixed(4)}`;
+    if (next !== payload.aggregateLimit) onChange({ ...payload, aggregateLimit: next });
+  }, [payload, onChange]);
+
+  return (
+    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-teal-300 bg-teal-50/30 p-5 mt-2 space-y-4">
+      <div className="flex items-center gap-2 mb-1">
+        <FlaskConical className="w-4 h-4 text-teal-700" />
+        <h3 className="font-semibold text-teal-800 text-sm">Multi-Point Numeric Specification</h3>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className={FIELD_LABEL}>จำนวนจุด (Point Count) <span className="text-red-500">*</span></label>
+          <input
+            type="number"
+            min={2}
+            className={FIELD_INPUT}
+            placeholder="20"
+            value={payload.pointCount}
+            onChange={(e) => onChange({ ...payload, pointCount: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Label ของจุด (Point Label)</label>
+          <input
+            className={FIELD_INPUT}
+            placeholder='เช่น "หัวตอก" → "หัวตอก 1", "หัวตอก 2"...'
+            value={payload.pointLabel}
+            onChange={(e) => onChange({ ...payload, pointLabel: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Target ต่อจุด <span className="text-red-500">*</span></label>
+          <input
+            type="number"
+            step="any"
+            className={FIELD_INPUT}
+            placeholder="0.500"
+            value={payload.perPointTarget}
+            onChange={(e) => onChange({ ...payload, perPointTarget: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>±% Tolerance ต่อจุด</label>
+          <div className="relative">
+            <input
+              type="number"
+              step="any"
+              className={cn(FIELD_INPUT, 'pr-8')}
+              placeholder="7.5"
+              value={payload.perPointTolerance}
+              onChange={(e) => onChange({ ...payload, perPointTolerance: e.target.value })}
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className={FIELD_LABEL}>Aggregate Rule <span className="text-red-500">*</span></label>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[
+            { v: 'all_pass', t: 'ทุกจุดต้องผ่าน', d: 'All Pass' },
+            { v: 'mean', t: 'เฉลี่ยอยู่ในช่วง', d: 'Mean in range' },
+            { v: 'rsd', t: 'ความเบี่ยงเบนต่ำ', d: 'RSD ≤ limit' },
+            { v: 'min_max', t: 'ทุกจุดอยู่ในช่วง', d: 'Min/Max bound' },
+          ].map((opt) => {
+            const active = payload.aggregateRule === opt.v;
+            return (
+              <button
+                type="button"
+                key={opt.v}
+                onClick={() => onChange({ ...payload, aggregateRule: opt.v as MultiPointPayload['aggregateRule'] })}
+                className={cn(
+                  'flex flex-col items-center gap-1 px-3 py-3 rounded-xl border text-xs font-medium transition-colors',
+                  active
+                    ? 'bg-teal-100 border-teal-400 text-teal-900'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-teal-300',
+                )}
+              >
+                <span className="font-semibold">{opt.t}</span>
+                <span className="text-[10px] opacity-70">{opt.d}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <label className={cn(FIELD_LABEL, 'flex items-center gap-1.5')}>
+          Aggregate Limit
+          {(payload.aggregateRule === 'mean' || payload.aggregateRule === 'min_max') && <AutoBadge />}
+        </label>
+        <input
+          className={cn(
+            FIELD_INPUT,
+            (payload.aggregateRule === 'mean' || payload.aggregateRule === 'min_max') && 'bg-emerald-50/40 border-emerald-200',
+          )}
+          placeholder={payload.aggregateRule === 'rsd' ? 'เช่น 2.0 (% RSD)' : '0.4625-0.5375'}
+          value={payload.aggregateLimit}
+          readOnly={payload.aggregateRule === 'mean' || payload.aggregateRule === 'min_max'}
+          onChange={(e) => onChange({ ...payload, aggregateLimit: e.target.value })}
+        />
+        <p className={FIELD_HELPER}>
+          {payload.aggregateRule === 'rsd'
+            ? 'ระบุ RSD limit เป็น %'
+            : payload.aggregateRule === 'all_pass'
+            ? 'ใช้ Target ± Tolerance ของแต่ละจุด'
+            : 'คำนวณอัตโนมัติจาก Target ± Tolerance%'}
+        </p>
+      </div>
+
+      {/* Tare cross-reference */}
+      <div className="rounded-xl border-2 border-cyan-300 bg-cyan-50/40 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Layers className="w-4 h-4 text-cyan-700" />
+          <h4 className="text-sm font-semibold text-cyan-800">Tare Source (optional)</h4>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="ml-auto text-[11px] text-cyan-600 hover:text-cyan-800 underline"
+          >
+            ⟳ refresh
+          </button>
+        </div>
+        <SearchableSelect
+          value={tareSourceId ? String(tareSourceId) : ''}
+          onChange={(v) => {
+            if (!v) {
+              onTareSourceIdChange(null);
+              onChange({ ...payload, tareSourceCode: '' });
+            } else {
+              const opt = tareList.find((t) => String(t.id) === v);
+              onTareSourceIdChange(Number(v));
+              onChange({ ...payload, tareSourceCode: opt?.code ?? '' });
+            }
+          }}
+          options={tareList.map((t) => ({ value: String(t.id), label: `${t.code} — ${t.name}` }))}
+          placeholder="— ไม่ใช้ tare —"
+        />
+        <p className={cn(FIELD_HELPER, 'text-cyan-700')}>
+          เลือก Tare criteria เพื่อให้ operator ตอน record บันทึก Gross weight แล้วระบบหัก Tare ให้อัตโนมัติ (Net = Gross − Tare)
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Tare section ───────────────────────────────────────────────────
+function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p: TarePayload) => void }) {
+  return (
+    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-cyan-300 bg-cyan-50/30 p-5 mt-2 space-y-4">
+      <div className="flex items-center gap-2 mb-1">
+        <Layers className="w-4 h-4 text-cyan-700" />
+        <h3 className="font-semibold text-cyan-800 text-sm">Tare Reference Specification</h3>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className={FIELD_LABEL}>Reference Label <span className="text-red-500">*</span></label>
+          <input
+            className={FIELD_INPUT}
+            placeholder="น้ำหนักภาชนะเปล่า"
+            value={payload.referenceLabel}
+            onChange={(e) => onChange({ ...payload, referenceLabel: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Reference Unit</label>
+          <input
+            className={FIELD_INPUT}
+            placeholder="g"
+            value={payload.referenceUnit}
+            onChange={(e) => onChange({ ...payload, referenceUnit: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Store As (symbol)</label>
+          <input
+            className={FIELD_INPUT}
+            placeholder="tare_empty_cap"
+            value={payload.storeAs}
+            onChange={(e) => onChange({ ...payload, storeAs: e.target.value })}
+          />
+          <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตร calculated</p>
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Expire After</label>
+          <select
+            className={FIELD_INPUT}
+            value={payload.expireAfter}
+            onChange={(e) => onChange({ ...payload, expireAfter: e.target.value as TarePayload['expireAfter'] })}
+          >
+            <option value="batch">หมดอายุเมื่อจบ batch</option>
+            <option value="shift">หมดอายุเมื่อจบกะ</option>
+            <option value="permanent">ใช้ได้ตลอด (permanent)</option>
+          </select>
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Acceptance Min</label>
+          <input
+            type="number"
+            step="any"
+            className={FIELD_INPUT}
+            placeholder="0.0900"
+            value={payload.acceptanceMin}
+            onChange={(e) => onChange({ ...payload, acceptanceMin: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Acceptance Max</label>
+          <input
+            type="number"
+            step="any"
+            className={FIELD_INPUT}
+            placeholder="0.1100"
+            value={payload.acceptanceMax}
+            onChange={(e) => onChange({ ...payload, acceptanceMax: e.target.value })}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Calibration section ────────────────────────────────────────────
+function CalibrationSection({ payload, onChange }: { payload: CalibrationPayload; onChange: (p: CalibrationPayload) => void }) {
+  return (
+    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-purple-300 bg-purple-50/30 p-5 mt-2 space-y-4">
+      <div className="flex items-center gap-2 mb-1">
+        <FlaskConical className="w-4 h-4 text-purple-700" />
+        <h3 className="font-semibold text-purple-800 text-sm">Calibration Specification</h3>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className={FIELD_LABEL}>Instrument Name <span className="text-red-500">*</span></label>
+          <input className={FIELD_INPUT} placeholder="เช่น Digital Caliper"
+            value={payload.instrumentName}
+            onChange={(e) => onChange({ ...payload, instrumentName: e.target.value })} />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Instrument ID</label>
+          <input className={FIELD_INPUT} placeholder="INS-001"
+            value={payload.instrumentId}
+            onChange={(e) => onChange({ ...payload, instrumentId: e.target.value })} />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Standard Value <span className="text-red-500">*</span></label>
+          <input type="number" step="any" className={FIELD_INPUT} placeholder="100.000"
+            value={payload.standardValue}
+            onChange={(e) => onChange({ ...payload, standardValue: e.target.value })} />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Standard Unit</label>
+          <input className={FIELD_INPUT} placeholder="mm"
+            value={payload.standardUnit}
+            onChange={(e) => onChange({ ...payload, standardUnit: e.target.value })} />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Tolerance Type</label>
+          <select className={FIELD_INPUT}
+            value={payload.toleranceType}
+            onChange={(e) => onChange({ ...payload, toleranceType: e.target.value as CalibrationPayload['toleranceType'] })}>
+            <option value="percent">Percent (%)</option>
+            <option value="absolute">Absolute (unit)</option>
+          </select>
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Tolerance Value</label>
+          <input type="number" step="any" className={FIELD_INPUT} placeholder={payload.toleranceType === 'percent' ? '5' : '0.05'}
+            value={payload.toleranceValue}
+            onChange={(e) => onChange({ ...payload, toleranceValue: e.target.value })} />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Last Calibration Date</label>
+          <input type="date" className={FIELD_INPUT}
+            value={payload.lastCalibrationDate}
+            onChange={(e) => onChange({ ...payload, lastCalibrationDate: e.target.value })} />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Next Due Date</label>
+          <input type="date" className={FIELD_INPUT}
+            value={payload.nextDueDate}
+            onChange={(e) => onChange({ ...payload, nextDueDate: e.target.value })} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+            <input type="checkbox" checked={payload.requiresPriorPass}
+              onChange={(e) => onChange({ ...payload, requiresPriorPass: e.target.checked })} />
+            ต้องผ่าน calibration ก่อนจึงจะเริ่มผลิตได้ (block production until pass)
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Calculated section ─────────────────────────────────────────────
+function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; onChange: (p: CalculatedPayload) => void }) {
+  const addInput = () => onChange({
+    ...payload,
+    inputs: [
+      ...payload.inputs,
+      {
+        id: `inp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: '', source: 'derived', criteriaCode: '', constantValue: '',
+      },
+    ],
+  });
+  const updateInput = (id: string, patch: Partial<CalculatedInput>) =>
+    onChange({ ...payload, inputs: payload.inputs.map((i) => i.id === id ? { ...i, ...patch } : i) });
+  const removeInput = (id: string) =>
+    onChange({ ...payload, inputs: payload.inputs.filter((i) => i.id !== id) });
+
+  return (
+    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50/30 p-5 mt-2 space-y-4">
+      <div className="flex items-center gap-2 mb-1">
+        <Calculator className="w-4 h-4 text-indigo-700" />
+        <h3 className="font-semibold text-indigo-800 text-sm">Calculated Specification</h3>
+      </div>
+
+      <div>
+        <label className={FIELD_LABEL}>Formula <span className="text-red-500">*</span></label>
+        <input className={cn(FIELD_INPUT, 'font-mono text-sm')}
+          placeholder="(gross - tare) / batch_size * 100"
+          value={payload.formula}
+          onChange={(e) => onChange({ ...payload, formula: e.target.value })} />
+        <p className={FIELD_HELPER}>ตัวแปรในสูตรต้องตรงกับ name ของ Inputs ด้านล่าง — ตัวอย่าง: <code>Yield = output / input * 100</code>, <code>%LOD = (wet - dry) / wet * 100</code></p>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className={FIELD_LABEL}>Inputs (ตัวแปรในสูตร)</label>
+          <button type="button" onClick={addInput}
+            className="text-xs font-medium px-2.5 py-1 rounded-md border border-indigo-300 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-1">
+            <Plus className="w-3 h-3" /> เพิ่ม input
+          </button>
+        </div>
+        {payload.inputs.length === 0 ? (
+          <div className="text-xs text-slate-400 text-center py-4 border border-dashed border-slate-200 rounded">
+            ยังไม่มี input — กด "เพิ่ม input" เพื่อกำหนดตัวแปรในสูตร
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {payload.inputs.map((inp) => (
+              <div key={inp.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end p-2 rounded-lg bg-white border border-slate-200">
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] text-slate-500">name (in formula)</label>
+                  <input className={cn(FIELD_INPUT, 'text-xs font-mono')}
+                    placeholder="gross" value={inp.name}
+                    onChange={(e) => updateInput(inp.id, { name: e.target.value })} />
+                </div>
+                <div className="sm:col-span-3">
+                  <label className="text-[10px] text-slate-500">source</label>
+                  <select className={cn(FIELD_INPUT, 'text-xs')}
+                    value={inp.source}
+                    onChange={(e) => updateInput(inp.id, { source: e.target.value as CalculatedInput['source'] })}>
+                    <option value="derived">From criteria code</option>
+                    <option value="this_step">From this step</option>
+                    <option value="constant">Constant</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-6">
+                  {inp.source === 'constant' ? (
+                    <>
+                      <label className="text-[10px] text-slate-500">constant value</label>
+                      <input type="number" step="any" className={cn(FIELD_INPUT, 'text-xs font-mono')}
+                        placeholder="100" value={inp.constantValue}
+                        onChange={(e) => updateInput(inp.id, { constantValue: e.target.value })} />
+                    </>
+                  ) : (
+                    <>
+                      <label className="text-[10px] text-slate-500">criteria code</label>
+                      <input className={cn(FIELD_INPUT, 'text-xs font-mono')}
+                        placeholder="IPC-WV-001" value={inp.criteriaCode}
+                        onChange={(e) => updateInput(inp.id, { criteriaCode: e.target.value })} />
+                    </>
+                  )}
+                </div>
+                <div className="sm:col-span-1 flex justify-end">
+                  <button type="button" onClick={() => removeInput(inp.id)}
+                    className="p-1.5 text-slate-400 hover:text-red-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div>
+          <label className={FIELD_LABEL}>Result Unit</label>
+          <input className={FIELD_INPUT} placeholder="%"
+            value={payload.resultUnit}
+            onChange={(e) => onChange({ ...payload, resultUnit: e.target.value })} />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Result Min</label>
+          <input type="number" step="any" className={FIELD_INPUT} placeholder="90"
+            value={payload.resultMin}
+            onChange={(e) => onChange({ ...payload, resultMin: e.target.value })} />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Result Max</label>
+          <input type="number" step="any" className={FIELD_INPUT} placeholder="105"
+            value={payload.resultMax}
+            onChange={(e) => onChange({ ...payload, resultMax: e.target.value })} />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Decimals</label>
+          <input type="number" min={0} max={6} className={FIELD_INPUT}
+            value={payload.displayDecimals}
+            onChange={(e) => onChange({ ...payload, displayDecimals: e.target.value })} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Custom Multi-Field section ─────────────────────────────────────
+function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldPayload; onChange: (p: CustomMultiFieldPayload) => void }) {
+  const addField = () => onChange({
+    ...payload,
+    fields: [
+      ...payload.fields,
+      {
+        id: `f-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        label: '', fieldType: 'number', unit: '', target: '', tolerance: '',
+        required: true, note: '', options: '',
+      },
+    ],
+  });
+  const updateField = (id: string, patch: Partial<CustomField>) =>
+    onChange({ ...payload, fields: payload.fields.map((f) => f.id === id ? { ...f, ...patch } : f) });
+  const removeField = (id: string) =>
+    onChange({ ...payload, fields: payload.fields.filter((f) => f.id !== id) });
+
+  return (
+    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50/30 p-5 mt-2 space-y-4">
+      <div className="flex items-center gap-2 mb-1">
+        <Layers className="w-4 h-4 text-rose-700" />
+        <h3 className="font-semibold text-rose-800 text-sm">Custom Multi-Field Specification</h3>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className={FIELD_LABEL}>Fields ({payload.fields.length})</label>
+          <button type="button" onClick={addField}
+            className="text-xs font-medium px-2.5 py-1 rounded-md border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 flex items-center gap-1">
+            <Plus className="w-3 h-3" /> เพิ่มฟิลด์
+          </button>
+        </div>
+        {payload.fields.length === 0 ? (
+          <div className="text-xs text-slate-400 text-center py-4 border border-dashed border-slate-200 rounded">
+            ยังไม่มีฟิลด์ — กด "เพิ่มฟิลด์" เพื่อกำหนด
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {payload.fields.map((f) => (
+              <div key={f.id} className="rounded-lg border border-slate-200 bg-white p-3">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                  <div className="sm:col-span-3">
+                    <label className="text-[10px] text-slate-500">Label</label>
+                    <input className={cn(FIELD_INPUT, 'text-xs')}
+                      placeholder="ความหนา" value={f.label}
+                      onChange={(e) => updateField(f.id, { label: e.target.value })} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] text-slate-500">Type</label>
+                    <select className={cn(FIELD_INPUT, 'text-xs')}
+                      value={f.fieldType}
+                      onChange={(e) => updateField(f.id, { fieldType: e.target.value as CustomField['fieldType'] })}>
+                      <option value="number">Number</option>
+                      <option value="text">Text</option>
+                      <option value="select">Select</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] text-slate-500">Unit</label>
+                    <input className={cn(FIELD_INPUT, 'text-xs')}
+                      placeholder="mm" value={f.unit}
+                      onChange={(e) => updateField(f.id, { unit: e.target.value })} />
+                  </div>
+                  {f.fieldType === 'number' && (
+                    <>
+                      <div className="sm:col-span-2">
+                        <label className="text-[10px] text-slate-500">Target</label>
+                        <input type="number" step="any" className={cn(FIELD_INPUT, 'text-xs')}
+                          value={f.target}
+                          onChange={(e) => updateField(f.id, { target: e.target.value })} />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-[10px] text-slate-500">± %</label>
+                        <input type="number" step="any" className={cn(FIELD_INPUT, 'text-xs')}
+                          value={f.tolerance}
+                          onChange={(e) => updateField(f.id, { tolerance: e.target.value })} />
+                      </div>
+                    </>
+                  )}
+                  {f.fieldType === 'select' && (
+                    <div className="sm:col-span-4">
+                      <label className="text-[10px] text-slate-500">Options (comma-separated)</label>
+                      <input className={cn(FIELD_INPUT, 'text-xs')}
+                        placeholder="opt1, opt2, opt3" value={f.options}
+                        onChange={(e) => updateField(f.id, { options: e.target.value })} />
+                    </div>
+                  )}
+                  <div className="sm:col-span-1 flex items-end justify-end">
+                    <button type="button" onClick={() => removeField(f.id)}
+                      className="p-1.5 text-slate-400 hover:text-red-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+                    <input type="checkbox" checked={f.required}
+                      onChange={(e) => updateField(f.id, { required: e.target.checked })} />
+                    required
+                  </label>
+                  <input className={cn(FIELD_INPUT, 'text-xs flex-1 ml-3')}
+                    placeholder="note (optional)" value={f.note}
+                    onChange={(e) => updateField(f.id, { note: e.target.value })} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className={FIELD_LABEL}>General Note</label>
+        <textarea className={cn(FIELD_INPUT, 'min-h-[60px]')}
+          placeholder="หมายเหตุทั่วไป"
+          value={payload.generalNote}
+          onChange={(e) => onChange({ ...payload, generalNote: e.target.value })} />
+      </div>
     </div>
   );
 }

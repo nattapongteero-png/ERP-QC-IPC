@@ -352,6 +352,12 @@
 
 <script>
 var DATA=[
+  // ==================== 20 พฤษภาคม 2569 ====================
+  {module:'Production',menu:'Line Clearance — ปุ่มอยู่ในแต่ละ card',sub:'ย้ายจาก header WO มาที่ card cleaning / sop-execution / material-weighing',type:'refactor',desc:'Line Clearance per-card UI',date:'20 พ.ค. 69',startTime:'19:00',endTime:'19:30',prompt:'การทำ line Clearance ต้องอยู่ใน card ของแต่ละ step'},
+  {module:'Production',menu:'IPC Recording — รองรับ 9 ประเภทเกณฑ์',sub:'เพิ่ม multi-point (Net=Gross−Tare) / tare / calibration / calculated / custom multi-field — เก็บประวัติทุก round',type:'feat',desc:'ขยาย IPC จาก 4 เป็น 9 type + recording rounds table',date:'20 พ.ค. 69',startTime:'15:30',endTime:'18:30',prompt:'IPC Criteria Redesign'},
+  {module:'Master Data',menu:'IPC Criteria — ฟอร์ม 7 ส่วน + audit',sub:'แยก Basic / Spec / Sampling / Multi-Stage / Triggers / Derived / Settings — มี audit log',type:'feat',desc:'ปรับโครงสร้างฟอร์ม IPC Criteria + audit trail',date:'20 พ.ค. 69',startTime:'10:00',endTime:'15:00',prompt:'IPC Criteria Redesign'},
+  {module:'Production',menu:'Work Order Assignees — ทีมผลิต',sub:'แต่ละ WO บันทึกผู้รับผิดชอบหลายคน + role (operator / supervisor / qa / ipc / pharmacist)',type:'feat',desc:'WO Assignees + role-based assignment',date:'20 พ.ค. 69',startTime:'09:00',endTime:'10:00',prompt:'WO Assignees feature'},
+
   // ==================== 13 พฤษภาคม 2569 ====================
   {module:'Admin',menu:'TOR เอกสารฉบับสมบูรณ์ (Markdown) + endpoint ดาวน์โหลด',sub:'เอกสาร Terms of Reference 20 หมวด สำหรับ Herbal ERP ทั้งระบบ — เพิ่ม API ดาวน์โหลด .md',type:'feat',desc:'สร้าง docs/SYSTEM-TOR.md (1,357 บรรทัด) ครอบคลุม: บทนำ, วัตถุประสงค์, User Personas, Business Processes (P2P/O2C/Production/QC), Functional Requirements 11 modules, NFR, Architecture, 21 CFR Part 11, UX/UI, Project Plan 12 เดือน, Risk Register, SLA, Vendor Qualifications, Evaluation, Financial Terms + endpoint GET /api/admin/system-tor-doc (force download / inline=1) — ใช้คู่กับ /api/admin/system-tor (Excel)',date:'13 พ.ค. 69',startTime:'14:50',endTime:'14:55',prompt:'ทำหน้าที่เป็น IT PM/SA เขียน TOR Herbal ERP ทั้งระบบ'},
 

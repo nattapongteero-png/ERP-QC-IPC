@@ -9,7 +9,9 @@
  * USP <701> Disintegration, USP <1216> Tablet Friability, ICH Q9/Q10.
  */
 
-export type CriteriaType = 'numeric' | 'pass_fail' | 'visual' | 'text';
+export type CriteriaType =
+  | 'numeric' | 'pass_fail' | 'visual' | 'text'
+  | 'multi_point' | 'tare' | 'calibration' | 'calculated' | 'custom_multi_field';
 
 export interface TestNameEntry {
   /** Stable identifier — used as code prefix and dropdown value */
@@ -461,6 +463,36 @@ export const CRITERIA_TYPE_META: Record<CriteriaType, {
     desc: 'บันทึกเป็นข้อความอิสระ',
     bgColor: 'bg-slate-50 border-slate-200',
     textColor: 'text-slate-800',
+  },
+  multi_point: {
+    label: 'Multi-Point',
+    desc: 'วัดหลายจุดต่อ batch + aggregate (mean / rsd / all-pass)',
+    bgColor: 'bg-teal-50 border-teal-200',
+    textColor: 'text-teal-800',
+  },
+  tare: {
+    label: 'Tare (น้ำหนักภาชนะ)',
+    desc: 'เก็บน้ำหนักภาชนะเปล่า เพื่อ multi_point อื่นมา reference Gross−Tare',
+    bgColor: 'bg-cyan-50 border-cyan-200',
+    textColor: 'text-cyan-800',
+  },
+  calibration: {
+    label: 'Calibration',
+    desc: 'เทียบสอบ instrument กับ standard ก่อนเริ่มผลิต',
+    bgColor: 'bg-purple-50 border-purple-200',
+    textColor: 'text-purple-800',
+  },
+  calculated: {
+    label: 'Calculated',
+    desc: 'คำนวณจาก criteria อื่น (Yield, %LOD ฯลฯ)',
+    bgColor: 'bg-indigo-50 border-indigo-200',
+    textColor: 'text-indigo-800',
+  },
+  custom_multi_field: {
+    label: 'Custom Multi-Field',
+    desc: 'กรอกหลายฟิลด์พร้อมกัน (mix-and-match types)',
+    bgColor: 'bg-rose-50 border-rose-200',
+    textColor: 'text-rose-800',
   },
 };
 

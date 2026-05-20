@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { parseAcceptanceStages, calcStageAcceptance, type AcceptanceStage } from '@/lib/master-data/ipc-stages';
 import { parseSpecPayload, type SpecPayload } from '@/lib/master-data/ipc-spec-payload';
+import { NewTypeRecorderPanel, isNewType } from '@/components/ipc-recording/NewTypeRecorderPanel';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { cn } from '@/lib/utils/cn';
 
@@ -102,6 +103,8 @@ interface IPCTest {
   id: number;
   lotId: number;
   specId: number | null;
+  /** Soft FK to ipc_criteria.id. Present for new tests; null for legacy snapshots. */
+  ipcCriteriaId: number | null;
   testType: string;
   sampleNumber: string | null;
   sampleSize: number | null;
@@ -576,6 +579,27 @@ export default function IPCPage() {
             const hasSamples = (test.sampleSize || 1) > 1;
             const isRecorded = test.status !== 'pending';
             const isApproved = test.approvedBy != null;
+
+            // New-type criteria (multi_point/tare/calibration/calculated/custom_multi_field)
+            // route to the dedicated recorder panel (writes to ipc_recording_rounds).
+            // Legacy types fall through to the existing per-sample card below.
+            if (isNewType(test.criteriaType) && workOrder?.batchNumber && test.ipcCriteriaId) {
+              return (
+                <NewTypeRecorderPanel
+                  key={test.id}
+                  criteria={{
+                    id: test.ipcCriteriaId,
+                    code: `IPC-${test.ipcCriteriaId}`,
+                    name: test.testName ?? '',
+                    nameTh: null,
+                    unit: test.specUnit ?? null,
+                    criteriaType: test.criteriaType || 'numeric',
+                    specification: test.specSpecification ?? null,
+                  }}
+                  batchNumber={workOrder.batchNumber}
+                />
+              );
+            }
 
             return (
               <Card key={test.id} className={`border-l-4 ${

@@ -16,7 +16,27 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
-import { ClipboardCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ClipboardCheck, AlertCircle, CheckCircle2, Users } from 'lucide-react';
+
+interface WOAssignee {
+  id: number;
+  employeeId: number;
+  employeeCode: string;
+  employeeFirstName: string;
+  employeeLastName: string;
+  positionId: number | null;
+  positionTitle: string | null;
+  role: string;
+  notes: string | null;
+}
+
+const ROLE_LABEL: Record<string, { label: string; color: string }> = {
+  operator: { label: 'Operator', color: 'bg-blue-100 text-blue-700' },
+  supervisor: { label: 'Supervisor', color: 'bg-purple-100 text-purple-700' },
+  qa_verifier: { label: 'QA Verifier', color: 'bg-emerald-100 text-emerald-700' },
+  ipc_checker: { label: 'IPC Checker', color: 'bg-amber-100 text-amber-700' },
+  pharmacist: { label: 'Pharmacist', color: 'bg-rose-100 text-rose-700' },
+};
 import { useToast } from '@/components/ui/toast';
 import { ExecutionDashboard } from '@/components/production/ExecutionDashboard';
 
@@ -182,6 +202,7 @@ export default function WorkOrderDetailPage() {
   const [data, setData] = useState<WorkOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [assignees, setAssignees] = useState<WOAssignee[]>([]);
 
   // Add Material Dialog State
   const [itemSearchDialogOpen, setItemSearchDialogOpen] = useState(false);
@@ -247,6 +268,7 @@ export default function WorkOrderDetailPage() {
     fetchWorkOrderDetail();
     fetchLineClearanceStatus();
     fetchDeviations();
+    fetchAssignees();
   }, [params.id]);
 
   // Realtime sync — when another user (or another tab on the same machine)
@@ -282,6 +304,18 @@ export default function WorkOrderDetailPage() {
       }
     } catch (error) {
       console.error('Failed to fetch line clearance status:', error);
+    }
+  };
+
+  const fetchAssignees = async () => {
+    try {
+      const response = await fetch(`/api/production/work-orders/${params.id}/assignees`);
+      const result = await response.json();
+      if (result.success) {
+        setAssignees(result.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch assignees:', error);
     }
   };
 
@@ -688,16 +722,10 @@ export default function WorkOrderDetailPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            {/* Line Clearance Button (FR-062) - Show when in released status */}
-            {workOrder.status === 'released' && lineClearanceStatus?.required && (
-              <DxButton
-                text="Line Clearance"
-                icon="check"
-                type={lineClearanceStatus?.canStartProduction ? 'success' : 'danger'}
-                stylingMode={lineClearanceStatus?.canStartProduction ? 'outlined' : 'contained'}
-                onClick={() => router.push(`/production/line-clearance?workOrderId=${workOrder.id}`)}
-              />
-            )}
+            {/* Line Clearance moved into per-card buttons inside ExecutionDashboard
+                (cleaning / sop-execution / material-weighing cards). Each card
+                gates its own start with a phase-scoped clearance, replacing the
+                single WO-level button that used to live here. */}
             {nextStatus && (
               <DxButton
                 text={`Advance to ${getStatusLabel(nextStatus)}`}
@@ -768,31 +796,11 @@ export default function WorkOrderDetailPage() {
           </Card>
         </div>
 
-        {/* Line Clearance Status Card (FR-062) */}
-        {lineClearanceStatus?.required && workOrder.status === 'released' && (
-          <Card className={`border-2 no-print ${lineClearanceStatus.canStartProduction ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${lineClearanceStatus.canStartProduction ? 'bg-green-100' : 'bg-amber-100'}`}>
-                    {lineClearanceStatus.canStartProduction ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <ClipboardCheck className="h-5 w-5 text-amber-600" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className={`font-medium ${lineClearanceStatus.canStartProduction ? 'text-green-800' : 'text-amber-800'}`}>
-                      Line Clearance {lineClearanceStatus.canStartProduction ? 'Complete' : 'Required'}
-                    </h3>
-                    <p className={`text-sm ${lineClearanceStatus.canStartProduction ? 'text-green-600' : 'text-amber-600'}`}>
-                      {lineClearanceStatus.message}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Line Clearance Status Card removed — clearance now lives in
+            per-card buttons inside ExecutionDashboard (cleaning / sop-execution
+            / material-weighing). The single WO-level indicator was replaced. */}
+        {false && lineClearanceStatus?.required && workOrder.status === 'released' && (
+          <Card className="hidden"><CardContent /></Card>
         )}
 
         {/* Tabs */}
@@ -863,6 +871,51 @@ export default function WorkOrderDetailPage() {
                     </div>
                   )}
                 </dl>
+              </CardContent>
+            </Card>
+
+            {/* Assigned Team */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-emerald-600" />
+                  Assigned Team (เจ้าหน้าที่ผู้ปฏิบัติงาน)
+                  {assignees.length > 0 && (
+                    <span className="text-xs text-gray-500 font-normal">({assignees.length})</span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {assignees.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">ยังไม่มีการมอบหมายเจ้าหน้าที่</p>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {assignees.map((a) => {
+                      const roleCfg = ROLE_LABEL[a.role] || { label: a.role, color: 'bg-gray-100 text-gray-700' };
+                      return (
+                        <li key={a.id} className="py-2 flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {a.employeeFirstName} {a.employeeLastName}
+                              <span className="ml-2 text-xs text-gray-500 font-normal font-mono">
+                                {a.employeeCode}
+                              </span>
+                            </p>
+                            {a.positionTitle && (
+                              <p className="text-xs text-gray-500 truncate">{a.positionTitle}</p>
+                            )}
+                            {a.notes && (
+                              <p className="text-xs text-gray-400 italic mt-0.5">{a.notes}</p>
+                            )}
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${roleCfg.color}`}>
+                            {roleCfg.label}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </CardContent>
             </Card>
 

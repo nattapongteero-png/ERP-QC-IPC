@@ -15,6 +15,7 @@ import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/s
 import { useCurrentUser } from '@/hooks/use-current-user';
 import type { BOMConfigResponse } from '@/types/bom-config';
 import { Card, CardContent } from '@/components/ui/card';
+import { NewTypeRecorderPanel, isNewType } from '@/components/ipc-recording/NewTypeRecorderPanel';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -2105,6 +2106,26 @@ export default function SOPExecutionPage() {
                 IPC Test ({selectedStep.linkedIPC.length})
               </h5>
               {selectedStep.linkedIPC.map((ipc) => {
+                // New-type criteria route to the dedicated recorder panel
+                // (writes to ipc_recording_rounds, keyed by WO batchNumber).
+                if (isNewType(ipc.criteriaType) && workOrder?.batchNumber) {
+                  return (
+                    <NewTypeRecorderPanel
+                      key={ipc.id}
+                      criteria={{
+                        id: ipc.criteriaId,
+                        code: ipc.criteriaCode,
+                        name: ipc.criteriaName ?? '',
+                        nameTh: ipc.criteriaNameTh ?? null,
+                        unit: ipc.unit ?? null,
+                        criteriaType: ipc.criteriaType || 'numeric',
+                        specification: ipc.specification ?? null,
+                      }}
+                      batchNumber={workOrder.batchNumber}
+                      compact
+                    />
+                  );
+                }
                 const size = ipc.sampleSize || 1;
                 const spec = ipc.specification
                   || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)

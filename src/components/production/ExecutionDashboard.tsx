@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
@@ -124,6 +125,24 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   const toast = useToast();
   const t = useTranslations('production');
   const queryClient = useQueryClient();
+  const router = useRouter();
+
+  // Per-card Line Clearance gate. Replaces the WO-level button that used to
+  // sit in the page header. Each card that represents an operator activity
+  // (cleaning, sop-execution, material-weighing) gets its own clearance
+  // entry that the operator must perform before starting the activity.
+  // The clearance status is currently WO-scoped on the backend; the
+  // ?section= param is forwarded so a future migration can scope per-card.
+  const cardNeedsClearance = (sectionId: string): boolean => {
+    if (sectionId === 'material-weighing') return true;
+    if (sectionId.endsWith('-cleaning')) return true;       // pre-/production-/post-/packaging-cleaning
+    if (sectionId.startsWith('sop-execution-')) return true; // sop-execution-<phase>
+    return false;
+  };
+
+  const openLineClearance = (sectionId: string) => {
+    router.push(`/production/line-clearance?workOrderId=${workOrderId}&section=${sectionId}`);
+  };
 
   // Idempotent BOM↔WO sync on mount. Fires once per WO mount; if the BOM
   // gained new SOP steps or IPC criteria after this WO was initialized
@@ -819,7 +838,26 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                       ) : (
                         <div className="space-y-2">
                           {renderProgressBar(sectionStatus.completed, sectionStatus.verified, sectionStatus.total)}
-                          <div className="flex justify-end">
+                          <div className="flex items-center justify-between gap-2">
+                            {cardNeedsClearance(section.id) ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  // The card is wrapped in <Link>; we must
+                                  // suppress both the default anchor navigation
+                                  // and the event bubble so only the clearance
+                                  // route opens, not the section route.
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  openLineClearance(section.id);
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-medium"
+                                title="บันทึก Line Clearance ก่อนเริ่มงานใน step นี้"
+                              >
+                                <ClipboardCheck className="h-3 w-3" />
+                                Line Clearance
+                              </button>
+                            ) : <span />}
                             {renderStatusBadge(sectionStatus.status)}
                           </div>
                         </div>
