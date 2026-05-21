@@ -16,6 +16,7 @@ import { useCurrentUser } from '@/hooks/use-current-user';
 import type { BOMConfigResponse } from '@/types/bom-config';
 import { Card, CardContent } from '@/components/ui/card';
 import { NewTypeRecorderPanel, isNewType } from '@/components/ipc-recording/NewTypeRecorderPanel';
+import { formatSpecSummary } from '@/lib/master-data/ipc-spec-payload';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -166,6 +167,40 @@ interface WorkOrderBasic {
   batchNumber: string;
   productName: string;
   status: string;
+}
+
+// Renders an IPC criterion's spec envelope as human-readable lines.
+// Replaces the legacy "Spec: <raw JSON>" inline rendering that operators
+// could not read. Used by all 4 IPC display sites in this page.
+function IPCSpecLines({ ipc, size = 'xs' }: { ipc: LinkedIPCCriterion; size?: 'xs' | '10' }) {
+  const lines = formatSpecSummary({
+    criteriaType: ipc.criteriaType || 'numeric',
+    specification: ipc.specification,
+    sampleSize: ipc.sampleSize,
+    minValue: ipc.minValue,
+    maxValue: ipc.maxValue,
+    unit: ipc.unit,
+  });
+  if (lines.length === 0) return null;
+  const textClass = size === '10' ? 'text-[10px]' : 'text-xs';
+  return (
+    <div className="mt-1 space-y-0.5">
+      {lines.map((ln, i) => (
+        <div
+          key={i}
+          className={`${textClass} flex items-start gap-1.5 ${
+            ln.tone === 'pass' ? 'text-emerald-700'
+            : ln.tone === 'fail' ? 'text-rose-700'
+            : ln.tone === 'meta' ? 'text-gray-500'
+            : 'text-gray-700'
+          }`}
+        >
+          <span className="flex-none w-3.5 text-center select-none">{ln.icon}</span>
+          <span className="break-words">{ln.text}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function SOPExecutionPage() {
@@ -1236,7 +1271,7 @@ export default function SOPExecutionPage() {
           { label: 'Production', href: '/production' },
           { label: 'Work Orders', href: '/production/work-orders' },
           { label: workOrder.woNumber, href: `/production/work-orders/${workOrderId}` },
-          { label: 'Execution', href: `/production/work-orders/${workOrderId}/execution` },
+          { label: 'Execution', href: `/production/work-orders/${workOrderId}?tab=execution` },
           { label: 'SOP Execution' },
         ]}
         actions={
@@ -1244,7 +1279,7 @@ export default function SOPExecutionPage() {
             text="Back to Execution"
             icon="back"
             stylingMode="outlined"
-            onClick={() => router.push(`/production/work-orders/${workOrderId}/execution`)}
+            onClick={() => router.push(`/production/work-orders/${workOrderId}?tab=execution`)}
           />
         }
       />
@@ -1604,11 +1639,6 @@ export default function SOPExecutionPage() {
                                         {subIPCs.length > 0 && (
                                           <div className="mt-2 ml-12 space-y-1.5">
                                             {subIPCs.map((ipc) => {
-                                              const spec = ipc.specification
-                                                || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
-                                                || ((ipc.minValue != null || ipc.maxValue != null)
-                                                    ? `${ipc.minValue ?? '-'} – ${ipc.maxValue ?? '-'}${ipc.unit ? ' ' + ipc.unit : ''}`
-                                                    : null);
                                               const isExpanded = ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId);
                                               return (
                                                 <div
@@ -1661,11 +1691,7 @@ export default function SOPExecutionPage() {
                                                           </span>
                                                         )}
                                                       </div>
-                                                      {spec && (
-                                                        <div className="text-[10px] text-gray-500 mt-0.5">
-                                                          Spec: {spec} {ipc.sampleSize ? `· ${ipc.sampleSize} samples` : ''}
-                                                        </div>
-                                                      )}
+                                                      <IPCSpecLines ipc={ipc} size="10" />
                                                     </div>
                                                   </div>
                                                   {/* Expanded round-by-round details + retest button */}
@@ -1748,11 +1774,6 @@ export default function SOPExecutionPage() {
                               </div>
                               <div className="space-y-1.5">
                                 {orphanIPCs.map((ipc) => {
-                                  const spec = ipc.specification
-                                    || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
-                                    || ((ipc.minValue != null || ipc.maxValue != null)
-                                        ? `${ipc.minValue ?? '-'} – ${ipc.maxValue ?? '-'}${ipc.unit ? ' ' + ipc.unit : ''}`
-                                        : null);
                                   return (
                                     <div
                                       key={ipc.id}
@@ -1801,11 +1822,7 @@ export default function SOPExecutionPage() {
                                             </button>
                                           )}
                                         </div>
-                                        {spec && (
-                                          <div className="text-xs text-gray-500 mt-0.5 truncate">
-                                            <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {ipc.sampleSize}
-                                          </div>
-                                        )}
+                                        <IPCSpecLines ipc={ipc} />
                                         {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(step, ipc)}
                                       </div>
                                     </div>
@@ -2126,12 +2143,6 @@ export default function SOPExecutionPage() {
                     />
                   );
                 }
-                const size = ipc.sampleSize || 1;
-                const spec = ipc.specification
-                  || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
-                  || ((ipc.minValue != null || ipc.maxValue != null)
-                      ? `${ipc.minValue ?? '-'} – ${ipc.maxValue ?? '-'}${ipc.unit ? ' ' + ipc.unit : ''}`
-                      : null);
                 return (
                   <div
                     key={ipc.id}
@@ -2176,11 +2187,7 @@ export default function SOPExecutionPage() {
                         </button>
                       )}
                     </div>
-                    {spec && (
-                      <div className="text-xs text-gray-500 mb-2">
-                        <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {size}
-                      </div>
-                    )}
+                    <div className="mb-2"><IPCSpecLines ipc={ipc} /></div>
 
                     {/* Already saved — show passive notice + optional details. */}
                     {ipc.recordedTestId ? (
@@ -2368,12 +2375,6 @@ export default function SOPExecutionPage() {
                   )}
                 </h5>
                 {dialogIPCs.map((ipc) => {
-                  const size = ipc.sampleSize || 1;
-                  const spec = ipc.specification
-                    || (ipc.specTarget != null ? `target ${ipc.specTarget}${ipc.unit ? ' ' + ipc.unit : ''}` : null)
-                    || ((ipc.minValue != null || ipc.maxValue != null)
-                        ? `${ipc.minValue ?? '-'} – ${ipc.maxValue ?? '-'}${ipc.unit ? ' ' + ipc.unit : ''}`
-                        : null);
                   return (
                     <div
                       key={ipc.id}
@@ -2419,11 +2420,7 @@ export default function SOPExecutionPage() {
                           </button>
                         )}
                       </div>
-                      {spec && (
-                        <div className="text-xs text-gray-500 mb-2">
-                          <span className="text-gray-400">Spec:</span> {spec} · <span className="text-gray-400">Sample size:</span> {size}
-                        </div>
-                      )}
+                      <div className="mb-2"><IPCSpecLines ipc={ipc} /></div>
                       {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && selectedStep && renderRecordedDetails(selectedStep, ipc)}
 
                       {ipc.criteriaType === 'numeric' && (

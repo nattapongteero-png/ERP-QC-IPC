@@ -334,29 +334,49 @@ function NewWorkOrderContent() {
     })),
   ];
 
+  // Number formatter — comma thousands + up to 4 fraction digits. Small WIP
+  // recipes produce values like 1.1084 kg; default toLocaleString trims
+  // those and the operator loses precision.
+  const fmtQty = (n: number) =>
+    Number(n).toLocaleString('th-TH', { maximumFractionDigits: 4, minimumFractionDigits: 0 });
+
   const materialColumns: DxDataGridColumn[] = [
-    { dataField: 'itemCode', caption: 'รหัสสินค้า', width: 120 },
+    { dataField: 'itemCode', caption: 'รหัสสินค้า', width: 130 },
     { dataField: 'itemName', caption: 'ชื่อสินค้า' },
     {
       dataField: 'requiredQuantity',
       caption: 'ต้องการ',
-      width: 120,
-      cellRender: (cellInfo) => `${cellInfo.data.requiredQuantity.toLocaleString()} ${cellInfo.data.unit}`,
+      width: 170,
+      alignment: 'right',
+      cellRender: (cellInfo) => (
+        <span className="font-mono">
+          {fmtQty(cellInfo.data.requiredQuantity)}
+          <span className="text-gray-500 ml-1">{cellInfo.data.unit}</span>
+        </span>
+      ),
     },
     {
       dataField: 'availableStock',
       caption: 'คงคลัง',
-      width: 120,
-      cellRender: (cellInfo) => `${cellInfo.data.availableStock.toLocaleString()} ${cellInfo.data.unit}`,
+      width: 170,
+      alignment: 'right',
+      cellRender: (cellInfo) => (
+        <span className="font-mono">
+          {fmtQty(cellInfo.data.availableStock)}
+          <span className="text-gray-500 ml-1">{cellInfo.data.unit}</span>
+        </span>
+      ),
     },
     {
       dataField: 'shortage',
       caption: 'ขาด',
-      width: 120,
+      width: 170,
+      alignment: 'right',
       cellRender: (cellInfo) =>
         cellInfo.data.shortage > 0 ? (
-          <span className="text-red-600 font-medium">
-            -{cellInfo.data.shortage.toLocaleString()} {cellInfo.data.unit}
+          <span className="text-red-600 font-mono font-medium">
+            -{fmtQty(cellInfo.data.shortage)}
+            <span className="text-red-500 ml-1">{cellInfo.data.unit}</span>
           </span>
         ) : (
           <span className="text-green-600">OK</span>

@@ -7,6 +7,7 @@ import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/d
 import { DxButton } from '@/components/ui/dx-button';
 import { useToast } from '@/hooks/use-toast';
 import { FlaskConical, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { formatSpecSummary, getCriteriaTypeLabel } from '@/lib/master-data/ipc-spec-payload';
 
 interface IPCCriteria {
   id: number;
@@ -23,86 +24,44 @@ interface IPCCriteria {
   isActive: boolean;
 }
 
-// Render criteria type + spec in a human-readable way. The `specification`
-// field holds raw text for numeric ("200 ± 10 mg") OR serialized JSON for
-// pass_fail / visual / text criteria. We unwrap to show what the operator
-// actually needs to test.
+// Render criteria type badge + parsed spec summary. Handles all 9 criteria
+// types via the shared formatSpecSummary helper — multi_point / tare /
+// calibration / calculated / custom_multi_field used to fall through and
+// show '—'; now they get their own structured rendering.
 function renderSpecCell(d: IPCCriteria) {
   const type = d.criteriaType || 'numeric';
-
-  if (type === 'numeric') {
-    // For numeric, show min-max range when present
-    if (d.minValue != null || d.maxValue != null) {
-      return (
-        <div className="text-sm">
-          <div className="font-mono">
-            {d.minValue ?? '?'} – {d.maxValue ?? '?'}
-            {d.unit && <span className="text-gray-500 ml-1">{d.unit}</span>}
-          </div>
-          {d.specification && !d.specification.startsWith('{') && (
-            <div className="text-xs text-gray-500 truncate">{d.specification}</div>
-          )}
+  const lines = formatSpecSummary({
+    criteriaType: type,
+    specification: d.specification,
+    minValue: d.minValue,
+    maxValue: d.maxValue,
+    unit: d.unit,
+  });
+  // Drop the lone fallback line that just repeats the type label — the badge
+  // already conveys it.
+  const visibleLines = lines.length === 1 && lines[0].tone === 'meta' && lines[0].text === getCriteriaTypeLabel(type)
+    ? []
+    : lines;
+  return (
+    <div className="text-sm space-y-0.5">
+      <span className="inline-flex text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded">
+        {getCriteriaTypeLabel(type)}
+      </span>
+      {visibleLines.slice(0, 3).map((ln: { icon: string; text: string; tone?: string }, i: number) => (
+        <div
+          key={i}
+          className={`text-xs flex items-start gap-1 ${
+            ln.tone === 'pass' ? 'text-emerald-700'
+            : ln.tone === 'fail' ? 'text-rose-700'
+            : 'text-gray-500'
+          }`}
+        >
+          <span className="flex-none w-3 text-center">{ln.icon}</span>
+          <span className="break-words">{ln.text}</span>
         </div>
-      );
-    }
-    return <span className="text-gray-400 text-sm">—</span>;
-  }
-
-  // Non-numeric: try to parse JSON spec
-  let parsed: { passDefinition?: string; failDefinition?: string; description?: string; format?: string; example?: string } | null = null;
-  if (d.specification) {
-    try {
-      const obj = JSON.parse(d.specification);
-      if (obj && typeof obj === 'object') parsed = obj;
-    } catch {
-      // not JSON — show as plain text
-    }
-  }
-
-  if (type === 'pass_fail') {
-    return (
-      <div className="text-sm">
-        <span className="inline-flex text-[10px] font-semibold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">PASS / FAIL</span>
-        {parsed?.passDefinition && (
-          <div className="text-xs text-gray-600 mt-0.5 truncate" title={parsed.passDefinition}>
-            ✓ {parsed.passDefinition}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (type === 'visual') {
-    return (
-      <div className="text-sm">
-        <span className="inline-flex text-[10px] font-semibold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">VISUAL</span>
-        {parsed?.description && (
-          <div className="text-xs text-gray-600 mt-0.5 truncate" title={parsed.description}>
-            👁 {parsed.description}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (type === 'text') {
-    return (
-      <div className="text-sm">
-        <span className="inline-flex text-[10px] font-semibold bg-slate-50 text-slate-700 px-1.5 py-0.5 rounded">TEXT</span>
-        {(parsed?.format || parsed?.example) && (
-          <div className="text-xs text-gray-600 mt-0.5 truncate" title={parsed?.format || parsed?.example}>
-            {parsed?.format || parsed?.example}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Fallback: show specification text if not JSON
-  if (d.specification && !d.specification.startsWith('{')) {
-    return <span className="text-sm">{d.specification}</span>;
-  }
-  return <span className="text-gray-400 text-sm">—</span>;
+      ))}
+    </div>
+  );
 }
 
 export default function IPCCriteriaPage() {

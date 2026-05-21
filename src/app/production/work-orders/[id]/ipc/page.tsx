@@ -134,6 +134,15 @@ interface IPCTest {
   samples: IPCSample[];
   rounds: IPCRound[];
   totalRounds: number;
+  // Two-way sync (Bug 2): populated when same criterion was already recorded
+  // via SOP execution. UI shows a "recorded via SOP" panel and skips the form.
+  sopRecordedTestId?: number | null;
+  sopRecordedAt?: string | null;
+  sopRecordedBy?: number | null;
+  sopRecordedByName?: string | null;
+  sopRecordedResult?: string | null;
+  sopRecordedStatus?: string | null;
+  sopStepNumber?: string | null;
 }
 
 // Filterable execution phases (pre_packaging collapsed into packaging).
@@ -478,7 +487,9 @@ export default function IPCPage() {
 
   // Progress calculations — operate on displayed (filtered) list when a phase is selected.
   const totalTests = displayTests?.length || 0;
-  const completedTests = displayTests?.filter((t) => t.status === 'pass' || t.status === 'fail').length || 0;
+  // SOP-recorded tests (sopRecordedAt set) are completed even if the IPC-N
+  // record's own status is still 'pending' — they were saved via SOP execution.
+  const completedTests = displayTests?.filter((t) => t.status === 'pass' || t.status === 'fail' || !!t.sopRecordedAt).length || 0;
   const approvedTests = displayTests?.filter((t) => t.approvedBy != null).length || 0;
   const progressPercent = totalTests > 0 ? Math.round((completedTests / totalTests) * 100) : 0;
   const hasTests = totalTests > 0;
@@ -495,7 +506,7 @@ export default function IPCPage() {
         icon={FlaskConical}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
-        onBack={() => router.push(`/production/work-orders/${workOrderId}/execution`)}
+        onBack={() => router.push(`/production/work-orders/${workOrderId}?tab=execution`)}
       />
 
       {/* Progress Card */}
@@ -579,6 +590,53 @@ export default function IPCPage() {
             const hasSamples = (test.sampleSize || 1) > 1;
             const isRecorded = test.status !== 'pending';
             const isApproved = test.approvedBy != null;
+            // Two-way sync (Bug 2): same criterion recorded via SOP execution.
+            // Skip the recording UI on this page and surface a link to SOP.
+            const recordedViaSOP = !!test.sopRecordedAt;
+
+            if (recordedViaSOP) {
+              const phase = test.ipcPhase || 'production';
+              return (
+                <Card key={test.id} className="border-l-4 border-l-emerald-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-gray-900">
+                            {test.testName || `Test #${test.id}`}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                            <CheckCircle2 className="h-3 w-3" />
+                            บันทึกผ่าน SOP step {test.sopStepNumber || '?'}
+                          </span>
+                          {test.sopRecordedResult && (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                              test.sopRecordedResult === 'pass' ? 'bg-green-100 text-green-700'
+                              : test.sopRecordedResult === 'fail' ? 'bg-red-100 text-red-700'
+                              : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              {test.sopRecordedResult === 'pass' ? 'ผ่าน' : test.sopRecordedResult === 'fail' ? 'ไม่ผ่าน' : test.sopRecordedResult}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {test.sopRecordedByName && <span>ผู้บันทึก: <strong className="text-gray-700">{test.sopRecordedByName}</strong></span>}
+                          {test.sopRecordedAt && <span> · {new Date(test.sopRecordedAt).toLocaleString('th-TH')}</span>}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/production/work-orders/${workOrderId}/sop-execution?phase=${phase}`)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                      >
+                        <ClipboardList className="h-4 w-4" />
+                        ดู / แก้ที่ SOP →
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            }
 
             // New-type criteria (multi_point/tare/calibration/calculated/custom_multi_field)
             // route to the dedicated recorder panel (writes to ipc_recording_rounds).
@@ -685,7 +743,7 @@ export default function IPCPage() {
                               {test.specUnit ? ` ${test.specUnit}` : ''}
                             </span>
                           )}
-                          {test.specSpecification && !test.specMinValue && (
+                          {test.specSpecification && !test.specMinValue && !test.specSpecification.trim().startsWith('{') && (
                             <span>{t('execution.spec')}: {test.specSpecification}</span>
                           )}
                           {hasSamples && (

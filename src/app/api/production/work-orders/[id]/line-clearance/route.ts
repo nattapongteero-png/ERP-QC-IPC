@@ -24,7 +24,7 @@ import {
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// GET /api/production/work-orders/[id]/line-clearance
+// GET /api/production/work-orders/[id]/line-clearance?phase=X
 export async function GET(request: NextRequest, { params }: RouteParams) {
   return withAuth(request, async () => {
     try {
@@ -35,8 +35,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         return errorResponse('Invalid work order ID');
       }
 
-      // Get line clearance status
-      const status = await checkLineClearanceRequired(workOrderId);
+      const rawPhase = new URL(request.url).searchParams.get('phase') || 'production';
+      const phase = rawPhase.replace(/-/g, '_');
+
+      // Get line clearance status for this phase
+      const status = await checkLineClearanceRequired(workOrderId, phase);
 
       // Get checklist details if exists
       let checklistDetails = null;
@@ -68,6 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       const body = await request.json();
       const {
+        phase,
         password,
         previousProductCleared,
         areaClean,
@@ -95,9 +99,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         return errorResponse('All checklist items must be provided');
       }
 
-      // Perform line clearance with e-signature
+      // Perform line clearance with e-signature for this phase
       const result = await performLineClearance({
         workOrderId,
+        phase: (typeof phase === 'string' && phase ? phase : 'production').replace(/-/g, '_'),
         userId: session.userId,
         password,
         checklistItems: {

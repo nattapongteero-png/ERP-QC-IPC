@@ -251,10 +251,14 @@ export async function GET(
       };
 
       // Calculate IPC (In-Process Control) status — overall + per-phase.
+      // SOP-recorded tests (sopRecordedAt set by getWOIPCTests sync) count as
+      // completed even when the IPC-N row's own status is still 'pending'.
       const ipcTestList = Array.isArray(ipcTests) ? ipcTests : [];
+      const isCompleted = (t: any) =>
+        t.status === 'pass' || t.status === 'fail' || !!t.sopRecordedAt;
       const ipc = {
         total: ipcTestList.length,
-        completed: ipcTestList.filter((t: any) => t.status === 'pass' || t.status === 'fail').length,
+        completed: ipcTestList.filter(isCompleted).length,
         approved: ipcTestList.filter((t: any) => t.approvedBy != null).length,
       };
       const ipcByPhase: Record<string, { total: number; completed: number; approved: number }> = {};
@@ -262,8 +266,37 @@ export async function GET(
         const p = t.ipcPhase || 'production';
         if (!ipcByPhase[p]) ipcByPhase[p] = { total: 0, completed: 0, approved: 0 };
         ipcByPhase[p].total += 1;
-        if (t.status === 'pass' || t.status === 'fail') ipcByPhase[p].completed += 1;
+        if (isCompleted(t)) ipcByPhase[p].completed += 1;
         if (t.approvedBy != null) ipcByPhase[p].approved += 1;
+      }
+
+      // Per-phase Line Clearance status — keyed by phase so each cleaning
+      // card can render its own status and gate cleaning recording when not
+      // verified. Phases: pre_production / production / post_production / packaging.
+      const lcTable = getTableRef('lineClearanceChecklists');
+      const lcRows = await executeDbOperation(async (db) =>
+        db.select({
+          id: lcTable.id,
+          phase: lcTable.phase,
+          status: lcTable.status,
+          performedAt: lcTable.performedAt,
+          verifiedAt: lcTable.verifiedAt,
+        })
+          .from(lcTable)
+          .where(eq(lcTable.workOrderId, workOrderId))
+      );
+      const lineClearanceByPhase: Record<string, { id: number; status: string; performedAt: Date | string | null; verifiedAt: Date | string | null }> = {};
+      for (const r of lcRows as any[]) {
+        // Use latest record per phase if duplicates exist (highest id wins).
+        const existing = lineClearanceByPhase[r.phase];
+        if (!existing || r.id > existing.id) {
+          lineClearanceByPhase[r.phase] = {
+            id: r.id,
+            status: r.status,
+            performedAt: r.performedAt,
+            verifiedAt: r.verifiedAt,
+          };
+        }
       }
 
       const summary = {
@@ -290,6 +323,7 @@ export async function GET(
         ipc,
         // Per-phase IPC counts; same render rule as sopByPhase.
         ipcByPhase,
+        lineClearanceByPhase,
       };
 
       return successResponse(summary);

@@ -56,6 +56,8 @@ function LineClearanceContent() {
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<number | null>(
     workOrderIdParam ? parseInt(workOrderIdParam) : null
   );
+  // Per-phase clearance — record separately for each cleaning phase.
+  const phase = searchParams.get('phase') || 'production';
 
   // Fetch work orders that need line clearance
   const { data: workOrders, isLoading: isLoadingWorkOrders } = useQuery({
@@ -68,12 +70,12 @@ function LineClearanceContent() {
     },
   });
 
-  // Fetch line clearance data for selected work order
+  // Fetch line clearance data for selected work order + phase
   const { data: lineClearanceData, isLoading: isLoadingClearance, refetch: refetchClearance } = useQuery({
-    queryKey: ['line-clearance', selectedWorkOrderId],
+    queryKey: ['line-clearance', selectedWorkOrderId, phase],
     queryFn: async () => {
       if (!selectedWorkOrderId) return null;
-      const response = await fetch(`/api/production/work-orders/${selectedWorkOrderId}/line-clearance`);
+      const response = await fetch(`/api/production/work-orders/${selectedWorkOrderId}/line-clearance?phase=${encodeURIComponent(phase)}`);
       const result = await response.json();
       if (!result.success) throw new Error(result.error);
       return result.data as LineClearanceData;
@@ -101,7 +103,7 @@ function LineClearanceContent() {
       const response = await fetch(`/api/production/work-orders/${selectedWorkOrderId}/line-clearance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...checklistData, password }),
+        body: JSON.stringify({ ...checklistData, password, phase }),
       });
       const result = await response.json();
       if (!result.success) throw new Error(result.error);
@@ -132,7 +134,7 @@ function LineClearanceContent() {
       const response = await fetch(`/api/production/work-orders/${selectedWorkOrderId}/line-clearance/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ approved, password, notes }),
+        body: JSON.stringify({ approved, password, notes, phase }),
       });
       const result = await response.json();
       if (!result.success) throw new Error(result.error);

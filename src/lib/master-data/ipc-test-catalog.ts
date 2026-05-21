@@ -502,8 +502,15 @@ export const CRITERIA_TYPE_META: Record<CriteriaType, {
  * as Pass/Fail but writes back the new value going forward.
  */
 export function normalizeCriteriaType(value: string | null | undefined): CriteriaType {
-  if (value === 'pass_fail' || value === 'visual' || value === 'text') return value;
+  // Legacy alias: old rows used 'checkbox' before pass_fail was the canonical name.
   if (value === 'checkbox') return 'pass_fail';
+  const allowed: CriteriaType[] = [
+    'numeric', 'pass_fail', 'visual', 'text',
+    'multi_point', 'tare', 'calibration', 'calculated', 'custom_multi_field',
+  ];
+  if (typeof value === 'string' && (allowed as string[]).includes(value)) {
+    return value as CriteriaType;
+  }
   return 'numeric';
 }
 

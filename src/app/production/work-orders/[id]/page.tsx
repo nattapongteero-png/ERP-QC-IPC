@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -39,6 +39,7 @@ const ROLE_LABEL: Record<string, { label: string; color: string }> = {
 };
 import { useToast } from '@/components/ui/toast';
 import { ExecutionDashboard } from '@/components/production/ExecutionDashboard';
+import { formatSpecSummary, getCriteriaTypeLabel } from '@/lib/master-data/ipc-spec-payload';
 
 interface LineClearanceStatus {
   required: boolean;
@@ -194,6 +195,7 @@ interface ProductSpec {
 export default function WorkOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const t = useTranslations('production');
 
@@ -201,7 +203,13 @@ export default function WorkOrderDetailPage() {
   const pageTitle = t('workOrderDetail.title');
   const [data, setData] = useState<WorkOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  // Tab persists in URL via ?tab=... so sub-pages can return the user to the
+  // exact tab they came from (Execution, Materials, …). Falls back to 0.
+  const tabNameToIndex: Record<string, number> = {
+    overview: 0, execution: 1, materials: 2, qc: 3, deviations: 4, ebmr: 5,
+  };
+  const initialTabIndex = tabNameToIndex[searchParams.get('tab') || ''] ?? 0;
+  const [activeTabIndex, setActiveTabIndex] = useState(initialTabIndex);
   const [assignees, setAssignees] = useState<WOAssignee[]>([]);
 
   // Add Material Dialog State
@@ -611,10 +619,43 @@ export default function WorkOrderDetailPage() {
     },
     {
       dataField: 'specSpecification',
-      caption: 'Spec / Test',
-      cellRender: (cellInfo) => (
-        <span className="text-xs">{cellInfo.data.specSpecification || cellInfo.data.notes || cellInfo.data.testType}</span>
-      ),
+      caption: 'Test / Spec',
+      cellRender: (cellInfo) => {
+        const d = cellInfo.data;
+        // Headline: criterion name. Lines: structured spec from envelope
+        // (pass_fail def, numeric range, multi-point summary, …). Type badge
+        // helps the reader scan the grid quickly.
+        const ctype = d.criteriaType || 'numeric';
+        const lines = formatSpecSummary({
+          criteriaType: ctype,
+          specification: d.specSpecification,
+          sampleSize: d.sampleSize,
+          minValue: d.specMinValue,
+          maxValue: d.specMaxValue,
+          unit: d.specUnit,
+        });
+        const headline = d.notes || (d.testType !== 'in_process' ? d.testType : null) || '-';
+        return (
+          <div className="text-xs space-y-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-px rounded">
+                {getCriteriaTypeLabel(ctype)}
+              </span>
+              <span className="text-gray-900 break-words">{headline}</span>
+            </div>
+            {lines.slice(0, 3).map((ln: { icon: string; text: string; tone?: string }, i: number) => (
+              <div key={i} className={`flex items-start gap-1 ${
+                ln.tone === 'pass' ? 'text-emerald-700'
+                : ln.tone === 'fail' ? 'text-rose-700'
+                : 'text-gray-500'
+              }`}>
+                <span className="flex-none w-3 text-center">{ln.icon}</span>
+                <span className="break-words">{ln.text}</span>
+              </div>
+            ))}
+          </div>
+        );
+      },
     },
     {
       dataField: 'status',
@@ -1698,7 +1739,28 @@ export default function WorkOrderDetailPage() {
                         <tr key={test.id}>
                           <td className="border p-2 text-gray-900">{test.testName}</td>
                           <td className="border p-2 text-gray-900 text-sm">
-                            {test.specSpecification || (test.specMinValue != null && test.specMaxValue != null ? `${test.specMinValue} - ${test.specMaxValue} ${test.specUnit || ''}` : '-')}
+                            {(() => {
+                              const raw = test.specSpecification;
+                              const isJson = typeof raw === 'string' && raw.trim().startsWith('{');
+                              if (isJson) {
+                                const lines = formatSpecSummary({
+                                  criteriaType: test.criteriaType || 'numeric',
+                                  specification: raw,
+                                  sampleSize: test.sampleSize,
+                                  minValue: test.specMinValue,
+                                  maxValue: test.specMaxValue,
+                                  unit: test.specUnit,
+                                });
+                                return (
+                                  <div className="space-y-0.5">
+                                    {lines.map((ln: { icon: string; text: string }, i: number) => (
+                                      <div key={i}>{ln.icon} {ln.text}</div>
+                                    ))}
+                                  </div>
+                                );
+                              }
+                              return raw || (test.specMinValue != null && test.specMaxValue != null ? `${test.specMinValue} - ${test.specMaxValue} ${test.specUnit || ''}` : '-');
+                            })()}
                           </td>
                           <td className="border p-2 text-right text-gray-900">{test.numericResult ?? test.result ?? '-'} {test.specUnit || ''}</td>
                           <td className="border p-2 text-center">

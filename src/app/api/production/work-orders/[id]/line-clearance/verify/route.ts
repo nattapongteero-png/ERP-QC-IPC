@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
 
       const body = await request.json();
-      const { password, approved, notes } = body;
+      const { password, approved, notes, phase } = body;
 
       // Validate required fields
       if (!password) {
@@ -46,8 +46,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         return errorResponse('Approval decision (approved: true/false) is required');
       }
 
-      // Get existing checklist for this work order
-      const checklist = await getLineClearanceForWorkOrder(workOrderId);
+      // Get existing checklist for this work order + phase. Accept both
+      // 'pre-production' (legacy / hyphen) and 'pre_production' canonically.
+      const normalizedPhase = typeof phase === 'string' && phase
+        ? phase.replace(/-/g, '_')
+        : 'production';
+      const checklist = await getLineClearanceForWorkOrder(workOrderId, normalizedPhase);
 
       if (!checklist) {
         return notFoundResponse('No line clearance checklist found for this work order');

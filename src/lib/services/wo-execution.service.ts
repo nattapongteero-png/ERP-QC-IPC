@@ -2047,22 +2047,92 @@ export async function getWOIPCTests(workOrderId: number) {
         )
       : tests;
 
+    // Two-way IPC sync (Bug 2 fix):
+    //   Same criterion can be recorded via SOP execution (sample_number
+    //   'SOP-X-IPC-Y') OR via this /ipc page (sample_number 'IPC-N'). Operator
+    //   should NOT have to record twice. Fetch sibling SOP records for the
+    //   same lot+criteria so the UI can surface "already recorded via SOP"
+    //   and skip the form.
+    const { like, inArray } = await import('drizzle-orm');
+    const sopRecords: any[] = await db
+      .select({
+        id: tables.qualityTests.id,
+        ipcCriteriaId: tables.qualityTests.ipcCriteriaId,
+        sampleNumber: tables.qualityTests.sampleNumber,
+        status: tables.qualityTests.status,
+        testedBy: tables.qualityTests.testedBy,
+        testDate: tables.qualityTests.testDate,
+        result: tables.qualityTests.result,
+        approvedBy: tables.qualityTests.approvedBy,
+        approvedAt: tables.qualityTests.approvedAt,
+      })
+      .from(tables.qualityTests)
+      .where(and(
+        eq(tables.qualityTests.lotId, lotIds[0]),
+        eq(tables.qualityTests.testType, 'in_process'),
+        like(tables.qualityTests.sampleNumber, 'SOP-%-IPC-%'),
+      ));
+    const sopByCriteriaId = new Map<number, any>();
+    for (const r of sopRecords) {
+      // criteriaId precedence: explicit FK column → parsed from sample_number
+      // ('SOP-{exec}-IPC-{criteriaId}'). Legacy rows lack the FK so the parse
+      // path is the only way they get matched.
+      let cid = r.ipcCriteriaId as number | null;
+      if (cid == null && typeof r.sampleNumber === 'string') {
+        const m = r.sampleNumber.match(/^SOP-[^-]+-IPC-(\d+)$/);
+        if (m) cid = Number(m[1]);
+      }
+      if (cid == null || Number.isNaN(cid)) continue;
+      const isRecorded = r.testedBy != null || (r.status && r.status !== 'pending');
+      const existing = sopByCriteriaId.get(cid);
+      if (!existing) {
+        sopByCriteriaId.set(cid, r);
+      } else if (isRecorded && existing.testedBy == null && (existing.status === 'pending' || !existing.status)) {
+        sopByCriteriaId.set(cid, r);
+      }
+    }
+
     // Collect user IDs for name resolution
     const userIds = new Set<number>();
     for (const t of filteredTests) {
       if (t.testedBy) userIds.add(t.testedBy);
       if (t.approvedBy) userIds.add(t.approvedBy);
     }
+    for (const r of sopByCriteriaId.values()) {
+      if (r.testedBy) userIds.add(r.testedBy);
+    }
 
     // Resolve user names
     let userMap = new Map<number, string>();
     if (userIds.size > 0) {
-      const { inArray } = await import('drizzle-orm');
       const users = await db
         .select({ id: tables.users.id, name: tables.users.name })
         .from(tables.users)
         .where(inArray(tables.users.id, [...userIds]));
       for (const u of users) userMap.set(u.id, u.name);
+    }
+
+    // Resolve criteria names from ipc_criteria table — used as the primary
+    // testName when the test's snapshot fields don't have a readable label.
+    // Avoids "IPC-IPC-1" / JSON-envelope display on rows missing notes.
+    const criteriaIds = new Set<number>();
+    for (const t of filteredTests) {
+      if (t.ipcCriteriaId) criteriaIds.add(t.ipcCriteriaId);
+    }
+    const criteriaNameMap = new Map<number, string>();
+    if (criteriaIds.size > 0) {
+      const ipcCriteriaTable = getTableRef('iPCCriteria');
+      const crits = await db
+        .select({
+          id: (ipcCriteriaTable as any).id,
+          name: (ipcCriteriaTable as any).name,
+          nameTh: (ipcCriteriaTable as any).nameTh,
+        })
+        .from(ipcCriteriaTable as any)
+        .where(inArray((ipcCriteriaTable as any).id, [...criteriaIds]));
+      for (const c of crits as any[]) {
+        criteriaNameMap.set(c.id, c.nameTh || c.name || '');
+      }
     }
 
     // Get samples for each test + resolve testName + user names + group by round
@@ -2103,14 +2173,44 @@ export async function getWOIPCTests(workOrderId: number) {
           approvedAt: roundSamples[0]?.approvedAt || null,
         }));
 
+        // SOP sibling (Bug 2 two-way sync) — if this criterion was recorded
+        // via SOP execution, attach a hint so the UI can render a read-only
+        // "already recorded" panel and skip the form.
+        const sopSibling = test.ipcCriteriaId != null ? sopByCriteriaId.get(test.ipcCriteriaId) : null;
+        const sopHint = sopSibling && (sopSibling.testedBy != null || (sopSibling.status && sopSibling.status !== 'pending'))
+          ? (() => {
+              // sample_number format: 'SOP-{stepNumber}-IPC-{seq}'
+              const m = typeof sopSibling.sampleNumber === 'string'
+                ? sopSibling.sampleNumber.match(/^SOP-([^-]+)-IPC-/)
+                : null;
+              return {
+                sopRecordedTestId: sopSibling.id as number,
+                sopRecordedAt: sopSibling.testDate as Date | string | null,
+                sopRecordedBy: sopSibling.testedBy as number | null,
+                sopRecordedByName: sopSibling.testedBy ? (userMap.get(sopSibling.testedBy) || null) : null,
+                sopRecordedResult: sopSibling.result as string | null,
+                sopRecordedStatus: sopSibling.status as string | null,
+                sopStepNumber: m ? m[1] : null,
+              };
+            })()
+          : null;
+
+        // testName fallback: prefer ipc_criteria.nameTh/name (resolved via
+        // ipcCriteriaId). Never use specSpecification (now stored as JSON
+        // envelope — would leak raw JSON to operators).
+        const safeSpec = test.specSpecification && typeof test.specSpecification === 'string' && !test.specSpecification.trim().startsWith('{')
+          ? test.specSpecification
+          : null;
+        const criteriaName = test.ipcCriteriaId ? criteriaNameMap.get(test.ipcCriteriaId) : null;
         return {
           ...test,
-          testName: test.testName || test.notes || test.specSpecification || `IPC-${test.sampleNumber || test.id}`,
+          testName: test.testName || criteriaName || test.notes || safeSpec || `IPC-${test.sampleNumber || test.id}`,
           testedByName: test.testedBy ? (userMap.get(test.testedBy) || null) : null,
           approvedByName: test.approvedBy ? (userMap.get(test.approvedBy) || null) : null,
           samples,
           rounds,
           totalRounds: maxRound,
+          ...(sopHint || {}),
         };
       })
     );
@@ -3020,6 +3120,7 @@ export async function recordSOPLinkedIPCResults(
           lotId: targetLotId,
           testType: 'in_process',
           sampleNumber,
+          ipcCriteriaId: input.criteriaId,
           requestedBy: operatorId,
           requestedAt: getNow(),
           createdAt: getNow(),

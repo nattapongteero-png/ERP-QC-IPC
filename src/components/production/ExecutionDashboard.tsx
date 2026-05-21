@@ -56,6 +56,10 @@ interface ExecutionSummary {
   // Phases without items are simply absent (no card rendered).
   sopByPhase?: Record<string, { total: number; completed: number; verified: number }>;
   ipcByPhase?: Record<string, { total: number; completed: number; approved: number }>;
+  // Per-phase Line Clearance status. Phase key matches ipcPhase convention.
+  // Status: 'pending' | 'performed' | 'verified' | 'rejected'. Absent phases
+  // mean clearance has not been started yet for that phase.
+  lineClearanceByPhase?: Record<string, { id: number; status: string; performedAt: string | null; verifiedAt: string | null }>;
   materialRequisition: {
     status: 'none' | 'requested' | 'approved';
     requestedBy: number | null;
@@ -127,21 +131,42 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  // Per-card Line Clearance gate. Replaces the WO-level button that used to
-  // sit in the page header. Each card that represents an operator activity
-  // (cleaning, sop-execution, material-weighing) gets its own clearance
-  // entry that the operator must perform before starting the activity.
-  // The clearance status is currently WO-scoped on the backend; the
-  // ?section= param is forwarded so a future migration can scope per-card.
+  // Per-phase Line Clearance gate. Restricted to *-cleaning cards only
+  // (pre-cleaning, production-cleaning, post-cleaning, packaging-cleaning).
+  // Each phase's clearance is recorded independently — backend keys by phase
+  // derived from the section ID.
   const cardNeedsClearance = (sectionId: string): boolean => {
-    if (sectionId === 'material-weighing') return true;
-    if (sectionId.endsWith('-cleaning')) return true;       // pre-/production-/post-/packaging-cleaning
-    if (sectionId.startsWith('sop-execution-')) return true; // sop-execution-<phase>
-    return false;
+    return sectionId.endsWith('-cleaning');
+  };
+
+  // Map a cleaning section id to its phase used by the backend record.
+  const sectionToPhase = (sectionId: string): string => {
+    if (sectionId === 'pre-production-cleaning') return 'pre_production';
+    if (sectionId === 'production-cleaning') return 'production';
+    if (sectionId === 'post-production-cleaning') return 'post_production';
+    if (sectionId === 'packaging-cleaning') return 'packaging';
+    return sectionId.replace(/-cleaning$/, '').replace(/-/g, '_');
+  };
+
+  // Line Clearance gate: cleaning sections require their phase clearance to
+  // be verified before the operator can record the actual cleaning logs.
+  const getClearanceStatus = (sectionId: string): { verified: boolean; status: string | null; performedAt: string | null; verifiedAt: string | null } => {
+    if (!cardNeedsClearance(sectionId)) {
+      return { verified: true, status: null, performedAt: null, verifiedAt: null };
+    }
+    const phase = sectionToPhase(sectionId);
+    const lc = currentSummary.lineClearanceByPhase?.[phase];
+    return {
+      verified: lc?.status === 'verified',
+      status: lc?.status ?? null,
+      performedAt: (lc?.performedAt as string | null) ?? null,
+      verifiedAt: (lc?.verifiedAt as string | null) ?? null,
+    };
   };
 
   const openLineClearance = (sectionId: string) => {
-    router.push(`/production/line-clearance?workOrderId=${workOrderId}&section=${sectionId}`);
+    const phase = sectionToPhase(sectionId);
+    router.push(`/production/line-clearance?workOrderId=${workOrderId}&phase=${phase}`);
   };
 
   // Idempotent BOM↔WO sync on mount. Fires once per WO mount; if the BOM
@@ -618,7 +643,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     inspection: 'Inspection',
   };
 
-  const isSectionLocked = (sectionId: string): { locked: boolean; reason: string } => {
+  const isSectionLocked = (sectionId: string): { locked: boolean; reason: string; allowClearance?: boolean } => {
     const s = currentSummary;
     const woStatus = s.workOrderStatus || 'planned';
 
@@ -642,11 +667,72 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       }
     }
 
-    // Pre-production: cleaning & environmental are always accessible
-    // Material weighing: requires requisition approved
-    if (sectionId === 'material-weighing') {
-      if (s.materialRequisition.status !== 'approved') {
-        return { locked: true, reason: 'ต้องอนุมัติใบเบิกวัตถุดิบก่อน' };
+    // Intra-phase sequence — within each phase, cards must be completed in
+    // order. Skip prereqs that aren't configured in the BOM (total=0 → auto
+    // complete) so an empty card doesn't deadlock the chain. Each prereq
+    // returns the label of the FIRST incomplete one; subsequent checks are
+    // short-circuited so the reason stays specific.
+    const sectionLabel: Record<string, string> = {
+      'material-requisition': 'ใบเบิกวัตถุดิบ',
+      'pre-production-cleaning': 'Pre-Production Cleaning',
+      'material-weighing': 'Material Weighing',
+      'pre-production-environmental': 'Pre-Production Environmental',
+      'production-cleaning': 'Production Cleaning',
+      'production-environmental': 'Production Environmental',
+      'post-production-cleaning': 'Post-Production Cleaning',
+      'bulk-output': 'Bulk Product Yield',
+      'packaging-cleaning': 'Packaging Cleaning',
+      'packaging-environmental': 'Packaging Environmental',
+      'finished-inspection': 'Finished Product Inspection',
+      'production-output': 'Production Output / Yield',
+    };
+    const dynLabel = (id: string): string => {
+      if (sectionLabel[id]) return sectionLabel[id];
+      if (id.startsWith('sop-execution-')) return `SOP Execution (${phaseLabelMap[id.replace('sop-execution-', '')] ?? id})`;
+      if (id.startsWith('ipc-')) return `IPC (${phaseLabelMap[id.replace('ipc-', '')] ?? id})`;
+      return id;
+    };
+
+    const intraPhasePrereqs: Record<string, string[]> = {
+      // Pre-Production
+      'material-requisition': [],
+      'pre-production-cleaning': ['material-requisition'],
+      'material-weighing': ['material-requisition', 'pre-production-cleaning'],
+      'sop-execution-pre_production': ['material-weighing'],
+      'ipc-pre_production': ['material-weighing'], // paired with SOP
+      // Production
+      'production-cleaning': [],
+      'sop-execution-production': ['production-cleaning'],
+      'ipc-production': ['production-cleaning'], // paired with SOP
+      // Post-Production (only bulk-output)
+      'bulk-output': [],
+      // Packaging
+      'packaging-cleaning': [],
+      'sop-execution-packaging': ['packaging-cleaning'],
+      'ipc-packaging': ['packaging-cleaning'], // paired with SOP
+      // Inspection
+      'finished-inspection': [],
+      'production-output': ['finished-inspection'],
+    };
+
+    const isSectionComplete = (id: string): boolean => {
+      if (id === 'material-requisition') {
+        return s.materialRequisition.status === 'approved';
+      }
+      const sec = executionSections.find((x) => x.id === id);
+      if (!sec) return true; // unknown section → don't block
+      const st = sec.getStatus(s);
+      if (st.total === 0) return true; // not configured in BOM → skip
+      return st.completed >= st.total;
+    };
+
+    const prereqs = intraPhasePrereqs[sectionId] ?? [];
+    for (const prereq of prereqs) {
+      if (!isSectionComplete(prereq)) {
+        const phrase = prereq === 'material-requisition'
+          ? `ต้องอนุมัติ${dynLabel(prereq)}ก่อน`
+          : `ต้องบันทึก "${dynLabel(prereq)}" ให้ครบก่อน`;
+        return { locked: true, reason: phrase };
       }
     }
 
@@ -707,6 +793,20 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
 
       if (missing.length > 0) {
         return { locked: true, reason: `ยังไม่ผ่าน: ${missing.join(', ')}` };
+      }
+    }
+
+    // Cleaning gate: cleaning sections cannot record cleaning logs until
+    // the corresponding phase Line Clearance is verified. The card stays
+    // visible and the Line Clearance button is still usable — only the
+    // cleaning recording navigation is blocked.
+    if (cardNeedsClearance(sectionId)) {
+      const lc = getClearanceStatus(sectionId);
+      if (!lc.verified) {
+        const note = lc.status === 'performed' ? 'รออนุมัติ Line Clearance' :
+                     lc.status === 'rejected' ? 'Line Clearance ถูกปฏิเสธ — กรุณาบันทึกใหม่' :
+                     'ต้องบันทึก + อนุมัติ Line Clearance ก่อนเริ่ม Cleaning';
+        return { locked: true, reason: note, allowClearance: true };
       }
     }
 
@@ -813,8 +913,15 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                 }
 
                 const lockInfo = isSectionLocked(section.id);
+                // When locked but Line Clearance is still actionable, keep the
+                // card readable (no opacity dimming) so the call-to-action
+                // button doesn't look disabled. The lock icon + reason banner
+                // remain as the visual lock signal.
+                const cardClass = lockInfo.locked
+                  ? (lockInfo.allowClearance ? 'border-amber-200' : 'opacity-50')
+                  : 'hover:shadow-md cursor-pointer';
                 const cardContent = (
-                  <Card className={`h-full transition-shadow ${lockInfo.locked ? 'opacity-50' : 'hover:shadow-md cursor-pointer'}`}>
+                  <Card className={`h-full transition-shadow ${cardClass}`}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
@@ -831,9 +938,33 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                           : <ArrowRight className="h-5 w-5 text-gray-400" />}
                       </div>
                       {lockInfo.locked ? (
-                        <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
-                          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
-                          {lockInfo.reason}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
+                            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                            {lockInfo.reason}
+                          </div>
+                          {lockInfo.allowClearance && cardNeedsClearance(section.id) && (() => {
+                            const lc = getClearanceStatus(section.id);
+                            return (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  openLineClearance(section.id);
+                                }}
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium ${
+                                  lc.status === 'performed'
+                                    ? 'border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800'
+                                    : 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800'
+                                }`}
+                                title="เปิดหน้า Line Clearance สำหรับ phase นี้"
+                              >
+                                <ClipboardCheck className="h-3 w-3" />
+                                {lc.status === 'performed' ? 'ดู/อนุมัติ Line Clearance' : 'บันทึก Line Clearance'}
+                              </button>
+                            );
+                          })()}
                         </div>
                       ) : (
                         <div className="space-y-2">

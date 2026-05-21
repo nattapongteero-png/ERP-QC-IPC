@@ -371,7 +371,7 @@ export default function EnvironmentalMonitoringPage() {
           { label: 'Production', href: '/production' },
           { label: 'Work Orders', href: '/production/work-orders' },
           { label: workOrder.woNumber, href: `/production/work-orders/${workOrderId}` },
-          { label: 'Execution', href: `/production/work-orders/${workOrderId}/execution` },
+          { label: 'Execution', href: `/production/work-orders/${workOrderId}?tab=execution` },
           { label: 'Environmental Monitoring' },
         ]}
         actions={
@@ -380,7 +380,7 @@ export default function EnvironmentalMonitoringPage() {
               text="Back to Execution"
               icon="back"
               stylingMode="outlined"
-              onClick={() => router.push(`/production/work-orders/${workOrderId}/execution`)}
+              onClick={() => router.push(`/production/work-orders/${workOrderId}?tab=execution`)}
             />
             <DxButton
               text="Add Reading"

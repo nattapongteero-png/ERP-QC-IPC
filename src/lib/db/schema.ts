@@ -2054,7 +2054,7 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   // Spec snapshot at time of test recording (immutable after recording)
   specMinValue: decimal('spec_min_value', { precision: 15, scale: 4 }),
   specMaxValue: decimal('spec_max_value', { precision: 15, scale: 4 }),
-  specSpecification: varchar('spec_specification', { length: 500 }),
+  specSpecification: mysqlText('spec_specification'), // JSON envelope from ipc_criteria.specification — may exceed 500 chars for pass_fail/multi_point types
   specUnit: varchar('spec_unit', { length: 50 }),
   criteriaType: varchar('criteria_type', { length: 20 }).default('numeric'),
   tolerancePercent: decimal('tolerance_percent', { precision: 5, scale: 2 }).default('0'), // sample-failure tolerance
@@ -4378,6 +4378,9 @@ export const mysqlElectronicSignatures = mysqlTable('electronic_signatures', {
 export const sqliteLineClearanceChecklists = sqliteTable('line_clearance_checklists', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  // Per-phase clearance: 'pre_production', 'production', 'post_production', 'packaging'.
+  // Legacy rows lack this column; default 'production' for back-compat reads.
+  phase: text('phase').notNull().default('production'),
   previousProductCleared: integer('previous_product_cleared', { mode: 'boolean' }).default(false),
   areaClean: integer('area_clean', { mode: 'boolean' }).default(false),
   equipmentClean: integer('equipment_clean', { mode: 'boolean' }).default(false),
@@ -4400,6 +4403,8 @@ export const sqliteLineClearanceChecklists = sqliteTable('line_clearance_checkli
 export const mysqlLineClearanceChecklists = mysqlTable('line_clearance_checklists', {
   id: int('id').primaryKey().autoincrement(),
   workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  // Per-phase clearance: 'pre_production', 'production', 'post_production', 'packaging'.
+  phase: varchar('phase', { length: 30 }).notNull().default('production'),
   previousProductCleared: mysqlBoolean('previous_product_cleared').default(false),
   areaClean: mysqlBoolean('area_clean').default(false),
   equipmentClean: mysqlBoolean('equipment_clean').default(false),

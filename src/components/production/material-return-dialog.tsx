@@ -600,13 +600,18 @@ export function MaterialReturnDialog({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {td('issued')} ({material?.unit})
+              <span className="ml-1 text-[10px] text-gray-400 font-normal">(อ่านอย่างเดียว)</span>
             </label>
+            {/* GMP traceability: 'เบิกออก' is the amount the warehouse
+                physically released at step-2 approval. Operators must not
+                rewrite that record on the return slip — they declare used /
+                returned instead. */}
             <DxNumberBox
               value={form.issuedQty}
-              onValueChanged={(e) => setForm((f) => ({ ...f, issuedQty: Number(e.value) || 0 }))}
               format="#0.000"
               min={0}
-              showSpinButtons
+              disabled
+              readOnly
             />
           </div>
           <div>

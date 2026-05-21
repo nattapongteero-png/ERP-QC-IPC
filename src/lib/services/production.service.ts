@@ -164,7 +164,9 @@ export async function explodeBOM(
     throw new Error(`BOM ${bomId} not found`);
   }
 
-  // Get BOM lines with item unit info for conversion
+  // Get BOM lines with item unit info for conversion. 3-level fields
+  // (weightUnit + secondaryToWeightRate) included so BOM lines specified in
+  // weight units convert correctly against primary-unit inventory.
   const lines = await database
     .select({
       id: bomLines.id,
@@ -178,6 +180,8 @@ export async function explodeBOM(
       primaryUnit: items.primaryUnit,
       secondaryUnit: items.secondaryUnit,
       conversionRate: items.conversionRate,
+      weightUnit: items.weightUnit,
+      secondaryToWeightRate: items.secondaryToWeightRate,
     })
     .from(bomLines)
     .innerJoin(items, eq(bomLines.itemId, items.id))
@@ -185,12 +189,26 @@ export async function explodeBOM(
     .orderBy(asc(bomLines.sequence));
 
   for (const line of lines) {
-    // Calculate required quantity based on batch size ratio
+    // Calculate required quantity based on batch size ratio (in BOM line unit)
     let requiredQty = (Number(line.quantity) * quantity) / Number(bomHeader.batchSize);
 
     // Apply loss allowance if defined
     if (bomHeader.lossAllowance) {
       requiredQty = requiredQty / (1 - Number(bomHeader.lossAllowance) / 100);
+    }
+
+    // Convert BOM-line-unit qty back to the item's primary unit. Sub-BOM
+    // explosion + inventory lookup both speak primary unit; without this
+    // conversion a line specified in 'cap' or 'g' would pass the secondary /
+    // weight quantity straight into ratios that expect primary units (off
+    // by 2,000× for cap/kg in production WIP recipes).
+    const conversionRate = Number(line.conversionRate) || 0;
+    const secondaryToWeightRate = Number(line.secondaryToWeightRate) || 0;
+    let requiredQtyInPrimary = requiredQty;
+    if (line.unit && line.secondaryUnit && line.unit === line.secondaryUnit && conversionRate > 0) {
+      requiredQtyInPrimary = requiredQty / conversionRate;
+    } else if (line.unit && line.weightUnit && line.unit === line.weightUnit && conversionRate > 0 && secondaryToWeightRate > 0) {
+      requiredQtyInPrimary = requiredQty / secondaryToWeightRate / conversionRate;
     }
 
     // Get available stock (in primary unit from inventory)
@@ -208,11 +226,12 @@ export async function explodeBOM(
 
     let availableStock = Number(stockResult[0]?.totalAvailable) || 0;
 
-    // Convert availableStock to BOM line unit if different from primary unit
-    // e.g., inventory is in kg, BOM line is in g → multiply by conversionRate
-    if (line.unit && line.secondaryUnit && line.conversionRate &&
-        line.unit === line.secondaryUnit && Number(line.conversionRate) > 0) {
-      availableStock = availableStock * Number(line.conversionRate);
+    // Convert availableStock from primary → BOM line unit so the comparison
+    // is apples-to-apples. Covers both 2-level (PU↔SU) and 3-level (PU↔WU).
+    if (line.unit && line.secondaryUnit && line.unit === line.secondaryUnit && conversionRate > 0) {
+      availableStock = availableStock * conversionRate;
+    } else if (line.unit && line.weightUnit && line.unit === line.weightUnit && conversionRate > 0 && secondaryToWeightRate > 0) {
+      availableStock = availableStock * conversionRate * secondaryToWeightRate;
     }
 
     const shortage = Math.max(0, requiredQty - availableStock);
@@ -228,9 +247,11 @@ export async function explodeBOM(
       shortage: Math.round(shortage * 1000) / 1000,
     });
 
-    // Recursive explosion for WIP/semi-finished items
+    // Recursive explosion for WIP/semi-finished items. Sub-BOM's batchSize
+    // is in the item's primary unit, so we MUST pass requiredQtyInPrimary
+    // (not the BOM-line-unit qty) — otherwise the ratio against batchSize
+    // is wrong whenever the parent line was expressed in SU or WU.
     if (line.itemType === 'wip' || line.itemType === 'extract') {
-      // Find BOM for this item
       const [subBom] = await database
         .select()
         .from(bom)
@@ -242,7 +263,7 @@ export async function explodeBOM(
         );
 
       if (subBom) {
-        const subResults = await explodeBOM(subBom.id, requiredQty, level + 1);
+        const subResults = await explodeBOM(subBom.id, requiredQtyInPrimary, level + 1);
         results.push(...subResults);
       }
     }

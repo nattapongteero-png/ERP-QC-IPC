@@ -376,7 +376,7 @@ export default function PackagingQCPage() {
 
             <div className="relative px-6 py-7 md:px-10 md:py-9 text-white">
               <button
-                onClick={() => router.push(`/production/work-orders/${workOrderId}/execution`)}
+                onClick={() => router.push(`/production/work-orders/${workOrderId}?tab=execution`)}
                 className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -929,7 +929,7 @@ export default function PackagingQCPage() {
 
           <div className="relative px-6 py-7 md:px-10 md:py-9 text-white">
             <button
-              onClick={() => router.push(`/production/work-orders/${workOrderId}/execution`)}
+              onClick={() => router.push(`/production/work-orders/${workOrderId}?tab=execution`)}
               className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />

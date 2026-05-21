@@ -36,6 +36,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             criteriaCode: ipcCriteria.code,
             criteriaName: ipcCriteria.name,
             criteriaNameTh: ipcCriteria.nameTh,
+            criteriaType: ipcCriteria.criteriaType,
             testMethod: ipcCriteria.testMethod,
             specification: ipcCriteria.specification,
             minValue: ipcCriteria.minValue,

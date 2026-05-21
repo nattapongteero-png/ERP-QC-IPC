@@ -24,6 +24,7 @@ import { DxTabs } from '@/components/ui/dx-tabs';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import { SwitchTypes } from 'devextreme-react/switch';
+import { formatSpecSummary, getCriteriaTypeLabel } from '@/lib/master-data/ipc-spec-payload';
 import {
   Settings,
   Building2,
@@ -199,19 +200,45 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
         )}
 
         <div className="space-y-2">
-          {configs.map((cfg: any, idx: number) => (
-            <div key={cfg.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-white group">
-              <span className="flex-none w-7 h-7 rounded bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center">{idx + 1}</span>
+          {configs.map((cfg: any, idx: number) => {
+            const summaryLines = formatSpecSummary({
+              criteriaType: cfg.criteriaType || 'numeric',
+              specification: cfg.specification,
+              sampleSize: cfg.sampleSize,
+              minValue: cfg.minValue,
+              maxValue: cfg.maxValue,
+              unit: cfg.unit,
+            });
+            return (
+            <div key={cfg.id} className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-white group">
+              <span className="flex-none w-7 h-7 rounded bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center mt-0.5">{idx + 1}</span>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs text-emerald-600">{cfg.criteriaCode}</span>
                   <span className="font-medium">{cfg.criteriaNameTh || cfg.criteriaName}</span>
+                  <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                    {getCriteriaTypeLabel(cfg.criteriaType || 'numeric')}
+                  </span>
                   {cfg.isCritical && <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Critical</span>}
                 </div>
-                <div className="text-xs text-gray-500">
-                  {cfg.specification && <span>{cfg.specification} | </span>}
-                  {cfg.minValue != null && <span>Range: {cfg.minValue}-{cfg.maxValue} {cfg.unit} | </span>}
-                  Samples: {cfg.sampleSize}
+                <div className="mt-1 space-y-0.5">
+                  {summaryLines.map((line: { icon: string; text: string; tone?: string }, i: number) => (
+                    <div
+                      key={i}
+                      className={`text-xs flex items-start gap-1.5 ${
+                        line.tone === 'pass'
+                          ? 'text-emerald-700'
+                          : line.tone === 'fail'
+                          ? 'text-rose-700'
+                          : line.tone === 'meta'
+                          ? 'text-gray-500'
+                          : 'text-gray-700'
+                      }`}
+                    >
+                      <span className="flex-none w-4 text-center select-none">{line.icon}</span>
+                      <span className="break-words">{line.text}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
               <button onClick={() => openEdit(cfg)} className="p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100">
@@ -221,7 +248,8 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {showForm && (
@@ -2683,7 +2711,16 @@ export default function BOMConfigurationPage() {
             }
 
             // Render a single IPC link row (used by both grouped and ungrouped views).
-            const renderLinkRow = (link: any) => (
+            const renderLinkRow = (link: any) => {
+              const linkLines = formatSpecSummary({
+                criteriaType: link.criteriaType || 'numeric',
+                specification: link.specification,
+                sampleSize: link.sampleSize,
+                minValue: link.minValue,
+                maxValue: link.maxValue,
+                unit: link.unit,
+              });
+              return (
               <div key={link.id} className={`flex items-start gap-3 p-3 rounded-lg border bg-white group ${editingIpcLinkId === link.id ? 'border-emerald-400 bg-emerald-50/40' : 'border-gray-200'}`}>
                 <span className="flex-none w-7 h-7 rounded bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center mt-0.5">
                   {link.sequence}
@@ -2692,17 +2729,35 @@ export default function BOMConfigurationPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-xs text-emerald-700">{link.criteriaCode}</span>
                     <span className="font-medium">{link.criteriaNameTh || link.criteriaName}</span>
+                    <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                      {getCriteriaTypeLabel(link.criteriaType || 'numeric')}
+                    </span>
                     {link.isCritical && (
                       <span className="text-xs text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Critical</span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {link.specification && <span>Spec: {link.specification} | </span>}
-                    <span>Sample: {link.sampleSize}</span>
-                    <span> | Max retests: {link.maxRetestRounds != null
-                      ? link.maxRetestRounds
-                      : <span className="italic">Master default ({link.masterMaxRetestRounds ?? '—'})</span>}
-                    </span>
+                  <div className="mt-1 space-y-0.5">
+                    {linkLines.map((ln: { icon: string; text: string; tone?: string }, i: number) => (
+                      <div
+                        key={i}
+                        className={`text-xs flex items-start gap-1.5 ${
+                          ln.tone === 'pass' ? 'text-emerald-700'
+                          : ln.tone === 'fail' ? 'text-rose-700'
+                          : ln.tone === 'meta' ? 'text-gray-500'
+                          : 'text-gray-700'
+                        }`}
+                      >
+                        <span className="flex-none w-4 text-center select-none">{ln.icon}</span>
+                        <span className="break-words">{ln.text}</span>
+                      </div>
+                    ))}
+                    <div className="text-xs text-gray-500 flex items-start gap-1.5">
+                      <span className="flex-none w-4 text-center select-none">↻</span>
+                      <span>Max retests: {link.maxRetestRounds != null
+                        ? link.maxRetestRounds
+                        : <span className="italic">Master default ({link.masterMaxRetestRounds ?? '—'})</span>}
+                      </span>
+                    </div>
                   </div>
                   {link.notes && (
                     <div className="text-xs text-gray-600 mt-1 italic">{link.notes}</div>
@@ -2725,7 +2780,8 @@ export default function BOMConfigurationPage() {
                   </button>
                 </div>
               </div>
-            );
+              );
+            };
 
             return (
               <>

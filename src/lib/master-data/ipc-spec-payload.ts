@@ -542,3 +542,146 @@ export function serializeSpecPayload(payload: SpecPayload | null): string | null
   if (!payload) return null;
   return JSON.stringify(payload);
 }
+
+// ---------------------------------------------------------------------------
+// Human-readable summary
+// ---------------------------------------------------------------------------
+//
+// `specification` is stored as a JSON envelope. Rendering it raw to operators
+// shows JSON, which is unreadable. `formatSpecSummary()` parses the envelope
+// and returns a small set of lines suitable for inline display (BOM config
+// row, SOP step chips, QC entry, deviation messages).
+
+export interface SpecSummaryLine {
+  icon: string;
+  text: string;
+  tone?: 'pass' | 'fail' | 'meta';
+}
+
+const TYPE_LABEL_TH: Record<string, string> = {
+  numeric: 'Numeric',
+  pass_fail: 'Pass/Fail',
+  visual: 'Visual',
+  text: 'Text',
+  multi_point: 'Multi-point',
+  tare: 'Tare',
+  calibration: 'Calibration',
+  calculated: 'Calculated',
+  custom_multi_field: 'Multi-field',
+};
+
+function describeTriggers(triggers: Triggers): string {
+  const parts: string[] = [];
+  if (triggers.milestone.on) {
+    const labels = triggers.milestone.options
+      .filter((o) => o.on)
+      .map((o) => o.label || o.id);
+    if (labels.length) parts.push(labels.join(', '));
+  }
+  if (triggers.event.on) {
+    const labels = triggers.event.options.filter((o) => o.on).map((o) => o.label || o.id);
+    if (labels.length) parts.push(labels.join(', '));
+  }
+  if (triggers.time.on && triggers.time.every) {
+    parts.push(`ทุก ${triggers.time.every} นาที`);
+  }
+  if (triggers.quantity.on && triggers.quantity.every) {
+    const unit = triggers.quantity.unit || '';
+    parts.push(`ทุก ${triggers.quantity.every} ${unit}`.trim());
+  }
+  if (triggers.oncePerBatch.on) parts.push('ครั้งเดียว/batch');
+  return parts.join(' • ');
+}
+
+export function formatSpecSummary(args: {
+  criteriaType: string;
+  specification: string | null | undefined;
+  sampleSize?: number | null;
+  minValue?: number | null;
+  maxValue?: number | null;
+  unit?: string | null;
+}): SpecSummaryLine[] {
+  const { criteriaType, specification, sampleSize, minValue, maxValue, unit } = args;
+  const lines: SpecSummaryLine[] = [];
+
+  let payload: SpecPayload | null = null;
+  let extras: SharedSpecExtras = defaultSharedExtras();
+  let plainText: string | null = null;
+
+  if (specification && typeof specification === 'string') {
+    const trimmed = specification.trim();
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        payload = parseSpecPayload(criteriaType, parsed);
+        extras = parseSharedExtras(parsed);
+      } catch {
+        plainText = trimmed;
+      }
+    } else {
+      plainText = trimmed;
+    }
+  }
+
+  if (payload?.type === 'pass_fail') {
+    if (payload.passDefinition) lines.push({ icon: '✓', text: `Pass: ${payload.passDefinition}`, tone: 'pass' });
+    if (payload.failDefinition) lines.push({ icon: '✗', text: `Fail: ${payload.failDefinition}`, tone: 'fail' });
+  } else if (payload?.type === 'visual') {
+    if (payload.description) lines.push({ icon: '👁', text: payload.description });
+    if (payload.checklist.length) lines.push({ icon: '☑', text: `${payload.checklist.length} จุดตรวจ`, tone: 'meta' });
+  } else if (payload?.type === 'text') {
+    if (payload.format) lines.push({ icon: '✎', text: `รูปแบบ: ${payload.format}` });
+    if (payload.example) lines.push({ icon: '·', text: `ตัวอย่าง: ${payload.example}`, tone: 'meta' });
+  } else if (payload?.type === 'multi_point') {
+    const tgt = payload.perPointTarget || '-';
+    const tol = payload.perPointTolerance ? `±${payload.perPointTolerance}%` : '';
+    lines.push({ icon: '⊞', text: `${payload.pointCount || '?'} ${payload.pointLabel || 'จุด'} × ${tgt} ${tol}`.trim() });
+    lines.push({ icon: '∑', text: `รวมผล: ${payload.aggregateRule}${payload.aggregateLimit ? ` (${payload.aggregateLimit})` : ''}`, tone: 'meta' });
+    if (payload.tareSourceCode) lines.push({ icon: '⤴', text: `อ้างอิง tare: ${payload.tareSourceCode}`, tone: 'meta' });
+  } else if (payload?.type === 'tare') {
+    lines.push({ icon: '⚖', text: `${payload.referenceLabel || 'tare'} (${payload.referenceUnit || '-'})` });
+    if (payload.acceptanceMin || payload.acceptanceMax) {
+      lines.push({ icon: '·', text: `ช่วง ${payload.acceptanceMin || '-'} ถึง ${payload.acceptanceMax || '-'}`, tone: 'meta' });
+    }
+    lines.push({ icon: '⏳', text: `หมดอายุ: ${payload.expireAfter}`, tone: 'meta' });
+  } else if (payload?.type === 'calibration') {
+    const tol = payload.toleranceValue
+      ? `±${payload.toleranceValue}${payload.toleranceType === 'percent' ? '%' : ''}`
+      : '';
+    lines.push({ icon: '🛠', text: `${payload.instrumentName || 'instrument'} = ${payload.standardValue || '-'} ${payload.standardUnit || ''} ${tol}`.trim() });
+    if (payload.nextDueDate) lines.push({ icon: '📅', text: `due: ${payload.nextDueDate}`, tone: 'meta' });
+  } else if (payload?.type === 'calculated') {
+    if (payload.formula) lines.push({ icon: 'ƒ', text: payload.formula });
+    if (payload.resultMin || payload.resultMax) {
+      lines.push({ icon: '·', text: `ช่วงผล: ${payload.resultMin || '-'} ถึง ${payload.resultMax || '-'} ${payload.resultUnit || ''}`.trim(), tone: 'meta' });
+    }
+  } else if (payload?.type === 'custom_multi_field') {
+    const labels = payload.fields.map((f) => f.label).filter(Boolean);
+    lines.push({ icon: '☰', text: labels.length ? `${labels.length} ฟิลด์: ${labels.join(', ')}` : 'ไม่มีฟิลด์' });
+  } else if (criteriaType === 'numeric') {
+    if (minValue != null && maxValue != null) {
+      lines.push({ icon: '⟷', text: `ช่วง ${minValue}–${maxValue} ${unit || ''}`.trim() });
+    } else if (plainText) {
+      lines.push({ icon: '·', text: plainText });
+    }
+  } else if (plainText) {
+    lines.push({ icon: '·', text: plainText });
+  }
+
+  const trigText = describeTriggers(extras.triggers);
+  if (trigText) lines.push({ icon: '⏱', text: trigText, tone: 'meta' });
+
+  if (sampleSize != null) {
+    lines.push({ icon: '#', text: `${sampleSize} ตัวอย่าง`, tone: 'meta' });
+  }
+
+  if (lines.length === 0) {
+    lines.push({ icon: '·', text: TYPE_LABEL_TH[criteriaType] || criteriaType, tone: 'meta' });
+  }
+
+  return lines;
+}
+
+export function getCriteriaTypeLabel(criteriaType: string): string {
+  return TYPE_LABEL_TH[criteriaType] || criteriaType;
+}

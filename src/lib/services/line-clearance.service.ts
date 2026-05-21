@@ -52,6 +52,8 @@ export interface ChecklistItemsInput {
 
 export interface PerformLineClearanceInput {
   workOrderId: number;
+  /** Per-phase clearance. 'pre_production' | 'production' | 'post_production' | 'packaging'. Defaults to 'production' for legacy callers. */
+  phase?: string;
   userId: number;
   password: string;
   checklistItems: ChecklistItemsInput;
@@ -87,7 +89,7 @@ export interface LineClearanceStatus {
 /**
  * Check if line clearance is required for a work order
  */
-export async function checkLineClearanceRequired(workOrderId: number): Promise<LineClearanceStatus> {
+export async function checkLineClearanceRequired(workOrderId: number, phase: string = 'production'): Promise<LineClearanceStatus> {
   const workOrdersTable = getTableRef('workOrders');
   const checklistTable = getTableRef('lineClearanceChecklists');
 
@@ -126,12 +128,12 @@ export async function checkLineClearanceRequired(workOrderId: number): Promise<L
     };
   }
 
-  // Get existing checklist if any
+  // Get existing checklist if any — scoped by phase
   const checklists = await executeDbOperation(async (db) => {
     return db
       .select()
       .from(checklistTable)
-      .where(eq(checklistTable.workOrderId, workOrderId))
+      .where(and(eq(checklistTable.workOrderId, workOrderId), eq(checklistTable.phase, phase)))
       .limit(1);
   });
 
@@ -210,12 +212,14 @@ export async function performLineClearance(
     };
   }
 
-  // Check if checklist already exists
+  const inputPhase = input.phase || 'production';
+
+  // Check if checklist already exists for this phase
   const existingChecklists = await executeDbOperation(async (db) => {
     return db
       .select()
       .from(checklistTable)
-      .where(eq(checklistTable.workOrderId, input.workOrderId))
+      .where(and(eq(checklistTable.workOrderId, input.workOrderId), eq(checklistTable.phase, inputPhase)))
       .limit(1);
   });
 
@@ -234,10 +238,11 @@ export async function performLineClearance(
 
     checklistId = existing.id;
   } else {
-    // Create new checklist
+    // Create new checklist for this phase
     const result = await executeDbOperation(async (db) => {
       return db.insert(checklistTable).values({
         workOrderId: input.workOrderId,
+        phase: inputPhase,
         previousProductCleared: input.checklistItems.previousProductCleared,
         areaClean: input.checklistItems.areaClean,
         equipmentClean: input.checklistItems.equipmentClean,
@@ -442,7 +447,8 @@ export async function verifyLineClearance(
  * Get line clearance details for a work order
  */
 export async function getLineClearanceForWorkOrder(
-  workOrderId: number
+  workOrderId: number,
+  phase: string = 'production'
 ): Promise<LineClearanceChecklist | null> {
   const checklistTable = getTableRef('lineClearanceChecklists');
 
@@ -450,7 +456,7 @@ export async function getLineClearanceForWorkOrder(
     return db
       .select()
       .from(checklistTable)
-      .where(eq(checklistTable.workOrderId, workOrderId))
+      .where(and(eq(checklistTable.workOrderId, workOrderId), eq(checklistTable.phase, phase)))
       .limit(1);
   });
 

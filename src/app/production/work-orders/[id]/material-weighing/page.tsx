@@ -27,6 +27,7 @@ import {
   MaterialReturnDialog,
   type MaterialReturnSourceMaterial,
 } from '@/components/production/material-return-dialog';
+import { convertUnits, type UnitConfig } from '@/lib/utils/unit-conversion';
 import {
   Scale,
   CheckCircle2,
@@ -431,6 +432,52 @@ export default function MaterialWeighingPage() {
     setShowWeighDialog(true);
   };
 
+  // ────────────────────────────────────────────────────────────────────
+  // Weight-unit display helpers
+  //
+  // If the item is weight-tracked (kg ↔ box-with-1000-caps ↔ 0.1 g/cap),
+  // operators want to weigh on a scale and see grams — not boxes. We:
+  //   1. Derive the unit the operator will type values in (weighUnit).
+  //   2. Convert the BOM plannedQty into that unit for display.
+  //   3. On submit, convert the typed weight back to the BOM line unit
+  //      so the row keeps its existing unit semantics on the server.
+  // Non-weight-tracked items fall through to the BOM line unit verbatim.
+  // ────────────────────────────────────────────────────────────────────
+  const isWeightTracked = (m: MaterialLine | null | undefined): boolean => {
+    if (!m) return false;
+    return Boolean(m.weightTrackingEnabled) && !!m.weightUnit
+      && Number(m.conversionRate) > 0 && Number(m.secondaryToWeightRate) > 0;
+  };
+  const getWeighUnit = (m: MaterialLine | null | undefined): string => {
+    if (!m) return '';
+    return isWeightTracked(m) ? (m.weightUnit || '') : (m.unit || '');
+  };
+  const buildUnitConfig = (m: MaterialLine): UnitConfig => ({
+    primaryUnit: m.primaryUnit || '',
+    secondaryUnit: m.secondaryUnit || null,
+    weightUnit: m.weightUnit || null,
+    conversionRate: m.conversionRate ?? null,
+    secondaryToWeightRate: m.secondaryToWeightRate ?? null,
+    weightTrackingEnabled: Boolean(m.weightTrackingEnabled),
+  });
+  // Convert a quantity from one unit to another using the item's 3-level config.
+  const convertQty = (qty: number, fromUnit: string, toUnit: string, m: MaterialLine): number => {
+    if (!fromUnit || !toUnit || fromUnit === toUnit) return qty;
+    const cfg = buildUnitConfig(m);
+    const fromLevel = fromUnit === m.primaryUnit ? 'PU'
+      : fromUnit === m.secondaryUnit ? 'SU'
+      : fromUnit === m.weightUnit ? 'WU'
+      : null;
+    if (!fromLevel) return qty;
+    try {
+      const r = convertUnits(qty, fromLevel, cfg);
+      if (toUnit === m.primaryUnit && r.pu != null) return r.pu;
+      if (toUnit === m.secondaryUnit) return r.su;
+      if (toUnit === m.weightUnit && r.wu != null) return r.wu;
+    } catch { /* missing rates → fall through */ }
+    return qty;
+  };
+
   const handleSubmitWeight = () => {
     if (!selectedMaterial) return;
 
@@ -442,10 +489,17 @@ export default function MaterialWeighingPage() {
       lotId = autoPickPrimaryLot(availableLots, formData.weighedQty, selectedMaterial);
     }
 
+    // Operator typed in weighUnit; storage layer expects BOM line unit.
+    const weighUnit = getWeighUnit(selectedMaterial);
+    const bomUnit = selectedMaterial.unit;
+    const weighedQtyInBomUnit = weighUnit !== bomUnit
+      ? convertQty(formData.weighedQty, weighUnit, bomUnit, selectedMaterial)
+      : formData.weighedQty;
+
     recordWeightMutation.mutate({
       materialId: selectedMaterial.id,
       data: {
-        weighedQty: formData.weighedQty,
+        weighedQty: weighedQtyInBomUnit,
         lotId,
         notes: formData.notes,
         waterDate: formData.waterDate,
@@ -518,7 +572,7 @@ export default function MaterialWeighingPage() {
           { label: 'Production', href: '/production' },
           { label: 'Work Orders', href: '/production/work-orders' },
           { label: workOrder.woNumber, href: `/production/work-orders/${workOrderId}` },
-          { label: 'Execution', href: `/production/work-orders/${workOrderId}/execution` },
+          { label: 'Execution', href: `/production/work-orders/${workOrderId}?tab=execution` },
           { label: tw('title') },
         ]}
         actions={
@@ -526,7 +580,7 @@ export default function MaterialWeighingPage() {
             text={tw('actions.backToExecution')}
             icon="back"
             stylingMode="outlined"
-            onClick={() => router.push(`/production/work-orders/${workOrderId}/execution`)}
+            onClick={() => router.push(`/production/work-orders/${workOrderId}?tab=execution`)}
           />
         }
       />
@@ -839,19 +893,39 @@ export default function MaterialWeighingPage() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-amber-700">{tw('material.planned')}</p>
-                <p className="text-xl font-bold text-amber-900">
-                  {selectedMaterial?.plannedQty} {selectedMaterial?.unit}
-                </p>
+                {(() => {
+                  if (!selectedMaterial) return null;
+                  const weighUnit = getWeighUnit(selectedMaterial);
+                  const bomUnit = selectedMaterial.unit;
+                  const planned = Number(selectedMaterial.plannedQty) || 0;
+                  const plannedInWeighUnit = weighUnit !== bomUnit
+                    ? convertQty(planned, bomUnit, weighUnit, selectedMaterial)
+                    : planned;
+                  return (
+                    <>
+                      <p className="text-xl font-bold text-amber-900">
+                        {plannedInWeighUnit.toLocaleString('th-TH', { maximumFractionDigits: 4 })} {weighUnit}
+                      </p>
+                      {weighUnit !== bomUnit && (
+                        <p className="text-[11px] text-amber-700/80">
+                          (BOM: {planned.toLocaleString('th-TH', { maximumFractionDigits: 4 })} {bomUnit})
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{tw('form.actualWeight')} *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {tw('form.actualWeight')} ({selectedMaterial ? getWeighUnit(selectedMaterial) : ''}) *
+            </label>
             <DxNumberBox
               value={formData.weighedQty}
               onValueChanged={(e) => setFormData({ ...formData, weighedQty: e.value })}
-              format="#0.000"
+              format="#,##0.0000"
               min={0}
               showSpinButtons
             />
