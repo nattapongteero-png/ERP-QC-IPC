@@ -1,0 +1,91 @@
+# =============================================================================
+# UAT / Test deployment  —  herbal-erp-test-uat.bmscloud.in.th
+# =============================================================================
+# ชุดนี้แยกอิสระจาก production 100% (DB / container / network / volume คนละชุด)
+# จึงรันบน server เดียวกับ production ได้โดยไม่ชนกัน
+#
+#   App เปิดที่ host port 6809  ->  reverse proxy ชี้ domain มาที่ :6809
+#
+# วิธีใช้:  docker compose -f docker-compose.uat.yml up -d --build
+# =============================================================================
+name: herbal-erp-uat
+
+services:
+  # --- ฐานข้อมูล MySQL เฉพาะ UAT --------------------------------------------
+  mysql-uat:
+    image: mysql:8.0
+    container_name: herbal-erp-uat-mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=herbal_erp_uat
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    command:
+      - --max_allowed_packet=256M
+      - --innodb_buffer_pool_size=1G
+      - --wait_timeout=28800
+      - --interactive_timeout=28800
+    volumes:
+      - ./uat_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - herbal-erp-uat
+
+  # --- DevExpress Reporting Backend (.NET) ----------------------------------
+  reporting-uat:
+    build:
+      context: ./reporting-backend
+      dockerfile: Dockerfile
+    container_name: herbal-erp-uat-reporting
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=mysql-uat;Database=herbal_erp_uat;User=${MYSQL_USER};Password=${MYSQL_PASSWORD};
+      - Jwt__Secret=${JWT_SECRET}
+      - Cors__AllowedOrigins=https://herbal-erp-test-uat.bmscloud.in.th
+    depends_on:
+      mysql-uat:
+        condition: service_healthy
+    networks:
+      - herbal-erp-uat
+
+  # --- แอปหลัก Next.js ------------------------------------------------------
+  app-uat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: herbal-erp-uat-app
+    restart: unless-stopped
+    ports:
+      - "6809:3000"          # <-- host 6809 : container 3000
+    environment:
+      - NODE_ENV=production
+      - DB_TYPE=mysql
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-uat:3306/herbal_erp_uat
+      - NEXT_PUBLIC_APP_URL=https://herbal-erp-test-uat.bmscloud.in.th
+      - NEXTAUTH_URL=https://herbal-erp-test-uat.bmscloud.in.th
+      - REPORTING_BACKEND_URL=http://reporting-uat:5000
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY}
+    depends_on:
+      mysql-uat:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-uat
+
+networks:
+  herbal-erp-uat:
+    name: herbal-erp-uat-network
