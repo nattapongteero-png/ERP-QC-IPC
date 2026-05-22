@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Environment files
+.env*
+
+# Version control
+.git/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Database
+mysql_data/
+data/
+
+# Lock files (handled by package manager)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Misc
+*.pem
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+.worktrees/
+reference/
+
+# Generated files
+*.generated.*
+*.min.js
+*.min.css

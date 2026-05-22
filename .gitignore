@@ -47,3 +47,28 @@ reference/AspNetCore.Reporting.BestPractices
 
 # Git worktrees
 .worktrees/
+
+# Playwright MCP test artifacts (debug logs, screenshots, snapshots)
+.playwright-mcp/
+
+# Superpowers / agent state
+.superpowers/
+
+# Ad-hoc debug/test screenshots at repo root
+/*.png
+
+# Runtime user data
+/uploads/
+/exports/
+
+# Daily summaries & one-off reports (training/log artifacts — not source)
+docs/daily-summary-*.md
+docs/*-Test-Report.xlsx
+docs/*-Report.xlsx
+public/dev-summary-*.html
+public/system-completeness-*.html
+
+# Training docs / agent planning artifacts
+docs/training/
+docs/superpowers/
+public/his-vmi-sales-flow.html
