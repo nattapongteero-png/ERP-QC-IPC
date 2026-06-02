@@ -1,0 +1,89 @@
+openapi: 3.0.3
+info:
+  title: Material Withdrawal Reports API
+  version: 1.0.0
+
+paths:
+  /api/material-withdrawal/reports:
+    get:
+      summary: Aggregated withdrawal/loss report
+      tags: [Reports]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:withdrawal:request
+      parameters:
+        - { in: query, name: factoryId, schema: { type: integer } }
+        - { in: query, name: dateFrom, required: true, schema: { type: string, format: date } }
+        - { in: query, name: dateTo, required: true, schema: { type: string, format: date } }
+        - { in: query, name: groupBy, schema: { type: string, enum: [month, quarter, machine, material, reasonType], default: month } }
+        - { in: query, name: format, schema: { type: string, enum: [json, excel, pdf], default: json } }
+      responses:
+        '200':
+          description: Aggregated report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      totalRequests: { type: integer }
+                      approvedCount: { type: integer }
+                      rejectedCount: { type: integer }
+                      approvalRatePercent: { type: number }
+                      totalExtraQuantityByMaterial:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            materialId: { type: integer }
+                            materialName: { type: string }
+                            totalQty: { type: number }
+                            unit: { type: string }
+                  groups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key: { type: string, description: 'e.g., "2026-06" or machine name' }
+                        requestCount: { type: integer }
+                        approvedQty: { type: number }
+                        topReasons:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              reasonType: { type: string }
+                              count: { type: integer }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  /api/material-withdrawal/reports/trend:
+    get:
+      summary: Time-series trend (for charts)
+      tags: [Reports]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: factoryId, schema: { type: integer } }
+        - { in: query, name: materialId, schema: { type: integer } }
+        - { in: query, name: dateFrom, required: true, schema: { type: string, format: date } }
+        - { in: query, name: dateTo, required: true, schema: { type: string, format: date } }
+        - { in: query, name: interval, schema: { type: string, enum: [day, week, month], default: month } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    period: { type: string }
+                    extraQuantity: { type: number }
+                    requestCount: { type: integer }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }

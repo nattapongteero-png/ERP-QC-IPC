@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: Material Withdrawal Rules API (Cap Configuration)
+  version: 1.0.0
+
+paths:
+  /api/material-withdrawal/rules:
+    get:
+      summary: List all cap rules
+      tags: [Rules]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:withdrawal:request
+      parameters:
+        - { in: query, name: factoryId, schema: { type: integer, description: 'Optional — null lookup for global' } }
+        - { in: query, name: materialCategory, schema: { type: string } }
+        - { in: query, name: includeInactive, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Rule' }
+    post:
+      summary: Create a new rule
+      tags: [Rules]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:withdrawal:configure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RuleInput' }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Rule' }
+        '409':
+          description: Duplicate rule for (factoryId, materialCategory)
+
+  /api/material-withdrawal/rules/{id}:
+    put:
+      summary: Update a rule (caps + active flag)
+      tags: [Rules]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:withdrawal:configure
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                softCapPercent: { type: number, minimum: 0 }
+                hardCapPercent: { type: number, minimum: 0 }
+                isActive: { type: boolean }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Rule' }
+
+  /api/material-withdrawal/rules/lookup:
+    get:
+      summary: Resolve effective rule for (factory, material category) using hierarchical fallback
+      tags: [Rules]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: factoryId, required: true, schema: { type: integer } }
+        - { in: query, name: materialCategory, required: true, schema: { type: string } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Rule'
+                  - type: object
+                    properties:
+                      resolutionPath:
+                        type: array
+                        description: 'Order of matched specificity'
+                        items: { type: string }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  schemas:
+    RuleInput:
+      type: object
+      required: [softCapPercent, hardCapPercent]
+      properties:
+        factoryId: { type: integer, nullable: true }
+        materialCategory: { type: string, nullable: true }
+        softCapPercent: { type: number, minimum: 0 }
+        hardCapPercent: { type: number, minimum: 0 }
+
+    Rule:
+      allOf:
+        - $ref: '#/components/schemas/RuleInput'
+        - type: object
+          properties:
+            id: { type: integer }
+            isActive: { type: boolean }
+            createdBy: { type: integer }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }

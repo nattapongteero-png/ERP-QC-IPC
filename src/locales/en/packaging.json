@@ -1,0 +1,162 @@
+{
+  "page": {
+    "title": "Primary Packaging",
+    "description": "Issue/return primary packaging with Container Label tracking and Triple Independence approval"
+  },
+  "breadcrumbs": {
+    "packaging": "Primary Packaging",
+    "issue": "Issue",
+    "return": "Return",
+    "verify": "Verify",
+    "approve": "QA Approve",
+    "reconciliation": "Reconciliation",
+    "tolerances": "Tolerances"
+  },
+  "common": {
+    "issuance": "Issuance",
+    "issuances": "Issuances",
+    "return": "Return",
+    "returns": "Returns",
+    "approval": "Approval"
+  },
+  "form": {
+    "issuance": { "title": "Issue Primary Packaging" },
+    "return": { "title": "Return Primary Packaging" },
+    "material": { "label": "Material (Packaging)", "placeholder": "Choose from BOM (packaging type)" },
+    "sourceLot": { "label": "Source Lot", "placeholder": "Pick a lot (FIFO)" },
+    "quantity": { "label": "Quantity (pcs)" },
+    "usedQty": { "label": "Used Quantity" },
+    "returnQty": { "label": "Returned Quantity" },
+    "variance": { "label": "Variance" },
+    "varianceReason": {
+      "label": "Variance Reason",
+      "options": {
+        "sampling": "QC Sampling",
+        "spillage": "Spillage",
+        "process_loss": "Process Loss",
+        "cleaning": "Equipment Cleaning",
+        "damaged": "Damaged",
+        "unaccounted": "Unaccounted",
+        "other": "Other (specify)"
+      }
+    },
+    "varianceExplanation": { "label": "Explanation", "placeholder": "Describe root cause" },
+    "containerLabel": {
+      "label": "Container Label",
+      "placeholder": "e.g., PKG-WO004-CAP-001",
+      "warning": "This Container Label was used on this WO within the last 24h (warning only)"
+    },
+    "returnContainerLabel": { "label": "Return Container Label" },
+    "room": { "label": "Production Room" },
+    "proposedStatus": {
+      "label": "Proposed Return Status",
+      "options": {
+        "reusable": "Reusable",
+        "quarantine": "Quarantine",
+        "rejected": "Rejected"
+      }
+    }
+  },
+  "status": {
+    "pending_verification": "Pending Verification",
+    "issued": "Issued",
+    "cancelled": "Cancelled",
+    "pending_qa_approval": "Pending QA Approval",
+    "approved_reusable": "QA Approved (Reusable)",
+    "approved_quarantine": "QA Approved (Quarantine)",
+    "rejected": "QA Rejected"
+  },
+  "buttons": {
+    "issue": "Issue Packaging",
+    "verify": "Verify & Sign",
+    "return": "Return Packaging",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "export": "Export",
+    "exportExcel": "Export Excel",
+    "exportPdf": "Export PDF",
+    "refresh": "Refresh",
+    "viewDetail": "View Detail"
+  },
+  "approval": {
+    "approveTitle": "QA Approve Return",
+    "rejectTitle": "QA Reject Return",
+    "finalStatus": { "label": "Final Status" },
+    "overrideReason": { "label": "Override Reason", "placeholder": "Required if changing the operator's proposed status" },
+    "qaNotes": { "label": "QA Notes" },
+    "password": { "label": "Password (E-signature)" }
+  },
+  "table": {
+    "columns": {
+      "id": "#",
+      "workOrder": "Work Order",
+      "material": "Material",
+      "quantity": "Qty",
+      "unit": "Unit",
+      "containerLabel": "Container Label",
+      "status": "Status",
+      "operator": "Operator",
+      "verifier": "Verifier",
+      "qa": "QA",
+      "submittedAt": "Submitted At",
+      "verifiedAt": "Verified At",
+      "actions": "Actions"
+    }
+  },
+  "toast": {
+    "issued": "Packaging issued",
+    "verified": "Verified",
+    "returned": "Return submitted",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "approvalNotice": "Return #{id} has been approved",
+    "rejectionNotice": "Return #{id} has been rejected",
+    "containerLabelWarning": "Container Label seen within last 24h (warning only — submission allowed)",
+    "error": { "generic": "An error occurred. Please try again." }
+  },
+  "errors": {
+    "dualControl": "Operator cannot also verify (Dual Control)",
+    "tripleIndependence": "QA must not be operator/returner/verifier (Triple Independence)",
+    "usedExceedsIssued": "Used quantity ({used}) exceeds issued quantity ({issued})",
+    "lotRejectedMustReject": "Source lot is rejected — return must be marked Rejected (cross-contamination prevention)",
+    "varianceExplanationRequired": "Variance exceeds tolerance — explanation is required",
+    "containerLabelRequired": "Container Label is required",
+    "insufficientStock": "Lot stock insufficient ({available} available, {requested} requested)",
+    "materialNotInBom": "Material is not in Work Order BOM",
+    "notPackagingType": "Item is not Primary Packaging (type ≠ packaging)",
+    "invalidPassword": "Invalid password",
+    "issuanceNotPending": "Issuance is no longer pending verification",
+    "returnNotPendingQA": "Return is no longer pending QA approval",
+    "overrideReasonRequired": "Override reason is required when changing the proposed status"
+  },
+  "reconciliation": {
+    "title": "Packaging Reconciliation",
+    "subtitle": "Issued = Used + Returned + Variance",
+    "columns": {
+      "item": "Item",
+      "category": "Category",
+      "bomPlanned": "BOM Planned",
+      "issued": "Issued",
+      "used": "Used",
+      "returned": "Returned",
+      "variance": "Variance",
+      "variancePercent": "%Variance",
+      "tolerance": "Tolerance",
+      "withinTolerance": "Within"
+    },
+    "summary": {
+      "totalIssued": "Total Issued",
+      "totalUsed": "Total Used",
+      "totalReturned": "Total Returned",
+      "totalVariance": "Total Variance",
+      "itemsOutsideTolerance": "Outside Tolerance"
+    },
+    "withinTolerance": { "yes": "Within", "no": "Outside" }
+  },
+  "tolerances": {
+    "title": "Packaging Tolerances",
+    "columns": { "category": "Category", "tolerancePercent": "Tolerance (%)", "isActive": "Active", "notes": "Notes" },
+    "categories": { "capsule": "Capsule", "bottle": "Bottle", "cap": "Cap", "label": "Label", "other": "Other" }
+  }
+}

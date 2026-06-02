@@ -40,6 +40,8 @@ const ROLE_LABEL: Record<string, { label: string; color: string }> = {
 import { useToast } from '@/components/ui/toast';
 import { ExecutionDashboard } from '@/components/production/ExecutionDashboard';
 import { formatSpecSummary, getCriteriaTypeLabel } from '@/lib/master-data/ipc-spec-payload';
+// Feature 018: material withdrawal approval
+import { WithdrawalPanel } from '@/components/production/withdrawal-panel';
 
 interface LineClearanceStatus {
   required: boolean;
@@ -843,6 +845,12 @@ export default function WorkOrderDetailPage() {
         {false && lineClearanceStatus?.required && workOrder.status === 'released' && (
           <Card className="hidden"><CardContent /></Card>
         )}
+
+        {/* Feature 018: Material Withdrawal Approval panel */}
+        <WithdrawalPanel
+          workOrderId={Number(workOrder.id)}
+          workOrderNumber={workOrder.woNumber}
+        />
 
         {/* Tabs */}
         <div className="no-print">

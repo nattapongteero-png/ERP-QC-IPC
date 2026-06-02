@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { getDb, isSqlite, initializeDatabase } from './index';
 import { hashPassword } from '../auth';
 import * as schema from './schema';
@@ -161,6 +162,33 @@ export async function seedDatabase() {
     });
   }
   console.log('Report categories created');
+
+  // Feature 018: seed default global material withdrawal rule (10% soft / 50% hard)
+  // Lookup precedence: (factory, category) → (factory, NULL) → (NULL, category) → (NULL, NULL = this row)
+  const withdrawalRulesTable = usingSqlite
+    ? schema.sqliteMaterialWithdrawalRules
+    : schema.mysqlMaterialWithdrawalRules;
+  try {
+    const adminUser = await (db as any)
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.email, 'admin@herbal-erp.com'))
+      .limit(1);
+    const adminId: number | undefined = adminUser?.[0]?.id;
+    if (adminId) {
+      await insertIgnoreDuplicate(withdrawalRulesTable, {
+        factoryCode: null,
+        materialCategory: null,
+        softCapPercent: usingSqlite ? 10.0 : '10.00',
+        hardCapPercent: usingSqlite ? 50.0 : '50.00',
+        isActive: true,
+        createdByUserId: adminId,
+      });
+      console.log('Default material withdrawal rule seeded');
+    }
+  } catch (error) {
+    console.warn('Default material withdrawal rule seed skipped:', error);
+  }
 
   console.log('Database seeded successfully!');
 }

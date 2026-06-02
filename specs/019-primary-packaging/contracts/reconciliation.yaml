@@ -1,0 +1,84 @@
+openapi: 3.0.3
+info:
+  title: Packaging Reconciliation API
+  version: 1.0.0
+
+paths:
+  /api/production/work-orders/{workOrderId}/packaging-reconciliation:
+    get:
+      summary: Per-WO packaging reconciliation report
+      tags: [Reconciliation]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: query, name: format, schema: { type: string, enum: [json, excel, pdf], default: json } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workOrderId: { type: integer }
+                  workOrderNumber: { type: string }
+                  generatedAt: { type: string, format: date-time }
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        itemId: { type: integer }
+                        itemCode: { type: string }
+                        itemName: { type: string }
+                        packagingCategory: { type: string }
+                        bomPlanned: { type: integer }
+                        issued: { type: integer }
+                        used: { type: integer }
+                        returned: { type: integer }
+                        varianceQty: { type: integer }
+                        variancePercent: { type: number }
+                        tolerancePercent: { type: number }
+                        withinTolerance: { type: boolean }
+                        deviationIds: { type: array, items: { type: integer } }
+                  summary:
+                    type: object
+                    properties:
+                      totalIssued: { type: integer }
+                      totalUsed: { type: integer }
+                      totalReturned: { type: integer }
+                      totalVariance: { type: integer }
+                      itemsOutsideTolerance: { type: integer }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  /api/production/packaging-trend:
+    get:
+      summary: Trend analytics (P3 — US5)
+      tags: [Reconciliation]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: dateFrom, required: true, schema: { type: string, format: date } }
+        - { in: query, name: dateTo, required: true, schema: { type: string, format: date } }
+        - { in: query, name: factoryCode, schema: { type: string } }
+        - { in: query, name: packagingCategory, schema: { type: string } }
+        - { in: query, name: interval, schema: { type: string, enum: [day, week, month], default: month } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    period: { type: string }
+                    issued: { type: integer }
+                    used: { type: integer }
+                    returned: { type: integer }
+                    variancePercent: { type: number }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }

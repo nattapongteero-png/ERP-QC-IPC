@@ -1,0 +1,147 @@
+openapi: 3.0.3
+info:
+  title: Packaging Issuance API
+  version: 1.0.0
+  description: Feature 019 — Primary Packaging Material Issuance endpoints
+
+paths:
+  /api/production/work-orders/{workOrderId}/packaging-issuances:
+    post:
+      summary: Create a new packaging issuance (status=pending_verification)
+      tags: [Issuances]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:packaging:issue
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateIssuance' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issuance: { $ref: '#/components/schemas/IssuanceDetail' }
+                  containerLabelWarning: { type: boolean, description: true if Container Label dup in last 24h (warning only) }
+                  duplicateIssuanceIds: { type: array, items: { type: integer } }
+        '400':
+          description: Possible codes — MATERIAL_NOT_IN_BOM, NOT_PACKAGING_TYPE, CONTAINER_LABEL_REQUIRED, INSUFFICIENT_STOCK, WORK_ORDER_NOT_ACTIVE
+        '403': { description: Missing permission }
+    get:
+      summary: List packaging issuances for a WO
+      tags: [Issuances]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string, enum: [pending_verification, issued, cancelled] } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/IssuanceSummary' }
+
+  /api/production/work-orders/{workOrderId}/packaging-issuances/{issuanceId}:
+    get:
+      summary: Get issuance detail
+      tags: [Issuances]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: path, name: issuanceId, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IssuanceDetail' }
+        '404': { description: Not found }
+
+  /api/production/work-orders/{workOrderId}/packaging-issuances/{issuanceId}/verify:
+    post:
+      summary: Verifier signs and moves issuance to status=issued
+      tags: [Issuances]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:packaging:issue
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: path, name: issuanceId, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, description: E-signature password }
+      responses:
+        '200':
+          description: Verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issuance: { $ref: '#/components/schemas/IssuanceDetail' }
+                  inventoryTransactionId: { type: integer }
+        '400':
+          description: Codes — DUAL_CONTROL_VIOLATION, INVALID_PASSWORD, ISSUANCE_NOT_PENDING, INSUFFICIENT_STOCK
+        '403': { description: Missing permission }
+
+  /api/production/work-orders/{workOrderId}/packaging-issuances/{issuanceId}/cancel:
+    post:
+      summary: Cancel a pending issuance (only by operator)
+      tags: [Issuances]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: path, name: issuanceId, required: true, schema: { type: integer } }
+      responses:
+        '204': { description: Cancelled }
+        '409': { description: Not in pending_verification status }
+        '403': { description: Not the original operator }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    CreateIssuance:
+      type: object
+      required: [itemId, sourceLotId, quantity, containerLabel, roomId]
+      properties:
+        itemId: { type: integer }
+        sourceLotId: { type: integer }
+        quantity: { type: integer, minimum: 1 }
+        containerLabel: { type: string, minLength: 3, maxLength: 50 }
+        roomId: { type: integer }
+    IssuanceSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        workOrderId: { type: integer }
+        itemId: { type: integer }
+        itemName: { type: string }
+        quantity: { type: integer }
+        unit: { type: string }
+        containerLabel: { type: string }
+        flowStatus: { type: string, enum: [pending_verification, issued, cancelled] }
+        operator: { type: object, properties: { id: { type: integer }, name: { type: string } } }
+        verifier: { type: object, nullable: true, properties: { id: { type: integer }, name: { type: string } } }
+        verifiedAt: { type: string, format: date-time, nullable: true }
+    IssuanceDetail:
+      allOf:
+        - $ref: '#/components/schemas/IssuanceSummary'
+        - type: object
+          properties:
+            sourceLotId: { type: integer }
+            sourceLotNumber: { type: string }
+            roomId: { type: integer }
+            roomName: { type: string }
+            plannedQuantity: { type: integer }
+            createdAt: { type: string, format: date-time }

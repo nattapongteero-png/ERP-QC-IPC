@@ -1,0 +1,212 @@
+{
+  "page": {
+    "title": "บรรจุภัณฑ์ปฐมภูมิ",
+    "description": "เบิก/คืน Primary Packaging Material พร้อม Container Label tracking และ Triple Independence approval"
+  },
+  "breadcrumbs": {
+    "packaging": "Primary Packaging",
+    "issue": "เบิก",
+    "return": "คืน",
+    "verify": "ตรวจสอบ",
+    "approve": "QA อนุมัติ",
+    "reconciliation": "Reconciliation",
+    "tolerances": "Tolerance"
+  },
+  "common": {
+    "issuance": "การเบิก",
+    "issuances": "รายการเบิก",
+    "return": "การคืน",
+    "returns": "รายการคืน",
+    "approval": "การอนุมัติ"
+  },
+  "form": {
+    "issuance": {
+      "title": "เบิก Primary Packaging"
+    },
+    "return": {
+      "title": "คืน Primary Packaging"
+    },
+    "material": {
+      "label": "วัตถุดิบ (Packaging)",
+      "placeholder": "เลือกจาก BOM (ประเภทบรรจุภัณฑ์)"
+    },
+    "sourceLot": {
+      "label": "Lot ต้นทาง",
+      "placeholder": "เลือก lot (FIFO)"
+    },
+    "quantity": {
+      "label": "จำนวน (ชิ้น)"
+    },
+    "usedQty": {
+      "label": "ปริมาณที่ใช้จริง"
+    },
+    "returnQty": {
+      "label": "ปริมาณที่คืน"
+    },
+    "variance": {
+      "label": "ส่วนต่าง (Variance)"
+    },
+    "varianceReason": {
+      "label": "เหตุผล Variance",
+      "options": {
+        "sampling": "เก็บตัวอย่าง QC (Sampling)",
+        "spillage": "ตก/หกระหว่างผลิต (Spillage)",
+        "process_loss": "สูญเสียจากกระบวนการ (Process Loss)",
+        "cleaning": "ทำความสะอาดเครื่อง (Cleaning)",
+        "damaged": "เสียหาย (Damaged)",
+        "unaccounted": "ไม่ทราบสาเหตุ (Unaccounted)",
+        "other": "อื่นๆ (ระบุ)"
+      }
+    },
+    "varianceExplanation": {
+      "label": "รายละเอียดเหตุผล",
+      "placeholder": "ระบุเหตุผล root cause"
+    },
+    "containerLabel": {
+      "label": "Container Label",
+      "placeholder": "รหัสกล่อง/บรรจุ เช่น PKG-WO004-CAP-001",
+      "warning": "พบ Container Label นี้ในการเบิกของ WO เดียวกันใน 24 ชม. ที่ผ่านมา (ยังส่งได้)"
+    },
+    "returnContainerLabel": {
+      "label": "Container Label กล่องที่คืน"
+    },
+    "room": {
+      "label": "ห้องผลิต"
+    },
+    "proposedStatus": {
+      "label": "สถานะ Packaging ที่คืน",
+      "options": {
+        "reusable": "ใช้ต่อได้ (Reusable)",
+        "quarantine": "รอตรวจสอบ (Quarantine)",
+        "rejected": "เสียหาย/ปนเปื้อน (Reject)"
+      }
+    }
+  },
+  "status": {
+    "pending_verification": "รอ Verifier",
+    "issued": "เบิกแล้ว",
+    "cancelled": "ยกเลิก",
+    "pending_qa_approval": "รอ QA อนุมัติ",
+    "approved_reusable": "QA อนุมัติ (Reusable)",
+    "approved_quarantine": "QA อนุมัติ (Quarantine)",
+    "rejected": "QA ปฏิเสธ"
+  },
+  "buttons": {
+    "issue": "เบิก Packaging",
+    "verify": "ตรวจสอบและลงนาม",
+    "return": "คืน Packaging",
+    "approve": "อนุมัติ",
+    "reject": "ปฏิเสธ",
+    "cancel": "ยกเลิก",
+    "export": "Export",
+    "exportExcel": "Export Excel",
+    "exportPdf": "Export PDF",
+    "refresh": "รีเฟรช",
+    "viewDetail": "ดูรายละเอียด"
+  },
+  "approval": {
+    "approveTitle": "QA อนุมัติการคืน Packaging",
+    "rejectTitle": "QA ปฏิเสธการคืน Packaging",
+    "finalStatus": {
+      "label": "สถานะสุดท้าย"
+    },
+    "overrideReason": {
+      "label": "เหตุผลที่เปลี่ยนสถานะ",
+      "placeholder": "ระบุเหตุผลที่ไม่ตรงกับที่ operator เสนอ"
+    },
+    "qaNotes": {
+      "label": "หมายเหตุ QA"
+    },
+    "password": {
+      "label": "รหัสผ่านสำหรับลงนามอิเล็กทรอนิกส์"
+    }
+  },
+  "table": {
+    "columns": {
+      "id": "เลขที่",
+      "workOrder": "ใบสั่งผลิต",
+      "material": "วัตถุดิบ",
+      "quantity": "จำนวน",
+      "unit": "หน่วย",
+      "containerLabel": "Container Label",
+      "status": "สถานะ",
+      "operator": "ผู้เบิก",
+      "verifier": "ผู้ตรวจสอบ",
+      "qa": "QA",
+      "submittedAt": "เวลาส่ง",
+      "verifiedAt": "เวลาตรวจสอบ",
+      "actions": "การจัดการ"
+    }
+  },
+  "toast": {
+    "issued": "เบิก Packaging สำเร็จ",
+    "verified": "ตรวจสอบและลงนามสำเร็จ",
+    "returned": "ส่งคำขอคืนสำเร็จ",
+    "approved": "อนุมัติสำเร็จ",
+    "rejected": "ปฏิเสธสำเร็จ",
+    "approvalNotice": "รายการคืน #{id} ได้รับการอนุมัติเรียบร้อย",
+    "rejectionNotice": "รายการคืน #{id} ถูกปฏิเสธ",
+    "containerLabelWarning": "Container Label ซ้ำใน 24 ชม. (ยังส่งได้ — เป็นเพียงคำเตือน)",
+    "error": {
+      "generic": "เกิดข้อผิดพลาด กรุณาลองใหม่"
+    }
+  },
+  "errors": {
+    "dualControl": "ผู้เบิก/ผู้คืนไม่สามารถตรวจสอบ (verify) เองได้ (Dual Control)",
+    "tripleIndependence": "QA ต้องไม่เป็นผู้เบิก/ผู้คืน/ผู้ตรวจสอบ (Triple Independence)",
+    "usedExceedsIssued": "ปริมาณที่ใช้ ({used}) เกินกว่าปริมาณที่เบิก ({issued})",
+    "lotRejectedMustReject": "Lot ต้นทางถูก Reject แล้ว ต้องคืนเป็น Reject เท่านั้น (ป้องกัน Cross-contamination)",
+    "varianceExplanationRequired": "ปริมาณ Variance เกินเกณฑ์ Tolerance — ต้องระบุเหตุผล",
+    "containerLabelRequired": "ต้องระบุ Container Label",
+    "insufficientStock": "Stock ของ lot ที่เลือกไม่พอ (มี {available} ชิ้น, ขอ {requested} ชิ้น)",
+    "materialNotInBom": "วัตถุดิบนี้ไม่อยู่ใน BOM ของ Work Order",
+    "notPackagingType": "วัตถุดิบนี้ไม่ใช่ Primary Packaging (type ≠ packaging)",
+    "invalidPassword": "รหัสผ่านไม่ถูกต้อง",
+    "issuanceNotPending": "การเบิกนี้ไม่ได้รอตรวจสอบแล้ว",
+    "returnNotPendingQA": "การคืนนี้ไม่ได้รอ QA อนุมัติ",
+    "overrideReasonRequired": "ต้องระบุเหตุผลเมื่อเปลี่ยนสถานะที่ Operator เสนอ"
+  },
+  "reconciliation": {
+    "title": "Packaging Reconciliation",
+    "subtitle": "การกระทบยอด Issued = Used + Returned + Variance",
+    "columns": {
+      "item": "วัตถุดิบ",
+      "category": "ประเภท",
+      "bomPlanned": "BOM Planned",
+      "issued": "Issued",
+      "used": "Used",
+      "returned": "Returned",
+      "variance": "Variance",
+      "variancePercent": "%Variance",
+      "tolerance": "Tolerance",
+      "withinTolerance": "Within"
+    },
+    "summary": {
+      "totalIssued": "รวม Issued",
+      "totalUsed": "รวม Used",
+      "totalReturned": "รวม Returned",
+      "totalVariance": "รวม Variance",
+      "itemsOutsideTolerance": "เกินเกณฑ์"
+    },
+    "withinTolerance": {
+      "yes": "ภายในเกณฑ์",
+      "no": "เกินเกณฑ์"
+    }
+  },
+  "tolerances": {
+    "title": "เกณฑ์ Tolerance ของ Packaging",
+    "columns": {
+      "category": "หมวด",
+      "tolerancePercent": "Tolerance (%)",
+      "isActive": "ใช้งาน",
+      "notes": "หมายเหตุ"
+    },
+    "categories": {
+      "capsule": "แคปซูล",
+      "bottle": "ขวด",
+      "cap": "ฝา",
+      "label": "ฉลาก",
+      "other": "อื่นๆ"
+    }
+  }
+}

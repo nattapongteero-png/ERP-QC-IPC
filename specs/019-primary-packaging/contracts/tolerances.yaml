@@ -1,0 +1,83 @@
+openapi: 3.0.3
+info:
+  title: Packaging Tolerances Admin API
+  version: 1.0.0
+
+paths:
+  /api/master-data/packaging-tolerances:
+    get:
+      summary: List all packaging tolerance rules
+      tags: [Tolerances]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:packaging:return
+      parameters:
+        - { in: query, name: includeInactive, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Tolerance' }
+    post:
+      summary: Create a new tolerance rule
+      tags: [Tolerances]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:packaging:configure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [packagingCategory, tolerancePercent]
+              properties:
+                packagingCategory: { type: string, enum: [capsule, bottle, cap, label, other] }
+                tolerancePercent: { type: number, minimum: 0, maximum: 100 }
+                notes: { type: string }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tolerance' }
+        '409': { description: Tolerance for category already exists }
+
+  /api/master-data/packaging-tolerances/{id}:
+    put:
+      summary: Update tolerance percent or is_active
+      tags: [Tolerances]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:packaging:configure
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tolerancePercent: { type: number, minimum: 0, maximum: 100 }
+                isActive: { type: boolean }
+                notes: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tolerance' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    Tolerance:
+      type: object
+      properties:
+        id: { type: integer }
+        packagingCategory: { type: string }
+        tolerancePercent: { type: number }
+        isActive: { type: boolean }
+        notes: { type: string, nullable: true }
+        createdBy: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }

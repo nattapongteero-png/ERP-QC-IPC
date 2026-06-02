@@ -70,8 +70,8 @@ services:
       - DB_TYPE=mysql
       - JWT_SECRET=${JWT_SECRET}
       - DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-uat:3306/herbal_erp_uat
-      - NEXT_PUBLIC_APP_URL=https://herbal-erp-test-uat.bmscloud.in.th
-      - NEXTAUTH_URL=https://herbal-erp-test-uat.bmscloud.in.th
+      - NEXT_PUBLIC_APP_URL=${UAT_PUBLIC_URL:-http://localhost:6809}
+      - NEXTAUTH_URL=${UAT_PUBLIC_URL:-http://localhost:6809}
       - REPORTING_BACKEND_URL=http://reporting-uat:5000
       - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY}
     depends_on:
