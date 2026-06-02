@@ -117,8 +117,8 @@
     "cancelled": {
       "success": "ยกเลิกคำขอเรียบร้อย"
     },
-    "approvalNotice": "คำขอเบิกเพิ่ม #{{id}} ได้รับการอนุมัติแล้ว",
-    "rejectionNotice": "คำขอเบิกเพิ่ม #{{id}} ถูกปฏิเสธ",
+    "approvalNotice": "คำขอเบิกเพิ่ม #{id} ได้รับการอนุมัติแล้ว",
+    "rejectionNotice": "คำขอเบิกเพิ่ม #{id} ถูกปฏิเสธ",
     "error": {
       "generic": "เกิดข้อผิดพลาด กรุณาลองใหม่"
     }
@@ -126,8 +126,8 @@
   "errors": {
     "dualControl": "ผู้ขอเบิกไม่สามารถอนุมัติคำขอของตนเองได้",
     "duplicate": "ส่งคำขอซ้ำ กรุณารอ 30 วินาที",
-    "exceedSoftCap": "ปริมาณรวมเกิน {{percent}}% ของ BOM กรุณาระบุเหตุผลพิเศษ",
-    "exceedHardCap": "ปริมาณรวมเกินเพดานสูงสุด ({{percent}}%) ของ BOM ไม่สามารถส่งคำขอใหม่ได้จนกว่าจะ review",
+    "exceedSoftCap": "ปริมาณรวมเกิน {percent}% ของ BOM กรุณาระบุเหตุผลพิเศษ",
+    "exceedHardCap": "ปริมาณรวมเกินเพดานสูงสุด ({percent}%) ของ BOM ไม่สามารถส่งคำขอใหม่ได้จนกว่าจะ review",
     "insufficientStock": "วัตถุดิบในคลังไม่เพียงพอ ณ เวลานี้",
     "invalidPassword": "รหัสผ่านไม่ถูกต้อง",
     "requestNotPending": "คำขอนี้ไม่ได้อยู่ในสถานะรออนุมัติแล้ว",
@@ -140,7 +140,7 @@
   "phaseBlock": {
     "banner": {
       "title": "ขั้นตอนนี้ถูกบล็อก",
-      "message": "มีคำขอเบิกเพิ่มของวัตถุดิบ {{materials}} รออนุมัติ — ไม่สามารถ advance phase นี้ได้จนกว่าจะ approve/reject",
+      "message": "มีคำขอเบิกเพิ่มของวัตถุดิบ {materials} รออนุมัติ — ไม่สามารถ advance phase นี้ได้จนกว่าจะ approve/reject",
       "viewRequest": "ดูคำขอ"
     }
   },

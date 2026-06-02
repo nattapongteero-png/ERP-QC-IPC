@@ -17,6 +17,7 @@ dist
 
 # Database data directories
 mysql_data
+uat_mysql_data
 data
 *.sqlite
 *.sqlite3

@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getSession, isAdminRole } from '@/lib/auth';
 import { getRolePermissionSet } from '@/lib/auth/permission-resolver';
 import { listPendingRequestsForSupervisor } from '@/lib/services/material-withdrawal.service';
 
@@ -19,9 +19,11 @@ export async function GET(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const perms = session.role ? await getRolePermissionSet(session.role) : new Set<string>();
-  if (!perms.has(APPROVE_PERMISSION)) {
-    return NextResponse.json({ error: 'Forbidden', code: 'PERMISSION_DENIED' }, { status: 403 });
+  if (!isAdminRole(session.role)) {
+    const perms = session.role ? await getRolePermissionSet(session.role) : new Set<string>();
+    if (!perms.has(APPROVE_PERMISSION)) {
+      return NextResponse.json({ error: 'Forbidden', code: 'PERMISSION_DENIED' }, { status: 403 });
+    }
   }
 
   const factoryCode = request.nextUrl.searchParams.get('factoryCode') ?? undefined;

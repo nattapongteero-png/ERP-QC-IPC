@@ -117,8 +117,8 @@
     "cancelled": {
       "success": "Request cancelled"
     },
-    "approvalNotice": "Withdrawal request #{{id}} has been approved",
-    "rejectionNotice": "Withdrawal request #{{id}} has been rejected",
+    "approvalNotice": "Withdrawal request #{id} has been approved",
+    "rejectionNotice": "Withdrawal request #{id} has been rejected",
     "error": {
       "generic": "An error occurred. Please try again."
     }
@@ -126,8 +126,8 @@
   "errors": {
     "dualControl": "The requester cannot approve their own request",
     "duplicate": "Duplicate submission — please wait 30 seconds",
-    "exceedSoftCap": "Total exceeds {{percent}}% of BOM — please provide special justification",
-    "exceedHardCap": "Total exceeds hard cap ({{percent}}%) of BOM — new requests blocked until WO review",
+    "exceedSoftCap": "Total exceeds {percent}% of BOM — please provide special justification",
+    "exceedHardCap": "Total exceeds hard cap ({percent}%) of BOM — new requests blocked until WO review",
     "insufficientStock": "Insufficient stock at this time",
     "invalidPassword": "Invalid password",
     "requestNotPending": "This request is no longer pending",
@@ -140,7 +140,7 @@
   "phaseBlock": {
     "banner": {
       "title": "This phase is blocked",
-      "message": "Pending withdrawal request for material {{materials}} — cannot advance until approve/reject",
+      "message": "Pending withdrawal request for material {materials} — cannot advance until approve/reject",
       "viewRequest": "View request"
     }
   },

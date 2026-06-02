@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getSession, isAdminRole } from '@/lib/auth';
 import { getRolePermissionSet } from '@/lib/auth/permission-resolver';
 import {
   createWithdrawalRequestSchema,
@@ -33,9 +33,11 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const perms = await sessionPermissions(session.role);
-    if (!perms.has(REQUEST_PERMISSION)) {
-      return NextResponse.json({ error: 'Forbidden', code: 'PERMISSION_DENIED' }, { status: 403 });
+    if (!isAdminRole(session.role)) {
+      const perms = await sessionPermissions(session.role);
+      if (!perms.has(REQUEST_PERMISSION)) {
+        return NextResponse.json({ error: 'Forbidden', code: 'PERMISSION_DENIED' }, { status: 403 });
+      }
     }
 
     const body = await request.json().catch(() => ({}));

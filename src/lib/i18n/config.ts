@@ -54,6 +54,7 @@ export const namespaces = [
   'issues',
   'login',
   'masterData',
+  'material-withdrawal',
   'production',
   'purchasing',
   'quality',

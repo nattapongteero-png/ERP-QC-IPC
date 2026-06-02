@@ -84,26 +84,28 @@ export function WithdrawalPanel({
   }, [bomOptions]);
 
   return (
-    <div className="space-y-3">
+    <div
+      data-testid="withdrawal-panel"
+      className="space-y-3 rounded-lg border-2 border-blue-200 bg-blue-50/50 p-4"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-blue-900 flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          {t('page.title')}
+        </h3>
+        <Button
+          type="default"
+          stylingMode="contained"
+          onClick={() => setShowDialog(true)}
+          text={t('buttons.request')}
+        />
+      </div>
+
       <PhaseBlockBanner
         workOrderId={workOrderId}
         onViewRequest={(id) => setOpenDetailId(id)}
         materialNameLookup={materialNameLookup}
       />
-
-      <div className="flex justify-end">
-        <Button
-          type="default"
-          stylingMode="contained"
-          onClick={() => setShowDialog(true)}
-          render={() => (
-            <span className="inline-flex items-center gap-1">
-              <Plus className="w-4 h-4" />
-              {t('buttons.request')}
-            </span>
-          )}
-        />
-      </div>
 
       <MaterialWithdrawalRequestDialog
         visible={showDialog}
