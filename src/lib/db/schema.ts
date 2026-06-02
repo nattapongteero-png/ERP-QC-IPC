@@ -1577,6 +1577,15 @@ export const sqliteWOPackagingMaterials = sqliteTable('wo_packaging_materials', 
   unit: text('unit').notNull(),
   operatorId: integer('operator_id').references(() => sqliteUsers.id),
   verifierId: integer('verifier_id').references(() => sqliteUsers.id),
+  // Feature 019: Primary Packaging Issuance flow columns (nullable for backward compat with existing rows)
+  sourceLotId: integer('source_lot_id'),
+  containerLabel: text('container_label'),
+  verifierUserId: integer('verifier_user_id'),
+  verifierSignatureId: integer('verifier_signature_id'),
+  verifiedAt: text('verified_at'),
+  // pending_verification | issued | cancelled — distinct from legacy unused 'status'
+  flowStatus: text('flow_status').default('pending_verification'),
+  roomId: integer('room_id'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -4898,6 +4907,14 @@ export const mysqlWOPackagingMaterials = mysqlTable('wo_packaging_materials', {
   unit: varchar('unit', { length: 50 }).notNull(),
   operatorId: int('operator_id').references(() => mysqlUsers.id),
   verifierId: int('verifier_id').references(() => mysqlUsers.id),
+  // Feature 019: Primary Packaging Issuance flow columns
+  sourceLotId: int('source_lot_id'),
+  containerLabel: varchar('container_label', { length: 50 }),
+  verifierUserId: int('verifier_user_id'),
+  verifierSignatureId: int('verifier_signature_id'),
+  verifiedAt: datetime('verified_at'),
+  flowStatus: varchar('flow_status', { length: 30 }).default('pending_verification'),
+  roomId: int('room_id'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -7454,3 +7471,32 @@ export {
   type MaterialWithdrawalRuleDb,
   type NewMaterialWithdrawalRuleDb,
 } from './schema-material-withdrawal';
+
+// ============================================
+// Primary Packaging Module (feature 019)
+// ============================================
+export {
+  // SQLite tables
+  sqliteWoPackagingReturns,
+  sqliteWoPackagingReturnApprovals,
+  sqlitePackagingTolerances,
+  // SQLite relations
+  sqliteWoPackagingReturnsRelations,
+  sqliteWoPackagingReturnApprovalsRelations,
+  sqlitePackagingTolerancesRelations,
+  // MySQL tables
+  mysqlWoPackagingReturns,
+  mysqlWoPackagingReturnApprovals,
+  mysqlPackagingTolerances,
+  // MySQL relations
+  mysqlWoPackagingReturnsRelations,
+  mysqlWoPackagingReturnApprovalsRelations,
+  mysqlPackagingTolerancesRelations,
+  // Types
+  type WoPackagingReturnDb,
+  type NewWoPackagingReturnDb,
+  type WoPackagingReturnApprovalDb,
+  type NewWoPackagingReturnApprovalDb,
+  type PackagingToleranceDb,
+  type NewPackagingToleranceDb,
+} from './schema-packaging';

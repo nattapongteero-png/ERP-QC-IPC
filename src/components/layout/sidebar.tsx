@@ -110,6 +110,7 @@ const navigation: NavItem[] = [
       { name: 'Batch Records', href: '/production/batch-records', icon: FileText },
       { name: 'เบิกวัตถุดิบเพิ่ม', href: '/material-withdrawal', icon: ArrowLeftRight },
       { name: 'รออนุมัติเบิกเพิ่ม', href: '/material-withdrawal/pending', icon: Bell },
+      { name: 'เกณฑ์ Packaging Tolerance', href: '/master-data/packaging-tolerances', icon: Sliders },
       { name: 'Master Data', href: '/master-data', icon: Settings },
     ],
   },

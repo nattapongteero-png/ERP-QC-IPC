@@ -1,0 +1,187 @@
+openapi: 3.0.3
+info:
+  title: Packaging Return + QA Approval API
+  version: 1.0.0
+
+paths:
+  /api/production/work-orders/{workOrderId}/packaging-returns:
+    post:
+      summary: Create a packaging return (status=pending_qa_approval after verifier signs)
+      tags: [Returns]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:packaging:return
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateReturn' }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReturnDetail' }
+        '400':
+          description: USED_EXCEEDS_ISSUED, LOT_REJECTED_MUST_REJECT, ISSUANCE_NOT_ISSUED, CONTAINER_LABEL_REQUIRED, VARIANCE_EXPLANATION_REQUIRED
+    get:
+      summary: List returns for a WO (filter by status)
+      tags: [Returns]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ReturnSummary' }
+
+  /api/production/work-orders/{workOrderId}/packaging-returns/{returnId}:
+    get:
+      summary: Get return detail
+      tags: [Returns]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: path, name: returnId, required: true, schema: { type: integer } }
+      responses:
+        '200': { content: { application/json: { schema: { $ref: '#/components/schemas/ReturnDetail' } } } }
+
+  /api/production/work-orders/{workOrderId}/packaging-returns/{returnId}/verify:
+    post:
+      summary: Verifier signs return (Dual Control — verifier ≠ returner)
+      tags: [Returns]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:packaging:return
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: path, name: returnId, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReturnDetail' }
+        '400': { description: DUAL_CONTROL_VIOLATION, INVALID_PASSWORD }
+
+  /api/production/work-orders/{workOrderId}/packaging-returns/{returnId}/approve:
+    post:
+      summary: QA approves return (Triple Independence — QA ≠ returner ≠ verifier)
+      tags: [QA Approval]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:packaging:approve
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: path, name: returnId, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [finalStatus, password]
+              properties:
+                finalStatus: { type: string, enum: [approved_reusable, approved_quarantine, rejected] }
+                overrideReason: { type: string, description: Required when finalStatus differs from operator proposal }
+                qaNotes: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Approved (atomic transaction completed)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  return: { $ref: '#/components/schemas/ReturnDetail' }
+                  newLotId: { type: integer, nullable: true, description: Created on Reusable/Quarantine }
+                  inventoryTransactionId: { type: integer, nullable: true }
+                  deviationId: { type: integer, nullable: true, description: Created on outside_tolerance or Rejected }
+        '400':
+          description: TRIPLE_INDEPENDENCE_VIOLATION, INVALID_PASSWORD, RETURN_NOT_PENDING_QA, OVERRIDE_REASON_REQUIRED
+
+  /api/production/work-orders/{workOrderId}/packaging-returns/{returnId}/reject:
+    post:
+      summary: QA rejects (shortcut — same as approve with finalStatus=rejected)
+      tags: [QA Approval]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:packaging:approve
+      parameters:
+        - { in: path, name: workOrderId, required: true, schema: { type: integer } }
+        - { in: path, name: returnId, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, password]
+              properties:
+                reason: { type: string, minLength: 10 }
+                password: { type: string }
+      responses:
+        '200': { content: { application/json: { schema: { $ref: '#/components/schemas/ReturnDetail' } } } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    CreateReturn:
+      type: object
+      required: [woPackagingMaterialId, usedQty, returnQty, varianceReason, returnContainerLabel, proposedStatus]
+      properties:
+        woPackagingMaterialId: { type: integer }
+        usedQty: { type: integer, minimum: 0 }
+        returnQty: { type: integer, minimum: 0 }
+        varianceReason: { type: string, enum: [sampling, spillage, process_loss, cleaning, damaged, unaccounted, other] }
+        varianceExplanation: { type: string }
+        returnContainerLabel: { type: string, minLength: 3, maxLength: 50 }
+        proposedStatus: { type: string, enum: [reusable, quarantine, rejected] }
+    ReturnSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        woPackagingMaterialId: { type: integer }
+        itemName: { type: string }
+        usedQty: { type: integer }
+        returnQty: { type: integer }
+        varianceQty: { type: integer }
+        variancePercent: { type: number }
+        outsideTolerance: { type: boolean }
+        status: { type: string, enum: [pending_qa_approval, approved_reusable, approved_quarantine, rejected] }
+        proposedStatus: { type: string }
+        returner: { type: object, properties: { id: { type: integer }, name: { type: string } } }
+        submittedAt: { type: string, format: date-time }
+    ReturnDetail:
+      allOf:
+        - $ref: '#/components/schemas/ReturnSummary'
+        - type: object
+          properties:
+            varianceReason: { type: string }
+            varianceExplanation: { type: string, nullable: true }
+            returnContainerLabel: { type: string }
+            verifier: { type: object, nullable: true }
+            verifiedAt: { type: string, format: date-time, nullable: true }
+            approval:
+              nullable: true
+              type: object
+              properties:
+                qaUserId: { type: integer }
+                qaName: { type: string }
+                finalStatus: { type: string }
+                overrideReason: { type: string, nullable: true }
+                qaNotes: { type: string, nullable: true }
+                newLotId: { type: integer, nullable: true }
+                deviationId: { type: integer, nullable: true }
+                actionAt: { type: string, format: date-time }
