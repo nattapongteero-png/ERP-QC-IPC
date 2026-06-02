@@ -1,0 +1,176 @@
+{
+  "page": {
+    "title": "Extra Material Withdrawal",
+    "description": "Request additional material withdrawal for machine setup losses"
+  },
+  "breadcrumbs": {
+    "materialWithdrawal": "Extra Withdrawal",
+    "pending": "Pending Approval",
+    "reports": "Reports",
+    "rules": "Withdrawal Rules"
+  },
+  "common": {
+    "request": "Request",
+    "requests": "Withdrawal Requests"
+  },
+  "form": {
+    "title": "Request Extra Material Withdrawal",
+    "workOrder": {
+      "label": "Work Order"
+    },
+    "material": {
+      "label": "Material",
+      "placeholder": "Choose from this Work Order's BOM"
+    },
+    "quantity": {
+      "label": "Additional Quantity"
+    },
+    "unit": {
+      "label": "Unit"
+    },
+    "reason": {
+      "label": "Reason",
+      "options": {
+        "machine_setup_loss": "Machine Setup Loss",
+        "equipment_trial_run": "Equipment Trial Run",
+        "parameter_adjustment": "Parameter Adjustment",
+        "other": "Other (please specify)"
+      }
+    },
+    "reasonDetail": {
+      "label": "Reason Detail",
+      "placeholder": "Describe in detail"
+    },
+    "machinePhase": {
+      "label": "Machine Phase",
+      "placeholder": "Specify the machine setup phase"
+    },
+    "room": {
+      "label": "Production Room"
+    },
+    "attachments": {
+      "label": "Evidence (photos)",
+      "dragDrop": "Drag and drop files or click to select",
+      "limit": "Max 5 files • 5 MB each"
+    },
+    "submit": "Submit Request",
+    "cancel": "Cancel"
+  },
+  "table": {
+    "columns": {
+      "id": "Request #",
+      "workOrder": "Work Order",
+      "factory": "Factory",
+      "material": "Material",
+      "quantityRequested": "Qty Requested",
+      "quantityApproved": "Qty Approved",
+      "reason": "Reason",
+      "status": "Status",
+      "requestedBy": "Requested By",
+      "requestedAt": "Requested At",
+      "approver": "Approver",
+      "actions": "Actions"
+    }
+  },
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled"
+  },
+  "buttons": {
+    "request": "Request Extra Withdrawal",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel Request",
+    "viewDetail": "View Detail",
+    "export": "Export",
+    "exportExcel": "Export Excel",
+    "exportPdf": "Export PDF",
+    "refresh": "Refresh"
+  },
+  "approval": {
+    "approveTitle": "Approve Withdrawal Request",
+    "rejectTitle": "Reject Withdrawal Request",
+    "comment": {
+      "label": "Comment (optional)"
+    },
+    "rejectReason": {
+      "label": "Rejection Reason",
+      "placeholder": "Minimum 10 characters"
+    },
+    "password": {
+      "label": "Password for E-signature",
+      "placeholder": "Enter your password to confirm"
+    }
+  },
+  "toast": {
+    "created": {
+      "success": "Request submitted"
+    },
+    "approved": {
+      "success": "Request approved"
+    },
+    "rejected": {
+      "success": "Request rejected"
+    },
+    "cancelled": {
+      "success": "Request cancelled"
+    },
+    "approvalNotice": "Withdrawal request #{{id}} has been approved",
+    "rejectionNotice": "Withdrawal request #{{id}} has been rejected",
+    "error": {
+      "generic": "An error occurred. Please try again."
+    }
+  },
+  "errors": {
+    "dualControl": "The requester cannot approve their own request",
+    "duplicate": "Duplicate submission — please wait 30 seconds",
+    "exceedSoftCap": "Total exceeds {{percent}}% of BOM — please provide special justification",
+    "exceedHardCap": "Total exceeds hard cap ({{percent}}%) of BOM — new requests blocked until WO review",
+    "insufficientStock": "Insufficient stock at this time",
+    "invalidPassword": "Invalid password",
+    "requestNotPending": "This request is no longer pending",
+    "materialNotInBom": "Material not in this Work Order's BOM",
+    "phaseRequired": "Machine phase is required",
+    "reasonDetailRequired": "Reason detail is required",
+    "attachmentTooLarge": "File exceeds 5 MB",
+    "tooManyAttachments": "Maximum 5 attachments allowed"
+  },
+  "phaseBlock": {
+    "banner": {
+      "title": "This phase is blocked",
+      "message": "Pending withdrawal request for material {{materials}} — cannot advance until approve/reject",
+      "viewRequest": "View request"
+    }
+  },
+  "report": {
+    "title": "Material Withdrawal Report",
+    "filters": {
+      "factory": "Factory",
+      "dateRange": "Date Range",
+      "groupBy": "Group By"
+    },
+    "groupBy": {
+      "month": "Month",
+      "quarter": "Quarter",
+      "machine": "Machine",
+      "material": "Material",
+      "reasonType": "Reason"
+    },
+    "kpi": {
+      "totalRequests": "Total Requests",
+      "approvalRate": "Approval Rate",
+      "topWastage": "Top Wastage Materials"
+    }
+  },
+  "rules": {
+    "title": "Withdrawal Rules",
+    "softCap": "Soft Cap (%)",
+    "hardCap": "Hard Cap (%)",
+    "factory": "Factory",
+    "materialCategory": "Material Category",
+    "any": "Any",
+    "active": "Active"
+  }
+}

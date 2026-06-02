@@ -418,6 +418,8 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   totalCost: real('total_cost'), // quantity × unitCost
   costLayerId: integer('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
   stockAtApproval: real('stock_at_approval'), // Stock snapshot when requisition was approved
+  // Feature 018: cumulative extra qty deducted via approved material withdrawal requests
+  additionalQtyViaWithdrawalRequest: real('additional_qty_via_withdrawal_request').notNull().default(0),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -550,6 +552,8 @@ export const sqliteDeviations = sqliteTable('deviations', {
   closedBy: integer('closed_by').references(() => sqliteUsers.id),
   closedAt: text('closed_at'),
   closureNotes: text('closure_notes'),
+  // Feature 018: link back to originating material withdrawal request (nullable)
+  withdrawalRequestId: integer('withdrawal_request_id'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -1977,6 +1981,8 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   totalCost: decimal('total_cost', { precision: 15, scale: 4 }), // quantity × unitCost
   costLayerId: int('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
   stockAtApproval: decimal('stock_at_approval', { precision: 15, scale: 4 }), // Stock snapshot when requisition was approved
+  // Feature 018: cumulative extra qty deducted via approved material withdrawal requests
+  additionalQtyViaWithdrawalRequest: decimal('additional_qty_via_withdrawal_request', { precision: 15, scale: 4 }).notNull().default('0'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -2103,6 +2109,8 @@ export const mysqlDeviations = mysqlTable('deviations', {
   closedBy: int('closed_by').references(() => mysqlUsers.id),
   closedAt: datetime('closed_at'),
   closureNotes: mysqlText('closure_notes'),
+  // Feature 018: link back to originating material withdrawal request (nullable)
+  withdrawalRequestId: int('withdrawal_request_id'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -7405,3 +7413,44 @@ export {
   type IssueNotificationDb,
   type NewIssueNotificationDb,
 } from './schema-issues';
+
+// ============================================
+// Material Withdrawal Approval Module (feature 018)
+// ============================================
+export {
+  // SQLite tables
+  sqliteMaterialWithdrawalRequests,
+  sqliteMaterialWithdrawalRequestItems,
+  sqliteMaterialWithdrawalApprovals,
+  sqliteMaterialWithdrawalAttachments,
+  sqliteMaterialWithdrawalRules,
+  // SQLite relations
+  sqliteMaterialWithdrawalRequestsRelations,
+  sqliteMaterialWithdrawalRequestItemsRelations,
+  sqliteMaterialWithdrawalApprovalsRelations,
+  sqliteMaterialWithdrawalAttachmentsRelations,
+  sqliteMaterialWithdrawalRulesRelations,
+  // MySQL tables
+  mysqlMaterialWithdrawalRequests,
+  mysqlMaterialWithdrawalRequestItems,
+  mysqlMaterialWithdrawalApprovals,
+  mysqlMaterialWithdrawalAttachments,
+  mysqlMaterialWithdrawalRules,
+  // MySQL relations
+  mysqlMaterialWithdrawalRequestsRelations,
+  mysqlMaterialWithdrawalRequestItemsRelations,
+  mysqlMaterialWithdrawalApprovalsRelations,
+  mysqlMaterialWithdrawalAttachmentsRelations,
+  mysqlMaterialWithdrawalRulesRelations,
+  // Types
+  type MaterialWithdrawalRequestDb,
+  type NewMaterialWithdrawalRequestDb,
+  type MaterialWithdrawalRequestItemDb,
+  type NewMaterialWithdrawalRequestItemDb,
+  type MaterialWithdrawalApprovalDb,
+  type NewMaterialWithdrawalApprovalDb,
+  type MaterialWithdrawalAttachmentDb,
+  type NewMaterialWithdrawalAttachmentDb,
+  type MaterialWithdrawalRuleDb,
+  type NewMaterialWithdrawalRuleDb,
+} from './schema-material-withdrawal';

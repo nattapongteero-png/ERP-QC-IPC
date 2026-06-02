@@ -108,6 +108,7 @@ const navigation: NavItem[] = [
       { name: 'BOM/Recipes', href: '/production/bom', icon: FileText },
       { name: 'Work Orders', href: '/production/work-orders', icon: ClipboardList },
       { name: 'Batch Records', href: '/production/batch-records', icon: FileText },
+      { name: 'เบิกวัตถุดิบเพิ่ม', href: '/material-withdrawal', icon: ArrowLeftRight },
       { name: 'Master Data', href: '/master-data', icon: Settings },
     ],
   },

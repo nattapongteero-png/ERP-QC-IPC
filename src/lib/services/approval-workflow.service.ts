@@ -28,6 +28,8 @@ const APPROVE_PERMISSION_BY_DOC_TYPE: Record<string, string> = {
   payment: 'accounting:approve',
   credit_note: 'accounting:approve',
   debit_note: 'accounting:approve',
+  // Feature 018: material withdrawal request approval
+  material_withdrawal_request: 'production:withdrawal:approve',
 };
 
 /**

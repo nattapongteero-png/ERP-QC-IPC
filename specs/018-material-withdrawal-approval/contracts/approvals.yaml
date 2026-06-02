@@ -1,0 +1,122 @@
+openapi: 3.0.3
+info:
+  title: Material Withdrawal Approval API
+  version: 1.0.0
+
+paths:
+  /api/material-withdrawal/requests/{id}/approve:
+    post:
+      summary: Approve a pending request (E-signature required)
+      tags: [Approvals]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:withdrawal:approve
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approvedItems, password]
+              properties:
+                approvedItems:
+                  type: array
+                  description: Optionally reduce per-line quantities; omit to approve as requested
+                  items:
+                    type: object
+                    required: [itemId, quantityApproved]
+                    properties:
+                      itemId: { type: integer }
+                      quantityApproved: { type: number, minimum: 0 }
+                comment: { type: string }
+                password: { type: string, description: 'For E-signature verification' }
+      responses:
+        '200':
+          description: Approved — returns final state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request: { $ref: 'requests.yaml#/components/schemas/RequestDetail' }
+                  inventoryTransactionIds: { type: array, items: { type: integer } }
+                  deviationId: { type: integer }
+                  unblockedPhaseIds: { type: array, items: { type: integer } }
+        '400':
+          description: |
+            Possible errors:
+            - INSUFFICIENT_STOCK: stock not available at approve-time
+            - DUAL_CONTROL_VIOLATION: approver is the same as requester
+            - INVALID_PASSWORD: e-sig verification failed
+            - REQUEST_NOT_PENDING: already approved/rejected/cancelled
+            - EXCEEDS_HARD_CAP: approval would exceed hard cap
+        '403':
+          description: Missing permission
+        '404':
+          description: Request not found
+
+  /api/material-withdrawal/requests/{id}/reject:
+    post:
+      summary: Reject a pending request (E-signature required)
+      tags: [Approvals]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:withdrawal:approve
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, password]
+              properties:
+                reason: { type: string, minLength: 10 }
+                password: { type: string }
+      responses:
+        '200':
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request: { $ref: 'requests.yaml#/components/schemas/RequestDetail' }
+                  deviationId: { type: integer, description: 'Record-only deviation for traceability' }
+                  unblockedPhaseIds: { type: array, items: { type: integer } }
+        '400':
+          description: |
+            DUAL_CONTROL_VIOLATION / INVALID_PASSWORD / REQUEST_NOT_PENDING
+
+  /api/production/work-orders/{id}/blocked-phases:
+    get:
+      summary: List phases blocked by pending withdrawal requests (Selective Block FR-035..040)
+      tags: [Production Gate]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    phaseId: { type: integer }
+                    phaseName: { type: string }
+                    blockedReason: { type: string }
+                    pendingRequestIds: { type: array, items: { type: integer } }
+                    affectedMaterials:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          materialId: { type: integer }
+                          materialName: { type: string }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }

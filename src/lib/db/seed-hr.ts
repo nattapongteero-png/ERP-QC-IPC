@@ -996,6 +996,10 @@ const defaultAppPermissions = [
   { code: 'production:approve', name: 'Production Approve', module: 'Production', description: 'อนุมัติใบเบิก + release WO' },
   { code: 'production:execute', name: 'Production Execute', module: 'Production', description: 'ปฏิบัติงานจริง (weighing, operations, IPC)' },
   { code: 'production:complete', name: 'Production Complete', module: 'Production', description: 'ปิด Work Order + บันทึก FG receipt' },
+  // Feature 018: Material withdrawal approval (machine setup loss)
+  { code: 'production:withdrawal:request', name: 'Material Withdrawal Request', module: 'Production', description: 'ขอเบิกวัตถุดิบเพิ่ม (Machine Setup Loss / Trial Run)' },
+  { code: 'production:withdrawal:approve', name: 'Material Withdrawal Approve', module: 'Production', description: 'อนุมัติคำขอเบิกวัตถุดิบเพิ่ม (หัวหน้าฝ่ายผลิต)' },
+  { code: 'production:withdrawal:configure', name: 'Material Withdrawal Configure', module: 'Production', description: 'ตั้งค่า soft/hard cap ของการเบิกเพิ่ม' },
 
   // ═══════════════════ Quality Module ═══════════════════
   { code: 'quality:read', name: 'Quality View', module: 'Quality', description: 'ดูข้อมูล QC / Specs / Deviations' },

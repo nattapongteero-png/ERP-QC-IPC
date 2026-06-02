@@ -1,0 +1,176 @@
+{
+  "page": {
+    "title": "เบิกวัตถุดิบเพิ่ม",
+    "description": "ขออนุมัติเบิกวัตถุดิบเพิ่มกรณีสูญเสียระหว่างการตั้งค่าเครื่อง"
+  },
+  "breadcrumbs": {
+    "materialWithdrawal": "เบิกวัตถุดิบเพิ่ม",
+    "pending": "รออนุมัติ",
+    "reports": "รายงาน",
+    "rules": "กฎเกณฑ์การเบิก"
+  },
+  "common": {
+    "request": "คำขอ",
+    "requests": "คำขอเบิกเพิ่ม"
+  },
+  "form": {
+    "title": "ขอเบิกวัตถุดิบเพิ่ม",
+    "workOrder": {
+      "label": "ใบสั่งผลิต"
+    },
+    "material": {
+      "label": "วัตถุดิบ",
+      "placeholder": "เลือกจากรายการ BOM ของใบสั่งผลิตนี้"
+    },
+    "quantity": {
+      "label": "ปริมาณที่ขอเบิกเพิ่ม"
+    },
+    "unit": {
+      "label": "หน่วย"
+    },
+    "reason": {
+      "label": "สาเหตุ",
+      "options": {
+        "machine_setup_loss": "การตั้งค่าเครื่อง (Machine Setup Loss)",
+        "equipment_trial_run": "การทดสอบเครื่อง (Equipment Trial Run)",
+        "parameter_adjustment": "การปรับ parameter",
+        "other": "อื่นๆ (ระบุเหตุผล)"
+      }
+    },
+    "reasonDetail": {
+      "label": "รายละเอียดสาเหตุ",
+      "placeholder": "ระบุเหตุผลโดยละเอียด"
+    },
+    "machinePhase": {
+      "label": "Phase ของเครื่อง",
+      "placeholder": "ระบุ phase ของการตั้งค่าเครื่อง"
+    },
+    "room": {
+      "label": "ห้องผลิต"
+    },
+    "attachments": {
+      "label": "หลักฐาน (รูปภาพ)",
+      "dragDrop": "ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือก",
+      "limit": "สูงสุด 5 ไฟล์ • ขนาดไม่เกิน 5 MB ต่อไฟล์"
+    },
+    "submit": "ส่งคำขอ",
+    "cancel": "ยกเลิก"
+  },
+  "table": {
+    "columns": {
+      "id": "เลขที่คำขอ",
+      "workOrder": "ใบสั่งผลิต",
+      "factory": "โรงงาน",
+      "material": "วัตถุดิบ",
+      "quantityRequested": "ปริมาณที่ขอ",
+      "quantityApproved": "ปริมาณที่อนุมัติ",
+      "reason": "สาเหตุ",
+      "status": "สถานะ",
+      "requestedBy": "ผู้ขอ",
+      "requestedAt": "วันที่ขอ",
+      "approver": "ผู้อนุมัติ",
+      "actions": "การจัดการ"
+    }
+  },
+  "status": {
+    "pending": "รออนุมัติ",
+    "approved": "อนุมัติแล้ว",
+    "rejected": "ปฏิเสธ",
+    "cancelled": "ยกเลิก"
+  },
+  "buttons": {
+    "request": "ขอเบิกวัตถุดิบเพิ่ม",
+    "approve": "อนุมัติ",
+    "reject": "ปฏิเสธ",
+    "cancel": "ยกเลิกคำขอ",
+    "viewDetail": "ดูรายละเอียด",
+    "export": "Export",
+    "exportExcel": "Export Excel",
+    "exportPdf": "Export PDF",
+    "refresh": "รีเฟรช"
+  },
+  "approval": {
+    "approveTitle": "อนุมัติคำขอเบิกเพิ่ม",
+    "rejectTitle": "ปฏิเสธคำขอเบิกเพิ่ม",
+    "comment": {
+      "label": "หมายเหตุ (ถ้ามี)"
+    },
+    "rejectReason": {
+      "label": "เหตุผลในการปฏิเสธ",
+      "placeholder": "ระบุเหตุผลอย่างน้อย 10 ตัวอักษร"
+    },
+    "password": {
+      "label": "รหัสผ่านสำหรับลงนามอิเล็กทรอนิกส์",
+      "placeholder": "กรุณากรอกรหัสผ่านยืนยัน"
+    }
+  },
+  "toast": {
+    "created": {
+      "success": "บันทึกคำขอเรียบร้อย"
+    },
+    "approved": {
+      "success": "อนุมัติคำขอเรียบร้อย"
+    },
+    "rejected": {
+      "success": "ปฏิเสธคำขอเรียบร้อย"
+    },
+    "cancelled": {
+      "success": "ยกเลิกคำขอเรียบร้อย"
+    },
+    "approvalNotice": "คำขอเบิกเพิ่ม #{{id}} ได้รับการอนุมัติแล้ว",
+    "rejectionNotice": "คำขอเบิกเพิ่ม #{{id}} ถูกปฏิเสธ",
+    "error": {
+      "generic": "เกิดข้อผิดพลาด กรุณาลองใหม่"
+    }
+  },
+  "errors": {
+    "dualControl": "ผู้ขอเบิกไม่สามารถอนุมัติคำขอของตนเองได้",
+    "duplicate": "ส่งคำขอซ้ำ กรุณารอ 30 วินาที",
+    "exceedSoftCap": "ปริมาณรวมเกิน {{percent}}% ของ BOM กรุณาระบุเหตุผลพิเศษ",
+    "exceedHardCap": "ปริมาณรวมเกินเพดานสูงสุด ({{percent}}%) ของ BOM ไม่สามารถส่งคำขอใหม่ได้จนกว่าจะ review",
+    "insufficientStock": "วัตถุดิบในคลังไม่เพียงพอ ณ เวลานี้",
+    "invalidPassword": "รหัสผ่านไม่ถูกต้อง",
+    "requestNotPending": "คำขอนี้ไม่ได้อยู่ในสถานะรออนุมัติแล้ว",
+    "materialNotInBom": "วัตถุดิบนี้ไม่อยู่ใน BOM ของใบสั่งผลิตนี้",
+    "phaseRequired": "กรุณาระบุ phase ของเครื่อง",
+    "reasonDetailRequired": "กรุณาระบุรายละเอียดสาเหตุ",
+    "attachmentTooLarge": "ไฟล์ขนาดเกิน 5 MB",
+    "tooManyAttachments": "แนบไฟล์ได้สูงสุด 5 ไฟล์"
+  },
+  "phaseBlock": {
+    "banner": {
+      "title": "ขั้นตอนนี้ถูกบล็อก",
+      "message": "มีคำขอเบิกเพิ่มของวัตถุดิบ {{materials}} รออนุมัติ — ไม่สามารถ advance phase นี้ได้จนกว่าจะ approve/reject",
+      "viewRequest": "ดูคำขอ"
+    }
+  },
+  "report": {
+    "title": "รายงานการเบิกวัตถุดิบเพิ่ม",
+    "filters": {
+      "factory": "โรงงาน",
+      "dateRange": "ช่วงเวลา",
+      "groupBy": "จัดกลุ่มตาม"
+    },
+    "groupBy": {
+      "month": "เดือน",
+      "quarter": "ไตรมาส",
+      "machine": "เครื่อง",
+      "material": "วัตถุดิบ",
+      "reasonType": "สาเหตุ"
+    },
+    "kpi": {
+      "totalRequests": "คำขอทั้งหมด",
+      "approvalRate": "อัตราการอนุมัติ",
+      "topWastage": "วัตถุดิบที่สูญเสียบ่อย"
+    }
+  },
+  "rules": {
+    "title": "กฎเกณฑ์การเบิกเพิ่ม",
+    "softCap": "Soft Cap (%)",
+    "hardCap": "Hard Cap (%)",
+    "factory": "โรงงาน",
+    "materialCategory": "หมวดวัตถุดิบ",
+    "any": "ทุก",
+    "active": "ใช้งาน"
+  }
+}

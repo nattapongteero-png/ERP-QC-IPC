@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: Material Withdrawal Requests API
+  version: 1.0.0
+  description: |
+    CRUD-style endpoints for material withdrawal requests.
+    Feature: 018-material-withdrawal-approval
+
+paths:
+  /api/material-withdrawal/requests:
+    post:
+      summary: Create a new withdrawal request
+      tags: [Requests]
+      security:
+        - bearerAuth: []
+      x-required-permission: production:withdrawal:request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestDetail'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Conflict — exceeds hard cap / duplicate submission within 30s
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: List requests (with filters)
+      tags: [Requests]
+      security:
+        - bearerAuth: []
+      parameters:
+        - { in: query, name: workOrderId, schema: { type: integer } }
+        - { in: query, name: factoryId, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string, enum: [pending, approved, rejected, cancelled] } }
+        - { in: query, name: reasonType, schema: { type: string } }
+        - { in: query, name: dateFrom, schema: { type: string, format: date } }
+        - { in: query, name: dateTo, schema: { type: string, format: date } }
+        - { in: query, name: requestedBy, schema: { type: integer } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, default: 20, maximum: 100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/RequestSummary' } }
+                  total: { type: integer }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+
+  /api/material-withdrawal/requests/{id}:
+    get:
+      summary: Get request detail (incl. items, attachments, approval if any)
+      tags: [Requests]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RequestDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Cancel a pending request (only by requester or admin)
+      tags: [Requests]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        '204': { description: No Content }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Conflict — request no longer in pending state
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Error' } }
+
+  /api/material-withdrawal/pending:
+    get:
+      summary: Supervisor queue — requests pending approval for WOs the user supervises
+      tags: [Requests]
+      security: [{ bearerAuth: [] }]
+      x-required-permission: production:withdrawal:approve
+      parameters:
+        - { in: query, name: factoryId, schema: { type: integer } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RequestSummary' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  schemas:
+    CreateRequest:
+      type: object
+      required: [workOrderId, items, reasonType, roomId]
+      properties:
+        workOrderId: { type: integer }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: object
+            required: [materialId, quantityRequested, unit]
+            properties:
+              materialId: { type: integer }
+              quantityRequested: { type: number, exclusiveMinimum: 0 }
+              unit: { type: string }
+        reasonType:
+          type: string
+          enum: [machine_setup_loss, equipment_trial_run, parameter_adjustment, other]
+        reasonDetail: { type: string, description: 'Required when reasonType=other' }
+        machinePhase: { type: string, description: 'Required when reasonType=machine_setup_loss' }
+        roomId: { type: integer }
+        attachmentIds: { type: array, items: { type: integer }, maxItems: 5 }
+
+    RequestSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        workOrderId: { type: integer }
+        workOrderNumber: { type: string }
+        factoryId: { type: integer }
+        factoryName: { type: string }
+        status: { type: string }
+        reasonType: { type: string }
+        requestedAt: { type: string, format: date-time }
+        requestedBy:
+          type: object
+          properties: { id: { type: integer }, name: { type: string } }
+        itemCount: { type: integer }
+
+    RequestDetail:
+      allOf:
+        - $ref: '#/components/schemas/RequestSummary'
+        - type: object
+          properties:
+            reasonDetail: { type: string, nullable: true }
+            machinePhase: { type: string, nullable: true }
+            roomId: { type: integer }
+            roomName: { type: string }
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: integer }
+                  materialId: { type: integer }
+                  materialName: { type: string }
+                  quantityRequested: { type: number }
+                  quantityApproved: { type: number, nullable: true }
+                  unit: { type: string }
+                  bomPlannedQuantity: { type: number }
+                  cumulativeExtraAfterApprove: { type: number, nullable: true }
+            attachments:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: integer }
+                  fileUrl: { type: string }
+                  fileName: { type: string }
+                  mimeType: { type: string }
+                  sizeBytes: { type: integer }
+            approval:
+              nullable: true
+              type: object
+              properties:
+                approverUserId: { type: integer }
+                approverName: { type: string }
+                action: { type: string, enum: [approve, reject] }
+                actionAt: { type: string, format: date-time }
+                reason: { type: string, nullable: true }
+                signatureId: { type: integer }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+        code: { type: string }
+
+  responses:
+    BadRequest:
+      description: Invalid payload
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/Error' } }
+    Forbidden:
+      description: Missing permission
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/Error' } }
+    NotFound:
+      description: Not found
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/Error' } }
