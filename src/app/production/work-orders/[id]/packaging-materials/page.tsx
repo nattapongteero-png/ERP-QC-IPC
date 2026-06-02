@@ -10,7 +10,6 @@ import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
 import { Box, CheckCircle2, Clock, Plus, Undo2 } from 'lucide-react';
-import { MainLayout } from '@/components/layout/main-layout';
 import { PackagingIssuanceDialog } from '@/components/production/packaging-issuance-dialog';
 import { PackagingReturnDialog } from '@/components/production/packaging-return-dialog';
 import { ElectronicSignatureDialog } from '@/components/shared/ElectronicSignatureDialog';
@@ -126,7 +125,7 @@ export default function PackagingMaterialsPage({ params }: PackagingMaterialsPag
   const pendingQAApproval = returns?.filter((r) => r.verifiedAt && r.status === 'pending_qa_approval') ?? [];
 
   return (
-    <MainLayout>
+    <>
       <div className="p-6 space-y-4">
         <header className="flex items-start justify-between gap-4">
           <div>
@@ -384,6 +383,6 @@ export default function PackagingMaterialsPage({ params }: PackagingMaterialsPag
         }}
         onCancel={() => setApproveTarget(null)}
       />
-    </MainLayout>
+    </>
   );
 }
