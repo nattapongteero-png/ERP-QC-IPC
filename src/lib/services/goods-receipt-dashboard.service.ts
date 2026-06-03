@@ -99,8 +99,14 @@ export async function getPendingQaList(): Promise<Array<{
         grnId: t.grns.id,
         grnNumber: t.grns.grnNumber,
         lineId: t.lines.id,
-        itemCode: t.items.itemCode,
-        itemName: t.items.name,
+        // items table column is `code`, not `itemCode`; product name is
+        // `nameTh` (with `nameEn` as the English fallback elsewhere). The
+        // previous references resolved to undefined, fed into Drizzle's
+        // SELECT map, and crashed with
+        //   TypeError: Cannot convert undefined or null to object
+        // (Object.entries inside Drizzle prepare) on every request.
+        itemCode: t.items.code,
+        itemName: t.items.nameTh,
         actualQuantity: t.lines.actualQuantity,
         unit: t.lines.unit,
         qcSampleId: t.lines.qcSampleId,
@@ -154,8 +160,12 @@ export async function getQuarantineAging(): Promise<{
       .select({
         lotId: t.inventoryLots.id,
         lotNumber: t.inventoryLots.lotNumber,
-        itemCode: t.items.itemCode,
-        itemName: t.items.name,
+        // Same column-name fix as getPendingQaList — items has `code` and
+        // `nameTh`, not `itemCode` / `name`. Without this the quarantine-
+        // aging tile silently 500s with the same Drizzle Object.entries
+        // crash.
+        itemCode: t.items.code,
+        itemName: t.items.nameTh,
         quantity: t.inventoryLots.quantity,
         unit: t.inventoryLots.unit,
         receivedDate: t.inventoryLots.receivedDate,
