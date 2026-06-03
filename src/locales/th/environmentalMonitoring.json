@@ -1,0 +1,64 @@
+{
+  "page": {
+    "inspections": "ตรวจสอบสภาพแวดล้อม",
+    "waterQuality": "ระบบน้ำ (Water Quality)",
+    "trends": "แนวโน้มข้อมูลการตรวจ",
+    "templates": "Template Checklist",
+    "schedules": "ตารางการตรวจ"
+  },
+  "tiles": {
+    "overdue": "เกินกำหนด",
+    "dueToday": "ตรวจวันนี้",
+    "dueIn7d": "ใน 7 วัน",
+    "completedToday": "ตรวจแล้ววันนี้"
+  },
+  "targetType": {
+    "room": "ห้องผลิต",
+    "storage_area": "พื้นที่จัดเก็บ",
+    "quarantine": "พื้นที่กักกัน",
+    "water_point": "จุดสุ่มตัวอย่างน้ำ"
+  },
+  "frequency": {
+    "daily": "ประจำวัน",
+    "weekly": "ประจำสัปดาห์",
+    "monthly": "ประจำเดือน",
+    "quarterly": "ประจำไตรมาส",
+    "yearly": "ประจำปี"
+  },
+  "result": {
+    "in_spec": "ผ่าน",
+    "out_of_spec": "ไม่ผ่าน",
+    "na": "ไม่ระบุ"
+  },
+  "actions": {
+    "inspect": "ตรวจสอบ",
+    "scan": "สแกนตอนนี้",
+    "refresh": "รีเฟรช",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "viewTrend": "ดู Trend",
+    "addSchedule": "เพิ่มตารางตรวจ",
+    "addTemplate": "เพิ่ม Template",
+    "addSystem": "เพิ่มระบบน้ำ",
+    "addSpec": "เพิ่ม Specification"
+  },
+  "form": {
+    "templateName": "ชื่อ Template",
+    "targetType": "ประเภทพื้นที่",
+    "items": "รายการตรวจ",
+    "parameter": "พารามิเตอร์",
+    "unit": "หน่วย",
+    "specMin": "ค่าต่ำสุด",
+    "specMax": "ค่าสูงสุด",
+    "value": "ค่าที่วัดได้",
+    "notes": "หมายเหตุ",
+    "samplePoint": "จุดสุ่มตัวอย่าง"
+  },
+  "toast": {
+    "inspected": "บันทึกการตรวจเรียบร้อย",
+    "outOfSpec": "พบค่าผิดสเปค — สร้าง Deviation แล้ว",
+    "scheduled": "เพิ่มตารางตรวจเรียบร้อย",
+    "templateCreated": "สร้าง Template เรียบร้อย",
+    "systemCreated": "เพิ่มระบบน้ำเรียบร้อย"
+  }
+}
