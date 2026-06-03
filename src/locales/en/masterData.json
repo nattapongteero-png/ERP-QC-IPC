@@ -10,63 +10,82 @@
   "modules": {
     "productionRooms": {
       "title": "Production Rooms",
-      "description": "Manage production rooms and areas for GMP compliance"
+      "description": "Manage production rooms and areas for GMP compliance",
+      "usedIn": "Production > Work Orders / Batch Records"
     },
     "productionEquipment": {
       "title": "Production Equipment",
-      "description": "Manage production equipment like scales, mixers, and tools"
+      "description": "Manage production equipment like scales, mixers, and tools",
+      "usedIn": "Production > Work Orders / Batch Records"
     },
     "environmentalConditions": {
       "title": "Environmental Conditions",
-      "description": "Define temperature and humidity monitoring profiles"
+      "description": "Define temperature and humidity monitoring profiles",
+      "usedIn": "Quality > Environmental Inspections"
     },
     "sopTemplates": {
       "title": "SOP Templates",
-      "description": "Create reusable SOP step templates for production processes"
+      "description": "Create reusable SOP step templates for production processes",
+      "usedIn": "Production > BOM, Work Orders"
     },
     "packagingQCCriteria": {
       "title": "Packaging QC Criteria",
-      "description": "Define packaging weight and quality control criteria"
+      "description": "Define packaging weight and quality control criteria",
+      "usedIn": "Production > Work Orders (packaging step)"
     },
     "ipcCriteria": {
       "title": "QC & IPC Criteria",
-      "description": "Define In-Process Control test criteria for production quality"
+      "description": "Define In-Process Control test criteria for production quality",
+      "usedIn": "Quality > QC Entry, Production > Work Orders"
     },
     "packagingTolerances": {
       "title": "Packaging Tolerances",
-      "description": "Configure acceptable variance per packaging category (Feature 019)"
+      "description": "Configure acceptable variance per packaging category",
+      "usedIn": "Inventory > Material Requisitions (packaging)"
     },
     "receiptTolerances": {
       "title": "Receipt Tolerances",
-      "description": "Configure goods-receipt variance tolerances (raw vs finished goods) — Feature 020"
+      "description": "Configure goods-receipt variance tolerances for raw materials and finished goods",
+      "usedIn": "Inventory > Goods Receipt (GRN)"
     },
     "receiptChecklistTemplates": {
       "title": "Receipt Checklist Templates",
-      "description": "Manage versioned checklist templates used in goods receipt (Feature 020)"
+      "description": "Manage versioned checklist templates used in goods receipt",
+      "usedIn": "Inventory > Goods Receipt (GRN)"
     },
     "standardWeights": {
       "title": "Standard Weights Registry",
-      "description": "Certified test weights used to verify scales before weighing (Feature 021)"
+      "description": "Certified test weights used to verify scales before weighing",
+      "usedIn": "Quality > Scale Verification"
     },
     "maintenancePlanTemplates": {
       "title": "Maintenance Plan Templates",
-      "description": "Reusable maintenance/calibration plans applicable to N equipment (Feature 022)"
+      "description": "Reusable maintenance/calibration plans applicable to multiple pieces of equipment",
+      "usedIn": "Quality > Maintenance Notifications, Maintenance Calendar"
     },
     "itemCodePatterns": {
       "title": "Item Code Patterns",
-      "description": "Configure per-factory item code formats used by the 'Generate Code' button on item create/edit (Feature 025)"
+      "description": "Configure per-factory item code formats used by the 'Generate Code' button on item create/edit",
+      "usedIn": "Inventory > Items (create/edit)"
     }
   },
   "about": {
     "title": "About Master Data",
     "description": "Master Data defines the lookup lists and configuration profiles used across the production system.",
+    "usedInLabel": "Used in",
     "items": {
       "productionRooms": "Define areas where production activities occur",
       "productionEquipment": "Register equipment used in production",
       "environmentalConditions": "Set temperature/humidity monitoring profiles",
       "sopTemplates": "Create reusable production step templates",
-      "packagingQCCriteria": "Define weight and quality control standards",
-      "ipcCriteria": "Define in-process quality control test criteria"
+      "packagingQCCriteria": "Define packaging weight and quality control standards",
+      "ipcCriteria": "Define in-process quality control test criteria",
+      "packagingTolerances": "Configure acceptable variance per packaging category",
+      "receiptTolerances": "Configure variance tolerances for goods receipt",
+      "receiptChecklistTemplates": "Manage versioned checklist templates for goods receipt",
+      "standardWeights": "Manage certified test weights for scale verification",
+      "maintenancePlanTemplates": "Manage maintenance and calibration plans for equipment",
+      "itemCodePatterns": "Configure automatic item code formats per item type"
     }
   },
   "productionRooms": {
