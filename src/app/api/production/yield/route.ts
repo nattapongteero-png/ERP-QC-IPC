@@ -34,7 +34,18 @@ export async function POST(request: NextRequest) {
   return withAuth(request, async (user) => {
     try {
       const body = await request.json();
-      const { workOrderId, actualQuantity, rejectQuantity, warehouseId, stage } = body;
+      const {
+        workOrderId,
+        actualQuantity,
+        rejectQuantity,
+        warehouseId,
+        stage,
+        // Audit #24-#28 — MFD/EXP must be captured at production output.
+        // Optional in request because the service falls back to WO actualStartDate;
+        // operator can override both via the form.
+        manufacturingDate,
+        expiryDate,
+      } = body;
       const outputStage = (stage === 'bulk' ? 'bulk' : 'finished') as 'bulk' | 'finished';
 
       if (!workOrderId || actualQuantity === undefined) {
@@ -62,7 +73,9 @@ export async function POST(request: NextRequest) {
         actualQuantity,
         rejectQuantity || 0,
         warehouseId,
-        user.userId
+        user.userId,
+        manufacturingDate ?? null,
+        expiryDate ?? null
       );
 
       const yieldResult = await calculateYield(workOrderId);
