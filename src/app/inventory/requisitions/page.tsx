@@ -17,6 +17,7 @@ import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -28,6 +29,8 @@ import {
   ChevronDown,
   ChevronRight,
   Scale,
+  X,
+  Filter,
 } from 'lucide-react';
 import {
   calculateIssuance,
@@ -185,8 +188,50 @@ export default function MaterialRequisitionsInboxPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('requested');
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState<string>(''); // YYYY-MM-DD
+  const [dateTo, setDateTo] = useState<string>('');     // YYYY-MM-DD
+  const [insufficientOnly, setInsufficientOnly] = useState<boolean>(false);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [approving, setApproving] = useState<Set<number>>(new Set());
+
+  // Date preset helpers — set BOTH from/to so a chip shows the active range.
+  const setDatePreset = (preset: 'today' | 'last7' | 'last30' | 'thisMonth') => {
+    const today = new Date();
+    const ymd = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (preset === 'today') {
+      const s = ymd(today);
+      setDateFrom(s); setDateTo(s);
+    } else if (preset === 'last7') {
+      const from = new Date(today); from.setDate(from.getDate() - 6);
+      setDateFrom(ymd(from)); setDateTo(ymd(today));
+    } else if (preset === 'last30') {
+      const from = new Date(today); from.setDate(from.getDate() - 29);
+      setDateFrom(ymd(from)); setDateTo(ymd(today));
+    } else if (preset === 'thisMonth') {
+      const from = new Date(today.getFullYear(), today.getMonth(), 1);
+      setDateFrom(ymd(from)); setDateTo(ymd(today));
+    }
+  };
+
+  const clearAllFilters = () => {
+    setStatusFilter('requested');
+    setSearch('');
+    setDateFrom('');
+    setDateTo('');
+    setInsufficientOnly(false);
+  };
+
+  // Count active filters (status defaults to 'requested', so only non-default counts)
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (statusFilter !== 'requested') n++;
+    if (search.trim()) n++;
+    if (dateFrom) n++;
+    if (dateTo) n++;
+    if (insufficientOnly) n++;
+    return n;
+  }, [statusFilter, search, dateFrom, dateTo, insufficientOnly]);
 
   const fetchRequisitions = useCallback(async () => {
     setLoading(true);
@@ -210,16 +255,34 @@ export default function MaterialRequisitionsInboxPage() {
   }, [fetchRequisitions]);
 
   const filteredRows = useMemo(() => {
-    if (!search.trim()) return rows;
-    const q = search.toLowerCase();
-    return rows.filter(
-      (r) =>
-        r.woNumber.toLowerCase().includes(q) ||
-        r.batchNumber.toLowerCase().includes(q) ||
-        (r.productName ?? '').toLowerCase().includes(q) ||
-        (r.productCode ?? '').toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+    const q = search.trim().toLowerCase();
+    // Build the date window once (inclusive on both ends, full day on the
+    // "to" date so something requested at 17:00 still shows when "to" is
+    // the same day).
+    const fromTs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+    const toTs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
+
+    return rows.filter((r) => {
+      if (q) {
+        const matchesSearch =
+          r.woNumber.toLowerCase().includes(q) ||
+          r.batchNumber.toLowerCase().includes(q) ||
+          (r.productName ?? '').toLowerCase().includes(q) ||
+          (r.productCode ?? '').toLowerCase().includes(q);
+        if (!matchesSearch) return false;
+      }
+      if (fromTs !== null || toTs !== null) {
+        if (!r.requestedAt) return false; // can't include records with no timestamp
+        const ts = new Date(r.requestedAt).getTime();
+        if (fromTs !== null && ts < fromTs) return false;
+        if (toTs !== null && ts > toTs) return false;
+      }
+      if (insufficientOnly) {
+        if (!r.materials.some(isInsufficient)) return false;
+      }
+      return true;
+    });
+  }, [rows, search, dateFrom, dateTo, insufficientOnly]);
 
   const stats = useMemo(() => {
     const requested = rows.filter((r) => r.requisitionStatus === 'requested').length;
@@ -305,32 +368,125 @@ export default function MaterialRequisitionsInboxPage() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-3 items-end p-4 rounded-2xl border border-gray-200 bg-white">
-          <div className="w-56">
-            <label className="block text-xs text-gray-500 mb-1">สถานะ</label>
-            <DxSelectBox
-              items={STATUS_OPTIONS}
-              value={statusFilter}
-              onValueChange={(v) => setStatusFilter(v as string)}
-              valueExpr="value"
-              displayExpr="label"
+        <div className="p-4 rounded-2xl border border-gray-200 bg-white space-y-3">
+          {/* Row 1: status + search + refresh */}
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="w-56">
+              <label className="block text-xs text-gray-500 mb-1">สถานะ</label>
+              <DxSelectBox
+                items={STATUS_OPTIONS}
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as string)}
+                valueExpr="value"
+                displayExpr="label"
+              />
+            </div>
+            <div className="flex-1 min-w-[220px]">
+              <label className="block text-xs text-gray-500 mb-1">ค้นหา</label>
+              <DxTextBox
+                value={search}
+                onValueChange={(v) => setSearch(String(v ?? ''))}
+                placeholder="WO / Batch / Product"
+              />
+            </div>
+            <DxButton
+              text="รีเฟรช"
+              icon="refresh"
+              type="normal"
+              stylingMode="outlined"
+              onClick={fetchRequisitions}
             />
           </div>
-          <div className="flex-1 min-w-[220px]">
-            <label className="block text-xs text-gray-500 mb-1">ค้นหา</label>
-            <DxTextBox
-              value={search}
-              onValueChange={(v) => setSearch(String(v ?? ''))}
-              placeholder="WO / Batch / Product"
-            />
+
+          {/* Row 2: date range + quick presets */}
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="w-44">
+              <label className="block text-xs text-gray-500 mb-1">ขอเบิกตั้งแต่</label>
+              <DxDateBox
+                value={dateFrom}
+                onValueChange={(v) => setDateFrom(v ?? '')}
+                placeholder="วันที่เริ่ม"
+                showClearButton
+              />
+            </div>
+            <div className="w-44">
+              <label className="block text-xs text-gray-500 mb-1">ถึง</label>
+              <DxDateBox
+                value={dateTo}
+                onValueChange={(v) => setDateTo(v ?? '')}
+                placeholder="วันที่สิ้นสุด"
+                showClearButton
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-gray-400">ด่วน:</span>
+              <button
+                className="text-xs px-2 py-1 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700"
+                onClick={() => setDatePreset('today')}
+              >วันนี้</button>
+              <button
+                className="text-xs px-2 py-1 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700"
+                onClick={() => setDatePreset('last7')}
+              >7 วันล่าสุด</button>
+              <button
+                className="text-xs px-2 py-1 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700"
+                onClick={() => setDatePreset('last30')}
+              >30 วัน</button>
+              <button
+                className="text-xs px-2 py-1 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700"
+                onClick={() => setDatePreset('thisMonth')}
+              >เดือนนี้</button>
+            </div>
+            <div className="flex-1" />
+            {/* Insufficient toggle */}
+            <button
+              onClick={() => setInsufficientOnly(!insufficientOnly)}
+              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
+                insufficientOnly
+                  ? 'bg-red-50 border-red-300 text-red-700'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              เฉพาะ stock ไม่พอ
+            </button>
           </div>
-          <DxButton
-            text="รีเฟรช"
-            icon="refresh"
-            type="normal"
-            stylingMode="outlined"
-            onClick={fetchRequisitions}
-          />
+
+          {/* Row 3: Active filter chips + clear all (only when filters are set) */}
+          {activeFilterCount > 0 && (
+            <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-gray-100">
+              <Filter className="h-3.5 w-3.5 text-gray-400" />
+              <span className="text-xs text-gray-500">ตัวกรองที่ใช้:</span>
+              {statusFilter !== 'requested' && (
+                <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
+                  สถานะ: {STATUS_OPTIONS.find((s) => s.value === statusFilter)?.label}
+                  <button onClick={() => setStatusFilter('requested')}><X className="h-3 w-3" /></button>
+                </span>
+              )}
+              {search.trim() && (
+                <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
+                  ค้นหา: &quot;{search}&quot;
+                  <button onClick={() => setSearch('')}><X className="h-3 w-3" /></button>
+                </span>
+              )}
+              {(dateFrom || dateTo) && (
+                <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
+                  วันที่: {dateFrom || '…'} ถึง {dateTo || '…'}
+                  <button onClick={() => { setDateFrom(''); setDateTo(''); }}><X className="h-3 w-3" /></button>
+                </span>
+              )}
+              {insufficientOnly && (
+                <span className="inline-flex items-center gap-1 text-xs bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full">
+                  Stock ไม่พอ
+                  <button onClick={() => setInsufficientOnly(false)}><X className="h-3 w-3" /></button>
+                </span>
+              )}
+              <button
+                onClick={clearAllFilters}
+                className="ml-auto text-xs text-gray-500 hover:text-gray-700 underline"
+              >ล้างทั้งหมด</button>
+            </div>
+          )}
         </div>
 
         {loading ? (
