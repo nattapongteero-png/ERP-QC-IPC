@@ -51,6 +51,10 @@
     "maintenancePlanTemplates": {
       "title": "Maintenance Plan Templates",
       "description": "จัดการแผนการบำรุงรักษา/สอบเทียบที่นำไปใช้กับเครื่องมือได้ (Feature 022)"
+    },
+    "itemCodePatterns": {
+      "title": "รูปแบบรหัสสินค้า",
+      "description": "ตั้งค่ารูปแบบรหัสที่ใช้สร้างอัตโนมัติเมื่อกด 'สร้างรหัส' ในหน้าเพิ่มสินค้า (Feature 025)"
     }
   },
   "about": {
