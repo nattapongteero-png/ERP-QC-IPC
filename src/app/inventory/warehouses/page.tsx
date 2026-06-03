@@ -479,20 +479,22 @@ export default function WarehousesPage() {
               <button
                 onClick={() => {
                   const rows = filteredWarehouses.map((w) => ({
-                    'รหัส': w.code,
-                    'ชื่อคลัง': w.name,
-                    'ประเภท': w.type,
-                    'สถานะ': w.isActive ? 'Active' : 'Inactive',
+                    [t('warehouses.table.columns.code')]: w.code,
+                    [t('warehouses.table.columns.name')]: w.name,
+                    [t('warehouses.table.columns.type')]: w.type,
+                    [t('warehouses.table.columns.status')]: w.isActive
+                      ? t('warehouses.status.active')
+                      : t('warehouses.status.inactive'),
                   }));
                   const wb = XLSX.utils.book_new();
                   const ws = XLSX.utils.json_to_sheet(rows);
                   ws['!cols'] = Array(4).fill({ wch: 25 });
-                  XLSX.utils.book_append_sheet(wb, ws, 'Warehouses');
+                  XLSX.utils.book_append_sheet(wb, ws, t('warehouses.excelSheetName'));
                   XLSX.writeFile(wb, `warehouses-${new Date().toISOString().slice(0, 10)}.xlsx`);
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
               >
-                <Download className="h-4 w-4" /> Download Excel
+                <Download className="h-4 w-4" /> {t('warehouses.downloadExcel')}
               </button>
               <DxButton
                 text={t('warehouses.addWarehouse')}

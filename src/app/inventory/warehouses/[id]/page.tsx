@@ -147,15 +147,18 @@ export default function WarehouseDetailPage() {
   };
 
   const getTypeLabel = (type: string): string => {
-    const types: Record<string, string> = {
-      'raw material': 'Raw Material',
-      'finished goods': 'Finished Goods',
-      'quarantine': 'Quarantine',
-      'rejected': 'Rejected',
-      'cold storage': 'Cold Storage',
-      'general': 'General',
+    const normalized = (type || '').toLowerCase().replace(/\s+/g, '_');
+    const keyMap: Record<string, string> = {
+      'raw_material': 'rawMaterial',
+      'finished_goods': 'finishedGoods',
+      'quarantine': 'quarantine',
+      'rejected': 'rejected',
+      'cold_storage': 'coldStorage',
+      'wip': 'wip',
+      'general': 'general',
     };
-    return types[type] || type;
+    const k = keyMap[normalized];
+    return k ? t(`warehouses.types.${k}`) : type;
   };
 
   const filteredLots = data?.lots.filter(lot => {
@@ -170,14 +173,14 @@ export default function WarehouseDetailPage() {
   const lotsColumns: DxDataGridColumn[] = [
     {
       dataField: 'lotNumber',
-      caption: 'Lot Number',
+      caption: t('warehouses.detail.columns.lotNumber'),
       cellRender: (cellInfo) => (
         <span className="font-medium text-blue-600">{cellInfo.data.lotNumber}</span>
       )
     },
     {
       dataField: 'itemCode',
-      caption: 'Item',
+      caption: t('warehouses.detail.columns.item'),
       cellRender: (cellInfo) => (
         <div>
           <p className="font-medium">{cellInfo.data.itemCode}</p>
@@ -187,13 +190,13 @@ export default function WarehouseDetailPage() {
     },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: t('warehouses.detail.columns.quantity'),
       width: 120,
       cellRender: (cellInfo) => `${cellInfo.data.quantity} ${cellInfo.data.unit}`
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: t('warehouses.detail.columns.status'),
       width: 120,
       cellRender: (cellInfo) => (
         <Badge variant={getStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>
@@ -201,7 +204,7 @@ export default function WarehouseDetailPage() {
     },
     {
       dataField: 'expiryDate',
-      caption: 'Expiry Date',
+      caption: t('warehouses.detail.columns.expiryDate'),
       width: 130,
       cellRender: (cellInfo) => cellInfo.data.expiryDate ? new Date(cellInfo.data.expiryDate).toLocaleDateString('th-TH') : '-'
     },
@@ -211,7 +214,7 @@ export default function WarehouseDetailPage() {
       width: 80,
       cellRender: (cellInfo) => (
         <DxButton
-          text="View"
+          text={t('warehouses.detail.columns.view')}
           type="normal"
           stylingMode="text"
           onClick={() => router.push(`/inventory/lots/${cellInfo.data.id}`)}
@@ -224,13 +227,13 @@ export default function WarehouseDetailPage() {
   const transactionsColumns: DxDataGridColumn[] = [
     {
       dataField: 'createdAt',
-      caption: 'Date',
+      caption: t('warehouses.detail.columns.date'),
       width: 160,
       cellRender: (cellInfo) => cellInfo.data.createdAt ? new Date(cellInfo.data.createdAt).toLocaleString('th-TH') : '-'
     },
     {
       dataField: 'type',
-      caption: 'Type',
+      caption: t('warehouses.detail.columns.type'),
       width: 120,
       cellRender: (cellInfo) => {
         const isInbound = cellInfo.data.direction === 'inbound';
@@ -243,25 +246,25 @@ export default function WarehouseDetailPage() {
     },
     {
       dataField: 'direction',
-      caption: 'Direction',
+      caption: t('warehouses.detail.columns.direction'),
       width: 100,
       cellRender: (cellInfo) => {
         const isInbound = cellInfo.data.direction === 'inbound';
         return (
           <span className={isInbound ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-            {isInbound ? 'IN' : 'OUT'}
+            {isInbound ? t('warehouses.detail.direction.in') : t('warehouses.detail.direction.out')}
           </span>
         );
       }
     },
     {
       dataField: 'reference',
-      caption: 'Reference',
+      caption: t('warehouses.detail.columns.reference'),
       cellRender: (cellInfo) => cellInfo.data.reference || '-'
     },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: t('warehouses.detail.columns.quantity'),
       width: 150,
       alignment: 'right',
       cellRender: (cellInfo) => {
@@ -290,10 +293,10 @@ export default function WarehouseDetailPage() {
     return (
       <MainLayout>
         <div className="text-center py-12">
-          <p className="text-gray-500">Warehouse not found</p>
+          <p className="text-gray-500">{t('warehouses.detail.notFound')}</p>
           <div className="mt-4">
             <DxButton
-              text="Back to List"
+              text={t('warehouses.detail.backToList')}
               type="default"
               onClick={() => router.push('/inventory/warehouses')}
             />
@@ -313,7 +316,7 @@ export default function WarehouseDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <DxButton
-                text="Back"
+                text={t('warehouses.detail.back')}
                 icon="back"
                 type="normal"
                 stylingMode="outlined"
@@ -321,7 +324,7 @@ export default function WarehouseDetailPage() {
               />
               <h1 className="text-2xl font-bold text-gray-900">{t('warehouses.detail.pageTitle')}: {warehouse.code}</h1>
               <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
-                {warehouse.isActive ? 'Active' : 'Inactive'}
+                {warehouse.isActive ? t('warehouses.status.active') : t('warehouses.status.inactive')}
               </Badge>
             </div>
             <p className="text-gray-600 mt-1">{warehouse.name}</p>
@@ -329,20 +332,20 @@ export default function WarehouseDetailPage() {
           <div className="flex gap-2">
             {!isEditing ? (
               <DxButton
-                text="Edit"
+                text={t('warehouses.detail.edit')}
                 type="default"
                 onClick={() => setIsEditing(true)}
               />
             ) : (
               <>
                 <DxButton
-                  text="Cancel"
+                  text={t('warehouses.detail.cancel')}
                   type="normal"
                   stylingMode="outlined"
                   onClick={() => setIsEditing(false)}
                 />
                 <DxButton
-                  text="Save"
+                  text={t('warehouses.detail.save')}
                   type="success"
                   onClick={handleSave}
                 />
@@ -360,7 +363,7 @@ export default function WarehouseDetailPage() {
                   <span className="text-2xl">📦</span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Lots</p>
+                  <p className="text-sm text-gray-600">{t('warehouses.detail.stats.totalLots')}</p>
                   <p className="text-2xl font-bold text-blue-600">{summary.totalLots}</p>
                 </div>
               </div>
@@ -373,7 +376,7 @@ export default function WarehouseDetailPage() {
                   <span className="text-2xl">✅</span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Released</p>
+                  <p className="text-sm text-gray-600">{t('warehouses.detail.stats.released')}</p>
                   <p className="text-2xl font-bold text-green-600">{summary.releasedLots}</p>
                 </div>
               </div>
@@ -386,7 +389,7 @@ export default function WarehouseDetailPage() {
                   <span className="text-2xl">⏳</span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Quarantine</p>
+                  <p className="text-sm text-gray-600">{t('warehouses.detail.stats.quarantine')}</p>
                   <p className="text-2xl font-bold text-yellow-600">{summary.quarantineLots}</p>
                 </div>
               </div>
@@ -399,7 +402,7 @@ export default function WarehouseDetailPage() {
                   <span className="text-2xl">⚠️</span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Near Expiry</p>
+                  <p className="text-sm text-gray-600">{t('warehouses.detail.stats.nearExpiry')}</p>
                   <p className="text-2xl font-bold text-orange-600">{summary.nearExpiryLots}</p>
                 </div>
               </div>
@@ -411,7 +414,7 @@ export default function WarehouseDetailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Storage Utilization</span>
+              <span className="text-sm font-medium text-gray-700">{t('warehouses.detail.storageUtilization')}</span>
               <span className="text-sm text-gray-600">{summary.utilizationPercent}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3">
@@ -424,7 +427,7 @@ export default function WarehouseDetailPage() {
               ></div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {summary.usedCapacity.toLocaleString()} / {summary.storageCapacity.toLocaleString()} lots
+              {t('warehouses.detail.storageUsageText', { used: summary.usedCapacity.toLocaleString(), total: summary.storageCapacity.toLocaleString() })}
             </p>
           </CardContent>
         </Card>
@@ -433,10 +436,10 @@ export default function WarehouseDetailPage() {
         <div className="border-b border-gray-200">
           <nav className="flex gap-4">
             {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'inventory', label: 'Inventory' },
-              { id: 'transactions', label: 'Transactions' },
-              { id: 'settings', label: 'Settings' },
+              { id: 'overview', label: t('warehouses.detail.tabs.overview') },
+              { id: 'inventory', label: t('warehouses.detail.tabs.inventory') },
+              { id: 'transactions', label: t('warehouses.detail.tabs.transactions') },
+              { id: 'settings', label: t('warehouses.detail.tabs.settings') },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -458,28 +461,28 @@ export default function WarehouseDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Warehouse Information</CardTitle>
+                <CardTitle>{t('warehouses.detail.warehouseInformation')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
-                    <dt className="text-sm text-gray-500">Code</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.code')}</dt>
                     <dd className="font-medium">{warehouse.code}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Name</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.name')}</dt>
                     <dd className="font-medium">{warehouse.name}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Type</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.type')}</dt>
                     <dd className="font-medium">{getTypeLabel(warehouse.type)}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Location</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.location')}</dt>
                     <dd className="font-medium">{warehouse.location || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Temperature Range</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.temperatureRange')}</dt>
                     <dd className="font-medium">
                       {warehouse.temperatureMin !== undefined && warehouse.temperatureMax !== undefined
                         ? `${warehouse.temperatureMin}°C - ${warehouse.temperatureMax}°C`
@@ -487,7 +490,7 @@ export default function WarehouseDetailPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Humidity Range</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.humidityRange')}</dt>
                     <dd className="font-medium">
                       {warehouse.humidityMin !== undefined && warehouse.humidityMax !== undefined
                         ? `${warehouse.humidityMin}% - ${warehouse.humidityMax}%`
@@ -500,21 +503,21 @@ export default function WarehouseDetailPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Inventory by Type</CardTitle>
+                <CardTitle>{t('warehouses.detail.inventoryByType')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {Object.entries(summary.inventoryByType).map(([type, invData]) => (
                     <div key={type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium capitalize">{type.replace('_', ' ')}</p>
-                        <p className="text-sm text-gray-500">{invData.count} lots</p>
+                        <p className="font-medium">{getTypeLabel(type)}</p>
+                        <p className="text-sm text-gray-500">{t('warehouses.detail.lotsCount', { count: invData.count })}</p>
                       </div>
                       <p className="text-lg font-bold text-gray-900">{invData.quantity.toLocaleString()}</p>
                     </div>
                   ))}
                   {Object.keys(summary.inventoryByType).length === 0 && (
-                    <p className="text-center text-gray-500 py-4">No inventory data</p>
+                    <p className="text-center text-gray-500 py-4">{t('warehouses.detail.noInventoryData')}</p>
                   )}
                 </div>
               </CardContent>
@@ -526,10 +529,10 @@ export default function WarehouseDetailPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Inventory Lots</CardTitle>
+                <CardTitle>{t('warehouses.detail.inventoryLots')}</CardTitle>
                 <div className="flex gap-2">
                   <DxTextBox
-                    placeholder="Search lots..."
+                    placeholder={t('warehouses.detail.searchLots')}
                     value={searchTerm}
                     onValueChange={setSearchTerm}
                     mode="search"
@@ -538,10 +541,10 @@ export default function WarehouseDetailPage() {
                   />
                   <DxSelectBox
                     items={[
-                      { value: 'all', text: 'All Status' },
-                      { value: 'released', text: 'Released' },
-                      { value: 'quarantine', text: 'Quarantine' },
-                      { value: 'rejected', text: 'Rejected' },
+                      { value: 'all', text: t('warehouses.detail.allStatus') },
+                      { value: 'released', text: t('warehouses.detail.stats.released') },
+                      { value: 'quarantine', text: t('warehouses.types.quarantine') },
+                      { value: 'rejected', text: t('warehouses.types.rejected') },
                     ]}
                     value={statusFilter}
                     onValueChange={setStatusFilter}
@@ -559,7 +562,7 @@ export default function WarehouseDetailPage() {
                 columns={lotsColumns}
                 showBorders
                 height={400}
-                noDataText="No lots found in this warehouse"
+                noDataText={t('warehouses.detail.noLotsFound')}
                 onRowClick={(e) => router.push(`/inventory/lots/${e.data.id}`)}
               />
             </CardContent>
@@ -569,7 +572,7 @@ export default function WarehouseDetailPage() {
         {activeTab === 'transactions' && (
           <Card>
             <CardHeader>
-              <CardTitle>Recent Transactions</CardTitle>
+              <CardTitle>{t('warehouses.detail.recentTransactions')}</CardTitle>
             </CardHeader>
             <CardContent>
               <DxDataGrid
@@ -578,7 +581,7 @@ export default function WarehouseDetailPage() {
                 columns={transactionsColumns}
                 showBorders
                 height={400}
-                noDataText="No transactions found"
+                noDataText={t('warehouses.detail.noTransactionsFound')}
               />
             </CardContent>
           </Card>
@@ -587,35 +590,35 @@ export default function WarehouseDetailPage() {
         {activeTab === 'settings' && (
           <Card>
             <CardHeader>
-              <CardTitle>Warehouse Settings</CardTitle>
+              <CardTitle>{t('warehouses.detail.warehouseSettings')}</CardTitle>
             </CardHeader>
             <CardContent>
               {isEditing ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouses.detail.fields.code')}</label>
                     <DxTextBox
                       value={editForm.code}
                       onValueChange={(value) => setEditForm({ ...editForm, code: value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouses.detail.fields.name')}</label>
                     <DxTextBox
                       value={editForm.name}
                       onValueChange={(value) => setEditForm({ ...editForm, name: value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouses.detail.fields.type')}</label>
                     <DxSelectBox
                       items={[
-                        { value: 'raw material', text: 'Raw Material' },
-                        { value: 'finished goods', text: 'Finished Goods' },
-                        { value: 'quarantine', text: 'Quarantine' },
-                        { value: 'rejected', text: 'Rejected' },
-                        { value: 'cold storage', text: 'Cold Storage' },
-                        { value: 'general', text: 'General' },
+                        { value: 'raw material', text: t('warehouses.types.rawMaterial') },
+                        { value: 'finished goods', text: t('warehouses.types.finishedGoods') },
+                        { value: 'quarantine', text: t('warehouses.types.quarantine') },
+                        { value: 'rejected', text: t('warehouses.types.rejected') },
+                        { value: 'cold storage', text: t('warehouses.types.coldStorage') },
+                        { value: 'general', text: t('warehouses.types.general') },
                       ]}
                       value={editForm.type}
                       onValueChange={(value) => setEditForm({ ...editForm, type: value })}
@@ -624,35 +627,35 @@ export default function WarehouseDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouses.detail.fields.location')}</label>
                     <DxTextBox
                       value={editForm.location}
                       onValueChange={(value) => setEditForm({ ...editForm, location: value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Min Temperature (°C)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouses.detail.fields.minTemperature')}</label>
                     <DxNumberBox
                       value={editForm.temperatureMin}
                       onValueChange={(value) => setEditForm({ ...editForm, temperatureMin: value || 0 })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Temperature (°C)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouses.detail.fields.maxTemperature')}</label>
                     <DxNumberBox
                       value={editForm.temperatureMax}
                       onValueChange={(value) => setEditForm({ ...editForm, temperatureMax: value || 0 })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Min Humidity (%)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouses.detail.fields.minHumidity')}</label>
                     <DxNumberBox
                       value={editForm.humidityMin}
                       onValueChange={(value) => setEditForm({ ...editForm, humidityMin: value || 0 })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Humidity (%)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouses.detail.fields.maxHumidity')}</label>
                     <DxNumberBox
                       value={editForm.humidityMax}
                       onValueChange={(value) => setEditForm({ ...editForm, humidityMax: value || 0 })}
@@ -662,43 +665,43 @@ export default function WarehouseDetailPage() {
               ) : (
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
-                    <dt className="text-sm text-gray-500">Code</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.code')}</dt>
                     <dd className="font-medium">{warehouse.code}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Name</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.name')}</dt>
                     <dd className="font-medium">{warehouse.name}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Type</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.type')}</dt>
                     <dd className="font-medium">{getTypeLabel(warehouse.type)}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Location</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.location')}</dt>
                     <dd className="font-medium">{warehouse.location || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Temperature Range</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.temperatureRange')}</dt>
                     <dd className="font-medium">
                       {warehouse.temperatureMin !== undefined && warehouse.temperatureMax !== undefined
                         ? `${warehouse.temperatureMin}°C - ${warehouse.temperatureMax}°C`
-                        : 'Not specified'}
+                        : t('warehouses.detail.notSpecified')}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Humidity Range</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.humidityRange')}</dt>
                     <dd className="font-medium">
                       {warehouse.humidityMin !== undefined && warehouse.humidityMax !== undefined
                         ? `${warehouse.humidityMin}% - ${warehouse.humidityMax}%`
-                        : 'Not specified'}
+                        : t('warehouses.detail.notSpecified')}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Created</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.created')}</dt>
                     <dd className="font-medium">{warehouse.createdAt ? new Date(warehouse.createdAt).toLocaleString('th-TH') : '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Last Updated</dt>
+                    <dt className="text-sm text-gray-500">{t('warehouses.detail.fields.lastUpdated')}</dt>
                     <dd className="font-medium">{warehouse.updatedAt ? new Date(warehouse.updatedAt).toLocaleString('th-TH') : '-'}</dd>
                   </div>
                 </dl>

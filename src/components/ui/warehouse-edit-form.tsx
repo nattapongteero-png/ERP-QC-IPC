@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
@@ -91,13 +92,15 @@ export interface WarehouseEditFormProps {
 // Constants
 // ============================================================================
 
+// Keep the type config as a function so callers can pass the translator;
+// avoids stale English strings when the user switches locales.
 export const warehouseTypes = [
-  { value: 'raw_material', label: 'Raw Material', icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-100', borderColor: 'border-blue-200', description: 'Store raw materials and ingredients' },
-  { value: 'wip', label: 'Work in Progress', icon: Activity, color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-200', description: 'Items currently in production' },
-  { value: 'finished_goods', label: 'Finished Goods', icon: Boxes, color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-200', description: 'Completed products ready for sale' },
-  { value: 'quarantine', label: 'Quarantine', icon: ShieldAlert, color: 'text-yellow-600', bgColor: 'bg-yellow-100', borderColor: 'border-yellow-200', description: 'Items pending quality approval' },
-  { value: 'rejected', label: 'Rejected', icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100', borderColor: 'border-red-200', description: 'Items that failed quality checks' },
-  { value: 'cold_storage', label: 'Cold Storage', icon: Snowflake, color: 'text-cyan-600', bgColor: 'bg-cyan-100', borderColor: 'border-cyan-200', description: 'Temperature-controlled storage' },
+  { value: 'raw_material', labelKey: 'rawMaterial', icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-100', borderColor: 'border-blue-200' },
+  { value: 'wip', labelKey: 'wip', icon: Activity, color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-200' },
+  { value: 'finished_goods', labelKey: 'finishedGoods', icon: Boxes, color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-200' },
+  { value: 'quarantine', labelKey: 'quarantine', icon: ShieldAlert, color: 'text-yellow-600', bgColor: 'bg-yellow-100', borderColor: 'border-yellow-200' },
+  { value: 'rejected', labelKey: 'rejected', icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100', borderColor: 'border-red-200' },
+  { value: 'cold_storage', labelKey: 'coldStorage', icon: Snowflake, color: 'text-cyan-600', bgColor: 'bg-cyan-100', borderColor: 'border-cyan-200' },
 ];
 
 export const getTypeConfig = (type: string) => {
@@ -166,6 +169,7 @@ interface TypeSelectorProps {
 }
 
 export function TypeSelector({ value, onChange }: TypeSelectorProps) {
+  const t = useTranslations('inventory');
   return (
     <div className="flex flex-wrap gap-2">
       {warehouseTypes.map((type) => {
@@ -184,7 +188,7 @@ export function TypeSelector({ value, onChange }: TypeSelectorProps) {
             )}
           >
             <Icon className="h-5 w-5" />
-            <span className="font-medium text-sm">{type.label}</span>
+            <span className="font-medium text-sm">{t(`warehouses.types.${type.labelKey}`)}</span>
           </button>
         );
       })}
@@ -198,37 +202,38 @@ interface StorageUtilizationProps {
 }
 
 export function StorageUtilization({ summary, capacity }: StorageUtilizationProps) {
+  const t = useTranslations('inventory');
   const utilizationPercent = Number(summary?.utilizationPercent) || 0;
   const totalLots = Number(summary?.totalLots) || 0;
   const usedCapacity = Number(summary?.usedCapacity) || 0;
 
   let statusColor = 'text-green-600';
   let statusBg = 'bg-green-500';
-  let statusLabel = 'Normal';
+  let statusLabel = t('warehouses.form.utilization.normal');
 
   if (utilizationPercent >= 90) {
     statusColor = 'text-red-600';
     statusBg = 'bg-red-500';
-    statusLabel = 'Critical';
+    statusLabel = t('warehouses.form.utilization.critical');
   } else if (utilizationPercent >= 75) {
     statusColor = 'text-yellow-600';
     statusBg = 'bg-yellow-500';
-    statusLabel = 'High';
+    statusLabel = t('warehouses.form.utilization.high');
   } else if (utilizationPercent >= 50) {
     statusColor = 'text-blue-600';
     statusBg = 'bg-blue-500';
-    statusLabel = 'Moderate';
+    statusLabel = t('warehouses.form.utilization.moderate');
   }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-600">Storage Utilization</span>
+        <span className="text-sm text-gray-600">{t('warehouses.form.utilization.label')}</span>
         <span className={cn('text-sm font-medium', statusColor)}>{statusLabel}</span>
       </div>
       <div className="flex items-end gap-2">
         <span className="text-3xl font-bold text-gray-900">{utilizationPercent}%</span>
-        <span className="text-sm text-gray-500 mb-1">used</span>
+        <span className="text-sm text-gray-500 mb-1">{t('warehouses.form.utilization.used')}</span>
       </div>
       <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
         <div
@@ -237,8 +242,8 @@ export function StorageUtilization({ summary, capacity }: StorageUtilizationProp
         />
       </div>
       <div className="flex justify-between text-xs text-gray-500">
-        <span>{totalLots} lots stored</span>
-        <span>{usedCapacity.toFixed(0)} / {capacity ?? '-'} units</span>
+        <span>{t('warehouses.form.utilization.lotsStored', { count: totalLots })}</span>
+        <span>{t('warehouses.form.utilization.capacityUnit', { used: usedCapacity.toFixed(0), capacity: capacity ?? '-' })}</span>
       </div>
     </div>
   );
@@ -249,19 +254,20 @@ interface InventorySummaryProps {
 }
 
 export function InventorySummary({ summary }: InventorySummaryProps) {
+  const t = useTranslations('inventory');
   if (!summary) {
     return (
       <div className="text-center py-4 text-gray-500 text-sm">
-        No inventory data available
+        {t('warehouses.form.summary.noData')}
       </div>
     );
   }
 
   const stats = [
-    { label: 'Total Lots', value: summary.totalLots, icon: Boxes, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { label: 'Released', value: summary.releasedLots, icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50' },
-    { label: 'Quarantine', value: summary.quarantineLots, icon: ShieldAlert, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
-    { label: 'Near Expiry', value: summary.nearExpiryLots, icon: Clock, color: 'text-orange-600', bgColor: 'bg-orange-50' },
+    { label: t('warehouses.form.summary.totalLots'), value: summary.totalLots, icon: Boxes, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { label: t('warehouses.form.summary.released'), value: summary.releasedLots, icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50' },
+    { label: t('warehouses.form.summary.quarantine'), value: summary.quarantineLots, icon: ShieldAlert, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
+    { label: t('warehouses.form.summary.nearExpiry'), value: summary.nearExpiryLots, icon: Clock, color: 'text-orange-600', bgColor: 'bg-orange-50' },
   ];
 
   return (
@@ -297,6 +303,7 @@ export function WarehouseEditForm({
   showDelete = false,
   className,
 }: WarehouseEditFormProps) {
+  const t = useTranslations('inventory');
   const isEditing = !!warehouse;
   const [formData, setFormData] = React.useState<WarehouseFormData>(
     warehouse ? warehouseToFormData(warehouse) : getDefaultFormData()
@@ -342,7 +349,7 @@ export function WarehouseEditForm({
             <div className="flex items-center gap-4">
               {onCancel && (
                 <DxButton
-                  text="Back"
+                  text={t('warehouses.form.back')}
                   icon="back"
                   type="normal"
                   stylingMode="text"
@@ -354,12 +361,12 @@ export function WarehouseEditForm({
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {isEditing ? 'Edit Warehouse' : 'Create New Warehouse'}
+                  {isEditing ? t('warehouses.form.editTitle') : t('warehouses.form.createTitle')}
                 </h2>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {isEditing
-                    ? `Editing ${warehouse.code} - ${warehouse.name}`
-                    : 'Add a new warehouse to your inventory system'}
+                    ? t('warehouses.form.editSubtitle', { code: warehouse.code, name: warehouse.name })
+                    : t('warehouses.form.createSubtitle')}
                 </p>
               </div>
             </div>
@@ -371,12 +378,12 @@ export function WarehouseEditForm({
                   dot
                   className="text-sm px-3 py-1"
                 >
-                  {formData.isActive ? 'Active' : 'Inactive'}
+                  {formData.isActive ? t('warehouses.form.status.active') : t('warehouses.form.status.inactive')}
                 </Badge>
               )}
               {showDelete && onDelete && (
                 <DxButton
-                  text="Delete"
+                  text={t('warehouses.form.deleteBtn')}
                   icon="trash"
                   type="danger"
                   onClick={onDelete}
@@ -396,8 +403,8 @@ export function WarehouseEditForm({
               {/* Warehouse Type */}
               <SectionCard
                 icon={Warehouse}
-                title="Warehouse Type"
-                description="Select the type of warehouse"
+                title={t('warehouses.form.warehouseTypeTitle')}
+                description={t('warehouses.form.warehouseTypeDesc')}
                 iconColor="text-emerald-600"
                 iconBgColor="bg-emerald-100"
               >
@@ -407,32 +414,32 @@ export function WarehouseEditForm({
                 />
                 <p className="mt-3 text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
                   <Info className="h-4 w-4 inline-block mr-1 text-gray-400" />
-                  {typeConfig.description}
+                  {t(`warehouses.typeDescriptions.${typeConfig.labelKey}`)}
                 </p>
               </SectionCard>
 
               {/* Basic Information */}
               <SectionCard
                 icon={Building2}
-                title="Basic Information"
-                description="Warehouse identification and location"
+                title={t('warehouses.form.basicInfoTitle')}
+                description={t('warehouses.form.basicInfoDesc')}
                 iconColor="text-blue-600"
                 iconBgColor="bg-blue-100"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Warehouse Code <span className="text-red-500">*</span>
+                      {t('warehouses.form.fields.code')} <span className="text-red-500">*</span>
                     </label>
                     <div className="flex gap-2">
                       <DxTextBox
                         value={formData.code}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, code: value }))}
-                        placeholder="WH-RM-001"
+                        placeholder={t('warehouses.form.placeholders.code')}
                         className="flex-1"
                       />
                       <DxButton
-                        text="Generate"
+                        text={t('warehouses.form.generateCode')}
                         type="normal"
                         stylingMode="outlined"
                         onClick={generateCode}
@@ -442,29 +449,29 @@ export function WarehouseEditForm({
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Warehouse Name <span className="text-red-500">*</span>
+                      {t('warehouses.form.fields.name')} <span className="text-red-500">*</span>
                     </label>
                     <DxTextBox
                       value={formData.name}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, name: value }))}
-                      placeholder="Main Warehouse"
+                      placeholder={t('warehouses.form.placeholders.name')}
                     />
                   </div>
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location
+                      {t('warehouses.form.fields.location')}
                     </label>
                     <DxTextBox
                       value={formData.location}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
-                      placeholder="Building A, Floor 1, Zone B"
+                      placeholder={t('warehouses.form.placeholders.location')}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Storage Capacity
+                      {t('warehouses.form.fields.capacity')}
                     </label>
                     <DxNumberBox
                       value={formData.capacity}
@@ -472,10 +479,10 @@ export function WarehouseEditForm({
                         ...prev,
                         capacity: value
                       }))}
-                      placeholder="1000"
+                      placeholder={t('warehouses.form.placeholders.capacity')}
                       format="#,##0"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Maximum storage units</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('warehouses.form.fields.capacityHint')}</p>
                   </div>
                 </div>
               </SectionCard>
@@ -483,8 +490,8 @@ export function WarehouseEditForm({
               {/* Environmental Controls */}
               <SectionCard
                 icon={Settings}
-                title="Environmental Controls"
-                description="Temperature and humidity requirements"
+                title={t('warehouses.form.envControlsTitle')}
+                description={t('warehouses.form.envControlsDesc')}
                 iconColor="text-purple-600"
                 iconBgColor="bg-purple-100"
               >
@@ -493,30 +500,30 @@ export function WarehouseEditForm({
                   <div className="bg-cyan-50 rounded-xl p-4 border border-cyan-100">
                     <div className="flex items-center gap-2 mb-4">
                       <Thermometer className="h-5 w-5 text-cyan-600" />
-                      <span className="font-medium text-cyan-800">Temperature Range (°C)</span>
+                      <span className="font-medium text-cyan-800">{t('warehouses.form.fields.tempRangeLabel')}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs text-cyan-700 mb-1">Minimum</label>
+                        <label className="block text-xs text-cyan-700 mb-1">{t('warehouses.form.fields.minimum')}</label>
                         <DxNumberBox
                           value={formData.temperatureMin}
                           onValueChange={(value) => setFormData(prev => ({
                             ...prev,
                             temperatureMin: value
                           }))}
-                          placeholder="15"
+                          placeholder={t('warehouses.form.placeholders.tempMin')}
                           format="#0.#"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-cyan-700 mb-1">Maximum</label>
+                        <label className="block text-xs text-cyan-700 mb-1">{t('warehouses.form.fields.maximum')}</label>
                         <DxNumberBox
                           value={formData.temperatureMax}
                           onValueChange={(value) => setFormData(prev => ({
                             ...prev,
                             temperatureMax: value
                           }))}
-                          placeholder="25"
+                          placeholder={t('warehouses.form.placeholders.tempMax')}
                           format="#0.#"
                         />
                       </div>
@@ -532,30 +539,30 @@ export function WarehouseEditForm({
                   <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
                     <div className="flex items-center gap-2 mb-4">
                       <Droplets className="h-5 w-5 text-blue-600" />
-                      <span className="font-medium text-blue-800">Humidity Range (%)</span>
+                      <span className="font-medium text-blue-800">{t('warehouses.form.fields.humidityRangeLabel')}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs text-blue-700 mb-1">Minimum</label>
+                        <label className="block text-xs text-blue-700 mb-1">{t('warehouses.form.fields.minimum')}</label>
                         <DxNumberBox
                           value={formData.humidityMin}
                           onValueChange={(value) => setFormData(prev => ({
                             ...prev,
                             humidityMin: value
                           }))}
-                          placeholder="40"
+                          placeholder={t('warehouses.form.placeholders.humidityMin')}
                           format="#0.#"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-blue-700 mb-1">Maximum</label>
+                        <label className="block text-xs text-blue-700 mb-1">{t('warehouses.form.fields.maximum')}</label>
                         <DxNumberBox
                           value={formData.humidityMax}
                           onValueChange={(value) => setFormData(prev => ({
                             ...prev,
                             humidityMax: value
                           }))}
-                          placeholder="65"
+                          placeholder={t('warehouses.form.placeholders.humidityMax')}
                           format="#0.#"
                         />
                       </div>
@@ -576,8 +583,8 @@ export function WarehouseEditForm({
               {isEditing && (
                 <SectionCard
                   icon={Gauge}
-                  title="Storage Utilization"
-                  description="Current capacity usage"
+                  title={t('warehouses.form.storageUtilizationTitle')}
+                  description={t('warehouses.form.storageUtilizationDesc')}
                   iconColor="text-emerald-600"
                   iconBgColor="bg-emerald-100"
                 >
@@ -589,8 +596,8 @@ export function WarehouseEditForm({
               {isEditing && (
                 <SectionCard
                   icon={Boxes}
-                  title="Inventory Summary"
-                  description="Current lot statistics"
+                  title={t('warehouses.form.inventorySummaryTitle')}
+                  description={t('warehouses.form.inventorySummaryDesc')}
                   iconColor="text-blue-600"
                   iconBgColor="bg-blue-100"
                 >
@@ -601,8 +608,8 @@ export function WarehouseEditForm({
               {/* Status Toggle */}
               <SectionCard
                 icon={CheckCircle}
-                title="Warehouse Status"
-                description="Active/Inactive status"
+                title={t('warehouses.form.warehouseStatusTitle')}
+                description={t('warehouses.form.warehouseStatusDesc')}
                 iconColor="text-green-600"
                 iconBgColor="bg-green-100"
               >
@@ -630,8 +637,8 @@ export function WarehouseEditForm({
                     )} />
                   </div>
                   <div>
-                    <span className="font-medium text-gray-900">Active Warehouse</span>
-                    <p className="text-sm text-gray-500">Warehouse can receive inventory</p>
+                    <span className="font-medium text-gray-900">{t('warehouses.form.activeWarehouse')}</span>
+                    <p className="text-sm text-gray-500">{t('warehouses.form.activeWarehouseDesc')}</p>
                   </div>
                 </label>
               </SectionCard>
@@ -639,39 +646,39 @@ export function WarehouseEditForm({
               {/* Quick Summary */}
               <SectionCard
                 icon={Info}
-                title="Quick Summary"
-                description="Overview of warehouse configuration"
+                title={t('warehouses.form.quickSummaryTitle')}
+                description={t('warehouses.form.quickSummaryDesc')}
                 iconColor="text-gray-600"
                 iconBgColor="bg-gray-100"
               >
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-500">Type</span>
+                    <span className="text-sm text-gray-500">{t('warehouses.form.fields.type')}</span>
                     <div className="flex items-center gap-2">
                       <TypeIcon className={cn('h-4 w-4', typeConfig.color)} />
-                      <span className="text-sm font-medium text-gray-900">{typeConfig.label}</span>
+                      <span className="text-sm font-medium text-gray-900">{t(`warehouses.types.${typeConfig.labelKey}`)}</span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-500">Capacity</span>
+                    <span className="text-sm text-gray-500">{t('warehouses.form.fields.capacity')}</span>
                     <span className="text-sm font-medium text-gray-900">
-                      {formData.capacity ?? 'Not set'}
+                      {formData.capacity ?? t('warehouses.form.fields.notSet')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-500">Temperature</span>
+                    <span className="text-sm text-gray-500">{t('warehouses.form.fields.temperature')}</span>
                     <span className="text-sm font-medium text-gray-900">
                       {formData.temperatureMin !== null && formData.temperatureMax !== null
                         ? `${formData.temperatureMin}°C - ${formData.temperatureMax}°C`
-                        : 'Not set'}
+                        : t('warehouses.form.fields.notSet')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-500">Humidity</span>
+                    <span className="text-sm text-gray-500">{t('warehouses.form.fields.humidity')}</span>
                     <span className="text-sm font-medium text-gray-900">
                       {formData.humidityMin !== null && formData.humidityMax !== null
                         ? `${formData.humidityMin}% - ${formData.humidityMax}%`
-                        : 'Not set'}
+                        : t('warehouses.form.fields.notSet')}
                     </span>
                   </div>
                 </div>
@@ -689,10 +696,10 @@ export function WarehouseEditForm({
                 )}
                 <div>
                   <p className={cn('font-medium', isValid ? 'text-green-800' : 'text-yellow-800')}>
-                    {isValid ? 'Ready to Save' : 'Missing Required Fields'}
+                    {isValid ? t('warehouses.form.validation.ready') : t('warehouses.form.validation.missing')}
                   </p>
                   <p className={cn('text-sm', isValid ? 'text-green-600' : 'text-yellow-600')}>
-                    {isValid ? 'All required fields are filled' : 'Code and Name are required'}
+                    {isValid ? t('warehouses.form.validation.readyDesc') : t('warehouses.form.validation.missingDesc')}
                   </p>
                 </div>
               </div>
@@ -706,20 +713,20 @@ export function WarehouseEditForm({
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <span className="text-sm text-gray-500">
             {isEditing && warehouse?.createdAt && (
-              <>Created: {new Date(warehouse.createdAt).toLocaleDateString()}</>
+              <>{t('warehouses.form.createdOn', { date: new Date(warehouse.createdAt).toLocaleDateString() })}</>
             )}
           </span>
           <div className="flex items-center gap-3">
             {onCancel && (
               <DxButton
-                text="Cancel"
+                text={t('warehouses.form.cancel')}
                 type="normal"
                 stylingMode="outlined"
                 onClick={onCancel}
               />
             )}
             <DxButton
-              text={isSaving ? 'Saving...' : isEditing ? 'Update Warehouse' : 'Create Warehouse'}
+              text={isSaving ? t('warehouses.form.saving') : isEditing ? t('warehouses.form.updateBtn') : t('warehouses.form.createBtn')}
               icon="save"
               type="success"
               useSubmitBehavior

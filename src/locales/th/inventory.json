@@ -415,11 +415,8 @@
   },
   "warehouses": {
     "title": "คลังสินค้า",
-    "pageTitle": "Warehouses",
+    "pageTitle": "คลังสินค้า",
     "description": "จัดการคลังสินค้าและสถานที่จัดเก็บ",
-    "detail": {
-      "pageTitle": "คลังสินค้า"
-    },
     "viewLots": "ดูล็อต",
     "addWarehouse": "เพิ่มคลัง",
     "searchPlaceholder": "ค้นหาด้วยรหัส ชื่อ หรือที่ตั้ง...",
@@ -429,6 +426,8 @@
     "emptyDescription": "เริ่มต้นจัดการสินค้าคงคลังของคุณโดยเพิ่มคลังสินค้าแรก",
     "noResultsTitle": "ไม่พบคลังสินค้าที่ตรงกับเงื่อนไข",
     "noResultsDescription": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองอื่น",
+    "downloadExcel": "ดาวน์โหลด Excel",
+    "excelSheetName": "คลังสินค้า",
     "table": {
       "columns": {
         "code": "รหัส",
@@ -449,7 +448,16 @@
       "finishedGoods": "สินค้าสำเร็จรูป",
       "quarantine": "กักกัน",
       "rejected": "ตีกลับ",
-      "coldStorage": "ห้องเย็น"
+      "coldStorage": "ห้องเย็น",
+      "general": "ทั่วไป"
+    },
+    "typeDescriptions": {
+      "rawMaterial": "จัดเก็บวัตถุดิบและส่วนผสม",
+      "wip": "สินค้าที่กำลังอยู่ในขั้นตอนการผลิต",
+      "finishedGoods": "ผลิตภัณฑ์ที่ผลิตเสร็จและพร้อมจำหน่าย",
+      "quarantine": "สินค้ารอตรวจสอบคุณภาพ",
+      "rejected": "สินค้าที่ไม่ผ่านการตรวจสอบ",
+      "coldStorage": "คลังควบคุมอุณหภูมิ"
     },
     "status": {
       "active": "ใช้งาน",
@@ -459,6 +467,153 @@
       "title": "ยืนยันการลบ",
       "message": "คุณต้องการลบคลังสินค้า \"{name}\" หรือไม่?",
       "confirm": "ลบ"
+    },
+    "detail": {
+      "pageTitle": "รายละเอียดคลัง",
+      "notFound": "ไม่พบคลังสินค้า",
+      "back": "ย้อนกลับ",
+      "backToList": "กลับไปที่รายการคลัง",
+      "edit": "แก้ไข",
+      "save": "บันทึก",
+      "cancel": "ยกเลิก",
+      "stats": {
+        "totalLots": "ล็อตทั้งหมด",
+        "released": "ปล่อยใช้งาน",
+        "quarantine": "กักกัน",
+        "nearExpiry": "ใกล้หมดอายุ"
+      },
+      "storageUtilization": "การใช้พื้นที่จัดเก็บ",
+      "storageUsageText": "{used} / {total} ล็อต",
+      "tabs": {
+        "overview": "ภาพรวม",
+        "inventory": "สินค้าคงคลัง",
+        "transactions": "ธุรกรรม",
+        "settings": "การตั้งค่า"
+      },
+      "warehouseInformation": "ข้อมูลคลังสินค้า",
+      "inventoryByType": "สินค้าคงคลังตามประเภท",
+      "inventoryLots": "ล็อตในคลัง",
+      "recentTransactions": "ธุรกรรมล่าสุด",
+      "warehouseSettings": "การตั้งค่าคลังสินค้า",
+      "noInventoryData": "ไม่มีข้อมูลสินค้าคงคลัง",
+      "noLotsFound": "ไม่พบล็อตในคลังนี้",
+      "noTransactionsFound": "ไม่พบธุรกรรม",
+      "searchLots": "ค้นหาล็อต...",
+      "allStatus": "ทุกสถานะ",
+      "notSpecified": "ไม่ระบุ",
+      "lotsCount": "{count} ล็อต",
+      "fields": {
+        "code": "รหัส",
+        "name": "ชื่อ",
+        "type": "ประเภท",
+        "location": "สถานที่",
+        "temperatureRange": "ช่วงอุณหภูมิ",
+        "humidityRange": "ช่วงความชื้น",
+        "created": "สร้างเมื่อ",
+        "lastUpdated": "อัปเดตล่าสุด",
+        "minTemperature": "อุณหภูมิต่ำสุด (°C)",
+        "maxTemperature": "อุณหภูมิสูงสุด (°C)",
+        "minHumidity": "ความชื้นต่ำสุด (%)",
+        "maxHumidity": "ความชื้นสูงสุด (%)"
+      },
+      "columns": {
+        "lotNumber": "เลขที่ล็อต",
+        "item": "สินค้า",
+        "quantity": "ปริมาณ",
+        "status": "สถานะ",
+        "expiryDate": "วันหมดอายุ",
+        "view": "ดู",
+        "date": "วันที่",
+        "type": "ประเภท",
+        "direction": "ทิศทาง",
+        "reference": "อ้างอิง"
+      },
+      "direction": {
+        "in": "เข้า",
+        "out": "ออก"
+      }
+    },
+    "form": {
+      "editTitle": "แก้ไขคลังสินค้า",
+      "createTitle": "สร้างคลังสินค้าใหม่",
+      "editSubtitle": "กำลังแก้ไข {code} - {name}",
+      "createSubtitle": "เพิ่มคลังใหม่เข้าสู่ระบบสินค้าคงคลัง",
+      "back": "ย้อนกลับ",
+      "cancel": "ยกเลิก",
+      "saving": "กำลังบันทึก...",
+      "updateBtn": "อัปเดตคลัง",
+      "createBtn": "สร้างคลัง",
+      "deleteBtn": "ลบ",
+      "createdOn": "สร้างเมื่อ: {date}",
+      "warehouseTypeTitle": "ประเภทคลัง",
+      "warehouseTypeDesc": "เลือกประเภทคลังสินค้า",
+      "basicInfoTitle": "ข้อมูลพื้นฐาน",
+      "basicInfoDesc": "รหัสและที่ตั้งของคลัง",
+      "envControlsTitle": "การควบคุมสภาพแวดล้อม",
+      "envControlsDesc": "อุณหภูมิและความชื้นที่กำหนด",
+      "storageUtilizationTitle": "การใช้พื้นที่จัดเก็บ",
+      "storageUtilizationDesc": "การใช้ความจุปัจจุบัน",
+      "inventorySummaryTitle": "สรุปสินค้าคงคลัง",
+      "inventorySummaryDesc": "สถิติล็อตปัจจุบัน",
+      "warehouseStatusTitle": "สถานะคลัง",
+      "warehouseStatusDesc": "สถานะใช้งาน/ปิดใช้งาน",
+      "quickSummaryTitle": "สรุปย่อ",
+      "quickSummaryDesc": "ภาพรวมการตั้งค่าคลัง",
+      "fields": {
+        "code": "รหัสคลัง",
+        "name": "ชื่อคลัง",
+        "location": "สถานที่",
+        "capacity": "ความจุที่จัดเก็บได้",
+        "capacityHint": "หน่วยจัดเก็บสูงสุด",
+        "tempRangeLabel": "ช่วงอุณหภูมิ (°C)",
+        "humidityRangeLabel": "ช่วงความชื้น (%)",
+        "minimum": "ต่ำสุด",
+        "maximum": "สูงสุด",
+        "type": "ประเภท",
+        "temperature": "อุณหภูมิ",
+        "humidity": "ความชื้น",
+        "notSet": "ยังไม่ตั้งค่า"
+      },
+      "placeholders": {
+        "code": "WH-RM-001",
+        "name": "คลังหลัก",
+        "location": "อาคาร A ชั้น 1 โซน B",
+        "capacity": "1000",
+        "tempMin": "15",
+        "tempMax": "25",
+        "humidityMin": "40",
+        "humidityMax": "65"
+      },
+      "generateCode": "สร้างรหัส",
+      "activeWarehouse": "คลังใช้งาน",
+      "activeWarehouseDesc": "คลังนี้สามารถรับสินค้าเข้าได้",
+      "status": {
+        "active": "ใช้งาน",
+        "inactive": "ปิดใช้งาน"
+      },
+      "utilization": {
+        "label": "การใช้พื้นที่จัดเก็บ",
+        "normal": "ปกติ",
+        "moderate": "ปานกลาง",
+        "high": "สูง",
+        "critical": "วิกฤต",
+        "used": "ใช้ไป",
+        "lotsStored": "{count} ล็อตที่จัดเก็บ",
+        "capacityUnit": "{used} / {capacity} หน่วย"
+      },
+      "summary": {
+        "totalLots": "ล็อตทั้งหมด",
+        "released": "ปล่อยใช้งาน",
+        "quarantine": "กักกัน",
+        "nearExpiry": "ใกล้หมดอายุ",
+        "noData": "ไม่มีข้อมูลสินค้าคงคลัง"
+      },
+      "validation": {
+        "ready": "พร้อมบันทึก",
+        "readyDesc": "ข้อมูลที่จำเป็นถูกกรอกครบถ้วน",
+        "missing": "ข้อมูลที่จำเป็นยังไม่ครบ",
+        "missingDesc": "ต้องกรอกรหัสและชื่อคลัง"
+      }
     }
   },
   "stockMovements": {
