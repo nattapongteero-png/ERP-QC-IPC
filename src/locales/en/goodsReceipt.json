@@ -20,6 +20,10 @@
     "po": "Purchase Order (Raw Material)",
     "wo": "Work Order (Finished Goods)"
   },
+  "sourceTypeShort": {
+    "po": "Purchase Order",
+    "wo": "Work Order"
+  },
   "category": {
     "raw_material": "Raw Material",
     "finished_goods": "Finished Goods"

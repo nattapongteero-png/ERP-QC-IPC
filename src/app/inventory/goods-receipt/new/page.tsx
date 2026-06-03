@@ -56,13 +56,31 @@ export default function NewGrnPage() {
   const [notes, setNotes] = useState('');
 
   // Load options
+  // All three list APIs in this project wrap responses as
+  // { success, data: { items, total, ... }, message } via the shared
+  // createPaginatedResponse helper. The earlier extractor only checked
+  // j.items / j.orders / j.workOrders, missing the j.data.items path
+  // and leaving every dropdown empty. unwrapList handles the wrapped
+  // shape AND a handful of legacy shapes so this won't silently break
+  // if a single endpoint deviates.
+  const unwrapList = (j: any): any[] => {
+    if (Array.isArray(j)) return j;
+    if (Array.isArray(j?.data)) return j.data;
+    if (Array.isArray(j?.data?.items)) return j.data.items;
+    if (Array.isArray(j?.data?.orders)) return j.data.orders;
+    if (Array.isArray(j?.data?.workOrders)) return j.data.workOrders;
+    if (Array.isArray(j?.items)) return j.items;
+    if (Array.isArray(j?.orders)) return j.orders;
+    if (Array.isArray(j?.workOrders)) return j.workOrders;
+    return [];
+  };
+
   const { data: pos } = useQuery<POOption[]>({
     queryKey: ['po-list-for-grn'],
     queryFn: async () => {
       const res = await fetch('/api/purchasing/orders?status=approved&pageSize=200');
       if (!res.ok) return [];
-      const j = await res.json();
-      return Array.isArray(j) ? j : Array.isArray(j.items) ? j.items : Array.isArray(j.orders) ? j.orders : [];
+      return unwrapList(await res.json());
     },
   });
 
@@ -71,18 +89,19 @@ export default function NewGrnPage() {
     queryFn: async () => {
       const res = await fetch('/api/production/work-orders?pageSize=200');
       if (!res.ok) return [];
-      const j = await res.json();
-      return Array.isArray(j) ? j : Array.isArray(j.items) ? j.items : Array.isArray(j.workOrders) ? j.workOrders : [];
+      return unwrapList(await res.json());
     },
   });
 
   const { data: warehouses } = useQuery<WarehouseOption[]>({
     queryKey: ['warehouses-for-grn'],
     queryFn: async () => {
-      const res = await fetch('/api/inventory/warehouses');
+      // Endpoint is /api/warehouses (no /inventory prefix); the previous
+      // path 404'd and the catch silently returned [] so the dropdown
+      // stayed empty.
+      const res = await fetch('/api/warehouses?pageSize=200');
       if (!res.ok) return [];
-      const j = await res.json();
-      return Array.isArray(j) ? j : Array.isArray(j.items) ? j.items : [];
+      return unwrapList(await res.json());
     },
   });
 

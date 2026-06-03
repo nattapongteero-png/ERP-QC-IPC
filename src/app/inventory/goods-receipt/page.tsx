@@ -141,8 +141,22 @@ export default function GoodsReceiptListPage() {
         <Column
           dataField="sourceType"
           caption={t('table.columns.sourceType')}
-          width={120}
-          cellRender={(c) => t(`sourceType.${c.value as 'po' | 'wo'}`)}
+          width={160}
+          cellRender={(c) => {
+            const v = c.value as 'po' | 'wo';
+            const cls =
+              v === 'po'
+                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            return (
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cls}`}
+                title={t(`sourceType.${v}`)}
+              >
+                {t(`sourceTypeShort.${v}`)}
+              </span>
+            );
+          }}
         />
         <Column
           dataField="vendorName"
