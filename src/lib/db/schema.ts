@@ -429,6 +429,11 @@ export const sqliteWorkOrders = sqliteTable('work_orders', {
   finishedOutputQty: real('finished_output_qty'),
   finishedOutputRecordedAt: text('finished_output_recorded_at'),
   finishedOutputRecordedBy: integer('finished_output_recorded_by').references(() => sqliteUsers.id),
+  // eBMR Approval Signature — "Approved By (QA)" final QA disposition on the batch.
+  // (eBMR audit gap #6 — previously the eBMR rendered an empty QA signature row.)
+  qaApprovedBy: integer('qa_approved_by').references(() => sqliteUsers.id),
+  qaApprovedAt: text('qa_approved_at'),
+  qaApprovalNotes: text('qa_approval_notes'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -2057,6 +2062,10 @@ export const mysqlWorkOrders = mysqlTable('work_orders', {
   finishedOutputQty: decimal('finished_output_qty', { precision: 15, scale: 4 }),
   finishedOutputRecordedAt: datetime('finished_output_recorded_at'),
   finishedOutputRecordedBy: int('finished_output_recorded_by').references(() => mysqlUsers.id),
+  // eBMR Approval Signature — "Approved By (QA)" (eBMR audit gap #6)
+  qaApprovedBy: int('qa_approved_by').references(() => mysqlUsers.id),
+  qaApprovedAt: datetime('qa_approved_at'),
+  qaApprovalNotes: mysqlText('qa_approval_notes'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });

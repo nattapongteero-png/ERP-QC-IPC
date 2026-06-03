@@ -40,6 +40,7 @@ const ROLE_LABEL: Record<string, { label: string; color: string }> = {
 import { useToast } from '@/components/ui/toast';
 import { ExecutionDashboard } from '@/components/production/ExecutionDashboard';
 import { formatSpecSummary, getCriteriaTypeLabel } from '@/lib/master-data/ipc-spec-payload';
+import { computeIPCStats, computePercentDeviation, groupIPCByPhase } from '@/lib/utils/ipc-statistics';
 // Feature 018: material withdrawal approval
 import { WithdrawalPanel } from '@/components/production/withdrawal-panel';
 
@@ -116,6 +117,15 @@ interface WorkOrderDetail {
     yieldPercent: number;
     productionTimeHours: number;
     status: string;
+    // eBMR audit gap #1 — Production Summary extras
+    bulkOutputQty: number | null;
+    finishedOutputQty: number | null;
+    bulkYieldPercent: number | null;
+    packagingLossQty: number | null;
+    packagingLossPercent: number | null;
+    totalLossQty: number | null;
+    totalLossPercent: number | null;
+    productUnit: string | null;
     materials: any[];
     qcTests: any[];
     operations: Array<{
@@ -1230,32 +1240,87 @@ export default function WorkOrderDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Production Summary */}
+            {/* Production Summary — audit gap #1: Bulk Yield + Loss breakdown */}
             <Card>
               <CardHeader>
                 <CardTitle>Production Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="border p-3 rounded-lg text-center">
-                    <p className="text-sm text-gray-500">Planned Quantity</p>
-                    <p className="text-xl font-bold text-gray-900">{ebmr.plannedQty}</p>
-                  </div>
-                  <div className="border p-3 rounded-lg text-center">
-                    <p className="text-sm text-gray-500">Actual Quantity</p>
-                    <p className="text-xl font-bold text-gray-900">{ebmr.actualQty || '-'}</p>
-                  </div>
-                  <div className="border p-3 rounded-lg text-center">
-                    <p className="text-sm text-gray-500">Yield</p>
-                    <p className={`text-xl font-bold ${ebmr.yieldPercent && ebmr.yieldPercent >= 95 ? 'text-green-600' : 'text-yellow-600'}`}>
-                      {ebmr.yieldPercent ? `${ebmr.yieldPercent}%` : '-'}
+                    <p className="text-xs text-gray-500">Planned Quantity</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {ebmr.plannedQty} {ebmr.productUnit || ''}
                     </p>
                   </div>
                   <div className="border p-3 rounded-lg text-center">
-                    <p className="text-sm text-gray-500">Production Time</p>
-                    <p className="text-xl font-bold text-gray-900">{ebmr.productionTimeHours ? `${ebmr.productionTimeHours}h` : '-'}</p>
+                    <p className="text-xs text-gray-500">Bulk Output</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {ebmr.bulkOutputQty != null
+                        ? <>{ebmr.bulkOutputQty} {ebmr.productUnit || ''}</>
+                        : '-'}
+                    </p>
+                    {ebmr.bulkYieldPercent != null && (
+                      <p className={`text-xs mt-0.5 ${ebmr.bulkYieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
+                        Bulk Yield {ebmr.bulkYieldPercent}%
+                      </p>
+                    )}
+                  </div>
+                  <div className="border p-3 rounded-lg text-center">
+                    <p className="text-xs text-gray-500">Finished Output</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {ebmr.finishedOutputQty != null
+                        ? <>{ebmr.finishedOutputQty} {ebmr.productUnit || ''}</>
+                        : ebmr.actualQty || '-'}
+                    </p>
+                    {ebmr.yieldPercent != null && (
+                      <p className={`text-xs mt-0.5 ${ebmr.yieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
+                        Final Yield {ebmr.yieldPercent}%
+                      </p>
+                    )}
+                  </div>
+                  <div className="border p-3 rounded-lg text-center">
+                    <p className="text-xs text-gray-500">Production Time</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {ebmr.productionTimeHours ? `${ebmr.productionTimeHours}h` : '-'}
+                    </p>
                   </div>
                 </div>
+
+                {/* Loss breakdown */}
+                {(ebmr.totalLossQty != null || ebmr.packagingLossQty != null) && (
+                  <div className="mt-3 border rounded-lg bg-amber-50/40 p-3">
+                    <p className="text-xs font-semibold text-amber-700 mb-1">Loss Breakdown</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                      {ebmr.packagingLossQty != null && (
+                        <div>
+                          <p className="text-xs text-gray-500">Packaging Loss</p>
+                          <p className="font-semibold text-gray-900">
+                            {ebmr.packagingLossQty} {ebmr.productUnit || ''}
+                            {ebmr.packagingLossPercent != null && (
+                              <span className="text-xs text-amber-600 ml-1">
+                                ({ebmr.packagingLossPercent}%)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                      {ebmr.totalLossQty != null && (
+                        <div>
+                          <p className="text-xs text-gray-500">Total Loss (vs Planned)</p>
+                          <p className="font-semibold text-gray-900">
+                            {ebmr.totalLossQty} {ebmr.productUnit || ''}
+                            {ebmr.totalLossPercent != null && (
+                              <span className="text-xs text-amber-600 ml-1">
+                                ({ebmr.totalLossPercent}%)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1381,64 +1446,90 @@ export default function WorkOrderDetailPage() {
                 <CardTitle>Material Consumption Record</CardTitle>
               </CardHeader>
               <CardContent>
-                <table className="w-full border-collapse border">
+                <table className="w-full border-collapse border text-xs">
                   <thead>
                     <tr className="ebmr-print-title-row">
-                      <th colSpan={6}>Material Consumption Record</th>
+                      <th colSpan={9}>Material Consumption Record</th>
                     </tr>
                     <tr className="bg-gray-100">
                       <th className="border p-2 text-left text-gray-700">Item Code</th>
                       <th className="border p-2 text-left text-gray-700">Item Name</th>
-                      <th className="border p-2 text-left text-gray-700">Lot Number</th>
+                      <th className="border p-2 text-left text-gray-700">Lot</th>
                       <th className="border p-2 text-right text-gray-700">Planned</th>
-                      <th className="border p-2 text-right text-gray-700">Actual</th>
+                      <th className="border p-2 text-right text-gray-700">Issued</th>
+                      <th className="border p-2 text-right text-gray-700">Weighed</th>
+                      <th className="border p-2 text-right text-gray-700">Returned</th>
+                      <th className="border p-2 text-right text-gray-700">Actual Used</th>
                       <th className="border p-2 text-right text-gray-700">Variance</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ebmr.materials.map((mat: any, index: number) => {
-                      // Both plannedQty and weighedQty are stored in the BOM line's
-                      // unit (mat.unit); itemUnit (= item primaryUnit) is only a
-                      // fallback when the BOM line didn't override it.
                       const displayUnit = mat.unit || mat.itemUnit;
-
-                      // "Actual" = what the operator actually weighed/consumed.
-                      // Do NOT fall back to actualQuantity (the issued/released
-                      // qty in primary unit) — that mixes units and produced the
-                      // misleading "8.0000" reading with a wrong variance sign.
-                      // If weighing hasn't happened yet, leave the cell empty.
                       const weighed = mat.weighedQty;
                       const hasWeighed = weighed !== null && weighed !== undefined;
                       const plannedNum = Number(mat.plannedQty);
                       const variance = hasWeighed ? Number(weighed) - plannedNum : null;
-                      const variancePct = hasWeighed && plannedNum > 0
-                        ? (variance! / plannedNum) * 100
-                        : null;
+                      const variancePct =
+                        hasWeighed && plannedNum > 0 ? (variance! / plannedNum) * 100 : null;
+                      const issued = mat.issuedQty;
+                      const returned = mat.returnedQty || 0;
+                      const netUsed = mat.netUsedQty;
 
                       return (
-                      <tr key={index}>
-                        <td className="border p-2 text-gray-900">{mat.itemCode}</td>
-                        <td className="border p-2 text-gray-900">{mat.itemName}</td>
-                        <td className="border p-2 text-gray-900">{mat.lotNumber || '-'}</td>
-                        <td className="border p-2 text-right text-gray-900">{mat.plannedQty} {displayUnit}</td>
-                        <td className="border p-2 text-right text-gray-900">
-                          {hasWeighed ? <>{weighed} {displayUnit}</> : <span className="text-gray-400">ยังไม่ได้ชั่ง</span>}
-                        </td>
-                        <td className="border p-2 text-right text-gray-900">
-                          {hasWeighed ? (
-                            <>
-                              <span className={variance! > 0 ? 'text-red-600' : variance! < 0 ? 'text-green-600' : ''}>
-                                {variance! > 0 ? '+' : ''}{variance} {displayUnit}
-                              </span>
-                              {variancePct !== null && (
-                                <span className="text-xs text-gray-500 ml-1">
-                                  ({variancePct.toFixed(2)}%)
+                        <tr key={index}>
+                          <td className="border p-2 text-gray-900">{mat.itemCode}</td>
+                          <td className="border p-2 text-gray-900">{mat.itemName}</td>
+                          <td className="border p-2 text-gray-900">{mat.lotNumber || '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">
+                            {mat.plannedQty} {displayUnit}
+                          </td>
+                          <td className="border p-2 text-right text-gray-900">
+                            {issued != null ? <>{issued} {displayUnit}</> : '-'}
+                          </td>
+                          <td className="border p-2 text-right text-gray-900">
+                            {hasWeighed ? (
+                              <>{weighed} {displayUnit}</>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="border p-2 text-right text-gray-900">
+                            {returned > 0 ? (
+                              <span className="text-amber-700">{returned} {displayUnit}</span>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
+                          <td className="border p-2 text-right text-gray-900 font-semibold">
+                            {netUsed != null ? <>{netUsed} {displayUnit}</> : '-'}
+                          </td>
+                          <td className="border p-2 text-right text-gray-900">
+                            {hasWeighed ? (
+                              <>
+                                <span
+                                  className={
+                                    variance! > 0
+                                      ? 'text-red-600'
+                                      : variance! < 0
+                                        ? 'text-green-600'
+                                        : ''
+                                  }
+                                >
+                                  {variance! > 0 ? '+' : ''}
+                                  {variance} {displayUnit}
                                 </span>
-                              )}
-                            </>
-                          ) : '-'}
-                        </td>
-                      </tr>
+                                {variancePct !== null && (
+                                  <span className="text-xs text-gray-500 ml-1">
+                                    ({variancePct.toFixed(2)}%)
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
+                        </tr>
                       );
                     })}
                   </tbody>
@@ -1446,35 +1537,63 @@ export default function WorkOrderDetailPage() {
               </CardContent>
             </Card>
 
-            {/* QC Summary */}
+            {/* QC Summary — audit gap #7: show test name + value + spec range */}
             <Card className="ebmr-section-with-table" data-has-table="true">
               <CardHeader>
                 <CardTitle>Quality Control Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <table className="w-full border-collapse border">
+                <table className="w-full border-collapse border text-xs">
                   <thead>
                     <tr className="ebmr-print-title-row">
-                      <th colSpan={4}>Quality Control Summary</th>
+                      <th colSpan={7}>Quality Control Summary</th>
                     </tr>
                     <tr className="bg-gray-100">
-                      <th className="border p-2 text-left text-gray-700">Test Code</th>
-                      <th className="border p-2 text-left text-gray-700">Test Type</th>
-                      <th className="border p-2 text-left text-gray-700">Result</th>
+                      <th className="border p-2 text-left text-gray-700">Code</th>
+                      <th className="border p-2 text-left text-gray-700">Test Name</th>
+                      <th className="border p-2 text-left text-gray-700">Type</th>
+                      <th className="border p-2 text-right text-gray-700">Value</th>
+                      <th className="border p-2 text-left text-gray-700">Spec Range</th>
+                      <th className="border p-2 text-center text-gray-700">Result</th>
                       <th className="border p-2 text-left text-gray-700">Tested At</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {ebmr.qcTests.map((test: any, index: number) => (
-                      <tr key={index}>
-                        <td className="border p-2 text-gray-900">{test.testCode}</td>
-                        <td className="border p-2 text-gray-900">{test.testType}</td>
-                        <td className="border p-2 text-gray-900">
-                          <Badge variant={getStatusVariant(test.result)}>{test.result || test.status}</Badge>
-                        </td>
-                        <td className="border p-2 text-gray-900">{test.testedAt ? new Date(test.testedAt).toLocaleString('th-TH') : '-'}</td>
-                      </tr>
-                    ))}
+                    {ebmr.qcTests.map((test: any, index: number) => {
+                      const value =
+                        test.numericResult != null
+                          ? `${test.numericResult} ${test.specUnit || ''}`.trim()
+                          : test.result || '-';
+                      const specRange =
+                        test.specMinValue != null && test.specMaxValue != null
+                          ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`.trim()
+                          : test.specSpecification || '-';
+                      return (
+                        <tr key={index}>
+                          <td className="border p-2 text-gray-900">{test.testCode}</td>
+                          <td className="border p-2 text-gray-900">
+                            {test.testName || '-'}
+                          </td>
+                          <td className="border p-2 text-gray-900 capitalize">
+                            {test.testType?.replace(/_/g, ' ') || '-'}
+                          </td>
+                          <td className="border p-2 text-right text-gray-900 font-medium">
+                            {value}
+                          </td>
+                          <td className="border p-2 text-gray-900">{specRange}</td>
+                          <td className="border p-2 text-center">
+                            <Badge variant={getStatusVariant(test.result)}>
+                              {test.result || test.status}
+                            </Badge>
+                          </td>
+                          <td className="border p-2 text-gray-900">
+                            {test.testedAt
+                              ? new Date(test.testedAt).toLocaleString('th-TH')
+                              : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </CardContent>
@@ -1550,14 +1669,69 @@ export default function WorkOrderDetailPage() {
                               </Badge>
                             </td>
                             <td className="border p-2 text-gray-900 text-sm align-top">
-                              {step.actualParameters && (() => {
+                              {(() => {
+                                // eBMR audit gap #4 — render actual parameters, falling back
+                                // to the expected (BOM template) parameters with a marker so
+                                // the reader sees what was supposed to be captured.
+                                let actual: Record<string, unknown> | null = null;
                                 try {
-                                  const params = typeof step.actualParameters === 'string' ? JSON.parse(step.actualParameters) : step.actualParameters;
-                                  return Object.entries(params)
-                                    .filter(([k]) => !k.startsWith('_'))
-                                    .map(([k, v]) => `${k}: ${v}`)
-                                    .join(', ') || '-';
-                                } catch { return '-'; }
+                                  if (step.actualParameters) {
+                                    actual =
+                                      typeof step.actualParameters === 'string'
+                                        ? JSON.parse(step.actualParameters)
+                                        : step.actualParameters;
+                                  }
+                                } catch {
+                                  /* keep null */
+                                }
+                                const cleanedActual: Array<[string, unknown]> = actual
+                                  ? Object.entries(actual).filter(([k]) => !k.startsWith('_'))
+                                  : [];
+                                let expected: Record<string, unknown> | null = null;
+                                try {
+                                  if (step.expectedParameters) {
+                                    expected =
+                                      typeof step.expectedParameters === 'string'
+                                        ? JSON.parse(step.expectedParameters)
+                                        : step.expectedParameters;
+                                  }
+                                } catch {
+                                  /* keep null */
+                                }
+                                if (cleanedActual.length > 0) {
+                                  return (
+                                    <div className="space-y-0.5">
+                                      {cleanedActual.map(([k, v]) => (
+                                        <div key={k}>
+                                          <span className="text-gray-600">{k}:</span>{' '}
+                                          <span className="font-medium">{String(v)}</span>
+                                          {expected && expected[k] != null && (
+                                            <span className="text-xs text-gray-400 ml-1">
+                                              (target {String(expected[k])})
+                                            </span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                }
+                                if (expected && Object.keys(expected).length > 0) {
+                                  return (
+                                    <div className="text-xs text-amber-700">
+                                      <div className="font-semibold mb-0.5">
+                                        ⚠ Not captured
+                                      </div>
+                                      {Object.entries(expected)
+                                        .filter(([k]) => !k.startsWith('_'))
+                                        .map(([k, v]) => (
+                                          <div key={k} className="text-gray-500">
+                                            {k}: target {String(v)}
+                                          </div>
+                                        ))}
+                                    </div>
+                                  );
+                                }
+                                return <span className="text-gray-400">-</span>;
                               })()}
                             </td>
                             <td className="border p-2 text-gray-900 text-sm align-top">{step.notes || '-'}</td>
@@ -1585,14 +1759,15 @@ export default function WorkOrderDetailPage() {
                   <CardTitle>Cleaning Verification Record</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <table className="w-full border-collapse border">
+                  <table className="w-full border-collapse border text-xs">
                     <thead>
                       <tr className="ebmr-print-title-row">
-                        <th colSpan={7}>Cleaning Verification Record</th>
+                        <th colSpan={8}>Cleaning Verification Record</th>
                       </tr>
                       <tr className="bg-gray-100">
                         <th className="border p-2 text-left text-gray-700">Phase</th>
                         <th className="border p-2 text-left text-gray-700">Type</th>
+                        <th className="border p-2 text-left text-gray-700">Equipment / Room</th>
                         <th className="border p-2 text-center text-gray-700">Clean</th>
                         <th className="border p-2 text-left text-gray-700">Operator</th>
                         <th className="border p-2 text-left text-gray-700">Performed</th>
@@ -1601,22 +1776,66 @@ export default function WorkOrderDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ebmr.cleaningLogs.map((log: any) => (
-                        <tr key={log.id}>
-                          <td className="border p-2 text-gray-900 capitalize">{(log.phase || '').replace(/_/g, ' ')}</td>
-                          <td className="border p-2 text-gray-900 capitalize">{log.itemType || '-'}</td>
-                          <td className="border p-2 text-center">
-                            {log.isClean ? <span className="text-green-600 font-bold">✓</span> : <span className="text-red-600 font-bold">✗</span>}
-                          </td>
-                          <td className="border p-2 text-gray-900 text-sm">{log.operatorName || (log.operatorId ? `User#${log.operatorId}` : '-')}</td>
-                          <td className="border p-2 text-gray-900 text-sm">{log.performedAt ? new Date(log.performedAt).toLocaleString('th-TH') : '-'}</td>
-                          <td className="border p-2 text-gray-900 text-sm">
-                            {log.verifierName || (log.verifierId ? `User#${log.verifierId}` : '-')}
-                            {log.verifiedAt && <div className="text-xs text-gray-500">{new Date(log.verifiedAt).toLocaleString('th-TH')}</div>}
-                          </td>
-                          <td className="border p-2 text-gray-900 text-sm">{log.notes || '-'}</td>
-                        </tr>
-                      ))}
+                      {ebmr.cleaningLogs.map((log: any) => {
+                        // eBMR audit gap #5 — show equipment / room code + name.
+                        const targetCode = log.equipmentCode || log.roomCode;
+                        const targetName = log.equipmentName || log.roomName;
+                        return (
+                          <tr key={log.id}>
+                            <td className="border p-2 text-gray-900 capitalize">
+                              {(log.phase || '').replace(/_/g, ' ')}
+                            </td>
+                            <td className="border p-2 text-gray-900 capitalize">
+                              {log.itemType || '-'}
+                            </td>
+                            <td className="border p-2 text-gray-900">
+                              {targetCode || targetName ? (
+                                <>
+                                  {targetCode && (
+                                    <span className="font-medium">{targetCode}</span>
+                                  )}
+                                  {targetName && (
+                                    <span className="text-gray-600">
+                                      {targetCode ? ' — ' : ''}
+                                      {targetName}
+                                    </span>
+                                  )}
+                                </>
+                              ) : log.equipmentId ? (
+                                `EQP#${log.equipmentId}`
+                              ) : log.roomId ? (
+                                `ROOM#${log.roomId}`
+                              ) : (
+                                '-'
+                              )}
+                            </td>
+                            <td className="border p-2 text-center">
+                              {log.isClean ? (
+                                <span className="text-green-600 font-bold">✓</span>
+                              ) : (
+                                <span className="text-red-600 font-bold">✗</span>
+                              )}
+                            </td>
+                            <td className="border p-2 text-gray-900">
+                              {log.operatorName || (log.operatorId ? `User#${log.operatorId}` : '-')}
+                            </td>
+                            <td className="border p-2 text-gray-900">
+                              {log.performedAt
+                                ? new Date(log.performedAt).toLocaleString('th-TH')
+                                : '-'}
+                            </td>
+                            <td className="border p-2 text-gray-900">
+                              {log.verifierName || (log.verifierId ? `User#${log.verifierId}` : '-')}
+                              {log.verifiedAt && (
+                                <div className="text-xs text-gray-500">
+                                  {new Date(log.verifiedAt).toLocaleString('th-TH')}
+                                </div>
+                              )}
+                            </td>
+                            <td className="border p-2 text-gray-900">{log.notes || '-'}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </CardContent>
@@ -1721,78 +1940,149 @@ export default function WorkOrderDetailPage() {
               </Card>
             )}
 
-            {/* IPC (In-Process Control) Results */}
-            {ebmr.ipcTests && ebmr.ipcTests.length > 0 && (
-              <Card className="ebmr-section-with-table" data-has-table="true">
-                <CardHeader>
-                  <CardTitle>In-Process Control (IPC) Results</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full border-collapse border">
-                    <thead>
-                      <tr className="ebmr-print-title-row">
-                        <th colSpan={6}>In-Process Control (IPC) Results</th>
-                      </tr>
-                      <tr className="bg-gray-100">
-                        <th className="border p-2 text-left text-gray-700">Test</th>
-                        <th className="border p-2 text-left text-gray-700">Specification</th>
-                        <th className="border p-2 text-right text-gray-700">Result</th>
-                        <th className="border p-2 text-center text-gray-700">Status</th>
-                        <th className="border p-2 text-left text-gray-700">Tested By</th>
-                        <th className="border p-2 text-left text-gray-700">Approved By</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ebmr.ipcTests.map((test: any) => (
-                        <tr key={test.id}>
-                          <td className="border p-2 text-gray-900">{test.testName}</td>
-                          <td className="border p-2 text-gray-900 text-sm">
-                            {(() => {
-                              const raw = test.specSpecification;
-                              const isJson = typeof raw === 'string' && raw.trim().startsWith('{');
-                              if (isJson) {
-                                const lines = formatSpecSummary({
-                                  criteriaType: test.criteriaType || 'numeric',
-                                  specification: raw,
-                                  sampleSize: test.sampleSize,
-                                  minValue: test.specMinValue,
-                                  maxValue: test.specMaxValue,
-                                  unit: test.specUnit,
-                                });
-                                return (
-                                  <div className="space-y-0.5">
-                                    {lines.map((ln: { icon: string; text: string }, i: number) => (
-                                      <div key={i}>{ln.icon} {ln.text}</div>
-                                    ))}
-                                  </div>
+            {/* IPC (In-Process Control) Results — audit gap #3: phase grouping + stats */}
+            {ebmr.ipcTests && ebmr.ipcTests.length > 0 && (() => {
+              const phaseGroups = groupIPCByPhase(ebmr.ipcTests as any[]);
+              const phaseOrder = [
+                'pre_production',
+                'production',
+                'post_production',
+                'packaging',
+              ];
+              const sortedPhases = Object.keys(phaseGroups).sort((a, b) => {
+                const ai = phaseOrder.indexOf(a);
+                const bi = phaseOrder.indexOf(b);
+                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+              });
+              const phaseLabel: Record<string, string> = {
+                pre_production: 'Pre-production',
+                production: 'Production',
+                post_production: 'Post-production',
+                packaging: 'Packaging',
+              };
+              return (
+                <Card className="ebmr-section-with-table" data-has-table="true">
+                  <CardHeader>
+                    <CardTitle>In-Process Control (IPC) Results</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {sortedPhases.map((phase) => {
+                      const tests = phaseGroups[phase];
+                      const stats = computeIPCStats(
+                        tests.map((t: any) => ({ numericResult: t.numericResult })),
+                      );
+                      return (
+                        <div key={phase}>
+                          <div className="flex items-center justify-between mb-1 text-sm">
+                            <div className="font-semibold text-gray-800">
+                              {phaseLabel[phase] || phase}{' '}
+                              <span className="text-xs text-gray-500">({tests.length} tests)</span>
+                            </div>
+                            {stats.count >= 1 && (
+                              <div className="text-xs text-gray-600 flex gap-3">
+                                <span>n={stats.count}</span>
+                                {stats.mean != null && (
+                                  <span>mean={stats.mean.toFixed(2)}</span>
+                                )}
+                                {stats.stdDev != null && (
+                                  <span>SD={stats.stdDev.toFixed(3)}</span>
+                                )}
+                                {stats.min != null && (
+                                  <span>
+                                    range={stats.min.toFixed(2)}…{stats.max!.toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <table className="w-full border-collapse border text-xs">
+                            <thead>
+                              <tr className="bg-gray-100">
+                                <th className="border p-2 text-left text-gray-700">Test</th>
+                                <th className="border p-2 text-left text-gray-700">Spec</th>
+                                <th className="border p-2 text-right text-gray-700">Value</th>
+                                <th className="border p-2 text-right text-gray-700">%Dev</th>
+                                <th className="border p-2 text-center text-gray-700">Status</th>
+                                <th className="border p-2 text-left text-gray-700">Tested By</th>
+                                <th className="border p-2 text-left text-gray-700">Approved By</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {tests.map((test: any) => {
+                                const dev = computePercentDeviation(
+                                  test.numericResult,
+                                  test.specMinValue,
+                                  test.specMaxValue,
                                 );
-                              }
-                              return raw || (test.specMinValue != null && test.specMaxValue != null ? `${test.specMinValue} - ${test.specMaxValue} ${test.specUnit || ''}` : '-');
-                            })()}
-                          </td>
-                          <td className="border p-2 text-right text-gray-900">{test.numericResult ?? test.result ?? '-'} {test.specUnit || ''}</td>
-                          <td className="border p-2 text-center">
-                            <Badge variant={test.status === 'pass' ? 'primary' : test.status === 'fail' ? 'danger' : 'default'}>
-                              {test.status}
-                            </Badge>
-                          </td>
-                          <td className="border p-2 text-gray-900 text-sm">{test.testedByName || '-'}</td>
-                          <td className="border p-2 text-gray-900 text-sm">{test.approvedByName || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            )}
+                                return (
+                                  <tr key={test.id}>
+                                    <td className="border p-2 text-gray-900">
+                                      {test.testName || `IPC-${test.id}`}
+                                    </td>
+                                    <td className="border p-2 text-gray-900">
+                                      {test.specMinValue != null && test.specMaxValue != null
+                                        ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`
+                                        : test.specSpecification || '-'}
+                                    </td>
+                                    <td className="border p-2 text-right text-gray-900 font-medium">
+                                      {test.numericResult ?? test.result ?? '-'}{' '}
+                                      {test.specUnit || ''}
+                                    </td>
+                                    <td className="border p-2 text-right text-gray-900">
+                                      {dev != null ? (
+                                        <span
+                                          className={
+                                            Math.abs(dev) > 5
+                                              ? 'text-amber-600 font-semibold'
+                                              : 'text-gray-700'
+                                          }
+                                        >
+                                          {dev > 0 ? '+' : ''}
+                                          {dev.toFixed(2)}%
+                                        </span>
+                                      ) : (
+                                        '-'
+                                      )}
+                                    </td>
+                                    <td className="border p-2 text-center">
+                                      <Badge
+                                        variant={
+                                          test.status === 'pass'
+                                            ? 'primary'
+                                            : test.status === 'fail'
+                                              ? 'danger'
+                                              : 'default'
+                                        }
+                                      >
+                                        {test.status}
+                                      </Badge>
+                                    </td>
+                                    <td className="border p-2 text-gray-900 text-sm">
+                                      {test.testedByName || '-'}
+                                    </td>
+                                    <td className="border p-2 text-gray-900 text-sm">
+                                      {test.approvedByName || '-'}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
-            {/* Signatures */}
+            {/* Signatures — audit gap #6 — explicit Produced/QC/QA signatures + QA sign action */}
             <Card id="ebmr-signatures">
               <CardHeader>
                 <CardTitle>Approval Signatures</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {([
                     { key: 'producedBy', label: 'Produced By' },
                     { key: 'verifiedByQc', label: 'Verified By (QC)' },
@@ -1807,10 +2097,14 @@ export default function WorkOrderDetailPage() {
                             Name: {sig?.name || '_________________'}
                           </p>
                           <p className="text-sm text-gray-900">
-                            Date: {sig?.signedAt
+                            Date:{' '}
+                            {sig?.signedAt
                               ? new Date(sig.signedAt).toLocaleString('th-TH', {
-                                  year: 'numeric', month: 'short', day: 'numeric',
-                                  hour: '2-digit', minute: '2-digit',
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
                                 })
                               : '_________________'}
                           </p>
@@ -1819,6 +2113,36 @@ export default function WorkOrderDetailPage() {
                     );
                   })}
                 </div>
+                {/* QA sign-off button — visible when there's no QA signature yet and
+                    the WO is at least 'completed' (preconditions enforced server-side) */}
+                {!ebmr.signatures?.approvedByQa &&
+                  ['completed', 'closed'].includes(workOrder.status as string) && (
+                    <div className="mt-4 flex justify-end print:hidden">
+                      <DxButton
+                        text="Sign as QA — Approve eBMR"
+                        type="success"
+                        onClick={async () => {
+                          if (!confirm('ยืนยันการ approve eBMR เป็น QA?\n(ระบบจะตรวจ Triple Independence ก่อนบันทึก)')) return;
+                          const res = await fetch(
+                            `/api/production/work-orders/${workOrder.id}/qa-approve`,
+                            {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ notes: null }),
+                            },
+                          );
+                          const json = await res.json();
+                          if (!res.ok) {
+                            toast.error('Approve ไม่สำเร็จ', json?.error);
+                          } else {
+                            toast.success('QA approval signed', 'eBMR ถูกล็อกแล้ว');
+                            await fetchWorkOrderDetail();
+                          }
+                        }}
+                        data-testid="ebmr-qa-approve"
+                      />
+                    </div>
+                  )}
               </CardContent>
             </Card>
 

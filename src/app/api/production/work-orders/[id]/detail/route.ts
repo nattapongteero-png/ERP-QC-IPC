@@ -63,6 +63,10 @@ export async function GET(
             finishedOutputQty: workOrders.finishedOutputQty,
             finishedOutputRecordedAt: workOrders.finishedOutputRecordedAt,
             finishedOutputRecordedBy: workOrders.finishedOutputRecordedBy,
+            // eBMR audit gap #6 — explicit QA approval signature
+            qaApprovedBy: workOrders.qaApprovedBy,
+            qaApprovedAt: workOrders.qaApprovedAt,
+            qaApprovalNotes: workOrders.qaApprovalNotes,
             createdAt: workOrders.createdAt,
             updatedAt: workOrders.updatedAt,
           })
@@ -127,6 +131,8 @@ export async function GET(
             plannedQuantity: workOrderMaterials.plannedQuantity,
             actualQuantity: workOrderMaterials.actualQuantity,
             weighedQty: workOrderMaterials.weighedQty,
+            // eBMR audit gap #2 — Material Consumption Issued/Returned/Net Used
+            issuedQty: workOrderMaterials.issuedQty,
             unit: workOrderMaterials.unit,
             status: workOrderMaterials.status,
             lotId: workOrderMaterials.lotId,
@@ -135,6 +141,46 @@ export async function GET(
           .leftJoin(items, eq(workOrderMaterials.itemId, items.id))
           .where(eq(workOrderMaterials.workOrderId, parseInt(id)));
       });
+
+      // eBMR audit gap #2 — pull returned quantities for this WO so we can
+      // show "Returned" + "Actual Used" (= issued - returned) per item.
+      const returnedByItem = new Map<number, number>();
+      try {
+        const materialReturns = getTableRef('materialReturns');
+        const materialReturnLines = getTableRef('materialReturnLines');
+        const { inArray } = await import('drizzle-orm');
+        const woReturns = await executeDbOperation(async (db) => {
+          return db
+            .select({ id: materialReturns.id, status: materialReturns.status })
+            .from(materialReturns)
+            .where(eq(materialReturns.workOrderId, parseInt(id)));
+        });
+        const acceptedReturnIds = woReturns
+          .filter((r: { status?: string }) =>
+            ['received', 'submitted', 'approved'].includes(r.status || ''))
+          .map((r: { id: number }) => r.id);
+        if (acceptedReturnIds.length > 0) {
+          const lines = await executeDbOperation(async (db) => {
+            return db
+              .select({
+                itemId: materialReturnLines.itemId,
+                returnQty: materialReturnLines.returnQty,
+                returnUnit: materialReturnLines.returnUnit,
+              })
+              .from(materialReturnLines)
+              .where(inArray(materialReturnLines.returnId, acceptedReturnIds));
+          });
+          for (const l of lines) {
+            const qty = Number(l.returnQty) || 0;
+            returnedByItem.set(
+              l.itemId as number,
+              (returnedByItem.get(l.itemId as number) || 0) + qty,
+            );
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch material returns for eBMR:', err);
+      }
 
       // Get lot information for each material
       const materialsWithLots = await Promise.all(
@@ -187,12 +233,19 @@ export async function GET(
               id: qualityTests.id,
               lotId: qualityTests.lotId,
               testType: qualityTests.testType,
+              // eBMR audit gap #7 — show real test name + numeric value + spec range
+              testName: qualityTests.testName,
+              ipcCriteriaId: qualityTests.ipcCriteriaId,
+              numericResult: qualityTests.numericResult,
+              specMinValue: qualityTests.specMinValue,
+              specMaxValue: qualityTests.specMaxValue,
               sampleNumber: qualityTests.sampleNumber,
               status: qualityTests.status,
               result: qualityTests.result,
               testDate: qualityTests.testDate,
               specSpecification: qualityTests.specSpecification,
               specUnit: qualityTests.specUnit,
+              criteriaType: qualityTests.criteriaType,
               notes: qualityTests.notes,
               testedBy: qualityTests.testedBy,
               approvedBy: qualityTests.approvedBy,
@@ -278,6 +331,7 @@ export async function GET(
         const planned = material.plannedQuantity as number | null;
         const weighed = material.weighedQty as number | null;
         const actualFallback = material.actualQuantity as number | null;
+        const issued = material.issuedQty as number | null;
 
         // Prefer weighedQty (weighing unit). Only fall back to actualQuantity
         // if no weighing record exists.
@@ -293,12 +347,22 @@ export async function GET(
           ? Math.round((Number(displayActual) / Number(planned)) * 100 * 100) / 100
           : null;
 
+        // eBMR audit gap #2 — Issued / Returned / Net Used
+        const returnedQty = returnedByItem.get(material.itemId as number) || 0;
+        const issuedAmount = issued != null ? Number(issued) : (displayActual != null ? Number(displayActual) : null);
+        const netUsed = issuedAmount != null
+          ? Math.max(0, issuedAmount - returnedQty)
+          : null;
+
         return {
           ...material,
           plannedQty: planned,
           actualQty: displayActual,
           consumptionPercent,
           variance,
+          issuedQty: issuedAmount,
+          returnedQty,
+          netUsedQty: netUsed,
         };
       });
 
@@ -472,20 +536,30 @@ export async function GET(
         }
         if (qcUserId) userIds.add(qcUserId);
 
-        // 3. QA Approval — latest disposition_approved_by across WO's quality tests
+        // 3. QA Approval — eBMR audit gap #6 — prefer explicit
+        //    work_orders.qa_approved_by (set when QA signs the eBMR via the
+        //    /qa-approve endpoint). Fall back to quality_tests.dispositionApprovedBy
+        //    for legacy records.
         let qaUserId: number | null = null;
         let qaSignedAt: string | null = null;
-        const disposed = relatedQcTests.filter(
-          (t: Record<string, unknown>) =>
-            t.dispositionApprovedBy && t.dispositionApprovedAt
-        );
-        if (disposed.length > 0) {
-          const latest = disposed.sort(
-            (a: Record<string, unknown>, b: Record<string, unknown>) =>
-              String(b.dispositionApprovedAt).localeCompare(String(a.dispositionApprovedAt))
-          )[0];
-          qaUserId = latest.dispositionApprovedBy as number;
-          qaSignedAt = latest.dispositionApprovedAt as string;
+        let qaSource = 'work_orders.qa_approved_by';
+        if (workOrder.qaApprovedBy && workOrder.qaApprovedAt) {
+          qaUserId = workOrder.qaApprovedBy as number;
+          qaSignedAt = String(workOrder.qaApprovedAt);
+        } else {
+          const disposed = relatedQcTests.filter(
+            (t: Record<string, unknown>) =>
+              t.dispositionApprovedBy && t.dispositionApprovedAt
+          );
+          if (disposed.length > 0) {
+            const latest = disposed.sort(
+              (a: Record<string, unknown>, b: Record<string, unknown>) =>
+                String(b.dispositionApprovedAt).localeCompare(String(a.dispositionApprovedAt))
+            )[0];
+            qaUserId = latest.dispositionApprovedBy as number;
+            qaSignedAt = latest.dispositionApprovedAt as string;
+            qaSource = 'quality_tests.dispositionApprovedBy';
+          }
         }
         if (qaUserId) userIds.add(qaUserId);
 
@@ -523,12 +597,40 @@ export async function GET(
             userId: qaUserId,
             name: userMap.get(qaUserId) || '',
             signedAt: String(qaSignedAt),
-            source: 'quality_tests.dispositionApprovedBy',
+            source: qaSource,
           };
         }
       } catch (err) {
         console.error('Error building eBMR signatures:', err);
       }
+
+      // eBMR audit gap #1 — Production Summary: Bulk Yield + Loss breakdown
+      const planned = Number(workOrder.plannedQuantity) || 0;
+      const bulkQty = workOrder.bulkOutputQty != null ? Number(workOrder.bulkOutputQty) : null;
+      const finishedQty =
+        workOrder.finishedOutputQty != null
+          ? Number(workOrder.finishedOutputQty)
+          : workOrder.actualQuantity != null
+            ? Number(workOrder.actualQuantity)
+            : null;
+      const bulkYieldPercent =
+        bulkQty != null && planned > 0
+          ? Math.round((bulkQty / planned) * 10000) / 100
+          : null;
+      const packagingLossQty =
+        bulkQty != null && finishedQty != null
+          ? Math.max(0, bulkQty - finishedQty)
+          : null;
+      const packagingLossPercent =
+        packagingLossQty != null && bulkQty != null && bulkQty > 0
+          ? Math.round((packagingLossQty / bulkQty) * 10000) / 100
+          : null;
+      const totalLossQty =
+        finishedQty != null && planned > 0 ? Math.max(0, planned - finishedQty) : null;
+      const totalLossPercent =
+        totalLossQty != null && planned > 0
+          ? Math.round((totalLossQty / planned) * 10000) / 100
+          : null;
 
       // eBMR (Electronic Batch Manufacturing Record) summary
       const ebmr = {
@@ -543,6 +645,15 @@ export async function GET(
         yieldPercent,
         productionTimeHours,
         status: workOrder.status,
+        // eBMR audit gap #1 — Production Summary extras
+        bulkOutputQty: bulkQty,
+        finishedOutputQty: finishedQty,
+        bulkYieldPercent,
+        packagingLossQty,
+        packagingLossPercent,
+        totalLossQty,
+        totalLossPercent,
+        productUnit: workOrder.unit,
         materials: materialConsumption,
         qcTests: relatedQcTests,
         operations: bomOperations,

@@ -33,7 +33,8 @@ export type WorkOrderSection =
   | 'operations'
   | 'status'
   | 'line-clearance'
-  | 'requisition';
+  | 'requisition'
+  | 'qa-approve';
 
 export interface WorkOrderChangedPayload extends Record<string, unknown> {
   workOrderId: number;
