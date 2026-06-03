@@ -14,7 +14,7 @@ import { ResponsivePageHeader } from '@/components/shared';
 import {
   Database, Building2, Wrench, Thermometer, FileText, Scale, FlaskConical,
   ChevronRight, Download, Upload, X, CheckSquare, Square,
-  Sliders, ListChecks, ClipboardCheck, Hash,
+  Sliders, ListChecks, ClipboardCheck, Hash, Tag,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +38,8 @@ const masterDataModules = [
   { key: 'maintenancePlanTemplates', href: '/master-data/maintenance-plan-templates', icon: ListChecks, iconBgColor: 'bg-violet-100', iconColor: 'text-violet-600' },
   // Feature 025
   { key: 'itemCodePatterns', href: '/master-data/item-code-patterns', icon: Hash, iconBgColor: 'bg-pink-100', iconColor: 'text-pink-600' },
+  // Feature 026
+  { key: 'lotPatterns', href: '/master-data/lot-patterns', icon: Tag, iconBgColor: 'bg-yellow-100', iconColor: 'text-yellow-700' },
 ];
 
 // ─── Lookup values for template reference ─────────────────────────────
