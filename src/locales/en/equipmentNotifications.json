@@ -1,0 +1,52 @@
+{
+  "page": {
+    "inbox": "Equipment Notifications",
+    "calendar": "Maintenance Calendar",
+    "templates": "Maintenance Plan Templates"
+  },
+  "tiles": {
+    "open": "Open",
+    "overdue": "Overdue",
+    "dueIn7d": "Due in 7 days",
+    "dueIn30d": "Due in 30 days"
+  },
+  "severity": {
+    "overdue": "Overdue",
+    "due_today": "Due today",
+    "due_in_7d": "Due in 7 days",
+    "due_in_30d": "Due in 30 days",
+    "info": "Info"
+  },
+  "type": {
+    "maintenance_due": "Maintenance",
+    "calibration_due": "Calibration",
+    "scale_failure": "Scale FAIL",
+    "verification_expired": "Verification Expired",
+    "inspection_due": "Inspection"
+  },
+  "status": {
+    "open": "Open",
+    "acknowledged": "Acknowledged",
+    "snoozed": "Snoozed",
+    "dismissed": "Dismissed",
+    "resolved": "Resolved"
+  },
+  "actions": {
+    "acknowledge": "Acknowledge",
+    "snooze": "Snooze",
+    "resolve": "Resolve",
+    "scan": "Scan now",
+    "viewAll": "View all",
+    "refresh": "Refresh"
+  },
+  "form": {
+    "note": { "label": "Note" },
+    "snoozeDays": { "label": "Snooze for (days)" }
+  },
+  "toast": {
+    "acknowledged": "Acknowledged",
+    "snoozed": "Snoozed",
+    "resolved": "Resolved",
+    "scanned": "Scan complete"
+  }
+}

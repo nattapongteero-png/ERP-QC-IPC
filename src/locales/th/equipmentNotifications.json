@@ -1,0 +1,52 @@
+{
+  "page": {
+    "inbox": "แจ้งเตือนการบำรุงรักษา",
+    "calendar": "ปฏิทินบำรุงรักษา",
+    "templates": "Template แผนบำรุงรักษา"
+  },
+  "tiles": {
+    "open": "รอดำเนินการ",
+    "overdue": "เกินกำหนด",
+    "dueIn7d": "ภายใน 7 วัน",
+    "dueIn30d": "ภายใน 30 วัน"
+  },
+  "severity": {
+    "overdue": "เกินกำหนด",
+    "due_today": "วันนี้",
+    "due_in_7d": "ภายใน 7 วัน",
+    "due_in_30d": "ภายใน 30 วัน",
+    "info": "ทั่วไป"
+  },
+  "type": {
+    "maintenance_due": "บำรุงรักษา",
+    "calibration_due": "สอบเทียบ",
+    "scale_failure": "เครื่องชั่ง FAIL",
+    "verification_expired": "Verification หมดอายุ",
+    "inspection_due": "ตรวจสอบ"
+  },
+  "status": {
+    "open": "รอดำเนินการ",
+    "acknowledged": "รับทราบแล้ว",
+    "snoozed": "เลื่อนไว้",
+    "dismissed": "ปิด",
+    "resolved": "เสร็จสิ้น"
+  },
+  "actions": {
+    "acknowledge": "รับทราบ",
+    "snooze": "เลื่อน",
+    "resolve": "ปิดงาน",
+    "scan": "สแกนตอนนี้",
+    "viewAll": "ดูทั้งหมด",
+    "refresh": "รีเฟรช"
+  },
+  "form": {
+    "note": { "label": "หมายเหตุ" },
+    "snoozeDays": { "label": "เลื่อนกี่วัน" }
+  },
+  "toast": {
+    "acknowledged": "รับทราบเรียบร้อย",
+    "snoozed": "เลื่อนเรียบร้อย",
+    "resolved": "ปิดงานเรียบร้อย",
+    "scanned": "สแกนเรียบร้อย"
+  }
+}

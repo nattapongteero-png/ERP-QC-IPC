@@ -303,12 +303,30 @@ export async function createVerification(
       .set({ entityId: verId })
       .where(eq(t.signatures.id, signatureId));
 
-    // If FAIL → set scale to out_of_service
+    // If FAIL → set scale to out_of_service + create notification (F022)
     if (result === 'fail') {
       await db
         .update(t.equipment)
         .set({ scaleStatus: 'out_of_service', updatedAt: getNow() })
         .where(eq(t.equipment.id, input.scaleId));
+
+      // Feature 022 integration: auto-create high-severity notification
+      try {
+        const { createNotification } = await import('./equipment-notification.service');
+        await createNotification({
+          entityType: 'scale',
+          entityId: input.scaleId,
+          type: 'scale_failure',
+          title: `Scale ${scale.code} FAILED verification`,
+          body: `Verification by user ${userId} with weight ${weight.code} measured Δ ${deviationPercent}% (tolerance ±${tolerancePercent}%). Scale set to Out of Service.`,
+          dueAt: new Date().toISOString(),
+          severity: 'overdue',
+          recipientRole: 'maintenance',
+        });
+      } catch (notifyErr) {
+        // Non-fatal — verification record still saved
+        console.warn('[scale-verification] notification creation failed', notifyErr);
+      }
     } else {
       // If PASS, ensure scaleStatus is 'active' (in case it was previously out)
       if (scale.scaleStatus === 'out_of_service') {
