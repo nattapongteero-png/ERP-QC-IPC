@@ -136,6 +136,45 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       });
 
       publishWorkOrderChanged(workOrderId, 'status', session.userId, status);
+
+      // Audit QC1/QC4 — notify QC when a WO transitions to 'completed' so
+      // Finished Product QC can start. Best-effort: never roll back the
+      // status change if the notification dispatch fails.
+      if (status === 'completed') {
+        try {
+          const { notifyWOCompleted } = await import('@/lib/services/qc-notification.service');
+          const itemsTable = getTableRef('items');
+          const [productMeta] = await executeDbOperation(async (db) => {
+            return db
+              .select({
+                woNumber: workOrdersTable.woNumber,
+                batchNumber: workOrdersTable.batchNumber,
+                actualQuantity: workOrdersTable.actualQuantity,
+                unit: workOrdersTable.unit,
+                productName: itemsTable.nameTh,
+              })
+              .from(workOrdersTable)
+              .leftJoin(itemsTable, eq(workOrdersTable.productId, itemsTable.id))
+              .where(eq(workOrdersTable.id, workOrderId));
+          });
+          if (productMeta) {
+            await notifyWOCompleted({
+              workOrderId,
+              woNumber: productMeta.woNumber as string,
+              batchNumber: (productMeta.batchNumber as string) ?? null,
+              productName: productMeta.productName as string | null,
+              actualQuantity:
+                productMeta.actualQuantity != null
+                  ? Number(productMeta.actualQuantity)
+                  : null,
+              unit: (productMeta.unit as string) ?? null,
+            });
+          }
+        } catch (err) {
+          console.warn('QC WO-completed notification failed (non-fatal):', err);
+        }
+      }
+
       return successResponse({ id: workOrderId, status }, `Work order status updated to ${status}`);
     } catch (error) {
       return serverErrorResponse(error);

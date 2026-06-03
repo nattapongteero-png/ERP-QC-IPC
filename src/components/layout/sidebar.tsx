@@ -137,6 +137,7 @@ const navigation: NavItem[] = [
       { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       { name: 'Specifications', href: '/quality/specs', icon: FileText },
+      { name: 'Sampling Plans', href: '/master-data/sampling-plans', icon: Layers },
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
       { name: 'QC Audit Trail', href: '/quality/audit-trail', icon: ScrollText },
     ],

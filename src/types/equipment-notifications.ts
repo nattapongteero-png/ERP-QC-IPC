@@ -8,7 +8,11 @@ export type NotificationType =
   | 'calibration_due'
   | 'scale_failure'
   | 'verification_expired'
-  | 'inspection_due';
+  | 'inspection_due'
+  // QC audit (QC1/QC4) — cross-department triggers
+  | 'lot_received'
+  | 'wo_completed'
+  | 'deviation_opened';
 
 export const NOTIFICATION_TYPES: NotificationType[] = [
   'maintenance_due',
@@ -16,6 +20,9 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'scale_failure',
   'verification_expired',
   'inspection_due',
+  'lot_received',
+  'wo_completed',
+  'deviation_opened',
 ];
 
 export type NotificationSeverity = 'overdue' | 'due_today' | 'due_in_7d' | 'due_in_30d' | 'info';

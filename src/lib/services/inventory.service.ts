@@ -604,6 +604,28 @@ export async function receiveMaterial(
     },
   });
 
+  // Audit QC1/QC4 — notify QC team about the new lot so they can plan sampling.
+  // Best-effort: never block the receive flow if notification dispatch fails.
+  try {
+    const { notifyLotReceived } = await import('./qc-notification.service');
+    const itemTable = getTables().items;
+    const itemRows = await database
+      .select({ code: itemTable.code, nameTh: itemTable.nameTh, nameEn: itemTable.nameEn })
+      .from(itemTable)
+      .where(eq(itemTable.id, itemId))
+      .limit(1);
+    await notifyLotReceived({
+      lotId: newLotId,
+      lotNumber,
+      itemCode: itemRows[0]?.code ?? null,
+      itemName: itemRows[0]?.nameTh ?? itemRows[0]?.nameEn ?? null,
+      quantity,
+      unit,
+    });
+  } catch (err) {
+    console.warn('QC lot-received notification failed (non-fatal):', err);
+  }
+
   return newLotId;
 }
 

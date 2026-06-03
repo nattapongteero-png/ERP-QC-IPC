@@ -506,6 +506,10 @@ export interface CreateQcSampleResult {
   sampleNumber: string;
   status: 'registered';
   testsSeeded: number;
+  // Audit QC2/QC3 — populated when sampleQty/retainSampleQty were provided
+  sourceLotId?: number | null;
+  retainLotId?: number | null;
+  retainExpiryDate?: string | null;
 }
 
 export async function createQcSample(
@@ -578,11 +582,56 @@ export async function createQcSample(
       }
     }
 
+    // Audit QC2/QC3 — issue sample qty from source lot + create retain lot.
+    // Wrapped in try/catch so a missing source lot is surfaced as a 400 by
+    // the API layer but doesn't roll back the sample header (operator can
+    // still attach a lot afterwards).
+    let issueResult: {
+      sourceLotId: number | null;
+      retainLotId: number | null;
+      retainExpiryDate: string | null;
+    } = { sourceLotId: null, retainLotId: null, retainExpiryDate: null };
+    if (
+      (Number(input.sampleQty) > 0 || Number(input.retainSampleQty) > 0) &&
+      (input.sourceLotId || input.lotNumber)
+    ) {
+      const { issueSampleFromLot } = await import('./qc-sample-issue.service');
+      const result = await issueSampleFromLot({
+        sampleId,
+        sampleNumber,
+        productId: input.productId,
+        sourceLotId: input.sourceLotId ?? null,
+        lotNumber: input.lotNumber ?? null,
+        sampleQty: input.sampleQty ?? null,
+        retainSampleQty: input.retainSampleQty ?? null,
+        userId: input.receivedBy,
+      });
+      issueResult = result;
+
+      // Persist the lot refs + retain expiry onto qc_samples for the eBMR.
+      await db
+        .update(tables.samples)
+        .set({
+          sourceLotId: result.sourceLotId,
+          sampleQty: input.sampleQty ?? null,
+          retainSampleQty: input.retainSampleQty ?? null,
+          retainLotId: result.retainLotId,
+          retainExpiryDate: result.retainExpiryDate
+            ? toDbDate(result.retainExpiryDate)
+            : null,
+          updatedAt: getNow(),
+        })
+        .where(eq(tables.samples.id, sampleId));
+    }
+
     return {
       sampleId,
       sampleNumber,
       status: 'registered' as const,
       testsSeeded,
+      sourceLotId: issueResult.sourceLotId,
+      retainLotId: issueResult.retainLotId,
+      retainExpiryDate: issueResult.retainExpiryDate,
     };
   });
 }

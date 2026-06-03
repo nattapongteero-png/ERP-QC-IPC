@@ -81,6 +81,14 @@ export const createQcSampleSchema = z.object({
   // this product (or product_category). Operator can still add/remove tests
   // afterwards.
   applyDefaultPanel: z.boolean().optional().default(true),
+  // Audit QC2 — explicit source lot + sample qty to deduct via
+  // inventory_transactions type 'qc_sample'. sourceLotId is optional —
+  // when null the service tries to resolve it from (productId, lotNumber).
+  sourceLotId: z.number().int().positive().nullable().optional(),
+  sampleQty: z.number().positive().nullable().optional(),
+  // Audit QC3 — retain sample qty (drawn from the same source lot but stored
+  // in the Retain Sample warehouse via transaction type 'retain_sample').
+  retainSampleQty: z.number().positive().nullable().optional(),
 });
 
 export const updateQcSampleSchema = createQcSampleSchema
