@@ -58,6 +58,26 @@ export const sqliteItemCategories = sqliteTable('item_categories', {
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Item Code Patterns — per-factory configurable code format per item type.
+// Replaces hard-coded PREFIX_MAP in /api/items/next-code so each tenant can
+// define their own prefix/separator/padding/year format.
+export const sqliteItemCodePatterns = sqliteTable('item_code_patterns', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  itemType: text('item_type').notNull().unique(), // raw_material | packaging | wip | finished_goods | extract | consumable
+  prefix: text('prefix').notNull(), // e.g. 'RM', 'ม.', 'วต'
+  separator: text('separator').notNull().default('-'), // '-' | '_' | '/' | '' | '.'
+  padding: integer('padding').notNull().default(4), // sequence digit width
+  includeYear: integer('include_year', { mode: 'boolean' }).notNull().default(false),
+  yearFormat: text('year_format').notNull().default('YYYY'), // 'YY' | 'YYYY' | 'BE-YY' | 'BE-YYYY'
+  yearPosition: text('year_position').notNull().default('after_prefix'), // 'after_prefix' | 'before_seq'
+  sequenceStart: integer('sequence_start').notNull().default(1),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  notes: text('notes'),
+  updatedBy: integer('updated_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Item Units (หน่วยวัดสินค้า)
 export const sqliteItemUnits = sqliteTable('item_units', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -1698,6 +1718,24 @@ export const mysqlItemCategories = mysqlTable('item_categories', {
   description: varchar('description', { length: 500 }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Item Code Patterns — MySQL twin of sqliteItemCodePatterns.
+export const mysqlItemCodePatterns = mysqlTable('item_code_patterns', {
+  id: int('id').primaryKey().autoincrement(),
+  itemType: varchar('item_type', { length: 30 }).notNull().unique(),
+  prefix: varchar('prefix', { length: 20 }).notNull(),
+  separator: varchar('separator', { length: 5 }).notNull().default('-'),
+  padding: int('padding').notNull().default(4),
+  includeYear: mysqlBoolean('include_year').notNull().default(false),
+  yearFormat: varchar('year_format', { length: 10 }).notNull().default('YYYY'),
+  yearPosition: varchar('year_position', { length: 20 }).notNull().default('after_prefix'),
+  sequenceStart: int('sequence_start').notNull().default(1),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  notes: mysqlText('notes'),
+  updatedBy: int('updated_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -7158,6 +7196,8 @@ export type Item = typeof sqliteItems.$inferSelect;
 export type NewItem = typeof sqliteItems.$inferInsert;
 export type ItemCategory = typeof sqliteItemCategories.$inferSelect;
 export type NewItemCategory = typeof sqliteItemCategories.$inferInsert;
+export type ItemCodePattern = typeof sqliteItemCodePatterns.$inferSelect;
+export type NewItemCodePattern = typeof sqliteItemCodePatterns.$inferInsert;
 export type ItemUnit = typeof sqliteItemUnits.$inferSelect;
 export type NewItemUnit = typeof sqliteItemUnits.$inferInsert;
 export type Vendor = typeof sqliteVendors.$inferSelect;
