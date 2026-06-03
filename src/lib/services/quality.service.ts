@@ -4,7 +4,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
-import { getInsertId } from '../db/db-helper';
+import { getInsertId, getTableRef } from '../db/db-helper';
 import { toQueryDate, getNow } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
@@ -105,6 +105,46 @@ function getTables() {
     items: mysqlItems,
     users: mysqlUsers,
   };
+}
+
+/**
+ * Async resolver that first checks the qc_sampling_plans master (Audit QC5)
+ * for a per-item / per-category override. Falls back to the in-code
+ * ISO 2859-1 lookup when no master row applies.
+ */
+export async function getSamplingPlanForItem(
+  itemId: number,
+  lotSize: number,
+  category?: string | null,
+): Promise<SamplingPlan & { source: 'master' | 'iso2859'; planCode?: string | null }> {
+  try {
+    const { resolveSamplingPlanForItem } = await import('./qc-sampling-plan.service');
+    const master = await resolveSamplingPlanForItem(itemId, category ?? null);
+    if (master) {
+      return {
+        lotSize,
+        inspectionLevel: (master.inspectionLevel ?? 'II') as 'I' | 'II' | 'III',
+        aql: Number(master.aql ?? 1.0),
+        sampleSize:
+          master.sampleSize != null
+            ? Number(master.sampleSize)
+            : calculateSamplingPlan(lotSize, (master.inspectionLevel ?? 'II') as 'I' | 'II' | 'III', Number(master.aql ?? 1.0)).sampleSize,
+        acceptNumber:
+          master.acceptNumber != null
+            ? Number(master.acceptNumber)
+            : calculateSamplingPlan(lotSize, (master.inspectionLevel ?? 'II') as 'I' | 'II' | 'III', Number(master.aql ?? 1.0)).acceptNumber,
+        rejectNumber:
+          master.rejectNumber != null
+            ? Number(master.rejectNumber)
+            : calculateSamplingPlan(lotSize, (master.inspectionLevel ?? 'II') as 'I' | 'II' | 'III', Number(master.aql ?? 1.0)).rejectNumber,
+        source: 'master',
+        planCode: master.code as string,
+      };
+    }
+  } catch {
+    /* Master table may not exist on older setups; fall through */
+  }
+  return { ...calculateSamplingPlan(lotSize), source: 'iso2859', planCode: null };
 }
 
 /**
@@ -713,6 +753,36 @@ export async function createDeviation(
       description,
     },
   });
+
+  // Audit QC1/QC4 — notify QC about the new deviation. Best-effort: don't
+  // roll back the deviation insert if notification dispatch fails.
+  try {
+    const { notifyDeviationOpened } = await import('./qc-notification.service');
+    let woNumber: string | null = null;
+    if (workOrderId) {
+      try {
+        const workOrders = getTableRef('workOrders');
+        const woRows = await database
+          .select({ woNumber: workOrders.woNumber })
+          .from(workOrders)
+          .where(eq(workOrders.id, workOrderId))
+          .limit(1);
+        if (woRows.length > 0) woNumber = woRows[0].woNumber as string;
+      } catch {
+        /* non-fatal */
+      }
+    }
+    await notifyDeviationOpened({
+      deviationId,
+      deviationNumber,
+      title: description.slice(0, 120),
+      severity,
+      workOrderId: workOrderId ?? null,
+      woNumber,
+    });
+  } catch (err) {
+    console.warn('QC deviation-opened notification failed (non-fatal):', err);
+  }
 
   return deviationId;
 }

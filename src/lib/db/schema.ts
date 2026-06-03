@@ -307,7 +307,7 @@ export const sqliteInventoryLots = sqliteTable('inventory_lots', {
 export const sqliteInventoryTransactions = sqliteTable('inventory_transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   lotId: integer('lot_id').notNull().references(() => sqliteInventoryLots.id),
-  transactionType: text('transaction_type').notNull(), // receive, issue, return, adjust, transfer, scrap
+  transactionType: text('transaction_type').notNull(), // receive, issue, return, adjust, transfer, scrap, qc_sample, retain_sample
   quantity: real('quantity').notNull(),
   unit: text('unit').notNull(),
   referenceType: text('reference_type'), // PO, WO, SO, ADJUST
@@ -6508,6 +6508,50 @@ export const sqliteQcSamples = sqliteTable('qc_samples', {
   // Feature 020: link back to GRN line, plus flag for QC manager review when default panel missing
   sourceGrnLineId: integer('source_grn_line_id'),
   flagForQcManager: integer('flag_for_qc_manager', { mode: 'boolean' }).notNull().default(false),
+  // Audit QC2 — source lot the sample was drawn from + how much was issued
+  // for testing (decremented from source via inventory_transactions
+  // type='qc_sample').
+  sourceLotId: integer('source_lot_id').references(() => sqliteInventoryLots.id),
+  sampleQty: real('sample_qty'),
+  // Audit QC3 — retain sample tracking. retain_qty is decremented from the
+  // source lot AND stored as a new lot in the Retain Sample warehouse
+  // (transaction type 'retain_sample').
+  retainSampleQty: real('retain_sample_qty'),
+  retainLotId: integer('retain_lot_id').references(() => sqliteInventoryLots.id),
+  // Retention period = expiry + 1 year by default (WHO TRS 986 Annex 9).
+  retainExpiryDate: text('retain_expiry_date'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// QC Sampling Plan Master (Audit QC5)
+// Per-item / per-category sampling plan that overrides the in-code
+// ISO 2859-1 lookup. Lets QC define product-specific AQL, sample size,
+// frequency, and which standard the plan references.
+export const sqliteQcSamplingPlans = sqliteTable('qc_sampling_plans', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  // Identifier the operator picks in QC Entry / Goods Receipt. Lowercase.
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  // Scope — either an item OR a category. Both null = global default.
+  itemId: integer('item_id').references(() => sqliteItems.id),
+  category: text('category'),
+  // ISO 2859-1 fields (overrides calculateSamplingPlan defaults)
+  inspectionLevel: text('inspection_level').notNull().default('II'), // I | II | III
+  aql: real('aql').notNull().default(1.0),
+  sampleSize: integer('sample_size'), // when null = derived from lotSize + level
+  acceptNumber: integer('accept_number'),
+  rejectNumber: integer('reject_number'),
+  // Sampling frequency for incoming lots (e.g. 'every_lot' | 'random_30pct' | 'skip_lot')
+  frequency: text('frequency').notNull().default('every_lot'),
+  // Reference to the published standard
+  standardRef: text('standard_ref'), // e.g. 'ISO 2859-1', 'USP <1010>'
+  // Default sample qty (for QC2 — what to draw from the lot)
+  defaultSampleQty: real('default_sample_qty'),
+  defaultRetainQty: real('default_retain_qty'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -6729,6 +6773,36 @@ export const mysqlQcSamples = mysqlTable('qc_samples', {
   // Feature 020: link back to GRN line + flag for QC manager review
   sourceGrnLineId: int('source_grn_line_id'),
   flagForQcManager: mysqlBoolean('flag_for_qc_manager').notNull().default(false),
+  // Audit QC2 — source lot + decremented sample qty
+  sourceLotId: int('source_lot_id').references(() => mysqlInventoryLots.id),
+  sampleQty: decimal('sample_qty', { precision: 15, scale: 4 }),
+  // Audit QC3 — retain sample tracking + retention expiry
+  retainSampleQty: decimal('retain_sample_qty', { precision: 15, scale: 4 }),
+  retainLotId: int('retain_lot_id').references(() => mysqlInventoryLots.id),
+  retainExpiryDate: datetime('retain_expiry_date'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// QC Sampling Plan Master — MySQL (Audit QC5)
+export const mysqlQcSamplingPlans = mysqlTable('qc_sampling_plans', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  category: varchar('category', { length: 50 }),
+  inspectionLevel: varchar('inspection_level', { length: 5 }).notNull().default('II'),
+  aql: decimal('aql', { precision: 5, scale: 2 }).notNull().default('1.00'),
+  sampleSize: int('sample_size'),
+  acceptNumber: int('accept_number'),
+  rejectNumber: int('reject_number'),
+  frequency: varchar('frequency', { length: 30 }).notNull().default('every_lot'),
+  standardRef: varchar('standard_ref', { length: 60 }),
+  defaultSampleQty: decimal('default_sample_qty', { precision: 15, scale: 4 }),
+  defaultRetainQty: decimal('default_retain_qty', { precision: 15, scale: 4 }),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  notes: mysqlText('notes'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
