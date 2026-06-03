@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, Editing, Paging } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Sliders } from 'lucide-react';
+import { BackButton } from '@/components/shared/BackButton';
 import type { ReceiptTolerance, ChecklistCategory } from '@/types/goods-receipt';
 
 export default function ReceiptTolerancesPage() {
@@ -39,6 +40,7 @@ export default function ReceiptTolerancesPage() {
 
   return (
     <div className="p-6 space-y-4">
+      <BackButton href="/master-data" label="Master Data" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

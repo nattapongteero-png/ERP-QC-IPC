@@ -13,6 +13,7 @@ import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
 import { CheckBox } from 'devextreme-react/check-box';
 import { ListChecks, Plus } from 'lucide-react';
+import { BackButton } from '@/components/shared/BackButton';
 import { CHECKLIST_CATEGORIES, type ChecklistCategory, type ChecklistTemplate } from '@/types/goods-receipt';
 
 interface NewItemRow {
@@ -61,6 +62,7 @@ export default function ReceiptChecklistTemplatesPage() {
 
   return (
     <div className="p-6 space-y-4">
+      <BackButton href="/master-data" label="Master Data" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

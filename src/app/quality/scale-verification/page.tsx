@@ -19,6 +19,7 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { Scale, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { BackButton } from '@/components/shared/BackButton';
 import type { ScaleVerification, StandardWeight } from '@/types/scale-verification';
 
 interface ScaleRow {
@@ -107,6 +108,7 @@ export default function ScaleVerificationPage() {
 
   return (
     <div className="p-6 space-y-4">
+      <BackButton href="/quality" label="Quality" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

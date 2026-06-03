@@ -14,6 +14,7 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { DateBox } from 'devextreme-react/date-box';
 import { Scale, Plus, AlertTriangle } from 'lucide-react';
+import { BackButton } from '@/components/shared/BackButton';
 import {
   ACCURACY_CLASSES,
   type StandardWeight,
@@ -80,6 +81,7 @@ export default function StandardWeightsPage() {
 
   return (
     <div className="p-6 space-y-4">
+      <BackButton href="/master-data" label="Master Data" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

@@ -12,6 +12,7 @@ import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { Wrench, Plus } from 'lucide-react';
+import { BackButton } from '@/components/shared/BackButton';
 import type { MaintenancePlanTemplate } from '@/types/equipment-notifications';
 
 const MAINTENANCE_TYPES = ['preventive', 'calibration', 'inspection', 'corrective'];
@@ -70,6 +71,7 @@ export default function MaintenancePlanTemplatesPage() {
 
   return (
     <div className="p-6 space-y-4">
+      <BackButton href="/master-data" label="Master Data" />
       <header className="flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Wrench className="w-6 h-6" />

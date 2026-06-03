@@ -18,6 +18,7 @@ import { Popup } from 'devextreme-react/popup';
 import { TextArea } from 'devextreme-react/text-area';
 import { NumberBox } from 'devextreme-react/number-box';
 import { Bell, AlertTriangle, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { BackButton } from '@/components/shared/BackButton';
 import type {
   EquipmentNotification,
   NotificationSeverity,
@@ -106,6 +107,7 @@ export default function NotificationsInboxPage() {
 
   return (
     <div className="p-6 space-y-4">
+      <BackButton href="/dashboard" label="Dashboard" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

@@ -16,6 +16,7 @@ import {
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { ClipboardCheck, Plus, AlertTriangle, CheckCircle2, Hourglass, FlaskConical } from 'lucide-react';
+import { BackButton } from '@/components/shared/BackButton';
 import type { IncomingDashboardCounts } from '@/types/goods-receipt';
 
 interface GrnListItem {
@@ -81,6 +82,7 @@ export default function GoodsReceiptListPage() {
 
   return (
     <div className="p-6 space-y-4">
+      <BackButton href="/inventory" label="Inventory" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
