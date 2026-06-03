@@ -422,6 +422,10 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   stockAtApproval: real('stock_at_approval'), // Stock snapshot when requisition was approved
   // Feature 018: cumulative extra qty deducted via approved material withdrawal requests
   additionalQtyViaWithdrawalRequest: real('additional_qty_via_withdrawal_request').notNull().default(0),
+  // Feature 021: scale verification gate
+  scaleId: integer('scale_id'), // production_equipment.id used to weigh
+  scaleVerificationId: integer('scale_verification_id'), // scale_verifications.id under which weighing was performed
+  weighedAfterExpiry: integer('weighed_after_expiry', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1186,6 +1190,12 @@ export const sqliteProductionEquipment = sqliteTable('production_equipment', {
   roomId: integer('room_id').references(() => sqliteProductionRooms.id), // Default room
   description: text('description'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // Feature 021: scale-specific verification config
+  verificationIntervalHours: integer('verification_interval_hours').notNull().default(8),
+  minVerificationWeightG: real('min_verification_weight_g'),
+  maxVerificationWeightG: real('max_verification_weight_g'),
+  tolerancePercent: real('tolerance_percent').notNull().default(0.1),
+  scaleStatus: text('scale_status').notNull().default('active'), // 'active' | 'out_of_service' | 'maintenance'
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -1996,6 +2006,10 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   stockAtApproval: decimal('stock_at_approval', { precision: 15, scale: 4 }), // Stock snapshot when requisition was approved
   // Feature 018: cumulative extra qty deducted via approved material withdrawal requests
   additionalQtyViaWithdrawalRequest: decimal('additional_qty_via_withdrawal_request', { precision: 15, scale: 4 }).notNull().default('0'),
+  // Feature 021: scale verification gate
+  scaleId: int('scale_id'),
+  scaleVerificationId: int('scale_verification_id'),
+  weighedAfterExpiry: mysqlBoolean('weighed_after_expiry').notNull().default(false),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -4550,6 +4564,12 @@ export const mysqlProductionEquipment = mysqlTable('production_equipment', {
   roomId: int('room_id').references(() => mysqlProductionRooms.id), // Default room
   description: mysqlText('description'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
+  // Feature 021: scale-specific verification config
+  verificationIntervalHours: int('verification_interval_hours').notNull().default(8),
+  minVerificationWeightG: decimal('min_verification_weight_g', { precision: 15, scale: 4 }),
+  maxVerificationWeightG: decimal('max_verification_weight_g', { precision: 15, scale: 4 }),
+  tolerancePercent: decimal('tolerance_percent', { precision: 6, scale: 4 }).notNull().default('0.1'),
+  scaleStatus: varchar('scale_status', { length: 20 }).notNull().default('active'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -7551,3 +7571,21 @@ export {
   type GoodsReceiptSequenceDb,
   type NewGoodsReceiptSequenceDb,
 } from './schema-goods-receipt';
+
+// ============================================
+// Scale Verification Module (feature 021)
+// ============================================
+export {
+  sqliteStandardWeights,
+  sqliteScaleVerifications,
+  sqliteStandardWeightsRelations,
+  sqliteScaleVerificationsRelations,
+  mysqlStandardWeights,
+  mysqlScaleVerifications,
+  mysqlStandardWeightsRelations,
+  mysqlScaleVerificationsRelations,
+  type StandardWeightDb,
+  type NewStandardWeightDb,
+  type ScaleVerificationDb,
+  type NewScaleVerificationDb,
+} from './schema-scale-verification';

@@ -1,0 +1,80 @@
+{
+  "page": {
+    "title": "Scale Pre-Use Verification",
+    "subtitle": "Verify scale accuracy with certified standard weights before every weighing",
+    "standardWeights": "Standard Weights Registry",
+    "scaleHistory": "Verification History"
+  },
+  "tiles": {
+    "scalesActive": "Active Scales",
+    "scalesOos": "Out-of-Service Scales",
+    "verificationsToday": "Verifications Today",
+    "expiringSoon": "Weights Expiring < 30 days"
+  },
+  "status": {
+    "active": "Active",
+    "out_of_service": "Out of Service",
+    "maintenance": "Maintenance"
+  },
+  "result": {
+    "pass": "PASS",
+    "fail": "FAIL"
+  },
+  "form": {
+    "scale": { "label": "Scale" },
+    "standardWeight": { "label": "Standard Weight" },
+    "actualReading": { "label": "Reading on Scale" },
+    "notes": { "label": "Notes" },
+    "code": { "label": "Weight Code" },
+    "denominationValue": { "label": "Denomination" },
+    "denominationUnit": { "label": "Unit" },
+    "accuracyClass": { "label": "Accuracy Class" },
+    "certificateNumber": { "label": "Certificate #" },
+    "certificateIssuer": { "label": "Certificate Issuer" },
+    "certificateIssueDate": { "label": "Issue Date" },
+    "certificateExpiryDate": { "label": "Expiry Date" }
+  },
+  "actions": {
+    "verify": "Sign Verification",
+    "addWeight": "Add Weight",
+    "viewHistory": "View History",
+    "refresh": "Refresh",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "table": {
+    "columns": {
+      "scaleCode": "Code",
+      "scaleName": "Name",
+      "status": "Status",
+      "lastVerifiedAt": "Last Verified",
+      "lastResult": "Last Result",
+      "code": "Code",
+      "denomination": "Denomination",
+      "accuracyClass": "Class",
+      "certificateNumber": "Certificate",
+      "certificateExpiryDate": "Expires",
+      "actions": "Actions",
+      "performedAt": "Performed At",
+      "operator": "Operator",
+      "weight": "Weight Used",
+      "reading": "Reading",
+      "deviation": "Δ %",
+      "result": "Result"
+    }
+  },
+  "toast": {
+    "verified": "Verification recorded — PASS",
+    "failed": "Verification recorded — FAIL. Scale set to Out of Service",
+    "weightCreated": "Standard weight created"
+  },
+  "errors": {
+    "CERTIFICATE_EXPIRED": "Standard weight certificate has expired",
+    "EXTREME_DEVIATION": "Reading deviates extremely from certified value — wrong weight likely selected",
+    "WEIGHT_OUT_OF_RANGE": "Standard weight outside scale's allowed range",
+    "SCALE_OUT_OF_SERVICE": "Scale is out of service",
+    "DUPLICATE_WEIGHT_CODE": "Weight code already exists",
+    "PERMISSION_DENIED": "Permission denied",
+    "NOT_FOUND": "Not found"
+  }
+}

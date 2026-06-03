@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
+import { ScaleVerificationBanner } from '@/components/scale-verification/ScaleVerificationBanner';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -127,6 +128,8 @@ export default function MaterialWeighingPage() {
     waterDate: '',
     waterConductivity: 0,
     waterTemperature: 0,
+    // Feature 021: scale verification
+    scaleId: undefined as number | undefined,
   });
 
   // Fetch Work Order basic info
@@ -339,6 +342,7 @@ export default function MaterialWeighingPage() {
         waterDate: '',
         waterConductivity: 0,
         waterTemperature: 0,
+        scaleId: undefined,
       });
     },
     onError: (error: Error) => {
@@ -428,6 +432,7 @@ export default function MaterialWeighingPage() {
       waterDate: material.waterDate || toLocalDateStr(new Date()),
       waterConductivity: material.waterConductivity || 0,
       waterTemperature: material.waterTemperature || 25,
+      scaleId: (material as { scaleId?: number }).scaleId ?? undefined,
     });
     setShowWeighDialog(true);
   };
@@ -496,6 +501,12 @@ export default function MaterialWeighingPage() {
       ? convertQty(formData.weighedQty, weighUnit, bomUnit, selectedMaterial)
       : formData.weighedQty;
 
+    // Feature 021: detect water materials — skip scale verification gate
+    const isWaterMaterial =
+      (selectedMaterial.itemCode ?? '').toLowerCase().includes('water') ||
+      (selectedMaterial.itemName ?? '').toLowerCase().includes('water') ||
+      (selectedMaterial.itemName ?? '').includes('น้ำ');
+
     recordWeightMutation.mutate({
       materialId: selectedMaterial.id,
       data: {
@@ -505,6 +516,8 @@ export default function MaterialWeighingPage() {
         waterDate: formData.waterDate,
         waterConductivity: formData.waterConductivity,
         waterTemperature: formData.waterTemperature,
+        scaleId: formData.scaleId,
+        requireScaleVerification: !isWaterMaterial,
       },
     });
   };
@@ -697,7 +710,7 @@ export default function MaterialWeighingPage() {
                           <p className="text-xs text-gray-500 mt-1">{tw('material.lot')}: {material.lotNumber}</p>
                         )}
                         {material.weighedByName && (
-                          <div className="mt-1 text-xs text-gray-500 flex items-center gap-3">
+                          <div className="mt-1 text-xs text-gray-500 flex items-center gap-3 flex-wrap">
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {new Date(material.weighedAt!).toLocaleString('th-TH')}
@@ -707,6 +720,18 @@ export default function MaterialWeighingPage() {
                               <span className="flex items-center gap-1 text-blue-600">
                                 <UserCheck className="h-3 w-3" />
                                 Verified by {material.verifiedByName}
+                              </span>
+                            )}
+                            {/* Feature 021 — scale verification traceability */}
+                            {(material as { scaleVerificationId?: number }).scaleVerificationId && (
+                              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                                ✓ Scale verified (Ver #
+                                {(material as { scaleVerificationId?: number }).scaleVerificationId})
+                              </span>
+                            )}
+                            {(material as { weighedAfterExpiry?: boolean }).weighedAfterExpiry && (
+                              <span className="flex items-center gap-1 text-amber-700 font-medium">
+                                ⚠️ ชั่งหลัง verification หมดอายุ
                               </span>
                             )}
                           </div>
@@ -917,6 +942,18 @@ export default function MaterialWeighingPage() {
               </div>
             </div>
           </div>
+
+          {/* Feature 021 — Scale picker + verification gate */}
+          <ScaleVerificationBanner
+            scaleId={formData.scaleId}
+            onScaleChange={(id) => setFormData({ ...formData, scaleId: id })}
+            isWaterMaterial={
+              !!selectedMaterial &&
+              ((selectedMaterial.itemCode ?? '').toLowerCase().includes('water') ||
+                (selectedMaterial.itemName ?? '').toLowerCase().includes('water') ||
+                (selectedMaterial.itemName ?? '').includes('น้ำ'))
+            }
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

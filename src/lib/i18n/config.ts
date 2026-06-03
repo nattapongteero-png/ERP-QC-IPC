@@ -61,6 +61,7 @@ export const namespaces = [
   'purchasing',
   'quality',
   'reports',
+  'scaleVerification',
   'sales',
   'settings',
   'template',

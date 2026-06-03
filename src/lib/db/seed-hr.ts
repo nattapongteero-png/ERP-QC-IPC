@@ -1010,6 +1010,9 @@ const defaultAppPermissions = [
   { code: 'inventory:goods_receipt:checklist', name: 'Goods Receipt Checklist Sign', module: 'Inventory', description: 'ลงนาม Checklist ตรวจรับ (warehouse inspector)' },
   { code: 'inventory:goods_receipt:configure', name: 'Goods Receipt Configure', module: 'Inventory', description: 'ตั้งค่า tolerance + checklist templates' },
   { code: 'quality:incoming:approve', name: 'Incoming QA Approve', module: 'Quality', description: 'QA Release/Reject ล็อตที่ตรวจรับ (Triple Independence)' },
+  // Feature 021: Scale Pre-Use Verification
+  { code: 'quality:scales:verify', name: 'Scale Verify', module: 'Quality', description: 'ลงนามตรวจสอบเครื่องชั่งด้วยลูกตุ้มก่อนใช้งาน' },
+  { code: 'quality:scales:configure', name: 'Scale Configure', module: 'Quality', description: 'ตั้งค่าเครื่องชั่ง + จัดการทะเบียนลูกตุ้มมาตรฐาน' },
 
   // ═══════════════════ Quality Module ═══════════════════
   { code: 'quality:read', name: 'Quality View', module: 'Quality', description: 'ดูข้อมูล QC / Specs / Deviations' },

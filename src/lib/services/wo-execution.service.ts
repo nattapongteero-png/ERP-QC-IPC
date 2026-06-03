@@ -1122,6 +1122,14 @@ export interface RecordMaterialWeightInput {
   waterDate?: string;
   waterConductivity?: number;
   waterTemperature?: number;
+  // Feature 021: scale verification gate
+  scaleId?: number;
+  /**
+   * When true (default), the system enforces a valid scale verification
+   * within `verificationIntervalHours` before allowing the weighing.
+   * Set to false only for non-scale items (e.g. water).
+   */
+  requireScaleVerification?: boolean;
 }
 
 export async function getWOMaterials(workOrderId: number) {
@@ -1214,6 +1222,33 @@ export async function getWOMaterials(workOrderId: number) {
 export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
   const tables = getTables();
 
+  // Feature 021 — Scale verification gate
+  // Default: require verification when scaleId is provided.
+  // Skip when caller explicitly opts out (e.g. water materials).
+  let resolvedVerificationId: number | undefined = undefined;
+  let weighedAfterExpiry = false;
+
+  if (data.scaleId && data.requireScaleVerification !== false) {
+    const { getCurrentVerificationForScale } = await import('./scale-verification.service');
+    const verification = await getCurrentVerificationForScale(data.scaleId);
+    if (!verification) {
+      const { ScaleVerificationError, SCALE_VERIFICATION_ERROR_CODES } = await import(
+        '@/types/scale-verification'
+      );
+      throw new ScaleVerificationError(
+        SCALE_VERIFICATION_ERROR_CODES.VERIFICATION_REQUIRED,
+        'Scale must be verified with a certified standard weight before weighing',
+        { scaleId: data.scaleId },
+      );
+    }
+    // verification.validUntil is enforced by getCurrentVerificationForScale,
+    // so a returned record is guaranteed to be a current passing verification.
+    // (If a verification expires mid-session per FR-016, the caller may still
+    // pass requireScaleVerification=false on the trailing items with
+    // weighedAfterExpiry set in callers' update.)
+    resolvedVerificationId = verification.id;
+  }
+
   // Record the weighing data only — inventory deduction happens at Verify step
   const updateData: Record<string, any> = {
     weighedQty: data.weighedQty,
@@ -1223,6 +1258,10 @@ export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
     waterConductivity: data.waterConductivity,
     waterTemperature: data.waterTemperature,
   };
+
+  if (data.scaleId) updateData.scaleId = data.scaleId;
+  if (resolvedVerificationId) updateData.scaleVerificationId = resolvedVerificationId;
+  if (weighedAfterExpiry) updateData.weighedAfterExpiry = true;
 
   // If user selected a specific lot, save the preference (no stock deduction yet)
   if (data.lotId) {
