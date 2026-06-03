@@ -433,8 +433,11 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
         </div>
       </div>
 
-      {/* Navigation — extra bottom padding + spacer ensures last item is never clipped by user section */}
-      <nav className="flex-1 min-h-0 overflow-y-auto pt-4 md:pt-6 pb-12 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+      {/* Navigation — relative wrapper hosts a bottom fade so partially-cut
+          items soften out instead of being sharply clipped; extra bottom
+          padding ensures the last item has room above the user section. */}
+      <div className="flex-1 min-h-0 relative">
+        <nav className="absolute inset-0 overflow-y-auto pt-4 md:pt-6 pb-16 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         <div className="space-y-1">
           {filteredNavigation.map((item) => (
             <div key={item.name}>
@@ -551,7 +554,14 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
             </div>
           ))}
         </div>
-      </nav>
+        </nav>
+        {/* Bottom fade — softens any partially-cut last visible item, hints
+            that more content is below the scrollable area. */}
+        <div
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"
+          aria-hidden="true"
+        />
+      </div>
 
       {/* User Section — flex-shrink-0 prevents it from compressing the nav */}
       {user && (
