@@ -67,6 +67,11 @@
       "title": "Item Code Patterns",
       "description": "Configure per-factory item code formats used by the 'Generate Code' button on item create/edit",
       "usedIn": "Inventory > Items (create/edit)"
+    },
+    "lotPatterns": {
+      "title": "Lot Number Patterns",
+      "description": "Configure the system-generated lot number format and validation rules for vendor-supplied lot numbers",
+      "usedIn": "Inventory > Lots (Receive Lot)"
     }
   },
   "about": {
@@ -85,7 +90,8 @@
       "receiptChecklistTemplates": "Manage versioned checklist templates for goods receipt",
       "standardWeights": "Manage certified test weights for scale verification",
       "maintenancePlanTemplates": "Manage maintenance and calibration plans for equipment",
-      "itemCodePatterns": "Configure automatic item code formats per item type"
+      "itemCodePatterns": "Configure automatic item code formats per item type",
+      "lotPatterns": "Configure system lot format and vendor lot validation rules"
     }
   },
   "productionRooms": {

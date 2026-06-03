@@ -468,6 +468,24 @@ export default function LotsPage() {
   const [qcLot, setQcLot] = useState<Lot | null>(null);
   const [traceLot, setTraceLot] = useState<Lot | null>(null);
   const [traceData, setTraceData] = useState<TraceData | null>(null);
+  // Vendor-lot config — pulled from /master-data/lot-patterns so the
+  // placeholder hint + regex validation track whatever the tenant configured.
+  const [vendorLotHint, setVendorLotHint] = useState<string>('');
+  const [vendorLotRegex, setVendorLotRegex] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/inventory/lots/vendor-hint?locale=th');
+        const json = await res.json();
+        if (!cancelled && res.ok) {
+          setVendorLotHint(json?.data?.hint ?? '');
+          setVendorLotRegex(json?.data?.regex ?? null);
+        }
+      } catch { /* leave defaults */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const [formData, setFormData] = useState<LotFormData>({
     lotNumber: '',
     itemId: 0,
@@ -504,6 +522,17 @@ export default function LotsPage() {
 
     if (!formData.lotNumber.trim()) {
       errors.lotNumber = t('lots.validation.lotNumberRequired');
+    }
+
+    // Vendor lot regex check — only if both a regex is configured AND
+    // the user actually supplied a value (vendor lot is optional).
+    if (vendorLotRegex && formData.vendorLotNumber.trim()) {
+      try {
+        const re = new RegExp(vendorLotRegex);
+        if (!re.test(formData.vendorLotNumber.trim())) {
+          errors.vendorLotNumber = `รูปแบบเลข Lot ผู้ขายไม่ตรงข้อกำหนด (ต้องตรงกับ: ${vendorLotRegex})`;
+        }
+      } catch { /* malformed stored regex — skip */ }
     }
 
     if (!formData.itemId || formData.itemId === 0) {
@@ -778,7 +807,21 @@ export default function LotsPage() {
     setSelectedItem(null);
   };
 
-  const generateLotNumber = () => {
+  const generateLotNumber = async () => {
+    // Fetch from /api/inventory/lots/next-lot — uses the configured Lot
+    // Pattern master (master-data/lot-patterns). If the API call fails,
+    // fall back to the legacy LOT-YYYYMMDD-NNN local format so the
+    // button still works offline.
+    try {
+      const res = await fetch('/api/inventory/lots/next-lot');
+      const json = await res.json();
+      if (res.ok && json?.data?.lotNumber) {
+        setFormData(prev => ({ ...prev, lotNumber: json.data.lotNumber }));
+        return;
+      }
+    } catch {
+      // fall through to local fallback
+    }
     const date = new Date();
     const prefix = 'LOT';
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -1596,9 +1639,15 @@ export default function LotsPage() {
               </label>
               <DxTextBox
                 value={formData.vendorLotNumber}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, vendorLotNumber: v }))}
-                placeholder={t('lots.form.vendorLotPlaceholder')}
+                onValueChange={(v) => {
+                  setFormData(prev => ({ ...prev, vendorLotNumber: v }));
+                  if (formErrors.vendorLotNumber) setFormErrors(prev => ({ ...prev, vendorLotNumber: '' }));
+                }}
+                placeholder={vendorLotHint || t('lots.form.vendorLotPlaceholder')}
               />
+              {formErrors.vendorLotNumber && (
+                <p className="text-sm text-red-500 mt-1">{formErrors.vendorLotNumber}</p>
+              )}
             </div>
           </div>
 
