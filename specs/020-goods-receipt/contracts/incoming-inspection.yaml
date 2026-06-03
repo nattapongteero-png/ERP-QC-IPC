@@ -1,0 +1,116 @@
+openapi: 3.1.0
+info:
+  title: Incoming Inspection Dashboard API
+  version: 1.0.0
+  description: |
+    Read-only views for QC and warehouse supervisor dashboards. Aggregates GRN
+    lines by status and surfaces quarantine aging.
+servers:
+  - url: /api/quality/incoming-inspection
+
+paths:
+  /dashboard:
+    get:
+      summary: Dashboard tile counts
+      responses:
+        '200':
+          description: Counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pendingChecklistCount: { type: integer, description: GRN lines in `created` status }
+                  pendingQaCount: { type: integer, description: GRN lines in `qc_approved` status awaiting release }
+                  releasedTodayCount: { type: integer }
+                  quarantineAgingCount: { type: integer, description: lots in quarantine > 14 days }
+                  staleQcSampleCount: { type: integer, description: QC samples not tested for > 30 days }
+
+  /pending-qa:
+    get:
+      summary: List GRN lines waiting QA decision
+      parameters:
+        - in: query
+          name: itemId
+          schema: { type: integer }
+        - in: query
+          name: warehouseId
+          schema: { type: integer }
+        - in: query
+          name: ageDaysGte
+          schema: { type: integer, minimum: 0 }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/PendingQaItem' }
+                  total: { type: integer }
+
+  /quarantine-aging:
+    get:
+      summary: Quarantine aging report (lots in quarantine, bucketed by age)
+      responses:
+        '200':
+          description: Bands and items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bands:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label: { type: string, example: 8-14 days }
+                        minDays: { type: integer }
+                        maxDays: { type: integer, nullable: true }
+                        count: { type: integer }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/QuarantineLotItem' }
+
+components:
+  schemas:
+    PendingQaItem:
+      type: object
+      properties:
+        grnId: { type: integer }
+        grnNumber: { type: string }
+        lineId: { type: integer }
+        itemCode: { type: string }
+        itemName: { type: string }
+        actualQuantity: { type: number }
+        unit: { type: string }
+        qcSampleId: { type: integer, nullable: true }
+        qcSampleStatus: { type: string, nullable: true }
+        qcPassed: { type: boolean }
+        ageDays: { type: integer }
+        receiverUserName: { type: string }
+        vendorName: { type: string, nullable: true }
+
+    QuarantineLotItem:
+      type: object
+      properties:
+        lotId: { type: integer }
+        lotNumber: { type: string }
+        itemCode: { type: string }
+        itemName: { type: string }
+        quantity: { type: number }
+        unit: { type: string }
+        ageDays: { type: integer }
+        grnNumber: { type: string, nullable: true }
+        warehouseName: { type: string }
+        receivedDate: { type: string, format: date }

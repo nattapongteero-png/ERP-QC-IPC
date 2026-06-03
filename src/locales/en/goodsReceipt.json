@@ -1,0 +1,148 @@
+{
+  "page": {
+    "title": "Goods Receipt (GRN)",
+    "subtitle": "Goods Receipt Note — unified incoming inspection workflow",
+    "list": "GRN List",
+    "new": "Create new GRN",
+    "detail": "GRN Detail",
+    "incomingInspection": "Incoming Inspection",
+    "templates": "Receipt Checklist Templates",
+    "tolerances": "Receipt Tolerances"
+  },
+  "tiles": {
+    "pendingChecklist": "Pending Checklist",
+    "pendingQa": "Pending QA",
+    "releasedToday": "Released Today",
+    "quarantineAging": "Quarantine > 14 days",
+    "staleQc": "Stale QC samples > 30 days"
+  },
+  "sourceType": {
+    "po": "Purchase Order (Raw Material)",
+    "wo": "Work Order (Finished Goods)"
+  },
+  "category": {
+    "raw_material": "Raw Material",
+    "finished_goods": "Finished Goods"
+  },
+  "status": {
+    "header": {
+      "in_progress": "In Progress",
+      "released": "Released",
+      "partially_released": "Partially Released",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "line": {
+      "created": "Created",
+      "checklist_done": "Checklist Done",
+      "qc_pending": "QC Pending",
+      "qc_approved": "QC Approved",
+      "released_to_stock": "Released to Stock",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    }
+  },
+  "form": {
+    "sourceType": { "label": "Source Type" },
+    "po": { "label": "Purchase Order" },
+    "wo": { "label": "Work Order" },
+    "warehouse": { "label": "Quarantine Warehouse" },
+    "receivedDate": { "label": "Received Date" },
+    "notes": { "label": "Notes" },
+    "actualQuantity": { "label": "Actual Quantity" },
+    "vendorLotNumber": { "label": "Vendor Lot Number" },
+    "batchNumber": { "label": "Batch Number" },
+    "manufacturingDate": { "label": "Manufacturing Date" },
+    "expiryDate": { "label": "Expiry Date" },
+    "varianceReason": { "label": "Variance Reason" },
+    "rejectionReason": { "label": "Rejection Reason" }
+  },
+  "table": {
+    "columns": {
+      "grnNumber": "GRN Number",
+      "sourceType": "Source",
+      "vendor": "Vendor / WO",
+      "receivedDate": "Received Date",
+      "receiver": "Receiver",
+      "status": "Status",
+      "lineCount": "Lines",
+      "item": "Item",
+      "expectedQty": "Expected",
+      "actualQty": "Actual",
+      "variance": "Variance",
+      "ageDays": "Age (days)",
+      "qcStatus": "QC Status"
+    }
+  },
+  "actions": {
+    "create": "Create GRN",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "signChecklist": "Sign Checklist",
+    "release": "Release to Stock",
+    "reject": "Reject",
+    "cancelGrn": "Cancel GRN",
+    "viewAudit": "View Audit Trail",
+    "refresh": "Refresh",
+    "addItem": "Add Item"
+  },
+  "checklist": {
+    "title": "Receipt Checklist",
+    "remarks": "Remarks",
+    "mandatory": "Mandatory",
+    "passLabel": "Pass",
+    "failLabel": "Fail",
+    "newVersion": "Create New Version",
+    "currentVersion": "Current Version",
+    "rawMaterialDefaults": {
+      "coa": "Certificate of Analysis (COA) matches delivered lot",
+      "expiry": "Expiry date ≥ minimum remaining shelf life",
+      "packaging": "Outer packaging intact and undamaged",
+      "weight": "Weight/count within ±2% tolerance"
+    },
+    "finishedGoodsDefaults": {
+      "label": "Product label is correct and legible",
+      "packaging": "Packaging integrity verified, no defects",
+      "weightPerUnit": "Weight per unit within tolerance",
+      "countPerPack": "Count per pack matches specification",
+      "yield": "Actual yield within ±5% of theoretical"
+    }
+  },
+  "tolerances": {
+    "title": "Receipt Tolerances",
+    "subtitle": "Configure acceptable variance for receipt categories",
+    "columns": {
+      "category": "Category",
+      "tolerancePercent": "Tolerance (%)",
+      "isActive": "Active",
+      "notes": "Notes"
+    }
+  },
+  "toast": {
+    "created": "GRN created successfully",
+    "updated": "Saved successfully",
+    "checklistSigned": "Checklist signed — inventory lot and QC sample created",
+    "released": "Released to stock successfully",
+    "rejected": "Rejected — Deviation created",
+    "cancelled": "GRN cancelled",
+    "templateCreated": "New template version created"
+  },
+  "errors": {
+    "TRIPLE_INDEPENDENCE_VIOLATION": "Triple Independence violation — Receiver and QA Approver must be different users (Admin does NOT bypass)",
+    "INVALID_TRANSITION": "Invalid state transition",
+    "LOT_IN_QUARANTINE": "Lot is in quarantine — wait for QC release",
+    "SOURCE_ALREADY_RECEIVED": "Source document already fully received",
+    "VARIANCE_NOT_JUSTIFIED": "Variance reason is required",
+    "QC_NOT_APPROVED": "QC not approved — cannot release to stock",
+    "CHECKLIST_INCOMPLETE": "Checklist incomplete — check all mandatory items first",
+    "CANCELLATION_WINDOW_EXPIRED": "Cancellation window expired (24 hours)",
+    "DUPLICATE_VENDOR_LOT": "Vendor lot number duplicates a previous receipt — please verify",
+    "EXPIRY_TOO_SHORT": "Expiry date below minimum remaining shelf life",
+    "MISSING_SIGNATURE": "Electronic signature required",
+    "PERMISSION_DENIED": "Permission denied",
+    "NOT_FOUND": "Not found",
+    "INVALID_SOURCE": "Invalid source document"
+  }
+}

@@ -1005,6 +1005,11 @@ const defaultAppPermissions = [
   { code: 'production:packaging:return', name: 'Packaging Return', module: 'Production', description: 'คืน Primary Packaging (Operator + Verifier)' },
   { code: 'production:packaging:approve', name: 'Packaging QA Approve', module: 'Production', description: 'QA อนุมัติ/ปฏิเสธการคืน Packaging (Triple Independence)' },
   { code: 'production:packaging:configure', name: 'Packaging Tolerance Configure', module: 'Production', description: 'ตั้งค่า tolerance ของแต่ละหมวด packaging' },
+  // Feature 020: Goods Receipt & Incoming Inspection
+  { code: 'inventory:goods_receipt:receive', name: 'Goods Receipt Create', module: 'Inventory', description: 'สร้าง GRN + บันทึก actuals (warehouse receiver)' },
+  { code: 'inventory:goods_receipt:checklist', name: 'Goods Receipt Checklist Sign', module: 'Inventory', description: 'ลงนาม Checklist ตรวจรับ (warehouse inspector)' },
+  { code: 'inventory:goods_receipt:configure', name: 'Goods Receipt Configure', module: 'Inventory', description: 'ตั้งค่า tolerance + checklist templates' },
+  { code: 'quality:incoming:approve', name: 'Incoming QA Approve', module: 'Quality', description: 'QA Release/Reject ล็อตที่ตรวจรับ (Triple Independence)' },
 
   // ═══════════════════ Quality Module ═══════════════════
   { code: 'quality:read', name: 'Quality View', module: 'Quality', description: 'ดูข้อมูล QC / Specs / Deviations' },

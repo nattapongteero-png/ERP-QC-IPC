@@ -1,0 +1,148 @@
+{
+  "page": {
+    "title": "ตรวจรับของ (GRN)",
+    "subtitle": "Goods Receipt Note — ระบบรวมการตรวจรับของเข้าคลัง",
+    "list": "รายการ GRN",
+    "new": "สร้าง GRN ใหม่",
+    "detail": "รายละเอียด GRN",
+    "incomingInspection": "ตรวจรับเข้า (Incoming Inspection)",
+    "templates": "Template Checklist ตรวจรับ",
+    "tolerances": "เกณฑ์ Tolerance ตรวจรับ"
+  },
+  "tiles": {
+    "pendingChecklist": "รอตรวจ Checklist",
+    "pendingQa": "รอ QA อนุมัติ",
+    "releasedToday": "ออกแล้ววันนี้",
+    "quarantineAging": "กักกันเกิน 14 วัน",
+    "staleQc": "QC sample ค้างเกิน 30 วัน"
+  },
+  "sourceType": {
+    "po": "Purchase Order (วัตถุดิบ)",
+    "wo": "Work Order (สินค้าสำเร็จรูป)"
+  },
+  "category": {
+    "raw_material": "วัตถุดิบ",
+    "finished_goods": "สินค้าสำเร็จรูป"
+  },
+  "status": {
+    "header": {
+      "in_progress": "กำลังดำเนินการ",
+      "released": "ผ่านแล้ว",
+      "partially_released": "ผ่านบางส่วน",
+      "rejected": "ปฏิเสธ",
+      "cancelled": "ยกเลิก"
+    },
+    "line": {
+      "created": "สร้างแล้ว",
+      "checklist_done": "Checklist เสร็จ",
+      "qc_pending": "รอ QC",
+      "qc_approved": "QC อนุมัติ",
+      "released_to_stock": "ปล่อยเข้าสต็อก",
+      "rejected": "ปฏิเสธ",
+      "cancelled": "ยกเลิก"
+    }
+  },
+  "form": {
+    "sourceType": { "label": "ประเภทแหล่งที่มา" },
+    "po": { "label": "Purchase Order" },
+    "wo": { "label": "Work Order" },
+    "warehouse": { "label": "คลังกักกัน" },
+    "receivedDate": { "label": "วันที่รับ" },
+    "notes": { "label": "หมายเหตุ" },
+    "actualQuantity": { "label": "จำนวนรับจริง" },
+    "vendorLotNumber": { "label": "เลขล็อตผู้ขาย" },
+    "batchNumber": { "label": "เลข Batch" },
+    "manufacturingDate": { "label": "วันผลิต" },
+    "expiryDate": { "label": "วันหมดอายุ" },
+    "varianceReason": { "label": "เหตุผลความคลาดเคลื่อน" },
+    "rejectionReason": { "label": "เหตุผลการปฏิเสธ" }
+  },
+  "table": {
+    "columns": {
+      "grnNumber": "เลข GRN",
+      "sourceType": "แหล่งที่มา",
+      "vendor": "ผู้ขาย / WO",
+      "receivedDate": "วันที่รับ",
+      "receiver": "ผู้รับ",
+      "status": "สถานะ",
+      "lineCount": "จำนวนรายการ",
+      "item": "สินค้า",
+      "expectedQty": "จำนวนคาด",
+      "actualQty": "จำนวนจริง",
+      "variance": "ความคลาดเคลื่อน",
+      "ageDays": "อายุ (วัน)",
+      "qcStatus": "สถานะ QC"
+    }
+  },
+  "actions": {
+    "create": "สร้าง GRN",
+    "edit": "แก้ไข",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "back": "ย้อนกลับ",
+    "signChecklist": "ลงนาม Checklist",
+    "release": "Release to Stock",
+    "reject": "ปฏิเสธ",
+    "cancelGrn": "ยกเลิก GRN",
+    "viewAudit": "ดู Audit Trail",
+    "refresh": "รีเฟรช",
+    "addItem": "เพิ่มรายการ"
+  },
+  "checklist": {
+    "title": "Checklist ตรวจรับ",
+    "remarks": "หมายเหตุ",
+    "mandatory": "ต้องตรวจ",
+    "passLabel": "ผ่าน",
+    "failLabel": "ไม่ผ่าน",
+    "newVersion": "สร้างเวอร์ชันใหม่",
+    "currentVersion": "เวอร์ชันปัจจุบัน",
+    "rawMaterialDefaults": {
+      "coa": "Certificate of Analysis (COA) ตรงกับล็อตที่รับ",
+      "expiry": "วันหมดอายุ ≥ Shelf life ขั้นต่ำ",
+      "packaging": "บรรจุภัณฑ์ภายนอกสมบูรณ์ ไม่เสียหาย",
+      "weight": "น้ำหนัก/จำนวน อยู่ในเกณฑ์ ±2%"
+    },
+    "finishedGoodsDefaults": {
+      "label": "ฉลากผลิตภัณฑ์ถูกต้อง อ่านได้ชัดเจน",
+      "packaging": "บรรจุภัณฑ์สมบูรณ์ ไม่มีจุดบกพร่อง",
+      "weightPerUnit": "น้ำหนักต่อหน่วยอยู่ในเกณฑ์",
+      "countPerPack": "จำนวนต่อแพ็คตรงตามสเปค",
+      "yield": "ปริมาณจริงเทียบกับทฤษฎี ±5%"
+    }
+  },
+  "tolerances": {
+    "title": "เกณฑ์ Tolerance ตรวจรับ",
+    "subtitle": "ตั้งค่าความคลาดเคลื่อนที่ยอมรับได้สำหรับการตรวจรับ",
+    "columns": {
+      "category": "หมวด",
+      "tolerancePercent": "เกณฑ์ (%)",
+      "isActive": "ใช้งาน",
+      "notes": "หมายเหตุ"
+    }
+  },
+  "toast": {
+    "created": "สร้าง GRN เรียบร้อย",
+    "updated": "บันทึกเรียบร้อย",
+    "checklistSigned": "ลงนาม Checklist เรียบร้อย — สร้างล็อตและ QC Sample แล้ว",
+    "released": "ปล่อยเข้าสต็อกเรียบร้อย",
+    "rejected": "ปฏิเสธเรียบร้อย — สร้าง Deviation แล้ว",
+    "cancelled": "ยกเลิก GRN เรียบร้อย",
+    "templateCreated": "สร้าง Template เวอร์ชันใหม่เรียบร้อย"
+  },
+  "errors": {
+    "TRIPLE_INDEPENDENCE_VIOLATION": "Triple Independence — ผู้รับและผู้อนุมัติต้องคนละคน (Admin ก็ห้าม bypass)",
+    "INVALID_TRANSITION": "ไม่สามารถเปลี่ยนสถานะนี้ได้",
+    "LOT_IN_QUARANTINE": "ล็อตอยู่ในสถานะกักกัน — รอ QC ปล่อยก่อน",
+    "SOURCE_ALREADY_RECEIVED": "แหล่งที่มาถูกตรวจรับครบแล้ว",
+    "VARIANCE_NOT_JUSTIFIED": "ต้องระบุเหตุผลความคลาดเคลื่อน",
+    "QC_NOT_APPROVED": "QC ยังไม่อนุมัติ — ไม่สามารถปล่อยเข้าสต็อกได้",
+    "CHECKLIST_INCOMPLETE": "Checklist ยังไม่ครบ — ตรวจให้ครบก่อนลงนาม",
+    "CANCELLATION_WINDOW_EXPIRED": "เกินเวลาที่ยกเลิกได้ (24 ชั่วโมง)",
+    "DUPLICATE_VENDOR_LOT": "เลขล็อตผู้ขายซ้ำกับล็อตก่อนหน้า — กรุณาตรวจสอบ",
+    "EXPIRY_TOO_SHORT": "วันหมดอายุน้อยกว่าเกณฑ์ขั้นต่ำ",
+    "MISSING_SIGNATURE": "ต้องลงลายเซ็นอิเล็กทรอนิกส์",
+    "PERMISSION_DENIED": "ไม่มีสิทธิ์ดำเนินการ",
+    "NOT_FOUND": "ไม่พบข้อมูล",
+    "INVALID_SOURCE": "แหล่งที่มาไม่ถูกต้อง"
+  }
+}
