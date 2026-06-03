@@ -100,6 +100,8 @@ export async function POST(
           bomQCId: data.bomQCId,
           checkTime: data.checkTime,
           sampleWeights: JSON.stringify(weights),
+          // Audit #3/#19 — net = gross - tare
+          tareWeight: Number(data.tareWeight) > 0 ? Number(data.tareWeight) : 0,
           operatorId,
           notes: data.notes,
         },
@@ -168,7 +170,8 @@ export async function PUT(
       }
 
       const userId = session.userId;
-      const log = await updateWOPackagingWeightLog(data.logId, JSON.stringify(weights), data.notes, userId, workOrder.bomId);
+      const tare = Number(data.tareWeight) > 0 ? Number(data.tareWeight) : 0;
+      const log = await updateWOPackagingWeightLog(data.logId, JSON.stringify(weights), data.notes, userId, workOrder.bomId, tare);
 
       return successResponse(
         log,

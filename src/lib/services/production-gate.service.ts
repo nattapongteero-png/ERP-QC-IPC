@@ -162,10 +162,20 @@ export async function canCompleteProduction(workOrderId: number): Promise<GateCh
   const completedChecks: string[] = [];
 
   return executeDbOperation(async (db: any) => {
-    // Check SOP execution
+    // Check SOP execution — join with bomSOPSteps to know criticality
+    const bomSteps = getTableRef('bOMSOPSteps');
     const sopSteps = await db
-      .select()
+      .select({
+        id: tables.woSOPExecution.id,
+        sequence: tables.woSOPExecution.sequence,
+        isCompleted: tables.woSOPExecution.isCompleted,
+        verifierId: tables.woSOPExecution.verifierId,
+        pmApprovedBy: tables.woSOPExecution.pmApprovedBy,
+        status: tables.woSOPExecution.status,
+        isCritical: bomSteps.isCritical,
+      })
       .from(tables.woSOPExecution)
+      .leftJoin(bomSteps, eq(tables.woSOPExecution.bomStepId, bomSteps.id))
       .where(eq(tables.woSOPExecution.workOrderId, workOrderId));
 
     if (sopSteps.length === 0) {
@@ -185,7 +195,20 @@ export async function canCompleteProduction(workOrderId: number): Promise<GateCh
         ).length;
         blockers.push(`SOP ยังไม่ verify ${unverified} ขั้นตอน (${unverified} SOP steps not verified)`);
       } else {
-        completedChecks.push('SOP ทุกขั้นตอนเสร็จสมบูรณ์');
+        // Audit #16 — critical SOP steps require Production Manager approval
+        const criticalUnapproved = sopSteps.filter(
+          (s: any) => s.isCritical === true && s.pmApprovedBy == null,
+        );
+        if (criticalUnapproved.length > 0) {
+          const seqs = criticalUnapproved
+            .map((s: any) => `#${s.sequence}`)
+            .join(', ');
+          blockers.push(
+            `Critical SOP step ${seqs} ยังไม่ได้รับอนุมัติจาก Production Manager (PM approval required for critical steps)`,
+          );
+        } else {
+          completedChecks.push('SOP ทุกขั้นตอนเสร็จสมบูรณ์ (รวม PM approval สำหรับ critical steps)');
+        }
       }
     }
 

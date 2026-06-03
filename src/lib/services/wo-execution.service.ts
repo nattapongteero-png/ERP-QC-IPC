@@ -1079,6 +1079,79 @@ export async function confirmWOSOPSubSteps(
   });
 }
 
+/**
+ * Audit #16 — Production Manager approval for CRITICAL SOP steps.
+ *
+ * Required after operator + verifier have signed off. PM MUST be a different
+ * user from both. Fails if step is not marked critical (no double-signoff
+ * needed for non-critical steps).
+ */
+export async function pmApproveWOSOPStep(executionId: number, pmUserId: number) {
+  const tables = getTables();
+
+  const [existingStep] = await executeDbOperation(async (db: any) => {
+    return db
+      .select({
+        operatorId: tables.woSOPExecution.operatorId,
+        verifierId: tables.woSOPExecution.verifierId,
+        bomStepId: tables.woSOPExecution.bomStepId,
+        status: tables.woSOPExecution.status,
+      })
+      .from(tables.woSOPExecution)
+      .where(eq(tables.woSOPExecution.id, executionId));
+  });
+
+  if (!existingStep) throw new Error('SOP execution not found');
+  if (existingStep.status !== 'verified') {
+    throw new Error('STEP_NOT_VERIFIED: Step must be verified before PM approval');
+  }
+
+  // Check BOM step criticality
+  const [bomStep] = await executeDbOperation(async (db: any) => {
+    return db
+      .select({ isCritical: tables.bomSOPSteps.isCritical })
+      .from(tables.bomSOPSteps)
+      .where(eq(tables.bomSOPSteps.id, existingStep.bomStepId));
+  });
+  if (!bomStep?.isCritical) {
+    throw new Error('STEP_NOT_CRITICAL: PM approval is only required for critical steps');
+  }
+
+  // Triple Independence: PM != operator AND PM != verifier
+  if (Number(existingStep.operatorId) === pmUserId) {
+    throw new Error('PM_SAME_AS_OPERATOR: Production Manager must be different from the operator');
+  }
+  if (Number(existingStep.verifierId) === pmUserId) {
+    throw new Error('PM_SAME_AS_VERIFIER: Production Manager must be different from the verifier');
+  }
+
+  return executeDbOperation(async (db: any) => {
+    const updateData = {
+      pmApprovedBy: pmUserId,
+      pmApprovedAt: getNow(),
+      updatedAt: getNow(),
+    };
+    if (isSqlite()) {
+      const [execution] = await db
+        .update(tables.woSOPExecution)
+        .set(updateData)
+        .where(eq(tables.woSOPExecution.id, executionId))
+        .returning();
+      return execution;
+    } else {
+      await db
+        .update(tables.woSOPExecution)
+        .set(updateData)
+        .where(eq(tables.woSOPExecution.id, executionId));
+      const [execution] = await db
+        .select()
+        .from(tables.woSOPExecution)
+        .where(eq(tables.woSOPExecution.id, executionId));
+      return execution;
+    }
+  });
+}
+
 export async function verifyWOSOPStep(executionId: number, verifierId: number) {
   const tables = getTables();
 
@@ -1221,6 +1294,16 @@ export async function getWOMaterials(workOrderId: number) {
 
 export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
   const tables = getTables();
+
+  // Audit #11 — reject empty/non-positive weighings. The UI defaults
+  // weighedQty to 0 on a fresh dialog (no longer to BOM planned qty), so any
+  // record with qty<=0 reaching the service is an attempt to bypass weighing.
+  const qty = Number(data.weighedQty);
+  if (!Number.isFinite(qty) || qty <= 0) {
+    throw new Error(
+      'INVALID_WEIGHED_QTY: weighedQty must be a positive number — operator must read the actual value from the scale',
+    );
+  }
 
   // Feature 021 — Scale verification gate
   // Default: require verification when scaleId is provided.
@@ -1430,7 +1513,14 @@ export interface CreateWOPackagingWeightLogInput {
   workOrderId: number;
   bomQCId?: number;
   checkTime: string;
-  sampleWeights: string; // JSON array of weights
+  sampleWeights: string; // JSON array of GROSS weights (incl. container)
+  /**
+   * Audit #3/#19 — Tare weight (เปล่า) of the container/packaging.
+   * If provided (>0), pass/fail is evaluated against NET = gross - tare for
+   * each sample. BOM weightMin/weightMax represent fill weight (NET).
+   * Defaults to 0 for backwards compatibility (samples are treated as net).
+   */
+  tareWeight?: number;
   operatorId: number;
   notes?: string;
 }
@@ -1495,9 +1585,12 @@ export async function createWOPackagingWeightLog(
       bomQCId = qc.bomQCId;
     }
 
-    // Parse weights and calculate failures
-    const weights: number[] = JSON.parse(data.sampleWeights);
-    const failedCount = weights.filter((w) => w < weightMin || w > weightMax).length;
+    // Parse weights and calculate failures.
+    // Audit #3/#19 — subtract tare so we compare NET fill weight vs spec.
+    const grossWeights: number[] = JSON.parse(data.sampleWeights);
+    const tare = Number(data.tareWeight) > 0 ? Number(data.tareWeight) : 0;
+    const netWeights = grossWeights.map((w) => Math.max(0, w - tare));
+    const failedCount = netWeights.filter((w) => w < weightMin || w > weightMax).length;
     const isPass = failedCount <= maxFailures;
 
     const values = {
@@ -1531,6 +1624,7 @@ export async function updateWOPackagingWeightLog(
   notes: string | undefined,
   _userId: number,
   bomId: number,
+  _tareWeight: number = 0,
 ) {
   const tables = getTables();
 
@@ -1556,9 +1650,11 @@ export async function updateWOPackagingWeightLog(
       maxFailures = qcProfiles[0].maxFailures;
     }
 
-    // Recalculate pass/fail
-    const weights: number[] = JSON.parse(sampleWeights);
-    const failedCount = weights.filter((w) => w < weightMin || w > weightMax).length;
+    // Recalculate pass/fail (Audit #3/#19 — apply tare on update too).
+    const grossWeights: number[] = JSON.parse(sampleWeights);
+    const tareForUpdate = Number(_tareWeight) > 0 ? Number(_tareWeight) : 0;
+    const netWeights = grossWeights.map((w) => Math.max(0, w - tareForUpdate));
+    const failedCount = netWeights.filter((w) => w < weightMin || w > weightMax).length;
     const isPass = failedCount <= maxFailures;
 
     const updateData: any = {
