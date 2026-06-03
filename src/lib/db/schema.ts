@@ -243,6 +243,28 @@ export const sqliteStorageEnvLogs = sqliteTable('storage_env_logs', {
 });
 
 // Inventory Lots
+// QC Inspection (Audit Q5)
+// QA-side inspection record. Independent of production BOM — QC department
+// fills it out on their own checklist. Can link to a Work Order to expose
+// the eBMR for cross-reference, but the form itself is not driven by the BOM.
+export const sqliteQcInspections = sqliteTable('qc_inspections', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  inspectionNumber: text('inspection_number').notNull().unique(),
+  // Optional link to a WO so the inspector can open its eBMR. Null = ad-hoc.
+  workOrderId: integer('work_order_id'),
+  // Free-text batch identifier (sometimes QC inspects something with no WO).
+  batchNumber: text('batch_number'),
+  inspectionType: text('inspection_type').notNull(), // incoming | in_process | finished | ad_hoc
+  subject: text('subject').notNull(),
+  findings: text('findings'),
+  overallResult: text('overall_result').notNull().default('pending'), // pending | pass | fail
+  inspectorId: integer('inspector_id').notNull().references(() => sqliteUsers.id),
+  inspectedAt: text('inspected_at').notNull(),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   itemId: integer('item_id').notNull().references(() => sqliteItems.id),
@@ -1854,6 +1876,23 @@ export const mysqlStorageEnvLogs = mysqlTable('storage_env_logs', {
 });
 
 // Inventory Lots
+// QC Inspection (Audit Q5) — MySQL
+export const mysqlQcInspections = mysqlTable('qc_inspections', {
+  id: int('id').primaryKey().autoincrement(),
+  inspectionNumber: varchar('inspection_number', { length: 40 }).notNull().unique(),
+  workOrderId: int('work_order_id'),
+  batchNumber: varchar('batch_number', { length: 100 }),
+  inspectionType: varchar('inspection_type', { length: 30 }).notNull(),
+  subject: varchar('subject', { length: 255 }).notNull(),
+  findings: mysqlText('findings'),
+  overallResult: varchar('overall_result', { length: 20 }).notNull().default('pending'),
+  inspectorId: int('inspector_id').notNull().references(() => mysqlUsers.id),
+  inspectedAt: datetime('inspected_at').notNull(),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const mysqlInventoryLots = mysqlTable('inventory_lots', {
   id: int('id').primaryKey().autoincrement(),
   itemId: int('item_id').notNull().references(() => mysqlItems.id),
