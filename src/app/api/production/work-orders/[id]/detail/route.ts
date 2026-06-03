@@ -233,8 +233,15 @@ export async function GET(
               id: qualityTests.id,
               lotId: qualityTests.lotId,
               testType: qualityTests.testType,
-              // eBMR audit gap #7 — show real test name + numeric value + spec range
-              testName: qualityTests.testName,
+              // eBMR audit gap #7 — testName was referenced here but neither
+              // sqliteQualityTests nor mysqlQualityTests defines a testName
+              // column, so the access resolved to `undefined`, fed into
+              // Drizzle's select map, and crashed with
+              //   TypeError: Cannot convert undefined or null to object
+              // (Object.entries deep inside Drizzle's prepare). The frontend
+              // already falls back to "Test #${id}" or the sample number,
+              // so we just omit the field. Re-introduce when the column is
+              // actually added to the schema.
               ipcCriteriaId: qualityTests.ipcCriteriaId,
               numericResult: qualityTests.numericResult,
               specMinValue: qualityTests.specMinValue,
