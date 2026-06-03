@@ -84,7 +84,7 @@ export default function SamplingPlansPage() {
     try {
       const [planRes, itemRes] = await Promise.all([
         fetch(`/api/master-data/sampling-plans${activeOnly ? '?activeOnly=true' : ''}`),
-        fetch('/api/master-data/items?limit=500'),
+        fetch('/api/items?limit=500'),
       ]);
       const planJson = await planRes.json();
       const itemJson = await itemRes.json();
