@@ -8,7 +8,6 @@
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
@@ -83,23 +82,19 @@ export default function DebitNoteDetailPage({
 
   if (loading) {
     return (
-      <MainLayout>
         <div className="flex items-center justify-center h-64">
           <LoadIndicator />
         </div>
-      </MainLayout>
     );
   }
 
   if (!note) {
     return (
-      <MainLayout>
         <div className="p-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
             Debit note not found
           </div>
         </div>
-      </MainLayout>
     );
   }
 
@@ -113,7 +108,6 @@ export default function DebitNoteDetailPage({
   };
 
   return (
-    <MainLayout>
       <div className="p-4">
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
@@ -238,6 +232,5 @@ export default function DebitNoteDetailPage({
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

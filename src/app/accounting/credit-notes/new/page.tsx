@@ -9,7 +9,6 @@ import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toLocalDateStr } from '@/lib/utils/date-format';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { TextBox } from 'devextreme-react/text-box';
@@ -178,7 +177,6 @@ function NewCreditNoteContent() {
   };
 
   return (
-    <MainLayout>
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
@@ -351,18 +349,15 @@ function NewCreditNoteContent() {
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }
 
 export default function NewCreditNotePage() {
   return (
     <Suspense fallback={
-      <MainLayout>
         <div className="flex items-center justify-center h-64">
           <LoadIndicator />
         </div>
-      </MainLayout>
     }>
       <NewCreditNoteContent />
     </Suspense>

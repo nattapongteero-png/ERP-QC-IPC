@@ -7,7 +7,6 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Popup } from 'devextreme-react/popup';
@@ -263,21 +262,17 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <MainLayout>
         <div className="flex items-center justify-center h-64">
           <LoadIndicator />
         </div>
-      </MainLayout>
     );
   }
 
   if (!note) {
     return (
-      <MainLayout>
         <div className="p-4">
           <div className="text-center text-gray-500">Note not found</div>
         </div>
-      </MainLayout>
     );
   }
 
@@ -290,7 +285,6 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
   const canDelete = note.status === 'draft';
 
   return (
-    <MainLayout>
       <div className="p-4">
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
@@ -622,6 +616,5 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
           </div>
         </Popup>
       </div>
-    </MainLayout>
   );
 }

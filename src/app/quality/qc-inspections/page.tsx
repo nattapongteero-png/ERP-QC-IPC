@@ -9,7 +9,6 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { MainLayout } from '@/components/layout/main-layout';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -220,7 +219,6 @@ export default function QcInspectionsPage() {
   ];
 
   return (
-    <MainLayout>
       <div className="space-y-4 p-4">
         <ResponsivePageHeader
           title="QC Inspection (อิสระจาก BOM)"
@@ -444,6 +442,5 @@ export default function QcInspectionsPage() {
 
         {loading && <div className="text-center text-gray-500 py-4">กำลังโหลด...</div>}
       </div>
-    </MainLayout>
   );
 }
