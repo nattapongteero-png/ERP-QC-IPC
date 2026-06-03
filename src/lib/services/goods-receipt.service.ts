@@ -104,10 +104,14 @@ export async function createGrn(
         throw new GoodsReceiptError(GOODS_RECEIPT_ERROR_CODES.NOT_FOUND, 'PO not found');
       vendorId = po[0].vendorId ?? null;
 
+      // Drizzle column is `poId` (db column `po_id`) — not `purchaseOrderId`.
+      // The wrong reference resolved to `undefined` and Drizzle emitted
+      // SQL with an empty column name ("WHERE = ?"), failing every PO-sourced
+      // GRN creation.
       const poLines = await db
         .select()
         .from(t.poLines)
-        .where(eq(t.poLines.purchaseOrderId, input.poId));
+        .where(eq(t.poLines.poId, input.poId));
 
       if (poLines.length === 0)
         throw new GoodsReceiptError(GOODS_RECEIPT_ERROR_CODES.INVALID_SOURCE, 'PO has no lines');
