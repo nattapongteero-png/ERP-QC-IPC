@@ -20,6 +20,10 @@
     "po": "Purchase Order (วัตถุดิบ)",
     "wo": "Work Order (สินค้าสำเร็จรูป)"
   },
+  "sourceTypeShort": {
+    "po": "ใบสั่งซื้อ",
+    "wo": "ใบสั่งผลิต"
+  },
   "category": {
     "raw_material": "วัตถุดิบ",
     "finished_goods": "สินค้าสำเร็จรูป"
