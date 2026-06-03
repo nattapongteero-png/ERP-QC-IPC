@@ -1,0 +1,295 @@
+'use client';
+
+/**
+ * Scale Verification — main dashboard
+ * Feature: 021-scale-verification
+ */
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
+import {
+  DataGrid,
+  Column,
+  FilterRow,
+  Paging,
+} from 'devextreme-react/data-grid';
+import { Button } from 'devextreme-react/button';
+import { Popup } from 'devextreme-react/popup';
+import { SelectBox } from 'devextreme-react/select-box';
+import { NumberBox } from 'devextreme-react/number-box';
+import { TextArea } from 'devextreme-react/text-area';
+import { Scale, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import type { ScaleVerification, StandardWeight } from '@/types/scale-verification';
+
+interface ScaleRow {
+  scaleId: number;
+  scaleCode: string;
+  scaleName: string;
+  status: string;
+  lastVerifiedAt: string | null;
+  lastResult: string | null;
+}
+
+export default function ScaleVerificationPage() {
+  const t = useTranslations('scaleVerification');
+  const qc = useQueryClient();
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [activeScale, setActiveScale] = useState<ScaleRow | null>(null);
+  const [weightId, setWeightId] = useState<number | null>(null);
+  const [reading, setReading] = useState<number>(0);
+  const [notes, setNotes] = useState('');
+  const [password, setPassword] = useState('');
+
+  const { data, refetch } = useQuery<{ items: ScaleRow[] }>({
+    queryKey: ['scale-verifications-dashboard'],
+    queryFn: async () => {
+      const res = await fetch('/api/quality/scale-verifications');
+      if (!res.ok) throw new Error('Failed');
+      return res.json();
+    },
+    refetchInterval: 30_000,
+  });
+
+  const { data: weights } = useQuery<StandardWeight[]>({
+    queryKey: ['standard-weights'],
+    queryFn: async () => {
+      const res = await fetch('/api/master-data/standard-weights');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Only weights whose certificate is still valid + active
+  const validWeights = (weights ?? []).filter(
+    (w) => w.isActive && w.certificateExpiryDate >= today,
+  );
+
+  const expiringSoonCount = (weights ?? []).filter((w) => {
+    const expiry = new Date(w.certificateExpiryDate);
+    const inDays = Math.floor((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return inDays >= 0 && inDays <= 30 && w.isActive;
+  }).length;
+
+  const scales = data?.items ?? [];
+  const activeCount = scales.filter((s) => s.status === 'active').length;
+  const oosCount = scales.filter((s) => s.status === 'out_of_service').length;
+
+  const verifyMut = useMutation({
+    mutationFn: async () => {
+      if (!activeScale || !weightId) throw new Error('Missing fields');
+      const res = await fetch('/api/quality/scale-verifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scaleId: activeScale.scaleId,
+          standardWeightId: weightId,
+          actualReading: reading,
+          notes: notes || null,
+          signature: { password: password || 'verify' },
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? 'Failed');
+      return body as ScaleVerification;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['scale-verifications-dashboard'] });
+      setVerifyOpen(false);
+      setActiveScale(null);
+      setWeightId(null);
+      setReading(0);
+      setNotes('');
+      setPassword('');
+    },
+  });
+
+  return (
+    <div className="p-6 space-y-4">
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Scale className="w-6 h-6" />
+            {t('page.title')}
+          </h1>
+          <p className="text-gray-600 text-sm mt-1">{t('page.subtitle')}</p>
+        </div>
+        <Button text={t('actions.refresh')} onClick={() => refetch()} />
+      </header>
+
+      {/* Tiles */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-wide opacity-70 text-emerald-900">{t('tiles.scalesActive')}</div>
+            <div className="text-3xl font-bold text-emerald-900 mt-1">{activeCount}</div>
+          </div>
+          <CheckCircle2 className="w-5 h-5 opacity-60" />
+        </div>
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-wide opacity-70 text-rose-900">{t('tiles.scalesOos')}</div>
+            <div className="text-3xl font-bold text-rose-900 mt-1">{oosCount}</div>
+          </div>
+          <XCircle className="w-5 h-5 opacity-60" />
+        </div>
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+          <div className="text-xs uppercase opacity-70 text-indigo-900">{t('tiles.verificationsToday')}</div>
+          <div className="text-3xl font-bold text-indigo-900 mt-1">{scales.filter((s) => s.lastVerifiedAt?.slice(0, 10) === today).length}</div>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase opacity-70 text-amber-900">{t('tiles.expiringSoon')}</div>
+            <div className="text-3xl font-bold text-amber-900 mt-1">{expiringSoonCount}</div>
+          </div>
+          <AlertTriangle className="w-5 h-5 opacity-60" />
+        </div>
+      </div>
+
+      <DataGrid
+        dataSource={scales}
+        keyExpr="scaleId"
+        showBorders
+        showRowLines
+        rowAlternationEnabled
+        columnAutoWidth
+        data-testid="scales-grid"
+      >
+        <FilterRow visible />
+        <Paging pageSize={20} />
+        <Column dataField="scaleCode" caption={t('table.columns.scaleCode')} width={120} />
+        <Column dataField="scaleName" caption={t('table.columns.scaleName')} />
+        <Column
+          dataField="status"
+          caption={t('table.columns.status')}
+          width={150}
+          cellRender={(c) => {
+            const v = String(c.value ?? 'active');
+            const color =
+              v === 'active'
+                ? 'bg-emerald-100 text-emerald-900'
+                : v === 'out_of_service'
+                  ? 'bg-rose-100 text-rose-900'
+                  : 'bg-amber-100 text-amber-900';
+            return <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${color}`}>{t(`status.${v}` as any)}</span>;
+          }}
+        />
+        <Column dataField="lastVerifiedAt" caption={t('table.columns.lastVerifiedAt')} dataType="datetime" />
+        <Column
+          dataField="lastResult"
+          caption={t('table.columns.lastResult')}
+          width={120}
+          cellRender={(c) => {
+            const v = c.value as string | null;
+            if (!v) return '—';
+            return v === 'pass' ? (
+              <span className="text-emerald-700 font-medium">{t('result.pass')}</span>
+            ) : (
+              <span className="text-rose-700 font-medium">{t('result.fail')}</span>
+            );
+          }}
+        />
+        <Column
+          caption={t('table.columns.actions')}
+          width={200}
+          cellRender={(c) => {
+            const row = c.data as ScaleRow;
+            return (
+              <Button
+                text={t('actions.verify')}
+                type="default"
+                stylingMode="outlined"
+                onClick={() => {
+                  setActiveScale(row);
+                  setVerifyOpen(true);
+                }}
+              />
+            );
+          }}
+        />
+      </DataGrid>
+
+      {/* Verify Popup */}
+      <Popup
+        visible={verifyOpen}
+        onHiding={() => setVerifyOpen(false)}
+        showCloseButton
+        title={`${t('actions.verify')} — ${activeScale?.scaleCode ?? ''}`}
+        width={560}
+        height="auto"
+      >
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">{t('form.standardWeight.label')} *</label>
+            <SelectBox
+              dataSource={validWeights}
+              displayExpr={(w: StandardWeight) =>
+                w ? `${w.code} — ${w.denominationValue} ${w.denominationUnit} (${w.accuracyClass}) · cert ${w.certificateExpiryDate}` : ''
+              }
+              valueExpr="id"
+              value={weightId}
+              onValueChanged={(e) => setWeightId(e.value as number | null)}
+              searchEnabled
+            />
+            {validWeights.length === 0 && (
+              <p className="text-xs text-rose-700 mt-1">
+                ไม่มีลูกตุ้มที่ใบรับรองยังไม่หมดอายุ — กรุณาเพิ่มในทะเบียน
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">{t('form.actualReading.label')} *</label>
+            <NumberBox
+              value={reading}
+              onValueChanged={(e) => setReading(Number(e.value ?? 0))}
+              step={0.0001}
+              format="#0.0000"
+              min={0}
+              showSpinButtons
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">{t('form.notes.label')}</label>
+            <TextArea
+              value={notes}
+              height={60}
+              onValueChanged={(e) => setNotes(String(e.value ?? ''))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Password *</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              placeholder="ลงนามด้วย password"
+            />
+          </div>
+
+          {verifyMut.error && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              {String((verifyMut.error as Error).message)}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button text={t('actions.cancel')} stylingMode="text" onClick={() => setVerifyOpen(false)} />
+            <Button
+              type="success"
+              stylingMode="contained"
+              text={t('actions.verify')}
+              disabled={!weightId || verifyMut.isPending}
+              onClick={() => verifyMut.mutate()}
+            />
+          </div>
+        </div>
+      </Popup>
+    </div>
+  );
+}

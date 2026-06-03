@@ -260,6 +260,7 @@ requirements. Do this automatically without being asked.**
 **when write e2e test , please modify target element to has data-testid key so the playwright script can select the correct element, no hard code looking element text**
 
 ## Recent Changes
+- 021-scale-verification: Scale Pre-Use Verification — operator verifies scale with certified standard weight (ลูกตุ้ม) before weighing; auto out-of-service on FAIL; 8h verification TTL
 - 020-goods-receipt: Goods Receipt & Incoming Inspection — unified GRN workflow (raw + FG), category-specific checklists, auto-QC sample, Triple Independence (admin not bypass), quarantine gate, dashboards
 - 015-i18n: Added TypeScript 5.x with Next.js 16.0.10 + React 19.2.1 + next-intl (i18n), DevExtreme React 25.2.3 (UI components), js-cookie (persistence)
 - 014-unit-cost: Added TypeScript 5.x with Next.js 16.0.10 + React 19, DevExtreme React 25.2.3, Drizzle ORM, TanStack Query 5.x, Zod 4.x

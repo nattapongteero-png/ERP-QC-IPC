@@ -72,3 +72,6 @@ public/system-completeness-*.html
 docs/training/
 docs/superpowers/
 public/his-vmi-sales-flow.html
+
+# Docker UAT mysql volume
+uat_mysql_data/

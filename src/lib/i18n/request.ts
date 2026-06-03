@@ -71,6 +71,7 @@ const NAMESPACE_FILES: Record<string, string> = {
   purchasing: 'purchasing',
   quality: 'quality',
   reports: 'reports',
+  scaleVerification: 'scaleVerification',
   sales: 'sales',
   settings: 'settings',
   template: 'template',

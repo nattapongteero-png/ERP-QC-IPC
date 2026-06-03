@@ -1,0 +1,80 @@
+{
+  "page": {
+    "title": "ตรวจสอบเครื่องชั่งด้วยลูกตุ้ม (Scale Verification)",
+    "subtitle": "Pre-Use Verification — ตรวจสอบความเที่ยงของเครื่องชั่งก่อนใช้งานทุกครั้ง",
+    "standardWeights": "ทะเบียนลูกตุ้มมาตรฐาน (Standard Weights)",
+    "scaleHistory": "ประวัติการตรวจสอบ"
+  },
+  "tiles": {
+    "scalesActive": "เครื่องชั่งใช้งานได้",
+    "scalesOos": "เครื่องชั่ง Out of Service",
+    "verificationsToday": "ตรวจสอบวันนี้",
+    "expiringSoon": "ลูกตุ้มหมดอายุภายใน 30 วัน"
+  },
+  "status": {
+    "active": "พร้อมใช้งาน",
+    "out_of_service": "หยุดใช้งาน",
+    "maintenance": "บำรุงรักษา"
+  },
+  "result": {
+    "pass": "ผ่าน",
+    "fail": "ไม่ผ่าน"
+  },
+  "form": {
+    "scale": { "label": "เครื่องชั่ง" },
+    "standardWeight": { "label": "ลูกตุ้มมาตรฐาน" },
+    "actualReading": { "label": "ค่าน้ำหนักที่อ่านได้" },
+    "notes": { "label": "หมายเหตุ" },
+    "code": { "label": "รหัสลูกตุ้ม" },
+    "denominationValue": { "label": "น้ำหนัก" },
+    "denominationUnit": { "label": "หน่วย" },
+    "accuracyClass": { "label": "Class ความเที่ยง" },
+    "certificateNumber": { "label": "เลขที่ใบรับรอง" },
+    "certificateIssuer": { "label": "หน่วยงานออกใบรับรอง" },
+    "certificateIssueDate": { "label": "วันที่ออกใบรับรอง" },
+    "certificateExpiryDate": { "label": "วันหมดอายุใบรับรอง" }
+  },
+  "actions": {
+    "verify": "ลงนามตรวจสอบ",
+    "addWeight": "เพิ่มลูกตุ้ม",
+    "viewHistory": "ดูประวัติ",
+    "refresh": "รีเฟรช",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก"
+  },
+  "table": {
+    "columns": {
+      "scaleCode": "รหัสเครื่อง",
+      "scaleName": "ชื่อ",
+      "status": "สถานะ",
+      "lastVerifiedAt": "ตรวจล่าสุด",
+      "lastResult": "ผลล่าสุด",
+      "code": "รหัส",
+      "denomination": "น้ำหนัก",
+      "accuracyClass": "Class",
+      "certificateNumber": "เลขใบรับรอง",
+      "certificateExpiryDate": "หมดอายุ",
+      "actions": "ดำเนินการ",
+      "performedAt": "วันที่ตรวจ",
+      "operator": "ผู้ตรวจ",
+      "weight": "ลูกตุ้ม",
+      "reading": "ค่าที่อ่าน",
+      "deviation": "Δ %",
+      "result": "ผล"
+    }
+  },
+  "toast": {
+    "verified": "บันทึกการตรวจสอบเรียบร้อย — ผ่าน",
+    "failed": "บันทึกการตรวจสอบเรียบร้อย — ไม่ผ่าน เครื่องถูกตั้งเป็น Out of Service",
+    "weightCreated": "เพิ่มลูกตุ้มใหม่เรียบร้อย"
+  },
+  "errors": {
+    "CERTIFICATE_EXPIRED": "ใบรับรองลูกตุ้มหมดอายุแล้ว",
+    "EXTREME_DEVIATION": "ค่าน้ำหนักห่างจากค่ามาตรฐานมากเกินไป — อาจเลือกลูกตุ้มผิด",
+    "WEIGHT_OUT_OF_RANGE": "ลูกตุ้มไม่อยู่ในช่วงน้ำหนักของเครื่องชั่งนี้",
+    "SCALE_OUT_OF_SERVICE": "เครื่องชั่งหยุดใช้งาน",
+    "DUPLICATE_WEIGHT_CODE": "รหัสลูกตุ้มซ้ำกับที่มีอยู่",
+    "PERMISSION_DENIED": "ไม่มีสิทธิ์ดำเนินการ",
+    "NOT_FOUND": "ไม่พบข้อมูล"
+  }
+}

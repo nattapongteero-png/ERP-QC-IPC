@@ -1186,6 +1186,12 @@ export const sqliteProductionEquipment = sqliteTable('production_equipment', {
   roomId: integer('room_id').references(() => sqliteProductionRooms.id), // Default room
   description: text('description'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // Feature 021: scale-specific verification config
+  verificationIntervalHours: integer('verification_interval_hours').notNull().default(8),
+  minVerificationWeightG: real('min_verification_weight_g'),
+  maxVerificationWeightG: real('max_verification_weight_g'),
+  tolerancePercent: real('tolerance_percent').notNull().default(0.1),
+  scaleStatus: text('scale_status').notNull().default('active'), // 'active' | 'out_of_service' | 'maintenance'
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -4550,6 +4556,12 @@ export const mysqlProductionEquipment = mysqlTable('production_equipment', {
   roomId: int('room_id').references(() => mysqlProductionRooms.id), // Default room
   description: mysqlText('description'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
+  // Feature 021: scale-specific verification config
+  verificationIntervalHours: int('verification_interval_hours').notNull().default(8),
+  minVerificationWeightG: decimal('min_verification_weight_g', { precision: 15, scale: 4 }),
+  maxVerificationWeightG: decimal('max_verification_weight_g', { precision: 15, scale: 4 }),
+  tolerancePercent: decimal('tolerance_percent', { precision: 6, scale: 4 }).notNull().default('0.1'),
+  scaleStatus: varchar('scale_status', { length: 20 }).notNull().default('active'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -7551,3 +7563,21 @@ export {
   type GoodsReceiptSequenceDb,
   type NewGoodsReceiptSequenceDb,
 } from './schema-goods-receipt';
+
+// ============================================
+// Scale Verification Module (feature 021)
+// ============================================
+export {
+  sqliteStandardWeights,
+  sqliteScaleVerifications,
+  sqliteStandardWeightsRelations,
+  sqliteScaleVerificationsRelations,
+  mysqlStandardWeights,
+  mysqlScaleVerifications,
+  mysqlStandardWeightsRelations,
+  mysqlScaleVerificationsRelations,
+  type StandardWeightDb,
+  type NewStandardWeightDb,
+  type ScaleVerificationDb,
+  type NewScaleVerificationDb,
+} from './schema-scale-verification';
