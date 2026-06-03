@@ -370,11 +370,63 @@ export async function getWOCleaningLogs(workOrderId: number, phase?: string) {
       for (const u of users) userMap.set(u.id, u.name);
     }
 
-    return filtered.map((log: any) => ({
-      ...log,
-      operatorName: log.operatorId ? userMap.get(log.operatorId) || null : null,
-      verifierName: log.verifierId ? userMap.get(log.verifierId) || null : null,
-    }));
+    // eBMR audit gap #5 — resolve equipment + room display names so the
+    // Cleaning Verification table prints the actual equipment ID/name
+    // instead of a generic "room"/"equipment" label.
+    const equipmentIds = new Set<number>();
+    const roomIds = new Set<number>();
+    for (const l of filtered) {
+      if (l.equipmentId) equipmentIds.add(l.equipmentId);
+      if (l.roomId) roomIds.add(l.roomId);
+    }
+    const equipmentMap = new Map<number, { code: string; name: string }>();
+    const roomMap = new Map<number, { code: string; name: string }>();
+    try {
+      if (equipmentIds.size > 0) {
+        const equipmentTable = getTableRef('productionEquipment');
+        const rows = await db
+          .select({
+            id: equipmentTable.id,
+            code: equipmentTable.code,
+            name: equipmentTable.name,
+          })
+          .from(equipmentTable)
+          .where(inArray(equipmentTable.id, Array.from(equipmentIds)));
+        for (const r of rows) {
+          equipmentMap.set(r.id as number, { code: r.code as string, name: r.name as string });
+        }
+      }
+      if (roomIds.size > 0) {
+        const roomTable = getTableRef('productionRooms');
+        const rows = await db
+          .select({
+            id: roomTable.id,
+            code: roomTable.code,
+            name: roomTable.name,
+          })
+          .from(roomTable)
+          .where(inArray(roomTable.id, Array.from(roomIds)));
+        for (const r of rows) {
+          roomMap.set(r.id as number, { code: r.code as string, name: r.name as string });
+        }
+      }
+    } catch {
+      // master tables may be missing in older setups
+    }
+
+    return filtered.map((log: any) => {
+      const equip = log.equipmentId ? equipmentMap.get(log.equipmentId) : null;
+      const room = log.roomId ? roomMap.get(log.roomId) : null;
+      return {
+        ...log,
+        operatorName: log.operatorId ? userMap.get(log.operatorId) || null : null,
+        verifierName: log.verifierId ? userMap.get(log.verifierId) || null : null,
+        equipmentCode: equip?.code || null,
+        equipmentName: equip?.name || null,
+        roomCode: room?.code || null,
+        roomName: room?.name || null,
+      };
+    });
   });
 }
 
