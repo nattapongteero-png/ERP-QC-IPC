@@ -422,6 +422,10 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   stockAtApproval: real('stock_at_approval'), // Stock snapshot when requisition was approved
   // Feature 018: cumulative extra qty deducted via approved material withdrawal requests
   additionalQtyViaWithdrawalRequest: real('additional_qty_via_withdrawal_request').notNull().default(0),
+  // Feature 021: scale verification gate
+  scaleId: integer('scale_id'), // production_equipment.id used to weigh
+  scaleVerificationId: integer('scale_verification_id'), // scale_verifications.id under which weighing was performed
+  weighedAfterExpiry: integer('weighed_after_expiry', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -2002,6 +2006,10 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   stockAtApproval: decimal('stock_at_approval', { precision: 15, scale: 4 }), // Stock snapshot when requisition was approved
   // Feature 018: cumulative extra qty deducted via approved material withdrawal requests
   additionalQtyViaWithdrawalRequest: decimal('additional_qty_via_withdrawal_request', { precision: 15, scale: 4 }).notNull().default('0'),
+  // Feature 021: scale verification gate
+  scaleId: int('scale_id'),
+  scaleVerificationId: int('scale_verification_id'),
+  weighedAfterExpiry: mysqlBoolean('weighed_after_expiry').notNull().default(false),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

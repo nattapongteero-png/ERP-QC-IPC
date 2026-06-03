@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
   successResponse,
   errorResponse,
@@ -79,6 +79,8 @@ export async function PUT(
         waterDate: data.waterDate,
         waterConductivity: data.waterConductivity,
         waterTemperature: data.waterTemperature,
+        scaleId: data.scaleId ? Number(data.scaleId) : undefined,
+        requireScaleVerification: data.requireScaleVerification,
       });
 
       publishWorkOrderChanged(workOrderId, 'material-weighing', session.userId);
@@ -86,6 +88,14 @@ export async function PUT(
       return successResponse(material, 'Material weight recorded');
     } catch (error) {
       console.error('Error recording material weight:', error);
+      // Feature 021 — scale verification errors map to 409
+      const { ScaleVerificationError } = await import('@/types/scale-verification');
+      if (error instanceof ScaleVerificationError) {
+        return NextResponse.json(
+          { error: error.message, code: error.code, details: error.details },
+          { status: 409 },
+        );
+      }
       if (error instanceof Error) {
         if (error.message.includes('lot not found') ||
             error.message.includes('not in released status') ||
