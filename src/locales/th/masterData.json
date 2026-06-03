@@ -31,6 +31,26 @@
     "ipcCriteria": {
       "title": "เกณฑ์ QC & IPC",
       "description": "กำหนดเกณฑ์การควบคุมคุณภาพระหว่างผลิต (In-Process Control)"
+    },
+    "packagingTolerances": {
+      "title": "เกณฑ์ Packaging Tolerance",
+      "description": "ตั้งค่าความคลาดเคลื่อนที่ยอมรับได้ของ Packaging ต่อหมวด (Feature 019)"
+    },
+    "receiptTolerances": {
+      "title": "เกณฑ์ Receipt Tolerance",
+      "description": "ตั้งค่าความคลาดเคลื่อนของการตรวจรับวัตถุดิบ/สินค้าสำเร็จรูป (Feature 020)"
+    },
+    "receiptChecklistTemplates": {
+      "title": "Receipt Checklist Templates",
+      "description": "จัดการ Template Checklist สำหรับการตรวจรับของเข้าคลัง (Feature 020)"
+    },
+    "standardWeights": {
+      "title": "ทะเบียนลูกตุ้มมาตรฐาน",
+      "description": "จัดการลูกตุ้มเหล็กที่ใช้ตรวจสอบเครื่องชั่งก่อนใช้งาน (Feature 021)"
+    },
+    "maintenancePlanTemplates": {
+      "title": "Maintenance Plan Templates",
+      "description": "จัดการแผนการบำรุงรักษา/สอบเทียบที่นำไปใช้กับเครื่องมือได้ (Feature 022)"
     }
   },
   "about": {

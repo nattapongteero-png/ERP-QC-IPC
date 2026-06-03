@@ -14,6 +14,7 @@ import { ResponsivePageHeader } from '@/components/shared';
 import {
   Database, Building2, Wrench, Thermometer, FileText, Scale, FlaskConical,
   ChevronRight, Download, Upload, X, CheckSquare, Square,
+  Sliders, ListChecks, ClipboardCheck,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +27,15 @@ const masterDataModules = [
   { key: 'sopTemplates', href: '/master-data/sop-templates', icon: FileText, iconBgColor: 'bg-amber-100', iconColor: 'text-amber-600' },
   { key: 'packagingQCCriteria', href: '/master-data/packaging-qc-criteria', icon: Scale, iconBgColor: 'bg-indigo-100', iconColor: 'text-indigo-600' },
   { key: 'ipcCriteria', href: '/master-data/ipc-criteria', icon: FlaskConical, iconBgColor: 'bg-emerald-100', iconColor: 'text-emerald-600' },
+  // Feature 019
+  { key: 'packagingTolerances', href: '/master-data/packaging-tolerances', icon: Sliders, iconBgColor: 'bg-rose-100', iconColor: 'text-rose-600' },
+  // Feature 020
+  { key: 'receiptTolerances', href: '/master-data/receipt-tolerances', icon: Sliders, iconBgColor: 'bg-orange-100', iconColor: 'text-orange-600' },
+  { key: 'receiptChecklistTemplates', href: '/master-data/receipt-checklist-templates', icon: ClipboardCheck, iconBgColor: 'bg-lime-100', iconColor: 'text-lime-600' },
+  // Feature 021
+  { key: 'standardWeights', href: '/master-data/standard-weights', icon: Scale, iconBgColor: 'bg-cyan-100', iconColor: 'text-cyan-600' },
+  // Feature 022
+  { key: 'maintenancePlanTemplates', href: '/master-data/maintenance-plan-templates', icon: ListChecks, iconBgColor: 'bg-violet-100', iconColor: 'text-violet-600' },
 ];
 
 // ─── Lookup values for template reference ─────────────────────────────

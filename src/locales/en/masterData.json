@@ -31,6 +31,26 @@
     "ipcCriteria": {
       "title": "QC & IPC Criteria",
       "description": "Define In-Process Control test criteria for production quality"
+    },
+    "packagingTolerances": {
+      "title": "Packaging Tolerances",
+      "description": "Configure acceptable variance per packaging category (Feature 019)"
+    },
+    "receiptTolerances": {
+      "title": "Receipt Tolerances",
+      "description": "Configure goods-receipt variance tolerances (raw vs finished goods) — Feature 020"
+    },
+    "receiptChecklistTemplates": {
+      "title": "Receipt Checklist Templates",
+      "description": "Manage versioned checklist templates used in goods receipt (Feature 020)"
+    },
+    "standardWeights": {
+      "title": "Standard Weights Registry",
+      "description": "Certified test weights used to verify scales before weighing (Feature 021)"
+    },
+    "maintenancePlanTemplates": {
+      "title": "Maintenance Plan Templates",
+      "description": "Reusable maintenance/calibration plans applicable to N equipment (Feature 022)"
     }
   },
   "about": {

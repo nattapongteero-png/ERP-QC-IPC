@@ -113,20 +113,7 @@ const navigation: NavItem[] = [
       { name: 'Batch Records', href: '/production/batch-records', icon: FileText },
       { name: 'เบิกวัตถุดิบเพิ่ม', href: '/material-withdrawal', icon: ArrowLeftRight },
       { name: 'รออนุมัติเบิกเพิ่ม', href: '/material-withdrawal/pending', icon: Bell },
-    ],
-  },
-  {
-    name: 'Master Data',
-    href: '/master-data',
-    icon: Settings,
-    roles: ['admin', 'manager', 'production', 'qc', 'warehouse', 'purchasing'],
-    children: [
-      { name: 'หน้ารวม Master Data', href: '/master-data', icon: Settings },
-      { name: 'เกณฑ์ Packaging Tolerance', href: '/master-data/packaging-tolerances', icon: Sliders },
-      { name: 'เกณฑ์ Receipt Tolerance', href: '/master-data/receipt-tolerances', icon: Sliders },
-      { name: 'Receipt Checklist Templates', href: '/master-data/receipt-checklist-templates', icon: ListChecks },
-      { name: 'ทะเบียนลูกตุ้มมาตรฐาน', href: '/master-data/standard-weights', icon: Scale },
-      { name: 'Maintenance Templates', href: '/master-data/maintenance-plan-templates', icon: Wrench },
+      { name: 'Master Data', href: '/master-data', icon: Settings },
     ],
   },
   {
