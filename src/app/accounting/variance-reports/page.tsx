@@ -9,7 +9,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { toLocalDateStr } from '@/lib/utils/date-format';
-import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
   Paging,
@@ -139,16 +138,13 @@ export default function VarianceReportsPage() {
 
   if (loading && !summaryReport) {
     return (
-      <MainLayout>
         <div className="flex items-center justify-center h-64">
           <LoadIndicator />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
@@ -468,6 +464,5 @@ export default function VarianceReportsPage() {
           </div>
         )}
       </div>
-    </MainLayout>
   );
 }

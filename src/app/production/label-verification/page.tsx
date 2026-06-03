@@ -4,7 +4,6 @@ import React, { useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { LabelVerificationForm, type LabelType } from '@/components/production/label-verification-form';
 import { DxButton } from '@/components/ui/dx-button';
@@ -250,7 +249,6 @@ function LabelVerificationContent() {
   };
 
   return (
-    <MainLayout>
       <div className="space-y-6">
         <PageHeader
           title={t('labelVerification.title')}
@@ -418,7 +416,6 @@ function LabelVerificationContent() {
           </div>
         )}
       </div>
-    </MainLayout>
   );
 }
 
@@ -426,11 +423,9 @@ export default function LabelVerificationPage() {
   return (
     <Suspense
       fallback={
-        <MainLayout>
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
-        </MainLayout>
       }
     >
       <LabelVerificationContent />

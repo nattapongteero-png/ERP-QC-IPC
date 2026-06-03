@@ -8,7 +8,6 @@
 
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
   Paging,
@@ -129,16 +128,13 @@ export default function WorkflowHistoryPage({
 
   if (loading && !workflow) {
     return (
-      <MainLayout>
         <div className="flex items-center justify-center h-64">
           <LoadIndicator />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -237,6 +233,5 @@ export default function WorkflowHistoryPage({
           </DataGrid>
         </div>
       </div>
-    </MainLayout>
   );
 }

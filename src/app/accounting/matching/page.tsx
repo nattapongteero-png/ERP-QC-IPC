@@ -6,7 +6,6 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Popup } from 'devextreme-react/popup';
@@ -181,16 +180,13 @@ export default function MatchingExceptionsPage() {
 
   if (loading) {
     return (
-      <MainLayout>
         <div className="flex items-center justify-center h-64">
           <LoadIndicator />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
@@ -365,6 +361,5 @@ export default function MatchingExceptionsPage() {
           </div>
         </Popup>
       </div>
-    </MainLayout>
   );
 }
