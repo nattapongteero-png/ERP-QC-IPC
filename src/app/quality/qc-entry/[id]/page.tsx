@@ -44,6 +44,7 @@ import {
   FlaskConical,
 } from 'lucide-react';
 import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
+import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
 
 /** Live pass/fail evaluator — mirrors server-side logic for instant UX feedback. */
 function evaluateNumeric(
@@ -1470,6 +1471,16 @@ export default function QcSampleDetailPage() {
                           {!t.notes && !hasResult && (
                             <p className="text-gray-400">ยังไม่มีผลการทดสอบ</p>
                           )}
+                          {/* Audit Q4 — attach analytical report / COA per QC test */}
+                          <div className="pt-2">
+                            <AttachmentPanel
+                              moduleName="quality_test"
+                              entityId={t.id}
+                              defaultCategory="lab_result"
+                              title="เอกสารผลวิเคราะห์ (COA / Report)"
+                              testIdBase={`qc-test-attach-${t.id}`}
+                            />
+                          </div>
                         </div>
                       )}
 

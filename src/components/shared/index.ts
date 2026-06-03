@@ -45,3 +45,7 @@ export type { MobileListViewProps } from './mobile-list-view';
 // GMP Dual-Control — shown when logged-in user is the step's operator
 export { AwaitingOtherVerifierBadge } from './awaiting-other-verifier-badge';
 export type { AwaitingOtherVerifierBadgeProps } from './awaiting-other-verifier-badge';
+
+// Audit Q3/Q4/Q5 — reusable file attachment panel
+export { AttachmentPanel } from './AttachmentPanel';
+export type { AttachmentPanelProps } from './AttachmentPanel';
