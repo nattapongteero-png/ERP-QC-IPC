@@ -44,6 +44,7 @@ import {
   FlaskConical,
 } from 'lucide-react';
 import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
+import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
 
 /** Live pass/fail evaluator — mirrors server-side logic for instant UX feedback. */
 function evaluateNumeric(
@@ -515,12 +516,30 @@ export default function QcSampleDetailPage() {
       if (!data.success) {
         toast.error('บันทึกไม่สำเร็จ', data.error || 'Unknown error');
       } else {
+        const savedStatus = data.data?.resultStatus as string | undefined;
         toast.success(
           'บันทึกแล้ว',
-          `Round ${editing.testRound} — Result: ${data.data?.resultStatus || 'pending'}`,
+          `Round ${editing.testRound} — Result: ${savedStatus || 'pending'}`,
         );
+        const savedTestId = editing.testId;
         setEditing(null);
         await fetchDetail();
+
+        // Audit Q1 — auto-open the OOS / Deviation correction form when
+        // the saved result is OOS or failed. Operator must record a Phase-1
+        // lab-error check before the round is considered "closed". Only
+        // fires when there is no open OOS investigation on this test yet.
+        if (savedStatus === 'oos' || savedStatus === 'fail') {
+          const alreadyOpen = oosList.some(
+            (o) => o.sampleTestId === savedTestId && o.closedAt == null,
+          );
+          if (!alreadyOpen) {
+            toast.error(
+              `ผลทดสอบ ${savedStatus.toUpperCase()} — กรุณาเปิดบันทึก Deviation`,
+            );
+            openOosDialog(savedTestId);
+          }
+        }
       }
     } catch (e) {
       toast.error('บันทึกไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
@@ -1470,6 +1489,16 @@ export default function QcSampleDetailPage() {
                           {!t.notes && !hasResult && (
                             <p className="text-gray-400">ยังไม่มีผลการทดสอบ</p>
                           )}
+                          {/* Audit Q4 — attach analytical report / COA per QC test */}
+                          <div className="pt-2">
+                            <AttachmentPanel
+                              moduleName="quality_test"
+                              entityId={t.id}
+                              defaultCategory="lab_result"
+                              title="เอกสารผลวิเคราะห์ (COA / Report)"
+                              testIdBase={`qc-test-attach-${t.id}`}
+                            />
+                          </div>
                         </div>
                       )}
 

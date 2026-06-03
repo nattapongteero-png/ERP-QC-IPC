@@ -220,7 +220,51 @@ export const sqliteWarehouseLocations = sqliteTable('warehouse_locations', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Storage Environmental Monitoring Logs (Audit Q6)
+// Periodic temp/humidity readings for warehouse storage areas — separate
+// from production-area `wo_environmental_logs`. Alerts fire when a reading
+// falls outside the warehouse's temperatureMin/Max or humidityMin/Max.
+export const sqliteStorageEnvLogs = sqliteTable('storage_env_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  warehouseId: integer('warehouse_id').notNull().references(() => sqliteWarehouses.id),
+  locationId: integer('location_id').references(() => sqliteWarehouseLocations.id),
+  readingAt: text('reading_at').notNull(),
+  temperature: real('temperature'),
+  humidity: real('humidity'),
+  // 'in_spec' | 'temp_low' | 'temp_high' | 'humidity_low' | 'humidity_high' | 'multiple'
+  alertLevel: text('alert_level').notNull().default('in_spec'),
+  alertMessage: text('alert_message'),
+  acknowledgedBy: integer('acknowledged_by').references(() => sqliteUsers.id),
+  acknowledgedAt: text('acknowledged_at'),
+  acknowledgedNotes: text('acknowledged_notes'),
+  recordedBy: integer('recorded_by').notNull().references(() => sqliteUsers.id),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Inventory Lots
+// QC Inspection (Audit Q5)
+// QA-side inspection record. Independent of production BOM — QC department
+// fills it out on their own checklist. Can link to a Work Order to expose
+// the eBMR for cross-reference, but the form itself is not driven by the BOM.
+export const sqliteQcInspections = sqliteTable('qc_inspections', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  inspectionNumber: text('inspection_number').notNull().unique(),
+  // Optional link to a WO so the inspector can open its eBMR. Null = ad-hoc.
+  workOrderId: integer('work_order_id'),
+  // Free-text batch identifier (sometimes QC inspects something with no WO).
+  batchNumber: text('batch_number'),
+  inspectionType: text('inspection_type').notNull(), // incoming | in_process | finished | ad_hoc
+  subject: text('subject').notNull(),
+  findings: text('findings'),
+  overallResult: text('overall_result').notNull().default('pending'), // pending | pass | fail
+  inspectorId: integer('inspector_id').notNull().references(() => sqliteUsers.id),
+  inspectedAt: text('inspected_at').notNull(),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   itemId: integer('item_id').notNull().references(() => sqliteItems.id),
@@ -1813,7 +1857,42 @@ export const mysqlWarehouseLocations = mysqlTable('warehouse_locations', {
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Storage Environmental Monitoring Logs (Audit Q6) — MySQL
+export const mysqlStorageEnvLogs = mysqlTable('storage_env_logs', {
+  id: int('id').primaryKey().autoincrement(),
+  warehouseId: int('warehouse_id').notNull().references(() => mysqlWarehouses.id),
+  locationId: int('location_id').references(() => mysqlWarehouseLocations.id),
+  readingAt: datetime('reading_at').notNull(),
+  temperature: decimal('temperature', { precision: 6, scale: 2 }),
+  humidity: decimal('humidity', { precision: 6, scale: 2 }),
+  alertLevel: varchar('alert_level', { length: 30 }).notNull().default('in_spec'),
+  alertMessage: mysqlText('alert_message'),
+  acknowledgedBy: int('acknowledged_by').references(() => mysqlUsers.id),
+  acknowledgedAt: datetime('acknowledged_at'),
+  acknowledgedNotes: mysqlText('acknowledged_notes'),
+  recordedBy: int('recorded_by').notNull().references(() => mysqlUsers.id),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Inventory Lots
+// QC Inspection (Audit Q5) — MySQL
+export const mysqlQcInspections = mysqlTable('qc_inspections', {
+  id: int('id').primaryKey().autoincrement(),
+  inspectionNumber: varchar('inspection_number', { length: 40 }).notNull().unique(),
+  workOrderId: int('work_order_id'),
+  batchNumber: varchar('batch_number', { length: 100 }),
+  inspectionType: varchar('inspection_type', { length: 30 }).notNull(),
+  subject: varchar('subject', { length: 255 }).notNull(),
+  findings: mysqlText('findings'),
+  overallResult: varchar('overall_result', { length: 20 }).notNull().default('pending'),
+  inspectorId: int('inspector_id').notNull().references(() => mysqlUsers.id),
+  inspectedAt: datetime('inspected_at').notNull(),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const mysqlInventoryLots = mysqlTable('inventory_lots', {
   id: int('id').primaryKey().autoincrement(),
   itemId: int('item_id').notNull().references(() => mysqlItems.id),

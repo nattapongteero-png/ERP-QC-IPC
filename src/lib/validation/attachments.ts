@@ -83,6 +83,13 @@ export const VALID_MODULES = [
   'inventory_lot',
   // Template module (reference implementation)
   'template-items',
+  // Audit Q3 — photos of actual labels and packaging at packaging step
+  'wo_packaging_integrity',
+  'wo_packaging_weight',
+  // Audit Q4 — analytical report / COA attached to a QC test record
+  'quality_test',
+  // Audit Q5 — QC-side inspection forms separate from production BOM
+  'qc_inspection',
 ] as const;
 
 export type ModuleName = (typeof VALID_MODULES)[number];

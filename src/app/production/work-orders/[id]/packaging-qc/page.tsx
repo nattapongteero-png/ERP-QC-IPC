@@ -26,6 +26,7 @@ import { DxSwitch } from '@/components/ui/dx-switch';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
+import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
 import { SwitchTypes } from 'devextreme-react/switch';
 import {
   Scale,
@@ -1142,6 +1143,17 @@ export default function PackagingQCPage() {
                           <span className="italic">{log.notes}</span>
                         </div>
                       )}
+                      {/* Audit Q3 — attach actual label / packaging photos */}
+                      <div className="mt-3">
+                        <AttachmentPanel
+                          moduleName="wo_packaging_integrity"
+                          entityId={log.id}
+                          defaultCategory="photo"
+                          imagesOnly
+                          title="รูปฉลาก / บรรจุภัณฑ์จริง"
+                          testIdBase={`integrity-photos-${log.id}`}
+                        />
+                      </div>
                     </div>
                   );
                 })}

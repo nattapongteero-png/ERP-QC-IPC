@@ -101,6 +101,7 @@ const navigation: NavItem[] = [
       { name: 'ตรวจรับของ (GRN)', href: '/inventory/goods-receipt', icon: ClipboardCheck },
       { name: 'Returns Inbox', href: '/inventory/returns', icon: Undo2 },
       { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: AlertTriangle },
+      { name: 'Storage Monitoring', href: '/inventory/storage-monitoring', icon: Thermometer },
     ],
   },
   {
@@ -124,6 +125,7 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager', 'production', 'qc'],
     children: [
       { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
+      { name: 'QC Inspection (อิสระจาก BOM)', href: '/quality/qc-inspections', icon: ClipboardList },
       { name: 'ตรวจรับเข้า', href: '/quality/incoming-inspection', icon: ClipboardCheck },
       { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/quality/scale-verification', icon: Scale },
       { name: 'ตรวจสภาพแวดล้อม', href: '/environmental/inspections', icon: Thermometer },
