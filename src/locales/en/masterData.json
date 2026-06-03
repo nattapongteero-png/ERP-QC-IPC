@@ -51,6 +51,10 @@
     "maintenancePlanTemplates": {
       "title": "Maintenance Plan Templates",
       "description": "Reusable maintenance/calibration plans applicable to N equipment (Feature 022)"
+    },
+    "itemCodePatterns": {
+      "title": "Item Code Patterns",
+      "description": "Configure per-factory item code formats used by the 'Generate Code' button on item create/edit (Feature 025)"
     }
   },
   "about": {
