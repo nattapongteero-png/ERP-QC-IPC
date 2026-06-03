@@ -1331,6 +1331,9 @@ export const sqliteBOMSOPSteps = sqliteTable('bom_sop_steps', {
   equipmentIds: text('equipment_ids'), // JSON array of equipment IDs
   // Verification requirements
   requiresVerification: integer('requires_verification', { mode: 'boolean' }).notNull().default(true),
+  // Audit #16 — critical steps require Production Manager approval
+  // on top of operator + verifier.
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
   // Phase determines which Execution Dashboard card hosts this step.
   // Values: pre_production, production, post_production, packaging
   phase: text('phase').notNull().default('production'),
@@ -1523,6 +1526,11 @@ export const sqliteWOSOPExecution = sqliteTable('wo_sop_execution', {
   // Verification
   verifierId: integer('verifier_id').references(() => sqliteUsers.id),
   verifiedAt: text('verified_at'),
+  // Audit #16 — Production Manager approval for CRITICAL SOP steps.
+  // bomStep.isCritical=true requires an additional PM sign-off on top of
+  // operator + verifier. PM must be a different user from both.
+  pmApprovedBy: integer('pm_approved_by').references(() => sqliteUsers.id),
+  pmApprovedAt: text('pm_approved_at'),
   status: text('status').notNull().default('pending'), // pending, in_progress, completed, deviation
   notes: text('notes'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -4700,6 +4708,8 @@ export const mysqlBOMSOPSteps = mysqlTable('bom_sop_steps', {
   equipmentIds: mysqlText('equipment_ids'), // JSON array of equipment IDs
   // Verification requirements
   requiresVerification: mysqlBoolean('requires_verification').notNull().default(true),
+  // Audit #16 — critical steps require Production Manager approval.
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
   // Phase determines which Execution Dashboard card hosts this step.
   phase: varchar('phase', { length: 50 }).notNull().default('production'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -4865,6 +4875,9 @@ export const mysqlWOSOPExecution = mysqlTable('wo_sop_execution', {
   // Verification
   verifierId: int('verifier_id').references(() => mysqlUsers.id),
   verifiedAt: datetime('verified_at'),
+  // Audit #16 — Production Manager approval for CRITICAL SOP steps.
+  pmApprovedBy: int('pm_approved_by').references(() => mysqlUsers.id),
+  pmApprovedAt: datetime('pm_approved_at'),
   status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, in_progress, completed, deviation
   notes: mysqlText('notes'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),

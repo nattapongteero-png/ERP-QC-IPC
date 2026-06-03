@@ -418,13 +418,14 @@ export default function MaterialWeighingPage() {
     // is the single source of truth for the checkbox state — no derived
     // array wrapping, so reopening this dialog always shows exactly what
     // the DB has.
-    // When re-editing a previously weighed material, prefer the saved
-    // weighedQty so the operator sees what was last recorded (not the
-    // BOM planned figure).
+    // Audit #11 — never default to BOM planned qty for an UNWEIGHED material.
+    // Operators were saving the planned value without ever reading the scale.
+    // When re-editing a previously weighed material, preserve the saved
+    // weighedQty; otherwise start at 0 to force a fresh reading.
     const initialWeighedQty =
       material.weighedQty != null && Number(material.weighedQty) > 0
         ? Number(material.weighedQty)
-        : material.plannedQty;
+        : 0;
     setFormData({
       weighedQty: initialWeighedQty,
       selectedLotId: material.lotId ?? undefined,
