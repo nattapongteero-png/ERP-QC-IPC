@@ -206,11 +206,12 @@ export default function WarehousesPage() {
     setShowDialog(true);
   };
 
+  // Edit goes to the detail page in Settings-tab edit mode (?edit=1)
+  // so users land in the same UI whether they clicked the row OR the
+  // pencil. The popup dialog is reserved for the "+ Add" flow.
   const handleEdit = useCallback((warehouse: WarehouseType) => {
-    setEditingWarehouse(warehouse);
-    setWarehouseSummary(null);
-    setShowDialog(true);
-  }, []);
+    router.push(`/inventory/warehouses/${warehouse.id}?edit=1`);
+  }, [router]);
 
   const handleDeleteClick = useCallback((warehouse: WarehouseType) => {
     setDeleteConfirm({ open: true, warehouse });

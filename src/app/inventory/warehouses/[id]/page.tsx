@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -68,13 +68,20 @@ interface WarehouseDetail {
 export default function WarehouseDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('inventory');
   const [data, setData] = useState<WarehouseDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'transactions' | 'settings'>('overview');
+  // If the user arrived via the Edit pencil on the list (?edit=1), open
+  // the Settings tab in edit mode right away — this is the contract that
+  // makes Row-click and Edit-button feel like the same UI.
+  const editParam = searchParams.get('edit') === '1';
+  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'transactions' | 'settings'>(
+    editParam ? 'settings' : 'overview'
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(editParam);
   const [editForm, setEditForm] = useState({
     code: '',
     name: '',
