@@ -417,9 +417,6 @@
     "title": "Warehouses",
     "pageTitle": "Warehouses",
     "description": "Manage warehouses and storage locations",
-    "detail": {
-      "pageTitle": "Warehouse"
-    },
     "viewLots": "View Lots",
     "addWarehouse": "Add Warehouse",
     "searchPlaceholder": "Search by code, name, or location...",
@@ -429,6 +426,8 @@
     "emptyDescription": "Start managing your inventory by adding your first warehouse",
     "noResultsTitle": "No warehouses match your filters",
     "noResultsDescription": "Try a different search term or filter",
+    "downloadExcel": "Download Excel",
+    "excelSheetName": "Warehouses",
     "table": {
       "columns": {
         "code": "Code",
@@ -449,7 +448,16 @@
       "finishedGoods": "Finished Goods",
       "quarantine": "Quarantine",
       "rejected": "Rejected",
-      "coldStorage": "Cold Storage"
+      "coldStorage": "Cold Storage",
+      "general": "General"
+    },
+    "typeDescriptions": {
+      "rawMaterial": "Store raw materials and ingredients",
+      "wip": "Items currently in production",
+      "finishedGoods": "Completed products ready for sale",
+      "quarantine": "Items pending quality approval",
+      "rejected": "Items that failed quality checks",
+      "coldStorage": "Temperature-controlled storage"
     },
     "status": {
       "active": "Active",
@@ -459,6 +467,153 @@
       "title": "Confirm Delete",
       "message": "Are you sure you want to delete warehouse \"{name}\"?",
       "confirm": "Delete"
+    },
+    "detail": {
+      "pageTitle": "Warehouse",
+      "notFound": "Warehouse not found",
+      "back": "Back",
+      "backToList": "Back to List",
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "stats": {
+        "totalLots": "Total Lots",
+        "released": "Released",
+        "quarantine": "Quarantine",
+        "nearExpiry": "Near Expiry"
+      },
+      "storageUtilization": "Storage Utilization",
+      "storageUsageText": "{used} / {total} lots",
+      "tabs": {
+        "overview": "Overview",
+        "inventory": "Inventory",
+        "transactions": "Transactions",
+        "settings": "Settings"
+      },
+      "warehouseInformation": "Warehouse Information",
+      "inventoryByType": "Inventory by Type",
+      "inventoryLots": "Inventory Lots",
+      "recentTransactions": "Recent Transactions",
+      "warehouseSettings": "Warehouse Settings",
+      "noInventoryData": "No inventory data",
+      "noLotsFound": "No lots found in this warehouse",
+      "noTransactionsFound": "No transactions found",
+      "searchLots": "Search lots...",
+      "allStatus": "All Status",
+      "notSpecified": "Not specified",
+      "lotsCount": "{count} lots",
+      "fields": {
+        "code": "Code",
+        "name": "Name",
+        "type": "Type",
+        "location": "Location",
+        "temperatureRange": "Temperature Range",
+        "humidityRange": "Humidity Range",
+        "created": "Created",
+        "lastUpdated": "Last Updated",
+        "minTemperature": "Min Temperature (°C)",
+        "maxTemperature": "Max Temperature (°C)",
+        "minHumidity": "Min Humidity (%)",
+        "maxHumidity": "Max Humidity (%)"
+      },
+      "columns": {
+        "lotNumber": "Lot Number",
+        "item": "Item",
+        "quantity": "Quantity",
+        "status": "Status",
+        "expiryDate": "Expiry Date",
+        "view": "View",
+        "date": "Date",
+        "type": "Type",
+        "direction": "Direction",
+        "reference": "Reference"
+      },
+      "direction": {
+        "in": "IN",
+        "out": "OUT"
+      }
+    },
+    "form": {
+      "editTitle": "Edit Warehouse",
+      "createTitle": "Create New Warehouse",
+      "editSubtitle": "Editing {code} - {name}",
+      "createSubtitle": "Add a new warehouse to your inventory system",
+      "back": "Back",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "updateBtn": "Update Warehouse",
+      "createBtn": "Create Warehouse",
+      "deleteBtn": "Delete",
+      "createdOn": "Created: {date}",
+      "warehouseTypeTitle": "Warehouse Type",
+      "warehouseTypeDesc": "Select the type of warehouse",
+      "basicInfoTitle": "Basic Information",
+      "basicInfoDesc": "Warehouse identification and location",
+      "envControlsTitle": "Environmental Controls",
+      "envControlsDesc": "Temperature and humidity requirements",
+      "storageUtilizationTitle": "Storage Utilization",
+      "storageUtilizationDesc": "Current capacity usage",
+      "inventorySummaryTitle": "Inventory Summary",
+      "inventorySummaryDesc": "Current lot statistics",
+      "warehouseStatusTitle": "Warehouse Status",
+      "warehouseStatusDesc": "Active/Inactive status",
+      "quickSummaryTitle": "Quick Summary",
+      "quickSummaryDesc": "Overview of warehouse configuration",
+      "fields": {
+        "code": "Warehouse Code",
+        "name": "Warehouse Name",
+        "location": "Location",
+        "capacity": "Storage Capacity",
+        "capacityHint": "Maximum storage units",
+        "tempRangeLabel": "Temperature Range (°C)",
+        "humidityRangeLabel": "Humidity Range (%)",
+        "minimum": "Minimum",
+        "maximum": "Maximum",
+        "type": "Type",
+        "temperature": "Temperature",
+        "humidity": "Humidity",
+        "notSet": "Not set"
+      },
+      "placeholders": {
+        "code": "WH-RM-001",
+        "name": "Main Warehouse",
+        "location": "Building A, Floor 1, Zone B",
+        "capacity": "1000",
+        "tempMin": "15",
+        "tempMax": "25",
+        "humidityMin": "40",
+        "humidityMax": "65"
+      },
+      "generateCode": "Generate",
+      "activeWarehouse": "Active Warehouse",
+      "activeWarehouseDesc": "Warehouse can receive inventory",
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "utilization": {
+        "label": "Storage Utilization",
+        "normal": "Normal",
+        "moderate": "Moderate",
+        "high": "High",
+        "critical": "Critical",
+        "used": "used",
+        "lotsStored": "{count} lots stored",
+        "capacityUnit": "{used} / {capacity} units"
+      },
+      "summary": {
+        "totalLots": "Total Lots",
+        "released": "Released",
+        "quarantine": "Quarantine",
+        "nearExpiry": "Near Expiry",
+        "noData": "No inventory data available"
+      },
+      "validation": {
+        "ready": "Ready to Save",
+        "readyDesc": "All required fields are filled",
+        "missing": "Missing Required Fields",
+        "missingDesc": "Code and Name are required"
+      }
     }
   },
   "stockMovements": {
