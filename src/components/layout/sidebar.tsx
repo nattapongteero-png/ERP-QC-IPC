@@ -65,7 +65,6 @@ import {
   ScrollText,
   Scale,
   CalendarDays,
-  Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { expandRole } from '@/lib/auth/role-mapping';
