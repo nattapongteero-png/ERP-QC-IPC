@@ -89,7 +89,7 @@ export default function StorageMonitoringPage() {
     setLoading(true);
     try {
       const [whRes, logRes] = await Promise.all([
-        fetch('/api/master-data/warehouses'),
+        fetch('/api/warehouses'),
         fetch(
           `/api/inventory/storage-monitoring?` +
             new URLSearchParams({
@@ -101,8 +101,13 @@ export default function StorageMonitoringPage() {
       ]);
       const whJson = await whRes.json();
       const logJson = await logRes.json();
-      setWarehouses(whJson?.data || whJson || []);
-      setLogs(logJson?.data || logJson || []);
+      // /api/warehouses returns paginated { data: { items, total, page, ... } };
+      // fall back to raw arrays for other shapes.
+      const whRaw =
+        whJson?.data?.items ?? whJson?.data ?? whJson?.items ?? whJson ?? [];
+      setWarehouses(Array.isArray(whRaw) ? whRaw : []);
+      const logRaw = logJson?.data ?? logJson ?? [];
+      setLogs(Array.isArray(logRaw) ? logRaw : []);
     } catch (e) {
       toast.error('โหลดข้อมูลไม่สำเร็จ', (e as Error).message);
     } finally {
