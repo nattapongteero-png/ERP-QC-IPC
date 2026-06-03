@@ -1,0 +1,179 @@
+openapi: 3.1.0
+info:
+  title: Goods Receipt Lines API
+  version: 1.0.0
+  description: |
+    Per-line actions: update actuals, sign receiver checklist, QA release/reject.
+    Each transition enforces state machine + Triple Independence at service layer.
+servers:
+  - url: /api/inventory/goods-receipts/{grnId}/lines
+
+paths:
+  /{lineId}:
+    patch:
+      summary: Update line actuals before checklist sign
+      parameters:
+        - in: path
+          name: grnId
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: lineId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actualQuantity: { type: number, minimum: 0 }
+                vendorLotNumber: { type: string, nullable: true }
+                batchNumber: { type: string, nullable: true }
+                manufacturingDate: { type: string, format: date, nullable: true }
+                expiryDate: { type: string, format: date, nullable: true }
+                varianceReason: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GrnLine' }
+        '400':
+          description: Validation error (e.g., expiry before manufacturing date)
+        '409':
+          description: Line is no longer editable (already signed)
+
+  /{lineId}/checklist:
+    post:
+      summary: Sign receiver checklist (atomic — creates lot + QC sample)
+      parameters:
+        - in: path
+          name: grnId
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: lineId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignChecklistRequest' }
+      responses:
+        '200':
+          description: Signed — line moves to checklist_done, inventory lot created, QC sample created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  line: { $ref: '#/components/schemas/GrnLine' }
+                  inventoryLotId: { type: integer }
+                  qcSampleId: { type: integer, nullable: true }
+                  qcSampleCreationFailed: { type: boolean }
+        '400':
+          description: Mandatory items unchecked or signature payload missing
+        '409':
+          description: Variance not justified, or actuals not set
+
+  /{lineId}/qa:
+    post:
+      summary: QA Release or Reject (atomic — Triple Independence enforced)
+      parameters:
+        - in: path
+          name: grnId
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: lineId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, signature]
+              properties:
+                action: { type: string, enum: [release, reject] }
+                rejectionReason:
+                  type: string
+                  description: required if action=reject, min 10 chars
+                signature:
+                  type: object
+                  properties:
+                    password: { type: string }
+                    pin: { type: string }
+      responses:
+        '200':
+          description: Released or rejected — lot status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  line: { $ref: '#/components/schemas/GrnLine' }
+                  lotStatus: { type: string, enum: [released, rejected] }
+                  deviationId: { type: integer, nullable: true }
+        '403':
+          description: |
+            TRIPLE_INDEPENDENCE_VIOLATION — current user is the same as the receiver
+            who signed the checklist. Admin role does NOT bypass.
+        '409':
+          description: |
+            QC sample not approved (cannot release), or invalid state transition
+
+components:
+  schemas:
+    GrnLine:
+      type: object
+      properties:
+        id: { type: integer }
+        grnId: { type: integer }
+        lineNumber: { type: integer }
+        itemId: { type: integer }
+        itemCode: { type: string }
+        itemName: { type: string }
+        expectedQuantity: { type: number }
+        actualQuantity: { type: number, nullable: true }
+        unit: { type: string }
+        vendorLotNumber: { type: string, nullable: true }
+        batchNumber: { type: string, nullable: true }
+        manufacturingDate: { type: string, format: date, nullable: true }
+        expiryDate: { type: string, format: date, nullable: true }
+        varianceAmount: { type: number, nullable: true }
+        variancePercent: { type: number, nullable: true }
+        varianceReason: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [created, checklist_done, qc_pending, qc_approved, released_to_stock, rejected, cancelled]
+        inventoryLotId: { type: integer, nullable: true }
+        qcSampleId: { type: integer, nullable: true }
+        qcSampleCreationFailed: { type: boolean }
+        receiverSignatureId: { type: integer, nullable: true }
+        qaSignatureId: { type: integer, nullable: true }
+        qaDecisionAt: { type: string, format: date-time, nullable: true }
+        rejectionReason: { type: string, nullable: true }
+
+    SignChecklistRequest:
+      type: object
+      required: [items, signature]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [templateItemId, isPass]
+            properties:
+              templateItemId: { type: integer }
+              isPass: { type: boolean }
+              remarks: { type: string, nullable: true }
+        signature:
+          type: object
+          properties:
+            password: { type: string }
+            pin: { type: string }

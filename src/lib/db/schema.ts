@@ -253,6 +253,8 @@ export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   retestStatus: text('retest_status'), // not_required, pending, scheduled, completed, overdue
   // Material Return module: link a returned lot back to its source lot (self-reference)
   parentLotId: integer('parent_lot_id').references((): AnySQLiteColumn => sqliteInventoryLots.id),
+  // Feature 020: source GRN line (additive — nullable, historical lots stay NULL)
+  sourceGrnLineId: integer('source_grn_line_id'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -1826,6 +1828,8 @@ export const mysqlInventoryLots = mysqlTable('inventory_lots', {
   retestStatus: varchar('retest_status', { length: 50 }), // not_required, pending, scheduled, completed, overdue
   // Material Return module: link a returned lot back to its source lot (self-reference)
   parentLotId: int('parent_lot_id').references((): AnyMySqlColumn => mysqlInventoryLots.id),
+  // Feature 020: source GRN line (additive — nullable)
+  sourceGrnLineId: int('source_grn_line_id'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -6380,6 +6384,9 @@ export const sqliteQcSamples = sqliteTable('qc_samples', {
   receivedBy: integer('received_by').notNull().references(() => sqliteUsers.id),
   status: text('status').notNull().default('draft'),
   notes: text('notes'),
+  // Feature 020: link back to GRN line, plus flag for QC manager review when default panel missing
+  sourceGrnLineId: integer('source_grn_line_id'),
+  flagForQcManager: integer('flag_for_qc_manager', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -6598,6 +6605,9 @@ export const mysqlQcSamples = mysqlTable('qc_samples', {
   receivedBy: int('received_by').notNull().references(() => mysqlUsers.id),
   status: varchar('status', { length: 20 }).notNull().default('draft'),
   notes: mysqlText('notes'),
+  // Feature 020: link back to GRN line + flag for QC manager review
+  sourceGrnLineId: int('source_grn_line_id'),
+  flagForQcManager: mysqlBoolean('flag_for_qc_manager').notNull().default(false),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -7500,3 +7510,44 @@ export {
   type PackagingToleranceDb,
   type NewPackagingToleranceDb,
 } from './schema-packaging';
+
+// ============================================
+// Goods Receipt Module (feature 020)
+// ============================================
+export {
+  // SQLite tables
+  sqliteGoodsReceipts,
+  sqliteGoodsReceiptLines,
+  sqliteGoodsReceiptChecklists,
+  sqliteReceiptChecklistTemplates,
+  sqliteReceiptTolerances,
+  sqliteGoodsReceiptSequences,
+  // SQLite relations
+  sqliteGoodsReceiptsRelations,
+  sqliteGoodsReceiptLinesRelations,
+  sqliteGoodsReceiptChecklistsRelations,
+  // MySQL tables
+  mysqlGoodsReceipts,
+  mysqlGoodsReceiptLines,
+  mysqlGoodsReceiptChecklists,
+  mysqlReceiptChecklistTemplates,
+  mysqlReceiptTolerances,
+  mysqlGoodsReceiptSequences,
+  // MySQL relations
+  mysqlGoodsReceiptsRelations,
+  mysqlGoodsReceiptLinesRelations,
+  mysqlGoodsReceiptChecklistsRelations,
+  // Types
+  type GoodsReceiptDb,
+  type NewGoodsReceiptDb,
+  type GoodsReceiptLineDb,
+  type NewGoodsReceiptLineDb,
+  type GoodsReceiptChecklistDb,
+  type NewGoodsReceiptChecklistDb,
+  type ReceiptChecklistTemplateDb,
+  type NewReceiptChecklistTemplateDb,
+  type ReceiptToleranceDb,
+  type NewReceiptToleranceDb,
+  type GoodsReceiptSequenceDb,
+  type NewGoodsReceiptSequenceDb,
+} from './schema-goods-receipt';

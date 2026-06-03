@@ -22,6 +22,10 @@ import enMessages from '@/locales/en/devextreme.json';
 // DevExtreme license key (base64 encoded) - supports up to v25.2.x
 const LICENSE_KEY = "ewogICJmb3JtYXQiOiAxLAogICJjdXN0b21lcklkIjogIjkyMjY4ODllLTg0ZjUtNDViYS1iZDBhLTk2YWFjNzM1N2ZkMiIsCiAgIm1heFZlcnNpb25BbGxvd2VkIjogMjUyCn0=.rRYplWY3hBop1otsFZsOm/7mi4iDCnPKrC7rJ7r2e+lLr/RuKzqLkc+3xhWrP5smjcHi3lI4O4yDU3sMV6SOcega3W9KyAxyhjoNoR21SKeHBFLlnqoggxavKrRe1nUUijipaQ==";
 
+// Set the license key at module load time — BEFORE any DevExtreme component renders.
+// Setting it inside useEffect runs too late; the first render fires the evaluation toast.
+config({ licenseKey: LICENSE_KEY });
+
 // Track if messages have been loaded
 const loadedLocales = new Set<string>();
 
@@ -34,15 +38,14 @@ export function DevExtremeProvider({ children }: DevExtremeProviderProps) {
   const locale = useLocale();
 
   useEffect(() => {
-    // Only initialize license once
+    // License key already applied at module load time — only initialize messages once
     if (!initialized.current) {
       initialized.current = true;
-      config({ licenseKey: LICENSE_KEY });
 
       // Load Thai messages (always load as fallback)
       loadMessages(thMessages);
       loadedLocales.add('th');
-      console.log('[DevExtreme] Initialized with license key');
+      console.log('[DevExtreme] Initialized');
     }
 
     // Load English messages if needed

@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: Goods Receipt Checklist Templates Admin API
+  version: 1.0.0
+  description: |
+    Admin CRUD over checklist templates. Editing a template creates a new version
+    (soft-versioning) — historical signed checklists remain reproducible.
+servers:
+  - url: /api/master-data/receipt-checklist-templates
+
+paths:
+  /:
+    get:
+      summary: List checklist templates (optionally include historical versions)
+      parameters:
+        - in: query
+          name: category
+          schema: { type: string, enum: [raw_material, finished_goods] }
+        - in: query
+          name: includeHistorical
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ChecklistTemplate' }
+
+    post:
+      summary: Create new template version (sets previous current=false)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChecklistTemplateInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChecklistTemplate' }
+        '403':
+          description: Forbidden — requires inventory:goods_receipt:configure
+
+  /{id}:
+    patch:
+      summary: Soft-deprecate a current template (sets is_current=false)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isCurrent: { type: boolean }
+      responses:
+        '200': { description: Updated }
+        '409':
+          description: Cannot deprecate last current version for a category
+
+components:
+  schemas:
+    ChecklistTemplate:
+      type: object
+      properties:
+        id: { type: integer }
+        category: { type: string, enum: [raw_material, finished_goods] }
+        version: { type: integer }
+        isCurrent: { type: boolean }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              label: { type: string }
+              isMandatory: { type: boolean }
+              sortOrder: { type: integer }
+        createdByUserId: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    ChecklistTemplateInput:
+      type: object
+      required: [category, items]
+      properties:
+        category: { type: string, enum: [raw_material, finished_goods] }
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [label, isMandatory, sortOrder]
+            properties:
+              label: { type: string, minLength: 1, maxLength: 200 }
+              isMandatory: { type: boolean }
+              sortOrder: { type: integer, minimum: 1 }

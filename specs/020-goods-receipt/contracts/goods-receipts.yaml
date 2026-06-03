@@ -1,0 +1,211 @@
+openapi: 3.1.0
+info:
+  title: Goods Receipts API
+  version: 1.0.0
+  description: |
+    GRN header CRUD. Creating a GRN auto-generates a `GRN-YYYY-NNNNN` number and
+    pre-populates lines from the source PO or WO. Updates to header restricted to
+    notes only after first line is signed.
+servers:
+  - url: /api/inventory/goods-receipts
+
+paths:
+  /:
+    get:
+      summary: List GRNs (paginated, filterable)
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [in_progress, released, partially_released, rejected, cancelled] }
+        - in: query
+          name: sourceType
+          schema: { type: string, enum: [po, wo] }
+        - in: query
+          name: vendorId
+          schema: { type: integer }
+        - in: query
+          name: dateFrom
+          schema: { type: string, format: date }
+        - in: query
+          name: dateTo
+          schema: { type: string, format: date }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/GrnListItem' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden — missing inventory:goods_receipt:receive }
+
+    post:
+      summary: Create a new GRN from a PO or WO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateGrnRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Grn' }
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '409':
+          description: Source already fully received
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /{id}:
+    get:
+      summary: Get GRN detail with lines and links
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: GRN detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GrnDetail' }
+        '404': { description: Not found }
+
+    patch:
+      summary: Update GRN header (notes only after lines signed)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes: { type: string }
+                receivedDate: { type: string, format: date }
+      responses:
+        '200': { description: Updated }
+        '409':
+          description: Header is immutable in current state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /{id}/cancel:
+    post:
+      summary: Cancel a GRN in `created` state (within 24h, by original creator)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 10 }
+      responses:
+        '200': { description: Cancelled }
+        '409':
+          description: Cannot cancel — outside 24h window or has signed lines
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+components:
+  schemas:
+    CreateGrnRequest:
+      type: object
+      required: [sourceType, receivedDate, warehouseId]
+      properties:
+        sourceType: { type: string, enum: [po, wo] }
+        poId: { type: integer, nullable: true }
+        woId: { type: integer, nullable: true }
+        warehouseId: { type: integer }
+        receivedDate: { type: string, format: date }
+        notes: { type: string, nullable: true }
+
+    Grn:
+      type: object
+      properties:
+        id: { type: integer }
+        grnNumber: { type: string, example: GRN-2026-00001 }
+        sourceType: { type: string, enum: [po, wo] }
+        poId: { type: integer, nullable: true }
+        woId: { type: integer, nullable: true }
+        vendorId: { type: integer, nullable: true }
+        warehouseId: { type: integer }
+        status: { type: string }
+        receiverUserId: { type: integer }
+        receivedDate: { type: string, format: date }
+        notes: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    GrnListItem:
+      allOf:
+        - $ref: '#/components/schemas/Grn'
+        - type: object
+          properties:
+            lineCount: { type: integer }
+            pendingChecklistCount: { type: integer }
+            pendingQaCount: { type: integer }
+            releasedCount: { type: integer }
+            vendorName: { type: string, nullable: true }
+            workOrderNumber: { type: string, nullable: true }
+
+    GrnDetail:
+      allOf:
+        - $ref: '#/components/schemas/Grn'
+        - type: object
+          properties:
+            lines:
+              type: array
+              items: { $ref: './goods-receipt-lines.yaml#/components/schemas/GrnLine' }
+            history:
+              type: array
+              items:
+                type: object
+                properties:
+                  at: { type: string, format: date-time }
+                  userId: { type: integer }
+                  userName: { type: string }
+                  fromStatus: { type: string }
+                  toStatus: { type: string }
+                  reason: { type: string, nullable: true }
+
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+        code: { type: string, example: SOURCE_ALREADY_RECEIVED }
+        details: { type: object, additionalProperties: true }
