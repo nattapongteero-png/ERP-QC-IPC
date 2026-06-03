@@ -511,23 +511,29 @@ export default function MasterDataPage() {
                   <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">{t(`modules.${module.key}.description`)}</p>
+                <p className="text-xs text-blue-600 mt-2">
+                  <span className="font-medium">{t('about.usedInLabel')}:</span> {t(`modules.${module.key}.usedIn`)}
+                </p>
               </div>
             </div>
           </Link>
         ))}
       </div>
 
-      {/* Info Card */}
+      {/* Info Card — loop through ALL modules so the about section stays in sync with the cards above */}
       <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
         <h3 className="text-sm font-semibold text-blue-800 mb-2">{t('about.title')}</h3>
         <p className="text-sm text-blue-700">{t('about.description')}</p>
-        <ul className="mt-3 text-sm text-blue-700 space-y-1">
-          <li>• <strong>{t('modules.productionRooms.title')}</strong> - {t('about.items.productionRooms')}</li>
-          <li>• <strong>{t('modules.productionEquipment.title')}</strong> - {t('about.items.productionEquipment')}</li>
-          <li>• <strong>{t('modules.environmentalConditions.title')}</strong> - {t('about.items.environmentalConditions')}</li>
-          <li>• <strong>{t('modules.sopTemplates.title')}</strong> - {t('about.items.sopTemplates')}</li>
-          <li>• <strong>{t('modules.packagingQCCriteria.title')}</strong> - {t('about.items.packagingQCCriteria')}</li>
-          <li>• <strong>{t('modules.ipcCriteria.title')}</strong> - {t('about.items.ipcCriteria')}</li>
+        <ul className="mt-3 text-sm text-blue-700 space-y-2">
+          {masterDataModules.map((module) => (
+            <li key={module.key}>
+              • <strong>{t(`modules.${module.key}.title`)}</strong>
+              {' '}— {t(`about.items.${module.key}`)}
+              <span className="ml-1 text-xs text-blue-600">
+                ({t('about.usedInLabel')}: {t(`modules.${module.key}.usedIn`)})
+              </span>
+            </li>
+          ))}
         </ul>
       </div>
 
