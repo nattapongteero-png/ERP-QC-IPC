@@ -8,7 +8,6 @@
  * live preview so the designer can see the format before saving.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { MainLayout } from '@/components/layout/main-layout';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -309,8 +308,7 @@ export default function ItemCodePatternsPage() {
   ];
 
   return (
-    <MainLayout>
-      <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4">
         <ResponsivePageHeader
           title="รูปแบบรหัสสินค้า (Item Code Pattern)"
           subtitle="กำหนดรูปแบบรหัสที่ใช้สร้างอัตโนมัติเมื่อกดปุ่ม 'สร้างรหัส' ในหน้าเพิ่ม/แก้ไขสินค้า"
@@ -463,7 +461,6 @@ export default function ItemCodePatternsPage() {
             </div>
           </div>
         </DxPopup>
-      </div>
-    </MainLayout>
+    </div>
   );
 }
