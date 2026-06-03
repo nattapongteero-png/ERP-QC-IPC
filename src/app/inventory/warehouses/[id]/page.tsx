@@ -318,7 +318,10 @@ export default function WarehouseDetailPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header — back + title only. Edit/Save/Cancel live inside
+            the Settings tab card so the action is contextually scoped
+            to where the form actually appears (avoid a header button
+            that does nothing visible on Overview/Inventory tabs). */}
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
@@ -335,29 +338,6 @@ export default function WarehouseDetailPage() {
               </Badge>
             </div>
             <p className="text-gray-600 mt-1">{warehouse.name}</p>
-          </div>
-          <div className="flex gap-2">
-            {!isEditing ? (
-              <DxButton
-                text={t('warehouses.detail.edit')}
-                type="default"
-                onClick={() => setIsEditing(true)}
-              />
-            ) : (
-              <>
-                <DxButton
-                  text={t('warehouses.detail.cancel')}
-                  type="normal"
-                  stylingMode="outlined"
-                  onClick={() => setIsEditing(false)}
-                />
-                <DxButton
-                  text={t('warehouses.detail.save')}
-                  type="success"
-                  onClick={handleSave}
-                />
-              </>
-            )}
           </div>
         </div>
 
@@ -597,7 +577,32 @@ export default function WarehouseDetailPage() {
         {activeTab === 'settings' && (
           <Card>
             <CardHeader>
-              <CardTitle>{t('warehouses.detail.warehouseSettings')}</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>{t('warehouses.detail.warehouseSettings')}</CardTitle>
+                <div className="flex gap-2">
+                  {!isEditing ? (
+                    <DxButton
+                      text={t('warehouses.detail.edit')}
+                      type="default"
+                      onClick={() => setIsEditing(true)}
+                    />
+                  ) : (
+                    <>
+                      <DxButton
+                        text={t('warehouses.detail.cancel')}
+                        type="normal"
+                        stylingMode="outlined"
+                        onClick={() => setIsEditing(false)}
+                      />
+                      <DxButton
+                        text={t('warehouses.detail.save')}
+                        type="success"
+                        onClick={handleSave}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {isEditing ? (
