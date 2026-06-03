@@ -23,8 +23,6 @@ import {
 import * as XLSX from 'xlsx';
 import { ItemSearchDialog, type Item as SearchItem } from '@/components/ui/item-search-dialog';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { calculateIssuance, type UnitConfig } from '@/lib/utils/unit-conversion';
 import { cn } from '@/lib/utils/cn';
@@ -199,38 +197,9 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-// Lightweight shape for requisition summary used by tab header
-interface RequisitionSummary {
-  workOrderId: number;
-  requisitionStatus: 'requested' | 'approved' | string;
-  materials?: unknown[];
-}
-
 export default function LotsPage() {
   const router = useRouter();
   const t = useTranslations('inventory');
-  const [activeTab, setActiveTab] = useState('lots');
-
-  // Requisition summary for tab header — shows pending/approved counts and total material lines
-  const { data: requisitionSummary = [] } = useQuery<RequisitionSummary[]>({
-    queryKey: ['inventory-requisitions-summary'],
-    queryFn: async () => {
-      const res = await fetch('/api/inventory/requisitions?status=all');
-      const data = await res.json();
-      return data.success ? (data.data || []) : [];
-    },
-    refetchInterval: 30000, // refresh every 30s
-  });
-
-  const reqStats = useMemo(() => {
-    const pending = requisitionSummary.filter((r) => r.requisitionStatus === 'requested').length;
-    const approved = requisitionSummary.filter((r) => r.requisitionStatus === 'approved').length;
-    const totalMaterials = requisitionSummary.reduce(
-      (sum, r) => sum + (Array.isArray(r.materials) ? r.materials.length : 0),
-      0
-    );
-    return { pending, approved, total: requisitionSummary.length, totalMaterials };
-  }, [requisitionSummary]);
   const [lots, setLots] = useState<Lot[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -1218,136 +1187,60 @@ export default function LotsPage() {
           }
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4 h-auto p-0 bg-transparent gap-3 w-full grid grid-cols-1 md:grid-cols-2">
-            {/* ── Tab 1: รายการ Lot ── */}
-            <TabsTrigger
-              value="lots"
-              className={cn(
-                'h-auto p-0 rounded-xl border shadow-sm overflow-hidden bg-white',
-                'data-[state=active]:border-emerald-500 data-[state=active]:ring-2 data-[state=active]:ring-emerald-500/20',
-                'data-[state=inactive]:border-gray-200 data-[state=inactive]:opacity-75 hover:opacity-100',
-                'data-[state=active]:shadow-md transition-all'
-              )}
-            >
-              <div className="w-full p-4 text-left">
-                <div className="flex items-start gap-3">
-                  <div className={cn(
-                    'flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center',
-                    activeTab === 'lots' ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-500'
-                  )}>
-                    <Boxes className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <h3 className="font-semibold text-gray-900 text-base">รายการ Lot</h3>
-                      <span className="text-xs text-gray-400 flex-shrink-0">Inventory Lots</span>
-                    </div>
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl font-bold text-gray-900 tabular-nums">
-                        {lots.length.toLocaleString()}
-                      </span>
-                      <span className="text-sm text-gray-500">lots</span>
-                      <span className="text-gray-300">·</span>
-                      <span className="text-sm font-medium text-emerald-600 tabular-nums">
-                        {formatCurrency(stats.totalValue)}
-                      </span>
-                    </div>
-                    {/* Metric chips */}
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      {stats.quarantineCount > 0 && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                          <Clock className="h-3 w-3" /> {stats.quarantineCount} กักกัน
-                        </span>
-                      )}
-                      {stats.releasedCount > 0 && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                          <CheckCircle className="h-3 w-3" /> {stats.releasedCount} ปล่อย
-                        </span>
-                      )}
-                      {stats.nearExpiryCount > 0 && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
-                          <AlertTriangle className="h-3 w-3" /> {stats.nearExpiryCount} ใกล้หมดอายุ
-                        </span>
-                      )}
-                      {stats.expiredCount > 0 && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-                          <XCircle className="h-3 w-3" /> {stats.expiredCount} หมดอายุ
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+        {/* รายการ Lot — stat summary card. Used to be a TabsTrigger with
+            a sibling "ใบเบิกวัตถุดิบ" tab, but the requisition tab was a
+            verbatim duplicate of /inventory/requisitions which confused
+            users. Unwrapped to a plain div so it now acts as the page's
+            summary header only. */}
+        <div className="mb-4 rounded-xl border border-gray-200 shadow-sm bg-white">
+          <div className="w-full p-4 text-left">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center bg-emerald-100 text-emerald-600">
+                <Boxes className="h-6 w-6" />
               </div>
-            </TabsTrigger>
-
-            {/* ── Tab 2: ใบเบิกวัตถุดิบ ── */}
-            <TabsTrigger
-              value="requisitions"
-              className={cn(
-                'h-auto p-0 rounded-xl border shadow-sm overflow-hidden bg-white',
-                'data-[state=active]:border-indigo-500 data-[state=active]:ring-2 data-[state=active]:ring-indigo-500/20',
-                'data-[state=inactive]:border-gray-200 data-[state=inactive]:opacity-75 hover:opacity-100',
-                'data-[state=active]:shadow-md transition-all'
-              )}
-            >
-              <div className="w-full p-4 text-left relative">
-                {/* Notification dot for pending requisitions */}
-                {reqStats.pending > 0 && (
-                  <span className="absolute top-3 right-3 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="font-semibold text-gray-900 text-base">รายการ Lot</h3>
+                  <span className="text-xs text-gray-400 flex-shrink-0">Inventory Lots</span>
+                </div>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-2xl font-bold text-gray-900 tabular-nums">
+                    {lots.length.toLocaleString()}
                   </span>
-                )}
-                <div className="flex items-start gap-3">
-                  <div className={cn(
-                    'flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center',
-                    activeTab === 'requisitions' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'
-                  )}>
-                    <ClipboardList className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <h3 className="font-semibold text-gray-900 text-base">ใบเบิกวัตถุดิบ</h3>
-                      <span className="text-xs text-gray-400 flex-shrink-0">Material Requisitions</span>
-                    </div>
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl font-bold text-gray-900 tabular-nums">
-                        {reqStats.total}
-                      </span>
-                      <span className="text-sm text-gray-500">ใบ</span>
-                      {reqStats.totalMaterials > 0 && (
-                        <>
-                          <span className="text-gray-300">·</span>
-                          <span className="text-sm font-medium text-indigo-600 tabular-nums">
-                            {reqStats.totalMaterials} รายการ
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    {/* Metric chips */}
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      {reqStats.pending > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                          <Clock className="h-3 w-3" /> {reqStats.pending} รออนุมัติ
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
-                          <CheckCircle className="h-3 w-3" /> ไม่มีที่รออนุมัติ
-                        </span>
-                      )}
-                      {reqStats.approved > 0 && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                          <CheckCircle className="h-3 w-3" /> {reqStats.approved} อนุมัติแล้ว
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <span className="text-sm text-gray-500">lots</span>
+                  <span className="text-gray-300">·</span>
+                  <span className="text-sm font-medium text-emerald-600 tabular-nums">
+                    {formatCurrency(stats.totalValue)}
+                  </span>
+                </div>
+                {/* Metric chips */}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  {stats.quarantineCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      <Clock className="h-3 w-3" /> {stats.quarantineCount} กักกัน
+                    </span>
+                  )}
+                  {stats.releasedCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                      <CheckCircle className="h-3 w-3" /> {stats.releasedCount} ปล่อย
+                    </span>
+                  )}
+                  {stats.nearExpiryCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+                      <AlertTriangle className="h-3 w-3" /> {stats.nearExpiryCount} ใกล้หมดอายุ
+                    </span>
+                  )}
+                  {stats.expiredCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                      <XCircle className="h-3 w-3" /> {stats.expiredCount} หมดอายุ
+                    </span>
+                  )}
                 </div>
               </div>
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="lots">
+            </div>
+          </div>
+        </div>
+
         {/* DataGrid Card */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           {/* Tabs + Stats Header */}
@@ -1575,11 +1468,6 @@ export default function LotsPage() {
             )}
           </div>
         </div>
-          </TabsContent>
-          <TabsContent value="requisitions">
-            <RequisitionTab />
-          </TabsContent>
-        </Tabs>
       </div>
 
       {/* Create Lot Modal */}
@@ -2139,340 +2027,3 @@ export default function LotsPage() {
   );
 }
 
-function RequisitionTab() {
-  const [filter, setFilter] = useState('requested');
-  const [expandedWo, setExpandedWo] = useState<number | null>(null);
-  const [recentlyChangedIds, setRecentlyChangedIds] = useState<Set<number>>(new Set());
-  const queryClient = useQueryClient();
-
-  // Subscribe to realtime requisition events so all open browsers stay in sync
-  // when any user approves/rejects a requisition. Server publishes only after
-  // a successful DB commit, so this never fires for failed approvals.
-  useRealtimeTopic('requisition-changed', (data) => {
-    const id = data.workOrderId as number | undefined;
-    if (typeof id !== 'number') return;
-
-    queryClient.invalidateQueries({ queryKey: ['inventory-requisitions'] });
-    queryClient.invalidateQueries({ queryKey: ['inventory-requisitions-all-counts'] });
-
-    setRecentlyChangedIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-    // Remove highlight after the flash animation finishes
-    setTimeout(() => {
-      setRecentlyChangedIds((prev) => {
-        if (!prev.has(id)) return prev;
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }, 1500);
-  });
-
-  const { data: requisitions = [], isLoading } = useQuery({
-    queryKey: ['inventory-requisitions', filter],
-    queryFn: async () => {
-      const res = await fetch(`/api/inventory/requisitions?status=${filter}`);
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      return data.data || [];
-    },
-  });
-
-  // Fetch all requisitions for counts (regardless of current filter)
-  const { data: allRequisitions = [] } = useQuery({
-    queryKey: ['inventory-requisitions-all-counts'],
-    queryFn: async () => {
-      const res = await fetch(`/api/inventory/requisitions?status=all`);
-      const data = await res.json();
-      return data.success ? (data.data || []) : [];
-    },
-    refetchInterval: 30000,
-  });
-
-  const filterCounts = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const requested = allRequisitions.filter((r: any) => r.requisitionStatus === 'requested').length;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const approved = allRequisitions.filter((r: any) => r.requisitionStatus === 'approved').length;
-    return { requested, approved, all: allRequisitions.length };
-  }, [allRequisitions]);
-
-  const approveMutation = useMutation({
-    mutationFn: async (workOrderId: number) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/requisition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'approve' }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory-requisitions'] });
-      toast.success('อนุมัติปล่อยวัตถุดิบเรียบร้อย');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถอนุมัติได้');
-    },
-  });
-
-  return (
-    <div className="space-y-4">
-      {/* Filter pills with counts */}
-      <div className="flex flex-wrap items-center gap-2">
-        {[
-          { value: 'requested', label: 'รออนุมัติ', count: filterCounts.requested, icon: <Clock className="h-3.5 w-3.5" />, activeColor: 'bg-amber-100 text-amber-800 border-amber-300' },
-          { value: 'approved', label: 'อนุมัติแล้ว', count: filterCounts.approved, icon: <CheckCircle className="h-3.5 w-3.5" />, activeColor: 'bg-green-100 text-green-800 border-green-300' },
-          { value: 'all', label: 'ทั้งหมด', count: filterCounts.all, icon: <Inbox className="h-3.5 w-3.5" />, activeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
-        ].map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors',
-              filter === f.value
-                ? f.activeColor
-                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-            )}
-          >
-            {f.icon}
-            {f.label}
-            <span className={cn(
-              'text-xs px-1.5 py-0.5 rounded-full font-semibold',
-              filter === f.value ? 'bg-white/60' : 'bg-gray-100'
-            )}>
-              {f.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Loading */}
-      {isLoading && (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!isLoading && requisitions.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          <Package className="h-12 w-12 mx-auto mb-3 opacity-40" />
-          <p>ไม่มีใบเบิกวัตถุดิบ</p>
-        </div>
-      )}
-
-      {/* Requisition cards */}
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      {requisitions.map((req: any) => (
-        <div
-          key={req.workOrderId}
-          className={cn(
-            'bg-white border rounded-lg shadow-sm overflow-hidden',
-            recentlyChangedIds.has(req.workOrderId) && 'animate-flash-green'
-          )}
-        >
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-medium text-indigo-700">{req.woNumber}</span>
-                  <span className={cn(
-                    'px-2 py-0.5 rounded-full text-xs font-medium',
-                    req.requisitionStatus === 'requested' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-                  )}>
-                    {req.requisitionStatus === 'requested' ? 'รออนุมัติ' : 'อนุมัติแล้ว'}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  Batch: {req.batchNumber} | {req.productName}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  ขอเบิกโดย: {req.requestedBy || '-'} | {req.requestedAt ? new Date(req.requestedAt).toLocaleString('th-TH') : '-'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setExpandedWo(expandedWo === req.workOrderId ? null : req.workOrderId)}
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1"
-              >
-                {expandedWo === req.workOrderId ? 'ซ่อน' : 'ดูวัตถุดิบ'}
-              </button>
-              {req.requisitionStatus === 'requested' && (
-                <button
-                  onClick={() => approveMutation.mutate(req.workOrderId)}
-                  disabled={approveMutation.isPending}
-                  className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                >
-                  {approveMutation.isPending ? 'กำลังอนุมัติ...' : 'อนุมัติปล่อยของ'}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Expanded materials list */}
-          {expandedWo === req.workOrderId && req.materials?.length > 0 && (
-            <div className="border-t bg-gray-50 p-4">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-gray-500">
-                    <th className="pb-2">รหัสสินค้า</th>
-                    <th className="pb-2">ชื่อวัตถุดิบ</th>
-                    <th className="pb-2 text-right">จำนวนที่ต้องการ</th>
-                    <th className="pb-2 text-right">จำนวนที่ต้องจ่าย</th>
-                    <th className="pb-2 text-right">คงเหลือในคลัง</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {req.materials.map((mat: any, idx: number) => {
-                    const isApproved = req.requisitionStatus === 'approved';
-                    const hasSnapshot = mat.stockAtApproval != null;
-
-                    // Raw stock in PU (lots are stored in primary unit)
-                    const havePU = Number(mat.releasedAvailable ?? mat.onHand) || 0;
-
-                    let available: number | null;
-                    if (isApproved) {
-                      available = hasSnapshot ? Number(mat.stockAtApproval) : null;
-                    } else {
-                      available = havePU;
-                      if (mat.unit && mat.secondaryUnit && mat.conversionRate &&
-                          mat.unit === mat.secondaryUnit && Number(mat.conversionRate) > 0) {
-                        available = available * Number(mat.conversionRate);
-                      }
-                    }
-                    const planned = Number(mat.plannedQuantity) || 0;
-                    const isShort = available !== null && available < planned;
-                    const unit = mat.unit || mat.itemUnit || '';
-
-                    // Compute issuance plan (PU to release) for weight-tracked items.
-                    // BOM unit must be either the item's secondary or primary unit; otherwise we bail.
-                    let planPU: { puToIssue: number; pu: string; su: string; remainderSU: number } | null = null;
-                    let availableSU: number | null = null;
-                    const tracked = mat.weightTrackingEnabled === true || mat.weightTrackingEnabled === 1;
-                    const ratio1 = Number(mat.conversionRate);
-                    if (tracked && Number.isFinite(ratio1) && ratio1 > 0 && mat.itemUnit && mat.secondaryUnit) {
-                      let plannedSU: number | null = null;
-                      if (mat.unit === mat.secondaryUnit) plannedSU = planned;
-                      else if (mat.unit === mat.itemUnit) plannedSU = planned * ratio1;
-                      if (plannedSU != null && plannedSU > 0) {
-                        try {
-                          const config: UnitConfig = {
-                            primaryUnit: mat.itemUnit,
-                            secondaryUnit: mat.secondaryUnit,
-                            weightUnit: mat.weightUnit,
-                            conversionRate: ratio1,
-                            secondaryToWeightRate: Number(mat.secondaryToWeightRate) || null,
-                            weightTrackingEnabled: true,
-                          };
-                          const r = calculateIssuance(plannedSU, config);
-                          planPU = {
-                            puToIssue: r.puToIssue,
-                            pu: mat.itemUnit,
-                            su: mat.secondaryUnit,
-                            remainderSU: r.remainderSU,
-                          };
-                          if (!isApproved) {
-                            availableSU = havePU * ratio1;
-                          } else if (available != null) {
-                            // Snapshot is in BOM unit — when BOM=SU, snapshot already
-                            // represents the SU equivalent; otherwise treat as PU.
-                            availableSU = mat.unit === mat.secondaryUnit
-                              ? available
-                              : available * ratio1;
-                          }
-                        } catch {
-                          // calculateIssuance threw — leave plan null
-                        }
-                      }
-                    }
-
-                    return (
-                      <tr key={idx} className="border-t border-gray-200">
-                        <td className="py-1.5 font-mono text-xs">{mat.itemCode}</td>
-                        <td className="py-1.5">{mat.itemName}</td>
-                        <td className="py-1.5 text-right">{planned.toLocaleString()} {unit}</td>
-                        <td className="py-1.5 text-right">
-                          {planPU ? (
-                            <div>
-                              <span className="font-semibold text-emerald-700">
-                                {planPU.puToIssue.toLocaleString()} {planPU.pu}
-                              </span>
-                              {planPU.remainderSU > 0 && (
-                                <div className="text-xs text-amber-700">
-                                  เหลือหน้างาน {planPU.remainderSU.toLocaleString()} {planPU.su}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            // No 3-level setup → issue exactly what was requested.
-                            <span className="font-semibold text-emerald-700">
-                              {planned.toLocaleString()} {unit}
-                            </span>
-                          )}
-                        </td>
-                        <td className={`py-1.5 text-right font-medium ${
-                          available === null ? 'text-gray-400' : (isShort ? 'text-red-600' : 'text-green-600')
-                        }`}>
-                          {(() => {
-                            // For weight-tracked items, always render PU on the main line
-                            // so it matches what the warehouse actually pulls. Live = use the
-                            // raw lot balance; approved = derive from snapshot which is in BOM unit.
-                            if (planPU) {
-                              let displayPU: number | null = null;
-                              if (!isApproved) {
-                                displayPU = havePU;
-                              } else if (available !== null) {
-                                displayPU = mat.unit === mat.secondaryUnit
-                                  ? available / ratio1   // snapshot saved in SU → convert
-                                  : available;            // snapshot saved in PU
-                              }
-                              if (displayPU !== null) {
-                                return (
-                                  <>
-                                    {displayPU.toLocaleString(undefined, { maximumFractionDigits: 4 })} {planPU.pu}
-                                    <div className="text-xs text-gray-500 font-normal">
-                                      = {(displayPU * ratio1).toLocaleString()} {planPU.su}
-                                    </div>
-                                  </>
-                                );
-                              }
-                            }
-                            // Fallback (no 3-level config or snapshot missing).
-                            return (
-                              <>
-                                {available === null ? '—' : available.toLocaleString()}{available !== null && ` ${unit}`}
-                              </>
-                            );
-                          })()}
-                          {isApproved && hasSnapshot && (
-                            <span className="ml-1 text-xs text-gray-400">(ณ วันอนุมัติ)</span>
-                          )}
-                          {isApproved && !hasSnapshot && (
-                            <span
-                              className="ml-1 text-xs text-amber-600"
-                              title="รายการนี้อนุมัติก่อนจะมีระบบ snapshot ไม่สามารถระบุ stock ณ วันอนุมัติย้อนหลังได้"
-                            >
-                              (ไม่มี snapshot)
-                            </span>
-                          )}
-                          {isShort && <span className="ml-1 text-xs text-red-500">(ไม่พอ)</span>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
