@@ -1013,6 +1013,10 @@ const defaultAppPermissions = [
   // Feature 021: Scale Pre-Use Verification
   { code: 'quality:scales:verify', name: 'Scale Verify', module: 'Quality', description: 'ลงนามตรวจสอบเครื่องชั่งด้วยลูกตุ้มก่อนใช้งาน' },
   { code: 'quality:scales:configure', name: 'Scale Configure', module: 'Quality', description: 'ตั้งค่าเครื่องชั่ง + จัดการทะเบียนลูกตุ้มมาตรฐาน' },
+  // Feature 022: Equipment Maintenance Notifications
+  { code: 'equipment:notifications:view', name: 'Equipment Notifications View', module: 'Equipment', description: 'ดูแจ้งเตือนการบำรุงรักษา + ปฏิทิน' },
+  { code: 'equipment:notifications:acknowledge', name: 'Equipment Notifications Acknowledge', module: 'Equipment', description: 'รับทราบ / Snooze / Resolve แจ้งเตือน' },
+  { code: 'equipment:notifications:configure', name: 'Equipment Notifications Configure', module: 'Equipment', description: 'จัดการ Maintenance Plan Templates' },
 
   // ═══════════════════ Quality Module ═══════════════════
   { code: 'quality:read', name: 'Quality View', module: 'Quality', description: 'ดูข้อมูล QC / Specs / Deviations' },

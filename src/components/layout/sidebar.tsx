@@ -64,6 +64,8 @@ import {
   Award,
   ScrollText,
   Scale,
+  CalendarDays,
+  Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { expandRole } from '@/lib/auth/role-mapping';
@@ -116,6 +118,7 @@ const navigation: NavItem[] = [
       { name: 'เกณฑ์ Receipt Tolerance', href: '/master-data/receipt-tolerances', icon: Sliders },
       { name: 'Receipt Checklist Templates', href: '/master-data/receipt-checklist-templates', icon: ListChecks },
       { name: 'ทะเบียนลูกตุ้มมาตรฐาน', href: '/master-data/standard-weights', icon: Scale },
+      { name: 'Maintenance Templates', href: '/master-data/maintenance-plan-templates', icon: Wrench },
       { name: 'Master Data', href: '/master-data', icon: Settings },
     ],
   },
@@ -128,6 +131,8 @@ const navigation: NavItem[] = [
       { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
       { name: 'ตรวจรับเข้า', href: '/quality/incoming-inspection', icon: ClipboardCheck },
       { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/quality/scale-verification', icon: Scale },
+      { name: 'แจ้งเตือนบำรุงรักษา', href: '/notifications', icon: Bell },
+      { name: 'ปฏิทินบำรุงรักษา', href: '/notifications/calendar', icon: CalendarDays },
       { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
       { name: 'COA Templates', href: '/quality/coa/templates', icon: Layers },
       { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },

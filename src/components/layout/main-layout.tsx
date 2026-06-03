@@ -7,6 +7,7 @@ import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useVmiAutoSync } from '@/hooks/use-vmi-auto-sync';
 import { CompactLanguageSwitcher } from '@/components/shared/language-switcher';
+import { NotificationBell } from '@/components/equipment-notifications/NotificationBell';
 
 interface User {
   id: number;
@@ -167,6 +168,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               <span className="font-semibold text-slate-800">Herbal ERP</span>
             </div>
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <CompactLanguageSwitcher />
               <div
                 className={cn(

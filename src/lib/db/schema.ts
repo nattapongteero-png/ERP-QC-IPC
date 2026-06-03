@@ -7589,3 +7589,21 @@ export {
   type ScaleVerificationDb,
   type NewScaleVerificationDb,
 } from './schema-scale-verification';
+
+// ============================================
+// Equipment Notifications Module (feature 022)
+// ============================================
+export {
+  sqliteEquipmentNotifications,
+  sqliteMaintenancePlanTemplates,
+  sqliteEquipmentNotificationsRelations,
+  sqliteMaintenancePlanTemplatesRelations,
+  mysqlEquipmentNotifications,
+  mysqlMaintenancePlanTemplates,
+  mysqlEquipmentNotificationsRelations,
+  mysqlMaintenancePlanTemplatesRelations,
+  type EquipmentNotificationDb,
+  type NewEquipmentNotificationDb,
+  type MaintenancePlanTemplateDb,
+  type NewMaintenancePlanTemplateDb,
+} from './schema-equipment-notifications';
