@@ -4,7 +4,6 @@
  * Per-item / per-category AQL, sample size, frequency, retain qty.
  */
 import { useEffect, useState, useMemo } from 'react';
-import { MainLayout } from '@/components/layout/main-layout';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -265,8 +264,7 @@ export default function SamplingPlansPage() {
   ];
 
   return (
-    <MainLayout>
-      <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4">
         <ResponsivePageHeader
           title="QC Sampling Plan Master"
           subtitle="กำหนดแผน sampling ตาม item/category — AQL, sample size, frequency"
@@ -427,7 +425,6 @@ export default function SamplingPlansPage() {
         </DxPopup>
 
         {loading && <div className="text-center text-gray-500 py-4">กำลังโหลด...</div>}
-      </div>
-    </MainLayout>
+    </div>
   );
 }
