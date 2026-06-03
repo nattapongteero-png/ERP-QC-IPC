@@ -17,7 +17,6 @@ import {
   FileText,
   AlertTriangle,
   Boxes,
-  Hash,
   ArrowLeftRight,
   ClipboardList,
   TestTube,
@@ -95,7 +94,6 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager', 'warehouse', 'production', 'qc', 'purchasing'],
     children: [
       { name: 'Items', href: '/inventory/items', icon: Boxes },
-      { name: 'รูปแบบรหัสสินค้า', href: '/master-data/item-code-patterns', icon: Hash },
       { name: 'Lots', href: '/inventory/lots', icon: Package },
       { name: 'Warehouses', href: '/inventory/warehouses', icon: Warehouse },
       { name: 'Transactions', href: '/inventory/transactions', icon: ArrowLeftRight },
@@ -139,7 +137,6 @@ const navigation: NavItem[] = [
       { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       { name: 'Specifications', href: '/quality/specs', icon: FileText },
-      { name: 'Sampling Plans', href: '/master-data/sampling-plans', icon: Layers },
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
       { name: 'QC Audit Trail', href: '/quality/audit-trail', icon: ScrollText },
     ],
