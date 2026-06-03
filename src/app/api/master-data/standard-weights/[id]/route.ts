@@ -46,3 +46,32 @@ export async function PUT(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
+
+/**
+ * Soft delete — sets isActive=false
+ */
+export async function DELETE(_request: NextRequest, { params }: Params) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!isAdminRole(session.role ?? '')) {
+    const perms = session.role ? await getRolePermissionSet(session.role) : new Set<string>();
+    if (!perms.has(CONFIG_PERMISSION)) {
+      return NextResponse.json({ error: 'Forbidden', code: 'PERMISSION_DENIED' }, { status: 403 });
+    }
+  }
+
+  const { id } = await params;
+  const wid = Number.parseInt(id, 10);
+  if (Number.isNaN(wid)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+
+  try {
+    await updateStandardWeight(wid, { isActive: false });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof ScaleVerificationError && error.code === 'NOT_FOUND') {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+  }
+}

@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DataGrid, Column, Paging, FilterRow } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Paging, FilterRow, Editing } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -112,10 +112,41 @@ export default function StandardWeightsPage() {
         showRowLines
         rowAlternationEnabled
         columnAutoWidth
+        onRowUpdating={async (e) => {
+          const merged = { ...e.oldData, ...e.newData } as StandardWeight;
+          const res = await fetch(`/api/master-data/standard-weights/${merged.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              certificateNumber: merged.certificateNumber,
+              certificateIssuer: merged.certificateIssuer,
+              certificateIssueDate: merged.certificateIssueDate,
+              certificateExpiryDate: merged.certificateExpiryDate,
+              ownerDepartment: merged.ownerDepartment,
+              isActive: merged.isActive,
+              notes: merged.notes,
+            }),
+          });
+          if (!res.ok) {
+            e.cancel = true;
+            return;
+          }
+          await refetch();
+        }}
+        onRowRemoving={async (e) => {
+          const r = e.data as StandardWeight;
+          const res = await fetch(`/api/master-data/standard-weights/${r.id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            e.cancel = true;
+            return;
+          }
+          await refetch();
+        }}
       >
         <FilterRow visible />
         <Paging pageSize={20} />
-        <Column dataField="code" caption={t('table.columns.code')} width={120} />
+        <Editing mode="row" allowUpdating allowDeleting useIcons />
+        <Column dataField="code" caption={t('table.columns.code')} width={120} allowEditing={false} />
         <Column
           caption={t('table.columns.denomination')}
           cellRender={(c) => {

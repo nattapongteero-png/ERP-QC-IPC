@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { DataGrid, Column, Paging, FilterRow } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Paging, FilterRow, Editing } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -97,9 +97,34 @@ export default function MaintenancePlanTemplatesPage() {
         showRowLines
         rowAlternationEnabled
         columnAutoWidth
+        onRowUpdating={async (e) => {
+          const merged = { ...e.oldData, ...e.newData } as MaintenancePlanTemplate;
+          const res = await fetch(`/api/master-data/maintenance-plan-templates/${merged.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(merged),
+          });
+          if (!res.ok) {
+            e.cancel = true;
+            return;
+          }
+          qc.invalidateQueries({ queryKey: ['mp-templates'] });
+        }}
+        onRowRemoving={async (e) => {
+          const r = e.data as MaintenancePlanTemplate;
+          const res = await fetch(`/api/master-data/maintenance-plan-templates/${r.id}`, {
+            method: 'DELETE',
+          });
+          if (!res.ok) {
+            e.cancel = true;
+            return;
+          }
+          qc.invalidateQueries({ queryKey: ['mp-templates'] });
+        }}
       >
         <FilterRow visible />
         <Paging pageSize={20} />
+        <Editing mode="row" allowUpdating allowDeleting useIcons />
         <Column dataField="name" caption="Name" />
         <Column dataField="description" caption="Description" />
         <Column dataField="maintenanceType" caption="Type" width={140} />

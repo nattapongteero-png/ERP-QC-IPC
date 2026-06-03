@@ -12,7 +12,14 @@ import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
-import { Thermometer, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { SelectBox } from 'devextreme-react/select-box';
+import { Thermometer, AlertTriangle, CheckCircle2, Plus, ListPlus, CalendarPlus } from 'lucide-react';
+import {
+  INSPECTION_TARGET_TYPES,
+  INSPECTION_FREQUENCIES,
+  type InspectionTargetType,
+  type InspectionFrequency,
+} from '@/types/environmental-monitoring';
 import { BackButton } from '@/components/shared/BackButton';
 import type {
   InspectionTemplate,
@@ -38,6 +45,27 @@ export default function InspectionsPage() {
   const [answers, setAnswers] = useState<Record<number, { value: number | ''; remarks?: string }>>({});
   const [notes, setNotes] = useState('');
   const [password, setPassword] = useState('');
+
+  // Add Template popup state
+  const [tmplOpen, setTmplOpen] = useState(false);
+  const [tmplForm, setTmplForm] = useState({
+    name: '',
+    targetType: 'room' as InspectionTargetType,
+    items: [
+      { label: '', parameter: '', unit: '', specMin: '' as number | '', specMax: '' as number | '', isMandatory: true, sortOrder: 1 },
+    ],
+  });
+
+  // Add Schedule popup state
+  const [schedOpen, setSchedOpen] = useState(false);
+  const [schedForm, setSchedForm] = useState({
+    targetType: 'room' as InspectionTargetType,
+    targetId: 0,
+    targetName: '',
+    templateId: 0,
+    frequency: 'daily' as InspectionFrequency,
+    alertDaysBefore: 1,
+  });
 
   const { data: schedData, refetch } = useQuery<{ items: ScheduleRow[] }>({
     queryKey: ['env-schedules'],
@@ -65,6 +93,67 @@ export default function InspectionsPage() {
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications-unread-count'] }),
+  });
+
+  const createTmplMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/environmental/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: tmplForm.name,
+          targetType: tmplForm.targetType,
+          items: tmplForm.items
+            .filter((it) => it.label.trim().length > 0)
+            .map((it) => ({
+              label: it.label,
+              parameter: it.parameter,
+              unit: it.unit || null,
+              specMin: it.specMin === '' ? null : Number(it.specMin),
+              specMax: it.specMax === '' ? null : Number(it.specMax),
+              isMandatory: it.isMandatory,
+              sortOrder: it.sortOrder,
+            })),
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? 'Failed');
+      return body;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['env-templates'] });
+      setTmplOpen(false);
+      setTmplForm({
+        name: '',
+        targetType: 'room',
+        items: [{ label: '', parameter: '', unit: '', specMin: '', specMax: '', isMandatory: true, sortOrder: 1 }],
+      });
+    },
+  });
+
+  const createSchedMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/environmental/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schedForm),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? 'Failed');
+      return body;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['env-schedules'] });
+      setSchedOpen(false);
+      setSchedForm({
+        targetType: 'room',
+        targetId: 0,
+        targetName: '',
+        templateId: 0,
+        frequency: 'daily',
+        alertDaysBefore: 1,
+      });
+    },
   });
 
   const inspectMut = useMutation({
@@ -119,8 +208,28 @@ export default function InspectionsPage() {
           <Thermometer className="w-6 h-6" />
           {t('page.inspections')}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button text={t('actions.refresh')} onClick={() => refetch()} />
+          <Button
+            stylingMode="outlined"
+            onClick={() => setTmplOpen(true)}
+            render={() => (
+              <span className="inline-flex items-center gap-1">
+                <ListPlus className="w-4 h-4" />
+                + Template
+              </span>
+            )}
+          />
+          <Button
+            stylingMode="outlined"
+            onClick={() => setSchedOpen(true)}
+            render={() => (
+              <span className="inline-flex items-center gap-1">
+                <CalendarPlus className="w-4 h-4" />
+                + Schedule
+              </span>
+            )}
+          />
           <Button
             type="default"
             stylingMode="contained"
@@ -275,6 +384,245 @@ export default function InspectionsPage() {
               text={t('actions.save')}
               disabled={inspectMut.isPending}
               onClick={() => inspectMut.mutate()}
+            />
+          </div>
+        </div>
+      </Popup>
+
+      {/* Add Template popup */}
+      <Popup
+        visible={tmplOpen}
+        onHiding={() => setTmplOpen(false)}
+        showCloseButton
+        title="+ Inspection Template"
+        width={720}
+        height="auto"
+      >
+        <div className="p-4 space-y-3 max-h-[75vh] overflow-y-auto">
+          <div>
+            <label className="block text-sm font-medium mb-1">ชื่อ Template *</label>
+            <input
+              type="text"
+              className="w-full border rounded px-3 py-2"
+              value={tmplForm.name}
+              onChange={(e) => setTmplForm({ ...tmplForm, name: e.target.value })}
+              placeholder="เช่น Daily Room Inspection"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">ประเภทเป้าหมาย *</label>
+            <SelectBox
+              dataSource={INSPECTION_TARGET_TYPES.map((v) => ({ value: v, label: t(`targetType.${v}` as any) }))}
+              valueExpr="value"
+              displayExpr="label"
+              value={tmplForm.targetType}
+              onValueChanged={(e) => setTmplForm({ ...tmplForm, targetType: e.value as InspectionTargetType })}
+            />
+          </div>
+          <div className="border-t pt-3">
+            <div className="font-medium text-sm mb-2">รายการตรวจ (Items)</div>
+            {tmplForm.items.map((it, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-2 mb-2">
+                <input
+                  className="col-span-3 border rounded px-2 py-1 text-sm"
+                  placeholder="ป้ายชื่อ"
+                  value={it.label}
+                  onChange={(e) =>
+                    setTmplForm((prev) => ({
+                      ...prev,
+                      items: prev.items.map((x, i) => (i === idx ? { ...x, label: e.target.value } : x)),
+                    }))
+                  }
+                />
+                <input
+                  className="col-span-2 border rounded px-2 py-1 text-sm"
+                  placeholder="parameter (e.g. temperature)"
+                  value={it.parameter}
+                  onChange={(e) =>
+                    setTmplForm((prev) => ({
+                      ...prev,
+                      items: prev.items.map((x, i) => (i === idx ? { ...x, parameter: e.target.value } : x)),
+                    }))
+                  }
+                />
+                <input
+                  className="col-span-1 border rounded px-2 py-1 text-sm"
+                  placeholder="หน่วย"
+                  value={it.unit}
+                  onChange={(e) =>
+                    setTmplForm((prev) => ({
+                      ...prev,
+                      items: prev.items.map((x, i) => (i === idx ? { ...x, unit: e.target.value } : x)),
+                    }))
+                  }
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  className="col-span-2 border rounded px-2 py-1 text-sm"
+                  placeholder="min"
+                  value={it.specMin}
+                  onChange={(e) =>
+                    setTmplForm((prev) => ({
+                      ...prev,
+                      items: prev.items.map((x, i) =>
+                        i === idx ? { ...x, specMin: e.target.value === '' ? '' : Number(e.target.value) } : x,
+                      ),
+                    }))
+                  }
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  className="col-span-2 border rounded px-2 py-1 text-sm"
+                  placeholder="max"
+                  value={it.specMax}
+                  onChange={(e) =>
+                    setTmplForm((prev) => ({
+                      ...prev,
+                      items: prev.items.map((x, i) =>
+                        i === idx ? { ...x, specMax: e.target.value === '' ? '' : Number(e.target.value) } : x,
+                      ),
+                    }))
+                  }
+                />
+                <Button
+                  icon="trash"
+                  stylingMode="text"
+                  onClick={() => setTmplForm((prev) => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }))}
+                />
+              </div>
+            ))}
+            <Button
+              text="+ Add Item"
+              stylingMode="text"
+              onClick={() =>
+                setTmplForm((prev) => ({
+                  ...prev,
+                  items: [
+                    ...prev.items,
+                    {
+                      label: '',
+                      parameter: '',
+                      unit: '',
+                      specMin: '' as number | '',
+                      specMax: '' as number | '',
+                      isMandatory: true,
+                      sortOrder: prev.items.length + 1,
+                    },
+                  ],
+                }))
+              }
+            />
+          </div>
+          {createTmplMut.error && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm">
+              {String((createTmplMut.error as Error).message)}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button text="Cancel" stylingMode="text" onClick={() => setTmplOpen(false)} />
+            <Button
+              type="default"
+              stylingMode="contained"
+              text="บันทึก"
+              disabled={
+                !tmplForm.name || tmplForm.items.every((it) => it.label.trim().length === 0) || createTmplMut.isPending
+              }
+              onClick={() => createTmplMut.mutate()}
+            />
+          </div>
+        </div>
+      </Popup>
+
+      {/* Add Schedule popup */}
+      <Popup
+        visible={schedOpen}
+        onHiding={() => setSchedOpen(false)}
+        showCloseButton
+        title="+ Inspection Schedule"
+        width={520}
+        height="auto"
+      >
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Target type *</label>
+            <SelectBox
+              dataSource={INSPECTION_TARGET_TYPES.map((v) => ({ value: v, label: t(`targetType.${v}` as any) }))}
+              valueExpr="value"
+              displayExpr="label"
+              value={schedForm.targetType}
+              onValueChanged={(e) => setSchedForm({ ...schedForm, targetType: e.value as InspectionTargetType })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Target ID *</label>
+            <NumberBox
+              value={schedForm.targetId}
+              min={0}
+              step={1}
+              onValueChanged={(e) => setSchedForm({ ...schedForm, targetId: Number(e.value ?? 0) })}
+            />
+            <p className="text-xs text-gray-500 mt-1">เช่น production_equipment.id หรือ production_room.id</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Target name *</label>
+            <input
+              type="text"
+              className="w-full border rounded px-3 py-2"
+              value={schedForm.targetName}
+              onChange={(e) => setSchedForm({ ...schedForm, targetName: e.target.value })}
+              placeholder="เช่น ห้องผสม A"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Template *</label>
+            <SelectBox
+              dataSource={templates ?? []}
+              valueExpr="id"
+              displayExpr="name"
+              value={schedForm.templateId}
+              onValueChanged={(e) => setSchedForm({ ...schedForm, templateId: Number(e.value ?? 0) })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Frequency *</label>
+            <SelectBox
+              dataSource={INSPECTION_FREQUENCIES.map((v) => ({ value: v, label: t(`frequency.${v}` as any) }))}
+              valueExpr="value"
+              displayExpr="label"
+              value={schedForm.frequency}
+              onValueChanged={(e) => setSchedForm({ ...schedForm, frequency: e.value as InspectionFrequency })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Alert days before</label>
+            <NumberBox
+              value={schedForm.alertDaysBefore}
+              min={0}
+              max={365}
+              step={1}
+              onValueChanged={(e) => setSchedForm({ ...schedForm, alertDaysBefore: Number(e.value ?? 0) })}
+            />
+          </div>
+          {createSchedMut.error && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm">
+              {String((createSchedMut.error as Error).message)}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button text="Cancel" stylingMode="text" onClick={() => setSchedOpen(false)} />
+            <Button
+              type="default"
+              stylingMode="contained"
+              text="บันทึก"
+              disabled={
+                !schedForm.targetId ||
+                !schedForm.targetName ||
+                !schedForm.templateId ||
+                createSchedMut.isPending
+              }
+              onClick={() => createSchedMut.mutate()}
             />
           </div>
         </div>
