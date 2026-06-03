@@ -1017,6 +1017,10 @@ const defaultAppPermissions = [
   { code: 'equipment:notifications:view', name: 'Equipment Notifications View', module: 'Equipment', description: 'ดูแจ้งเตือนการบำรุงรักษา + ปฏิทิน' },
   { code: 'equipment:notifications:acknowledge', name: 'Equipment Notifications Acknowledge', module: 'Equipment', description: 'รับทราบ / Snooze / Resolve แจ้งเตือน' },
   { code: 'equipment:notifications:configure', name: 'Equipment Notifications Configure', module: 'Equipment', description: 'จัดการ Maintenance Plan Templates' },
+  // Feature 023: Environmental Monitoring + Water Quality
+  { code: 'environmental:inspect', name: 'Environmental Inspect', module: 'Quality', description: 'บันทึกการตรวจสอบสภาพแวดล้อม + ระบบน้ำ' },
+  { code: 'environmental:approve', name: 'Environmental Approve', module: 'Quality', description: 'อนุมัติผลการตรวจสอบสภาพแวดล้อม' },
+  { code: 'environmental:configure', name: 'Environmental Configure', module: 'Quality', description: 'จัดการ Templates, Schedules, ระบบน้ำ, Sample Points' },
 
   // ═══════════════════ Quality Module ═══════════════════
   { code: 'quality:read', name: 'Quality View', module: 'Quality', description: 'ดูข้อมูล QC / Specs / Deviations' },

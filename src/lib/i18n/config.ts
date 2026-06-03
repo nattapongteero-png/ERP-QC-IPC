@@ -49,6 +49,7 @@ export const namespaces = [
   'cost',
   'dashboard',
   'gmp',
+  'environmentalMonitoring',
   'equipmentNotifications',
   'goodsReceipt',
   'hr',

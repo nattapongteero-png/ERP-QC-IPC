@@ -59,6 +59,7 @@ const NAMESPACE_FILES: Record<string, string> = {
   admin: 'admin',
   cost: 'cost',
   gmp: 'gmp',
+  environmentalMonitoring: 'environmentalMonitoring',
   equipmentNotifications: 'equipmentNotifications',
   goodsReceipt: 'goodsReceipt',
   hr: 'hr',

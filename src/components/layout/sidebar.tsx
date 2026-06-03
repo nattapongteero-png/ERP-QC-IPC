@@ -65,6 +65,7 @@ import {
   ScrollText,
   Scale,
   CalendarDays,
+  Thermometer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { expandRole } from '@/lib/auth/role-mapping';
@@ -125,6 +126,8 @@ const navigation: NavItem[] = [
       { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
       { name: 'ตรวจรับเข้า', href: '/quality/incoming-inspection', icon: ClipboardCheck },
       { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/quality/scale-verification', icon: Scale },
+      { name: 'ตรวจสภาพแวดล้อม', href: '/environmental/inspections', icon: Thermometer },
+      { name: 'ระบบน้ำ (Water Quality)', href: '/environmental/water-quality', icon: Droplets },
       { name: 'แจ้งเตือนบำรุงรักษา', href: '/notifications', icon: Bell },
       { name: 'ปฏิทินบำรุงรักษา', href: '/notifications/calendar', icon: CalendarDays },
       { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },

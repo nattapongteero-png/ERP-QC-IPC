@@ -1,0 +1,64 @@
+{
+  "page": {
+    "inspections": "Environmental Inspections",
+    "waterQuality": "Water Quality",
+    "trends": "Trend Analysis",
+    "templates": "Inspection Templates",
+    "schedules": "Inspection Schedules"
+  },
+  "tiles": {
+    "overdue": "Overdue",
+    "dueToday": "Due Today",
+    "dueIn7d": "Due in 7 Days",
+    "completedToday": "Completed Today"
+  },
+  "targetType": {
+    "room": "Production Room",
+    "storage_area": "Storage Area",
+    "quarantine": "Quarantine Area",
+    "water_point": "Water Sample Point"
+  },
+  "frequency": {
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "yearly": "Yearly"
+  },
+  "result": {
+    "in_spec": "In Spec",
+    "out_of_spec": "Out of Spec",
+    "na": "N/A"
+  },
+  "actions": {
+    "inspect": "Inspect",
+    "scan": "Scan now",
+    "refresh": "Refresh",
+    "save": "Save",
+    "cancel": "Cancel",
+    "viewTrend": "View Trend",
+    "addSchedule": "Add Schedule",
+    "addTemplate": "Add Template",
+    "addSystem": "Add Water System",
+    "addSpec": "Add Specification"
+  },
+  "form": {
+    "templateName": "Template Name",
+    "targetType": "Target Type",
+    "items": "Inspection Items",
+    "parameter": "Parameter",
+    "unit": "Unit",
+    "specMin": "Spec Min",
+    "specMax": "Spec Max",
+    "value": "Measured Value",
+    "notes": "Notes",
+    "samplePoint": "Sample Point"
+  },
+  "toast": {
+    "inspected": "Inspection saved",
+    "outOfSpec": "Out-of-spec detected — Deviation created",
+    "scheduled": "Schedule added",
+    "templateCreated": "Template created",
+    "systemCreated": "Water system created"
+  }
+}
