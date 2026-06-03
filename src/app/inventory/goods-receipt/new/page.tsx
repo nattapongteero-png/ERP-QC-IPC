@@ -105,6 +105,39 @@ export default function NewGrnPage() {
     },
   });
 
+  // Existing GRNs — so we can hide PO/WO that already have an active
+  // (non-cancelled) GRN against them. Cancelled GRNs are excluded so a
+  // PO whose only GRN was cancelled reappears in the dropdown.
+  const { data: existingGrns } = useQuery<Array<{ sourceType: 'po' | 'wo'; poId: number | null; woId: number | null; status: string }>>({
+    queryKey: ['existing-grns-for-filter'],
+    queryFn: async () => {
+      const res = await fetch('/api/inventory/goods-receipts?pageSize=500');
+      if (!res.ok) return [];
+      const list = unwrapList(await res.json());
+      return list.map((g: any) => ({
+        sourceType: g.sourceType,
+        poId: g.poId ?? null,
+        woId: g.woId ?? null,
+        status: g.status,
+      }));
+    },
+  });
+
+  // POs / WOs that are already consumed by an active GRN — used to
+  // filter them out of the source dropdowns below.
+  const usedPoIds = new Set<number>(
+    (existingGrns ?? [])
+      .filter((g) => g.sourceType === 'po' && g.status !== 'cancelled' && g.poId)
+      .map((g) => g.poId as number),
+  );
+  const usedWoIds = new Set<number>(
+    (existingGrns ?? [])
+      .filter((g) => g.sourceType === 'wo' && g.status !== 'cancelled' && g.woId)
+      .map((g) => g.woId as number),
+  );
+  const availablePos = (pos ?? []).filter((p) => !usedPoIds.has(p.id));
+  const availableWos = (wos ?? []).filter((w) => !usedWoIds.has(w.id));
+
   // Pick default quarantine warehouse if available
   useEffect(() => {
     if (warehouses && warehouses.length > 0 && warehouseId == null) {
@@ -169,7 +202,7 @@ export default function NewGrnPage() {
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.po.label')}</label>
             <SelectBox
-              dataSource={pos ?? []}
+              dataSource={availablePos}
               displayExpr={(item: POOption) =>
                 item ? `${item.poNumber}${item.vendorName ? ' — ' + item.vendorName : ''}` : ''
               }
@@ -177,6 +210,7 @@ export default function NewGrnPage() {
               value={poId}
               searchEnabled
               onValueChanged={(e) => setPoId(e.value as number | null)}
+              noDataText="ไม่มีใบสั่งซื้อรอรับ (ทุกใบมี GRN แล้ว)"
             />
           </div>
         )}
@@ -185,7 +219,7 @@ export default function NewGrnPage() {
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.wo.label')}</label>
             <SelectBox
-              dataSource={wos ?? []}
+              dataSource={availableWos}
               displayExpr={(item: WOOption) => {
                 if (!item) return '';
                 const n = item.woNumber ?? item.workOrderNumber ?? `WO-${item.id}`;
@@ -195,6 +229,7 @@ export default function NewGrnPage() {
               value={woId}
               searchEnabled
               onValueChanged={(e) => setWoId(e.value as number | null)}
+              noDataText="ไม่มีใบสั่งผลิตรอรับ (ทุกใบมี GRN แล้ว)"
             />
           </div>
         )}
