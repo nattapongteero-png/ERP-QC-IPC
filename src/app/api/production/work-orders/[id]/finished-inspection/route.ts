@@ -147,16 +147,27 @@ export async function PUT(
 
       const checklistResultsStr = JSON.stringify(checklistObj);
 
-      const inspection = await updateWOFinishedInspection(
-        inspectionId,
-        checklistResultsStr,
-        inspectorId,
-        status,
-        data.notes
-      );
+      try {
+        const inspection = await updateWOFinishedInspection(
+          inspectionId,
+          checklistResultsStr,
+          inspectorId,
+          status,
+          data.notes
+        );
 
-      publishWorkOrderChanged(workOrderId, 'finished-inspection', session.userId, 'update');
-      return successResponse(inspection, `Inspection updated - status: ${status}`);
+        publishWorkOrderChanged(workOrderId, 'finished-inspection', session.userId, 'update');
+        return successResponse(inspection, `Inspection updated - status: ${status}`);
+      } catch (innerError) {
+        // Audit #7/#22 — segregation violation gets a user-friendly 409
+        if (innerError instanceof Error && innerError.message.startsWith('SAMPLER_INSPECTOR_SAME')) {
+          return errorResponse(
+            'Inspector ต้องเป็นคนละคนกับ Sampler — GMP บังคับให้มีการตรวจสอบโดยอิสระ',
+            409,
+          );
+        }
+        throw innerError;
+      }
     } catch (error) {
       console.error('Error updating WO finished inspection:', error);
       return serverErrorResponse(error);
