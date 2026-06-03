@@ -2581,6 +2581,19 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
           )}
         </div>
 
+        {/* Operator Recording Preview — mirrors the actual /work-orders/[id]/ipc
+            recording UI so the criteria designer can see how the form will
+            appear to the operator before saving. */}
+        <OperatorRecordingPreview
+          formData={formData}
+          criteriaType={criteriaType}
+          calculatedMinMax={calculatedMinMax}
+          acceptanceMath={acceptanceMath}
+          multiStageEnabled={multiStageEnabled}
+          stages={stages}
+          specPayload={specPayload}
+        />
+
         {/* Acceptance Flow */}
         <div>
           <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Acceptance Flow</div>
@@ -2671,5 +2684,205 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
         </div>
       </div>
     </>
+  );
+}
+
+// ── Operator Recording Preview ─────────────────────────────────────
+// Renders a read-only mock of the actual /work-orders/[id]/ipc recording
+// UI so the criteria designer can verify exactly what the operator will
+// see (sample inputs, button grids, checklist labels) before saving.
+interface OperatorRecordingPreviewProps {
+  formData: Partial<IPCCriteria>;
+  criteriaType: CriteriaType;
+  calculatedMinMax: { min: number; max: number } | null;
+  acceptanceMath: { sampleSize: number; allowedFail: number; mustPass: number } | null;
+  multiStageEnabled: boolean;
+  stages: AcceptanceStage[];
+  specPayload: SpecPayload | null;
+}
+
+function OperatorRecordingPreview({
+  formData,
+  criteriaType,
+  calculatedMinMax,
+  acceptanceMath,
+  multiStageEnabled,
+  stages,
+  specPayload,
+}: OperatorRecordingPreviewProps) {
+  // Use Stage 1 sample size when multi-stage, otherwise the form's sampleSize.
+  const effectiveSampleSize = multiStageEnabled && stages[0]
+    ? (stages[0].sampleSize ?? formData.sampleSize ?? 1)
+    : (acceptanceMath?.sampleSize ?? formData.sampleSize ?? 1);
+
+  const visualChecklist =
+    criteriaType === 'visual' && specPayload?.type === 'visual'
+      ? specPayload.checklist.filter((s): s is string => !!s)
+      : [];
+  const isVisualLayout = visualChecklist.length > 0;
+  const totalSize = isVisualLayout ? visualChecklist.length : effectiveSampleSize;
+
+  const isNumeric = criteriaType === 'numeric';
+  const isText = criteriaType === 'text';
+  const isChecklist = criteriaType === 'pass_fail' || criteriaType === 'visual';
+
+  return (
+    <div className="mt-4 border border-dashed border-emerald-300 rounded-xl bg-emerald-50/30 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide flex items-center gap-1.5">
+          📝 Operator Recording Preview
+        </div>
+        <span className="text-[10px] text-emerald-600/70">read-only mock</span>
+      </div>
+      <div className="text-[10px] text-slate-500 mb-3">
+        ตัวอย่าง UI ที่ operator จะเห็นในหน้า WO IPC recording
+      </div>
+
+      <div className="bg-white rounded-lg border border-slate-200 p-3 space-y-3">
+        {/* Spec banner — matches SpecInfoCard in the recording page */}
+        {isNumeric && calculatedMinMax && (
+          <div className="text-[11px] bg-slate-50 border border-slate-100 rounded p-2">
+            <span className="text-slate-500">Spec:</span>{' '}
+            <span className="font-mono font-medium text-slate-800">
+              {calculatedMinMax.min} – {calculatedMinMax.max}
+            </span>
+            {formData.unit && <span className="text-slate-500 ml-1">{formData.unit}</span>}
+          </div>
+        )}
+
+        {/* Numeric — single value */}
+        {isNumeric && totalSize <= 1 && (
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              Measured Value {formData.unit ? `(${formData.unit})` : ''}
+            </label>
+            <div className="h-9 border border-slate-300 rounded bg-slate-50 px-3 flex items-center text-slate-400 text-xs">
+              0.00
+            </div>
+          </div>
+        )}
+
+        {/* Numeric — multi-sample grid (mirrors lines 944-970 of WO IPC page) */}
+        {isNumeric && totalSize > 1 && (
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              Sample Values ({totalSize} samples)
+            </label>
+            <div className="grid grid-cols-5 gap-1.5">
+              {Array.from({ length: Math.min(totalSize, 25) }).map((_, idx) => (
+                <div key={idx} className={idx === 0 ? '' : 'opacity-40'}>
+                  <label className="block text-[10px] text-slate-500 mb-0.5">#{idx + 1}</label>
+                  <div className="h-7 border border-slate-300 rounded bg-slate-50 px-1.5 flex items-center text-slate-400 text-[10px]">
+                    0.00
+                  </div>
+                </div>
+              ))}
+            </div>
+            {totalSize > 25 && (
+              <div className="mt-1 text-[10px] text-slate-400">
+                + อีก {totalSize - 25} samples (ตัดการแสดงไว้ที่ 25 เพื่อความกระชับ)
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Text — textarea preview */}
+        {isText && (
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              ผลตรวจ (ข้อความ) <span className="text-red-500">*</span>
+            </label>
+            <div className="h-16 border border-slate-300 rounded bg-slate-50 p-2 text-[11px] text-slate-400">
+              {specPayload?.type === 'text' && specPayload.example
+                ? `เช่น ${specPayload.example}`
+                : 'พิมพ์ผลที่บันทึก'}
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">บันทึกเป็น sample #1 พร้อมข้อความ</p>
+          </div>
+        )}
+
+        {/* Pass/Fail / Visual checklist */}
+        {isChecklist && (
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <label className="block text-xs font-medium text-slate-700">
+                ผลการตรวจ ({totalSize} {isVisualLayout ? 'จุดตรวจ' : 'ตัวอย่าง'})
+              </label>
+              <div className="flex gap-1">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-600 text-white font-semibold">
+                  ผ่านทั้งหมด
+                </span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-600 text-white font-semibold">
+                  ไม่ผ่านทั้งหมด
+                </span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-300">
+                  ล้างค่า
+                </span>
+              </div>
+            </div>
+            <div className={isVisualLayout ? 'space-y-1' : 'grid grid-cols-5 gap-1.5'}>
+              {Array.from({ length: Math.min(totalSize, isVisualLayout ? 10 : 25) }).map((_, idx) => {
+                const labelText = isVisualLayout
+                  ? (visualChecklist[idx] || `#${idx + 1}`)
+                  : `#${idx + 1}`;
+                return (
+                  <div
+                    key={idx}
+                    className={
+                      isVisualLayout
+                        ? 'flex items-center gap-1.5 bg-white border border-amber-200 rounded px-1.5 py-1'
+                        : 'text-center'
+                    }
+                  >
+                    <label
+                      className={
+                        isVisualLayout
+                          ? 'flex-1 text-[10px] text-slate-700 font-medium truncate'
+                          : 'block text-[10px] text-slate-500 mb-0.5'
+                      }
+                    >
+                      {isVisualLayout && (
+                        <span className="inline-flex items-center justify-center w-4 h-4 rounded bg-amber-100 text-amber-700 text-[9px] font-bold mr-1">
+                          {idx + 1}
+                        </span>
+                      )}
+                      {labelText}
+                    </label>
+                    <div className="flex gap-0.5">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-semibold border border-emerald-200">
+                        ✓
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-semibold border border-red-200">
+                        ✕
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {totalSize > (isVisualLayout ? 10 : 25) && (
+              <div className="mt-1 text-[10px] text-slate-400">
+                + อีก {totalSize - (isVisualLayout ? 10 : 25)} รายการ
+              </div>
+            )}
+            {/* Live result hint */}
+            <div className="mt-2 text-[10px] text-slate-500 italic">
+              ระบบจะแสดงผล Pass/Fail แบบเรียลไทม์
+              {formData.tolerancePercent != null &&
+                ` — Tolerance ±${formData.tolerancePercent}% (เสียได้ ${
+                  acceptanceMath?.allowedFail ?? 0
+                } / ${totalSize})`}
+            </div>
+          </div>
+        )}
+
+        {/* Catch-all for criteria types not yet supported in this preview */}
+        {!isNumeric && !isText && !isChecklist && (
+          <div className="text-[11px] text-slate-400 italic text-center py-3">
+            Preview สำหรับ criteria type &quot;{criteriaType}&quot; ยังไม่รองรับ
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
