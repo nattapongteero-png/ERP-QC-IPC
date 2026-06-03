@@ -220,6 +220,28 @@ export const sqliteWarehouseLocations = sqliteTable('warehouse_locations', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Storage Environmental Monitoring Logs (Audit Q6)
+// Periodic temp/humidity readings for warehouse storage areas — separate
+// from production-area `wo_environmental_logs`. Alerts fire when a reading
+// falls outside the warehouse's temperatureMin/Max or humidityMin/Max.
+export const sqliteStorageEnvLogs = sqliteTable('storage_env_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  warehouseId: integer('warehouse_id').notNull().references(() => sqliteWarehouses.id),
+  locationId: integer('location_id').references(() => sqliteWarehouseLocations.id),
+  readingAt: text('reading_at').notNull(),
+  temperature: real('temperature'),
+  humidity: real('humidity'),
+  // 'in_spec' | 'temp_low' | 'temp_high' | 'humidity_low' | 'humidity_high' | 'multiple'
+  alertLevel: text('alert_level').notNull().default('in_spec'),
+  alertMessage: text('alert_message'),
+  acknowledgedBy: integer('acknowledged_by').references(() => sqliteUsers.id),
+  acknowledgedAt: text('acknowledged_at'),
+  acknowledgedNotes: text('acknowledged_notes'),
+  recordedBy: integer('recorded_by').notNull().references(() => sqliteUsers.id),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Inventory Lots
 export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -1810,6 +1832,24 @@ export const mysqlWarehouseLocations = mysqlTable('warehouse_locations', {
   shelf: varchar('shelf', { length: 50 }),
   bin: varchar('bin', { length: 50 }),
   isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Storage Environmental Monitoring Logs (Audit Q6) — MySQL
+export const mysqlStorageEnvLogs = mysqlTable('storage_env_logs', {
+  id: int('id').primaryKey().autoincrement(),
+  warehouseId: int('warehouse_id').notNull().references(() => mysqlWarehouses.id),
+  locationId: int('location_id').references(() => mysqlWarehouseLocations.id),
+  readingAt: datetime('reading_at').notNull(),
+  temperature: decimal('temperature', { precision: 6, scale: 2 }),
+  humidity: decimal('humidity', { precision: 6, scale: 2 }),
+  alertLevel: varchar('alert_level', { length: 30 }).notNull().default('in_spec'),
+  alertMessage: mysqlText('alert_message'),
+  acknowledgedBy: int('acknowledged_by').references(() => mysqlUsers.id),
+  acknowledgedAt: datetime('acknowledged_at'),
+  acknowledgedNotes: mysqlText('acknowledged_notes'),
+  recordedBy: int('recorded_by').notNull().references(() => mysqlUsers.id),
+  notes: mysqlText('notes'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

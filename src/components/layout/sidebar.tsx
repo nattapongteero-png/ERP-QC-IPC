@@ -101,6 +101,7 @@ const navigation: NavItem[] = [
       { name: 'ตรวจรับของ (GRN)', href: '/inventory/goods-receipt', icon: ClipboardCheck },
       { name: 'Returns Inbox', href: '/inventory/returns', icon: Undo2 },
       { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: AlertTriangle },
+      { name: 'Storage Monitoring', href: '/inventory/storage-monitoring', icon: Thermometer },
     ],
   },
   {
