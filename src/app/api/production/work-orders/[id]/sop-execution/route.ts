@@ -17,10 +17,36 @@ import {
   type SOPLinkedIPCInput,
 } from '@/lib/services/wo-execution.service';
 import { publishWorkOrderChanged } from '@/lib/realtime';
-import { executeDbOperation } from '@/lib/db/db-helper';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 import { isSqlite } from '@/lib/db';
 import { sqliteWorkOrders, mysqlWorkOrders } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+
+/**
+ * Look up the BOM SOP step phase for a given wo_sop_execution.id.
+ *
+ * Used as a safety net when the SOP-linked IPC save path receives a
+ * payload without `ipcPhase`. Falling back to the SOP step's phase keeps
+ * the inserted quality_tests row aligned with the dashboard card the
+ * operator was looking at when they recorded the result — without it,
+ * undefined → NULL → the per-phase dashboard loop buckets everything
+ * under "production" and operators see their pre_production / packaging
+ * IPCs disappear from the right card.
+ */
+async function getSOPStepPhase(executionId: number): Promise<string | null> {
+  if (!executionId || isNaN(executionId)) return null;
+  return executeDbOperation(async (db: any) => {
+    const woSop = getTableRef('woSOPExecution');
+    const bomSop = getTableRef('bomSOPSteps');
+    const rows = await db
+      .select({ phase: bomSop.phase })
+      .from(woSop)
+      .innerJoin(bomSop, eq(woSop.bomStepId, bomSop.id))
+      .where(eq(woSop.id, executionId))
+      .limit(1);
+    return rows[0]?.phase ?? null;
+  });
+}
 
 // GET /api/production/work-orders/[id]/sop-execution - Get SOP execution steps
 export async function GET(
@@ -136,10 +162,15 @@ export async function PUT(
         if (retestReason != null && retestReason !== 'justified' && retestReason !== 'unjustified') {
           return errorResponse('retestReason must be "justified" or "unjustified"');
         }
+        // Same fallback strategy — when frontend sends no ipcPhase, look
+        // it up from the SOP step. The old `|| 'production'` fallback
+        // silently mislabeled every pre_production / packaging retest
+        // round as production.
+        const inferredPhase = await getSOPStepPhase(Number(data.executionId));
         const input: SOPLinkedIPCInput = {
           criteriaId: Number(data.criteriaId),
           sopExecutionId: Number(data.executionId),
-          ipcPhase: data.ipcPhase || 'production',
+          ipcPhase: data.ipcPhase || inferredPhase || 'production',
           numericValues: data.numericValues,
           sampleResults: data.sampleResults,
           textValue: data.textValue,
@@ -160,7 +191,17 @@ export async function PUT(
           return errorResponse('ipcResults array is required');
         }
         const ipcInputs = data.ipcResults as SOPLinkedIPCInput[];
-        for (const r of ipcInputs) r.sopExecutionId = data.executionId;
+        // Look up the SOP step's phase ONCE (cheap join on executionId) so
+        // we can backfill ipcPhase on any input the frontend forgot to
+        // populate. Without this, missing ipcPhase becomes NULL in
+        // quality_tests.ipc_phase and the dashboard loop falls back to
+        // 'production', clumping pre_production / packaging IPC results
+        // under the wrong card.
+        const fallbackPhase = await getSOPStepPhase(Number(data.executionId));
+        for (const r of ipcInputs) {
+          r.sopExecutionId = data.executionId;
+          if (!r.ipcPhase && fallbackPhase) r.ipcPhase = fallbackPhase;
+        }
         const result = await recordSOPLinkedIPCResults(workOrderId, session.userId, ipcInputs);
         publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'sop-standalone-record');
         return successResponse(result, 'IPC results saved');
@@ -192,8 +233,14 @@ export async function PUT(
         // without the step prematurely flipping to completed).
         if (Array.isArray(data.ipcResults) && data.ipcResults.length > 0) {
           const ipcInputs = data.ipcResults as SOPLinkedIPCInput[];
-          // Stamp every input with the SOP execution it belongs to.
-          for (const r of ipcInputs) r.sopExecutionId = data.executionId;
+          // Same backfill as the `record_ipc` action — guard against the
+          // frontend forgetting `ipcPhase` so the per-phase dashboard
+          // cards don't all silently lump into 'production'.
+          const fallbackPhase = await getSOPStepPhase(Number(data.executionId));
+          for (const r of ipcInputs) {
+            r.sopExecutionId = data.executionId;
+            if (!r.ipcPhase && fallbackPhase) r.ipcPhase = fallbackPhase;
+          }
           await recordSOPLinkedIPCResults(workOrderId, session.userId, ipcInputs);
           publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'sop-inline-record');
         }
