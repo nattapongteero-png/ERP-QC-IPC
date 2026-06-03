@@ -19,7 +19,8 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock lucide-react icons
+// Mock lucide-react icons — keep this list aligned with imports in
+// src/app/master-data/page.tsx
 vi.mock('lucide-react', () => ({
   Database: () => <span data-testid="icon-database" />,
   Building2: () => <span data-testid="icon-building" />,
@@ -27,7 +28,16 @@ vi.mock('lucide-react', () => ({
   Thermometer: () => <span data-testid="icon-thermometer" />,
   FileText: () => <span data-testid="icon-filetext" />,
   Scale: () => <span data-testid="icon-scale" />,
+  FlaskConical: () => <span data-testid="icon-flask" />,
   ChevronRight: () => <span data-testid="icon-chevron" />,
+  Download: () => <span data-testid="icon-download" />,
+  Upload: () => <span data-testid="icon-upload" />,
+  X: () => <span data-testid="icon-x" />,
+  CheckSquare: () => <span data-testid="icon-check-square" />,
+  Square: () => <span data-testid="icon-square" />,
+  Sliders: () => <span data-testid="icon-sliders" />,
+  ListChecks: () => <span data-testid="icon-list-checks" />,
+  ClipboardCheck: () => <span data-testid="icon-clipboard-check" />,
 }));
 
 // Mock shared components
@@ -38,6 +48,16 @@ vi.mock('@/components/shared', () => ({
       <p>{subtitle}</p>
     </div>
   ),
+}));
+
+// Mock useToast — the page uses it for import success/error notifications
+vi.mock('@/hooks/use-toast', () => ({
+  useToast: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  }),
 }));
 
 describe('MasterDataPage', () => {
