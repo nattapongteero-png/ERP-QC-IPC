@@ -433,9 +433,9 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 min-h-0 overflow-y-auto py-4 md:py-6 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-        <div className="space-y-1 pb-4">
+      {/* Navigation — extra bottom padding + spacer ensures last item is never clipped by user section */}
+      <nav className="flex-1 min-h-0 overflow-y-auto pt-4 md:pt-6 pb-12 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+        <div className="space-y-1">
           {filteredNavigation.map((item) => (
             <div key={item.name}>
               {item.children ? (
@@ -553,9 +553,9 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
         </div>
       </nav>
 
-      {/* User Section */}
+      {/* User Section — flex-shrink-0 prevents it from compressing the nav */}
       {user && (
-        <div className="p-3 md:p-4 border-t border-slate-700/50">
+        <div className="flex-shrink-0 p-3 md:p-4 border-t border-slate-700/50 bg-slate-900">
           <div
             className={cn(
               'flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-xl',
