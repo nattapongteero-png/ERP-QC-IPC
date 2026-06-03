@@ -5,7 +5,18 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toDateSafe, getNow } from '../db/date-utils';
+import { toDateSafe, getNow, getTodayStr } from '../db/date-utils';
+
+/**
+ * Format any date-like value to YYYY-MM-DD.
+ * Handles ISO strings, Date objects, and SQLite text dates.
+ */
+function toDateStr(v: Date | string | null | undefined): string | null {
+  if (!v) return null;
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === 'string') return v.length >= 10 ? v.slice(0, 10) : null;
+  return null;
+}
 import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
 import {
   sqliteWorkOrders,
@@ -697,7 +708,11 @@ export async function recordProductionOutput(
   actualQuantity: number,
   rejectQuantity: number,
   warehouseId: number,
-  userId: number
+  userId: number,
+  /** Optional MFD override (YYYY-MM-DD). Defaults to WO actualStartDate. */
+  manufacturingDateOverride?: string | null,
+  /** Optional EXP override (YYYY-MM-DD). Defaults to MFD + product.shelfLifeDays. */
+  expiryDateOverride?: string | null
 ): Promise<number> {
   const { workOrders, items } = getTables();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -730,12 +745,26 @@ export async function recordProductionOutput(
     .from(items)
     .where(eq(items.id, wo.productId));
 
-  // Calculate expiry date
-  let expiryDate: string | null = null;
-  if (product?.shelfLifeDays) {
-    const expiry = new Date();
+  // Determine Manufacturing Date — REQUIRED for GMP traceability
+  // (Production audit #24-#28). Priority order:
+  //   1. caller-provided override (e.g. from form input)
+  //   2. WO actual start date
+  //   3. WO planned start date
+  //   4. today (last-resort fallback)
+  const mfdSource =
+    manufacturingDateOverride ??
+    (wo.actualStartDate ? toDateStr(wo.actualStartDate) : null) ??
+    (wo.startDate ? toDateStr(wo.startDate) : null) ??
+    getTodayStr();
+  const manufacturingDate = mfdSource;
+
+  // Calculate expiry date FROM MFD (audit #25 — was wrongly using today)
+  let expiryDate: string | null = expiryDateOverride ?? null;
+  if (!expiryDate && product?.shelfLifeDays && manufacturingDate) {
+    const mfdDate = new Date(manufacturingDate);
+    const expiry = new Date(mfdDate);
     expiry.setDate(expiry.getDate() + product.shelfLifeDays);
-    expiryDate = expiry.toISOString().split('T')[0]; // String for receiveMaterial parameter
+    expiryDate = expiry.toISOString().split('T')[0];
   }
 
   // Update work order — finished stage audit + legacy fields
@@ -751,7 +780,8 @@ export async function recordProductionOutput(
     })
     .where(eq(workOrders.id, workOrderId));
 
-  // Create output lot
+  // Create output lot — pass MFD so the lot record carries the
+  // manufacturing date for traceability (audit #24, #28).
   const lotId = await receiveMaterial(
     wo.productId,
     wo.batchNumber,
@@ -761,7 +791,8 @@ export async function recordProductionOutput(
     expiryDate,
     null, // No vendor for produced items
     wo.woNumber, // Reference WO number
-    userId
+    userId,
+    manufacturingDate
   );
 
   // Calculate and check yield

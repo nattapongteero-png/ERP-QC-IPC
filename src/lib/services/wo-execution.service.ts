@@ -1754,6 +1754,20 @@ export async function updateWOFinishedInspection(
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
+    // Audit #7/#22 — independent inspection check: Inspector MUST be a
+    // different user from the Sampler. Enforce as soon as inspectorId is set.
+    if (inspectorId) {
+      const [existing] = await db
+        .select({ samplerId: tables.woFinishedInspection.samplerId })
+        .from(tables.woFinishedInspection)
+        .where(eq(tables.woFinishedInspection.id, inspectionId));
+      if (existing && Number(existing.samplerId) === Number(inspectorId)) {
+        throw new Error(
+          'SAMPLER_INSPECTOR_SAME: Inspector must be a different user from the Sampler (GMP independent check)',
+        );
+      }
+    }
+
     const updateData: any = {
       checklistResults,
       status,

@@ -98,6 +98,10 @@ export default function ProductionOutputPage() {
     rejectQuantity: 0,
     warehouseId: null as number | null,
     notes: '',
+    // Audit #24-#28 — MFD/EXP captured at production output.
+    // Empty string means "let backend derive from WO actualStartDate".
+    manufacturingDate: '' as string,
+    expiryDate: '' as string,
   });
   // Bulk stage can accept input as weight (g), capsule count, or box count.
   // formData.actualQuantity stays in primary unit (box) for storage; inputValue
@@ -160,6 +164,10 @@ export default function ProductionOutputPage() {
           actualQuantity: formData.actualQuantity,
           rejectQuantity: formData.rejectQuantity,
           warehouseId: isBulkStage ? null : formData.warehouseId,
+          // Only send MFD/EXP at the finished stage — bulk output does not
+          // create a saleable lot.
+          manufacturingDate: !isBulkStage && formData.manufacturingDate ? formData.manufacturingDate : null,
+          expiryDate: !isBulkStage && formData.expiryDate ? formData.expiryDate : null,
         }),
       });
       const data = await res.json();
@@ -241,12 +249,14 @@ export default function ProductionOutputPage() {
       const preActual = isBulkStage
         ? Number(workOrder.bulkOutputQty) || 0
         : Number(workOrder.finishedOutputQty ?? workOrder.actualQuantity) || 0;
-      setFormData({
+      setFormData((prev) => ({
         actualQuantity: preActual,
         rejectQuantity: isBulkStage ? 0 : Number(workOrder.rejectQuantity) || 0,
-        warehouseId: formData.warehouseId,
+        warehouseId: prev.warehouseId,
         notes: '',
-      });
+        manufacturingDate: prev.manufacturingDate,
+        expiryDate: prev.expiryDate,
+      }));
       // Seed bulk-stage hybrid input to the currently-selected mode, so the
       // user can tweak the value they previously entered without retyping.
       if (isBulkStage) {
@@ -836,6 +846,45 @@ export default function ProductionOutputPage() {
                     showClearButton
                     width="100%"
                   />
+                </div>
+              )}
+
+              {/* MFD + EXP — only for finished stage (audit #24-#28).
+                  Empty = backend derives from WO actualStartDate + product shelf life. */}
+              {!isBulkStage && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      วันผลิต (MFD)
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full border rounded-md px-3 py-2"
+                      value={formData.manufacturingDate}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, manufacturingDate: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      ค่าเริ่มต้นจะใช้วันที่เริ่มผลิตจริงของ WO (Actual Start)
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      วันหมดอายุ (EXP)
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full border rounded-md px-3 py-2"
+                      value={formData.expiryDate}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, expiryDate: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      ค่าเริ่มต้นคำนวณจาก MFD + Shelf life ของสินค้า
+                    </p>
+                  </div>
                 </div>
               )}
 

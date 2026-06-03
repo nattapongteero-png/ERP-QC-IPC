@@ -493,7 +493,14 @@ export async function receiveMaterial(
   expiryDate: string | null,
   vendorId: number | null,
   poNumber: string | null,
-  userId: number
+  userId: number,
+  /**
+   * Manufacturing date — REQUIRED for GMP traceability per
+   * production audit #24. Defaults to today only when caller cannot
+   * determine an actual mfg date (e.g. legacy back-fill). Production
+   * Output callers MUST pass the real WO actual-start date.
+   */
+  manufacturingDate?: string | null
 ): Promise<number> {
   const { lots, transactions } = getTables();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -503,6 +510,7 @@ export async function receiveMaterial(
   let newLotId: number;
   const dbExpiryDate = expiryDate ? toDbDate(expiryDate) : null;
   const dbReceivedDate = toDbDate(getTodayStr());
+  const dbManufacturingDate = manufacturingDate ? toDbDate(manufacturingDate) : null;
 
   if (isSqlite()) {
     const [newLot] = await database
@@ -515,6 +523,7 @@ export async function receiveMaterial(
         reservedQuantity: 0,
         unit,
         status: 'quarantine', // Always start in quarantine
+        manufacturingDate: dbManufacturingDate,
         expiryDate: dbExpiryDate,
         receivedDate: dbReceivedDate,
         vendorId,
@@ -533,6 +542,7 @@ export async function receiveMaterial(
         reservedQuantity: 0,
         unit,
         status: 'quarantine', // Always start in quarantine
+        manufacturingDate: dbManufacturingDate,
         expiryDate: dbExpiryDate,
         receivedDate: dbReceivedDate,
         vendorId,
