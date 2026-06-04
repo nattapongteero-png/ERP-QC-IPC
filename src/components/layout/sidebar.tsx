@@ -19,7 +19,6 @@ import {
   Boxes,
   ArrowLeftRight,
   ClipboardList,
-  TestTube,
   AlertCircle,
   Receipt,
   ShoppingBag,
@@ -129,9 +128,6 @@ const navigation: NavItem[] = [
       // QC records & inspection forms
       { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
       { name: 'ใบตรวจ QC', href: '/quality/qc-inspections', icon: ClipboardList },
-      // Test standards & config (Test Panels live inside the QC Entry page)
-      { name: 'Specifications', href: '/quality/specs', icon: FileText },
-      { name: 'Tests', href: '/quality/tests', icon: TestTube },
       // Certificate of Analysis (templates live inside this page)
       { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
       // Inspections
