@@ -54,6 +54,40 @@ export interface GateCheckResult {
   completedChecks: string[];
 }
 
+/** Resolve a work order's BOM id (null when none linked). */
+async function getWoBomId(db: any, workOrderId: number): Promise<number | null> {
+  const workOrders = getTableRef('workOrders');
+  const [row] = await db
+    .select({ bomId: workOrders.bomId })
+    .from(workOrders)
+    .where(eq(workOrders.id, workOrderId));
+  return row?.bomId ? Number(row.bomId) : null;
+}
+
+/**
+ * Count cleaning items (rooms + equipment) the BOM configures for the given
+ * phase(s). Zero means the BOM requires no cleaning for that phase, so the
+ * cleaning gate must NOT block — there is genuinely nothing to record.
+ */
+async function countBomCleaningItems(
+  db: any,
+  bomId: number | null,
+  phases: string[],
+): Promise<number> {
+  if (!bomId) return 0;
+  const bomRooms = getTableRef('bOMRooms');
+  const bomEquipment = getTableRef('bOMEquipment');
+  const rooms = await db
+    .select({ id: bomRooms.id })
+    .from(bomRooms)
+    .where(and(eq(bomRooms.bomId, bomId), inArray(bomRooms.phase, phases)));
+  const equip = await db
+    .select({ id: bomEquipment.id })
+    .from(bomEquipment)
+    .where(and(eq(bomEquipment.bomId, bomId), inArray(bomEquipment.phase, phases)));
+  return rooms.length + equip.length;
+}
+
 /**
  * Check if WO can be released (planned → released)
  * Requirements:
@@ -94,29 +128,37 @@ export async function canStartProduction(workOrderId: number): Promise<GateCheck
   const completedChecks: string[] = [];
 
   return executeDbOperation(async (db: any) => {
-    // Check pre-production cleaning
-    const cleaningLogs = await db
-      .select()
-      .from(tables.woCleaningLogs)
-      .where(
-        and(
-          eq(tables.woCleaningLogs.workOrderId, workOrderId),
-          eq(tables.woCleaningLogs.phase, 'pre_production')
-        )
-      );
+    const bomId = await getWoBomId(db, workOrderId);
 
-    if (cleaningLogs.length === 0) {
-      blockers.push('No pre-production cleaning logs recorded');
+    // Check pre-production cleaning — only when the BOM configures cleaning for
+    // this phase. No BOM rooms/equipment ⇒ nothing to clean ⇒ don't block.
+    const preCleaningRequired = await countBomCleaningItems(db, bomId, ['pre_production']);
+    if (preCleaningRequired === 0) {
+      completedChecks.push('ไม่มีการตั้งค่าทำความสะอาดก่อนผลิตใน BOM (no pre-production cleaning required)');
     } else {
-      const allClean = cleaningLogs.every((log: any) => log.isClean);
-      const allVerified = cleaningLogs.every((log: any) => log.verifierId !== null);
+      const cleaningLogs = await db
+        .select()
+        .from(tables.woCleaningLogs)
+        .where(
+          and(
+            eq(tables.woCleaningLogs.workOrderId, workOrderId),
+            eq(tables.woCleaningLogs.phase, 'pre_production')
+          )
+        );
 
-      if (!allClean) {
-        blockers.push('Not all pre-production cleaning items marked as clean');
-      } else if (!allVerified) {
-        blockers.push('Not all pre-production cleaning items verified');
+      if (cleaningLogs.length === 0) {
+        blockers.push('No pre-production cleaning logs recorded');
       } else {
-        completedChecks.push('Pre-production cleaning complete and verified');
+        const allClean = cleaningLogs.every((log: any) => log.isClean);
+        const allVerified = cleaningLogs.every((log: any) => log.verifierId !== null);
+
+        if (!allClean) {
+          blockers.push('Not all pre-production cleaning items marked as clean');
+        } else if (!allVerified) {
+          blockers.push('Not all pre-production cleaning items verified');
+        } else {
+          completedChecks.push('Pre-production cleaning complete and verified');
+        }
       }
     }
 
@@ -179,7 +221,8 @@ export async function canCompleteProduction(workOrderId: number): Promise<GateCh
       .where(eq(tables.woSOPExecution.workOrderId, workOrderId));
 
     if (sopSteps.length === 0) {
-      blockers.push('ยังไม่มีขั้นตอน SOP (No SOP steps initialized)');
+      // No SOP steps seeded from the BOM for this WO ⇒ none required ⇒ don't block.
+      completedChecks.push('ไม่มีขั้นตอน SOP ที่ต้องทำใน BOM (no SOP steps required)');
     } else {
       const allCompleted = sopSteps.every((step: any) => step.isCompleted);
       const allVerified = sopSteps.every(
@@ -212,29 +255,35 @@ export async function canCompleteProduction(workOrderId: number): Promise<GateCh
       }
     }
 
-    // Check post-production cleaning
-    const cleaningLogs = await db
-      .select()
-      .from(tables.woCleaningLogs)
-      .where(
-        and(
-          eq(tables.woCleaningLogs.workOrderId, workOrderId),
-          eq(tables.woCleaningLogs.phase, 'post_production')
-        )
-      );
-
-    if (cleaningLogs.length === 0) {
-      blockers.push('ยังไม่ได้บันทึก Post-Production Cleaning');
+    // Check post-production cleaning — only when configured in the BOM.
+    const bomId = await getWoBomId(db, workOrderId);
+    const postCleaningRequired = await countBomCleaningItems(db, bomId, ['post_production']);
+    if (postCleaningRequired === 0) {
+      completedChecks.push('ไม่มีการตั้งค่าทำความสะอาดหลังผลิตใน BOM (no post-production cleaning required)');
     } else {
-      const allClean = cleaningLogs.every((log: any) => log.isClean);
-      const allVerified = cleaningLogs.every((log: any) => log.verifierId !== null);
+      const cleaningLogs = await db
+        .select()
+        .from(tables.woCleaningLogs)
+        .where(
+          and(
+            eq(tables.woCleaningLogs.workOrderId, workOrderId),
+            eq(tables.woCleaningLogs.phase, 'post_production')
+          )
+        );
 
-      if (!allClean) {
-        blockers.push('Post-Production Cleaning ยังไม่ผ่านทั้งหมด');
-      } else if (!allVerified) {
-        blockers.push('Post-Production Cleaning ยังไม่ได้ verify ทั้งหมด');
+      if (cleaningLogs.length === 0) {
+        blockers.push('ยังไม่ได้บันทึก Post-Production Cleaning');
       } else {
-        completedChecks.push('Post-Production Cleaning เสร็จสมบูรณ์');
+        const allClean = cleaningLogs.every((log: any) => log.isClean);
+        const allVerified = cleaningLogs.every((log: any) => log.verifierId !== null);
+
+        if (!allClean) {
+          blockers.push('Post-Production Cleaning ยังไม่ผ่านทั้งหมด');
+        } else if (!allVerified) {
+          blockers.push('Post-Production Cleaning ยังไม่ได้ verify ทั้งหมด');
+        } else {
+          completedChecks.push('Post-Production Cleaning เสร็จสมบูรณ์');
+        }
       }
     }
 
@@ -278,6 +327,16 @@ export async function canStartPackaging(workOrderId: number): Promise<GateCheckR
   const completedChecks: string[] = [];
 
   return executeDbOperation(async (db: any) => {
+    const bomId = await getWoBomId(db, workOrderId);
+    const packCleaningRequired = await countBomCleaningItems(db, bomId, [
+      'pre_packaging',
+      'packaging',
+    ]);
+    if (packCleaningRequired === 0) {
+      completedChecks.push('ไม่มีการตั้งค่าทำความสะอาดบรรจุใน BOM (no packaging cleaning required)');
+      return { canProceed: blockers.length === 0, blockers, completedChecks };
+    }
+
     const cleaningLogs = await db
       .select()
       .from(tables.woCleaningLogs)

@@ -83,18 +83,21 @@ async function getPhaseCompletionFlags(woId: number): Promise<{
   // We use "weighed" rather than "verified" because users expect the phase to
   // auto-advance as soon as the activity is DONE — verification is a separate
   // GMP sign-off that may happen later and shouldn't block the phase boundary.
+  // For every phase: when the gating activity has ZERO items, nothing is
+  // configured for this WO/phase, so the phase is considered done and the WO
+  // can advance past it (don't strand the operator on an empty phase).
   const weighingTotal = materials.length;
   const weighingDone = materials.filter(
     (m: Record<string, unknown>) => Boolean(m.weighedAt),
   ).length;
-  const preProductionDone = weighingTotal > 0 && weighingDone === weighingTotal;
+  const preProductionDone = weighingTotal === 0 || weighingDone === weighingTotal;
 
   // Production: IPC tests have a recorded result (pass or fail).
   const ipcTotal = ipcTests.length;
   const ipcRecorded = ipcTests.filter(
     (t: Record<string, unknown>) => Boolean(t.result) || t.status === 'pass' || t.status === 'passed' || t.status === 'fail' || t.status === 'failed',
   ).length;
-  const productionDone = ipcTotal > 0 && ipcRecorded === ipcTotal;
+  const productionDone = ipcTotal === 0 || ipcRecorded === ipcTotal;
 
   // Packaging: integrity checks all have verdicts (pass or fail). We don't
   // gate on passed-only because a failed check still closes the activity;
@@ -104,7 +107,7 @@ async function getPhaseCompletionFlags(woId: number): Promise<{
     (l: Record<string, unknown>) =>
       l.tubeCapComplete !== null && l.tubeCapComplete !== undefined,
   ).length;
-  const packagingDone = integrityTotal > 0 && integrityRecorded === integrityTotal;
+  const packagingDone = integrityTotal === 0 || integrityRecorded === integrityTotal;
 
   return {
     pre_production: {
