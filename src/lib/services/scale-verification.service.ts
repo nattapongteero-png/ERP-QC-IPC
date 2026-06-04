@@ -139,16 +139,38 @@ export async function getCurrentVerificationForScale(
 export async function listVerificationsForScale(
   scaleId: number,
   limit = 100,
-): Promise<ScaleVerification[]> {
+): Promise<Array<ScaleVerification & {
+  weightCode: string | null;
+  weightDenomination: string | null;
+  operatorName: string | null;
+}>> {
   return executeDbOperation(async (db) => {
     const t = getTables();
+    const users = getTableRef('users');
+    // Joining users + weights here lets the history page render the
+    // operator name and the weight that was used without N+1 lookups.
     const rows = await db
-      .select()
+      .select({
+        verification: t.verifications,
+        weightCode: t.weights.code,
+        weightDenominationValue: t.weights.denominationValue,
+        weightDenominationUnit: t.weights.denominationUnit,
+        operatorName: users.name,
+      })
       .from(t.verifications)
+      .leftJoin(t.weights, eq(t.weights.id, t.verifications.standardWeightId))
+      .leftJoin(users, eq(users.id, t.verifications.operatorUserId))
       .where(eq(t.verifications.scaleId, scaleId))
       .orderBy(desc(t.verifications.performedAt))
       .limit(limit);
-    return rows.map(normalizeVerification);
+    return rows.map((r: any) => ({
+      ...normalizeVerification(r.verification),
+      weightCode: r.weightCode != null ? String(r.weightCode) : null,
+      weightDenomination: r.weightDenominationValue != null
+        ? `${Number(r.weightDenominationValue)} ${r.weightDenominationUnit ?? ''}`.trim()
+        : null,
+      operatorName: r.operatorName != null ? String(r.operatorName) : null,
+    }));
   });
 }
 
@@ -353,6 +375,14 @@ export async function getScalesNeedingVerification(): Promise<Array<{
   status: string;
   lastVerifiedAt: string | null;
   lastResult: string | null;
+  // Adds the actual reading + which standard weight was used last time so
+  // operators can see the trail at a glance on the list view instead of
+  // having to open a separate detail page.
+  lastActualReading: number | null;
+  lastCertifiedValue: number | null;
+  lastDeviationPercent: number | null;
+  lastWeightCode: string | null;
+  lastWeightDenomination: string | null;
 }>> {
   return executeDbOperation(async (db) => {
     const t = getTables();
@@ -378,25 +408,46 @@ export async function getScalesNeedingVerification(): Promise<Array<{
       status: string;
       lastVerifiedAt: string | null;
       lastResult: string | null;
+      lastActualReading: number | null;
+      lastCertifiedValue: number | null;
+      lastDeviationPercent: number | null;
+      lastWeightCode: string | null;
+      lastWeightDenomination: string | null;
     }>;
     for (const s of scales) {
       const lastVer = await db
         .select({
           performedAt: t.verifications.performedAt,
           result: t.verifications.result,
+          actualReading: t.verifications.actualReading,
+          certifiedValue: t.verifications.certifiedValueSnapshot,
+          certifiedUnit: t.verifications.certifiedUnitSnapshot,
+          deviationPercent: t.verifications.deviationPercent,
+          weightCode: t.weights.code,
+          weightDenominationValue: t.weights.denominationValue,
+          weightDenominationUnit: t.weights.denominationUnit,
         })
         .from(t.verifications)
+        .leftJoin(t.weights, eq(t.weights.id, t.verifications.standardWeightId))
         .where(eq(t.verifications.scaleId, Number(s.id)))
         .orderBy(desc(t.verifications.performedAt))
         .limit(1);
 
+      const last = lastVer[0];
       result.push({
         scaleId: Number(s.id),
         scaleCode: String(s.code),
         scaleName: String(s.name),
         status: String(s.scaleStatus ?? 'active'),
-        lastVerifiedAt: lastVer.length > 0 ? String(lastVer[0].performedAt) : null,
-        lastResult: lastVer.length > 0 ? String(lastVer[0].result) : null,
+        lastVerifiedAt: last ? String(last.performedAt) : null,
+        lastResult: last ? String(last.result) : null,
+        lastActualReading: last?.actualReading != null ? Number(last.actualReading) : null,
+        lastCertifiedValue: last?.certifiedValue != null ? Number(last.certifiedValue) : null,
+        lastDeviationPercent: last?.deviationPercent != null ? Number(last.deviationPercent) : null,
+        lastWeightCode: last?.weightCode != null ? String(last.weightCode) : null,
+        lastWeightDenomination: last?.weightDenominationValue != null
+          ? `${Number(last.weightDenominationValue)} ${last.weightDenominationUnit ?? ''}`.trim()
+          : null,
       });
     }
     return result;

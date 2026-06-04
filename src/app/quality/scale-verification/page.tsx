@@ -5,6 +5,7 @@
  * Feature: 021-scale-verification
  */
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import {
@@ -18,7 +19,7 @@ import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
-import { Scale, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Scale, CheckCircle2, XCircle, AlertTriangle, History } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
 import type { ScaleVerification, StandardWeight } from '@/types/scale-verification';
 
@@ -29,10 +30,19 @@ interface ScaleRow {
   status: string;
   lastVerifiedAt: string | null;
   lastResult: string | null;
+  // Last-verification detail surfaced on the dashboard so operators
+  // don't have to drill into history to see the most recent reading
+  // and the weight that was used.
+  lastActualReading: number | null;
+  lastCertifiedValue: number | null;
+  lastDeviationPercent: number | null;
+  lastWeightCode: string | null;
+  lastWeightDenomination: string | null;
 }
 
 export default function ScaleVerificationPage() {
   const t = useTranslations('scaleVerification');
+  const router = useRouter();
   const qc = useQueryClient();
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [activeScale, setActiveScale] = useState<ScaleRow | null>(null);
@@ -177,11 +187,56 @@ export default function ScaleVerificationPage() {
             return <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${color}`}>{t(`status.${v}` as any)}</span>;
           }}
         />
-        <Column dataField="lastVerifiedAt" caption={t('table.columns.lastVerifiedAt')} dataType="datetime" />
+        <Column dataField="lastVerifiedAt" caption={t('table.columns.lastVerifiedAt')} dataType="datetime" width={160} />
+        <Column
+          caption="ลูกตุ้มที่ใช้"
+          width={140}
+          cellRender={(c) => {
+            const row = c.data as ScaleRow;
+            if (!row.lastWeightCode) return <span className="text-gray-400">—</span>;
+            return (
+              <div className="text-xs">
+                <div className="font-mono font-medium text-gray-900">{row.lastWeightCode}</div>
+                {row.lastWeightDenomination && (
+                  <div className="text-gray-500">{row.lastWeightDenomination}</div>
+                )}
+              </div>
+            );
+          }}
+        />
+        <Column
+          caption="ค่าที่อ่านได้"
+          width={130}
+          cellRender={(c) => {
+            const row = c.data as ScaleRow;
+            if (row.lastActualReading == null) return <span className="text-gray-400">—</span>;
+            return (
+              <div className="text-xs font-mono">
+                <div>{row.lastActualReading.toFixed(4)}</div>
+                {row.lastCertifiedValue != null && (
+                  <div className="text-gray-500">
+                    cert {row.lastCertifiedValue.toFixed(4)}
+                  </div>
+                )}
+              </div>
+            );
+          }}
+        />
+        <Column
+          caption="Δ %"
+          width={90}
+          cellRender={(c) => {
+            const row = c.data as ScaleRow;
+            if (row.lastDeviationPercent == null) return <span className="text-gray-400">—</span>;
+            const v = row.lastDeviationPercent;
+            const cls = Math.abs(v) > 0.1 ? 'text-rose-700' : 'text-gray-700';
+            return <span className={`font-mono text-xs ${cls}`}>{v.toFixed(4)}%</span>;
+          }}
+        />
         <Column
           dataField="lastResult"
           caption={t('table.columns.lastResult')}
-          width={120}
+          width={100}
           cellRender={(c) => {
             const v = c.value as string | null;
             if (!v) return '—';
@@ -194,19 +249,33 @@ export default function ScaleVerificationPage() {
         />
         <Column
           caption={t('table.columns.actions')}
-          width={200}
+          width={250}
           cellRender={(c) => {
             const row = c.data as ScaleRow;
             return (
-              <Button
-                text={t('actions.verify')}
-                type="default"
-                stylingMode="outlined"
-                onClick={() => {
-                  setActiveScale(row);
-                  setVerifyOpen(true);
-                }}
-              />
+              <div className="flex items-center gap-2">
+                <Button
+                  text={t('actions.verify')}
+                  type="default"
+                  stylingMode="outlined"
+                  onClick={() => {
+                    setActiveScale(row);
+                    setVerifyOpen(true);
+                  }}
+                />
+                <Button
+                  type="normal"
+                  stylingMode="text"
+                  onClick={() =>
+                    router.push(`/quality/scale-verification/${row.scaleId}/history`)
+                  }
+                  render={() => (
+                    <span className="inline-flex items-center gap-1 text-sm text-indigo-700">
+                      <History className="w-4 h-4" /> ประวัติ
+                    </span>
+                  )}
+                />
+              </div>
             );
           }}
         />
