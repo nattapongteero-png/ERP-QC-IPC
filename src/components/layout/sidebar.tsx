@@ -486,14 +486,22 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                     />
                   </button>
 
-                  {/* Submenu with smooth animation */}
+                  {/* Submenu with smooth animation.
+                      max-h-96 (384px) was clipping any section with more
+                      than ~9 children — Quality currently has 15 and the
+                      bottom 7 (Certificate of Analysis, COA Templates,
+                      Test Panels, Tests, Specifications, Deviations,
+                      QC Audit Trail) silently disappeared under
+                      overflow-hidden. Bumped the expanded cap to 48rem
+                      (~768px ≈ 19 rows) so the animation still has a
+                      target height but no real submenu gets truncated. */}
                   <div
                     className={cn(
                       'overflow-hidden',
                       'transition-all duration-300 ease-out',
                       'motion-reduce:transition-none',
                       isExpanded(item.name)
-                        ? 'max-h-96 opacity-100'
+                        ? 'max-h-[48rem] opacity-100'
                         : 'max-h-0 opacity-0'
                     )}
                   >
