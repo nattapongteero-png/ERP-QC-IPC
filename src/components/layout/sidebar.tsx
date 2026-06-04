@@ -127,24 +127,24 @@ const navigation: NavItem[] = [
     icon: ClipboardCheck,
     roles: ['admin', 'manager', 'production', 'qc'],
     children: [
-      // QC inspections (daily operations)
+      // QC records & inspection forms
       { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
       { name: 'ใบตรวจ QC', href: '/quality/qc-inspections', icon: ClipboardList },
+      // Test standards & config
+      { name: 'Specifications', href: '/quality/specs', icon: FileText },
+      { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },
+      { name: 'Tests', href: '/quality/tests', icon: TestTube },
+      // Certificate of Analysis (templates live inside this page)
+      { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
+      // Inspections
       { name: 'ตรวจรับเข้า', href: '/quality/incoming-inspection', icon: ClipboardCheck },
+      // Equipment & environment checks
       { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/quality/scale-verification', icon: Scale },
-      // Environment & utilities
       { name: 'ตรวจสภาพแวดล้อม', href: '/environmental/inspections', icon: Thermometer },
       { name: 'ระบบน้ำ (Water Quality)', href: '/environmental/water-quality', icon: Droplets },
       // Equipment maintenance
       { name: 'แจ้งเตือนบำรุงรักษา', href: '/notifications', icon: Bell },
       { name: 'ปฏิทินบำรุงรักษา', href: '/notifications/calendar', icon: CalendarDays },
-      // Test standards & config
-      { name: 'Specifications', href: '/quality/specs', icon: FileText },
-      { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },
-      { name: 'Tests', href: '/quality/tests', icon: TestTube },
-      // Certificate of Analysis
-      { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
-      { name: 'COA Templates', href: '/quality/coa/templates', icon: Layers },
       // Deviations & audit
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
       { name: 'QC Audit Trail', href: '/quality/audit-trail', icon: ScrollText },

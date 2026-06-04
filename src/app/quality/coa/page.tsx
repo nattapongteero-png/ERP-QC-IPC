@@ -269,6 +269,12 @@ export default function CoaListPage() {
                 onClick={fetchCoa}
               />
               <DxButton
+                icon="preferences"
+                text="กำหนดเทมเพลต COA"
+                stylingMode="outlined"
+                onClick={() => router.push('/quality/coa/templates')}
+              />
+              <DxButton
                 icon="plus"
                 text="ออก COA จากตัวอย่าง"
                 type="default"
