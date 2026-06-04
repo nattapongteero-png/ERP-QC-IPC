@@ -129,7 +129,6 @@ const navigation: NavItem[] = [
       { name: 'ตรวจรับเข้า', href: '/quality/incoming-inspection', icon: ClipboardCheck },
       { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/quality/scale-verification', icon: Scale },
       { name: 'ตรวจสภาพแวดล้อม', href: '/environmental/inspections', icon: Thermometer },
-      { name: 'แบบฟอร์มตรวจสภาพแวดล้อม', href: '/environmental/templates', icon: ClipboardList },
       { name: 'ระบบน้ำ (Water Quality)', href: '/environmental/water-quality', icon: Droplets },
       { name: 'แจ้งเตือนบำรุงรักษา', href: '/notifications', icon: Bell },
       { name: 'ปฏิทินบำรุงรักษา', href: '/notifications/calendar', icon: CalendarDays },
