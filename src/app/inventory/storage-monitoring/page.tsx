@@ -186,7 +186,22 @@ export default function StorageMonitoringPage() {
 
   const columns: DxDataGridColumn[] = [
     { dataField: 'readingAt', caption: 'วันเวลา', dataType: 'datetime', width: 160 },
-    { dataField: 'warehouseCode', caption: 'คลัง', width: 100 },
+    {
+      dataField: 'warehouseCode',
+      caption: 'คลัง',
+      width: 220,
+      cellRender: (c: any) => {
+        const d = c.data as LogRow;
+        return (
+          <span>
+            <span className="font-medium">{d.warehouseCode}</span>
+            {d.warehouseName ? (
+              <span className="text-gray-500"> — {d.warehouseName}</span>
+            ) : null}
+          </span>
+        );
+      },
+    },
     { dataField: 'temperature', caption: '°C', format: '#,##0.0', width: 80 },
     { dataField: 'humidity', caption: '%RH', format: '#,##0.0', width: 80 },
     {
