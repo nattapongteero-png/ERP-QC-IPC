@@ -167,7 +167,9 @@ export async function createSchedule(input: {
 }): Promise<{ id: number }> {
   return executeDbOperation(async (db) => {
     const t = getTables();
-    const nextDue = computeNextDue(input.frequency).toISOString();
+    // MySQL datetime needs a Date object; SQLite needs an ISO string.
+    // toDbDate() returns the right type for each (matches the record path).
+    const nextDue = toDbDate(computeNextDue(input.frequency));
     const ins = await db.insert(t.schedules).values({
       targetType: input.targetType,
       targetId: input.targetId,
