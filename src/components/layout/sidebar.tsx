@@ -98,7 +98,7 @@ const navigation: NavItem[] = [
       { name: 'Lots', href: '/inventory/lots', icon: Package },
       { name: 'Warehouses', href: '/inventory/warehouses', icon: Warehouse },
       // Inbound → outbound → returns
-      { name: 'ตรวจรับของ (GRN)', href: '/inventory/goods-receipt', icon: ClipboardCheck },
+      { name: 'ตรวจรับของ', href: '/inventory/goods-receipt', icon: ClipboardCheck },
       { name: 'ใบเบิกวัตถุดิบ', href: '/inventory/requisitions', icon: ClipboardList },
       { name: 'Returns Inbox', href: '/inventory/returns', icon: Undo2 },
       // Records & monitoring
