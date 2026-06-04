@@ -5,6 +5,7 @@
  * Feature: 023
  */
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { DataGrid, Column, FilterRow, Paging } from 'devextreme-react/data-grid';
@@ -210,6 +211,12 @@ export default function InspectionsPage() {
         </h1>
         <div className="flex gap-2 flex-wrap">
           <Button text={t('actions.refresh')} onClick={() => refetch()} />
+          <Link
+            href="/environmental/templates"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
+          >
+            <ListPlus className="w-4 h-4" /> จัดการ Templates
+          </Link>
           <Button
             stylingMode="outlined"
             onClick={() => setTmplOpen(true)}
