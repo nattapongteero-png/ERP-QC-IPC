@@ -221,7 +221,7 @@ export default function QcInspectionsPage() {
   return (
       <div className="space-y-4 p-4">
         <ResponsivePageHeader
-          title="QC Inspection (อิสระจาก BOM)"
+          title="ใบตรวจ QC"
           subtitle="แบบบันทึกการตรวจคุณภาพของฝ่าย QC — สามารถดู eBMR ของฝ่ายผลิตได้"
           actions={
             <DxButton
