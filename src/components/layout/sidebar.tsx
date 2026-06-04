@@ -93,15 +93,18 @@ const navigation: NavItem[] = [
     icon: Warehouse,
     roles: ['admin', 'manager', 'warehouse', 'production', 'qc', 'purchasing'],
     children: [
+      // Master data
       { name: 'Items', href: '/inventory/items', icon: Boxes },
       { name: 'Lots', href: '/inventory/lots', icon: Package },
       { name: 'Warehouses', href: '/inventory/warehouses', icon: Warehouse },
-      { name: 'Transactions', href: '/inventory/transactions', icon: ArrowLeftRight },
-      { name: 'ใบเบิกวัตถุดิบ', href: '/inventory/requisitions', icon: ClipboardList },
+      // Inbound → outbound → returns
       { name: 'ตรวจรับของ (GRN)', href: '/inventory/goods-receipt', icon: ClipboardCheck },
+      { name: 'ใบเบิกวัตถุดิบ', href: '/inventory/requisitions', icon: ClipboardList },
       { name: 'Returns Inbox', href: '/inventory/returns', icon: Undo2 },
-      { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: AlertTriangle },
+      // Records & monitoring
+      { name: 'Transactions', href: '/inventory/transactions', icon: ArrowLeftRight },
       { name: 'Storage Monitoring', href: '/inventory/storage-monitoring', icon: Thermometer },
+      { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: AlertTriangle },
     ],
   },
   {
