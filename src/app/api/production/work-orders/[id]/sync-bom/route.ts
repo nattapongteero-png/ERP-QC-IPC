@@ -54,13 +54,18 @@ export async function POST(
       }
 
       const sopInserted = await initializeWOSOPExecution(workOrderId, wo.bomId);
-      const ipcInserted = await initializeWOIPCTests(workOrderId, session.userId);
+      const { created: ipcCreated, rephased: ipcRephased } = await initializeWOIPCTests(
+        workOrderId,
+        session.userId,
+      );
 
       const sopCount = Array.isArray(sopInserted) ? sopInserted.length : 0;
-      const ipcCount = Array.isArray(ipcInserted) ? ipcInserted.length : 0;
+      const ipcCount = Array.isArray(ipcCreated) ? ipcCreated.length : 0;
 
       // Notify any open dashboards so they refresh without a manual reload.
-      if (sopCount > 0 || ipcCount > 0) {
+      // A phase re-sync (ipcRephased) counts too — the card may move phases
+      // even when nothing was newly inserted.
+      if (sopCount > 0 || ipcCount > 0 || ipcRephased > 0) {
         try {
           publishWorkOrderChanged(workOrderId, 'status', session.userId, 'sync-bom');
         } catch {
@@ -71,6 +76,7 @@ export async function POST(
       return successResponse({
         sopInserted: sopCount,
         ipcInserted: ipcCount,
+        ipcRephased,
       });
     } catch (error) {
       console.error('Error syncing WO from BOM:', error);

@@ -2946,7 +2946,7 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
 
     // Get BOM IPC config
     const ipcConfig = await getBOMIPCConfig(wo.bomId);
-    if (ipcConfig.length === 0) return [];
+    if (ipcConfig.length === 0) return { created: [], rephased: 0 };
 
     // Find lot by batchNumber (same as qc-tests pattern)
     let targetLotId: number | null = null;
@@ -2988,6 +2988,7 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
         id: tables.qualityTests.id,
         sampleNumber: tables.qualityTests.sampleNumber,
         ipcPhase: tables.qualityTests.ipcPhase,
+        status: tables.qualityTests.status,
       })
       .from(tables.qualityTests)
       .where(
@@ -2996,27 +2997,45 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
           eq(tables.qualityTests.testType, 'in_process')
         )
       );
-    const existingByNumber = new Map<string, { id: number; ipcPhase: string | null }>(
+    const existingByNumber = new Map<
+      string,
+      { id: number; ipcPhase: string | null; status: string | null }
+    >(
       existingTests
         .filter((t: any) => t.sampleNumber)
-        .map((t: any) => [t.sampleNumber as string, { id: t.id, ipcPhase: t.ipcPhase }])
+        .map((t: any) => [
+          t.sampleNumber as string,
+          { id: t.id, ipcPhase: t.ipcPhase, status: t.status },
+        ])
     );
 
     // Create quality_tests for each BOM IPC criteria
     const created = [];
+    // Count of existing tests whose ipc_phase was re-synced to the current BOM
+    // config (so callers can refetch the dashboard even when nothing was newly
+    // inserted — e.g. an admin edited a criteria's phase after WO init).
+    let rephased = 0;
     for (let i = 0; i < ipcConfig.length; i++) {
       const config = ipcConfig[i];
       const sampleNumber = `IPC-${config.sequence || (i + 1)}`;
       const phaseFromConfig = config.phase || 'production';
 
-      // Already exists — backfill ipcPhase if NULL, then skip creation.
+      // Already exists — re-sync its phase to the current BOM config, then skip
+      // creation so operator results aren't reset. A *pending* test (not yet
+      // recorded) tracks BOM phase edits; a test with results stays frozen for
+      // GMP integrity (its phase is only backfilled when previously NULL).
       const existingForThisCriteria = existingByNumber.get(sampleNumber);
       if (existingForThisCriteria) {
-        if (existingForThisCriteria.ipcPhase == null) {
+        const isPending = existingForThisCriteria.status === 'pending';
+        const phaseChanged = existingForThisCriteria.ipcPhase !== phaseFromConfig;
+        const shouldResync =
+          existingForThisCriteria.ipcPhase == null || (isPending && phaseChanged);
+        if (shouldResync) {
           await db
             .update(tables.qualityTests)
             .set({ ipcPhase: phaseFromConfig, updatedAt: getNow() })
             .where(eq(tables.qualityTests.id, existingForThisCriteria.id));
+          rephased++;
         }
         continue;
       }
@@ -3071,7 +3090,7 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
       created.push({ id: getInsertId(testResult), criteriaId: config.criteriaId, testName: config.testName });
     }
 
-    return created;
+    return { created, rephased };
   });
 }
 

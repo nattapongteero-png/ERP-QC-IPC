@@ -119,19 +119,23 @@ export async function POST(
 
       // Action: Initialize IPC tests from BOM config
       if (action === 'initialize') {
-        const created = await initializeWOIPCTests(workOrderId, session.userId);
+        const { created, rephased } = await initializeWOIPCTests(workOrderId, session.userId);
 
         await createAuditLog({
           userId: session.userId,
           action: 'CREATE',
           tableName: 'quality_tests',
           recordId: workOrderId,
-          newValue: { action: 'initialize_ipc', count: created.length },
+          newValue: { action: 'initialize_ipc', count: created.length, rephased },
           ipAddress: getClientIP(request),
         });
 
         publishWorkOrderChanged(workOrderId, 'ipc', session.userId, 'init');
-        return successResponse(created, `Initialized ${created.length} IPC tests from BOM`);
+        const msg =
+          rephased > 0
+            ? `Initialized ${created.length} IPC tests from BOM (re-synced ${rephased} phase${rephased > 1 ? 's' : ''})`
+            : `Initialized ${created.length} IPC tests from BOM`;
+        return successResponse(created, msg);
       }
 
       // Action: Record test result

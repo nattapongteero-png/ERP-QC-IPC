@@ -190,8 +190,10 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
         if (!result.success) return;
         const sopAdded = result.data?.sopInserted ?? 0;
         const ipcAdded = result.data?.ipcInserted ?? 0;
-        if (sopAdded > 0 || ipcAdded > 0) {
-          // New rows landed — refetch the summary so the new cards appear.
+        const ipcRephased = result.data?.ipcRephased ?? 0;
+        if (sopAdded > 0 || ipcAdded > 0 || ipcRephased > 0) {
+          // New rows landed (or a pending IPC test moved phases) — refetch the
+          // summary so the cards reflect the current BOM config.
           queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
         }
       } catch {
