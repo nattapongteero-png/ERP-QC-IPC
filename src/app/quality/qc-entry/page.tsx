@@ -431,6 +431,12 @@ export default function QcEntryListPage() {
                 onClick={fetchSamples}
               />
               <DxButton
+                icon="preferences"
+                text="กำหนด Test Panels"
+                stylingMode="outlined"
+                onClick={() => router.push('/quality/test-panels')}
+              />
+              <DxButton
                 icon="plus"
                 text="ลงทะเบียนตัวอย่างใหม่"
                 type="default"

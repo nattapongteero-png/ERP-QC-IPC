@@ -60,7 +60,6 @@ import {
   TrendingUp,
   Play,
   Layers,
-  ListChecks,
   Award,
   ScrollText,
   Scale,
@@ -130,9 +129,8 @@ const navigation: NavItem[] = [
       // QC records & inspection forms
       { name: 'QC Entry', href: '/quality/qc-entry', icon: FlaskConical },
       { name: 'ใบตรวจ QC', href: '/quality/qc-inspections', icon: ClipboardList },
-      // Test standards & config
+      // Test standards & config (Test Panels live inside the QC Entry page)
       { name: 'Specifications', href: '/quality/specs', icon: FileText },
-      { name: 'Test Panels', href: '/quality/test-panels', icon: ListChecks },
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       // Certificate of Analysis (templates live inside this page)
       { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
