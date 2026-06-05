@@ -50,7 +50,8 @@ export async function setSession(payload: JWTPayload): Promise<void> {
   
   cookieStore.set('auth-token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    // Secure by default in production; opt-out for HTTP-only internal/LAN testing
+    secure: process.env.NODE_ENV === 'production' && process.env.AUTH_COOKIE_INSECURE !== 'true',
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
