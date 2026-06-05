@@ -316,6 +316,15 @@ export default function WaterQualityPage() {
               />
             </div>
           ))}
+          {selectedPoint && (specs ?? []).length === 0 && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded p-3 text-sm flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                ระบบน้ำของจุดเก็บนี้ยังไม่มีการตั้งเกณฑ์ (Spec) จึงไม่มีรายการให้บันทึก —
+                กรุณากดปุ่ม “+ Spec” เพื่อเพิ่มเกณฑ์ของระบบน้ำนี้ก่อน แล้วจึงบันทึกผลตรวจได้
+              </span>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.notes')}</label>
             <TextArea
@@ -347,7 +356,11 @@ export default function WaterQualityPage() {
               type="success"
               stylingMode="contained"
               text={t('actions.save')}
-              disabled={!samplePointId || recordMut.isPending}
+              disabled={
+                !samplePointId ||
+                (!!selectedPoint && (specs ?? []).length === 0) ||
+                recordMut.isPending
+              }
               onClick={() => recordMut.mutate()}
             />
           </div>
