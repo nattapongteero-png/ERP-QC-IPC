@@ -2,9 +2,9 @@
  * Equipment Notification Service — CRUD + idempotent scan + counts
  * Feature: 022-equipment-notifications
  */
-import { eq, and, desc, sql, inArray, isNull, or, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray, isNull, or, gte, lt } from 'drizzle-orm';
 import { executeDbOperation, getTableRef, getInsertId } from '../db/db-helper';
-import { getNow, toDbDate } from '../db/date-utils';
+import { getNow, toDbDate, toQueryDate } from '../db/date-utils';
 import {
   EquipmentNotificationError,
   NOTIFICATION_ERROR_CODES,
@@ -392,24 +392,38 @@ export async function getCalendarItems(
 }>> {
   return executeDbOperation(async (db) => {
     const t = getTables();
-    const start = `${monthIso}-01T00:00:00.000Z`;
+    // Bound by [first of month, first of next month). dueAt is a MySQL datetime
+    // (Date) / SQLite ISO text — toQueryDate() returns the right type for each
+    // so the comparison actually matches (ISO 'T'/'Z' strings never match a
+    // MySQL datetime column, which silently emptied the calendar on UAT).
     const [year, month] = monthIso.split('-').map(Number);
-    const lastDay = new Date(year, month, 0).getDate();
-    const end = `${monthIso}-${String(lastDay).padStart(2, '0')}T23:59:59.999Z`;
+    const startStr = `${monthIso}-01`;
+    const nextStr =
+      month === 12
+        ? `${year + 1}-01-01`
+        : `${year}-${String(month + 1).padStart(2, '0')}-01`;
 
     const rows = await db
       .select()
       .from(t.notifications)
       .where(
         and(
-          gte(t.notifications.dueAt, start),
-          lte(t.notifications.dueAt, end),
+          gte(t.notifications.dueAt, toQueryDate(startStr)),
+          lt(t.notifications.dueAt, toQueryDate(nextStr)),
         ),
       );
 
+    // Format the due date from local components (not toISOString) so an item
+    // due late in the day in UTC+7 lands on the correct calendar cell.
+    const toDateStr = (v: unknown): string => {
+      if (typeof v === 'string') return v.slice(0, 10);
+      const d = new Date(v as any);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
     return rows.map((r: any) => ({
       id: Number(r.id),
-      date: typeof r.dueAt === 'string' ? r.dueAt.slice(0, 10) : new Date(r.dueAt).toISOString().slice(0, 10),
+      date: toDateStr(r.dueAt),
       title: String(r.title),
       severity: r.severity as NotificationSeverity,
       entityType: String(r.entityType),

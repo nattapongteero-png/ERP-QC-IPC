@@ -288,17 +288,22 @@ export default function MaintenanceAlertsPage() {
         </DataGrid>
       ) : (
         <div className="bg-white border rounded-lg p-3">
-          <div className="flex items-center justify-end gap-2 mb-2">
-            <Button icon="back" onClick={() => setMonth(monthOffset(month, -1))} />
-            <span className="font-medium text-lg w-28 text-center">{month}</span>
-            <Button icon="forward" onClick={() => setMonth(monthOffset(month, +1))} />
-            <Button
-              text="วันนี้"
-              onClick={() => {
-                const d = new Date();
-                setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
-              }}
-            />
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="text-xs text-gray-500">
+              ปฏิทินแสดงงานบำรุงรักษา/แจ้งเตือนที่ <span className="font-medium">ครบกำหนด</span> ในแต่ละวันของเดือน — ใช้วางแผนล่วงหน้า
+            </div>
+            <div className="flex items-center gap-2">
+              <Button icon="chevronleft" hint="เดือนก่อนหน้า" onClick={() => setMonth(monthOffset(month, -1))} data-testid="cal-prev" />
+              <span className="font-medium text-lg w-28 text-center">{month}</span>
+              <Button icon="chevronright" hint="เดือนถัดไป" onClick={() => setMonth(monthOffset(month, +1))} data-testid="cal-next" />
+              <Button
+                text="วันนี้"
+                onClick={() => {
+                  const d = new Date();
+                  setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+                }}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-7 gap-1 text-xs font-medium text-gray-500 mb-1">
             {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((d) => (
