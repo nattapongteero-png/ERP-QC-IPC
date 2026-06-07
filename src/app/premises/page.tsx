@@ -16,7 +16,6 @@ import {
   Thermometer,
   Droplets,
   Bell,
-  CalendarDays,
   Sparkles,
   ChevronRight,
 } from 'lucide-react';
@@ -65,16 +64,7 @@ const cards = [
     iconColor: 'text-amber-600',
     titleTh: 'แจ้งเตือนการบำรุงรักษา',
     titleEn: 'Maintenance Alerts',
-    desc: 'งานบำรุงรักษาเครื่องมือ/อาคารที่ถึงกำหนดหรือเกินกำหนด',
-  },
-  {
-    href: '/premises/notifications/calendar',
-    icon: CalendarDays,
-    iconBg: 'bg-violet-100',
-    iconColor: 'text-violet-600',
-    titleTh: 'ปฏิทินบำรุงรักษา',
-    titleEn: 'Maintenance Calendar',
-    desc: 'ปฏิทินแผนงานบำรุงรักษาทั้งหมด',
+    desc: 'งานบำรุงรักษา/สอบเทียบที่ถึงกำหนด + ผลตรวจเกินเกณฑ์ (มีทั้งมุมมองรายการและปฏิทิน)',
   },
 ];
 

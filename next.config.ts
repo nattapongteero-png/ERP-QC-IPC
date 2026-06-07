@@ -20,7 +20,10 @@ const nextConfig: NextConfig = {
       { source: '/environmental/:path*', destination: '/premises/environmental/:path*', permanent: false },
       { source: '/gmp/sanitation', destination: '/premises/sanitation', permanent: false },
       { source: '/gmp/sanitation/:path*', destination: '/premises/sanitation/:path*', permanent: false },
+      // Maintenance calendar merged into the notifications page (List/Calendar toggle).
+      { source: '/premises/notifications/calendar', destination: '/premises/notifications', permanent: false },
       { source: '/notifications', destination: '/premises/notifications', permanent: false },
+      { source: '/notifications/calendar', destination: '/premises/notifications', permanent: false },
       { source: '/notifications/:path*', destination: '/premises/notifications/:path*', permanent: false },
     ];
   },

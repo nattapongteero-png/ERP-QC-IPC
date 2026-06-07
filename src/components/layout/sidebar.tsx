@@ -62,7 +62,6 @@ import {
   Award,
   ScrollText,
   Scale,
-  CalendarDays,
   Thermometer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -150,7 +149,6 @@ const navigation: NavItem[] = [
       { name: 'การจัดการสุขาภิบาล', href: '/premises/sanitation', icon: Sparkles },
       { name: 'ระบบน้ำ (Water Quality)', href: '/premises/environmental/water-quality', icon: Droplets },
       { name: 'แจ้งเตือนบำรุงรักษา', href: '/premises/notifications', icon: Bell },
-      { name: 'ปฏิทินบำรุงรักษา', href: '/premises/notifications/calendar', icon: CalendarDays },
     ],
   },
   {
