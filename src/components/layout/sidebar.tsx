@@ -101,7 +101,6 @@ const navigation: NavItem[] = [
       { name: 'Returns Inbox', href: '/inventory/returns', icon: Undo2 },
       // Records & monitoring
       { name: 'Transactions', href: '/inventory/transactions', icon: ArrowLeftRight },
-      { name: 'Storage Monitoring', href: '/inventory/storage-monitoring', icon: Thermometer },
       { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: AlertTriangle },
     ],
   },
@@ -132,16 +131,26 @@ const navigation: NavItem[] = [
       { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
       // Inspections
       { name: 'Incoming Inspection (QC)', href: '/quality/incoming-inspection', icon: ClipboardCheck },
-      // Equipment & environment checks
+      // Equipment checks
       { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/quality/scale-verification', icon: Scale },
-      { name: 'ตรวจสภาพแวดล้อม', href: '/environmental/inspections', icon: Thermometer },
-      { name: 'ระบบน้ำ (Water Quality)', href: '/environmental/water-quality', icon: Droplets },
-      // Equipment maintenance
-      { name: 'แจ้งเตือนบำรุงรักษา', href: '/notifications', icon: Bell },
-      { name: 'ปฏิทินบำรุงรักษา', href: '/notifications/calendar', icon: CalendarDays },
       // Deviations & audit
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
       { name: 'QC Audit Trail', href: '/quality/audit-trail', icon: ScrollText },
+    ],
+  },
+  {
+    name: 'Premises',
+    href: '/premises',
+    icon: Building2,
+    roles: ['admin', 'manager', 'qc', 'qa', 'production', 'warehouse'],
+    children: [
+      { name: 'Premises Overview', href: '/premises', icon: Building2 },
+      { name: 'Storage Monitoring', href: '/inventory/storage-monitoring', icon: Thermometer },
+      { name: 'ตรวจสภาพแวดล้อม', href: '/environmental/inspections', icon: Thermometer },
+      { name: 'การจัดการสุขาภิบาล', href: '/gmp/sanitation', icon: Sparkles },
+      { name: 'ระบบน้ำ (Water Quality)', href: '/environmental/water-quality', icon: Droplets },
+      { name: 'แจ้งเตือนบำรุงรักษา', href: '/notifications', icon: Bell },
+      { name: 'ปฏิทินบำรุงรักษา', href: '/notifications/calendar', icon: CalendarDays },
     ],
   },
   {
@@ -155,7 +164,6 @@ const navigation: NavItem[] = [
       { name: 'CAPA', href: '/gmp/capa', icon: Target },
       { name: 'Complaints', href: '/gmp/complaints', icon: MessageSquare },
       { name: 'Recalls', href: '/gmp/recalls', icon: Undo2 },
-      { name: 'Sanitation', href: '/gmp/sanitation', icon: Droplets },
       { name: 'Stability', href: '/gmp/stability', icon: FlaskConical },
       { name: 'Internal Audit', href: '/gmp/internal-audit', icon: Search },
       { name: 'Contracts', href: '/gmp/contracts', icon: Briefcase },

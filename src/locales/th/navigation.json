@@ -17,7 +17,8 @@
     "users": "ผู้ใช้",
     "admin": "ผู้ดูแลระบบ",
     "settings": "การตั้งค่า",
-    "workflow": "เวิร์กโฟลว์"
+    "workflow": "เวิร์กโฟลว์",
+    "premises": "อาคารและสถานที่"
   },
   "inventory": {
     "items": "รายการสินค้า",
@@ -140,5 +141,8 @@
   },
   "breadcrumb": {
     "home": "หน้าหลัก"
+  },
+  "premises": {
+    "overview": "ภาพรวม"
   }
 }

@@ -29,6 +29,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Inventory': 'modules.inventory',
   'Production': 'modules.production',
   'Quality': 'modules.quality',
+  'Premises': 'modules.premises',
   'GMP Compliance': 'modules.gmp',
   'Purchasing': 'modules.purchasing',
   'Sales': 'modules.sales',
@@ -70,6 +71,9 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Specifications': 'quality.specs',
   'Deviations': 'quality.deviations',
   'QC Audit Trail': 'quality.auditTrail',
+
+  // Premises submenu
+  'Premises Overview': 'premises.overview',
 
   // GMP submenu
   'Documents': 'gmp.documents',

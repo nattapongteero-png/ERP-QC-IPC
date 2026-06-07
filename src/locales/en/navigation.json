@@ -17,7 +17,8 @@
     "users": "Users",
     "admin": "Admin",
     "settings": "Settings",
-    "workflow": "Workflow"
+    "workflow": "Workflow",
+    "premises": "Premises & Facilities"
   },
   "inventory": {
     "items": "Items",
@@ -140,5 +141,8 @@
   },
   "breadcrumb": {
     "home": "Home"
+  },
+  "premises": {
+    "overview": "Overview"
   }
 }
