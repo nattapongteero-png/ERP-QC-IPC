@@ -9,7 +9,9 @@ import { signChecklistSchema } from '@/lib/validation/goods-receipt';
 import { signChecklist } from '@/lib/services/goods-receipt-checklist.service';
 import { GoodsReceiptError } from '@/types/goods-receipt';
 
-const CHECKLIST_PERMISSION = 'inventory:goods_receipt:checklist';
+// QC records/signs the incoming checklist (not the warehouse). Gated by the
+// QC incoming permission so only QC can perform the inspection step.
+const CHECKLIST_PERMISSION = 'quality:incoming:approve';
 
 interface Params {
   params: Promise<{ id: string; lineId: string }>;

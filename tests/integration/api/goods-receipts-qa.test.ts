@@ -43,8 +43,11 @@ const params = { params: Promise.resolve({ id: '1', lineId: '100' }) };
 describe('GRN QA endpoint', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.mockResolvedValue({ userId: 8, role: 'qa' });
-    mockGetPerms.mockResolvedValue(new Set(['quality:incoming:approve']));
+    mockSession.mockResolvedValue({ userId: 8, role: 'staff' });
+    // New model: release = warehouse perm, reject = QC perm. Default grants both.
+    mockGetPerms.mockResolvedValue(
+      new Set(['inventory:goods_receipt:receive', 'quality:incoming:approve']),
+    );
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -60,6 +63,24 @@ describe('GRN QA endpoint', () => {
     mockGetPerms.mockResolvedValue(new Set());
     const res = await POST(
       makeReq({ action: 'release', signature: { password: 'pw' } }),
+      params,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('release requires the warehouse permission (QC-only perm is 403)', async () => {
+    mockGetPerms.mockResolvedValue(new Set(['quality:incoming:approve']));
+    const res = await POST(
+      makeReq({ action: 'release', signature: { password: 'pw' } }),
+      params,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('reject requires the QC permission (warehouse-only perm is 403)', async () => {
+    mockGetPerms.mockResolvedValue(new Set(['inventory:goods_receipt:receive']));
+    const res = await POST(
+      makeReq({ action: 'reject', rejectionReason: 'Contamination found on outer packaging', signature: { password: 'pw' } }),
       params,
     );
     expect(res.status).toBe(403);

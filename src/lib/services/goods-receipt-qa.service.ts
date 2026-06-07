@@ -67,27 +67,15 @@ export async function qaReleaseLine(
       }
     }
 
-    // Require qc_approved status
+    // The warehouse may only release once QC has signed the incoming checklist
+    // (which sets the line to 'qc_approved'). That QC checklist IS the quality
+    // gate — we do not additionally block on the qc_sample lab status here, so
+    // the warehouse can release as soon as QC has recorded the checklist.
     if (line.status !== 'qc_approved') {
       throw new GoodsReceiptError(
         GOODS_RECEIPT_ERROR_CODES.QC_NOT_APPROVED,
-        `Line must be qc_approved before release (current: ${line.status})`,
+        'ยังปล่อยเข้าคลังไม่ได้: ต้องให้ QC ตรวจและบันทึก checklist ก่อน',
       );
-    }
-
-    // Verify QC sample status if linked
-    if (line.qcSampleId) {
-      const qc = await db
-        .select({ status: t.qcSamples.status })
-        .from(t.qcSamples)
-        .where(eq(t.qcSamples.id, Number(line.qcSampleId)))
-        .limit(1);
-      if (qc.length > 0 && !['approved', 'released'].includes(String(qc[0].status))) {
-        throw new GoodsReceiptError(
-          GOODS_RECEIPT_ERROR_CODES.QC_NOT_APPROVED,
-          'QC sample not approved',
-        );
-      }
     }
 
     // User info

@@ -300,8 +300,12 @@ export async function signChecklist(
       console.warn('[goods-receipt] QC sample creation failed', err);
     }
 
-    // Update line to qc_pending (or checklist_done if QC failed)
-    const newStatus = qcSampleCreationFailed ? 'checklist_done' : 'qc_pending';
+    // QC signs the incoming checklist → the line is QC-approved and ready for
+    // the warehouse to release. (Previously this only reached 'qc_pending' and
+    // nothing ever set 'qc_approved', so the warehouse Release action could
+    // never unlock.) If the QC sample failed to create, fall back to
+    // 'checklist_done' so the warehouse still cannot release.
+    const newStatus = qcSampleCreationFailed ? 'checklist_done' : 'qc_approved';
     await db
       .update(t.lines)
       .set({

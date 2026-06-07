@@ -119,7 +119,10 @@ export async function getPendingQaList(): Promise<Array<{
       .leftJoin(t.items, eq(t.items.id, t.lines.itemId))
       .leftJoin(t.qcSamples, eq(t.qcSamples.id, t.lines.qcSampleId))
       .leftJoin(t.vendors, eq(t.vendors.id, t.grns.vendorId))
-      .where(eq(t.lines.status, 'qc_approved'))
+      // QC's queue = lines awaiting the QC incoming checklist (status 'created').
+      // Once QC signs the checklist the line becomes 'qc_approved' and moves to
+      // the warehouse's release queue.
+      .where(eq(t.lines.status, 'created'))
       .orderBy(desc(t.lines.id))
       .limit(200);
 

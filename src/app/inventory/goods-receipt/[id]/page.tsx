@@ -60,6 +60,24 @@ export default function GrnDetailPage() {
 
   const category = data?.grn.sourceType === 'wo' ? 'finished_goods' : 'raw_material';
 
+  // Current user's permissions — gate the per-role actions:
+  //  - QC records/signs the incoming checklist (and rejects)
+  //  - the warehouse releases QC-approved lines into stock
+  const { data: session } = useQuery<{ permissions: string[]; role: string }>({
+    queryKey: ['auth-session'],
+    queryFn: async () => {
+      const res = await fetch('/api/auth/session');
+      const j = await res.json();
+      return {
+        permissions: (j?.data?.user?.permissions as string[]) ?? [],
+        role: String(j?.data?.user?.role ?? ''),
+      };
+    },
+  });
+  const isAdmin = (session?.role ?? '').toLowerCase() === 'admin';
+  const canChecklist = isAdmin || (session?.permissions ?? []).includes('quality:incoming:approve');
+  const canRelease = isAdmin || (session?.permissions ?? []).includes('inventory:goods_receipt:receive');
+
   // Current checklist template
   const { data: template } = useQuery<ChecklistTemplate[]>({
     queryKey: ['grn-template', category],
@@ -250,8 +268,9 @@ export default function GrnDetailPage() {
           cellRender={(c) => {
             const line = c.data as GoodsReceiptLine;
             return (
-              <div className="flex gap-1">
-                {line.status === 'created' && (
+              <div className="flex gap-1 items-center">
+                {/* QC records the incoming checklist (warehouse cannot) */}
+                {line.status === 'created' && canChecklist && (
                   <Button
                     text={t('actions.signChecklist')}
                     type="default"
@@ -267,14 +286,23 @@ export default function GrnDetailPage() {
                     }}
                   />
                 )}
-                {line.status === 'qc_approved' && (
+                {/* Warehouse view of a line still awaiting QC checklist */}
+                {line.status === 'created' && !canChecklist && (
+                  <span className="text-xs text-amber-600">รอ QC ตรวจ checklist</span>
+                )}
+                {/* Warehouse releases a QC-approved line into stock */}
+                {line.status === 'qc_approved' && canRelease && (
                   <Button
                     text={t('actions.release')}
                     type="success"
                     onClick={() => setQaActionOpen({ lineId: line.id, action: 'release' })}
                   />
                 )}
-                {['qc_pending', 'qc_approved', 'checklist_done'].includes(line.status) && (
+                {line.status === 'qc_approved' && !canRelease && (
+                  <span className="text-xs text-emerald-600">QC อนุมัติแล้ว — รอคลังปล่อยเข้าคลัง</span>
+                )}
+                {/* QC may reject an incoming line */}
+                {['qc_pending', 'qc_approved', 'checklist_done'].includes(line.status) && canChecklist && (
                   <Button
                     text={t('actions.reject')}
                     type="danger"
