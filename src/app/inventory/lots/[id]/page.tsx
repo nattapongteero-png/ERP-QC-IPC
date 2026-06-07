@@ -76,6 +76,21 @@ interface LotDetail {
     testDate: string | null;
     createdAt: string;
   }>;
+  qcSamples: Array<{
+    id: number;
+    sampleNumber: string;
+    sourceType: string;
+    status: string;
+    lotNumber: string | null;
+    receivedDate: string | null;
+    receivedByName: string | null;
+    flagForQcManager: boolean;
+    notes: string | null;
+    testTotal: number;
+    testPass: number;
+    testFail: number;
+    testPending: number;
+  }>;
   relatedWorkOrders: Array<{
     id: number;
     woNumber: string;
@@ -1012,27 +1027,131 @@ export default function LotDetailPage() {
         )}
 
         {activeTab === 'qc' && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>QC Tests</CardTitle>
-              <DxButton
-                text="New QC Test"
-                icon="plus"
-                type="default"
-                onClick={() => router.push(`/quality/tests/new?lotId=${lot.id}`)}
-              />
-            </CardHeader>
-            <CardContent>
-              <DxDataGrid
-                dataSource={lot.qcTests}
-                keyExpr="id"
-                columns={qcTestColumns}
-                showBorders
-                height={400}
-                noDataText="No QC tests found"
-              />
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            {/* Primary: LIMS QC samples (QC Entry) linked to this lot */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>QC (ระบบ QC Entry)</CardTitle>
+                  <p className="text-sm text-gray-500">ตัวอย่าง QC ที่ผูกกับ lot นี้ — คลิกหมายเลขตัวอย่างเพื่อเปิดใน QC Entry</p>
+                </div>
+                <DxButton
+                  text="บันทึก QC (QC Entry)"
+                  icon="plus"
+                  type="default"
+                  onClick={() =>
+                    router.push(
+                      `/quality/qc-entry/new?sourceLotId=${lot.id}&productId=${lot.itemId}&lotNumber=${encodeURIComponent(lot.lotNumber)}`,
+                    )
+                  }
+                />
+              </CardHeader>
+              <CardContent>
+                <DxDataGrid
+                  dataSource={lot.qcSamples}
+                  keyExpr="id"
+                  showBorders
+                  height={320}
+                  noDataText="ยังไม่มีตัวอย่าง QC สำหรับ lot นี้ (สร้างจากปุ่มด้านบน หรือระบบจะสร้างให้อัตโนมัติเมื่อรับของผ่าน GRN)"
+                  columns={[
+                    {
+                      dataField: 'sampleNumber',
+                      caption: 'หมายเลขตัวอย่าง',
+                      width: 160,
+                      cellRender: (c) => (
+                        <span
+                          className="font-medium text-blue-600 cursor-pointer hover:underline"
+                          onClick={() => router.push(`/quality/qc-entry/${c.data.id}`)}
+                        >
+                          {c.data.sampleNumber}
+                        </span>
+                      ),
+                    },
+                    {
+                      dataField: 'sourceType',
+                      caption: 'แหล่งที่มา',
+                      width: 130,
+                      cellRender: (c) => {
+                        const m: Record<string, string> = {
+                          raw_material_lot: 'วัตถุดิบ',
+                          work_order_batch: 'ผลิต (WO)',
+                          customer_return: 'รับคืน',
+                          purchased_herb: 'สมุนไพรซื้อ',
+                          outgoing_shipment: 'ส่งออก',
+                          stability: 'Stability',
+                        };
+                        return <span className="text-xs">{m[c.data.sourceType] || c.data.sourceType}</span>;
+                      },
+                    },
+                    {
+                      dataField: 'status',
+                      caption: 'สถานะ',
+                      width: 110,
+                      cellRender: (c) => <Badge variant={getQcStatusVariant(c.data.status)}>{c.data.status}</Badge>,
+                    },
+                    {
+                      caption: 'ผลทดสอบ',
+                      width: 150,
+                      cellRender: (c) => {
+                        const d = c.data;
+                        if (!d.testTotal) return <span className="text-gray-400">ยังไม่มีรายการ</span>;
+                        return (
+                          <span className="text-sm">
+                            <span className="text-green-600">{d.testPass} ผ่าน</span>
+                            {d.testFail > 0 && <span className="text-red-600"> / {d.testFail} ไม่ผ่าน</span>}
+                            {d.testPending > 0 && <span className="text-amber-600"> / {d.testPending} รอ</span>}
+                            <span className="text-gray-400"> (จาก {d.testTotal})</span>
+                          </span>
+                        );
+                      },
+                    },
+                    {
+                      dataField: 'receivedDate',
+                      caption: 'วันที่รับ',
+                      width: 110,
+                      cellRender: (c) => formatDate(c.data.receivedDate),
+                    },
+                    {
+                      dataField: 'receivedByName',
+                      caption: 'ผู้รับ',
+                      width: 130,
+                      cellRender: (c) => c.data.receivedByName || '-',
+                    },
+                    {
+                      dataField: 'flagForQcManager',
+                      caption: 'แจ้ง QC',
+                      width: 90,
+                      cellRender: (c) =>
+                        c.data.flagForQcManager ? (
+                          <span className="text-amber-600 text-xs font-medium">ต้องตรวจ</span>
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        ),
+                    },
+                  ]}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Legacy quality_tests — shown only when present */}
+            {lot.qcTests.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>QC Tests (ระบบเดิม)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DxDataGrid
+                    dataSource={lot.qcTests}
+                    keyExpr="id"
+                    columns={qcTestColumns}
+                    showBorders
+                    height={280}
+                    noDataText="No QC tests found"
+                  />
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
 
         {activeTab === 'traceability' && (

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, or, inArray } from 'drizzle-orm';
 import { withAuth } from '@/lib/api-utils';
 import { getTableRef, executeDbOperation, dbDate, parseDbDate } from '@/lib/db/db-helper';
 import { createAuditLog, getClientIP } from '@/lib/audit';
@@ -183,24 +183,117 @@ export async function GET(
         approvedByName: t.approvedBy ? qcUserMap.get(t.approvedBy) || null : null,
       }));
 
-      // Get work orders that used this lot (traceability)
-      const relatedWorkOrders = await executeDbOperation(async (db) => {
+      // ── LIMS QC samples linked to this lot (primary QC system / QC Entry) ──
+      // qc_samples link to a lot via source_lot_id (sample drawn from lot) or,
+      // for goods-receipt raw-material lots, via source_ref_id.
+      const lotIdNum = parseInt(id);
+      const qcSamplesTable = getTableRef('qcSamples');
+      const qcSampleTestsTable = getTableRef('qcSampleTests');
+      const qcSampleRows = await executeDbOperation(async (db) => {
         return db
           .select({
-            id: workOrders.id,
-            woNumber: workOrders.woNumber,
-            productId: workOrders.productId,
-            status: workOrders.status,
-            plannedQuantity: workOrders.plannedQuantity,
-            actualQuantity: workOrders.actualQuantity,
-            plannedStartDate: workOrders.plannedStartDate,
-            actualStartDate: workOrders.actualStartDate,
-            actualEndDate: workOrders.actualEndDate,
+            id: qcSamplesTable.id,
+            sampleNumber: qcSamplesTable.sampleNumber,
+            sourceType: qcSamplesTable.sourceType,
+            status: qcSamplesTable.status,
+            lotNumber: qcSamplesTable.lotNumber,
+            receivedDate: qcSamplesTable.receivedDate,
+            receivedBy: qcSamplesTable.receivedBy,
+            flagForQcManager: qcSamplesTable.flagForQcManager,
+            notes: qcSamplesTable.notes,
           })
-          .from(workOrders)
-          .orderBy(desc(workOrders.createdAt))
-          .limit(10);
+          .from(qcSamplesTable)
+          .where(
+            or(
+              eq(qcSamplesTable.sourceLotId, lotIdNum),
+              and(
+                eq(qcSamplesTable.sourceRefId, lotIdNum),
+                eq(qcSamplesTable.sourceType, 'raw_material_lot'),
+              ),
+            ),
+          )
+          .orderBy(desc(qcSamplesTable.id));
       });
+
+      // Per-sample test counts (total / pass / fail / pending)
+      const sampleIds = qcSampleRows.map((s: any) => s.id) as number[];
+      const testCounts = new Map<number, { total: number; pass: number; fail: number; pending: number }>();
+      if (sampleIds.length > 0) {
+        const testRows = await executeDbOperation(async (db) => {
+          return db
+            .select({ sampleId: qcSampleTestsTable.sampleId, resultStatus: qcSampleTestsTable.resultStatus })
+            .from(qcSampleTestsTable)
+            .where(inArray(qcSampleTestsTable.sampleId, sampleIds));
+        });
+        for (const t of testRows as any[]) {
+          const c = testCounts.get(t.sampleId) ?? { total: 0, pass: 0, fail: 0, pending: 0 };
+          c.total++;
+          const rs = String(t.resultStatus ?? '').toLowerCase();
+          if (['pass', 'passed', 'in_spec'].includes(rs)) c.pass++;
+          else if (['fail', 'failed', 'out_of_spec', 'oos'].includes(rs)) c.fail++;
+          else c.pending++;
+          testCounts.set(t.sampleId, c);
+        }
+      }
+
+      // Resolve receivedBy names
+      const sampleUserIds = [...new Set(qcSampleRows.map((s: any) => s.receivedBy).filter(Boolean))] as number[];
+      let sampleUserMap = new Map<number, string>();
+      if (sampleUserIds.length > 0) {
+        const su = await executeDbOperation(async (db) => {
+          return db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, sampleUserIds));
+        });
+        sampleUserMap = new Map(su.map((u: { id: number; name: string }) => [u.id, u.name]));
+      }
+
+      const qcSamples = qcSampleRows.map((s: any) => {
+        const c = testCounts.get(s.id) ?? { total: 0, pass: 0, fail: 0, pending: 0 };
+        return {
+          id: s.id,
+          sampleNumber: s.sampleNumber,
+          sourceType: s.sourceType,
+          status: s.status,
+          lotNumber: s.lotNumber,
+          receivedDate: s.receivedDate,
+          receivedByName: s.receivedBy ? sampleUserMap.get(s.receivedBy) || null : null,
+          flagForQcManager: Boolean(s.flagForQcManager),
+          notes: s.notes,
+          testTotal: c.total,
+          testPass: c.pass,
+          testFail: c.fail,
+          testPending: c.pending,
+        };
+      });
+
+      // Forward traceability: work orders that actually CONSUMED this lot
+      // (linked via work_order_materials.lot_id), not just the latest WOs.
+      const workOrderMaterials = getTableRef('workOrderMaterials');
+      const consumingRows = await executeDbOperation(async (db) => {
+        return db
+          .select({ workOrderId: workOrderMaterials.workOrderId })
+          .from(workOrderMaterials)
+          .where(eq(workOrderMaterials.lotId, lotIdNum));
+      });
+      const consumingWoIds = [...new Set(consumingRows.map((r: any) => r.workOrderId).filter(Boolean))] as number[];
+      const relatedWorkOrders = consumingWoIds.length > 0
+        ? await executeDbOperation(async (db) => {
+            return db
+              .select({
+                id: workOrders.id,
+                woNumber: workOrders.woNumber,
+                productId: workOrders.productId,
+                status: workOrders.status,
+                plannedQuantity: workOrders.plannedQuantity,
+                actualQuantity: workOrders.actualQuantity,
+                plannedStartDate: workOrders.plannedStartDate,
+                actualStartDate: workOrders.actualStartDate,
+                actualEndDate: workOrders.actualEndDate,
+              })
+              .from(workOrders)
+              .where(inArray(workOrders.id, consumingWoIds))
+              .orderBy(desc(workOrders.createdAt));
+          })
+        : [];
 
       // Calculate days until expiry
       let daysUntilExpiry = null;
@@ -230,6 +323,7 @@ export async function GET(
         vendor: vendorInfo,
         transactions: enrichedTransactions,
         qcTests: enrichedQcTests,
+        qcSamples,
         relatedWorkOrders,
         daysUntilExpiry,
         expiryStatus,
