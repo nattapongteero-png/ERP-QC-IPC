@@ -17,8 +17,8 @@ import * as path from 'path';
 // ============================================
 
 const QUALITY_PAGES = [
-  // Main page
-  'src/app/quality/page.tsx',
+  // Note: /quality now redirects to /quality/qc-entry (QC Entry is the module
+  // home), so there is no standalone quality dashboard page to check here.
   // Deviations sub-module
   'src/app/quality/deviations/page.tsx',
   'src/app/quality/deviations/new/page.tsx',

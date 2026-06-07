@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   // routes are listed here — /api/* is never matched, so API calls are unaffected.
   async redirects() {
     return [
+      // QC Entry is the Quality module home (old dashboard removed).
+      { source: '/quality', destination: '/quality/qc-entry', permanent: false },
       { source: '/inventory/storage-monitoring', destination: '/premises/storage-monitoring', permanent: false },
       { source: '/environmental', destination: '/premises/environmental/inspections', permanent: false },
       { source: '/environmental/:path*', destination: '/premises/environmental/:path*', permanent: false },
