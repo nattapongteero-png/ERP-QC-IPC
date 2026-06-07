@@ -23,7 +23,7 @@ import {
 
 const cards = [
   {
-    href: '/inventory/storage-monitoring',
+    href: '/premises/storage-monitoring',
     icon: Thermometer,
     iconBg: 'bg-blue-100',
     iconColor: 'text-blue-600',
@@ -32,7 +32,7 @@ const cards = [
     desc: 'ติดตามอุณหภูมิ/ความชื้นของคลังจัดเก็บตามเวลา',
   },
   {
-    href: '/environmental/inspections',
+    href: '/premises/environmental/inspections',
     icon: Thermometer,
     iconBg: 'bg-teal-100',
     iconColor: 'text-teal-600',
@@ -41,7 +41,7 @@ const cards = [
     desc: 'บันทึกตรวจสภาพแวดล้อมพื้นที่ผลิตตามรอบ (อุณหภูมิ/ความชื้น/สภาพพื้นที่)',
   },
   {
-    href: '/gmp/sanitation',
+    href: '/premises/sanitation',
     icon: Sparkles,
     iconBg: 'bg-lime-100',
     iconColor: 'text-lime-600',
@@ -50,7 +50,7 @@ const cards = [
     desc: 'บันทึกการทำความสะอาด ตารางสุขาภิบาล แนวโน้ม และการกำจัดสัตว์พาหะ',
   },
   {
-    href: '/environmental/water-quality',
+    href: '/premises/environmental/water-quality',
     icon: Droplets,
     iconBg: 'bg-cyan-100',
     iconColor: 'text-cyan-600',
@@ -59,7 +59,7 @@ const cards = [
     desc: 'คุณภาพน้ำของระบบสาธารณูปโภค (utility) ตามเกณฑ์',
   },
   {
-    href: '/notifications',
+    href: '/premises/notifications',
     icon: Bell,
     iconBg: 'bg-amber-100',
     iconColor: 'text-amber-600',
@@ -68,7 +68,7 @@ const cards = [
     desc: 'งานบำรุงรักษาเครื่องมือ/อาคารที่ถึงกำหนดหรือเกินกำหนด',
   },
   {
-    href: '/notifications/calendar',
+    href: '/premises/notifications/calendar',
     icon: CalendarDays,
     iconBg: 'bg-violet-100',
     iconColor: 'text-violet-600',

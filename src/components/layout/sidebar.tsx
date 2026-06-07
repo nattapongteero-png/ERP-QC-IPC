@@ -145,12 +145,12 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager', 'qc', 'qa', 'production', 'warehouse'],
     children: [
       { name: 'Premises Overview', href: '/premises', icon: Building2 },
-      { name: 'Storage Monitoring', href: '/inventory/storage-monitoring', icon: Thermometer },
-      { name: 'ตรวจสภาพแวดล้อม', href: '/environmental/inspections', icon: Thermometer },
-      { name: 'การจัดการสุขาภิบาล', href: '/gmp/sanitation', icon: Sparkles },
-      { name: 'ระบบน้ำ (Water Quality)', href: '/environmental/water-quality', icon: Droplets },
-      { name: 'แจ้งเตือนบำรุงรักษา', href: '/notifications', icon: Bell },
-      { name: 'ปฏิทินบำรุงรักษา', href: '/notifications/calendar', icon: CalendarDays },
+      { name: 'Storage Monitoring', href: '/premises/storage-monitoring', icon: Thermometer },
+      { name: 'ตรวจสภาพแวดล้อม', href: '/premises/environmental/inspections', icon: Thermometer },
+      { name: 'การจัดการสุขาภิบาล', href: '/premises/sanitation', icon: Sparkles },
+      { name: 'ระบบน้ำ (Water Quality)', href: '/premises/environmental/water-quality', icon: Droplets },
+      { name: 'แจ้งเตือนบำรุงรักษา', href: '/premises/notifications', icon: Bell },
+      { name: 'ปฏิทินบำรุงรักษา', href: '/premises/notifications/calendar', icon: CalendarDays },
     ],
   },
   {

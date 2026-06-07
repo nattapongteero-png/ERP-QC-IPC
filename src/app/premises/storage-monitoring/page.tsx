@@ -4,7 +4,6 @@
  * Audit Q6 — บันทึก/ดู/รับทราบ alert
  */
 import { useEffect, useState, useMemo } from 'react';
-import { MainLayout } from '@/components/layout/main-layout';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
@@ -242,7 +241,7 @@ export default function StorageMonitoringPage() {
   ];
 
   return (
-    <MainLayout>
+    <>
       <div className="space-y-4 p-4">
         <ResponsivePageHeader
           title="Storage Environmental Monitoring"
@@ -417,6 +416,6 @@ export default function StorageMonitoringPage() {
 
         {loading && <div className="text-center text-gray-500 py-4">กำลังโหลด...</div>}
       </div>
-    </MainLayout>
+    </>
   );
 }
