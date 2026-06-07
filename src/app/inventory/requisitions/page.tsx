@@ -16,7 +16,6 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -296,6 +295,18 @@ export default function MaterialRequisitionsInboxPage() {
     return { requested, approved, insufficient };
   }, [rows]);
 
+  // Options for the "pick a requisition" dropdown — limited to the current
+  // status view so a pick always returns a result. Lets the user choose a WO
+  // instead of typing a number.
+  const woOptions = useMemo(() => {
+    return rows
+      .filter((r) => statusFilter === 'all' || r.requisitionStatus === statusFilter)
+      .map((r) => ({
+        value: r.woNumber,
+        label: `${r.woNumber} — ${r.productName ?? r.productCode ?? ''}${r.batchNumber ? ` · ${r.batchNumber}` : ''}`,
+      }));
+  }, [rows, statusFilter]);
+
   const toggle = (woId: number) =>
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -387,12 +398,17 @@ export default function MaterialRequisitionsInboxPage() {
                 displayExpr="label"
               />
             </div>
-            <div className="flex-1 min-w-[220px]">
-              <label className="block text-xs text-gray-500 mb-1">ค้นหา</label>
-              <DxTextBox
+            <div className="flex-1 min-w-[260px]">
+              <label className="block text-xs text-gray-500 mb-1">เลือกใบเบิก (WO / สินค้า)</label>
+              <DxSelectBox
+                dataSource={woOptions}
                 value={search}
                 onValueChange={(v) => setSearch(String(v ?? ''))}
-                placeholder="WO / Batch / Product"
+                displayExpr="label"
+                valueExpr="value"
+                searchEnabled
+                showClearButton
+                placeholder="เลือกหรือพิมพ์เพื่อค้นหา WO / สินค้า"
               />
             </div>
             <DxButton
