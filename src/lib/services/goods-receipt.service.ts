@@ -194,6 +194,66 @@ export async function createGrn(
   });
 }
 
+/**
+ * Auto-create a GRN for a source (PO approved / WO completed) — idempotent.
+ *
+ * Skips if a GRN already exists for the same poId/woId (so re-approving or
+ * re-completing does not create duplicates). Resolves the destination
+ * warehouse by type (finished_goods for WO output, raw_material for PO).
+ * Best-effort: callers should wrap in try/catch so the parent action (PO
+ * approval / WO completion) never fails because of GRN creation.
+ */
+export async function autoCreateGrnForSource(opts: {
+  sourceType: 'po' | 'wo';
+  poId?: number;
+  woId?: number;
+  userId: number;
+}): Promise<{ created: boolean; grnId: number | null }> {
+  const t = getTables();
+
+  // 1. Idempotency check + resolve destination warehouse.
+  const pre = await executeDbOperation(async (db) => {
+    const existing = await db
+      .select({ id: t.grns.id })
+      .from(t.grns)
+      .where(
+        opts.sourceType === 'po'
+          ? eq(t.grns.poId, Number(opts.poId))
+          : eq(t.grns.woId, Number(opts.woId)),
+      )
+      .limit(1);
+    if (existing.length > 0) return { existsId: Number(existing[0].id), warehouseId: null as number | null };
+
+    const whType = opts.sourceType === 'wo' ? 'finished_goods' : 'raw_material';
+    let whRows = await db.select({ id: t.warehouses.id }).from(t.warehouses).where(eq(t.warehouses.type, whType)).limit(1);
+    if (whRows.length === 0) {
+      whRows = await db.select({ id: t.warehouses.id }).from(t.warehouses).limit(1);
+    }
+    return { existsId: null as number | null, warehouseId: whRows[0]?.id ?? null };
+  });
+
+  if (pre.existsId) return { created: false, grnId: pre.existsId };
+  if (!pre.warehouseId) return { created: false, grnId: null };
+
+  // 2. Create the GRN (lines prefilled from PO/WO).
+  const today = new Date().toISOString().slice(0, 10);
+  const { grn } = await createGrn(
+    {
+      sourceType: opts.sourceType,
+      poId: opts.sourceType === 'po' ? opts.poId : null,
+      woId: opts.sourceType === 'wo' ? opts.woId : null,
+      warehouseId: Number(pre.warehouseId),
+      receivedDate: today,
+      notes:
+        opts.sourceType === 'wo'
+          ? 'สร้างอัตโนมัติเมื่อปิด Work Order'
+          : 'สร้างอัตโนมัติเมื่ออนุมัติใบสั่งซื้อ (PO)',
+    },
+    opts.userId,
+  );
+  return { created: true, grnId: Number(grn.id) };
+}
+
 // ============================================
 // Update line actuals (variance calculation)
 // ============================================

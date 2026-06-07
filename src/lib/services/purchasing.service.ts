@@ -417,6 +417,18 @@ export async function updatePurchaseOrderStatus(
     newValue: { status: newStatus, reason  },
   });
 
+  // On approval, auto-create a Goods Receipt so the PO lines appear on the GRN
+  // screen waiting to be received (quarantine → QC checklist → warehouse
+  // release). Idempotent + best-effort: never fail the approval on GRN error.
+  if (newStatus === 'approved') {
+    try {
+      const { autoCreateGrnForSource } = await import('./goods-receipt.service');
+      await autoCreateGrnForSource({ sourceType: 'po', poId, userId });
+    } catch (err) {
+      console.warn('PO-approved auto-GRN failed (non-fatal):', err);
+    }
+  }
+
   return true;
 }
 
