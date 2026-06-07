@@ -11,6 +11,7 @@ import { eq, and, desc, sql, lte } from 'drizzle-orm';
 import { createHash } from 'crypto';
 import { executeDbOperation, getTableRef, getInsertId } from '../db/db-helper';
 import { getNow, toDbDate } from '../db/date-utils';
+import { createAuditLog } from '../audit';
 import {
   EnvMonitorError,
   ENV_MONITOR_ERROR_CODES,
@@ -404,6 +405,295 @@ export async function recordInspection(
       outOfSpecCount,
       deviationId,
     };
+  });
+}
+
+// ============================================
+// Inspection records — history / view / edit / delete
+// ============================================
+
+export interface InspectionRecordListItem {
+  id: number;
+  performedAt: string;
+  targetType: string;
+  targetId: number;
+  targetName: string | null;
+  templateId: number;
+  templateName: string | null;
+  operatorUserId: number;
+  operatorName: string | null;
+  overallResult: string;
+  status: string;
+  notes: string | null;
+  deviationId: number | null;
+}
+
+export async function listInspectionRecords(filter?: {
+  limit?: number;
+}): Promise<InspectionRecordListItem[]> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const rows = await db
+      .select({
+        id: t.records.id,
+        performedAt: t.records.performedAt,
+        targetType: t.records.targetType,
+        targetId: t.records.targetId,
+        targetName: t.schedules.targetName,
+        templateId: t.records.templateId,
+        templateName: t.templates.name,
+        operatorUserId: t.records.operatorUserId,
+        operatorName: t.users.name,
+        overallResult: t.records.overallResult,
+        status: t.records.status,
+        notes: t.records.notes,
+        deviationId: t.records.deviationId,
+      })
+      .from(t.records)
+      .leftJoin(t.templates, eq(t.templates.id, t.records.templateId))
+      .leftJoin(t.schedules, eq(t.schedules.id, t.records.scheduleId))
+      .leftJoin(t.users, eq(t.users.id, t.records.operatorUserId))
+      .orderBy(desc(t.records.performedAt))
+      .limit(filter?.limit ?? 200);
+
+    return rows.map((r: any) => ({
+      id: Number(r.id),
+      performedAt: String(r.performedAt),
+      targetType: String(r.targetType),
+      targetId: Number(r.targetId),
+      targetName: r.targetName ?? null,
+      templateId: Number(r.templateId),
+      templateName: r.templateName ?? null,
+      operatorUserId: Number(r.operatorUserId),
+      operatorName: r.operatorName ?? null,
+      overallResult: String(r.overallResult),
+      status: String(r.status),
+      notes: r.notes ?? null,
+      deviationId: r.deviationId != null ? Number(r.deviationId) : null,
+    }));
+  });
+}
+
+export interface InspectionRecordDetail extends InspectionRecordListItem {
+  scheduleId: number | null;
+  results: Array<{
+    id: number;
+    templateItemId: number;
+    label: string;
+    parameter: string;
+    unit: string | null;
+    numericValue: number | null;
+    textValue: string | null;
+    specMinSnapshot: number | null;
+    specMaxSnapshot: number | null;
+    result: ResultStatus;
+    remarks: string | null;
+  }>;
+}
+
+export async function getInspectionRecord(id: number): Promise<InspectionRecordDetail> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const recRows = await db
+      .select({
+        id: t.records.id,
+        scheduleId: t.records.scheduleId,
+        performedAt: t.records.performedAt,
+        targetType: t.records.targetType,
+        targetId: t.records.targetId,
+        targetName: t.schedules.targetName,
+        templateId: t.records.templateId,
+        templateName: t.templates.name,
+        itemsJson: t.templates.itemsJson,
+        operatorUserId: t.records.operatorUserId,
+        operatorName: t.users.name,
+        overallResult: t.records.overallResult,
+        status: t.records.status,
+        notes: t.records.notes,
+        deviationId: t.records.deviationId,
+      })
+      .from(t.records)
+      .leftJoin(t.templates, eq(t.templates.id, t.records.templateId))
+      .leftJoin(t.schedules, eq(t.schedules.id, t.records.scheduleId))
+      .leftJoin(t.users, eq(t.users.id, t.records.operatorUserId))
+      .where(eq(t.records.id, id))
+      .limit(1);
+    if (recRows.length === 0)
+      throw new EnvMonitorError(ENV_MONITOR_ERROR_CODES.NOT_FOUND, 'Inspection record not found');
+    const rec: any = recRows[0];
+
+    const tplItems = parseItemsJson(rec.itemsJson);
+    const itemsById = new Map(tplItems.map((it) => [it.id, it]));
+
+    const resRows = await db
+      .select()
+      .from(t.results)
+      .where(eq(t.results.inspectionId, id));
+
+    return {
+      id: Number(rec.id),
+      scheduleId: rec.scheduleId != null ? Number(rec.scheduleId) : null,
+      performedAt: String(rec.performedAt),
+      targetType: String(rec.targetType),
+      targetId: Number(rec.targetId),
+      targetName: rec.targetName ?? null,
+      templateId: Number(rec.templateId),
+      templateName: rec.templateName ?? null,
+      operatorUserId: Number(rec.operatorUserId),
+      operatorName: rec.operatorName ?? null,
+      overallResult: String(rec.overallResult),
+      status: String(rec.status),
+      notes: rec.notes ?? null,
+      deviationId: rec.deviationId != null ? Number(rec.deviationId) : null,
+      results: resRows.map((r: any) => {
+        const item = itemsById.get(Number(r.templateItemId));
+        return {
+          id: Number(r.id),
+          templateItemId: Number(r.templateItemId),
+          label: item?.label ?? String(r.parameter),
+          parameter: String(r.parameter),
+          unit: item?.unit ?? null,
+          numericValue: r.numericValue != null ? Number(r.numericValue) : null,
+          textValue: r.textValue ?? null,
+          specMinSnapshot: r.specMinSnapshot != null ? Number(r.specMinSnapshot) : null,
+          specMaxSnapshot: r.specMaxSnapshot != null ? Number(r.specMaxSnapshot) : null,
+          result: r.result as ResultStatus,
+          remarks: r.remarks ?? null,
+        };
+      }),
+    };
+  });
+}
+
+export interface UpdateInspectionRecordInput {
+  notes?: string | null;
+  results: Array<{
+    id: number; // env_inspection_results.id
+    numericValue?: number | null;
+    remarks?: string | null;
+  }>;
+}
+
+/**
+ * Edit a recorded inspection (correction). Each result is re-evaluated against
+ * its STORED spec snapshot (so corrections stay comparable to the spec that
+ * applied at the time), the overall result is recomputed, and the change is
+ * written to the audit trail. Signature + deviation history are preserved.
+ */
+export async function updateInspectionRecord(
+  id: number,
+  input: UpdateInspectionRecordInput,
+  userId: number,
+): Promise<{ id: number; overallResult: ResultStatus; outOfSpecCount: number }> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+
+    const recRows = await db.select().from(t.records).where(eq(t.records.id, id)).limit(1);
+    if (recRows.length === 0)
+      throw new EnvMonitorError(ENV_MONITOR_ERROR_CODES.NOT_FOUND, 'Inspection record not found');
+    const before: any = recRows[0];
+
+    const existing = await db.select().from(t.results).where(eq(t.results.inspectionId, id));
+    const beforeResults = existing.map((r: any) => ({
+      id: Number(r.id),
+      numericValue: r.numericValue != null ? Number(r.numericValue) : null,
+      result: r.result,
+    }));
+    const byId = new Map(existing.map((r: any) => [Number(r.id), r]));
+    const patchById = new Map(input.results.map((r) => [r.id, r]));
+
+    let outOfSpecCount = 0;
+    for (const row of existing as any[]) {
+      const rid = Number(row.id);
+      const patch = patchById.get(rid);
+      const numericValue =
+        patch && patch.numericValue !== undefined
+          ? patch.numericValue
+          : row.numericValue != null
+            ? Number(row.numericValue)
+            : null;
+      const remarks =
+        patch && patch.remarks !== undefined ? patch.remarks : (row.remarks ?? null);
+      const min = row.specMinSnapshot != null ? Number(row.specMinSnapshot) : null;
+      const max = row.specMaxSnapshot != null ? Number(row.specMaxSnapshot) : null;
+      const result = evaluateResult(numericValue, min, max);
+      if (result === 'out_of_spec') outOfSpecCount++;
+
+      await db
+        .update(t.results)
+        .set({ numericValue, remarks, result })
+        .where(eq(t.results.id, rid));
+    }
+
+    const overallResult: ResultStatus = outOfSpecCount > 0 ? 'out_of_spec' : 'in_spec';
+
+    await db
+      .update(t.records)
+      .set({
+        notes: input.notes !== undefined ? input.notes : before.notes,
+        overallResult,
+      })
+      .where(eq(t.records.id, id));
+
+    const afterResults = (await db.select().from(t.results).where(eq(t.results.inspectionId, id))).map(
+      (r: any) => ({
+        id: Number(r.id),
+        numericValue: r.numericValue != null ? Number(r.numericValue) : null,
+        result: r.result,
+      }),
+    );
+
+    await createAuditLog({
+      userId,
+      action: 'UPDATE',
+      tableName: 'inspectionRecords',
+      recordId: id,
+      oldValue: {
+        overallResult: before.overallResult,
+        notes: before.notes,
+        results: beforeResults,
+      } as Record<string, any>,
+      newValue: {
+        overallResult,
+        notes: input.notes !== undefined ? input.notes : before.notes,
+        results: afterResults,
+      } as Record<string, any>,
+    });
+
+    return { id, overallResult, outOfSpecCount };
+  });
+}
+
+/**
+ * Delete a recorded inspection and its per-item results. The deletion is
+ * written to the audit trail (full snapshot in oldValue).
+ */
+export async function deleteInspectionRecord(
+  id: number,
+  userId: number,
+): Promise<{ id: number }> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const recRows = await db.select().from(t.records).where(eq(t.records.id, id)).limit(1);
+    if (recRows.length === 0)
+      throw new EnvMonitorError(ENV_MONITOR_ERROR_CODES.NOT_FOUND, 'Inspection record not found');
+    const before: any = recRows[0];
+    const beforeResults = await db.select().from(t.results).where(eq(t.results.inspectionId, id));
+
+    // Explicit child delete (FK cascade is not enforced uniformly across SQLite/MySQL).
+    await db.delete(t.results).where(eq(t.results.inspectionId, id));
+    await db.delete(t.records).where(eq(t.records.id, id));
+
+    await createAuditLog({
+      userId,
+      action: 'DELETE',
+      tableName: 'inspectionRecords',
+      recordId: id,
+      oldValue: { ...before, results: beforeResults } as Record<string, any>,
+      newValue: undefined,
+    });
+
+    return { id };
   });
 }
 

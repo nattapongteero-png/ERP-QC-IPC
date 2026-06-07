@@ -11,6 +11,7 @@
  * endpoint).
  */
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, FilterRow, HeaderFilter, Paging, Pager } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
@@ -200,6 +201,13 @@ export default function TemplatesPage() {
         <Button icon="refresh" text="รีเฟรช" onClick={() => refetch()} />
       </div>
 
+      <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-sm text-sky-900">
+        <span className="font-medium">แบบฟอร์มตรวจ (Template) คืออะไร?</span> คือ "รายการสิ่งที่ต้องวัด" เช่น
+        อุณหภูมิ ความชื้น ความสะอาด พร้อมเกณฑ์ (min–max) — ยังไม่ผูกกับห้อง/พื้นที่จริง
+        การจะเอาไปใช้ตรวจสถานที่จริง ให้ไปผูกที่หน้า{' '}
+        <Link href="/premises/environmental/schedules" className="underline font-medium">ตารางตรวจ (Schedules)</Link>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-gray-50 border rounded-lg p-4">
           <div className="text-xs uppercase opacity-70">ทั้งหมด</div>
@@ -239,9 +247,9 @@ export default function TemplatesPage() {
         <Column dataField="id" caption="#" width={60} />
         <Column dataField="name" caption="ชื่อ Template" />
         <Column
-          caption="ประเภทเป้าหมาย"
+          caption="ใช้กับสถานที่ประเภท"
           dataField="targetType"
-          width={140}
+          width={160}
           cellRender={(c) => <Badge className="bg-indigo-100 text-indigo-900">{targetLabel(c.value)}</Badge>}
         />
         <Column
@@ -317,7 +325,10 @@ export default function TemplatesPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">ประเภทเป้าหมาย *</label>
+            <label className="block text-sm font-medium mb-1">ใช้แบบฟอร์มนี้กับสถานที่ประเภท *</label>
+            <p className="text-xs text-gray-500 mb-1">
+              เลือก "ชนิด" ของสถานที่ที่จะนำแบบฟอร์มนี้ไปใช้ตรวจ — ห้องผลิต / พื้นที่จัดเก็บ / พื้นที่กักกัน / จุดน้ำ
+            </p>
             <SelectBox
               dataSource={INSPECTION_TARGET_TYPES.map((v) => ({ value: v, label: targetLabel(v) }))}
               valueExpr="value"

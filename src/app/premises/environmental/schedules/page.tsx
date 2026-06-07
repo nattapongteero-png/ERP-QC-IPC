@@ -222,6 +222,19 @@ export default function SchedulesPage() {
         <Button icon="refresh" text="รีเฟรช" onClick={() => refetch()} />
       </div>
 
+      <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-sm text-sky-900 space-y-1">
+        <div>
+          <span className="font-medium">ตารางตรวจ (Schedule) คืออะไร?</span> คือการกำหนดว่า{' '}
+          <span className="font-medium">"สถานที่จริงจุดไหน"</span> (เป้าหมาย) ใช้{' '}
+          <span className="font-medium">"แบบฟอร์มไหน"</span> และตรวจ{' '}
+          <span className="font-medium">"บ่อยแค่ไหน"</span>
+        </div>
+        <div className="text-xs text-sky-800">
+          ⏱ ระบบจะคำนวณ "ครบกำหนดถัดไป" ให้อัตโนมัติ = วันที่ตรวจล่าสุด + ความถี่ (เช่น ประจำวัน = +1 วัน,
+          ประจำสัปดาห์ = +7 วัน) และจะแจ้งเตือนล่วงหน้าตามจำนวนวันที่ตั้งไว้ในช่อง "แจ้งล่วงหน้า"
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-gray-50 border rounded-lg p-4">
           <div className="text-xs uppercase opacity-70">ทั้งหมด</div>
@@ -337,7 +350,10 @@ export default function SchedulesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">เป้าหมายที่จะตรวจ *</label>
+            <label className="block text-sm font-medium mb-1">เป้าหมายที่จะตรวจ (สถานที่จริง) *</label>
+            <p className="text-xs text-gray-500 mb-1">
+              สถานที่จริงที่จะเข้าไปตรวจ เช่น "ห้องผสม A", "คลังวัตถุดิบ", "จุดน้ำ RO-01" — ดึงรายชื่อจาก Master Data
+            </p>
             <SelectBox
               dataSource={targetData.items}
               valueExpr="id"

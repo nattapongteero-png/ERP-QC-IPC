@@ -14,7 +14,7 @@ import { Popup } from 'devextreme-react/popup';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { SelectBox } from 'devextreme-react/select-box';
-import { Thermometer, AlertTriangle, CheckCircle2, Plus, ListPlus, CalendarPlus } from 'lucide-react';
+import { Thermometer, AlertTriangle, CheckCircle2, Plus, ListPlus, CalendarPlus, History } from 'lucide-react';
 import {
   INSPECTION_TARGET_TYPES,
   INSPECTION_FREQUENCIES,
@@ -135,6 +135,12 @@ export default function InspectionsPage() {
         <div className="flex gap-2 flex-wrap">
           <Button text={t('actions.refresh')} onClick={() => refetch()} />
           <Link
+            href="/premises/environmental/inspections/history"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
+          >
+            <History className="w-4 h-4" /> ประวัติผลตรวจ
+          </Link>
+          <Link
             href="/premises/environmental/templates"
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
           >
@@ -147,14 +153,29 @@ export default function InspectionsPage() {
             <CalendarPlus className="w-4 h-4" /> จัดการ Schedules
           </Link>
           <Button
-            type="default"
-            stylingMode="contained"
-            text={t('actions.scan')}
+            stylingMode="outlined"
+            text="แจ้งเตือนรายการที่ถึงกำหนด"
+            hint="สร้างการแจ้งเตือน (กระดิ่ง) สำหรับรายการที่ถึง/เกินกำหนดเดี๋ยวนี้ — ไม่ใช่การบันทึกผลตรวจ ปกติระบบจะแจ้งเตือนให้อัตโนมัติอยู่แล้ว"
             onClick={() => scanMut.mutate()}
             disabled={scanMut.isPending}
           />
         </div>
       </header>
+
+      <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-sm text-sky-900 space-y-1">
+        <div>
+          <span className="font-medium">หน้านี้ใช้ทำอะไร?</span> แสดง "ตารางตรวจที่ถึงกำหนด" โดยอัตโนมัติ —
+          เมื่อถึงเวลา รายการจะขึ้นเอง (ไม่ต้องกดปุ่มใด ๆ) จากนั้นกดปุ่ม{' '}
+          <span className="font-medium">"{t('actions.inspect')}"</span> ในแต่ละแถวเพื่อ <span className="font-medium">บันทึกผลตรวจ</span>
+        </div>
+        <div className="text-xs text-sky-800">
+          • ปุ่ม "แจ้งเตือนรายการที่ถึงกำหนด" = แค่ส่งการแจ้งเตือน (กระดิ่ง) ไม่ใช่การบันทึก ·
+          แก้ไข/ลบผลที่บันทึกไปแล้วได้ที่{' '}
+          <Link href="/premises/environmental/inspections/history" className="underline font-medium">ประวัติผลตรวจ</Link> ·
+          ตั้งค่าตารางผิด แก้/ปิดได้ที่{' '}
+          <Link href="/premises/environmental/schedules" className="underline font-medium">จัดการ Schedules</Link>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 flex items-center justify-between">
@@ -199,16 +220,16 @@ export default function InspectionsPage() {
           width={150}
           cellRender={(c) => t(`targetType.${c.value}` as any)}
         />
-        <Column dataField="targetName" caption="Target" />
-        <Column dataField="templateName" caption="Template" />
+        <Column dataField="targetName" caption="เป้าหมาย (สถานที่)" />
+        <Column dataField="templateName" caption="แบบฟอร์ม" />
         <Column
           dataField="frequency"
-          caption="Frequency"
+          caption="ความถี่"
           width={120}
           cellRender={(c) => t(`frequency.${c.value}` as any)}
         />
-        <Column dataField="nextDue" caption="Next Due" dataType="datetime" />
-        <Column dataField="lastDone" caption="Last Done" dataType="datetime" />
+        <Column dataField="nextDue" caption="ครบกำหนดถัดไป" dataType="datetime" />
+        <Column dataField="lastDone" caption="ตรวจล่าสุด" dataType="datetime" />
         <Column
           caption="Actions"
           width={140}
