@@ -344,6 +344,16 @@ export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   parentLotId: integer('parent_lot_id').references((): AnySQLiteColumn => sqliteInventoryLots.id),
   // Feature 020: source GRN line (additive — nullable, historical lots stay NULL)
   sourceGrnLineId: integer('source_grn_line_id'),
+  // QC Flow item 6: two-step release — QC disposition (quality) then warehouse
+  // physical count before the lot becomes 'released' / usable.
+  qcDisposition: text('qc_disposition'), // null | approved | rejected
+  qcDispositionBy: integer('qc_disposition_by').references(() => sqliteUsers.id),
+  qcDispositionAt: text('qc_disposition_at'),
+  qcDispositionReason: text('qc_disposition_reason'),
+  countedQuantity: real('counted_quantity'),
+  countedBy: integer('counted_by').references(() => sqliteUsers.id),
+  countedAt: text('counted_at'),
+  countVarianceReason: text('count_variance_reason'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -2016,6 +2026,16 @@ export const mysqlInventoryLots = mysqlTable('inventory_lots', {
   parentLotId: int('parent_lot_id').references((): AnyMySqlColumn => mysqlInventoryLots.id),
   // Feature 020: source GRN line (additive — nullable)
   sourceGrnLineId: int('source_grn_line_id'),
+  // QC Flow item 6: two-step release — QC disposition (quality) then warehouse
+  // physical count before the lot becomes 'released' / usable.
+  qcDisposition: varchar('qc_disposition', { length: 20 }), // null | approved | rejected
+  qcDispositionBy: int('qc_disposition_by').references(() => mysqlUsers.id),
+  qcDispositionAt: datetime('qc_disposition_at'),
+  qcDispositionReason: mysqlText('qc_disposition_reason'),
+  countedQuantity: decimal('counted_quantity', { precision: 15, scale: 4 }),
+  countedBy: int('counted_by').references(() => mysqlUsers.id),
+  countedAt: datetime('counted_at'),
+  countVarianceReason: mysqlText('count_variance_reason'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });

@@ -32,6 +32,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return errorResponse(`Status must be one of: ${validStatuses.join(', ')}`);
       }
 
+      // QC Flow item 6: releasing a lot into stock must go through the two-step
+      // flow (QC quality disposition → warehouse physical count). Direct
+      // status='released' here is no longer allowed.
+      if (status === 'released') {
+        return errorResponse(
+          'การปล่อยเข้าคลังต้องผ่าน 2 ขั้นตอน: QC อนุมัติคุณภาพ แล้วฝ่ายคลังตรวจนับจำนวนจริงก่อนกดปล่อย',
+        );
+      }
+
       const lotsTable = getTableRef('inventoryLots');
 
       // Get existing lot

@@ -24,6 +24,10 @@ interface LotDetail {
   reservedQuantity: number;
   unit: string;
   status: string;
+  qcDisposition: string | null;
+  qcDispositionReason: string | null;
+  countedQuantity: number | null;
+  countVarianceReason: string | null;
   cost: number | null;
   vendorLotNumber: string | null;
   manufacturingDate: string | null;
@@ -107,6 +111,11 @@ export default function LotDetailPage() {
     coaNumber: '',
   });
   const [statusLoading, setStatusLoading] = useState(false);
+  // QC Flow item 6: two-step release state
+  const [actionError, setActionError] = useState('');
+  const [showReleasePanel, setShowReleasePanel] = useState(false);
+  const [countedQty, setCountedQty] = useState<number | null>(null);
+  const [varianceReason, setVarianceReason] = useState('');
 
   useEffect(() => {
     fetchLotDetail();
@@ -154,6 +163,71 @@ export default function LotDetailPage() {
       }
     } catch {
       // Network errors handled by global error handler
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  // QC Flow item 6 — Step 1: QC quality disposition
+  const handleQcDisposition = async (decision: 'approved' | 'rejected') => {
+    if (!lot) return;
+    setActionError('');
+    let reason: string | undefined;
+    if (decision === 'rejected') {
+      reason = window.prompt('ระบุเหตุผลการปฏิเสธคุณภาพ (QC):') || undefined;
+      if (!reason) return;
+    }
+    try {
+      setStatusLoading(true);
+      const response = await fetch(`/api/inventory/lots/${lot.id}/qc-disposition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision, reason }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchLotDetail();
+      } else {
+        setActionError(data.error || 'ไม่สามารถบันทึกการตัดสินคุณภาพได้');
+      }
+    } catch {
+      setActionError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  // QC Flow item 6 — Step 2: Warehouse physical count + release
+  const handleReleaseWithCount = async () => {
+    if (!lot) return;
+    setActionError('');
+    if (countedQty === null || Number.isNaN(countedQty) || countedQty < 0) {
+      setActionError('กรุณากรอกจำนวนที่นับจริง');
+      return;
+    }
+    const variance = countedQty - Number(lot.quantity);
+    if (variance !== 0 && !varianceReason.trim()) {
+      setActionError(`จำนวนที่นับจริง (${countedQty}) ไม่ตรงกับระบบ (${Number(lot.quantity)}) — กรุณาระบุเหตุผลของส่วนต่าง`);
+      return;
+    }
+    try {
+      setStatusLoading(true);
+      const response = await fetch(`/api/inventory/lots/${lot.id}/release`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ countedQuantity: countedQty, varianceReason }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setShowReleasePanel(false);
+        setCountedQty(null);
+        setVarianceReason('');
+        fetchLotDetail();
+      } else {
+        setActionError(data.error || 'ไม่สามารถปล่อยเข้าคลังได้');
+      }
+    } catch {
+      setActionError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
       setStatusLoading(false);
     }
@@ -388,24 +462,44 @@ export default function LotDetailPage() {
             <p className="text-gray-500 mt-1">Lot/Batch inventory details</p>
           </div>
           <div className="flex gap-2">
-            {lot.status === 'quarantine' && (
-              <>
+            {/* QC Flow item 6 — Step 1: QC quality disposition (role: QC) */}
+            {(lot.status === 'quarantine' || lot.status === 'under_test') &&
+              lot.qcDisposition !== 'approved' && (
+                <>
+                  <DxButton
+                    text="QC: อนุมัติคุณภาพ"
+                    icon="check"
+                    type="success"
+                    data-testid="qc-approve-btn"
+                    onClick={() => handleQcDisposition('approved')}
+                    disabled={statusLoading}
+                  />
+                  <DxButton
+                    text="QC: ปฏิเสธ"
+                    icon="close"
+                    type="danger"
+                    data-testid="qc-reject-btn"
+                    onClick={() => handleQcDisposition('rejected')}
+                    disabled={statusLoading}
+                  />
+                </>
+              )}
+            {/* QC Flow item 6 — Step 2: Warehouse count + release (role: คลัง) */}
+            {(lot.status === 'quarantine' || lot.status === 'under_test') &&
+              lot.qcDisposition === 'approved' && (
                 <DxButton
-                  text="Release"
+                  text="ฝ่ายคลัง: ตรวจนับ & ปล่อยเข้าคลัง"
                   icon="check"
                   type="success"
-                  onClick={() => handleStatusChange('released')}
+                  data-testid="warehouse-release-btn"
+                  onClick={() => {
+                    setActionError('');
+                    setCountedQty(Number(lot.quantity));
+                    setShowReleasePanel((v) => !v);
+                  }}
                   disabled={statusLoading}
                 />
-                <DxButton
-                  text="Reject"
-                  icon="close"
-                  type="danger"
-                  onClick={() => handleStatusChange('rejected')}
-                  disabled={statusLoading}
-                />
-              </>
-            )}
+              )}
             {lot.status === 'released' && (
               <DxButton
                 text="Block"
@@ -425,6 +519,80 @@ export default function LotDetailPage() {
             )}
           </div>
         </div>
+
+        {/* QC Flow item 6 — release workflow status + panel */}
+        {actionError && (
+          <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700" data-testid="lot-action-error">
+            {actionError}
+          </div>
+        )}
+        {(lot.status === 'quarantine' || lot.status === 'under_test') && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span className="font-semibold">ขั้นตอนการปล่อยเข้าคลัง (GMP): </span>
+            {lot.qcDisposition === 'approved' ? (
+              <>1) QC อนุมัติคุณภาพแล้ว ✓ &nbsp;→&nbsp; 2) รอฝ่ายคลังตรวจนับจำนวนจริงแล้วกดปล่อยเข้าคลัง</>
+            ) : (
+              <>1) รอ QC อนุมัติคุณภาพก่อน &nbsp;→&nbsp; 2) ฝ่ายคลังตรวจนับจำนวนจริงแล้วปล่อยเข้าคลัง</>
+            )}
+          </div>
+        )}
+        {showReleasePanel && lot.qcDisposition === 'approved' && (
+          <Card className="border-green-300">
+            <CardHeader>
+              <CardTitle>ฝ่ายคลัง: ตรวจนับจำนวนจริงก่อนปล่อยเข้าคลัง</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                  <label className="text-sm text-gray-500 block mb-1">จำนวนในระบบ</label>
+                  <p className="font-medium">{Number(lot.quantity).toLocaleString()} {lot.unit}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 block mb-1">จำนวนที่นับจริง *</label>
+                  <input
+                    type="number"
+                    data-testid="counted-qty-input"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    value={countedQty ?? ''}
+                    onChange={(e) => setCountedQty(e.target.value === '' ? null : parseFloat(e.target.value))}
+                    min="0"
+                    step="0.001"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 block mb-1">
+                    เหตุผลส่วนต่าง {countedQty !== null && countedQty !== Number(lot.quantity) ? '*' : '(ถ้ามี)'}
+                  </label>
+                  <DxTextBox
+                    value={varianceReason}
+                    onValueChange={(value) => setVarianceReason(value)}
+                  />
+                </div>
+              </div>
+              {countedQty !== null && countedQty !== Number(lot.quantity) && (
+                <p className="mt-2 text-sm text-amber-700">
+                  ส่วนต่าง: {(countedQty - Number(lot.quantity)).toLocaleString()} {lot.unit} — ระบบจะปรับยอดตามจำนวนที่นับจริงและบันทึกรายการปรับยอด
+                </p>
+              )}
+              <div className="mt-4 flex gap-2">
+                <DxButton
+                  text="ยืนยันปล่อยเข้าคลัง"
+                  type="success"
+                  data-testid="confirm-release-btn"
+                  onClick={handleReleaseWithCount}
+                  disabled={statusLoading}
+                />
+                <DxButton
+                  text="ยกเลิก"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => { setShowReleasePanel(false); setActionError(''); }}
+                  disabled={statusLoading}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

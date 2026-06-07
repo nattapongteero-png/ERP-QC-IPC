@@ -684,6 +684,157 @@ export async function updateLotStatus(
 }
 
 /**
+ * QC Flow item 6 — Step 1 of 2: QC quality disposition.
+ *
+ * The QC department records the quality verdict for a lot in quarantine.
+ *  - 'approved' → lot stays quarantine/under_test but is now eligible for the
+ *    warehouse physical-count release step (releaseLotWithCount).
+ *  - 'rejected' → lot status is set to 'rejected' immediately (cannot be used).
+ *
+ * Triple-independence is NOT enforced here (that is GRN-specific); role
+ * separation is enforced at the API layer (quality:approve).
+ */
+export async function setLotQcDisposition(
+  lotId: number,
+  decision: 'approved' | 'rejected',
+  userId: number,
+  reason?: string,
+): Promise<{ lotId: number; qcDisposition: string; status: string }> {
+  const { lots } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  const [lot] = await database.select().from(lots).where(eq(lots.id, lotId));
+  if (!lot) throw new Error(`Lot ${lotId} not found`);
+
+  if (lot.status === 'released') {
+    throw new Error('ไม่สามารถตัดสินคุณภาพได้: lot นี้ถูกปล่อยเข้าคลังแล้ว');
+  }
+  if (lot.status === 'rejected') {
+    throw new Error('ไม่สามารถตัดสินคุณภาพได้: lot นี้ถูกปฏิเสธไปแล้ว');
+  }
+
+  const newStatus = decision === 'rejected' ? 'rejected' : lot.status;
+  await database
+    .update(lots)
+    .set({
+      qcDisposition: decision,
+      qcDispositionBy: userId,
+      qcDispositionAt: getNow(),
+      qcDispositionReason: reason ?? null,
+      status: newStatus,
+      updatedAt: getNow(),
+    })
+    .where(eq(lots.id, lotId));
+
+  await createAuditLog({
+    userId,
+    action: decision === 'approved' ? 'APPROVE' : 'REJECT',
+    tableName: 'inventory_lots',
+    recordId: lotId,
+    oldValue: { qcDisposition: lot.qcDisposition ?? null, status: lot.status },
+    newValue: { qcDisposition: decision, status: newStatus, reason },
+  });
+
+  if (decision === 'rejected') {
+    await recalculateItemOnHand(lot.itemId);
+  }
+
+  return { lotId, qcDisposition: decision, status: newStatus };
+}
+
+/**
+ * QC Flow item 6 — Step 2 of 2: Warehouse physical count + release.
+ *
+ * The warehouse department counts the physical quantity on hand, then releases
+ * the lot into usable stock. Guards:
+ *  - QC disposition must be 'approved' first (quality gate before warehouse).
+ *  - countedQuantity is mandatory and must be >= 0.
+ *  - If countedQuantity differs from the recorded lot quantity, a
+ *    varianceReason is REQUIRED (GMP: explain count discrepancies). The lot
+ *    quantity is then corrected to the counted value and a stock-adjust
+ *    transaction is logged for traceability.
+ *
+ * Role separation is enforced at the API layer (inventory:write).
+ */
+export async function releaseLotWithCount(
+  lotId: number,
+  countedQuantity: number,
+  userId: number,
+  varianceReason?: string,
+): Promise<{ lotId: number; status: 'released'; counted: number; variance: number }> {
+  const { lots, transactions } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  const [lot] = await database.select().from(lots).where(eq(lots.id, lotId));
+  if (!lot) throw new Error(`Lot ${lotId} not found`);
+
+  if (lot.status === 'released') {
+    throw new Error('lot นี้ถูกปล่อยเข้าคลังแล้ว');
+  }
+  if (lot.qcDisposition !== 'approved') {
+    throw new Error('ยังปล่อยเข้าคลังไม่ได้: ต้องผ่านการอนุมัติคุณภาพจาก QC ก่อน');
+  }
+  if (countedQuantity == null || Number.isNaN(Number(countedQuantity)) || Number(countedQuantity) < 0) {
+    throw new Error('กรุณากรอกจำนวนที่นับจริง (ต้องไม่ติดลบ)');
+  }
+
+  const counted = Number(countedQuantity);
+  const recorded = Number(lot.quantity);
+  const variance = counted - recorded;
+
+  if (variance !== 0 && !varianceReason?.trim()) {
+    throw new Error(
+      `จำนวนที่นับจริง (${counted}) ไม่ตรงกับจำนวนในระบบ (${recorded}) — กรุณาระบุเหตุผลของส่วนต่าง`,
+    );
+  }
+
+  await database
+    .update(lots)
+    .set({
+      status: 'released',
+      quantity: counted,
+      countedQuantity: counted,
+      countedBy: userId,
+      countedAt: getNow(),
+      countVarianceReason: variance !== 0 ? (varianceReason ?? null) : null,
+      updatedAt: getNow(),
+    })
+    .where(eq(lots.id, lotId));
+
+  // Log a stock-adjust transaction when the count corrected the quantity.
+  if (variance !== 0) {
+    await database.insert(transactions).values({
+      lotId,
+      transactionType: 'adjust',
+      quantity: variance,
+      unit: lot.unit,
+      referenceType: 'COUNT',
+      referenceId: lotId,
+      referenceNumber: lot.lotNumber,
+      fromWarehouseId: lot.warehouseId,
+      reason: `ปรับยอดตามการนับจริงก่อนปล่อยเข้าคลัง: ${varianceReason ?? ''}`.trim(),
+      performedBy: userId,
+      createdAt: getNow(),
+    });
+  }
+
+  await createAuditLog({
+    userId,
+    action: 'APPROVE',
+    tableName: 'inventory_lots',
+    recordId: lotId,
+    oldValue: { status: lot.status, quantity: recorded },
+    newValue: { status: 'released', quantity: counted, countedQuantity: counted, variance, varianceReason },
+  });
+
+  await recalculateItemOnHand(lot.itemId);
+
+  return { lotId, status: 'released', counted, variance };
+}
+
+/**
  * Get stock summary for an item
  */
 export async function getStockSummary(itemId: number): Promise<StockSummary | null> {

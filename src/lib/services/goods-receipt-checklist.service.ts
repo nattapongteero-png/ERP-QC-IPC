@@ -269,8 +269,10 @@ export async function signChecklist(
     // Create QC sample
     let qcSampleId: number | null = null;
     let qcSampleCreationFailed = false;
+    let createdSampleNumber: string | null = null;
     try {
       const sampleNumber = await generateQcSampleNumber(db);
+      createdSampleNumber = sampleNumber;
       const flagForQc = !itemRow[0]?.defaultTestPanelId;
 
       const qcInsert = await db.insert(t.qcSamples).values({
@@ -312,8 +314,69 @@ export async function signChecklist(
       })
       .where(eq(t.lines.id, lineId));
 
+    // QC Flow item 2 — draw the QC sample (+ retain) physically out of the
+    // just-received quarantine lot so stock reflects what went to the lab.
+    // Quantities come from the item's sampling plan; best-effort (never fail
+    // the receipt if no plan / insufficient stock).
+    if (qcSampleId && createdSampleNumber) {
+      try {
+        const { resolveSamplingPlanForItem } = await import('./qc-sampling-plan.service');
+        const plan = await resolveSamplingPlanForItem(
+          Number(line.itemId),
+          (itemRow[0]?.category as string | undefined) ?? null,
+        );
+        const sampleQty = Number(plan?.defaultSampleQty ?? 0);
+        const retainQty = Number(plan?.defaultRetainQty ?? 0);
+        if (sampleQty > 0 || retainQty > 0) {
+          const { issueSampleFromLot } = await import('./qc-sample-issue.service');
+          const issue = await issueSampleFromLot({
+            sampleId: qcSampleId,
+            sampleNumber: createdSampleNumber,
+            productId: Number(line.itemId),
+            sourceLotId: inventoryLotId,
+            lotNumber,
+            sampleQty,
+            retainSampleQty: retainQty,
+            userId,
+          });
+          await db
+            .update(t.qcSamples)
+            .set({
+              sourceLotId: issue.sourceLotId,
+              sampleQty,
+              retainSampleQty: retainQty,
+              retainLotId: issue.retainLotId,
+              retainExpiryDate: issue.retainExpiryDate
+                ? toDbDate(issue.retainExpiryDate)
+                : null,
+              updatedAt: getNow(),
+            })
+            .where(eq(t.qcSamples.id, qcSampleId));
+        }
+      } catch (err) {
+        console.warn('[goods-receipt] QC sample stock draw failed (non-fatal)', err);
+      }
+    }
+
     // Recompute header
     await recomputeHeaderStatus(Number(line.grnId));
+
+    // QC Flow item 7 — notify QC that a lot was received via GRN and needs
+    // sampling/testing. Best-effort: never fail the receipt on notify error.
+    try {
+      const { notifyLotReceived } = await import('./qc-notification.service');
+      await notifyLotReceived({
+        lotId: inventoryLotId,
+        lotNumber,
+        itemCode: (itemRow[0]?.code as string | null) ?? null,
+        itemName: (itemRow[0]?.nameTh as string | null) ?? null,
+        quantity: actualQty,
+        unit: String(line.unit),
+        warehouseName: null,
+      });
+    } catch (err) {
+      console.warn('[goods-receipt] lot-received notification failed (non-fatal)', err);
+    }
 
     return {
       lineId,

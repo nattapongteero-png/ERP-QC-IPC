@@ -151,6 +151,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 batchNumber: workOrdersTable.batchNumber,
                 actualQuantity: workOrdersTable.actualQuantity,
                 unit: workOrdersTable.unit,
+                productId: workOrdersTable.productId,
                 productName: itemsTable.nameTh,
               })
               .from(workOrdersTable)
@@ -172,6 +173,44 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           }
         } catch (err) {
           console.warn('QC WO-completed notification failed (non-fatal):', err);
+        }
+
+        // QC Flow item 1 — auto-create a finished-goods QC sample so QC has a
+        // testing entry ready (no manual creation). Tests are seeded from the
+        // product's default panel. No stock draw here (the FG lot is created
+        // later at goods-receipt of the WO output). Best-effort.
+        try {
+          const { createQcSample } = await import('@/lib/services/qc-sample.service');
+          const productMeta = await executeDbOperation(async (db) => {
+            const [row] = await db
+              .select({
+                woNumber: workOrdersTable.woNumber,
+                batchNumber: workOrdersTable.batchNumber,
+                actualQuantity: workOrdersTable.actualQuantity,
+                unit: workOrdersTable.unit,
+                productId: workOrdersTable.productId,
+              })
+              .from(workOrdersTable)
+              .where(eq(workOrdersTable.id, workOrderId));
+            return row;
+          });
+          if (productMeta?.productId) {
+            await createQcSample({
+              productId: Number(productMeta.productId),
+              sourceType: 'work_order_batch',
+              sourceRefId: workOrderId,
+              sourceRefText: `WO ${productMeta.woNumber}`,
+              lotNumber: (productMeta.batchNumber as string) ?? null,
+              quantityReceived:
+                productMeta.actualQuantity != null ? Number(productMeta.actualQuantity) : null,
+              unit: (productMeta.unit as string) ?? null,
+              receivedDate: new Date().toISOString().slice(0, 10),
+              receivedBy: session.userId,
+              applyDefaultPanel: true,
+            });
+          }
+        } catch (err) {
+          console.warn('QC WO-completed auto-sample failed (non-fatal):', err);
         }
       }
 
