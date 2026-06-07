@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
   // Instrumentation is enabled by default in Next.js 15+
   // The src/instrumentation.ts file runs on server startup for schema sync
 
+  // Type safety is gated separately by `bunx tsc --noEmit --skipLibCheck`
+  // (see CLAUDE.md — run before finishing tasks). Next's in-build type-check
+  // re-runs the full project tsc, which OOMs the 8GB WSL Docker engine on this
+  // machine ("Running TypeScript ..." → engine EOF). Skipping the redundant
+  // in-build check keeps Docker builds within memory.
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   // Premises module re-homing: these page routes moved under /premises/*.
   // Old URLs (bookmarks, in-app links) redirect to the new location. Only page
   // routes are listed here — /api/* is never matched, so API calls are unaffected.
