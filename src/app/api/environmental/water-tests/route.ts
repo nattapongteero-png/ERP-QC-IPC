@@ -5,10 +5,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isAdminRole } from '@/lib/auth';
 import { getRolePermissionSet } from '@/lib/auth/permission-resolver';
 import { recordWaterTestSchema } from '@/lib/validation/environmental-monitoring';
-import { recordWaterTest } from '@/lib/services/water-quality.service';
+import { recordWaterTest, listWaterTests } from '@/lib/services/water-quality.service';
 import { EnvMonitorError } from '@/types/environmental-monitoring';
 
 const PERMISSION = 'environmental:inspect';
+
+export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { searchParams } = new URL(request.url);
+  const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 200;
+  const items = await listWaterTests({ limit });
+  return NextResponse.json({ items });
+}
 
 export async function POST(request: NextRequest) {
   const session = await getSession();

@@ -6,6 +6,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { createHash } from 'crypto';
 import { executeDbOperation, getTableRef, getInsertId } from '../db/db-helper';
 import { getNow } from '../db/date-utils';
+import { createAuditLog } from '../audit';
 import {
   EnvMonitorError,
   ENV_MONITOR_ERROR_CODES,
@@ -378,6 +379,231 @@ export async function recordWaterTest(
     }
 
     return { testId, overallResult, outOfSpecCount, deviationId };
+  });
+}
+
+// ============================================
+// Water test records — history / view / edit / delete
+// ============================================
+
+export interface WaterTestListItem {
+  id: number;
+  performedAt: string;
+  samplePointId: number;
+  samplePointName: string | null;
+  waterSystemId: number;
+  systemName: string | null;
+  operatorUserId: number;
+  operatorName: string | null;
+  overallResult: string;
+  notes: string | null;
+  deviationId: number | null;
+}
+
+export async function listWaterTests(filter?: { limit?: number }): Promise<WaterTestListItem[]> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const rows = await db
+      .select({
+        id: t.tests.id,
+        performedAt: t.tests.performedAt,
+        samplePointId: t.tests.samplePointId,
+        samplePointName: t.samplePoints.name,
+        waterSystemId: t.tests.waterSystemId,
+        systemName: t.waterSystems.name,
+        operatorUserId: t.tests.operatorUserId,
+        operatorName: t.users.name,
+        overallResult: t.tests.overallResult,
+        notes: t.tests.notes,
+        deviationId: t.tests.deviationId,
+      })
+      .from(t.tests)
+      .leftJoin(t.samplePoints, eq(t.samplePoints.id, t.tests.samplePointId))
+      .leftJoin(t.waterSystems, eq(t.waterSystems.id, t.tests.waterSystemId))
+      .leftJoin(t.users, eq(t.users.id, t.tests.operatorUserId))
+      .orderBy(desc(t.tests.performedAt))
+      .limit(filter?.limit ?? 200);
+
+    return rows.map((r: any) => ({
+      id: Number(r.id),
+      performedAt: String(r.performedAt),
+      samplePointId: Number(r.samplePointId),
+      samplePointName: r.samplePointName ?? null,
+      waterSystemId: Number(r.waterSystemId),
+      systemName: r.systemName ?? null,
+      operatorUserId: Number(r.operatorUserId),
+      operatorName: r.operatorName ?? null,
+      overallResult: String(r.overallResult),
+      notes: r.notes ?? null,
+      deviationId: r.deviationId != null ? Number(r.deviationId) : null,
+    }));
+  });
+}
+
+export interface WaterTestDetail extends WaterTestListItem {
+  results: Array<{
+    id: number;
+    specId: number | null;
+    parameter: string;
+    unit: string;
+    numericValue: number | null;
+    specMinSnapshot: number | null;
+    specMaxSnapshot: number | null;
+    result: ResultStatus;
+  }>;
+}
+
+export async function getWaterTest(id: number): Promise<WaterTestDetail> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const rows = await db
+      .select({
+        id: t.tests.id,
+        performedAt: t.tests.performedAt,
+        samplePointId: t.tests.samplePointId,
+        samplePointName: t.samplePoints.name,
+        waterSystemId: t.tests.waterSystemId,
+        systemName: t.waterSystems.name,
+        operatorUserId: t.tests.operatorUserId,
+        operatorName: t.users.name,
+        overallResult: t.tests.overallResult,
+        notes: t.tests.notes,
+        deviationId: t.tests.deviationId,
+      })
+      .from(t.tests)
+      .leftJoin(t.samplePoints, eq(t.samplePoints.id, t.tests.samplePointId))
+      .leftJoin(t.waterSystems, eq(t.waterSystems.id, t.tests.waterSystemId))
+      .leftJoin(t.users, eq(t.users.id, t.tests.operatorUserId))
+      .where(eq(t.tests.id, id))
+      .limit(1);
+    if (rows.length === 0)
+      throw new EnvMonitorError(ENV_MONITOR_ERROR_CODES.NOT_FOUND, 'Water test not found');
+    const rec: any = rows[0];
+
+    const resRows = await db.select().from(t.testResults).where(eq(t.testResults.testId, id));
+
+    return {
+      id: Number(rec.id),
+      performedAt: String(rec.performedAt),
+      samplePointId: Number(rec.samplePointId),
+      samplePointName: rec.samplePointName ?? null,
+      waterSystemId: Number(rec.waterSystemId),
+      systemName: rec.systemName ?? null,
+      operatorUserId: Number(rec.operatorUserId),
+      operatorName: rec.operatorName ?? null,
+      overallResult: String(rec.overallResult),
+      notes: rec.notes ?? null,
+      deviationId: rec.deviationId != null ? Number(rec.deviationId) : null,
+      results: resRows.map((r: any) => ({
+        id: Number(r.id),
+        specId: r.specId != null ? Number(r.specId) : null,
+        parameter: String(r.parameter),
+        unit: String(r.unit),
+        numericValue: r.numericValue != null ? Number(r.numericValue) : null,
+        specMinSnapshot: r.specMinSnapshot != null ? Number(r.specMinSnapshot) : null,
+        specMaxSnapshot: r.specMaxSnapshot != null ? Number(r.specMaxSnapshot) : null,
+        result: r.result as ResultStatus,
+      })),
+    };
+  });
+}
+
+export interface UpdateWaterTestInput {
+  notes?: string | null;
+  results: Array<{ id: number; numericValue?: number | null }>;
+}
+
+/**
+ * Edit a recorded water test (correction). Each result is re-evaluated against
+ * its STORED spec snapshot, the overall result recomputed, and the change is
+ * written to the audit trail.
+ */
+export async function updateWaterTest(
+  id: number,
+  input: UpdateWaterTestInput,
+  userId: number,
+): Promise<{ id: number; overallResult: ResultStatus; outOfSpecCount: number }> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const testRows = await db.select().from(t.tests).where(eq(t.tests.id, id)).limit(1);
+    if (testRows.length === 0)
+      throw new EnvMonitorError(ENV_MONITOR_ERROR_CODES.NOT_FOUND, 'Water test not found');
+    const before: any = testRows[0];
+
+    const existing = await db.select().from(t.testResults).where(eq(t.testResults.testId, id));
+    const beforeResults = existing.map((r: any) => ({
+      id: Number(r.id),
+      numericValue: r.numericValue != null ? Number(r.numericValue) : null,
+      result: r.result,
+    }));
+    const patchById = new Map(input.results.map((r) => [r.id, r]));
+
+    let outOfSpecCount = 0;
+    for (const row of existing as any[]) {
+      const rid = Number(row.id);
+      const patch = patchById.get(rid);
+      const numericValue =
+        patch && patch.numericValue !== undefined
+          ? patch.numericValue
+          : row.numericValue != null
+            ? Number(row.numericValue)
+            : null;
+      const min = row.specMinSnapshot != null ? Number(row.specMinSnapshot) : null;
+      const max = row.specMaxSnapshot != null ? Number(row.specMaxSnapshot) : null;
+      const result = evaluateResult(numericValue, min, max);
+      if (result === 'out_of_spec') outOfSpecCount++;
+      await db.update(t.testResults).set({ numericValue, result }).where(eq(t.testResults.id, rid));
+    }
+
+    const overallResult: ResultStatus = outOfSpecCount > 0 ? 'out_of_spec' : 'in_spec';
+    await db
+      .update(t.tests)
+      .set({ notes: input.notes !== undefined ? input.notes : before.notes, overallResult })
+      .where(eq(t.tests.id, id));
+
+    const afterResults = (await db.select().from(t.testResults).where(eq(t.testResults.testId, id))).map(
+      (r: any) => ({
+        id: Number(r.id),
+        numericValue: r.numericValue != null ? Number(r.numericValue) : null,
+        result: r.result,
+      }),
+    );
+
+    await createAuditLog({
+      userId,
+      action: 'UPDATE',
+      tableName: 'waterQualityTests',
+      recordId: id,
+      oldValue: { overallResult: before.overallResult, notes: before.notes, results: beforeResults } as Record<string, any>,
+      newValue: { overallResult, notes: input.notes !== undefined ? input.notes : before.notes, results: afterResults } as Record<string, any>,
+    });
+
+    return { id, overallResult, outOfSpecCount };
+  });
+}
+
+export async function deleteWaterTest(id: number, userId: number): Promise<{ id: number }> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const testRows = await db.select().from(t.tests).where(eq(t.tests.id, id)).limit(1);
+    if (testRows.length === 0)
+      throw new EnvMonitorError(ENV_MONITOR_ERROR_CODES.NOT_FOUND, 'Water test not found');
+    const before: any = testRows[0];
+    const beforeResults = await db.select().from(t.testResults).where(eq(t.testResults.testId, id));
+
+    await db.delete(t.testResults).where(eq(t.testResults.testId, id));
+    await db.delete(t.tests).where(eq(t.tests.id, id));
+
+    await createAuditLog({
+      userId,
+      action: 'DELETE',
+      tableName: 'waterQualityTests',
+      recordId: id,
+      oldValue: { ...before, results: beforeResults } as Record<string, any>,
+      newValue: undefined,
+    });
+
+    return { id };
   });
 }
 

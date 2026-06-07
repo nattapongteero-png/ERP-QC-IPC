@@ -1,60 +1,105 @@
 'use client';
 
 /**
- * Water Quality Dashboard
- * Feature: 023
+ * Water Quality — Test Records Registry (ทะเบียนบันทึกผลตรวจน้ำ)
+ *
+ * The daily-use page: list every recorded water test, record a new one,
+ * and view / correct / delete an existing record (edit + delete are
+ * audit-logged by the service layer).
+ *
+ * Master data (systems / sample points / specs) is managed on the separate
+ * configuration page: /premises/environmental/water-quality/settings
  */
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { DataGrid, Column, FilterRow, Paging } from 'devextreme-react/data-grid';
+import { DataGrid, Column, FilterRow, HeaderFilter, Paging, Pager } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
-import { Droplets, Plus, AlertTriangle, FlaskConical, MapPin } from 'lucide-react';
-import { Breadcrumbs } from '@/components/shared';
-import {
-  WATER_SYSTEM_TYPES,
-  type WaterSamplePoint,
-  type WaterSystem,
-  type WaterQualitySpec,
-  type WaterSystemType,
+import { Droplets, Plus, AlertTriangle, Settings, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Breadcrumbs, ConfirmationDialog } from '@/components/shared';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import type {
+  WaterSamplePoint,
+  WaterSystem,
+  WaterQualitySpec,
 } from '@/types/environmental-monitoring';
 
-export default function WaterQualityPage() {
+interface TestRow {
+  id: number;
+  performedAt: string;
+  samplePointId: number;
+  samplePointName: string | null;
+  waterSystemId: number;
+  systemName: string | null;
+  operatorName: string | null;
+  overallResult: string;
+  notes: string | null;
+  deviationId: number | null;
+}
+
+interface TestResultRow {
+  id: number;
+  specId: number | null;
+  parameter: string;
+  unit: string;
+  numericValue: number | null;
+  specMinSnapshot: number | null;
+  specMaxSnapshot: number | null;
+  result: 'in_spec' | 'out_of_spec' | 'na';
+}
+
+interface TestDetail extends TestRow {
+  results: TestResultRow[];
+}
+
+const resultBadge = (r: string) =>
+  r === 'in_spec' ? (
+    <Badge className="bg-emerald-100 text-emerald-900">ผ่าน (ในเกณฑ์)</Badge>
+  ) : r === 'out_of_spec' ? (
+    <Badge className="bg-rose-100 text-rose-900">ไม่ผ่าน (เกินเกณฑ์)</Badge>
+  ) : (
+    <Badge className="bg-gray-200 text-gray-700">ไม่ระบุ</Badge>
+  );
+
+export default function WaterQualityRecordsPage() {
   const t = useTranslations('environmentalMonitoring');
   const qc = useQueryClient();
+  const toast = useToast();
+
+  // ---- record-new popup ----
   const [testOpen, setTestOpen] = useState(false);
   const [samplePointId, setSamplePointId] = useState<number | null>(null);
   const [results, setResults] = useState<Record<number, number>>({});
   const [notes, setNotes] = useState('');
   const [password, setPassword] = useState('');
 
-  // Add System popup
-  const [sysOpen, setSysOpen] = useState(false);
-  const [sysForm, setSysForm] = useState({ code: '', name: '', systemType: 'purified' as WaterSystemType, description: '' });
-  // Add Sample Point popup
-  const [ptOpen, setPtOpen] = useState(false);
-  const [ptForm, setPtForm] = useState({ waterSystemId: 0, code: '', name: '', location: '' });
-  // Add Spec popup
-  const [specOpen, setSpecOpen] = useState(false);
-  const [specForm, setSpecForm] = useState({
-    waterSystemId: 0,
-    samplePointId: null as number | null,
-    parameter: '',
-    unit: '',
-    specMin: '' as number | '',
-    specMax: '' as number | '',
+  // ---- view / edit / delete ----
+  const [viewId, setViewId] = useState<number | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [draft, setDraft] = useState<{ notes: string; results: Record<number, number | null> }>({ notes: '', results: {} });
+  const [deleteTarget, setDeleteTarget] = useState<TestRow | null>(null);
+
+  const { data: records = [], isLoading, refetch } = useQuery<TestRow[]>({
+    queryKey: ['water-tests'],
+    queryFn: async () => {
+      const res = await fetch('/api/environmental/water-tests');
+      if (!res.ok) return [];
+      const body = await res.json();
+      return body.items ?? [];
+    },
   });
 
   const { data: systems } = useQuery<WaterSystem[]>({
     queryKey: ['water-systems'],
     queryFn: async () => {
       const res = await fetch('/api/environmental/water-systems');
-      if (!res.ok) return [];
-      return res.json();
+      return res.ok ? res.json() : [];
     },
   });
 
@@ -62,8 +107,7 @@ export default function WaterQualityPage() {
     queryKey: ['sample-points'],
     queryFn: async () => {
       const res = await fetch('/api/environmental/sample-points');
-      if (!res.ok) return [];
-      return res.json();
+      return res.ok ? res.json() : [];
     },
   });
 
@@ -73,80 +117,26 @@ export default function WaterQualityPage() {
     queryKey: ['water-specs', selectedPoint?.waterSystemId],
     queryFn: async () => {
       if (!selectedPoint) return [];
-      const res = await fetch(
-        `/api/environmental/water-specs?waterSystemId=${selectedPoint.waterSystemId}`,
-      );
-      if (!res.ok) return [];
-      return res.json();
+      const res = await fetch(`/api/environmental/water-specs?waterSystemId=${selectedPoint.waterSystemId}`);
+      return res.ok ? res.json() : [];
     },
     enabled: !!selectedPoint,
   });
 
-  const createSysMut = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/environmental/water-systems', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sysForm),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? 'Failed');
-      return body;
+  const { data: detail } = useQuery<TestDetail>({
+    queryKey: ['water-test', viewId],
+    queryFn: async () => {
+      const res = await fetch(`/api/environmental/water-tests/${viewId}`);
+      if (!res.ok) throw new Error('Failed');
+      return res.json();
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['water-systems'] });
-      setSysOpen(false);
-      setSysForm({ code: '', name: '', systemType: 'purified', description: '' });
-    },
-  });
-
-  const createPtMut = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/environmental/sample-points', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ptForm),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? 'Failed');
-      return body;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sample-points'] });
-      setPtOpen(false);
-      setPtForm({ waterSystemId: 0, code: '', name: '', location: '' });
-    },
-  });
-
-  const createSpecMut = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/environmental/water-specs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          waterSystemId: specForm.waterSystemId,
-          samplePointId: specForm.samplePointId,
-          parameter: specForm.parameter,
-          unit: specForm.unit,
-          specMin: specForm.specMin === '' ? null : Number(specForm.specMin),
-          specMax: specForm.specMax === '' ? null : Number(specForm.specMax),
-        }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? 'Failed');
-      return body;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['water-specs'] });
-      setSpecOpen(false);
-      setSpecForm({ waterSystemId: 0, samplePointId: null, parameter: '', unit: '', specMin: '', specMax: '' });
-    },
+    enabled: viewId != null,
   });
 
   const recordMut = useMutation({
     mutationFn: async () => {
       if (!selectedPoint) throw new Error('No sample point');
-      const results_payload = (specs ?? []).map((s) => ({
+      const payload = (specs ?? []).map((s) => ({
         specId: s.id,
         parameter: s.parameter,
         numericValue: results[s.id] ?? null,
@@ -158,7 +148,7 @@ export default function WaterQualityPage() {
         body: JSON.stringify({
           samplePointId: selectedPoint.id,
           waterSystemId: selectedPoint.waterSystemId,
-          results: results_payload,
+          results: payload,
           notes: notes || null,
           signature: { password: password || 'verify' },
         }),
@@ -168,14 +158,64 @@ export default function WaterQualityPage() {
       return body;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['water-systems'] });
+      toast.success('บันทึกผลตรวจน้ำแล้ว');
+      qc.invalidateQueries({ queryKey: ['water-tests'] });
       setTestOpen(false);
       setSamplePointId(null);
       setResults({});
       setNotes('');
       setPassword('');
     },
+    onError: (e: Error) => toast.error('บันทึกไม่สำเร็จ', e.message),
   });
+
+  const startEdit = (d: TestDetail) => {
+    const map: Record<number, number | null> = {};
+    d.results.forEach((r) => { map[r.id] = r.numericValue; });
+    setDraft({ notes: d.notes ?? '', results: map });
+    setEditMode(true);
+  };
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/environmental/water-tests/${viewId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notes: draft.notes,
+          results: Object.entries(draft.results).map(([id, numericValue]) => ({ id: Number(id), numericValue })),
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? 'Save failed');
+      return body;
+    },
+    onSuccess: () => {
+      toast.success('แก้ไขผลตรวจแล้ว (บันทึกใน audit log)');
+      qc.invalidateQueries({ queryKey: ['water-tests'] });
+      qc.invalidateQueries({ queryKey: ['water-test', viewId] });
+      setEditMode(false);
+    },
+    onError: (e: Error) => toast.error('บันทึกไม่สำเร็จ', e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/environmental/water-tests/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}));
+        throw new Error(b?.error ?? 'Delete failed');
+      }
+    },
+    onSuccess: () => {
+      toast.success('ลบผลตรวจแล้ว (บันทึกใน audit log)');
+      qc.invalidateQueries({ queryKey: ['water-tests'] });
+      setDeleteTarget(null);
+    },
+    onError: (e: Error) => toast.error('ลบไม่สำเร็จ', e.message),
+  });
+
+  const closeView = () => { setViewId(null); setEditMode(false); };
 
   return (
     <div className="p-6 space-y-4">
@@ -186,107 +226,77 @@ export default function WaterQualityPage() {
         ]}
       />
       <header className="flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Droplets className="w-6 h-6" />
-          {t('page.waterQuality')}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Droplets className="w-6 h-6" /> {t('page.waterQuality')} — บันทึกผลตรวจ
+          </h1>
+          <p className="text-gray-600 text-sm mt-1">
+            ทะเบียนผลตรวจน้ำที่บันทึกไว้ — บันทึกใหม่ / ดู / แก้ไข / ลบ ได้ที่นี่
+          </p>
+        </div>
         <div className="flex gap-2 flex-wrap">
-          <Button
-            stylingMode="outlined"
-            onClick={() => setSysOpen(true)}
-            render={() => (
-              <span className="inline-flex items-center gap-1">
-                <Droplets className="w-4 h-4" />
-                + System
-              </span>
-            )}
-          />
-          <Button
-            stylingMode="outlined"
-            onClick={() => setPtOpen(true)}
-            render={() => (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                + Sample Point
-              </span>
-            )}
-          />
-          <Button
-            stylingMode="outlined"
-            onClick={() => setSpecOpen(true)}
-            render={() => (
-              <span className="inline-flex items-center gap-1">
-                <FlaskConical className="w-4 h-4" />
-                + Spec
-              </span>
-            )}
-          />
-          <Button
-            type="default"
-            stylingMode="contained"
-            onClick={() => setTestOpen(true)}
-            render={() => (
-              <span className="inline-flex items-center gap-1">
-                <Plus className="w-4 h-4" />
-                บันทึกผลตรวจน้ำ
-              </span>
-            )}
-          />
+          <Link
+            href="/premises/environmental/water-quality/settings"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
+          >
+            <Settings className="w-4 h-4" /> ตั้งค่าระบบน้ำ
+          </Link>
+          <Button type="default" stylingMode="contained" onClick={() => setTestOpen(true)} data-testid="wq-record-btn">
+            <span className="inline-flex items-center gap-1"><Plus className="w-4 h-4" /> บันทึกผลตรวจน้ำ</span>
+          </Button>
         </div>
       </header>
 
-      <div>
-        <h2 className="font-semibold mb-2">ระบบน้ำ</h2>
-        <DataGrid
-          dataSource={systems ?? []}
-          keyExpr="id"
-          showBorders
-          showRowLines
-          columnAutoWidth
-        >
-          <FilterRow visible />
-          <Paging pageSize={10} />
-          <Column dataField="code" caption="Code" width={100} />
-          <Column dataField="name" caption="Name" />
-          <Column dataField="systemType" caption="Type" width={120} />
-          <Column dataField="description" caption="Description" />
-          <Column dataField="isActive" caption="Active" dataType="boolean" width={80} />
-        </DataGrid>
+      <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-sm text-sky-900">
+        การตั้งค่า (ระบบน้ำ / จุดสุ่ม / เกณฑ์) ย้ายไปหน้า{' '}
+        <Link href="/premises/environmental/water-quality/settings" className="underline font-medium">ตั้งค่าระบบน้ำ</Link>{' '}
+        — หน้านี้คือ "ทะเบียนบันทึกผลตรวจ" ที่ข้อมูลจากการกด "บันทึกผลตรวจน้ำ" จะมาแสดง
       </div>
 
-      <div>
-        <h2 className="font-semibold mb-2 mt-4">จุดสุ่มตัวอย่าง</h2>
-        <DataGrid
-          dataSource={points ?? []}
-          keyExpr="id"
-          showBorders
-          showRowLines
-          columnAutoWidth
-        >
-          <FilterRow visible />
-          <Paging pageSize={10} />
-          <Column dataField="code" caption="Code" width={100} />
-          <Column dataField="name" caption="Name" />
-          <Column dataField="location" caption="Location" />
-          <Column
-            dataField="waterSystemId"
-            caption="System"
-            calculateCellValue={(row: WaterSamplePoint) =>
-              systems?.find((s) => s.id === row.waterSystemId)?.name ?? row.waterSystemId
-            }
-          />
-          <Column dataField="isActive" caption="Active" dataType="boolean" width={80} />
-        </DataGrid>
-      </div>
-
-      <Popup
-        visible={testOpen}
-        onHiding={() => setTestOpen(false)}
-        showCloseButton
-        title="บันทึกผลตรวจน้ำ"
-        width={580}
-        height="auto"
+      <DataGrid
+        dataSource={records}
+        keyExpr="id"
+        showBorders
+        showRowLines
+        rowAlternationEnabled
+        columnAutoWidth
+        noDataText={isLoading ? 'กำลังโหลด…' : 'ยังไม่มีผลตรวจที่บันทึก'}
+        data-testid="wq-records-grid"
       >
+        <FilterRow visible />
+        <HeaderFilter visible />
+        <Paging pageSize={20} />
+        <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
+        <Column dataField="id" caption="#" width={60} />
+        <Column dataField="performedAt" caption="วันเวลาที่ตรวจ" dataType="datetime" width={170} />
+        <Column dataField="samplePointName" caption="จุดสุ่มตัวอย่าง" />
+        <Column dataField="systemName" caption="ระบบน้ำ" />
+        <Column dataField="operatorName" caption="ผู้ตรวจ" width={150} />
+        <Column dataField="overallResult" caption="ผลรวม" width={140} cellRender={(c) => resultBadge(c.value)} />
+        <Column
+          caption="การกระทำ"
+          width={210}
+          cellRender={(c) => {
+            const row = c.data as TestRow;
+            return (
+              <div className="flex gap-1">
+                <Button stylingMode="outlined" onClick={() => { setViewId(row.id); setEditMode(false); }} data-testid={`wq-view-${row.id}`}>
+                  <span className="inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3" /> ดู</span>
+                </Button>
+                <Button stylingMode="outlined" onClick={() => { setViewId(row.id); setEditMode(false); }} data-testid={`wq-edit-${row.id}`}>
+                  <span className="inline-flex items-center gap-1 text-xs"><Pencil className="w-3 h-3" /> แก้ไข</span>
+                </Button>
+                <Button stylingMode="text" type="danger" onClick={() => setDeleteTarget(row)} data-testid={`wq-delete-${row.id}`}>
+                  <span className="inline-flex items-center gap-1 text-xs"><Trash2 className="w-3 h-3" /> ลบ</span>
+                </Button>
+              </div>
+            );
+          }}
+        />
+      </DataGrid>
+
+      {/* ===== Record new ===== */}
+      <Popup visible={testOpen} onHiding={() => setTestOpen(false)} showCloseButton title="บันทึกผลตรวจน้ำ" width={580} height="auto">
         <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.samplePoint')} *</label>
@@ -305,16 +315,12 @@ export default function WaterQualityPage() {
               <div className="font-medium">
                 {s.parameter} ({s.unit})
                 {s.specMin != null || s.specMax != null ? (
-                  <span className="text-xs text-gray-500 ml-2">
-                    spec {s.specMin ?? '-'} – {s.specMax ?? '-'}
-                  </span>
+                  <span className="text-xs text-gray-500 ml-2">เกณฑ์ {s.specMin ?? '-'} – {s.specMax ?? '-'}</span>
                 ) : null}
               </div>
               <NumberBox
-                value={results[s.id] ?? null}
-                onValueChanged={(e) =>
-                  setResults((prev) => ({ ...prev, [s.id]: Number(e.value ?? 0) }))
-                }
+                value={results[s.id] ?? undefined}
+                onValueChanged={(e) => setResults((prev) => ({ ...prev, [s.id]: Number(e.value ?? 0) }))}
                 step={0.001}
                 format="#0.000"
                 placeholder={t('form.value')}
@@ -325,280 +331,149 @@ export default function WaterQualityPage() {
             <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded p-3 text-sm flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
               <span>
-                ระบบน้ำของจุดเก็บนี้ยังไม่มีการตั้งเกณฑ์ (Spec) จึงไม่มีรายการให้บันทึก —
-                กรุณากดปุ่ม “+ Spec” เพื่อเพิ่มเกณฑ์ของระบบน้ำนี้ก่อน แล้วจึงบันทึกผลตรวจได้
+                ระบบน้ำของจุดเก็บนี้ยังไม่มีการตั้งเกณฑ์ (Spec) — ไปเพิ่มเกณฑ์ที่หน้า{' '}
+                <Link href="/premises/environmental/water-quality/settings" className="underline">ตั้งค่าระบบน้ำ</Link> ก่อน
               </span>
             </div>
           )}
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.notes')}</label>
-            <TextArea
-              value={notes}
-              height={60}
-              onValueChanged={(e) => setNotes(String(e.value ?? ''))}
-            />
+            <TextArea value={notes} height={60} onValueChanged={(e) => setNotes(String(e.value ?? ''))} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border rounded px-3 py-2" />
           </div>
-
           {recordMut.error && (
             <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              {String((recordMut.error as Error).message)}
+              <AlertTriangle className="w-4 h-4" /> {String((recordMut.error as Error).message)}
             </div>
           )}
-
           <div className="flex justify-end gap-2 pt-2">
             <Button text={t('actions.cancel')} stylingMode="text" onClick={() => setTestOpen(false)} />
             <Button
               type="success"
               stylingMode="contained"
               text={t('actions.save')}
-              disabled={
-                !samplePointId ||
-                (!!selectedPoint && (specs ?? []).length === 0) ||
-                recordMut.isPending
-              }
+              disabled={!samplePointId || (!!selectedPoint && (specs ?? []).length === 0) || recordMut.isPending}
               onClick={() => recordMut.mutate()}
             />
           </div>
         </div>
       </Popup>
 
-      {/* Add Water System */}
+      {/* ===== View / edit ===== */}
       <Popup
-        visible={sysOpen}
-        onHiding={() => setSysOpen(false)}
+        visible={viewId != null}
+        onHiding={closeView}
         showCloseButton
-        title="+ Water System"
-        width={480}
+        title={detail ? `ผลตรวจ #${detail.id} — ${detail.samplePointName ?? ''}` : 'ผลตรวจ'}
+        width={680}
         height="auto"
       >
-        <div className="p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Code *</label>
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2"
-              value={sysForm.code}
-              onChange={(e) => setSysForm({ ...sysForm, code: e.target.value })}
-              placeholder="PW-01"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Name *</label>
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2"
-              value={sysForm.name}
-              onChange={(e) => setSysForm({ ...sysForm, name: e.target.value })}
-              placeholder="Purified Water 1"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Type *</label>
-            <SelectBox
-              dataSource={WATER_SYSTEM_TYPES}
-              value={sysForm.systemType}
-              onValueChanged={(e) => setSysForm({ ...sysForm, systemType: e.value as WaterSystemType })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <TextArea
-              value={sysForm.description}
-              height={60}
-              onValueChanged={(e) => setSysForm({ ...sysForm, description: String(e.value ?? '') })}
-            />
-          </div>
-          {createSysMut.error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm">
-              {String((createSysMut.error as Error).message)}
-            </div>
+        <div className="p-4 space-y-3 max-h-[75vh] overflow-y-auto">
+          {!detail ? (
+            <div className="text-gray-500 text-sm">กำลังโหลด…</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div><span className="text-gray-500">วันเวลา:</span> {new Date(detail.performedAt).toLocaleString('th-TH')}</div>
+                <div><span className="text-gray-500">ผู้ตรวจ:</span> {detail.operatorName ?? '—'}</div>
+                <div><span className="text-gray-500">ระบบน้ำ:</span> {detail.systemName ?? '—'}</div>
+                <div><span className="text-gray-500">ผลรวม:</span> {resultBadge(detail.overallResult)}</div>
+              </div>
+
+              <div className="border rounded">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-600">
+                    <tr>
+                      <th className="text-left p-2">พารามิเตอร์</th>
+                      <th className="text-left p-2 w-32">ค่าที่วัด</th>
+                      <th className="text-left p-2 w-28">เกณฑ์</th>
+                      <th className="text-left p-2 w-24">ผล</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.results.map((r) => (
+                      <tr key={r.id} className="border-t">
+                        <td className="p-2">{r.parameter} {r.unit ? <span className="text-gray-400">({r.unit})</span> : null}</td>
+                        <td className="p-2">
+                          {editMode ? (
+                            <NumberBox
+                              value={draft.results[r.id] ?? undefined}
+                              step={0.001}
+                              format="#0.000"
+                              onValueChanged={(e) =>
+                                setDraft((prev) => ({
+                                  ...prev,
+                                  results: { ...prev.results, [r.id]: e.value == null ? null : Number(e.value) },
+                                }))
+                              }
+                            />
+                          ) : (
+                            <span>{r.numericValue ?? '—'}</span>
+                          )}
+                        </td>
+                        <td className="p-2 text-gray-500">{r.specMinSnapshot ?? '-'} – {r.specMaxSnapshot ?? '-'}</td>
+                        <td className="p-2">{resultBadge(r.result)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">หมายเหตุ</label>
+                {editMode ? (
+                  <TextArea value={draft.notes} height={60} onValueChanged={(e) => setDraft((prev) => ({ ...prev, notes: String(e.value ?? '') }))} />
+                ) : (
+                  <div className="text-sm text-gray-700">{detail.notes ?? '—'}</div>
+                )}
+              </div>
+
+              {editMode && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded p-2 text-xs">
+                  ⚠️ การแก้ไขผลตรวจที่เซ็นชื่อแล้วจะถูกบันทึกใน audit log — ผล "ผ่าน/ไม่ผ่าน" จะคำนวณใหม่ตามเกณฑ์เดิม
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                {!editMode ? (
+                  <>
+                    <Button text="ปิด" stylingMode="text" onClick={closeView} />
+                    <Button type="default" stylingMode="contained" onClick={() => startEdit(detail)}>
+                      <span className="inline-flex items-center gap-1"><Pencil className="w-4 h-4" /> แก้ไข</span>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button text="ยกเลิก" stylingMode="text" onClick={() => setEditMode(false)} disabled={saveMut.isPending} />
+                    <Button type="success" stylingMode="contained" text="บันทึกการแก้ไข" disabled={saveMut.isPending} onClick={() => saveMut.mutate()} />
+                  </>
+                )}
+              </div>
+            </>
           )}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button text="Cancel" stylingMode="text" onClick={() => setSysOpen(false)} />
-            <Button
-              type="default"
-              stylingMode="contained"
-              text="บันทึก"
-              disabled={!sysForm.code || !sysForm.name || createSysMut.isPending}
-              onClick={() => createSysMut.mutate()}
-            />
-          </div>
         </div>
       </Popup>
 
-      {/* Add Sample Point */}
-      <Popup
-        visible={ptOpen}
-        onHiding={() => setPtOpen(false)}
-        showCloseButton
-        title="+ Sample Point"
-        width={480}
-        height="auto"
-      >
-        <div className="p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Water System *</label>
-            <SelectBox
-              dataSource={systems ?? []}
-              displayExpr={(s: WaterSystem) => (s ? `${s.code} — ${s.name}` : '')}
-              valueExpr="id"
-              value={ptForm.waterSystemId || null}
-              onValueChanged={(e) => setPtForm({ ...ptForm, waterSystemId: Number(e.value ?? 0) })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Code *</label>
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2"
-              value={ptForm.code}
-              onChange={(e) => setPtForm({ ...ptForm, code: e.target.value })}
-              placeholder="PW-01-SP01"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Name *</label>
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2"
-              value={ptForm.name}
-              onChange={(e) => setPtForm({ ...ptForm, name: e.target.value })}
-              placeholder="Tank outlet"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Location</label>
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2"
-              value={ptForm.location}
-              onChange={(e) => setPtForm({ ...ptForm, location: e.target.value })}
-              placeholder="Building A, 2nd floor"
-            />
-          </div>
-          {createPtMut.error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm">
-              {String((createPtMut.error as Error).message)}
-            </div>
-          )}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button text="Cancel" stylingMode="text" onClick={() => setPtOpen(false)} />
-            <Button
-              type="default"
-              stylingMode="contained"
-              text="บันทึก"
-              disabled={!ptForm.waterSystemId || !ptForm.code || !ptForm.name || createPtMut.isPending}
-              onClick={() => createPtMut.mutate()}
-            />
-          </div>
-        </div>
-      </Popup>
-
-      {/* Add Spec */}
-      <Popup
-        visible={specOpen}
-        onHiding={() => setSpecOpen(false)}
-        showCloseButton
-        title="+ Water Quality Spec"
-        width={520}
-        height="auto"
-      >
-        <div className="p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Water System *</label>
-            <SelectBox
-              dataSource={systems ?? []}
-              displayExpr={(s: WaterSystem) => (s ? `${s.code} — ${s.name}` : '')}
-              valueExpr="id"
-              value={specForm.waterSystemId || null}
-              onValueChanged={(e) => setSpecForm({ ...specForm, waterSystemId: Number(e.value ?? 0) })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Sample Point (optional)</label>
-            <SelectBox
-              dataSource={[{ id: 0, name: '— ทั้งระบบ —' }, ...(points ?? [])]}
-              displayExpr={(p: { id: number; name: string }) => (p ? p.name : '')}
-              valueExpr="id"
-              value={specForm.samplePointId ?? 0}
-              onValueChanged={(e) =>
-                setSpecForm({ ...specForm, samplePointId: Number(e.value) === 0 ? null : Number(e.value) })
-              }
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">Parameter *</label>
-              <input
-                type="text"
-                className="w-full border rounded px-3 py-2"
-                value={specForm.parameter}
-                onChange={(e) => setSpecForm({ ...specForm, parameter: e.target.value })}
-                placeholder="ph / conductivity / toc"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Unit</label>
-              <input
-                type="text"
-                className="w-full border rounded px-3 py-2"
-                value={specForm.unit}
-                onChange={(e) => setSpecForm({ ...specForm, unit: e.target.value })}
-                placeholder="uS/cm / ppm / blank"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Spec Min</label>
-              <input
-                type="number"
-                step="0.001"
-                className="w-full border rounded px-3 py-2"
-                value={specForm.specMin}
-                onChange={(e) =>
-                  setSpecForm({ ...specForm, specMin: e.target.value === '' ? '' : Number(e.target.value) })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Spec Max</label>
-              <input
-                type="number"
-                step="0.001"
-                className="w-full border rounded px-3 py-2"
-                value={specForm.specMax}
-                onChange={(e) =>
-                  setSpecForm({ ...specForm, specMax: e.target.value === '' ? '' : Number(e.target.value) })
-                }
-              />
-            </div>
-          </div>
-          {createSpecMut.error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm">
-              {String((createSpecMut.error as Error).message)}
-            </div>
-          )}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button text="Cancel" stylingMode="text" onClick={() => setSpecOpen(false)} />
-            <Button
-              type="default"
-              stylingMode="contained"
-              text="บันทึก"
-              disabled={!specForm.waterSystemId || !specForm.parameter || createSpecMut.isPending}
-              onClick={() => createSpecMut.mutate()}
-            />
-          </div>
-        </div>
-      </Popup>
+      <ConfirmationDialog
+        visible={!!deleteTarget}
+        title="ลบผลตรวจ"
+        message={
+          deleteTarget
+            ? `ยืนยันการลบผลตรวจ #${deleteTarget.id} (${deleteTarget.samplePointName ?? ''} — ${new Date(deleteTarget.performedAt).toLocaleString('th-TH')}) ? การลบจะถูกบันทึกใน audit log และย้อนกลับไม่ได้`
+            : ''
+        }
+        confirmText="ลบ"
+        cancelText="ยกเลิก"
+        confirmType="danger"
+        isLoading={deleteMut.isPending}
+        onConfirm={() => {
+          if (deleteTarget) deleteMut.mutate(deleteTarget.id);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
