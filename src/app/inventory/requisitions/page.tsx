@@ -186,7 +186,7 @@ export default function MaterialRequisitionsInboxPage() {
   const toast = useToast();
   const [rows, setRows] = useState<RequisitionRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('requested');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState<string>(''); // YYYY-MM-DD
   const [dateTo, setDateTo] = useState<string>('');     // YYYY-MM-DD
@@ -215,17 +215,17 @@ export default function MaterialRequisitionsInboxPage() {
   };
 
   const clearAllFilters = () => {
-    setStatusFilter('requested');
+    setStatusFilter('all');
     setSearch('');
     setDateFrom('');
     setDateTo('');
     setInsufficientOnly(false);
   };
 
-  // Count active filters (status defaults to 'requested', so only non-default counts)
+  // Count active filters (status defaults to 'all', so only non-default counts)
   const activeFilterCount = useMemo(() => {
     let n = 0;
-    if (statusFilter !== 'requested') n++;
+    if (statusFilter !== 'all') n++;
     if (search.trim()) n++;
     if (dateFrom) n++;
     if (dateTo) n++;
@@ -236,7 +236,9 @@ export default function MaterialRequisitionsInboxPage() {
   const fetchRequisitions = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/inventory/requisitions?status=${statusFilter}`);
+      // Always load ALL statuses so the KPI cards reflect true totals; the
+      // status dropdown / clickable cards filter the list on the client.
+      const res = await fetch(`/api/inventory/requisitions?status=all`);
       const data = await res.json();
       if (data.success) {
         setRows((data.data ?? []) as RequisitionRow[]);
@@ -248,7 +250,7 @@ export default function MaterialRequisitionsInboxPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, toast]);
+  }, [toast]);
 
   useEffect(() => {
     fetchRequisitions();
@@ -263,6 +265,7 @@ export default function MaterialRequisitionsInboxPage() {
     const toTs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
 
     return rows.filter((r) => {
+      if (statusFilter !== 'all' && r.requisitionStatus !== statusFilter) return false;
       if (q) {
         const matchesSearch =
           r.woNumber.toLowerCase().includes(q) ||
@@ -282,7 +285,7 @@ export default function MaterialRequisitionsInboxPage() {
       }
       return true;
     });
-  }, [rows, search, dateFrom, dateTo, insufficientOnly]);
+  }, [rows, statusFilter, search, dateFrom, dateTo, insufficientOnly]);
 
   const stats = useMemo(() => {
     const requested = rows.filter((r) => r.requisitionStatus === 'requested').length;
@@ -351,6 +354,7 @@ export default function MaterialRequisitionsInboxPage() {
             icon={Clock}
             iconColor="text-amber-500"
             accentColor="border-amber-500"
+            onClick={() => { setStatusFilter('requested'); setInsufficientOnly(false); }}
           />
           <StatCard
             label="อนุมัติแล้ว"
@@ -358,6 +362,7 @@ export default function MaterialRequisitionsInboxPage() {
             icon={CheckCircle2}
             iconColor="text-emerald-500"
             accentColor="border-emerald-500"
+            onClick={() => { setStatusFilter('approved'); setInsufficientOnly(false); }}
           />
           <StatCard
             label="วัตถุดิบไม่พอ"
@@ -365,6 +370,7 @@ export default function MaterialRequisitionsInboxPage() {
             icon={AlertTriangle}
             iconColor={stats.insufficient > 0 ? 'text-red-500' : 'text-gray-400'}
             accentColor={stats.insufficient > 0 ? 'border-red-500' : 'border-gray-300'}
+            onClick={() => { setStatusFilter('all'); setInsufficientOnly(true); }}
           />
         </div>
 
