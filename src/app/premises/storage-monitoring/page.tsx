@@ -10,10 +10,11 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxPopup } from '@/components/ui/dx-popup';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { ResponsivePageHeader, StatCard, ConfirmationDialog } from '@/components/shared';
 import { useToast } from '@/hooks/use-toast';
-import { Thermometer, Droplets, AlertTriangle, CheckCircle2, Bell } from 'lucide-react';
+import { Thermometer, Droplets, AlertTriangle, CheckCircle2, Bell, Pencil, Trash2 } from 'lucide-react';
 
 interface Warehouse {
   id: number;
@@ -57,12 +58,12 @@ const alertColor = (level: string) =>
 
 const alertLabel = (level: string) =>
   ({
-    in_spec: 'ปกติ',
-    temp_low: 'อุณหภูมิต่ำ',
-    temp_high: 'อุณหภูมิสูง',
-    humidity_low: 'ความชื้นต่ำ',
-    humidity_high: 'ความชื้นสูง',
-    multiple: 'หลายรายการ',
+    in_spec: '✓ ปกติ',
+    temp_low: '↓ อุณหภูมิต่ำ',
+    temp_high: '↑ อุณหภูมิสูง',
+    humidity_low: '↓ ความชื้นต่ำ',
+    humidity_high: '↑ ความชื้นสูง',
+    multiple: '⚠ เกินเกณฑ์หลายค่า',
   })[level] || level;
 
 export default function StorageMonitoringPage() {
@@ -74,12 +75,17 @@ export default function StorageMonitoringPage() {
   const [alertsOnly, setAlertsOnly] = useState(false);
 
   const [showLogDialog, setShowLogDialog] = useState(false);
-  const [logForm, setLogForm] = useState({
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<LogRow | null>(null);
+  const emptyForm = {
     warehouseId: null as number | null,
+    readingAt: '' as string,
     temperature: null as number | null,
     humidity: null as number | null,
     notes: '',
-  });
+  };
+  const [logForm, setLogForm] = useState({ ...emptyForm });
 
   const [ackDialog, setAckDialog] = useState<{ logId: number; message: string } | null>(null);
   const [ackNotes, setAckNotes] = useState('');
@@ -135,6 +141,30 @@ export default function StorageMonitoringPage() {
     };
   }, [logs]);
 
+  const openCreate = () => {
+    setEditingId(null);
+    setLogForm({ ...emptyForm });
+    setShowLogDialog(true);
+  };
+
+  const openEdit = (row: LogRow) => {
+    setEditingId(row.id);
+    setLogForm({
+      warehouseId: row.warehouseId,
+      readingAt: row.readingAt ? new Date(row.readingAt).toISOString() : '',
+      temperature: row.temperature,
+      humidity: row.humidity,
+      notes: row.notes ?? '',
+    });
+    setShowLogDialog(true);
+  };
+
+  const closeDialog = () => {
+    setShowLogDialog(false);
+    setEditingId(null);
+    setLogForm({ ...emptyForm });
+  };
+
   const submitLog = async () => {
     if (!logForm.warehouseId) {
       toast.error('กรุณาเลือกคลัง');
@@ -144,25 +174,55 @@ export default function StorageMonitoringPage() {
       toast.error('กรุณากรอกอย่างน้อย 1 ค่า');
       return;
     }
-    const res = await fetch('/api/inventory/storage-monitoring', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(logForm),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      toast.error('บันทึกไม่สำเร็จ', json?.error);
-      return;
+    setSaving(true);
+    try {
+      const isEdit = editingId != null;
+      const res = await fetch(
+        isEdit
+          ? `/api/inventory/storage-monitoring/${editingId}`
+          : '/api/inventory/storage-monitoring',
+        {
+          method: isEdit ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(logForm),
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error('บันทึกไม่สำเร็จ', json?.error);
+        return;
+      }
+      const saved = json.data;
+      if (saved?.alertLevel && saved.alertLevel !== 'in_spec') {
+        toast.error(`⚠ ALERT — ${alertLabel(saved.alertLevel)}`, saved.alertMessage);
+      } else {
+        toast.success(isEdit ? 'แก้ไขเรียบร้อย — อยู่ในเกณฑ์' : 'บันทึกเรียบร้อย — อยู่ในเกณฑ์');
+      }
+      closeDialog();
+      void loadData();
+    } finally {
+      setSaving(false);
     }
-    const created = json.data;
-    if (created?.alertLevel && created.alertLevel !== 'in_spec') {
-      toast.error(`⚠ ALERT — ${alertLabel(created.alertLevel)}`, created.alertMessage);
-    } else {
-      toast.success('บันทึกเรียบร้อย — อยู่ในเกณฑ์');
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/inventory/storage-monitoring/${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const j = await res.json();
+        toast.error('ลบไม่สำเร็จ', j?.error);
+        return;
+      }
+      toast.success('ลบรายการแล้ว');
+      setDeleteTarget(null);
+      void loadData();
+    } finally {
+      setSaving(false);
     }
-    setShowLogDialog(false);
-    setLogForm({ warehouseId: null, temperature: null, humidity: null, notes: '' });
-    void loadData();
   };
 
   const acknowledge = async () => {
@@ -238,6 +298,33 @@ export default function StorageMonitoringPage() {
         return <span className="text-xs text-gray-400">—</span>;
       },
     },
+    {
+      caption: 'จัดการ',
+      width: 100,
+      cellRender: (c: any) => {
+        const d = c.data as LogRow;
+        return (
+          <div className="flex gap-1">
+            <button
+              className="p-1.5 rounded hover:bg-gray-100 text-gray-600"
+              title="แก้ไข"
+              onClick={() => openEdit(d)}
+              data-testid={`edit-btn-${d.id}`}
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              className="p-1.5 rounded hover:bg-red-50 text-red-600"
+              title="ลบ"
+              onClick={() => setDeleteTarget(d)}
+              data-testid={`delete-btn-${d.id}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        );
+      },
+    },
   ];
 
   return (
@@ -254,7 +341,7 @@ export default function StorageMonitoringPage() {
             <DxButton
               text="+ บันทึกค่า"
               type="default"
-              onClick={() => setShowLogDialog(true)}
+              onClick={openCreate}
               data-testid="storage-monitoring-add"
             />
           }
@@ -305,6 +392,23 @@ export default function StorageMonitoringPage() {
           </label>
         </div>
 
+        {/* Status legend — explains what each สถานะ means */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-gray-600 px-1">
+          <span className="font-medium text-gray-500">ความหมายสถานะ:</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-full bg-green-500" />
+            ปกติ — อยู่ในเกณฑ์
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-full bg-amber-500" />
+            เกินเกณฑ์ 1 ค่า (อุณหภูมิ หรือ ความชื้น)
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
+            เกินเกณฑ์หลายค่า — ต้องกดรับทราบ
+          </span>
+        </div>
+
         <div className="bg-white rounded-lg border">
           <DxDataGrid
             dataSource={logs}
@@ -317,8 +421,8 @@ export default function StorageMonitoringPage() {
         {/* Log entry dialog */}
         <DxPopup
           visible={showLogDialog}
-          onHiding={() => setShowLogDialog(false)}
-          title="บันทึกค่าอุณหภูมิ/ความชื้น"
+          onHiding={closeDialog}
+          title={editingId ? 'แก้ไขบันทึกค่า' : 'บันทึกค่าอุณหภูมิ/ความชื้น'}
           width={500}
           height="auto"
           showCloseButton
@@ -336,6 +440,24 @@ export default function StorageMonitoringPage() {
               onValueChanged={(e) => setLogForm({ ...logForm, warehouseId: e.value })}
               data-testid="storage-monitoring-warehouse"
             />
+            <div>
+              <label className="text-sm text-gray-700 mb-1 block">
+                วันเวลาที่บันทึก{' '}
+                <span className="text-gray-400">(เว้นว่าง = เวลาปัจจุบัน)</span>
+              </label>
+              <DxDateBox
+                type="datetime"
+                labelMode="hidden"
+                value={logForm.readingAt || undefined}
+                showClearButton
+                width="100%"
+                onValueChanged={(e) => {
+                  const d = e.value as Date | null;
+                  setLogForm((f) => ({ ...f, readingAt: d ? d.toISOString() : '' }));
+                }}
+                data-testid="storage-monitoring-readingat"
+              />
+            </div>
             {logForm.warehouseId &&
               (() => {
                 const w = warehouses.find((x) => x.id === logForm.warehouseId);
@@ -377,11 +499,12 @@ export default function StorageMonitoringPage() {
               onValueChanged={(e) => setLogForm({ ...logForm, notes: e.value || '' })}
             />
             <div className="flex justify-end gap-2 pt-2">
-              <DxButton text="ยกเลิก" onClick={() => setShowLogDialog(false)} />
+              <DxButton text="ยกเลิก" onClick={closeDialog} disabled={saving} />
               <DxButton
-                text="บันทึก"
+                text={editingId ? 'บันทึกการแก้ไข' : 'บันทึก'}
                 type="success"
                 onClick={submitLog}
+                disabled={saving}
                 data-testid="storage-monitoring-submit"
               />
             </div>
@@ -417,6 +540,25 @@ export default function StorageMonitoringPage() {
             </div>
           </div>
         </DxPopup>
+
+        {/* Delete confirmation */}
+        <ConfirmationDialog
+          visible={!!deleteTarget}
+          title="ลบรายการบันทึก"
+          message={
+            deleteTarget
+              ? `ยืนยันการลบบันทึกของ ${deleteTarget.warehouseCode} วันที่ ${new Date(
+                  deleteTarget.readingAt,
+                ).toLocaleString('th-TH')} ? การลบไม่สามารถย้อนกลับได้`
+              : ''
+          }
+          confirmText="ลบ"
+          cancelText="ยกเลิก"
+          confirmType="danger"
+          isLoading={saving}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
 
         {loading && <div className="text-center text-gray-500 py-4">กำลังโหลด...</div>}
       </div>

@@ -146,6 +146,96 @@ export async function createStorageEnvLog(data: StorageEnvLogInput) {
   });
 }
 
+export interface StorageEnvLogUpdate {
+  warehouseId?: number;
+  locationId?: number | null;
+  readingAt?: string;
+  temperature?: number | null;
+  humidity?: number | null;
+  notes?: string | null;
+}
+
+/**
+ * Update an existing reading and re-evaluate the alert against the
+ * (possibly new) warehouse spec. Because editing changes the basis of any
+ * prior acknowledgement, the acknowledgement is cleared so an alert that is
+ * still out of spec must be re-acknowledged.
+ */
+export async function updateStorageEnvLog(logId: number, data: StorageEnvLogUpdate) {
+  return executeDbOperation(async (db: any) => {
+    const logs = getTableRef('storageEnvLogs');
+    const warehouses = getTableRef('warehouses');
+
+    const [existing] = await db.select().from(logs).where(eq(logs.id, logId));
+    if (!existing) throw new Error('Log not found');
+
+    const warehouseId = data.warehouseId ?? existing.warehouseId;
+    const temperature =
+      data.temperature !== undefined ? data.temperature : existing.temperature;
+    const humidity = data.humidity !== undefined ? data.humidity : existing.humidity;
+
+    if (temperature == null && humidity == null) {
+      throw new Error('At least one of temperature or humidity must be provided');
+    }
+
+    const [wh] = await db
+      .select({
+        id: warehouses.id,
+        temperatureMin: warehouses.temperatureMin,
+        temperatureMax: warehouses.temperatureMax,
+        humidityMin: warehouses.humidityMin,
+        humidityMax: warehouses.humidityMax,
+      })
+      .from(warehouses)
+      .where(eq(warehouses.id, warehouseId));
+    if (!wh) throw new Error('Warehouse not found');
+
+    const evalResult = evaluateAlert(
+      { temperature: temperature != null ? Number(temperature) : null, humidity: humidity != null ? Number(humidity) : null },
+      wh,
+    );
+
+    const updateValues: Record<string, unknown> = {
+      warehouseId,
+      locationId: data.locationId !== undefined ? data.locationId : existing.locationId,
+      temperature: temperature ?? null,
+      humidity: humidity ?? null,
+      alertLevel: evalResult.alertLevel,
+      alertMessage: evalResult.alertMessage,
+      notes: data.notes !== undefined ? data.notes : existing.notes,
+      // Editing changes the basis of any prior acknowledgement — reset it.
+      acknowledgedBy: null,
+      acknowledgedAt: null,
+      acknowledgedNotes: null,
+    };
+    if (data.readingAt) {
+      updateValues.readingAt = isSqlite() ? data.readingAt : new Date(data.readingAt);
+    }
+
+    if (isSqlite()) {
+      const [log] = await db.update(logs).set(updateValues).where(eq(logs.id, logId)).returning();
+      return { ...log, ...evalResult };
+    } else {
+      await db.update(logs).set(updateValues).where(eq(logs.id, logId));
+      const [log] = await db.select().from(logs).where(eq(logs.id, logId));
+      return { ...log, ...evalResult };
+    }
+  });
+}
+
+/**
+ * Permanently delete a reading.
+ */
+export async function deleteStorageEnvLog(logId: number) {
+  return executeDbOperation(async (db: any) => {
+    const logs = getTableRef('storageEnvLogs');
+    const [existing] = await db.select({ id: logs.id }).from(logs).where(eq(logs.id, logId));
+    if (!existing) throw new Error('Log not found');
+    await db.delete(logs).where(eq(logs.id, logId));
+    return { id: logId };
+  });
+}
+
 export interface ListStorageEnvLogsFilter {
   warehouseId?: number;
   locationId?: number;
