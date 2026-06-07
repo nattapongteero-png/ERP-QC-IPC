@@ -47,6 +47,8 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Items': 'inventory.items',
   'Lots': 'inventory.lots',
   'Warehouses': 'inventory.warehouses',
+  'Goods Receipt (Warehouse)': 'inventory.goodsReceipt',
+  'Material Requisitions (BOM)': 'inventory.requisitions',
   'Transactions': 'inventory.transactions',
   'Returns Inbox': 'inventory.returnsInbox',
   'Expiry Alerts': 'inventory.expiryAlerts',
@@ -55,10 +57,12 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'BOM/Recipes': 'production.bom',
   'Work Orders': 'production.workOrders',
   'Batch Records': 'production.batchRecords',
+  'Extra Withdrawal (non-BOM)': 'production.materialWithdrawal',
   'Master Data': 'production.masterData',
 
   // Quality submenu
   'QC Entry': 'quality.qcEntry',
+  'Incoming Inspection (QC)': 'quality.incomingInspection',
   'Certificate of Analysis': 'quality.coa',
   'COA Templates': 'quality.coaTemplates',
   'Test Panels': 'quality.testPanels',

@@ -25,13 +25,16 @@
     "warehouses": "คลังสินค้า",
     "transactions": "ธุรกรรม",
     "returnsInbox": "การคืนวัตถุดิบ",
-    "expiryAlerts": "แจ้งเตือนหมดอายุ"
+    "expiryAlerts": "แจ้งเตือนหมดอายุ",
+    "goodsReceipt": "ตรวจรับของ (คลัง)",
+    "requisitions": "ใบเบิกตาม BOM"
   },
   "production": {
     "bom": "สูตร/BOM",
     "workOrders": "ใบสั่งผลิต",
     "batchRecords": "บันทึกแบตช์",
-    "masterData": "ข้อมูลหลัก"
+    "masterData": "ข้อมูลหลัก",
+    "materialWithdrawal": "ขอเบิกเพิ่ม (นอก BOM)"
   },
   "quality": {
     "qcEntry": "บันทึก QC",
@@ -41,7 +44,8 @@
     "tests": "การทดสอบ",
     "specs": "ข้อกำหนด",
     "deviations": "ความเบี่ยงเบน",
-    "auditTrail": "เส้นทางการตรวจสอบ"
+    "auditTrail": "เส้นทางการตรวจสอบ",
+    "incomingInspection": "ตรวจรับเข้า QC"
   },
   "gmp": {
     "documents": "เอกสาร",

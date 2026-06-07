@@ -96,8 +96,8 @@ const navigation: NavItem[] = [
       { name: 'Lots', href: '/inventory/lots', icon: Package },
       { name: 'Warehouses', href: '/inventory/warehouses', icon: Warehouse },
       // Inbound → outbound → returns
-      { name: 'ตรวจรับของ', href: '/inventory/goods-receipt', icon: ClipboardCheck },
-      { name: 'ใบเบิกวัตถุดิบ', href: '/inventory/requisitions', icon: ClipboardList },
+      { name: 'Goods Receipt (Warehouse)', href: '/inventory/goods-receipt', icon: ClipboardCheck },
+      { name: 'Material Requisitions (BOM)', href: '/inventory/requisitions', icon: ClipboardList },
       { name: 'Returns Inbox', href: '/inventory/returns', icon: Undo2 },
       // Records & monitoring
       { name: 'Transactions', href: '/inventory/transactions', icon: ArrowLeftRight },
@@ -114,7 +114,7 @@ const navigation: NavItem[] = [
       { name: 'BOM/Recipes', href: '/production/bom', icon: FileText },
       { name: 'Work Orders', href: '/production/work-orders', icon: ClipboardList },
       { name: 'Batch Records', href: '/production/batch-records', icon: FileText },
-      { name: 'เบิกวัตถุดิบเพิ่ม', href: '/material-withdrawal', icon: ArrowLeftRight },
+      { name: 'Extra Withdrawal (non-BOM)', href: '/material-withdrawal', icon: ArrowLeftRight },
       { name: 'รออนุมัติเบิกเพิ่ม', href: '/material-withdrawal/pending', icon: Bell },
       { name: 'Master Data', href: '/master-data', icon: Settings },
     ],
@@ -131,7 +131,7 @@ const navigation: NavItem[] = [
       // Certificate of Analysis (templates live inside this page)
       { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
       // Inspections
-      { name: 'ตรวจรับเข้า', href: '/quality/incoming-inspection', icon: ClipboardCheck },
+      { name: 'Incoming Inspection (QC)', href: '/quality/incoming-inspection', icon: ClipboardCheck },
       // Equipment & environment checks
       { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/quality/scale-verification', icon: Scale },
       { name: 'ตรวจสภาพแวดล้อม', href: '/environmental/inspections', icon: Thermometer },

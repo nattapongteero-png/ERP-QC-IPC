@@ -25,13 +25,16 @@
     "warehouses": "Warehouses",
     "transactions": "Transactions",
     "returnsInbox": "Returns Inbox",
-    "expiryAlerts": "Expiry Alerts"
+    "expiryAlerts": "Expiry Alerts",
+    "goodsReceipt": "Goods Receipt (Warehouse)",
+    "requisitions": "Material Requisitions (BOM)"
   },
   "production": {
     "bom": "BOM/Recipes",
     "workOrders": "Work Orders",
     "batchRecords": "Batch Records",
-    "masterData": "Master Data"
+    "masterData": "Master Data",
+    "materialWithdrawal": "Extra Withdrawal (non-BOM)"
   },
   "quality": {
     "qcEntry": "QC Entry",
@@ -41,7 +44,8 @@
     "tests": "Tests",
     "specs": "Specifications",
     "deviations": "Deviations",
-    "auditTrail": "Audit Trail"
+    "auditTrail": "Audit Trail",
+    "incomingInspection": "Incoming Inspection (QC)"
   },
   "gmp": {
     "documents": "Documents",
