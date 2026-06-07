@@ -51,18 +51,38 @@ export function WithdrawalPanel({
   const [showDialog, setShowDialog] = useState(false);
   const [openDetailId, setOpenDetailId] = useState<number | null>(null);
 
-  // Load BOM materials from WO endpoint (existing API)
+  // Load BOM materials for this WO. The WO materials live at the dedicated
+  // /materials endpoint and the API wraps payloads as { success, data }.
   const { data: woMaterials } = useQuery<WoMaterialApiRow[]>({
     queryKey: ['wo-materials', workOrderId],
     queryFn: async () => {
-      // The WO detail endpoint may differ per project — try the common path
-      const res = await fetch(`/api/production/work-orders/${workOrderId}`);
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/materials`);
       if (!res.ok) return [];
       const body = await res.json();
-      const items = body?.materials ?? body?.workOrderMaterials ?? [];
+      const items = body?.data ?? body?.materials ?? body?.workOrderMaterials ?? [];
       return Array.isArray(items) ? items : [];
     },
     staleTime: 30000,
+  });
+
+  // Load active production rooms for the room dropdown (self-contained widget).
+  // Caller can still override via the `rooms` prop.
+  const { data: roomData } = useQuery<RoomOption[]>({
+    queryKey: ['production-rooms'],
+    enabled: !rooms,
+    queryFn: async () => {
+      const res = await fetch('/api/master-data/production-rooms?isActive=true');
+      if (!res.ok) return [];
+      const body = await res.json();
+      const rows = body?.data ?? [];
+      return (Array.isArray(rows) ? rows : []).map(
+        (r: { id: number; nameTh?: string; name?: string; code?: string }) => ({
+          id: r.id,
+          name: r.nameTh || r.name || r.code || `Room #${r.id}`,
+        }),
+      );
+    },
+    staleTime: 60000,
   });
 
   const bomOptions: BomMaterialOption[] = useMemo(
@@ -114,7 +134,7 @@ export function WithdrawalPanel({
         workOrderNumber={workOrderNumber}
         factoryCode={factoryCode ?? null}
         bomMaterials={bomOptions}
-        rooms={rooms ?? []}
+        rooms={rooms ?? roomData ?? []}
       />
 
       <MaterialWithdrawalDetailDialog

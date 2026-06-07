@@ -34,6 +34,7 @@ export async function GET(
             lotNumber: inventoryLots.lotNumber,
             plannedQuantity: workOrderMaterials.plannedQuantity,
             actualQuantity: workOrderMaterials.actualQuantity,
+            additionalQtyViaWithdrawalRequest: workOrderMaterials.additionalQtyViaWithdrawalRequest,
             unit: workOrderMaterials.unit,
             status: workOrderMaterials.status,
           })
