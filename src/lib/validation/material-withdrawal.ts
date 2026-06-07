@@ -44,15 +44,8 @@ export const createWithdrawalRequestSchema = z
         });
       }
     }
-    if (data.reasonType === 'machine_setup_loss') {
-      if (!data.machinePhase || data.machinePhase.trim().length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['machinePhase'],
-          message: 'machinePhase is required when reasonType is "machine_setup_loss"',
-        });
-      }
-    }
+    // machinePhase is optional even for machine_setup_loss (operator may not
+    // know the exact setup phase); keep it as a free-text hint, not a gate.
   });
 
 export type CreateWithdrawalRequestPayload = z.infer<typeof createWithdrawalRequestSchema>;

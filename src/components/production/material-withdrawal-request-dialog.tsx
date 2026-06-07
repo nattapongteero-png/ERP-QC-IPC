@@ -165,10 +165,6 @@ export function MaterialWithdrawalRequestDialog({
       setValidationError(t('form.room.label') + ' ?');
       return;
     }
-    if (form.reasonType === 'machine_setup_loss' && !form.machinePhase.trim()) {
-      setValidationError(t('errors.phaseRequired'));
-      return;
-    }
     if (form.reasonType === 'other' && form.reasonDetail.trim().length < 3) {
       setValidationError(t('errors.reasonDetailRequired'));
       return;
@@ -275,11 +271,12 @@ export function MaterialWithdrawalRequestDialog({
           />
         </div>
 
-        {/* Conditional: Machine Phase (for setup loss) */}
+        {/* Conditional: Machine Phase (for setup loss) — optional free-text hint */}
         {form.reasonType === 'machine_setup_loss' && (
           <div>
-            <label className="block text-sm font-medium mb-1">
-              {t('form.machinePhase.label')} <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-1 text-gray-600">
+              {t('form.machinePhase.label')}{' '}
+              <span className="text-gray-400 font-normal">({tCommon('optional')})</span>
             </label>
             <TextBox
               value={form.machinePhase}
@@ -288,6 +285,7 @@ export function MaterialWithdrawalRequestDialog({
                 setForm((prev) => ({ ...prev, machinePhase: String(e.value ?? '') }))
               }
             />
+            <p className="mt-1 text-xs text-gray-500">{t('form.machinePhase.hint')}</p>
           </div>
         )}
 

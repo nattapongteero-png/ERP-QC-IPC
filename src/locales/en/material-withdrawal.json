@@ -42,8 +42,9 @@
       "placeholder": "Describe in detail"
     },
     "machinePhase": {
-      "label": "Machine Phase",
-      "placeholder": "Specify the machine setup phase"
+      "label": "Setup step (where loss occurred)",
+      "placeholder": "e.g. dry run, fill-weight adjustment, speed tuning, warm-up",
+      "hint": "Which setup/run step caused the material loss (if known) — used for traceability and root-cause."
     },
     "room": {
       "label": "Production Room"
