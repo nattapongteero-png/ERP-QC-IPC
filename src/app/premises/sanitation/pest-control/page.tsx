@@ -148,7 +148,12 @@ export default function PestControlLogsPage() {
       <ResponsivePageHeader
         title={t('sanitation.pestControl.title')}
         subtitle={t('sanitation.pestControl.description')}
-        onBack={() => router.push('/gmp/sanitation')}
+        breadcrumbs={[
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: t('sanitation.pageTitle'), href: '/premises/sanitation' },
+          { label: t('sanitation.pestControl.title') },
+        ]}
+        onBack={() => router.push('/premises/sanitation')}
         actions={
           <DxButton
             text="Record Service"

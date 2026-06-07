@@ -148,7 +148,12 @@ export default function SanitationLogsPage() {
       <ResponsivePageHeader
         title={t('sanitation.logs.title')}
         subtitle={t('sanitation.logs.description')}
-        onBack={() => router.push('/gmp/sanitation')}
+        breadcrumbs={[
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: t('sanitation.pageTitle'), href: '/premises/sanitation' },
+          { label: t('sanitation.logs.title') },
+        ]}
+        onBack={() => router.push('/premises/sanitation')}
         actions={
           <DxButton
             text="Record Log"

@@ -108,7 +108,12 @@ export default function SanitationSchedulesPage() {
       <ResponsivePageHeader
         title={t('sanitation.schedules.title')}
         subtitle={t('sanitation.schedules.description')}
-        onBack={() => router.push('/gmp/sanitation')}
+        breadcrumbs={[
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: t('sanitation.pageTitle'), href: '/premises/sanitation' },
+          { label: t('sanitation.schedules.title') },
+        ]}
+        onBack={() => router.push('/premises/sanitation')}
         actions={
           <DxButton
             text="New Schedule"

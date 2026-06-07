@@ -11,7 +11,6 @@
  * endpoint).
  */
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, FilterRow, HeaderFilter, Paging, Pager } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
@@ -19,7 +18,8 @@ import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ClipboardList, Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react';
+import { ClipboardList, Pencil, Trash2, Plus } from 'lucide-react';
+import { Breadcrumbs } from '@/components/shared';
 import {
   INSPECTION_TARGET_TYPES,
   type InspectionTargetType,
@@ -181,11 +181,13 @@ export default function TemplatesPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center gap-3">
-        <Link href="/environmental/inspections" className="text-emerald-700 hover:underline inline-flex items-center gap-1 text-sm">
-          <ArrowLeft className="w-4 h-4" /> กลับไปหน้าตรวจสอบสภาพแวดล้อม
-        </Link>
-      </div>
+      <Breadcrumbs
+        items={[
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: 'ตรวจสภาพแวดล้อม', href: '/premises/environmental/inspections' },
+          { label: 'แบบฟอร์มตรวจ (Templates)' },
+        ]}
+      />
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

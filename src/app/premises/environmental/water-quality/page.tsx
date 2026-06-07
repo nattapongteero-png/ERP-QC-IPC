@@ -14,7 +14,7 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { Droplets, Plus, AlertTriangle, FlaskConical, MapPin } from 'lucide-react';
-import { BackButton } from '@/components/shared/BackButton';
+import { Breadcrumbs } from '@/components/shared';
 import {
   WATER_SYSTEM_TYPES,
   type WaterSamplePoint,
@@ -179,7 +179,12 @@ export default function WaterQualityPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <BackButton href="/quality" label="Quality" />
+      <Breadcrumbs
+        items={[
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: 'ระบบน้ำ (Water Quality)' },
+        ]}
+      />
       <header className="flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Droplets className="w-6 h-6" />

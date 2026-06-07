@@ -246,6 +246,10 @@ export default function StorageMonitoringPage() {
         <ResponsivePageHeader
           title="Storage Environmental Monitoring"
           subtitle="บันทึกและติดตามอุณหภูมิ/ความชื้นของห้องเก็บ"
+          breadcrumbs={[
+            { label: 'อาคารและสถานที่', href: '/premises' },
+            { label: 'Storage Monitoring' },
+          ]}
           actions={
             <DxButton
               text="+ บันทึกค่า"

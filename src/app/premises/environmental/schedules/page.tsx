@@ -19,7 +19,8 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarClock, Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react';
+import { CalendarClock, Pencil, Trash2, Plus } from 'lucide-react';
+import { Breadcrumbs } from '@/components/shared';
 import {
   INSPECTION_TARGET_TYPES,
   INSPECTION_FREQUENCIES,
@@ -202,11 +203,13 @@ export default function SchedulesPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center gap-3">
-        <Link href="/environmental/inspections" className="text-emerald-700 hover:underline inline-flex items-center gap-1 text-sm">
-          <ArrowLeft className="w-4 h-4" /> กลับไปหน้าตรวจสอบสภาพแวดล้อม
-        </Link>
-      </div>
+      <Breadcrumbs
+        items={[
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: 'ตรวจสภาพแวดล้อม', href: '/premises/environmental/inspections' },
+          { label: 'ตารางตรวจ (Schedules)' },
+        ]}
+      />
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -382,7 +385,7 @@ export default function SchedulesPage() {
             {!editing && templatesForType.length === 0 && (
               <p className="text-xs text-amber-700 mt-1">
                 ⚠️ ยังไม่มี Template สำหรับ {targetLabel(form.targetType)} — สร้างก่อนที่หน้า{' '}
-                <Link href="/environmental/templates" className="underline">แบบฟอร์มตรวจ</Link>
+                <Link href="/premises/environmental/templates" className="underline">แบบฟอร์มตรวจ</Link>
               </p>
             )}
           </div>

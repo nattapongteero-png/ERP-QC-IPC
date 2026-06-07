@@ -68,7 +68,12 @@ export default function SanitationTrendsPage() {
       <ResponsivePageHeader
         title={t('sanitation.trends.title')}
         subtitle={t('sanitation.trends.description')}
-        onBack={() => router.push('/gmp/sanitation')}
+        breadcrumbs={[
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: t('sanitation.pageTitle'), href: '/premises/sanitation' },
+          { label: t('sanitation.trends.title') },
+        ]}
+        onBack={() => router.push('/premises/sanitation')}
       />
 
       {/* Filters */}

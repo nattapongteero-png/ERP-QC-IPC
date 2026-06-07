@@ -8,16 +8,12 @@
  * Used consistently across all HR pages for professional appearance.
  */
 
-import Link from 'next/link';
 import { DxButton } from '@/components/ui/dx-button';
 import type { LucideIcon } from 'lucide-react';
+import { Breadcrumbs } from './breadcrumbs';
+import type { BreadcrumbItem } from './breadcrumbs';
 
-export interface BreadcrumbItem {
-  /** Display text */
-  label: string;
-  /** Navigation URL (optional - last item typically has no href) */
-  href?: string;
-}
+export type { BreadcrumbItem };
 
 export interface ResponsivePageHeaderProps {
   /** Main title text (Thai) */
@@ -55,23 +51,7 @@ export function ResponsivePageHeader({
     <div className={className}>
       {/* Breadcrumbs - hidden on mobile */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="text-sm text-gray-500 mb-2 hidden md:block">
-          {breadcrumbs.map((crumb, index) => (
-            <span key={index}>
-              {index > 0 && <span className="mx-2">/</span>}
-              {crumb.href ? (
-                <Link
-                  href={crumb.href}
-                  className="hover:text-emerald-600 transition-colors"
-                >
-                  {crumb.label}
-                </Link>
-              ) : (
-                <span className="text-gray-700">{crumb.label}</span>
-              )}
-            </span>
-          ))}
-        </nav>
+        <Breadcrumbs items={breadcrumbs} />
       )}
 
       {/* Header row - responsive layout */}

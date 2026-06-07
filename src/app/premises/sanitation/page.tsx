@@ -285,8 +285,8 @@ export default function SanitationDashboardPage() {
         iconBgColor="bg-lime-100"
         iconColor="text-lime-600"
         breadcrumbs={[
-          { label: 'GMP', href: '/gmp' },
-          { label: 'Sanitation' },
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: t('sanitation.pageTitle') },
         ]}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
@@ -302,14 +302,14 @@ export default function SanitationDashboardPage() {
               icon="event"
               text={t('sanitation.actions.schedules')}
               stylingMode="outlined"
-              onClick={() => router.push('/gmp/sanitation/schedules')}
+              onClick={() => router.push('/premises/sanitation/schedules')}
               className="hidden md:inline-flex"
             />
             <DxButton
               icon="plus"
               text={t('sanitation.actions.recordLog')}
               type="success"
-              onClick={() => router.push('/gmp/sanitation/logs?new=1')}
+              onClick={() => router.push('/premises/sanitation/logs?new=1')}
             />
           </div>
         }
@@ -339,7 +339,7 @@ export default function SanitationDashboardPage() {
               text={t('sanitation.actions.viewTasks')}
               icon="arrowright"
               stylingMode="outlined"
-              onClick={() => router.push('/gmp/sanitation/logs')}
+              onClick={() => router.push('/premises/sanitation/logs')}
             />
           </div>
         </div>
@@ -599,7 +599,7 @@ export default function SanitationDashboardPage() {
       {/* Quick Actions - scroll-snap on mobile, grid on desktop */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <QuickActionCard
-          onClick={() => router.push('/gmp/sanitation/schedules')}
+          onClick={() => router.push('/premises/sanitation/schedules')}
           icon={Sparkles}
           iconBgColor="bg-blue-100 group-hover:bg-blue-200"
           iconColor="text-blue-600"
@@ -609,7 +609,7 @@ export default function SanitationDashboardPage() {
           description={t('sanitation.quickActions.schedulesDescription')}
         />
         <QuickActionCard
-          onClick={() => router.push('/gmp/sanitation/logs')}
+          onClick={() => router.push('/premises/sanitation/logs')}
           icon={FileCheck}
           iconBgColor="bg-cyan-100 group-hover:bg-cyan-200"
           iconColor="text-cyan-600"
@@ -619,7 +619,7 @@ export default function SanitationDashboardPage() {
           description={t('sanitation.quickActions.logsDescription')}
         />
         <QuickActionCard
-          onClick={() => router.push('/gmp/sanitation/pest-control')}
+          onClick={() => router.push('/premises/sanitation/pest-control')}
           icon={Bug}
           iconBgColor="bg-amber-100 group-hover:bg-amber-200"
           iconColor="text-amber-600"
@@ -629,7 +629,7 @@ export default function SanitationDashboardPage() {
           description={t('sanitation.quickActions.pestDescription')}
         />
         <QuickActionCard
-          onClick={() => router.push('/gmp/sanitation/trends')}
+          onClick={() => router.push('/premises/sanitation/trends')}
           icon={TrendingUp}
           iconBgColor="bg-green-100 group-hover:bg-green-200"
           iconColor="text-green-600"
@@ -658,7 +658,7 @@ export default function SanitationDashboardPage() {
             text={t('sanitation.actions.viewAllLogs')}
             icon="arrowright"
             stylingMode="text"
-            onClick={() => router.push('/gmp/sanitation/logs')}
+            onClick={() => router.push('/premises/sanitation/logs')}
           />
         </div>
 

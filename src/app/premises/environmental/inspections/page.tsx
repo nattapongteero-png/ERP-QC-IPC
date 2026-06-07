@@ -21,7 +21,7 @@ import {
   type InspectionTargetType,
   type InspectionFrequency,
 } from '@/types/environmental-monitoring';
-import { BackButton } from '@/components/shared/BackButton';
+import { Breadcrumbs } from '@/components/shared';
 import type {
   InspectionTemplate,
   InspectionTemplateItem,
@@ -121,7 +121,12 @@ export default function InspectionsPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <BackButton href="/quality" label="Quality" />
+      <Breadcrumbs
+        items={[
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: 'ตรวจสภาพแวดล้อม' },
+        ]}
+      />
       <header className="flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Thermometer className="w-6 h-6" />
@@ -130,13 +135,13 @@ export default function InspectionsPage() {
         <div className="flex gap-2 flex-wrap">
           <Button text={t('actions.refresh')} onClick={() => refetch()} />
           <Link
-            href="/environmental/templates"
+            href="/premises/environmental/templates"
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
           >
             <ListPlus className="w-4 h-4" /> จัดการ Templates
           </Link>
           <Link
-            href="/environmental/schedules"
+            href="/premises/environmental/schedules"
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
           >
             <CalendarPlus className="w-4 h-4" /> จัดการ Schedules

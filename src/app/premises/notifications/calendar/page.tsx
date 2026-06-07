@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Button } from 'devextreme-react/button';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
-import { BackButton } from '@/components/shared/BackButton';
+import { Breadcrumbs } from '@/components/shared';
 import type { NotificationSeverity } from '@/types/equipment-notifications';
 
 interface CalendarItem {
@@ -61,7 +61,13 @@ export default function MaintenanceCalendarPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <BackButton href="/notifications" label="Notifications" />
+      <Breadcrumbs
+        items={[
+          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: 'แจ้งเตือนบำรุงรักษา', href: '/premises/notifications' },
+          { label: 'ปฏิทินบำรุงรักษา' },
+        ]}
+      />
       <header className="flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <CalendarDays className="w-6 h-6" />

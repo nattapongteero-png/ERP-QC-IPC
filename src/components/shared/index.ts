@@ -23,7 +23,10 @@ export { StatCard } from './stat-card';
 export type { StatCardProps, TrendIndicator } from './stat-card';
 
 export { ResponsivePageHeader } from './responsive-page-header';
-export type { ResponsivePageHeaderProps, BreadcrumbItem } from './responsive-page-header';
+export type { ResponsivePageHeaderProps } from './responsive-page-header';
+
+export { Breadcrumbs } from './breadcrumbs';
+export type { BreadcrumbsProps, BreadcrumbItem } from './breadcrumbs';
 
 export {
   ResponsiveFormLayout,

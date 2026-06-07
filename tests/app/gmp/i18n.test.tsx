@@ -47,12 +47,7 @@ const GMP_PAGES = [
   'src/app/gmp/recalls/page.tsx',
   'src/app/gmp/recalls/new/page.tsx',
   'src/app/gmp/recalls/[id]/page.tsx',
-  // Sanitation sub-module
-  'src/app/gmp/sanitation/page.tsx',
-  'src/app/gmp/sanitation/logs/page.tsx',
-  'src/app/gmp/sanitation/pest-control/page.tsx',
-  'src/app/gmp/sanitation/schedules/page.tsx',
-  'src/app/gmp/sanitation/trends/page.tsx',
+  // Sanitation sub-module moved to the Premises module (src/app/premises/sanitation/*)
   // Changes sub-module
   'src/app/gmp/changes/page.tsx',
   'src/app/gmp/changes/new/page.tsx',
