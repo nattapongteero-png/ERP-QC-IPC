@@ -287,7 +287,7 @@ export default function IPCPage() {
     queryFn: async () => {
       const [critRes, docRes] = await Promise.all([
         fetch('/api/master-data/ipc-criteria'),
-        fetch('/api/documents?status=active&limit=1000'),
+        fetch('/api/documents?limit=1000'),
       ]);
       const critJson = await critRes.json();
       const docJson = await docRes.json();

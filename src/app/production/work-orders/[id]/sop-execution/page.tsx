@@ -229,7 +229,7 @@ export default function SOPExecutionPage() {
   const { data: docLabelMap } = useQuery<Record<number, string>>({
     queryKey: ['gmp-doc-label-map'],
     queryFn: async () => {
-      const res = await fetch('/api/documents?status=active&limit=1000');
+      const res = await fetch('/api/documents?limit=1000');
       if (!res.ok) return {};
       const body = await res.json();
       const docs = body?.data?.documents ?? body?.documents ?? [];
