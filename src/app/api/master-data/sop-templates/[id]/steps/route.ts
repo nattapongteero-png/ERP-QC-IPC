@@ -65,6 +65,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         instructions: data.instructions || null,
         instructionsTh: data.instructionsTh || null,
         defaultParameters: data.defaultParameters || null,
+        gmpDocumentId: data.gmpDocumentId != null ? Number(data.gmpDocumentId) : null,
       });
 
       return successResponse(step, 'Step added successfully');
@@ -104,6 +105,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (data.instructionsTh !== undefined) updateData.instructionsTh = data.instructionsTh;
       if (data.defaultParameters !== undefined) updateData.defaultParameters = data.defaultParameters;
       if (data.sequence !== undefined) updateData.sequence = data.sequence;
+      if (data.gmpDocumentId !== undefined) updateData.gmpDocumentId = data.gmpDocumentId != null ? Number(data.gmpDocumentId) : null;
 
       const step = await updateSOPTemplateStep(data.stepId, updateData);
       return successResponse(step, 'Step updated successfully');

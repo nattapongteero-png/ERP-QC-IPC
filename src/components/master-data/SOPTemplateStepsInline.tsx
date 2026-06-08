@@ -19,7 +19,8 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { useToast } from '@/hooks/use-toast';
-import { ListOrdered, Plus, ChevronUp, ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { ListOrdered, Plus, ChevronUp, ChevronDown, Pencil, Trash2, FileText } from 'lucide-react';
+import { GmpDocumentSelect } from '@/components/documents';
 
 export interface LocalStep {
   stepName: string;
@@ -27,6 +28,7 @@ export interface LocalStep {
   instructions: string;
   instructionsTh: string;
   defaultParameters: string;
+  gmpDocumentId: number | null;
 }
 
 const emptyForm: LocalStep = {
@@ -35,6 +37,7 @@ const emptyForm: LocalStep = {
   instructions: '',
   instructionsTh: '',
   defaultParameters: '',
+  gmpDocumentId: null,
 };
 
 interface Props {
@@ -138,6 +141,15 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
           onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
           placeholder="Instructions in English"
           height={80}
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+          <FileText className="h-4 w-4 text-gray-500" /> เอกสาร GMP ที่เกี่ยวข้อง
+        </label>
+        <GmpDocumentSelect
+          value={formData.gmpDocumentId}
+          onValueChange={(docId) => setFormData({ ...formData, gmpDocumentId: docId })}
         />
       </div>
       <div className="flex justify-end gap-2 pt-2">

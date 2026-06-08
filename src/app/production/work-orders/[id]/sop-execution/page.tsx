@@ -36,7 +36,9 @@ import {
   Wrench,
   ListChecks,
   FlaskConical,
+  FileText,
 } from 'lucide-react';
+import { GmpDocumentPreviewDialog } from '@/components/documents';
 
 interface TemplateSubStep {
   id: number;
@@ -46,6 +48,7 @@ interface TemplateSubStep {
   instructions?: string;
   instructionsTh?: string;
   defaultParameters?: string;
+  gmpDocumentId?: number | null;
 }
 
 interface LinkedIPCCriterion {
@@ -222,6 +225,20 @@ export default function SOPExecutionPage() {
       ? (phaseParam as SOPPhase)
       : null;
 
+  const [previewDocId, setPreviewDocId] = useState<number | null>(null);
+  const { data: docLabelMap } = useQuery<Record<number, string>>({
+    queryKey: ['gmp-doc-label-map'],
+    queryFn: async () => {
+      const res = await fetch('/api/documents?status=active&limit=1000');
+      if (!res.ok) return {};
+      const body = await res.json();
+      const docs = body?.data?.documents ?? body?.documents ?? [];
+      const map: Record<number, string> = {};
+      for (const d of docs) map[Number(d.id)] = `${d.documentNumber} — ${d.title}`;
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
   const [selectedStep, setSelectedStep] = useState<SOPStep | null>(null);
   const [showExecuteDialog, setShowExecuteDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
@@ -1605,6 +1622,17 @@ export default function SOPExecutionPage() {
                                             {subInstrTh && (
                                               <p className={`text-xs mt-1 whitespace-pre-line leading-relaxed ${isConfirmed ? 'text-emerald-600/80' : 'text-slate-600'}`}>{subInstrTh}</p>
                                             )}
+                                            {sub.gmpDocumentId != null && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setPreviewDocId(sub.gmpDocumentId!); }}
+                                                className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                                title="ดูเอกสาร GMP"
+                                              >
+                                                <FileText className="h-3.5 w-3.5" />
+                                                {docLabelMap?.[sub.gmpDocumentId] ?? 'ดูเอกสาร GMP'}
+                                              </button>
+                                            )}
                                           </div>
                                           {/* Phase 8e — Prominent "บันทึก IPC" button at sub-step
                                               header. Highlighted when there are unrecorded IPCs and
@@ -2781,6 +2809,13 @@ export default function SOPExecutionPage() {
           )}
         </div>
       </DxPopup>
+
+      {/* GMP document preview */}
+      <GmpDocumentPreviewDialog
+        documentId={previewDocId}
+        visible={previewDocId != null}
+        onClose={() => setPreviewDocId(null)}
+      />
     </div>
   );
 }

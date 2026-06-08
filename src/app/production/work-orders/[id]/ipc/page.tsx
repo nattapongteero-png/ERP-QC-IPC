@@ -30,7 +30,9 @@ import {
   ChevronUp,
   Layers,
   ClipboardList,
+  FileText,
 } from 'lucide-react';
+import { GmpDocumentPreviewDialog } from '@/components/documents';
 import { parseAcceptanceStages, calcStageAcceptance, type AcceptanceStage } from '@/lib/master-data/ipc-stages';
 import { parseSpecPayload, type SpecPayload } from '@/lib/master-data/ipc-spec-payload';
 import { NewTypeRecorderPanel, isNewType } from '@/components/ipc-recording/NewTypeRecorderPanel';
@@ -274,6 +276,37 @@ export default function IPCPage() {
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
+  });
+
+  // Linked GMP documents: criteriaId -> { gmpDocumentId, label }.
+  // ipc_criteria now carries gmpDocumentId; join with the documents list so
+  // the recording card can show the doc name + a preview button.
+  const [previewDocId, setPreviewDocId] = useState<number | null>(null);
+  const { data: criteriaDocMap } = useQuery<Record<number, { docId: number; label: string }>>({
+    queryKey: ['ipc-criteria-docmap'],
+    queryFn: async () => {
+      const [critRes, docRes] = await Promise.all([
+        fetch('/api/master-data/ipc-criteria'),
+        fetch('/api/documents?status=active&limit=1000'),
+      ]);
+      const critJson = await critRes.json();
+      const docJson = await docRes.json();
+      const crits = critJson?.data ?? [];
+      const docs = docJson?.data?.documents ?? docJson?.documents ?? [];
+      const docMeta: Record<number, string> = {};
+      for (const d of docs) docMeta[Number(d.id)] = `${d.documentNumber} — ${d.title}`;
+      const map: Record<number, { docId: number; label: string }> = {};
+      for (const c of crits) {
+        if (c.gmpDocumentId != null) {
+          map[Number(c.id)] = {
+            docId: Number(c.gmpDocumentId),
+            label: docMeta[Number(c.gmpDocumentId)] ?? `เอกสาร #${c.gmpDocumentId}`,
+          };
+        }
+      }
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   // Auto-refresh when another user records / approves IPC results on this WO
@@ -750,6 +783,20 @@ export default function IPCPage() {
                             <span> · {test.sampleSize} {t('execution.samples')}</span>
                           )}
                         </div>
+                        {/* Linked GMP document — name + preview */}
+                        {test.ipcCriteriaId != null && criteriaDocMap?.[test.ipcCriteriaId] && (
+                          <div className="mt-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDocId(criteriaDocMap[test.ipcCriteriaId!].docId)}
+                              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                              title="ดูเอกสาร GMP"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              {criteriaDocMap[test.ipcCriteriaId].label}
+                            </button>
+                          </div>
+                        )}
                         {/* Tester/Approver names on card header */}
                         {(test.testedByName || test.approvedByName) && (
                           <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-3">
@@ -1230,6 +1277,13 @@ export default function IPCPage() {
       )}
 
       {/* Popup removed — inline recording is used instead */}
+
+      {/* GMP document preview */}
+      <GmpDocumentPreviewDialog
+        documentId={previewDocId}
+        visible={previewDocId != null}
+        onClose={() => setPreviewDocId(null)}
+      />
     </div>
   );
 }

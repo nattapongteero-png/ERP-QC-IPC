@@ -9,3 +9,6 @@ export { DocumentFormDialog } from './DocumentFormDialog';
 export { DocumentVersionHistory } from './DocumentVersionHistory';
 export { DocumentApprovalDialog } from './DocumentApprovalDialog';
 export { DocumentViewer } from './DocumentViewer';
+export { GmpDocumentSelect } from './GmpDocumentSelect';
+export type { GmpDocumentOption } from './GmpDocumentSelect';
+export { GmpDocumentPreviewDialog } from './GmpDocumentPreviewDialog';

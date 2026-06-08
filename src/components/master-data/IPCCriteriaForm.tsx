@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { ResponsivePageHeader } from '@/components/shared';
 import { SearchableSelect, type SearchableSelectOption } from '@/components/master-data/SearchableSelect';
+import { GmpDocumentSelect } from '@/components/documents';
 import { FlaskConical, Shield, Eye, FileText, Layers, Dice5, Plus, Trash2, AlertTriangle, Sparkles, ArrowDown, Clock, Package, Target, Zap, RotateCcw, Calculator, BookOpen, X } from 'lucide-react';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 import { cn } from '@/lib/utils/cn';
@@ -95,6 +96,8 @@ interface IPCCriteria {
   // ipc_criteria row with criteriaType='tare'). Persisted alongside the
   // tareSourceCode in spec payload to survive criteria-code renames.
   tareSourceCriteriaId: number | null;
+  // Optional linked GMP document (soft ref to documents.id) — e.g. test-method SOP.
+  gmpDocumentId: number | null;
 }
 
 interface Props {
@@ -118,6 +121,7 @@ function normalizeRecord(raw: IPCCriteria | undefined): IPCCriteria | undefined 
     specTolerancePercent: toNum(raw.specTolerancePercent) ?? 0,
     maxRetestRounds: toNum(raw.maxRetestRounds) ?? 1,
     tareSourceCriteriaId: toNum(raw.tareSourceCriteriaId),
+    gmpDocumentId: toNum(raw.gmpDocumentId),
     isCritical: !!raw.isCritical,
     isActive: raw.isActive !== false,
     criteriaType: normalizeCriteriaType(raw.criteriaType),
@@ -150,7 +154,7 @@ export function IPCCriteriaForm({ mode, id }: Props) {
     checkIntervalMinutes: 30, isCritical: false, isActive: true,
     dosageForm: null, criteriaType: 'numeric', tolerancePercent: 0,
     specTarget: null, specTolerancePercent: 0, acceptanceStages: null,
-    maxRetestRounds: 1, tareSourceCriteriaId: null,
+    maxRetestRounds: 1, tareSourceCriteriaId: null, gmpDocumentId: null,
   };
 
   return <IPCCriteriaFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} />;
@@ -624,6 +628,22 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   })}
                 </div>
                 <p className={FIELD_HELPER}>เกณฑ์นี้ใช้ในบริบทใดบ้าง — ช่วยกรอง criteria ตอน operator เลือก</p>
+              </div>
+
+              {/* Linked GMP document — shown + previewable on the WO IPC screen */}
+              <div className="sm:col-span-2">
+                <label className={FIELD_LABEL}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-slate-500" /> เอกสาร GMP ที่เกี่ยวข้อง
+                  </span>
+                </label>
+                <GmpDocumentSelect
+                  value={formData.gmpDocumentId ?? null}
+                  onValueChange={(docId) => setFormData({ ...formData, gmpDocumentId: docId })}
+                />
+                <p className={FIELD_HELPER}>
+                  เลือกเอกสารควบคุม เช่น วิธีทดสอบ/SOP — จะแสดงชื่อ + ปุ่มดูเอกสารในหน้าบันทึก IPC ของ Work Order
+                </p>
               </div>
 
               {/* SOP Step Reference — collapsible fieldset */}

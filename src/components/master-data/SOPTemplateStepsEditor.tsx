@@ -7,7 +7,8 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ListOrdered, Plus, ChevronUp, ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { ListOrdered, Plus, ChevronUp, ChevronDown, Pencil, Trash2, FileText } from 'lucide-react';
+import { GmpDocumentSelect } from '@/components/documents';
 
 interface SOPTemplateStep {
   id: number;
@@ -18,6 +19,7 @@ interface SOPTemplateStep {
   instructions: string | null;
   instructionsTh: string | null;
   defaultParameters: string | null;
+  gmpDocumentId: number | null;
 }
 
 interface StepFormData {
@@ -26,6 +28,7 @@ interface StepFormData {
   instructions: string;
   instructionsTh: string;
   defaultParameters: string;
+  gmpDocumentId: number | null;
 }
 
 const emptyForm: StepFormData = {
@@ -34,6 +37,7 @@ const emptyForm: StepFormData = {
   instructions: '',
   instructionsTh: '',
   defaultParameters: '',
+  gmpDocumentId: null,
 };
 
 interface Props {
@@ -155,6 +159,7 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
       instructions: step.instructions || '',
       instructionsTh: step.instructionsTh || '',
       defaultParameters: step.defaultParameters || '',
+      gmpDocumentId: step.gmpDocumentId ?? null,
     });
   };
 
@@ -221,6 +226,18 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
           placeholder="Instructions in English"
           height={80}
         />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+          <FileText className="h-4 w-4 text-gray-500" /> เอกสาร GMP ที่เกี่ยวข้อง
+        </label>
+        <GmpDocumentSelect
+          value={formData.gmpDocumentId}
+          onValueChange={(docId) => setFormData({ ...formData, gmpDocumentId: docId })}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          จะแสดงชื่อ + ปุ่มดูเอกสารในหน้าบันทึกขั้นตอน (SOP execution) ของ Work Order
+        </p>
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <DxButton text="ยกเลิก" icon="close" stylingMode="text" onClick={cancelForm} disabled={isSaving} />

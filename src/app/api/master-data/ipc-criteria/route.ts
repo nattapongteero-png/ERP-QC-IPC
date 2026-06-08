@@ -110,6 +110,8 @@ export async function POST(request: NextRequest) {
         maxRetestRounds: (data.isCritical ?? false) ? 0 : Math.max(0, Math.min(5, Number(data.maxRetestRounds ?? 1))),
         // Soft FK to another ipc_criteria.id (tare type). null = no tare linked.
         tareSourceCriteriaId: data.tareSourceCriteriaId != null ? Number(data.tareSourceCriteriaId) : null,
+        // Soft FK to documents.id — linked GMP document (e.g. test method SOP).
+        gmpDocumentId: data.gmpDocumentId != null ? Number(data.gmpDocumentId) : null,
       };
 
       // Upsert
@@ -194,7 +196,7 @@ export async function PUT(request: NextRequest) {
         'unit', 'sampleSize', 'checkIntervalMinutes', 'isCritical', 'isActive',
         'dosageForm', 'criteriaType', 'tolerancePercent',
         'specTarget', 'specTolerancePercent',
-        'tareSourceCriteriaId',
+        'tareSourceCriteriaId', 'gmpDocumentId',
       ];
       for (const field of fields) {
         if (data[field] !== undefined) updateData[field] = data[field];
@@ -203,6 +205,11 @@ export async function PUT(request: NextRequest) {
       if (updateData.tareSourceCriteriaId !== undefined) {
         updateData.tareSourceCriteriaId =
           updateData.tareSourceCriteriaId != null ? Number(updateData.tareSourceCriteriaId) : null;
+      }
+      // Normalise gmpDocumentId to number | null
+      if (updateData.gmpDocumentId !== undefined) {
+        updateData.gmpDocumentId =
+          updateData.gmpDocumentId != null ? Number(updateData.gmpDocumentId) : null;
       }
 
       // Retest budget: Critical forces 0; otherwise clamp to [0, 5].

@@ -1342,6 +1342,9 @@ export const sqliteSOPTemplateSteps = sqliteTable('sop_template_steps', {
   instructions: text('instructions'),
   instructionsTh: text('instructions_th'),
   defaultParameters: text('default_parameters'), // JSON: { temperature: 75, duration: 10 }
+  // Optional link to a controlled GMP document (soft ref to documents.id).
+  // Shown + previewable on the work-order SOP execution screen.
+  gmpDocumentId: integer('gmp_document_id'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1507,6 +1510,10 @@ export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
   // Default = 1 (allow 1 retest = max 2 rounds total).
   // Critical criteria force this to 0 at runtime (deviation immediately on round 1 fail).
   maxRetestRounds: integer('max_retest_rounds').notNull().default(1),
+  // Optional link to a controlled GMP document (e.g. test method SOP).
+  // Soft reference to documents.id — no FK so the document can be archived
+  // independently. Shown + previewable on the work-order IPC recording screen.
+  gmpDocumentId: integer('gmp_document_id'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -4812,6 +4819,8 @@ export const mysqlSOPTemplateSteps = mysqlTable('sop_template_steps', {
   instructions: mysqlText('instructions'),
   instructionsTh: mysqlText('instructions_th'),
   defaultParameters: mysqlText('default_parameters'), // JSON: { temperature: 75, duration: 10 }
+  // Optional link to a controlled GMP document (soft ref to documents.id).
+  gmpDocumentId: int('gmp_document_id'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -4961,6 +4970,8 @@ export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
   acceptanceStages: mysqlText('acceptance_stages'),
   // Max retest rounds before forcing deviation (FDA OOS 2006 / PIC/S).
   maxRetestRounds: int('max_retest_rounds').notNull().default(1),
+  // Optional link to a controlled GMP document (soft ref to documents.id).
+  gmpDocumentId: int('gmp_document_id'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
