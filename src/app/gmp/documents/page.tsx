@@ -34,8 +34,6 @@ import DataGrid, {
   MasterDetail,
   StateStoring,
 } from 'devextreme-react/data-grid';
-import { PieChart, Series, Label, Legend, Tooltip, Connector } from 'devextreme-react/pie-chart';
-import { Chart, CommonSeriesSettings, Series as ChartSeries, ArgumentAxis, ValueAxis, Legend as ChartLegend, Tooltip as ChartTooltip } from 'devextreme-react/chart';
 import { DxButton } from '@/components/ui/dx-button';
 import { DocumentApprovalDialog } from '@/components/documents';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
@@ -52,8 +50,6 @@ import {
   Eye,
   Edit,
   Folder,
-  BarChart3,
-  PieChart as PieChartIcon,
   Trash2,
   Search,
   SearchX,
@@ -292,46 +288,6 @@ export default function GmpDocumentsDashboardPage() {
 
     return docs.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [documentsData?.documents, activeTab, searchText]);
-
-  // Chart data
-  const statusChartData = useMemo(() => {
-    if (!dashboard?.byStatus) return [];
-    const statusColors: Record<string, string> = {
-      draft: '#f59e0b',
-      active: '#22c55e',
-      obsolete: '#6b7280',
-      archived: '#3b82f6',
-    };
-    return Object.entries(dashboard.byStatus)
-      .filter(([, count]) => count > 0)
-      .map(([status, count]) => {
-        // Fallback to raw status if translation key missing
-        const translationKey = `documents.charts.statusLabels.${status}`;
-        const translated = t(translationKey);
-        return {
-          status: translated === translationKey ? status : translated,
-          count,
-          color: statusColors[status] || '#6b7280',
-        };
-      });
-    // Include t so chart recomputes on language change.
-  }, [dashboard?.byStatus, t]);
-
-  const typeChartData = useMemo(() => {
-    if (!dashboard?.byType) return [];
-    return Object.entries(dashboard.byType)
-      .filter(([, count]) => count > 0)
-      .slice(0, 8) // Top 8 types
-      .map(([typeCode, count]) => {
-        // Translate typeCode (e.g. SOP, POL) via dictionary; fallback to raw code
-        const translationKey = `documents.typeCodes.${typeCode}`;
-        const translated = t(translationKey);
-        return {
-          type: translated === translationKey ? typeCode : translated,
-          count,
-        };
-      });
-  }, [dashboard?.byType, t]);
 
   // Tab configuration
   const tabs: Array<{ key: TabKey; label: string; count: number }> = useMemo(() => {
@@ -606,75 +562,6 @@ export default function GmpDocumentsDashboardPage() {
           onSelect={handleApprovalSelect}
         />
       )}
-
-      {/* Charts Row — hidden on small screens to prioritize the list */}
-      <div className="hidden lg:grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Status Distribution */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-5 min-w-0">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-            <PieChartIcon className="w-4 h-4" />
-            {t('documents.charts.statusDistribution')}
-          </h3>
-          {statusChartData.length > 0 ? (
-            <PieChart
-              key={locale}
-              id="status-pie"
-              dataSource={statusChartData}
-              type="doughnut"
-              innerRadius={0.65}
-              palette={statusChartData.map(d => d.color)}
-            >
-              <Series argumentField="status" valueField="count">
-                <Label visible={true} position="inside" customizeText={(e: { valueText: string }) => e.valueText}>
-                  <Connector visible={false} />
-                </Label>
-              </Series>
-              <Legend
-                visible={true}
-                horizontalAlignment="right"
-                verticalAlignment="top"
-                itemTextPosition="right"
-              />
-              <Tooltip enabled={true} />
-            </PieChart>
-          ) : (
-            <div className="h-[200px] flex items-center justify-center text-gray-400">
-              {t('documents.noDataAvailable')}
-            </div>
-          )}
-        </div>
-
-        {/* Document Types Distribution */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-5 min-w-0">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            {t('documents.charts.documentsByType')}
-          </h3>
-          {typeChartData.length > 0 ? (
-            <Chart
-              key={locale}
-              id="type-chart"
-              dataSource={typeChartData}
-              rotated={true}
-            >
-              <CommonSeriesSettings type="bar" argumentField="type" valueField="count" />
-              <ChartSeries
-                name="Count"
-                color="#8b5cf6"
-                barWidth={25}
-              />
-              <ArgumentAxis />
-              <ValueAxis />
-              <ChartLegend visible={false} />
-              <ChartTooltip enabled={true} />
-            </Chart>
-          ) : (
-            <div className="h-[200px] flex items-center justify-center text-gray-400">
-              {t('documents.noDataAvailable')}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Document List Card */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 min-w-0 overflow-hidden">
