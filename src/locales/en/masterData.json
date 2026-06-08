@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Master Data",
-    "description": "Manage master data for GMP-compliant production"
+    "description": "Manage master data used by other screens — across both the Production and Premises & Facilities modules"
   },
   "actions": {
     "downloadTemplate": "Download Template",
@@ -11,17 +11,17 @@
     "productionRooms": {
       "title": "Production Rooms",
       "description": "Manage production rooms and areas for GMP compliance",
-      "usedIn": "Production > Work Orders / Batch Records"
+      "usedIn": "Production > Work Orders / Batch Records · Premises > Environmental Inspections"
     },
     "productionEquipment": {
       "title": "Production Equipment",
       "description": "Manage production equipment like scales, mixers, and tools",
-      "usedIn": "Production > Work Orders / Batch Records"
+      "usedIn": "Production > Work Orders / Batch Records · Premises > Maintenance Alerts"
     },
     "environmentalConditions": {
       "title": "Environmental Conditions",
       "description": "Define temperature and humidity monitoring profiles",
-      "usedIn": "Quality > Environmental Inspections"
+      "usedIn": "Premises & Facilities > Environmental Inspections"
     },
     "sopTemplates": {
       "title": "SOP Templates",
@@ -61,7 +61,7 @@
     "maintenancePlanTemplates": {
       "title": "Maintenance Plan Templates",
       "description": "Reusable maintenance/calibration plans applicable to multiple pieces of equipment",
-      "usedIn": "Quality > Maintenance Notifications, Maintenance Calendar"
+      "usedIn": "Premises & Facilities > Maintenance Alerts"
     },
     "itemCodePatterns": {
       "title": "Item Code Patterns",
@@ -76,7 +76,7 @@
   },
   "about": {
     "title": "About Master Data",
-    "description": "Master Data defines the lookup lists and configuration profiles used across the production system.",
+    "description": "Master Data defines the lookup lists and configuration profiles used by other screens. Note: some items (e.g. Environmental Conditions and Maintenance Plans) are now used by the Premises & Facilities module.",
     "usedInLabel": "Used in",
     "items": {
       "productionRooms": "Define areas where production activities occur",
