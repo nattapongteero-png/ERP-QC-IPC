@@ -17,6 +17,14 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // Reduce peak memory during `next build` webpack compile. This machine's
+  // WSL Docker backend is RAM-constrained (8GB, shared with other stacks), and
+  // the compile intermittently OOM-killed the engine. This trades a little
+  // build time for a lower memory ceiling.
+  experimental: {
+    webpackMemoryOptimizations: true,
+  },
+
   // Premises module re-homing: these page routes moved under /premises/*.
   // Old URLs (bookmarks, in-app links) redirect to the new location. Only page
   // routes are listed here — /api/* is never matched, so API calls are unaffected.
