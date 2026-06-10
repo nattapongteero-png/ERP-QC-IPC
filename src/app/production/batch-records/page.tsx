@@ -196,7 +196,9 @@ export default function BatchRecordsDashboardPage() {
     queryClient.invalidateQueries({ queryKey: ['batch-records-list'] });
   };
 
-  const handleView = (id: number) => router.push(`/production/work-orders/${id}`);
+  // This is the eBMR (batch records) menu, so open the work order straight on
+  // its eBMR tab — not the generic overview.
+  const handleView = (id: number) => router.push(`/production/work-orders/${id}?tab=ebmr`);
 
   const handleClearFilters = () => {
     setSearchText('');
@@ -446,7 +448,7 @@ export default function BatchRecordsDashboardPage() {
             {dashboard?.recentRecords?.slice(0, 6).map((record) => (
               <div
                 key={record.id}
-                onClick={() => router.push(`/production/work-orders/${record.id}`)}
+                onClick={() => router.push(`/production/work-orders/${record.id}?tab=ebmr`)}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -639,7 +641,7 @@ export default function BatchRecordsDashboardPage() {
               loading={recordsLoading}
               onRowClick={(e) => {
                 if (e.data?.id) {
-                  router.push(`/production/work-orders/${e.data.id}`);
+                  router.push(`/production/work-orders/${e.data.id}?tab=ebmr`);
                 }
               }}
             >
