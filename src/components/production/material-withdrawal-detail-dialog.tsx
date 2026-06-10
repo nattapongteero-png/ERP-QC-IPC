@@ -122,25 +122,47 @@ export function MaterialWithdrawalDetailDialog({
                   <tr>
                     <th className="px-2 py-1">{t('table.columns.material')}</th>
                     <th className="px-2 py-1 text-right">{t('table.columns.quantityRequested')}</th>
+                    <th className="px-2 py-1 text-right">คงเหลือในคลัง</th>
                     <th className="px-2 py-1 text-right">{t('table.columns.quantityApproved')}</th>
                     <th className="px-2 py-1">{t('form.unit.label')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.items.map((it) => (
-                    <tr key={it.id} className="border-t">
-                      <td className="px-2 py-1">
-                        {it.materialName ?? `#${it.materialId}`}
-                      </td>
-                      <td className="px-2 py-1 text-right">
-                        {it.quantityRequested}
-                      </td>
-                      <td className="px-2 py-1 text-right">
-                        {it.quantityApproved ?? '—'}
-                      </td>
-                      <td className="px-2 py-1">{it.unit}</td>
-                    </tr>
-                  ))}
+                  {data.items.map((it) => {
+                    // Surface the stock shortfall before the approver clicks
+                    // Approve (the server otherwise rejects with "only X
+                    // available"). availableQty may be undefined on older data.
+                    const available = it.availableQty;
+                    const short =
+                      available !== undefined && it.quantityRequested > available;
+                    return (
+                      <tr key={it.id} className="border-t">
+                        <td className="px-2 py-1">
+                          {it.materialName ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium">{it.materialName}</span>
+                              {it.materialCode && (
+                                <span className="text-xs text-gray-500">{it.materialCode}</span>
+                              )}
+                            </div>
+                          ) : (
+                            `#${it.materialId}`
+                          )}
+                        </td>
+                        <td className="px-2 py-1 text-right">{it.quantityRequested}</td>
+                        <td
+                          className={`px-2 py-1 text-right ${short ? 'text-rose-600 font-medium' : 'text-gray-700'}`}
+                        >
+                          {available === undefined ? '—' : available}
+                          {short && (
+                            <span className="block text-xs text-rose-600">ไม่พอ</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-1 text-right">{it.quantityApproved ?? '—'}</td>
+                        <td className="px-2 py-1">{it.unit}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </section>

@@ -78,11 +78,14 @@ export interface MaterialWithdrawalRequestItem {
   id: number;
   materialId: number;
   materialName?: string;
+  materialCode?: string;
   quantityRequested: number;
   quantityApproved: number | null;
   unit: string;
   bomPlannedQuantity: number;
   cumulativeExtraAfterApprove: number | null;
+  /** On-hand quantity available across lots (so the approver sees if enough). */
+  availableQty?: number;
 }
 
 export interface MaterialWithdrawalAttachment {

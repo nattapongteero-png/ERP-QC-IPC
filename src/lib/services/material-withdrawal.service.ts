@@ -485,6 +485,32 @@ export async function getRequestById(
       .where(eq(tables.users.id, header.requestedByUserId))
       .limit(1);
 
+    // Enrich each line with the material's name/code and the on-hand qty across
+    // lots, so the approver sees *what* the material is and *whether* there is
+    // enough — instead of a bare id and a surprise "not enough" error on submit.
+    const itemIds = items.map((it) => Number(it.materialId));
+    const itemMetaById = new Map<number, { code: string; name: string }>();
+    const availableByItem = new Map<number, number>();
+    if (itemIds.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const metaRows: any[] = await db
+        .select({ id: tables.items.id, code: tables.items.code, nameTh: tables.items.nameTh })
+        .from(tables.items)
+        .where(inArray(tables.items.id, itemIds));
+      for (const m of metaRows) {
+        itemMetaById.set(Number(m.id), { code: String(m.code ?? ''), name: String(m.nameTh ?? '') });
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lotRows: any[] = await db
+        .select({ itemId: tables.lots.itemId, quantity: tables.lots.quantity })
+        .from(tables.lots)
+        .where(inArray(tables.lots.itemId, itemIds));
+      for (const lot of lotRows) {
+        const id = Number(lot.itemId);
+        availableByItem.set(id, (availableByItem.get(id) ?? 0) + toNumber(lot.quantity));
+      }
+    }
+
     return {
       id: Number(header.id),
       workOrderId: Number(header.workOrderId),
@@ -500,20 +526,26 @@ export async function getRequestById(
         name: requester[0]?.name ?? '',
       },
       itemCount: items.length,
-      items: items.map((it) => ({
-        id: Number(it.id),
-        materialId: Number(it.materialId),
-        quantityRequested: toNumber(it.quantityRequested),
-        quantityApproved: it.quantityApproved === null || it.quantityApproved === undefined
-          ? null
-          : toNumber(it.quantityApproved),
-        unit: String(it.unit),
-        bomPlannedQuantity: toNumber(it.bomPlannedQuantity),
-        cumulativeExtraAfterApprove:
-          it.cumulativeExtraAfterApprove === null || it.cumulativeExtraAfterApprove === undefined
+      items: items.map((it) => {
+        const meta = itemMetaById.get(Number(it.materialId));
+        return {
+          id: Number(it.id),
+          materialId: Number(it.materialId),
+          materialName: meta?.name || undefined,
+          materialCode: meta?.code || undefined,
+          availableQty: availableByItem.get(Number(it.materialId)) ?? 0,
+          quantityRequested: toNumber(it.quantityRequested),
+          quantityApproved: it.quantityApproved === null || it.quantityApproved === undefined
             ? null
-            : toNumber(it.cumulativeExtraAfterApprove),
-      })),
+            : toNumber(it.quantityApproved),
+          unit: String(it.unit),
+          bomPlannedQuantity: toNumber(it.bomPlannedQuantity),
+          cumulativeExtraAfterApprove:
+            it.cumulativeExtraAfterApprove === null || it.cumulativeExtraAfterApprove === undefined
+              ? null
+              : toNumber(it.cumulativeExtraAfterApprove),
+        };
+      }),
       attachments: attachments.map((a) => ({
         id: Number(a.id),
         fileUrl: String(a.fileUrl),
