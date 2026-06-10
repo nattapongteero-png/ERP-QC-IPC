@@ -95,6 +95,12 @@ export function GmpDocumentSelect({
       placeholder={placeholder}
       width={width}
       noDataText="ไม่มีเอกสาร — สร้างที่เมนู GMP > เอกสาร"
+      // Render the option list at document.body. This SelectBox sits inside the
+      // SOP-step / IPC inline editor whose card uses overflow/stacking contexts;
+      // without container:'body' the popup is clipped by an ancestor on Chrome
+      // and the options don't appear (Firefox renders it anyway). This is the
+      // same proven fix used by the shared DxSelectBox wrapper.
+      dropDownOptions={{ container: 'body' }}
       onValueChanged={(e) => onValueChange(e.value == null ? null : Number(e.value))}
     />
   );
