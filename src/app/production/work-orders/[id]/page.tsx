@@ -767,6 +767,7 @@ export default function WorkOrderDetailPage() {
     cleaningLogs: asArr(ebmrRaw?.cleaningLogs),
     environmentalLogs: asArr(ebmrRaw?.environmentalLogs),
     materialWeighing: asArr(ebmrRaw?.materialWeighing),
+    ipcTests: asArr(ebmrRaw?.ipcTests),
   };
 
   return (

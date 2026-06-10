@@ -96,6 +96,8 @@ export function groupIPCByPhase<T extends { ipcPhase?: string | null }>(
   tests: T[],
 ): Record<string, T[]> {
   const out: Record<string, T[]> = {};
+  // Defensive: a caller may pass a transient non-array shape during navigation.
+  if (!Array.isArray(tests)) return out;
   for (const t of tests) {
     const phase = t.ipcPhase || 'production';
     if (!out[phase]) out[phase] = [];

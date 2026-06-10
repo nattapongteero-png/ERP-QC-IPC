@@ -121,7 +121,9 @@ describe('eBMR Print Infrastructure', () => {
     });
 
     it('has no-print on tab 1 (Execution) wrapper', () => {
-      expect(page).toMatch(/<div className="no-print">\s*<ExecutionDashboard/);
+      // Execution is wrapped in a SectionErrorBoundary so a render crash there
+      // can't white-screen the whole page.
+      expect(page).toMatch(/<div className="no-print">\s*<SectionErrorBoundary[^>]*>\s*<ExecutionDashboard/);
     });
 
     it('has no-print on tab 2 (Materials) card', () => {
@@ -129,10 +131,10 @@ describe('eBMR Print Infrastructure', () => {
     });
 
     it('eBMR content always renders with conditional hidden class', () => {
-      // Should NOT use conditional rendering for eBMR
-      expect(page).not.toContain('{activeTabIndex === 4 && (');
-      // Should use hidden class approach
-      expect(page).toContain("activeTabIndex !== 4 ? 'hidden' : ''");
+      // eBMR is the last tab (index 5). It must stay mounted (CSS-hidden) so
+      // Print works from any tab — not conditionally rendered.
+      expect(page).not.toContain('{activeTabIndex === 5 && (');
+      expect(page).toContain("activeTabIndex !== 5 ? 'hidden' : ''");
       expect(page).toContain('id="ebmr-content"');
     });
 

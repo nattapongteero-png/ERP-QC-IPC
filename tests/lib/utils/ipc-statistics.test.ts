@@ -103,4 +103,16 @@ describe('groupIPCByPhase', () => {
     const out = groupIPCByPhase(tests);
     expect(out.production?.length).toBe(3);
   });
+
+  // Regression: a transient non-array shape during WO-page navigation must not
+  // throw "(... ).map is not a function" / "is not iterable". It crashed the
+  // whole Work Order page when ebmr.ipcTests briefly arrived as an object.
+  it('returns {} for a non-array input instead of throwing', () => {
+    // deliberately pass wrong shapes the way a stale/partial cache might
+    expect(groupIPCByPhase(undefined as never)).toEqual({});
+    expect(groupIPCByPhase(null as never)).toEqual({});
+    expect(groupIPCByPhase({ items: [] } as never)).toEqual({});
+    expect(groupIPCByPhase({} as never)).toEqual({});
+    expect(() => groupIPCByPhase('oops' as never)).not.toThrow();
+  });
 });
