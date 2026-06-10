@@ -101,17 +101,20 @@ export const noteUpdateSchema = z.object({
 /**
  * Note List Filter Schema
  */
+// Built from searchParams.get() (yields null for absent params) — use nullish
+// + null-preprocessing so absent filters don't fail validation and 500 the page.
+const _nz = (s: z.ZodTypeAny) => z.preprocess((v) => (v === null || v === '' ? undefined : v), s);
 export const noteListFilterSchema = z.object({
-  noteType: noteTypeSchema.optional(),
-  referenceType: referenceTypeSchema.optional(),
-  status: noteStatusSchema.optional(),
-  customerId: z.coerce.number().int().positive().optional(),
-  vendorId: z.coerce.number().int().positive().optional(),
-  fromDate: z.string().optional(),
-  toDate: z.string().optional(),
-  search: z.string().optional(),
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  noteType: _nz(noteTypeSchema.optional()),
+  referenceType: _nz(referenceTypeSchema.optional()),
+  status: _nz(noteStatusSchema.optional()),
+  customerId: z.coerce.number().int().positive().nullish(),
+  vendorId: z.coerce.number().int().positive().nullish(),
+  fromDate: _nz(z.string().optional()),
+  toDate: _nz(z.string().optional()),
+  search: _nz(z.string().optional()),
+  page: z.coerce.number().int().positive().nullish().transform((v) => v ?? 1),
+  limit: z.coerce.number().int().positive().max(100).nullish().transform((v) => v ?? 20),
 });
 
 /**

@@ -86,7 +86,18 @@ export default function ApprovalDashboardPage() {
       const response = await fetch('/api/accounting/approvals/dashboard');
       const result = await response.json();
       if (result.success) {
-        setDashboard(result.data);
+        // The API returns flat counts (pendingCount, approvedTodayCount,
+        // rejectedTodayCount); this page renders dashboard.stats.{...}. Normalize
+        // so the stats cards don't crash on a missing `.stats` object.
+        const d = result.data || {};
+        setDashboard({
+          ...d,
+          stats: d.stats ?? {
+            pendingCount: d.pendingCount ?? 0,
+            approvedToday: d.approvedTodayCount ?? d.approvedToday ?? 0,
+            rejectedToday: d.rejectedTodayCount ?? d.rejectedToday ?? 0,
+          },
+        });
       }
     } catch (error) {
       console.error('Error fetching dashboard:', error);

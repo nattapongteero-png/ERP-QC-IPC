@@ -72,43 +72,59 @@ export const postVarianceRequestSchema = z.object({
 });
 
 // Query filter schemas
+// nullish + null-preprocessed dates so absent query params (null) don't 500.
+// optDate is defined below; forward-declare a local copy here.
+const _optDate = z.preprocess(
+  (v) => (v === null || v === '' ? undefined : v),
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+);
 export const varianceListFilterSchema = z.object({
-  workOrderId: z.coerce.number().positive().optional(),
-  itemId: z.coerce.number().positive().optional(),
-  varianceType: varianceTypeEnum.optional(),
-  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  isPosted: z.coerce.boolean().optional(),
-  page: z.coerce.number().positive().optional().default(1),
-  limit: z.coerce.number().positive().max(100).optional().default(20),
+  workOrderId: z.coerce.number().positive().nullish(),
+  itemId: z.coerce.number().positive().nullish(),
+  varianceType: z.preprocess((v) => (v === null || v === '' ? undefined : v), varianceTypeEnum.optional()),
+  dateFrom: _optDate,
+  dateTo: _optDate,
+  isPosted: z.coerce.boolean().nullish(),
+  page: z.coerce.number().positive().nullish().transform((v) => v ?? 1),
+  limit: z.coerce.number().positive().max(100).nullish().transform((v) => v ?? 20),
 });
 
+// NOTE: these are query-param filter schemas. The routes build the input from
+// searchParams.get(), which yields `null` for absent params. Use `.nullish()`
+// (accepts null AND undefined) so an absent filter doesn't fail validation —
+// `.optional()` alone rejects the literal `null` and 500s the listing pages.
+// Empty-string dates are also treated as absent.
+const optDate = z.preprocess(
+  (v) => (v === null || v === '' ? undefined : v),
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+);
+
 export const standardCostListFilterSchema = z.object({
-  itemId: z.coerce.number().positive().optional(),
-  isCurrent: z.coerce.boolean().optional(),
-  effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  page: z.coerce.number().positive().optional().default(1),
-  limit: z.coerce.number().positive().max(100).optional().default(20),
+  itemId: z.coerce.number().positive().nullish(),
+  isCurrent: z.coerce.boolean().nullish(),
+  effectiveDate: optDate,
+  page: z.coerce.number().positive().nullish().transform((v) => v ?? 1),
+  limit: z.coerce.number().positive().max(100).nullish().transform((v) => v ?? 20),
 });
 
 // Report filter schemas
 export const varianceSummaryFilterSchema = z.object({
-  periodId: z.coerce.number().positive().optional(),
-  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  groupBy: z.enum(['item', 'variance_type', 'work_order', 'month']).optional().default('variance_type'),
+  periodId: z.coerce.number().positive().nullish(),
+  dateFrom: optDate,
+  dateTo: optDate,
+  groupBy: z.enum(['item', 'variance_type', 'work_order', 'month']).nullish().transform((v) => v ?? 'variance_type'),
 });
 
 export const materialVarianceFilterSchema = z.object({
-  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  itemId: z.coerce.number().positive().optional(),
+  dateFrom: optDate,
+  dateTo: optDate,
+  itemId: z.coerce.number().positive().nullish(),
 });
 
 export const laborVarianceFilterSchema = z.object({
-  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  workCenterId: z.coerce.number().positive().optional(),
+  dateFrom: optDate,
+  dateTo: optDate,
+  workCenterId: z.coerce.number().positive().nullish(),
 });
 
 // Export types

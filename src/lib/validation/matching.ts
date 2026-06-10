@@ -117,15 +117,19 @@ export const matchingRequestSchema = z.object({
 /**
  * Exception List Filter Schema
  */
+// Built from searchParams.get() which yields `null` for absent params, so use
+// `.nullish()` (null + undefined) — plain `.optional()` rejects literal null and
+// 500s the page. Empty strings are treated as absent.
+const nullishStr = z.preprocess((v) => (v === null || v === '' ? undefined : v), z.string().optional());
 export const exceptionListFilterSchema = z.object({
-  status: exceptionStatusSchema.optional(),
-  exceptionType: exceptionTypeSchema.optional(),
-  vendorId: z.coerce.number().int().positive().optional(),
-  fromDate: z.string().optional(),
-  toDate: z.string().optional(),
-  search: z.string().optional(),
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  status: z.preprocess((v) => (v === null || v === '' ? undefined : v), exceptionStatusSchema.optional()),
+  exceptionType: z.preprocess((v) => (v === null || v === '' ? undefined : v), exceptionTypeSchema.optional()),
+  vendorId: z.coerce.number().int().positive().nullish(),
+  fromDate: nullishStr,
+  toDate: nullishStr,
+  search: nullishStr,
+  page: z.coerce.number().int().positive().nullish().transform((v) => v ?? 1),
+  limit: z.coerce.number().int().positive().max(100).nullish().transform((v) => v ?? 20),
 });
 
 /**
@@ -141,11 +145,11 @@ export const exceptionReviewSchema = z.object({
  * GR/IR Report Filter Schema
  */
 export const grirReportFilterSchema = z.object({
-  asOfDate: z.string().optional(),
-  vendorId: z.coerce.number().int().positive().optional(),
-  status: z.enum(['open', 'partial', 'cleared', 'all']).optional().default('open'),
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(50),
+  asOfDate: nullishStr,
+  vendorId: z.coerce.number().int().positive().nullish(),
+  status: z.preprocess((v) => (v === null || v === '' ? undefined : v), z.enum(['open', 'partial', 'cleared', 'all']).nullish()).transform((v) => v ?? 'open'),
+  page: z.coerce.number().int().positive().nullish().transform((v) => v ?? 1),
+  limit: z.coerce.number().int().positive().max(100).nullish().transform((v) => v ?? 50),
 });
 
 // Type exports
