@@ -271,10 +271,10 @@ export async function calculateWorkOrderVariances(
     const [workOrder] = await db
       .select({
         id: tables.workOrders.id,
-        orderNumber: tables.workOrders.orderNumber,
-        itemId: tables.workOrders.itemId,
-        quantityProduced: tables.workOrders.quantityProduced,
-        quantityPlanned: tables.workOrders.quantity,
+        orderNumber: tables.workOrders.woNumber,
+        itemId: tables.workOrders.productId,
+        quantityProduced: tables.workOrders.actualQuantity,
+        quantityPlanned: tables.workOrders.plannedQuantity,
         status: tables.workOrders.status,
         completedAt: tables.workOrders.completedAt,
       })
@@ -652,7 +652,7 @@ export async function listVariances(
       .select({
         id: tables.varianceRecords.id,
         workOrderId: tables.varianceRecords.workOrderId,
-        workOrderNumber: tables.workOrders.orderNumber,
+        workOrderNumber: tables.workOrders.woNumber,
         itemId: tables.varianceRecords.itemId,
         itemCode: tables.items.code,
         itemName: tables.items.nameTh,
@@ -750,14 +750,14 @@ export async function getWorkOrderVariances(workOrderId: number): Promise<WorkOr
     const [workOrder] = await db
       .select({
         id: tables.workOrders.id,
-        orderNumber: tables.workOrders.orderNumber,
-        itemId: tables.workOrders.itemId,
+        orderNumber: tables.workOrders.woNumber,
+        itemId: tables.workOrders.productId,
         itemCode: tables.items.code,
         itemName: tables.items.nameTh,
-        quantityProduced: tables.workOrders.quantityProduced,
+        quantityProduced: tables.workOrders.actualQuantity,
       })
       .from(tables.workOrders)
-      .leftJoin(tables.items, eq(tables.workOrders.itemId, tables.items.id))
+      .leftJoin(tables.items, eq(tables.workOrders.productId, tables.items.id))
       .where(eq(tables.workOrders.id, workOrderId))
       .limit(1);
 

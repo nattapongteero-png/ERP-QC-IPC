@@ -101,20 +101,21 @@ export const noteUpdateSchema = z.object({
 /**
  * Note List Filter Schema
  */
-// Built from searchParams.get() (yields null for absent params) — use nullish
-// + null-preprocessing so absent filters don't fail validation and 500 the page.
-const _nz = (s: z.ZodTypeAny) => z.preprocess((v) => (v === null || v === '' ? undefined : v), s);
+// Built from searchParams.get() (yields null for absent params). Map null/empty
+// to undefined first, then validate — so absent filters don't 500 the page and
+// the inferred type stays clean (string|enum|undefined, not unknown).
+const emptyToUndef = (v: unknown) => (v === null || v === '' ? undefined : v);
 export const noteListFilterSchema = z.object({
-  noteType: _nz(noteTypeSchema.optional()),
-  referenceType: _nz(referenceTypeSchema.optional()),
-  status: _nz(noteStatusSchema.optional()),
-  customerId: z.coerce.number().int().positive().nullish(),
-  vendorId: z.coerce.number().int().positive().nullish(),
-  fromDate: _nz(z.string().optional()),
-  toDate: _nz(z.string().optional()),
-  search: _nz(z.string().optional()),
-  page: z.coerce.number().int().positive().nullish().transform((v) => v ?? 1),
-  limit: z.coerce.number().int().positive().max(100).nullish().transform((v) => v ?? 20),
+  noteType: z.preprocess(emptyToUndef, noteTypeSchema.optional()),
+  referenceType: z.preprocess(emptyToUndef, referenceTypeSchema.optional()),
+  status: z.preprocess(emptyToUndef, noteStatusSchema.optional()),
+  customerId: z.preprocess(emptyToUndef, z.coerce.number().int().positive().optional()),
+  vendorId: z.preprocess(emptyToUndef, z.coerce.number().int().positive().optional()),
+  fromDate: z.preprocess(emptyToUndef, z.string().optional()),
+  toDate: z.preprocess(emptyToUndef, z.string().optional()),
+  search: z.preprocess(emptyToUndef, z.string().optional()),
+  page: z.preprocess(emptyToUndef, z.coerce.number().int().positive().optional().default(1)),
+  limit: z.preprocess(emptyToUndef, z.coerce.number().int().positive().max(100).optional().default(20)),
 });
 
 /**

@@ -643,7 +643,7 @@ export async function listExceptions(filter: ExceptionListFilterInput): Promise<
         resolvedBy: tables.exceptions.resolvedBy,
         resolvedAt: tables.exceptions.resolvedAt,
         createdAt: tables.exceptions.createdAt,
-        resolvedByName: tables.employees.nameEn,
+        resolvedByName: tables.employees.firstNameEn,
       })
       .from(tables.exceptions)
       .leftJoin(tables.employees, eq(tables.exceptions.resolvedBy, tables.employees.id))
@@ -685,13 +685,13 @@ export async function getGRIRClearingReport(
         vendorName: tables.vendors.name,
         poId: tables.purchaseOrders.id,
         poNumber: tables.purchaseOrders.poNumber,
-        poDate: tables.purchaseOrders.poDate,
+        poDate: tables.purchaseOrders.orderDate,
         itemId: tables.purchaseOrderLines.itemId,
-        itemCode: tables.items.itemCode,
+        itemCode: tables.items.code,
         itemName: tables.items.nameTh,
         poQuantity: tables.purchaseOrderLines.quantity,
         poUnitPrice: tables.purchaseOrderLines.unitPrice,
-        poTotal: tables.purchaseOrderLines.lineTotal,
+        poTotal: tables.purchaseOrderLines.totalPrice,
       })
       .from(tables.purchaseOrderLines)
       .innerJoin(tables.purchaseOrders, eq(tables.purchaseOrderLines.purchaseOrderId, tables.purchaseOrders.id))
