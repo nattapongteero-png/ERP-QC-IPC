@@ -908,11 +908,14 @@ export async function approveRequest(
           lotId: Number(lot.id),
           transactionType: 'issue',
           quantity: isSqlite() ? -take : String(-take),
+          // unit is NOT NULL — take it from the lot (fall back to the request
+          // item's unit). Omitting it (and writing non-existent performedAt /
+          // notes columns) made the whole approve transaction roll back → 500.
+          unit: String(lot.unit ?? it.unit ?? ''),
           referenceType: 'material_withdrawal_request',
           referenceId: requestId,
           performedBy: approverUserId,
-          performedAt: now,
-          notes: `Material withdrawal request #${requestId}`,
+          reason: `Material withdrawal request #${requestId}`,
           createdAt: now,
         });
         inventoryTransactionIds.push(getInsertId(txInsert));
