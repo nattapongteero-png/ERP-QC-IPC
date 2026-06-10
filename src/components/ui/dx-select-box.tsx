@@ -152,9 +152,23 @@ export function DxSelectBox<T = string>({
   }, []);
 
   // Render dropdown popup at document.body to avoid positioning issues
-  // caused by CSS transform on ancestor elements (e.g., mobile sidebar translateX)
+  // caused by CSS transform on ancestor elements (e.g., mobile sidebar translateX).
+  //
+  // Pin the popup BELOW the editor and only flip up when there's genuinely no
+  // room below. Without an explicit position DevExtreme let each browser decide
+  // the anchor, so Chrome and Firefox computed different available space and the
+  // list appeared above the field on one and below on the other. `my:'top'` /
+  // `at:'bottom'` anchors the popup's top edge to the editor's bottom edge (the
+  // dropdown editor already supplies the editor element as the anchor), and
+  // `collision:'flipfit'` keeps it on-screen — identical across all browsers.
+  // Per DevExtreme positionConfig docs (v25.2).
   const mergedDropDownOptions = {
-    container: 'body' as const,
+    container: 'body',
+    position: {
+      my: 'top',
+      at: 'bottom',
+      collision: 'flipfit',
+    },
     ...dropDownOptions,
   };
 
@@ -180,7 +194,7 @@ export function DxSelectBox<T = string>({
       height={height}
       className={className}
       name={name}
-      dropDownOptions={mergedDropDownOptions}
+      dropDownOptions={mergedDropDownOptions as SelectBoxTypes.Properties['dropDownOptions']}
       noDataText={noDataText}
     >
       {required && (
