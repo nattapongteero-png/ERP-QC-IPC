@@ -311,7 +311,7 @@ export async function runMatching(
     const invoiceLines = await db
       .select()
       .from(tables.apInvoiceLines)
-      .where(eq(tables.apInvoiceLines.invoiceId, request.invoiceId))
+      .where(eq(tables.apInvoiceLines.apInvoiceId, request.invoiceId))
       .orderBy(asc(tables.apInvoiceLines.lineNumber));
 
     if (invoiceLines.length === 0) {
@@ -694,7 +694,7 @@ export async function getGRIRClearingReport(
         poTotal: tables.purchaseOrderLines.totalPrice,
       })
       .from(tables.purchaseOrderLines)
-      .innerJoin(tables.purchaseOrders, eq(tables.purchaseOrderLines.purchaseOrderId, tables.purchaseOrders.id))
+      .innerJoin(tables.purchaseOrders, eq(tables.purchaseOrderLines.poId, tables.purchaseOrders.id))
       .leftJoin(tables.vendors, eq(tables.purchaseOrders.vendorId, tables.vendors.id))
       .leftJoin(tables.items, eq(tables.purchaseOrderLines.itemId, tables.items.id))
       .where(eq(tables.purchaseOrders.status, 'approved'))
