@@ -43,6 +43,7 @@ import { formatSpecSummary, getCriteriaTypeLabel } from '@/lib/master-data/ipc-s
 import { computeIPCStats, computePercentDeviation, groupIPCByPhase } from '@/lib/utils/ipc-statistics';
 // Feature 018: material withdrawal approval
 import { WithdrawalPanel } from '@/components/production/withdrawal-panel';
+import { SectionErrorBoundary } from '@/components/shared/SectionErrorBoundary';
 
 interface LineClearanceStatus {
   required: boolean;
@@ -1061,7 +1062,9 @@ export default function WorkOrderDetailPage() {
 
         {activeTabIndex === 1 && (
           <div className="no-print">
-            <ExecutionDashboard workOrderId={workOrder.id} />
+            <SectionErrorBoundary label="Execution">
+              <ExecutionDashboard workOrderId={workOrder.id} />
+            </SectionErrorBoundary>
           </div>
         )}
 
@@ -1194,6 +1197,10 @@ export default function WorkOrderDetailPage() {
           </Card>
         )}
 
+        {/* eBMR content is always mounted (only CSS-hidden) so Print works from
+            any tab — which means a render issue here would otherwise crash the
+            whole page even on other tabs. Isolate it. */}
+        <SectionErrorBoundary label="eBMR">
         <div className={`space-y-6 ${activeTabIndex !== 5 ? 'hidden' : ''}`} id="ebmr-content">
           {/* Print-only document header */}
           <div className="print-only ebmr-print-header">
@@ -2174,6 +2181,7 @@ export default function WorkOrderDetailPage() {
               <p className="mt-1">เอกสารนี้สร้างจากระบบอิเล็กทรอนิกส์ — Electronic Batch Manufacturing Record</p>
             </div>
         </div>
+        </SectionErrorBoundary>
 
       {/* Item Search Dialog */}
       <ItemSearchDialog
