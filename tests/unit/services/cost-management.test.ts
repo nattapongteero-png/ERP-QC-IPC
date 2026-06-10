@@ -584,10 +584,11 @@ describe('Cost Management Service', () => {
       expect(lc).toBeDefined();
       expect(lc!.documentNumber).toBe('LC2026-TEST01');
       expect(lc!.status).toBe('draft');
-      expect(lc!.lines).toBeDefined();
-      expect(lc!.lines.length).toBe(2);
-      expect(lc!.lines[0].costType).toBe('freight');
-      expect(lc!.lines[1].costType).toBe('duty');
+      const lcLines = lc!.lines!;
+      expect(lcLines).toBeDefined();
+      expect(lcLines.length).toBe(2);
+      expect(lcLines[0]!.costType).toBe('freight');
+      expect(lcLines[1]!.costType).toBe('duty');
     });
 
     it('should return null for non-existent', async () => {

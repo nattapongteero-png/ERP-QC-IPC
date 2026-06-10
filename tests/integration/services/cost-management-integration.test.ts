@@ -206,7 +206,7 @@ describe('Cost Management Integration', () => {
       const lc = await getLandedCost(created.id);
       expect(lc).toBeDefined();
       expect(lc!.status).toBe('draft');
-      expect(lc!.lines.length).toBe(3);
+      expect(lc!.lines!.length).toBe(3);
       expect(Number(lc!.totalAmount)).toBe(15750);
 
       // ── Step 2: Update (fix invoice number) ──

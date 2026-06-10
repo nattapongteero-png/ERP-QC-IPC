@@ -105,7 +105,7 @@ describe('phase fallback semantics for the route', () => {
   function applyFallback(
     input: { ipcPhase?: string | null },
     fallbackPhase: string | null,
-  ): { ipcPhase: string | undefined | null } {
+  ): { ipcPhase?: string | null } {
     const r = { ...input };
     if (!r.ipcPhase && fallbackPhase) r.ipcPhase = fallbackPhase;
     return r;
