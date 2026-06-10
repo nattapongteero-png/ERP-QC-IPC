@@ -89,6 +89,8 @@ export const signChecklistSchema = z.object({
       }),
     )
     .min(1),
+  // Quantity QC draws as a sample into the QC warehouse (QC-first flow).
+  sampleQuantity: z.number().positive(),
   signature: signatureSchema,
 });
 
@@ -96,6 +98,10 @@ export const qaActionSchema = z
   .object({
     action: z.enum(['release', 'reject']),
     rejectionReason: z.string().trim().min(10).max(1000).optional(),
+    // Total quantity the warehouse counted at release (required for release).
+    actualQuantity: z.number().positive().optional(),
+    // Optional override of the destination warehouse (defaults to the GRN's).
+    warehouseId: z.number().int().positive().optional(),
     signature: signatureSchema,
   })
   .superRefine((data, ctx) => {
@@ -104,6 +110,13 @@ export const qaActionSchema = z
         code: z.ZodIssueCode.custom,
         path: ['rejectionReason'],
         message: 'Rejection reason required when action=reject',
+      });
+    }
+    if (data.action === 'release' && data.actualQuantity == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['actualQuantity'],
+        message: 'Actual quantity required when action=release',
       });
     }
   });

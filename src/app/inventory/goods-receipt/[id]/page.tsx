@@ -46,9 +46,11 @@ export default function GrnDetailPage() {
 
   // Local state for current checklist editing
   const [checklistAnswers, setChecklistAnswers] = useState<Record<number, { isPass: boolean; remarks?: string }>>({});
-  // Actual (counted) quantity captured inside the checklist popup so the QC
-  // signer is never dead-ended by a missing count. Empty string = not entered.
-  const [checklistActualQty, setChecklistActualQty] = useState<string>('');
+  // QC-first flow:
+  //  - sample qty: how much QC draws into the QC warehouse (set at checklist sign)
+  //  - release qty: total the warehouse counts at release (remainder → RM/FG)
+  const [checklistSampleQty, setChecklistSampleQty] = useState<string>('');
+  const [releaseActualQty, setReleaseActualQty] = useState<string>('');
 
   // GRN data
   const { data, refetch } = useQuery<{ grn: GoodsReceipt; lines: GoodsReceiptLine[] }>({
@@ -112,27 +114,11 @@ export default function GrnDetailPage() {
   const signChecklistMut = useMutation({
     mutationFn: async () => {
       if (!activeLineId || !currentTemplate) throw new Error('Missing data');
-      // The server rejects signing when a line has no actualQuantity. Persisting
-      // the count requires the warehouse 'receive' permission (Triple
-      // Independence: the receiver/counter is a different role from QC). So we
-      // only save the qty from here when the signer also holds that permission
-      // (e.g. admin). A QC-only signer must wait for the warehouse to enter the
-      // count on the grid first — guarded in the UI below.
-      const qty = Number(checklistActualQty);
-      if (!checklistActualQty.trim() || !Number.isFinite(qty) || qty <= 0) {
-        throw new Error('กรุณากรอกจำนวนที่นับได้จริง (มากกว่า 0) ก่อนลงนาม');
-      }
-      const activeLine = (data?.lines ?? []).find((l) => l.id === activeLineId);
-      const qtyMissing = activeLine == null || activeLine.actualQuantity == null;
-      const qtyChanged = activeLine != null && Number(activeLine.actualQuantity) !== qty;
-      if (qtyMissing || qtyChanged) {
-        if (!canRelease) {
-          // QC-only user cannot write the count.
-          throw new Error(
-            'คลังยังไม่ได้บันทึกจำนวนที่นับได้จริงในรายการนี้ — โปรดให้ฝ่ายคลังกรอกจำนวนก่อน แล้วจึงลงนาม',
-          );
-        }
-        await updateLineMut.mutateAsync({ lineId: activeLineId, patch: { actualQuantity: qty } });
+      // QC-first flow: QC supplies the quantity it draws as a sample into the
+      // QC warehouse. The warehouse counts the total later at release.
+      const sampleQty = Number(checklistSampleQty);
+      if (!checklistSampleQty.trim() || !Number.isFinite(sampleQty) || sampleQty <= 0) {
+        throw new Error('กรุณากรอกจำนวนที่ QC สุ่มตรวจ (มากกว่า 0) ก่อนลงนาม');
       }
       const items = currentTemplate.items.map((tmpl) => ({
         templateItemId: tmpl.id,
@@ -144,6 +130,7 @@ export default function GrnDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items,
+          sampleQuantity: sampleQty,
           signature: { password: sigPassword || 'verify' },
         }),
       });
@@ -156,7 +143,7 @@ export default function GrnDetailPage() {
       qc.invalidateQueries({ queryKey: ['grn-dashboard'] });
       setChecklistOpen(false);
       setChecklistAnswers({});
-      setChecklistActualQty('');
+      setChecklistSampleQty('');
       setSigPassword('');
     },
   });
@@ -169,6 +156,13 @@ export default function GrnDetailPage() {
         signature: { password: sigPassword || 'verify' },
       };
       if (qaActionOpen.action === 'reject') body.rejectionReason = rejectionReason;
+      if (qaActionOpen.action === 'release') {
+        const qty = Number(releaseActualQty);
+        if (!releaseActualQty.trim() || !Number.isFinite(qty) || qty <= 0) {
+          throw new Error('กรุณากรอกจำนวนรวมที่นับได้จริง (มากกว่า 0) ก่อนปล่อยเข้าคลัง');
+        }
+        body.actualQuantity = qty;
+      }
       const res = await fetch(
         `/api/inventory/goods-receipts/${grnId}/lines/${qaActionOpen.lineId}/qa`,
         {
@@ -186,6 +180,7 @@ export default function GrnDetailPage() {
       qc.invalidateQueries({ queryKey: ['grn-dashboard'] });
       setQaActionOpen(null);
       setRejectionReason('');
+      setReleaseActualQty('');
       setSigPassword('');
     },
   });
@@ -308,15 +303,8 @@ export default function GrnDetailPage() {
                         initial[it.id] = { isPass: false };
                       });
                       setChecklistAnswers(initial);
-                      // Pre-fill the counted qty from the line (warehouse may
-                      // have entered it already); fall back to expected.
-                      setChecklistActualQty(
-                        line.actualQuantity != null
-                          ? String(line.actualQuantity)
-                          : line.expectedQuantity != null
-                            ? String(line.expectedQuantity)
-                            : '',
-                      );
+                      // QC enters the sample qty fresh each time — no pre-fill.
+                      setChecklistSampleQty('');
                       setChecklistOpen(true);
                     }}
                   />
@@ -361,28 +349,25 @@ export default function GrnDetailPage() {
         height="auto"
       >
         <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-          {/* Counted quantity — required by the server before signing.
-              Editable only for users who can also receive (warehouse / admin);
-              a QC-only signer sees it read-only and must wait for the count. */}
+          {/* QC sample quantity — how much QC physically draws into the QC
+              warehouse for testing. The warehouse counts the remaining total
+              and releases it into RM/FG later. */}
           <div className="border rounded p-3 bg-amber-50 border-amber-200">
             <label className="block text-sm font-medium mb-1">
-              จำนวนที่นับได้จริง (Actual quantity) <span className="text-rose-600">*</span>
+              จำนวนที่ QC สุ่มตรวจ (เข้าคลัง QC) <span className="text-rose-600">*</span>
             </label>
             <input
               type="number"
               min={0}
               step="any"
-              value={checklistActualQty}
-              onChange={(e) => setChecklistActualQty(e.target.value)}
-              readOnly={!canRelease}
-              className={`w-full border rounded px-3 py-2 ${!canRelease ? 'bg-gray-100 text-gray-600' : ''}`}
-              placeholder="กรอกจำนวนที่นับได้จริงก่อนลงนาม"
-              data-testid="checklist-actual-qty"
+              value={checklistSampleQty}
+              onChange={(e) => setChecklistSampleQty(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              placeholder="กรอกจำนวนที่สุ่มไปตรวจ"
+              data-testid="checklist-sample-qty"
             />
             <p className="text-xs text-gray-500 mt-1">
-              {canRelease
-                ? 'ระบบจะบันทึกจำนวนนี้ลงรายการก่อนลงนาม — ต้องมากกว่า 0'
-                : 'จำนวนนี้ฝ่ายคลังเป็นผู้กรอก (แยกหน้าที่ตามหลัก Triple Independence) — หากยังว่าง โปรดให้ฝ่ายคลังกรอกก่อนลงนาม'}
+              ระบบจะหักจำนวนนี้เข้าคลังตัวอย่าง QC — ส่วนที่เหลือฝ่ายคลังจะนับและรับเข้าคลังภายหลัง
             </p>
           </div>
           {(currentTemplate?.items ?? []).map((item) => (
@@ -442,8 +427,7 @@ export default function GrnDetailPage() {
               text={t('actions.signChecklist')}
               disabled={
                 signChecklistMut.isPending ||
-                updateLineMut.isPending ||
-                !(Number(checklistActualQty) > 0)
+                !(Number(checklistSampleQty) > 0)
               }
               onClick={() => signChecklistMut.mutate()}
             />
@@ -462,10 +446,51 @@ export default function GrnDetailPage() {
       >
         <div className="p-4 space-y-3">
           {qaActionOpen?.action === 'release' ? (
-            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded p-3 text-emerald-900 text-sm">
-              <CheckCircle2 className="w-5 h-5" />
-              <span>กดยืนยันเพื่อปล่อยล็อตเข้าสต็อก (Triple Independence enforced)</span>
-            </div>
+            <>
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded p-3 text-emerald-900 text-sm">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>กดยืนยันเพื่อปล่อยล็อตเข้าสต็อก (Triple Independence enforced)</span>
+              </div>
+              {(() => {
+                const rl = lines.find((l) => l.id === qaActionOpen.lineId);
+                const sample = Number(rl?.sampleQuantity ?? 0);
+                const total = Number(releaseActualQty);
+                const remainder =
+                  releaseActualQty.trim() && Number.isFinite(total) ? total - sample : null;
+                const tooLow = remainder !== null && remainder < 0;
+                return (
+                  <div className="border rounded p-3 bg-amber-50 border-amber-200 space-y-2">
+                    <label className="block text-sm font-medium">
+                      จำนวนรวมที่นับได้จริง <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={releaseActualQty}
+                      onChange={(e) => setReleaseActualQty(e.target.value)}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="กรอกจำนวนรวมที่รับจริง"
+                      data-testid="release-actual-qty"
+                    />
+                    <div className="text-xs text-gray-600 space-y-0.5">
+                      <div>QC สุ่มไปแล้ว (เข้าคลัง QC): <b>{sample}</b></div>
+                      <div>
+                        เข้าคลัง {grn.sourceType === 'wo' ? 'สินค้าสำเร็จรูป' : 'วัตถุดิบ'}:{' '}
+                        <b className={tooLow ? 'text-rose-600' : ''}>
+                          {remainder === null ? '—' : remainder}
+                        </b>
+                      </div>
+                      {tooLow && (
+                        <div className="text-rose-600">
+                          จำนวนรวมต้องไม่น้อยกว่าจำนวนที่ QC สุ่มไป ({sample})
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
           ) : (
             <>
               <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded p-3 text-rose-900 text-sm">
@@ -511,7 +536,14 @@ export default function GrnDetailPage() {
               text={qaActionOpen?.action === 'release' ? t('actions.release') : t('actions.reject')}
               disabled={
                 qaActionMut.isPending ||
-                (qaActionOpen?.action === 'reject' && rejectionReason.length < 10)
+                (qaActionOpen?.action === 'reject' && rejectionReason.length < 10) ||
+                (qaActionOpen?.action === 'release' &&
+                  (() => {
+                    const rl = lines.find((l) => l.id === qaActionOpen.lineId);
+                    const sample = Number(rl?.sampleQuantity ?? 0);
+                    const total = Number(releaseActualQty);
+                    return !releaseActualQty.trim() || !(total > 0) || total < sample;
+                  })())
               }
               onClick={() => qaActionMut.mutate()}
             />

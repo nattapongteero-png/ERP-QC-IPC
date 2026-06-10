@@ -8,7 +8,7 @@
 import { eq } from 'drizzle-orm';
 import { createHash } from 'crypto';
 import { executeDbOperation, getTableRef, getInsertId } from '../db/db-helper';
-import { getNow } from '../db/date-utils';
+import { getNow, toDbDate } from '../db/date-utils';
 import {
   GoodsReceiptError,
   GOODS_RECEIPT_ERROR_CODES,
@@ -29,6 +29,7 @@ function getTables() {
     signatures: getTableRef('electronicSignatures'),
     deviations: getTableRef('deviations'),
     users: getTableRef('users'),
+    items: getTableRef('items'),
   };
 }
 
@@ -42,6 +43,7 @@ export async function qaReleaseLine(
   lineId: number,
   signature: { password?: string; pin?: string },
   qaUserId: number,
+  options?: { actualQuantity?: number; warehouseId?: number },
 ): Promise<QaReleaseResult> {
   return executeDbOperation(async (db) => {
     const t = getTables();
@@ -78,6 +80,23 @@ export async function qaReleaseLine(
       );
     }
 
+    // The warehouse counts the total received quantity at release. It must be
+    // ≥ what QC already drew as a sample (otherwise the remainder is negative).
+    const sampleQuantity = Number(line.sampleQuantity ?? 0);
+    const actualQuantity = Number(options?.actualQuantity);
+    if (!Number.isFinite(actualQuantity) || actualQuantity <= 0) {
+      throw new GoodsReceiptError(
+        GOODS_RECEIPT_ERROR_CODES.VARIANCE_NOT_JUSTIFIED,
+        'กรุณากรอกจำนวนที่นับได้จริง (มากกว่า 0) ก่อนปล่อยเข้าคลัง',
+      );
+    }
+    if (actualQuantity < sampleQuantity) {
+      throw new GoodsReceiptError(
+        GOODS_RECEIPT_ERROR_CODES.VARIANCE_NOT_JUSTIFIED,
+        `จำนวนที่นับได้ (${actualQuantity}) ต้องไม่น้อยกว่าจำนวนที่ QC สุ่มไป (${sampleQuantity})`,
+      );
+    }
+
     // User info
     const userRows = await db.select().from(t.users).where(eq(t.users.id, qaUserId)).limit(1);
     if (userRows.length === 0)
@@ -104,24 +123,73 @@ export async function qaReleaseLine(
     });
     const signatureId = getInsertId(sigInsert);
 
-    // Update line
+    // Create the remainder lot (total counted − QC sample) into RM/FG, status
+    // released. Backward-compat: if a lot already exists on the line (old flow
+    // created it at QC-sign), just release that instead of creating a second.
+    const remainder = actualQuantity - sampleQuantity;
+    let remainderLotId: number | null = line.inventoryLotId
+      ? Number(line.inventoryLotId)
+      : null;
+
+    if (remainderLotId) {
+      // Pre-existing lot (legacy) — release it in place.
+      await db
+        .update(t.inventoryLots)
+        .set({ status: 'released', updatedAt: getNow() })
+        .where(eq(t.inventoryLots.id, remainderLotId));
+    } else if (remainder > 0) {
+      const grnRows = await db
+        .select()
+        .from(t.grns)
+        .where(eq(t.grns.id, Number(line.grnId)))
+        .limit(1);
+      const grn = grnRows[0];
+      const itemRows = await db
+        .select()
+        .from(t.items)
+        .where(eq(t.items.id, Number(line.itemId)))
+        .limit(1);
+      const lotNumber =
+        line.vendorLotNumber ??
+        line.batchNumber ??
+        `${grn?.grnNumber ?? 'GRN'}-L${line.lineNumber}`;
+      // Destination: explicit override, else the warehouse chosen on the GRN.
+      const destWarehouseId = options?.warehouseId ?? Number(grn?.warehouseId);
+
+      const lotInsert = await db.insert(t.inventoryLots).values({
+        itemId: Number(line.itemId),
+        lotNumber,
+        batchNumber: line.batchNumber ?? null,
+        warehouseId: destWarehouseId,
+        quantity: remainder,
+        reservedQuantity: 0,
+        unit: String(line.unit),
+        status: 'released',
+        manufacturingDate: line.manufacturingDate ?? null,
+        expiryDate: line.expiryDate ?? null,
+        receivedDate: line.manufacturingDate ?? toDbDate(new Date()),
+        vendorId: grn?.vendorId ?? null,
+        vendorLotNumber: line.vendorLotNumber ?? null,
+        sourceGrnLineId: lineId,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      });
+      remainderLotId = Number(getInsertId(lotInsert));
+      void itemRows; // item meta reserved for future labelling
+    }
+
+    // Update line — record the counted total and link the remainder lot.
     await db
       .update(t.lines)
       .set({
         status: 'released_to_stock',
+        actualQuantity,
+        inventoryLotId: remainderLotId,
         qaSignatureId: signatureId,
         qaDecisionAt: getNow(),
         updatedAt: getNow(),
       })
       .where(eq(t.lines.id, lineId));
-
-    // Update lot status
-    if (line.inventoryLotId) {
-      await db
-        .update(t.inventoryLots)
-        .set({ status: 'released', updatedAt: getNow() })
-        .where(eq(t.inventoryLots.id, Number(line.inventoryLotId)));
-    }
 
     await recomputeHeaderStatus(Number(line.grnId));
 

@@ -47,7 +47,10 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const result =
       parsed.data.action === 'release'
-        ? await qaReleaseLine(lid, parsed.data.signature, session.userId)
+        ? await qaReleaseLine(lid, parsed.data.signature, session.userId, {
+            actualQuantity: parsed.data.actualQuantity,
+            warehouseId: parsed.data.warehouseId,
+          })
         : await qaRejectLine(lid, parsed.data.rejectionReason!, parsed.data.signature, session.userId);
     return NextResponse.json(result);
   } catch (error) {

@@ -117,6 +117,7 @@ export interface GoodsReceiptLine {
   itemId: number;
   expectedQuantity: number;
   actualQuantity: number | null;
+  sampleQuantity: number | null;
   unit: string;
   vendorLotNumber: string | null;
   batchNumber: string | null;
@@ -127,6 +128,7 @@ export interface GoodsReceiptLine {
   varianceReason: string | null;
   status: GrnLineStatus;
   inventoryLotId: number | null;
+  qcLotId: number | null;
   qcSampleId: number | null;
   qcSampleCreationFailed: boolean;
   receiverSignatureId: number | null;
