@@ -740,6 +740,23 @@ export default function ProductionOutputPage() {
                         )}
                       </div>
 
+                      {/* Powder vs. empty-capsule breakdown — the final filled
+                          weight per the WO = powder (fill weight) + empty
+                          capsule. fillWeightMg = powder per capsule from the BOM. */}
+                      {canConvertToWeight && (
+                        <div className="mb-3 p-3 rounded-lg border border-purple-200 bg-purple-50 text-sm">
+                          <div className="font-semibold text-purple-900 mb-1">องค์ประกอบน้ำหนัก (ต่อ 1 {secondaryUnit || 'หน่วย'})</div>
+                          <div className="grid grid-cols-2 gap-2 text-purple-800">
+                            <div>ผงยา (fill weight): <strong>{fillWeightMg.toLocaleString()} mg</strong></div>
+                            <div>จำนวน: <strong>{boxToCap(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 0 })} {secondaryUnit}</strong></div>
+                            <div className="col-span-2 pt-1 border-t border-purple-200">
+                              น้ำหนักผงยารวม: <strong>{boxToGram(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</strong>
+                              <span className="text-xs text-purple-600"> (ยังไม่รวมแคปซูลเปล่า — บวกน้ำหนักแคปซูลเปล่าจาก BOM เพื่อได้น้ำหนักรวมสุดท้าย)</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Yield gauge */}
                       <div className={`p-3 rounded-lg border ${
                         liveYieldPercent >= 90 ? 'bg-green-50 border-green-200' :

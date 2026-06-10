@@ -82,6 +82,8 @@ export interface Item {
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string | null;
+  strengthValue: number | null;
+  strengthUnit: string | null;
   gRegNumber: string | null;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
@@ -116,6 +118,8 @@ export interface ItemFormData {
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string;
+  strengthValue: string; // kept as string for the form input; coerced on save
+  strengthUnit: string;
   gRegNumber: string;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
@@ -136,6 +140,25 @@ export interface ItemEditFormProps {
 // ============================================================================
 // Constants
 // ============================================================================
+
+// Strength unit options — value + label kept identical so the stored unit is
+// human-readable and BOM/WO can use it directly. Covers the herbal-medicine
+// dosage forms in use plus the common potency units.
+export const strengthUnitOptions = [
+  { value: 'mg', label: 'mg' },
+  { value: 'g', label: 'g' },
+  { value: 'mcg', label: 'mcg' },
+  { value: 'IU', label: 'IU' },
+  { value: '%', label: '%' },
+  { value: 'mg/แคปซูล', label: 'mg/แคปซูล' },
+  { value: 'mg/เม็ด', label: 'mg/เม็ด' },
+  { value: 'mg/ml', label: 'mg/ml' },
+  { value: 'g/ซอง', label: 'g/ซอง' },
+];
+
+// Item types that carry a meaningful strength/potency value in herbal medicine:
+// finished goods (per-capsule/tablet potency) and WIP/bulk (intermediate potency).
+const STRENGTH_TYPES = ['finished_goods', 'wip'];
 
 export const itemTypes = [
   { value: 'raw_material', label: 'Raw Material', translationKey: 'itemForm.types.raw_material', icon: Leaf, color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-200' },
@@ -180,6 +203,8 @@ export const getDefaultFormData = (): ItemFormData => ({
   drugCode24: '',
   vmiSyncEnabled: false,
   strength: '',
+  strengthValue: '',
+  strengthUnit: '',
   gRegNumber: '',
   confidentialityLevel: 'public',
   defaultConfidential: false,
@@ -218,6 +243,8 @@ export const itemToFormData = (item: Item): ItemFormData => {
   drugCode24: item.drugCode24 || '',
   vmiSyncEnabled: item.vmiSyncEnabled || false,
   strength: item.strength || '',
+  strengthValue: item.strengthValue != null ? String(item.strengthValue) : '',
+  strengthUnit: item.strengthUnit || '',
   gRegNumber: item.gRegNumber || '',
   confidentialityLevel: item.confidentialityLevel || 'public',
   defaultConfidential: item.defaultConfidential || false,
@@ -739,15 +766,34 @@ export function ItemEditForm({
                       placeholder={t('itemForm.placeholders.nameEn')}
                     />
                   </div>
-                  {/* FR-059: Strength field for finished goods */}
-                  {formData.type === 'finished_goods' && (
+                  {/* FR-059: Strength — value + selectable unit, so BOM/WO can
+                      compute (powder weight + empty capsule). Shown for the
+                      types that carry a potency: finished goods and WIP/bulk. */}
+                  {STRENGTH_TYPES.includes(formData.type) && (
                     <div className="col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">{t('itemForm.fields.strength')}</label>
-                      <DxTextBox
-                        value={formData.strength}
-                        onValueChange={(value) => updateFormData('strength', value)}
-                        placeholder={t('itemForm.placeholders.strength')}
-                      />
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <DxNumberBox
+                            value={formData.strengthValue === '' ? null : Number(formData.strengthValue)}
+                            onValueChange={(value) =>
+                              updateFormData('strengthValue', value == null ? '' : String(value))
+                            }
+                            min={0}
+                            placeholder="เช่น 500"
+                          />
+                        </div>
+                        <div className="w-40">
+                          <DxSelectBox
+                            items={strengthUnitOptions}
+                            value={formData.strengthUnit}
+                            onValueChange={(value) => updateFormData('strengthUnit', value)}
+                            displayExpr="label"
+                            valueExpr="value"
+                            placeholder="หน่วย"
+                          />
+                        </div>
+                      </div>
                       <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.strength')}</p>
                     </div>
                   )}

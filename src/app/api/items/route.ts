@@ -105,7 +105,12 @@ export async function POST(request: NextRequest) {
         confidentialityLevel,
         defaultConfidential,
         strength,
+        strengthValue,
+        strengthUnit,
+        gRegNumber,
       } = body;
+      const strengthValueNum =
+        strengthValue === '' || strengthValue == null ? null : Number(strengthValue);
 
       if (!code || !nameTh || !type || !primaryUnit) {
         return errorResponse('Code, name (Thai), type, and primary unit are required');
@@ -137,6 +142,8 @@ export async function POST(request: NextRequest) {
             ttmtCode: ttmtCode || null, ttmtName: ttmtName || null,
             confidentialityLevel: confidentialityLevel || 'public',
             defaultConfidential: defaultConfidential || false, strength: strength || null,
+            strengthValue: strengthValueNum, strengthUnit: strengthUnit || null,
+            gRegNumber: gRegNumber || null,
             isActive: true,
           }).where(eq(itemsTable.id, existingId));
         });
@@ -181,6 +188,9 @@ export async function POST(request: NextRequest) {
           confidentialityLevel: confidentialityLevel || 'public',
           defaultConfidential: defaultConfidential || false,
           strength: strength || null,
+          strengthValue: strengthValueNum,
+          strengthUnit: strengthUnit || null,
+          gRegNumber: gRegNumber || null,
         });
       });
 

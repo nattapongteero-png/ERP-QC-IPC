@@ -51,6 +51,9 @@ export interface Item {
   quarantineQty?: number;
   minStock?: number;
   reorderPoint?: number;
+  // Structured strength (for BOM/WO computation reference)
+  strengthValue?: number | null;
+  strengthUnit?: string | null;
 }
 
 interface ItemSearchDialogProps {

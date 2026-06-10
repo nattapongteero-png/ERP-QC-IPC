@@ -101,6 +101,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive',
         'tppCode', 'tppName', 'ttmtCode', 'ttmtName', 'drugCode24', 'vmiSyncEnabled',
         'confidentialityLevel', 'defaultConfidential', 'strength', 'gRegNumber',
+        // Structured strength (value + unit) for BOM/WO computation
+        'strengthValue', 'strengthUnit',
         // 3-level unit conversion (PU → SU → WU)
         'weightUnit', 'secondaryToWeightRate', 'weightTrackingEnabled'
       ];
@@ -122,6 +124,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (STANDARD_CONVERSIONS[pairKey] != null) {
         body.conversionRate = STANDARD_CONVERSIONS[pairKey];
         updateData.conversionRate = STANDARD_CONVERSIONS[pairKey];
+      }
+
+      // strengthValue is a numeric column — coerce '' / null to null and
+      // strings to numbers so an empty form field doesn't break the write.
+      if (body.strengthValue !== undefined) {
+        body.strengthValue =
+          body.strengthValue === '' || body.strengthValue === null
+            ? null
+            : Number(body.strengthValue);
       }
 
       for (const field of allowedFields) {

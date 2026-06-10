@@ -50,6 +50,9 @@ export default function NewBOMPage() {
   const [batchUnit, setBatchUnit] = useState('');
   const [yieldTarget, setYieldTarget] = useState('95');
   const [lossAllowance, setLossAllowance] = useState('5');
+  // Fill weight per sub-unit (mg of powder per capsule/tablet). Used by the WO
+  // bulk-yield step: bulk weight ÷ fillWeightMg = capsule count.
+  const [fillWeightMg, setFillWeightMg] = useState('');
   const [theoreticalYield, setTheoreticalYield] = useState('');
   const [effectiveDate, setEffectiveDate] = useState('');
   const [lines, setLines] = useState<BOMLine[]>([]);
@@ -215,6 +218,7 @@ export default function NewBOMPage() {
           yieldTarget: yieldTarget ? parseFloat(yieldTarget) : null,
           lossAllowance: lossAllowance ? parseFloat(lossAllowance) : null,
           theoreticalYield: theoreticalYield ? parseFloat(theoreticalYield) : null,
+          fillWeightMg: fillWeightMg ? parseFloat(fillWeightMg) : null,
           effectiveDate: effectiveDate || null,
           lines: lines.map((line, index) => ({
             itemId: line.itemId,
@@ -362,6 +366,29 @@ export default function NewBOMPage() {
                   />
                   <p className="mt-1 text-xs text-gray-500">
                     Expected quantity of finished product from this batch
+                  </p>
+                </div>
+
+                {/* Fill weight per capsule/tablet — drives the WO bulk-yield
+                    calc (bulk weight ÷ fillWeightMg = capsule count) and, with
+                    the empty-capsule line, the final per-unit weight. Shows the
+                    selected product's strength for reference. */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    น้ำหนักผงต่อหน่วย (Fill weight, mg/แคปซูล)
+                  </label>
+                  <DxTextBox
+                    value={fillWeightMg}
+                    onValueChange={setFillWeightMg}
+                    placeholder="เช่น 500"
+                  />
+                  {selectedProduct?.strengthValue != null && (
+                    <p className="mt-1 text-xs text-emerald-700">
+                      ความแรงของสินค้า: {selectedProduct.strengthValue} {selectedProduct.strengthUnit || ''}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    น้ำหนักผงยาที่บรรจุต่อ 1 แคปซูล/เม็ด — ใช้คำนวณจำนวนแคปซูลจากน้ำหนัก bulk ในขั้นตอนผลิต
                   </p>
                 </div>
 

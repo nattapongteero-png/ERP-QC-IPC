@@ -158,7 +158,10 @@ export const sqliteItems = sqliteTable('items', {
   vmiSyncEnabled: integer('vmi_sync_enabled', { mode: 'boolean' }).notNull().default(false),
   lastVmiSyncAt: text('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
-  strength: text('strength'),
+  strength: text('strength'), // legacy free-text (kept for back-compat / display)
+  // Structured strength so BOM + WO can compute (value + selectable unit).
+  strengthValue: real('strength_value'),
+  strengthUnit: text('strength_unit'), // mg, g, mcg, IU, %, mg/capsule, ...
   gRegNumber: text('g_reg_number'), // เลขที่ทะเบียน G (drug registration number)
   // Unit Cost Calculation fields (014-unit-cost)
   currentWAC: real('current_wac'), // Current weighted average cost
@@ -1856,7 +1859,10 @@ export const mysqlItems = mysqlTable('items', {
   vmiSyncEnabled: mysqlBoolean('vmi_sync_enabled').notNull().default(false),
   lastVmiSyncAt: datetime('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
-  strength: varchar('strength', { length: 100 }),
+  strength: varchar('strength', { length: 100 }), // legacy free-text (back-compat / display)
+  // Structured strength so BOM + WO can compute (value + selectable unit).
+  strengthValue: decimal('strength_value', { precision: 15, scale: 4 }),
+  strengthUnit: varchar('strength_unit', { length: 30 }),
   gRegNumber: varchar('g_reg_number', { length: 50 }), // เลขที่ทะเบียน G
   // Unit Cost Calculation fields (014-unit-cost)
   currentWAC: decimal('current_wac', { precision: 15, scale: 4 }), // Current weighted average cost
