@@ -223,6 +223,19 @@ export interface SignChecklistInput {
     isPass: boolean;
     remarks?: string | null;
   }>;
+  /** Quantity QC physically draws as a sample into the QC warehouse. */
+  sampleQuantity: number;
+  signature: {
+    password?: string;
+    pin?: string;
+  };
+}
+
+export interface QaReleaseInput {
+  /** Total quantity the warehouse actually counted on receipt. */
+  actualQuantity: number;
+  /** Optional override of the destination warehouse (defaults to the GRN's). */
+  warehouseId?: number;
   signature: {
     password?: string;
     pin?: string;

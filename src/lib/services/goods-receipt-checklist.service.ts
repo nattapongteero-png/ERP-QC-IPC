@@ -147,10 +147,19 @@ export async function signChecklist(
         `Line must be in 'created' status (current: ${line.status})`,
       );
 
-    if (line.actualQuantity == null || Number(line.actualQuantity) <= 0)
+    // QC-first flow: the warehouse count (actualQuantity) is captured later at
+    // release. What QC must provide here is the sample quantity it draws into
+    // the QC warehouse — required, positive, and not exceeding the expected qty.
+    const sampleQuantity = Number(input.sampleQuantity);
+    if (!Number.isFinite(sampleQuantity) || sampleQuantity <= 0)
       throw new GoodsReceiptError(
         GOODS_RECEIPT_ERROR_CODES.VARIANCE_NOT_JUSTIFIED,
-        'Actual quantity is required before signing',
+        'จำนวนที่ QC สุ่มตรวจต้องมากกว่า 0',
+      );
+    if (line.expectedQuantity != null && sampleQuantity > Number(line.expectedQuantity))
+      throw new GoodsReceiptError(
+        GOODS_RECEIPT_ERROR_CODES.VARIANCE_NOT_JUSTIFIED,
+        'จำนวนที่สุ่มตรวจมากกว่าจำนวนที่คาดว่าจะรับ',
       );
 
     const grnRows = await db.select().from(t.grns).where(eq(t.grns.id, line.grnId)).limit(1);
@@ -176,18 +185,18 @@ export async function signChecklist(
       if (!sub) missing.push(tmpl.id);
       else if (!sub.isPass) failed.push(tmpl.id);
     }
+    // Every mandatory item must be answered — an incomplete checklist still
+    // blocks signing outright.
     if (missing.length > 0)
       throw new GoodsReceiptError(
         GOODS_RECEIPT_ERROR_CODES.CHECKLIST_INCOMPLETE,
         'Checklist incomplete',
         { missingItemIds: missing },
       );
-    if (failed.length > 0)
-      throw new GoodsReceiptError(
-        GOODS_RECEIPT_ERROR_CODES.CHECKLIST_INCOMPLETE,
-        'Mandatory item failed',
-        { failedItemIds: failed },
-      );
+    // A failed mandatory item does NOT abort: the sample is still drawn and the
+    // lot recorded, but quarantined so the warehouse cannot release it into
+    // RM/FG. (QC fail → ของเข้าคลังแต่ล็อกไว้)
+    const checklistFailed = failed.length > 0;
 
     // User info for signature
     const userRows = await db.select().from(t.users).where(eq(t.users.id, userId)).limit(1);
@@ -238,20 +247,25 @@ export async function signChecklist(
     });
     const checklistId = getInsertId(chkInsert);
 
-    // Create inventory lot in quarantine
+    // Create the QC-sample lot in the QC warehouse (the "ชั้นวาง/คลังตัวอย่าง
+    // QC"). Only the sampled quantity is drawn here; the remainder goes to RM/FG
+    // when the warehouse counts and releases. Always quarantine — the sample is
+    // awaiting lab results regardless of the checklist pass/fail.
     const itemRow = await db.select().from(t.items).where(eq(t.items.id, line.itemId)).limit(1);
     const lotNumber =
       line.vendorLotNumber ??
       line.batchNumber ??
       `${grn.grnNumber}-L${line.lineNumber}`;
-    const actualQty = Number(line.actualQuantity);
 
-    const lotInsert = await db.insert(t.inventoryLots).values({
+    const { getOrCreateQcWarehouse } = await import('./warehouse-resolver.service');
+    const qcWarehouseId = await getOrCreateQcWarehouse(db);
+
+    const qcLotInsert = await db.insert(t.inventoryLots).values({
       itemId: Number(line.itemId),
-      lotNumber,
+      lotNumber: `${lotNumber}-QC`,
       batchNumber: line.batchNumber ?? null,
-      warehouseId: Number(grn.warehouseId),
-      quantity: actualQty,
+      warehouseId: qcWarehouseId,
+      quantity: sampleQuantity,
       reservedQuantity: 0,
       unit: String(line.unit),
       status: 'quarantine',
@@ -264,7 +278,10 @@ export async function signChecklist(
       createdAt: getNow(),
       updatedAt: getNow(),
     });
-    const inventoryLotId = getInsertId(lotInsert);
+    const qcLotId = getInsertId(qcLotInsert);
+    // The remainder lot (RM/FG) is created later at release.
+    const inventoryLotId: number | null = null;
+    const actualQty = sampleQuantity;
 
     // Create QC sample
     let qcSampleId: number | null = null;
@@ -278,7 +295,7 @@ export async function signChecklist(
       const qcInsert = await db.insert(t.qcSamples).values({
         sampleNumber,
         sourceType: category === 'raw_material' ? 'raw_material_lot' : 'work_order_batch',
-        sourceRefId: inventoryLotId,
+        sourceRefId: qcLotId,
         sourceRefText: `GRN ${grn.grnNumber} line ${line.lineNumber}`,
         productId: Number(line.itemId),
         lotNumber,
@@ -300,65 +317,39 @@ export async function signChecklist(
       console.warn('[goods-receipt] QC sample creation failed', err);
     }
 
-    // QC signs the incoming checklist → the line is QC-approved and ready for
-    // the warehouse to release. (Previously this only reached 'qc_pending' and
-    // nothing ever set 'qc_approved', so the warehouse Release action could
-    // never unlock.) If the QC sample failed to create, fall back to
-    // 'checklist_done' so the warehouse still cannot release.
-    const newStatus = qcSampleCreationFailed ? 'checklist_done' : 'qc_approved';
+    // Line status after signing:
+    //  - mandatory item failed  → 'checklist_done' (quarantined, blocks release)
+    //  - QC sample failed to create → 'checklist_done' (blocks release too)
+    //  - all passed → 'qc_approved' (warehouse may count the remainder & release)
+    const newStatus =
+      checklistFailed || qcSampleCreationFailed ? 'checklist_done' : 'qc_approved';
     await db
       .update(t.lines)
       .set({
         status: newStatus,
         receiverSignatureId: signatureId,
+        // The RM/FG remainder lot is created at release; only the QC sample lot
+        // exists now.
         inventoryLotId,
+        qcLotId,
+        sampleQuantity,
         qcSampleId,
         qcSampleCreationFailed,
         updatedAt: getNow(),
       })
       .where(eq(t.lines.id, lineId));
 
-    // QC Flow item 2 — draw the QC sample (+ retain) physically out of the
-    // just-received quarantine lot so stock reflects what went to the lab.
-    // Quantities come from the item's sampling plan; best-effort (never fail
-    // the receipt if no plan / insufficient stock).
-    if (qcSampleId && createdSampleNumber) {
+    // The QC sample quantity is now whatever QC drew (sampleQuantity), already
+    // materialised as the QC-warehouse lot above — no separate sampling-plan
+    // draw. Record it on the qcSample so the lab sees the on-hand sample qty.
+    if (qcSampleId) {
       try {
-        const { resolveSamplingPlanForItem } = await import('./qc-sampling-plan.service');
-        const plan = await resolveSamplingPlanForItem(
-          Number(line.itemId),
-          (itemRow[0]?.category as string | undefined) ?? null,
-        );
-        const sampleQty = Number(plan?.defaultSampleQty ?? 0);
-        const retainQty = Number(plan?.defaultRetainQty ?? 0);
-        if (sampleQty > 0 || retainQty > 0) {
-          const { issueSampleFromLot } = await import('./qc-sample-issue.service');
-          const issue = await issueSampleFromLot({
-            sampleId: qcSampleId,
-            sampleNumber: createdSampleNumber,
-            productId: Number(line.itemId),
-            sourceLotId: inventoryLotId,
-            lotNumber,
-            sampleQty,
-            retainSampleQty: retainQty,
-            userId,
-          });
-          await db
-            .update(t.qcSamples)
-            .set({
-              sourceLotId: issue.sourceLotId,
-              sampleQty,
-              retainSampleQty: retainQty,
-              retainLotId: issue.retainLotId,
-              retainExpiryDate: issue.retainExpiryDate
-                ? toDbDate(issue.retainExpiryDate)
-                : null,
-              updatedAt: getNow(),
-            })
-            .where(eq(t.qcSamples.id, qcSampleId));
-        }
+        await db
+          .update(t.qcSamples)
+          .set({ sourceLotId: qcLotId, sampleQty: sampleQuantity, updatedAt: getNow() })
+          .where(eq(t.qcSamples.id, qcSampleId));
       } catch (err) {
-        console.warn('[goods-receipt] QC sample stock draw failed (non-fatal)', err);
+        console.warn('[goods-receipt] QC sample qty update failed (non-fatal)', err);
       }
     }
 
@@ -370,7 +361,7 @@ export async function signChecklist(
     try {
       const { notifyLotReceived } = await import('./qc-notification.service');
       await notifyLotReceived({
-        lotId: inventoryLotId,
+        lotId: qcLotId,
         lotNumber,
         itemCode: (itemRow[0]?.code as string | null) ?? null,
         itemName: (itemRow[0]?.nameTh as string | null) ?? null,

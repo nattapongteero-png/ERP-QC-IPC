@@ -80,6 +80,8 @@ export const sqliteGoodsReceiptLines = sqliteTable('goods_receipt_lines', {
     .references(() => sqliteItems.id),
   expectedQuantity: real('expected_quantity').notNull(),
   actualQuantity: real('actual_quantity'),
+  // Qty QC drew as a sample into the QC warehouse (set at checklist sign).
+  sampleQuantity: real('sample_quantity'),
   unit: text('unit').notNull(),
   vendorLotNumber: text('vendor_lot_number'),
   batchNumber: text('batch_number'),
@@ -90,6 +92,8 @@ export const sqliteGoodsReceiptLines = sqliteTable('goods_receipt_lines', {
   varianceReason: text('variance_reason'),
   status: text('status').notNull().default('created'),
   inventoryLotId: integer('inventory_lot_id').references(() => sqliteInventoryLots.id),
+  // Lot holding the QC sample in the QC warehouse (set at checklist sign).
+  qcLotId: integer('qc_lot_id').references(() => sqliteInventoryLots.id),
   qcSampleId: integer('qc_sample_id').references(() => sqliteQcSamples.id),
   qcSampleCreationFailed: integer('qc_sample_creation_failed', { mode: 'boolean' })
     .notNull()
@@ -260,6 +264,8 @@ export const mysqlGoodsReceiptLines = mysqlTable('goods_receipt_lines', {
     .references(() => mysqlItems.id),
   expectedQuantity: decimal('expected_quantity', { precision: 15, scale: 4 }).notNull(),
   actualQuantity: decimal('actual_quantity', { precision: 15, scale: 4 }),
+  // Qty QC drew as a sample into the QC warehouse (set at checklist sign).
+  sampleQuantity: decimal('sample_quantity', { precision: 15, scale: 4 }),
   unit: varchar('unit', { length: 20 }).notNull(),
   vendorLotNumber: varchar('vendor_lot_number', { length: 50 }),
   batchNumber: varchar('batch_number', { length: 50 }),
@@ -270,6 +276,8 @@ export const mysqlGoodsReceiptLines = mysqlTable('goods_receipt_lines', {
   varianceReason: mysqlText('variance_reason'),
   status: varchar('status', { length: 30 }).notNull().default('created'),
   inventoryLotId: int('inventory_lot_id').references(() => mysqlInventoryLots.id),
+  // Lot holding the QC sample in the QC warehouse (set at checklist sign).
+  qcLotId: int('qc_lot_id').references(() => mysqlInventoryLots.id),
   qcSampleId: int('qc_sample_id').references(() => mysqlQcSamples.id),
   qcSampleCreationFailed: mysqlBoolean('qc_sample_creation_failed').notNull().default(false),
   receiverSignatureId: int('receiver_signature_id').references(

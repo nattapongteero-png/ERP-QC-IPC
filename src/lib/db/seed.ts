@@ -102,6 +102,7 @@ export async function seedDatabase() {
     { code: 'WH-FG', name: 'Finished Goods Warehouse', type: 'finished_goods', location: 'Building B', temperatureMin: 20, temperatureMax: 25, humidityMin: 45, humidityMax: 65 },
     { code: 'WH-QR', name: 'Quarantine Area', type: 'quarantine', location: 'Building A', temperatureMin: 20, temperatureMax: 25, humidityMin: 45, humidityMax: 65 },
     { code: 'WH-RJ', name: 'Rejected Material Area', type: 'rejected', location: 'Building C', temperatureMin: 15, temperatureMax: 30, humidityMin: 40, humidityMax: 70 },
+    { code: 'WH-QC', name: 'คลังตัวอย่าง QC', type: 'qc', location: 'QC Lab', temperatureMin: 20, temperatureMax: 25, humidityMin: 45, humidityMax: 65 },
   ];
 
   for (const warehouse of warehouses) {
