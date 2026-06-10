@@ -24,7 +24,27 @@ import { ClipboardList, CheckCircle2, XCircle, Clock, ExternalLink } from 'lucid
 interface WorkOrderLite {
   id: number;
   woNumber: string;
+  status: string;
+  productName: string | null;
+  productCode: string | null;
+  batchNumber: string | null;
 }
+
+// WO statuses that make sense to inspect per inspection type.
+// In-process = currently being produced; Finished = production done.
+const WO_STATUS_BY_TYPE: Record<string, string[] | null> = {
+  incoming: [], // ตรวจรับวัตถุดิบ — ไม่ผูกกับ WO ฝ่ายผลิต
+  in_process: ['released', 'in_progress'],
+  finished: ['completed', 'closed'],
+  ad_hoc: null, // ทุกสถานะ
+};
+
+// Human-readable WO option: "WO-2569-001 — พาราเซตามอล (batch B123)"
+const woOptionLabel = (w: WorkOrderLite) => {
+  const product = w.productName || w.productCode || '';
+  const batch = w.batchNumber ? ` · batch ${w.batchNumber}` : '';
+  return product ? `${w.woNumber} — ${product}${batch}` : `${w.woNumber}${batch}`;
+};
 
 interface InspectionRow {
   id: number;
@@ -92,7 +112,14 @@ export default function QcInspectionsPage() {
       const woRaw = woJson?.data?.items || woJson?.data || woJson?.items || woJson || [];
       setWorkOrders(
         Array.isArray(woRaw)
-          ? woRaw.map((w: any) => ({ id: w.id, woNumber: w.woNumber || w.wo_number || '' }))
+          ? woRaw.map((w: any) => ({
+              id: w.id,
+              woNumber: w.woNumber || w.wo_number || '',
+              status: w.status || '',
+              productName: w.productName ?? w.product_name ?? null,
+              productCode: w.productCode ?? w.product_code ?? null,
+              batchNumber: w.batchNumber ?? w.batch_number ?? null,
+            }))
           : [],
       );
     } catch (e) {
@@ -106,6 +133,16 @@ export default function QcInspectionsPage() {
     void loadRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType]);
+
+  // WO options filtered to statuses relevant to the chosen inspection type.
+  const allowedWoStatuses = WO_STATUS_BY_TYPE[form.inspectionType];
+  const woEnabled = allowedWoStatuses === null || allowedWoStatuses.length > 0;
+  const filteredWorkOrders = useMemo(() => {
+    if (allowedWoStatuses === null) return workOrders;
+    if (allowedWoStatuses.length === 0) return [];
+    return workOrders.filter((w) => allowedWoStatuses.includes(w.status));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workOrders, form.inspectionType]);
 
   const stats = useMemo(
     () => ({
@@ -288,26 +325,56 @@ export default function QcInspectionsPage() {
               valueExpr="id"
               displayExpr="name"
               value={form.inspectionType}
-              onValueChanged={(e) => setForm({ ...form, inspectionType: e.value })}
+              onValueChanged={(e) =>
+                // Reset WO link when type changes — an old WO may not be valid
+                // for the new type's status filter.
+                setForm({ ...form, inspectionType: e.value, workOrderId: null })
+              }
               data-testid="qc-inspection-type"
             />
-            <DxSelectBox
-              placeholder="Work Order (เลือกถ้ามี — จะสามารถเปิด eBMR ได้)"
-              dataSource={[
-                { id: null as number | null, name: '— ไม่ระบุ WO —' },
-                ...workOrders.map((w) => ({ id: w.id as number | null, name: w.woNumber })),
-              ]}
-              valueExpr="id"
-              displayExpr="name"
-              value={form.workOrderId}
-              onValueChanged={(e) => setForm({ ...form, workOrderId: e.value })}
-              data-testid="qc-inspection-wo"
-              searchEnabled
-            />
+            {woEnabled ? (
+              <DxSelectBox
+                placeholder={
+                  form.inspectionType === 'finished'
+                    ? 'Work Order ที่ผลิตเสร็จ (เลือกเพื่อเปิด eBMR)'
+                    : form.inspectionType === 'in_process'
+                      ? 'Work Order ที่กำลังผลิต (เลือกเพื่อเปิด eBMR)'
+                      : 'Work Order (เลือกถ้ามี — จะสามารถเปิด eBMR ได้)'
+                }
+                dataSource={[
+                  { id: null as number | null, name: '— ไม่ระบุ WO —' },
+                  ...filteredWorkOrders.map((w) => ({
+                    id: w.id as number | null,
+                    name: woOptionLabel(w),
+                  })),
+                ]}
+                valueExpr="id"
+                displayExpr="name"
+                value={form.workOrderId}
+                onValueChanged={(e) => setForm({ ...form, workOrderId: e.value })}
+                data-testid="qc-inspection-wo"
+                searchEnabled
+                noDataText={
+                  form.inspectionType === 'finished'
+                    ? 'ยังไม่มี Work Order ที่ผลิตเสร็จ'
+                    : 'ยังไม่มี Work Order ที่กำลังผลิต'
+                }
+              />
+            ) : (
+              <div className="text-xs text-gray-500 bg-gray-50 border rounded px-3 py-2">
+                การตรวจรับ (Incoming) เป็นการตรวจวัตถุดิบขาเข้า — ไม่ผูกกับ Work Order
+                ฝ่ายผลิต โปรดระบุ Batch number ของวัตถุดิบด้านล่าง
+              </div>
+            )}
             <DxTextBox
-              placeholder="Batch number (กรอกได้ถ้าไม่มี WO)"
+              placeholder={
+                form.inspectionType === 'incoming'
+                  ? 'Batch number ของวัตถุดิบ *'
+                  : 'Batch number (กรอกได้ถ้าไม่มี WO)'
+              }
               value={form.batchNumber}
               onValueChanged={(e) => setForm({ ...form, batchNumber: e.value || '' })}
+              data-testid="qc-inspection-batch"
             />
             <DxTextBox
               placeholder="เรื่องที่ตรวจ *"
@@ -379,6 +446,11 @@ export default function QcInspectionsPage() {
                 <div className="col-span-2">
                   <span className="text-gray-500">เรื่อง:</span> {detail.subject}
                 </div>
+                {!detail.workOrderId && detail.batchNumber && (
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Batch:</span> {detail.batchNumber}
+                  </div>
+                )}
                 {detail.workOrderId && (
                   <div className="col-span-2 bg-blue-50 border border-blue-200 rounded p-2 flex items-center justify-between">
                     <span>
