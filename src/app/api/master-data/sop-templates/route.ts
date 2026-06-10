@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
         name: data.name, nameTh: data.nameTh, category: data.category,
         instructions: data.instructions, instructionsTh: data.instructionsTh,
         defaultParameters: typeof data.defaultParameters === 'object' ? JSON.stringify(data.defaultParameters) : data.defaultParameters,
+        // Template-level GMP document link (soft ref to documents.id). null clears it.
+        gmpDocumentId: data.gmpDocumentId ?? null,
         isActive: data.isActive ?? true,
       };
 
@@ -182,6 +184,9 @@ export async function PUT(request: NextRequest) {
         defaultParameters: typeof data.defaultParameters === 'object'
           ? JSON.stringify(data.defaultParameters)
           : data.defaultParameters,
+        // Template-level GMP document link. Only overwrite when the key is
+        // present in the payload so partial updates don't wipe it.
+        ...(('gmpDocumentId' in data) ? { gmpDocumentId: data.gmpDocumentId ?? null } : {}),
         isActive: data.isActive,
       });
 

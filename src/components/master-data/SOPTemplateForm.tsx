@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FileText, CheckCircle2 } from 'lucide-react';
 import { SOPTemplateStepsEditor } from './SOPTemplateStepsEditor';
 import { SOPTemplateStepsInline, type LocalStep } from './SOPTemplateStepsInline';
+import { GmpDocumentSelect } from '@/components/documents';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface SOPTemplate {
@@ -27,6 +28,9 @@ interface SOPTemplate {
   nameTh: string;
   category: string;
   defaultParameters?: string;
+  // Template-level GMP document link (soft ref to documents.id). Shown at the
+  // step header on the WO SOP execution screen.
+  gmpDocumentId?: number | null;
   isActive: boolean;
 }
 
@@ -85,9 +89,10 @@ export function SOPTemplateForm({ mode, id }: SOPTemplateFormProps) {
         nameTh: existingTemplate.nameTh || '',
         category: existingTemplate.category || '',
         defaultParameters: existingTemplate.defaultParameters || '',
+        gmpDocumentId: existingTemplate.gmpDocumentId ?? null,
         isActive: existingTemplate.isActive ?? true,
       }
-    : { code: '', name: '', nameTh: '', category: '', defaultParameters: '', isActive: true };
+    : { code: '', name: '', nameTh: '', category: '', defaultParameters: '', gmpDocumentId: null, isActive: true };
 
   return <SOPTemplateFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingTemplate={existingTemplate} />;
 }
@@ -260,6 +265,21 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
               onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
               placeholder="SOP Template name in English (optional)"
             />
+          </div>
+
+          {/* Template-level GMP document — distinct from per-step and per-IPC
+              links. Surfaces at the step header on the WO SOP execution screen. */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+              <FileText className="h-4 w-4 text-gray-500" /> เอกสาร GMP ที่ผูกกับ SOP Template
+            </label>
+            <GmpDocumentSelect
+              value={formData.gmpDocumentId ?? null}
+              onValueChange={(docId) => setFormData({ ...formData, gmpDocumentId: docId })}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              จะแสดงชื่อ + ปุ่มดูเอกสารที่หัวขั้นตอน (SOP execution) ของ Work Order — ใช้กับทั้ง Template
+            </p>
           </div>
 
           <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">

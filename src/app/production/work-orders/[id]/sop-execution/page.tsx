@@ -97,6 +97,9 @@ interface LinkedIPCCriterion {
   // Latest round + reason captured on the recorded quality_test.
   recordedRetestRound?: number | null;
   recordedRetestReason?: string | null;
+  // Per-IPC GMP document link (ipc_criteria.gmpDocumentId). Shown on the IPC
+  // card — distinct from the template-level and sub-step document links.
+  gmpDocumentId?: number | null;
 }
 
 interface AcceptanceStage {
@@ -138,6 +141,9 @@ interface SOPStep {
   verifiedAt?: string;
   notes?: string;
   templateSteps?: TemplateSubStep[];
+  // Template-level GMP document (sop_step_templates.gmpDocumentId). Shown at
+  // the step header — distinct from per-sub-step and per-IPC document links.
+  templateGmpDocumentId?: number | null;
   // IPC criteria linked to this step's parent SOP template (via
   // sop_template_ipc_criteria). Phase 1 sets up the link; Phase 2 surfaces
   // them here so operators see what tests are expected for the step.
@@ -1511,6 +1517,20 @@ export default function SOPExecutionPage() {
                             <p className="text-gray-500 text-sm">{step.stepNameTh}</p>
                           )}
 
+                          {/* Template-level GMP document — links the whole SOP
+                              Template (distinct from per-sub-step and per-IPC). */}
+                          {step.templateGmpDocumentId != null && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setPreviewDocId(step.templateGmpDocumentId!); }}
+                              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+                              title="ดูเอกสาร GMP ของ SOP Template"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              {docLabelMap?.[step.templateGmpDocumentId] ?? 'เอกสาร SOP Template'}
+                            </button>
+                          )}
+
                           {/* BOM Instructions */}
                           {stepInstructions && (
                             <div className="mt-3 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/70 rounded-xl p-3.5 shadow-sm">
@@ -1720,6 +1740,19 @@ export default function SOPExecutionPage() {
                                                         )}
                                                       </div>
                                                       <IPCSpecLines ipc={ipc} size="10" />
+                                                      {/* Per-IPC GMP document — distinct from the
+                                                          template-level and sub-step document links. */}
+                                                      {ipc.gmpDocumentId != null && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => { e.stopPropagation(); setPreviewDocId(ipc.gmpDocumentId!); }}
+                                                          className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                                          title="ดูเอกสาร GMP ของ IPC"
+                                                        >
+                                                          <FileText className="h-3 w-3" />
+                                                          {docLabelMap?.[ipc.gmpDocumentId] ?? 'เอกสาร IPC'}
+                                                        </button>
+                                                      )}
                                                     </div>
                                                   </div>
                                                   {/* Expanded round-by-round details + retest button */}
@@ -1851,6 +1884,18 @@ export default function SOPExecutionPage() {
                                           )}
                                         </div>
                                         <IPCSpecLines ipc={ipc} />
+                                        {/* Per-IPC GMP document link. */}
+                                        {ipc.gmpDocumentId != null && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); setPreviewDocId(ipc.gmpDocumentId!); }}
+                                            className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                            title="ดูเอกสาร GMP ของ IPC"
+                                          >
+                                            <FileText className="h-3 w-3" />
+                                            {docLabelMap?.[ipc.gmpDocumentId] ?? 'เอกสาร IPC'}
+                                          </button>
+                                        )}
                                         {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(step, ipc)}
                                       </div>
                                     </div>
@@ -2449,6 +2494,18 @@ export default function SOPExecutionPage() {
                         )}
                       </div>
                       <div className="mb-2"><IPCSpecLines ipc={ipc} /></div>
+                      {/* Per-IPC GMP document — visible while recording values. */}
+                      {ipc.gmpDocumentId != null && (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDocId(ipc.gmpDocumentId!)}
+                          className="mb-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                          title="ดูเอกสาร GMP ของ IPC"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          {docLabelMap?.[ipc.gmpDocumentId] ?? 'เอกสาร IPC'}
+                        </button>
+                      )}
                       {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && selectedStep && renderRecordedDetails(selectedStep, ipc)}
 
                       {ipc.criteriaType === 'numeric' && (

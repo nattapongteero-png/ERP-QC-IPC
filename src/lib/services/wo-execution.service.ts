@@ -772,6 +772,10 @@ export async function getWOSOPExecution(workOrderId: number) {
     const templateIds = [...new Set(executions.map((e: any) => e.templateId).filter(Boolean))] as number[];
 
     let templateStepsMap: Record<number, any[]> = {};
+    // Template-level GMP document (sop_step_templates.gmpDocumentId), keyed by
+    // templateId. Distinct from per-sub-step and per-IPC document links — shown
+    // at the step header on the SOP execution screen.
+    const templateGmpDocMap: Record<number, number | null> = {};
     // BOM-level IPC linkage (Phase 14): linkedIPC keyed by bomStepId
     // (was templateId pre-Phase-14). Each BOM owns its IPC links — different
     // BOMs sharing the same SOP template can attach different IPC criteria.
@@ -787,6 +791,16 @@ export async function getWOSOPExecution(workOrderId: number) {
       for (const ts of allTemplateSteps) {
         if (!templateStepsMap[ts.templateId]) templateStepsMap[ts.templateId] = [];
         templateStepsMap[ts.templateId].push(ts);
+      }
+
+      // Pull the template-level document link from sop_step_templates.
+      const stepTemplatesTable = tables.sopStepTemplates;
+      const templateRows = await db
+        .select({ id: stepTemplatesTable.id, gmpDocumentId: stepTemplatesTable.gmpDocumentId })
+        .from(stepTemplatesTable)
+        .where(inArray(stepTemplatesTable.id, templateIds));
+      for (const tr of templateRows as any[]) {
+        templateGmpDocMap[tr.id] = tr.gmpDocumentId ?? null;
       }
 
       // Phase 14 — pull IPC links from bom_sop_step_ipc (BOM-level), not
@@ -823,6 +837,9 @@ export async function getWOSOPExecution(workOrderId: number) {
             testMethod: ipcTable.testMethod,
             isCriteriaCritical: ipcTable.isCritical,
             masterMaxRetestRounds: ipcTable.maxRetestRounds,
+            // Per-IPC GMP document link (soft ref to documents.id). Surfaced on
+            // the IPC card in the SOP execution screen.
+            gmpDocumentId: ipcTable.gmpDocumentId,
           })
           .from(linkTable)
           .innerJoin(ipcTable, eq(linkTable.criteriaId, ipcTable.id))
@@ -980,6 +997,8 @@ export async function getWOSOPExecution(workOrderId: number) {
         operatorName: exec.operatorId ? (userMap.get(exec.operatorId) || null) : null,
         verifierName: exec.verifierId ? (userMap.get(exec.verifierId) || null) : null,
         templateSteps: exec.templateId ? (templateStepsMap[exec.templateId] || []) : [],
+        // Template-level GMP document — shown at the step header.
+        templateGmpDocumentId: exec.templateId ? (templateGmpDocMap[exec.templateId] ?? null) : null,
         linkedIPC,
       };
     });

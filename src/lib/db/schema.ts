@@ -1335,6 +1335,10 @@ export const sqliteSOPStepTemplates = sqliteTable('sop_step_templates', {
   instructions: text('instructions'),
   instructionsTh: text('instructions_th'),
   defaultParameters: text('default_parameters'), // JSON: { temperature: 75, mixingSpeed: 45, duration: 5 }
+  // Optional link to a controlled GMP document for the WHOLE template (soft ref
+  // to documents.id). Shown + previewable at the step header on the WO SOP
+  // execution screen. Distinct from per-sub-step and per-IPC document links.
+  gmpDocumentId: integer('gmp_document_id'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -4818,6 +4822,10 @@ export const mysqlSOPStepTemplates = mysqlTable('sop_step_templates', {
   instructions: mysqlText('instructions'),
   instructionsTh: mysqlText('instructions_th'),
   defaultParameters: mysqlText('default_parameters'), // JSON: { temperature: 75, mixingSpeed: 45, duration: 5 }
+  // Template-level GMP document link (soft ref to documents.id). Shown at the
+  // step header on the WO SOP execution screen. Distinct from per-sub-step and
+  // per-IPC document links.
+  gmpDocumentId: int('gmp_document_id'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
