@@ -63,7 +63,7 @@ const alertLabel = (level: string) =>
     temp_high: '↑ อุณหภูมิสูง',
     humidity_low: '↓ ความชื้นต่ำ',
     humidity_high: '↑ ความชื้นสูง',
-    multiple: '⚠ เกินเกณฑ์หลายค่า',
+    multiple: '⚠ หลายค่า',
   })[level] || level;
 
 export default function StorageMonitoringPage() {
@@ -266,12 +266,16 @@ export default function StorageMonitoringPage() {
     {
       dataField: 'alertLevel',
       caption: 'สถานะ',
-      width: 110,
+      width: 130,
       cellRender: (c: any) => (
-        <Badge className={alertColor(c.value)}>{alertLabel(c.value)}</Badge>
+        <div className="overflow-hidden">
+          <Badge className={`${alertColor(c.value)} whitespace-nowrap max-w-full`}>
+            {alertLabel(c.value)}
+          </Badge>
+        </div>
       ),
     },
-    { dataField: 'alertMessage', caption: 'รายละเอียด' },
+    { dataField: 'alertMessage', caption: 'รายละเอียด', minWidth: 240 },
     {
       caption: 'Acknowledged',
       width: 180,

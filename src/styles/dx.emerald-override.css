@@ -36,6 +36,23 @@
   background-color: rgba(5, 150, 105, 0.2) !important;
 }
 
+/* Empty-state ("ไม่มีข้อมูล") fix
+ * DevExtreme absolutely-centers .dx-datagrid-nodata inside the rowsview.
+ * When the grid has no rows and auto height, the rowsview collapses to ~0px
+ * and the centered text bleeds upward, overlapping the header / filter row.
+ * Reserve a minimum rows-area height so the no-data text always sits clear
+ * of the header. Applies to every grid in the app. */
+.dx-datagrid-rowsview.dx-empty {
+  min-height: 120px;
+}
+.dx-datagrid-nodata {
+  /* keep the message on its own line, vertically centered in the reserved space,
+   * with a solid backdrop so it never appears to "merge" with header text */
+  white-space: nowrap;
+  background: var(--dx-color-background, #fff);
+  padding: 0 0.75rem;
+}
+
 /* Links */
 .dx-link,
 a {
