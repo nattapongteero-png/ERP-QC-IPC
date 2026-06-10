@@ -397,6 +397,10 @@ export default function QcInspectionsPage() {
         </DxPopup>
 
         {/* Detail dialog */}
+        {/* deferRendering=false: children read `detail`, which is set in the
+            same click that flips visible=true. With the default deferred
+            render DevExtreme caches the empty initial pass and the popup
+            shows blank. */}
         <DxPopup
           visible={!!detail}
           onHiding={() => setDetail(null)}
@@ -404,6 +408,7 @@ export default function QcInspectionsPage() {
           width={760}
           height="auto"
           showCloseButton
+          deferRendering={false}
         >
           {detail && (
             <div className="space-y-3 p-2">
