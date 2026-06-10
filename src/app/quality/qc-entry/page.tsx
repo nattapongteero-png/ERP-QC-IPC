@@ -144,7 +144,7 @@ export default function QcEntryListPage() {
   const loadProducts = useCallback(async () => {
     if (productOptions.length > 0) return;
     try {
-      const res = await fetch('/api/master-data/items?limit=500');
+      const res = await fetch('/api/items?limit=500');
       const j = await res.json();
       const items = j?.data?.items || j?.data || j?.items || [];
       setProductOptions(
@@ -587,6 +587,17 @@ export default function QcEntryListPage() {
         showCloseButton
       >
         <div className="space-y-3 p-2">
+          <div className="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded px-3 py-2">
+            ลงทะเบียนเร็วด้วย 4 ช่องหลัก แล้วระบบจะตั้งชุดทดสอบ (test panel)
+            ให้อัตโนมัติตามสินค้า — ไม่ต้องกรอกจำนวน/วันผลิต/วันหมดอายุเหมือนฟอร์มเต็ม
+            (กรอกเพิ่มภายหลังที่หน้ารายละเอียดได้)
+          </div>
+          {productOptions.length === 0 && (
+            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              กำลังโหลดรายการสินค้า… หากไม่มีสินค้าให้เลือก
+              โปรดตรวจสอบว่ามีสินค้าในระบบ (Master Data → สินค้า)
+            </div>
+          )}
           <DxSelectBox
             placeholder="สินค้า *"
             dataSource={productOptions.map((p) => ({
@@ -598,6 +609,7 @@ export default function QcEntryListPage() {
             value={quickForm.productId}
             onValueChanged={(e) => setQuickForm({ ...quickForm, productId: e.value })}
             searchEnabled
+            noDataText="ไม่พบสินค้า — ตรวจสอบข้อมูลใน Master Data"
             data-testid="quick-add-product"
           />
           <DxSelectBox
