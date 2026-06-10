@@ -36,8 +36,8 @@ import { eq } from 'drizzle-orm';
 async function getSOPStepPhase(executionId: number): Promise<string | null> {
   if (!executionId || isNaN(executionId)) return null;
   return executeDbOperation(async (db: any) => {
-    const woSop = getTableRef('woSOPExecution');
-    const bomSop = getTableRef('bomSOPSteps');
+    const woSop = getTableRef('wOSOPExecution');
+    const bomSop = getTableRef('bOMSOPSteps');
     const rows = await db
       .select({ phase: bomSop.phase })
       .from(woSop)
