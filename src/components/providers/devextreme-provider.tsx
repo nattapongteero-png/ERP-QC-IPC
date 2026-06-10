@@ -7,6 +7,8 @@ import dxSelectBox from 'devextreme/ui/select_box';
 import dxLookup from 'devextreme/ui/lookup';
 import dxDropDownBox from 'devextreme/ui/drop_down_box';
 import dxTagBox from 'devextreme/ui/tag_box';
+import dxDateBox from 'devextreme/ui/date_box';
+import dxAutocomplete from 'devextreme/ui/autocomplete';
 import { useLocale } from 'next-intl';
 
 // DevExtreme CSS - imported via JS to avoid @import order issues in bundled CSS
@@ -45,7 +47,7 @@ const DROPDOWN_POSITION_DEFAULT = {
     },
   },
 };
-for (const Comp of [dxSelectBox, dxLookup, dxDropDownBox, dxTagBox]) {
+for (const Comp of [dxSelectBox, dxLookup, dxDropDownBox, dxTagBox, dxDateBox, dxAutocomplete]) {
   try {
     (Comp as unknown as {
       defaultOptions: (rule: { device?: unknown; options: Record<string, unknown> }) => void;

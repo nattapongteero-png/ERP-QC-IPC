@@ -126,7 +126,7 @@ export function DxTagBox({
       // when an ancestor has CSS transform (DxPopup wrapper, mobile sidebar
       // translateX). Firefox handles this differently and still works without
       // the override. Matches DxSelectBox's fix.
-      dropDownOptions={{ container: 'body' }}
+      dropDownOptions={{ container: 'body', position: { my: 'top', at: 'bottom', collision: 'flipfit' } }}
     />
   );
 }
