@@ -258,7 +258,7 @@ export function DxDateBox({
       openOnFieldClick={openOnFieldClick}
       acceptCustomValue={acceptCustomValue}
       elementAttr={testId ? { 'data-testid': testId } : undefined}
-      dropDownOptions={{ container: 'body', position: { my: 'top', at: 'bottom', collision: 'flipfit' } }}
+      dropDownOptions={{ container: 'body' }}
       calendarOptions={{
         firstDayOfWeek: 0, // Sunday
       }}
