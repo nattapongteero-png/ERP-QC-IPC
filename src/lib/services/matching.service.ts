@@ -344,7 +344,12 @@ export async function runMatching(
         const grnResult = await db
           .select({ totalQty: sql<number>`SUM(quantity)` })
           .from(tables.inventoryLots)
-          .where(eq(tables.inventoryLots.purchaseOrderId, poLine.purchaseOrderId || 0));
+          // inventory_lots has no PO id FK — link by the PO number string,
+          // resolved from this line's parent PO.
+          .where(eq(
+            tables.inventoryLots.poNumber,
+            sql`(SELECT po_number FROM purchase_orders WHERE id = ${poLine.poId || 0})`
+          ));
         grnQuantity = Number(grnResult[0]?.totalQty || 0);
       }
 
@@ -712,7 +717,8 @@ export async function getGRIRClearingReport(
       const grnResult = await db
         .select({ totalQty: sql<number>`COALESCE(SUM(quantity), 0)` })
         .from(tables.inventoryLots)
-        .where(eq(tables.inventoryLots.purchaseOrderId, row.poId || 0));
+        // inventory_lots has no PO id FK — link by the PO number string instead.
+        .where(eq(tables.inventoryLots.poNumber, row.poNumber || ''));
       const grnQuantity = Number(grnResult[0]?.totalQty || 0);
       const grnTotal = grnQuantity * Number(row.poUnitPrice || 0);
 
