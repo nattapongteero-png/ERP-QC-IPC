@@ -31,7 +31,48 @@ import {
   FlaskConical,
   Lock,
   Boxes,
+  XCircle,
 } from 'lucide-react';
+
+// Line Clearance badge appearance by status: verified=green, performed
+// (awaiting approval)=blue, rejected=red, none (not recorded)=amber.
+function lineClearanceBadgeStyle(status: string | null): {
+  className: string;
+  label: string;
+  title: string;
+  Icon: typeof CheckCircle2;
+} {
+  switch (status) {
+    case 'verified':
+      return {
+        className: 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800',
+        label: 'Line Clearance ✓',
+        title: 'Line Clearance อนุมัติแล้ว',
+        Icon: CheckCircle2,
+      };
+    case 'performed':
+      return {
+        className: 'border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800',
+        label: 'รออนุมัติ Line Clearance',
+        title: 'บันทึกแล้ว — รอผู้มีสิทธิ์อนุมัติ',
+        Icon: Clock,
+      };
+    case 'rejected':
+      return {
+        className: 'border-red-300 bg-red-50 hover:bg-red-100 text-red-800',
+        label: 'Line Clearance ถูกปฏิเสธ',
+        title: 'ถูกปฏิเสธ — กรุณาบันทึกใหม่',
+        Icon: XCircle,
+      };
+    default:
+      return {
+        className: 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800',
+        label: 'บันทึก Line Clearance',
+        title: 'ยังไม่ได้บันทึก Line Clearance',
+        Icon: ClipboardCheck,
+      };
+  }
+}
 
 interface ExecutionSummary {
   workOrderStatus?: string;
@@ -947,6 +988,10 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                           </div>
                           {lockInfo.allowClearance && cardNeedsClearance(section.id) && (() => {
                             const lc = getClearanceStatus(section.id);
+                            const cl = lineClearanceBadgeStyle(lc.status);
+                            // On a locked card, a recorded-but-unverified clearance
+                            // invites approval; otherwise use the shared label.
+                            const label = lc.status === 'performed' ? 'ดู/อนุมัติ Line Clearance' : cl.label;
                             return (
                               <button
                                 type="button"
@@ -955,15 +1000,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                                   e.stopPropagation();
                                   openLineClearance(section.id);
                                 }}
-                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium ${
-                                  lc.status === 'performed'
-                                    ? 'border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800'
-                                    : 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800'
-                                }`}
-                                title="เปิดหน้า Line Clearance สำหรับ phase นี้"
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium ${cl.className}`}
+                                title={cl.title}
                               >
-                                <ClipboardCheck className="h-3 w-3" />
-                                {lc.status === 'performed' ? 'ดู/อนุมัติ Line Clearance' : 'บันทึก Line Clearance'}
+                                <cl.Icon className="h-3 w-3" />
+                                {label}
                               </button>
                             );
                           })()}
@@ -972,25 +1013,33 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                         <div className="space-y-2">
                           {renderProgressBar(sectionStatus.completed, sectionStatus.verified, sectionStatus.total)}
                           <div className="flex items-center justify-between gap-2">
-                            {cardNeedsClearance(section.id) ? (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  // The card is wrapped in <Link>; we must
-                                  // suppress both the default anchor navigation
-                                  // and the event bubble so only the clearance
-                                  // route opens, not the section route.
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  openLineClearance(section.id);
-                                }}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-medium"
-                                title="บันทึก Line Clearance ก่อนเริ่มงานใน step นี้"
-                              >
-                                <ClipboardCheck className="h-3 w-3" />
-                                Line Clearance
-                              </button>
-                            ) : <span />}
+                            {cardNeedsClearance(section.id) ? (() => {
+                              // Reflect the real clearance status in the badge so
+                              // the operator can tell at a glance whether it is
+                              // verified (green), awaiting approval (blue),
+                              // rejected (red), or not yet recorded (amber).
+                              const lc = getClearanceStatus(section.id);
+                              const cl = lineClearanceBadgeStyle(lc.status);
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    // The card is wrapped in <Link>; we must
+                                    // suppress both the default anchor navigation
+                                    // and the event bubble so only the clearance
+                                    // route opens, not the section route.
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    openLineClearance(section.id);
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium ${cl.className}`}
+                                  title={cl.title}
+                                >
+                                  <cl.Icon className="h-3 w-3" />
+                                  {cl.label}
+                                </button>
+                              );
+                            })() : <span />}
                             {renderStatusBadge(sectionStatus.status)}
                           </div>
                         </div>
