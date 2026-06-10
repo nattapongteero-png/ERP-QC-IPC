@@ -268,7 +268,8 @@ export default function WorkOrderDetailPage() {
       const response = await fetch(`/api/quality/deviations?workOrderId=${params.id}&limit=200`);
       const result = await response.json();
       if (result.success) {
-        setDeviations(result.data?.items || result.data || []);
+        const devList = result.data?.items ?? result.data ?? [];
+        setDeviations(Array.isArray(devList) ? devList : []);
       }
     } catch (error) {
       console.error('Failed to fetch deviations:', error);
@@ -332,7 +333,7 @@ export default function WorkOrderDetailPage() {
       const response = await fetch(`/api/production/work-orders/${params.id}/assignees`);
       const result = await response.json();
       if (result.success) {
-        setAssignees(result.data || []);
+        setAssignees(Array.isArray(result.data) ? result.data : []);
       }
     } catch (error) {
       console.error('Failed to fetch assignees:', error);
@@ -743,8 +744,29 @@ export default function WorkOrderDetailPage() {
     );
   }
 
-  const { workOrder, materials, qcTests, ebmr, summary } = data;
+  const { workOrder, materials: materialsRaw, qcTests: qcTestsRaw, ebmr: ebmrRaw, summary } = data;
   const nextStatus = getNextStatus(workOrder.status);
+
+  // Harden against a transient non-array shape during navigation/refetch — a
+  // single bad field would otherwise crash the whole page with
+  // "(intermediate value).map is not a function". Coerce every list we .map()
+  // over to a real array, preserving the original element type. (Repro: record
+  // a material return, then SPA-navigate back to ?tab=execution before the
+  // query cache settles.)
+  const asArr = <T,>(v: T[] | undefined | null): T[] => (Array.isArray(v) ? v : []);
+  const materials = asArr(materialsRaw);
+  const qcTests = asArr(qcTestsRaw);
+  const ebmr = {
+    ...ebmrRaw,
+    operations: asArr(ebmrRaw?.operations),
+    batchRecords: asArr(ebmrRaw?.batchRecords),
+    materials: asArr(ebmrRaw?.materials),
+    qcTests: asArr(ebmrRaw?.qcTests),
+    sopExecution: asArr(ebmrRaw?.sopExecution),
+    cleaningLogs: asArr(ebmrRaw?.cleaningLogs),
+    environmentalLogs: asArr(ebmrRaw?.environmentalLogs),
+    materialWeighing: asArr(ebmrRaw?.materialWeighing),
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6">
