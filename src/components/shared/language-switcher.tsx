@@ -15,9 +15,15 @@ import SelectBox from 'devextreme-react/select-box';
 import {
   locales,
   localeNames,
-  localeFlags,
   type Locale,
 } from '@/lib/i18n/config';
+
+// Short uppercase locale code shown as a text badge instead of a flag emoji.
+// Flag emoji (🇹🇭/🇬🇧) don't render on Chrome/Edge on Windows (no flag-emoji
+// font), so they appeared as "TH"/"GB" there while Firefox showed real flags —
+// making the language switcher look different per browser. Text badges render
+// identically everywhere.
+const localeBadges: Record<Locale, string> = { th: 'TH', en: 'EN' };
 import { initDevExtremeLocale } from '@/lib/i18n/devextreme-sync';
 import { setStoredLocale } from '@/lib/i18n/locale-persistence';
 
@@ -54,9 +60,9 @@ export function LanguageSwitcher({
       locales.map((locale) => ({
         id: locale,
         name: localeNames[locale],
-        flag: localeFlags[locale],
+        flag: localeBadges[locale],
         displayName: showFlag
-          ? `${localeFlags[locale]} ${localeNames[locale]}`
+          ? `${localeBadges[locale]} ${localeNames[locale]}`
           : localeNames[locale],
       })),
     [showFlag]
@@ -140,11 +146,13 @@ export function CompactLanguageSwitcher({
     <button
       type="button"
       onClick={handleToggle}
-      className={`flex items-center justify-center px-3 py-2 text-lg hover:bg-gray-100 rounded transition-colors ${className || ''}`}
+      className={`flex items-center justify-center px-3 py-2 hover:bg-gray-100 rounded transition-colors ${className || ''}`}
       title={`Switch to ${currentLocale === 'th' ? 'English' : 'ไทย'}`}
       data-testid="compact-language-switcher"
     >
-      {localeFlags[currentLocale]}
+      <span className="inline-flex items-center justify-center min-w-[1.75rem] px-1.5 py-0.5 rounded bg-slate-200 text-xs font-bold leading-none text-slate-700">
+        {localeBadges[currentLocale]}
+      </span>
     </button>
   );
 }
@@ -185,18 +193,19 @@ export function SidebarLanguageToggle({
       className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium text-slate-200 bg-slate-700/40 hover:bg-slate-600/60 border border-slate-600/40 transition-colors ${className || ''}`}
     >
       <span className="flex items-center gap-2 min-w-0">
-        <span className="text-base">{localeFlags[currentLocale]}</span>
+        <span className="inline-flex items-center justify-center min-w-[1.75rem] px-1.5 py-0.5 rounded bg-slate-600 text-[11px] font-bold leading-none text-white">
+          {localeBadges[currentLocale]}
+        </span>
         <span className="truncate">{localeNames[currentLocale]}</span>
       </span>
       <span className="flex items-center gap-1 text-xs text-slate-400">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M7 10l5 5 5-5" style={{ display: 'none' }} />
           <path d="M17 1l4 4-4 4" />
           <path d="M3 11V9a4 4 0 0 1 4-4h14" />
           <path d="M7 23l-4-4 4-4" />
           <path d="M21 13v2a4 4 0 0 1-4 4H3" />
         </svg>
-        <span>{localeFlags[nextLocale]}</span>
+        <span className="font-semibold">{localeBadges[nextLocale]}</span>
       </span>
     </button>
   );
