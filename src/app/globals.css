@@ -1455,3 +1455,212 @@ a:not([class]):hover {
     padding-top: 4px;
   }
 }
+
+/* =========================================================
+   Sales Order — printable document
+   ---------------------------------------------------------
+   The SO detail page renders <SalesOrderPrintDocument> with class
+   `.print-only` (hidden on screen, revealed by @media print).
+   The on-screen detail UI is wrapped in `.no-print` so only the
+   document prints. Mirrors the .pr-print-* (requisition) pattern,
+   plus a customer block and a VAT totals block.
+   ========================================================= */
+.so-print-doc {
+  font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  color: #000;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media print {
+  /* Header */
+  .so-print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .so-print-company-name {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .so-print-company-sub {
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .so-print-company-line {
+    font-size: 11px;
+    color: #222;
+  }
+  .so-print-title-box {
+    text-align: right;
+    border: 1.5px solid #000;
+    padding: 6px 14px;
+    min-width: 190px;
+  }
+  .so-print-title {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .so-print-title-en {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Customer + meta side by side */
+  .so-print-parties {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .so-print-customer {
+    flex: 1.6;
+    border-collapse: collapse;
+  }
+  .so-print-meta {
+    flex: 1;
+    border-collapse: collapse;
+  }
+  .so-print-customer td,
+  .so-print-meta td {
+    border: 1px solid #999;
+    padding: 4px 8px;
+    font-size: 11px;
+    vertical-align: top;
+  }
+  .so-party-label,
+  .so-meta-label {
+    background: #f0f0f0 !important;
+    font-weight: 600;
+    white-space: nowrap;
+    width: 34%;
+  }
+
+  /* Line items table */
+  .so-print-lines {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4px 0 10px 0;
+  }
+  .so-print-lines th,
+  .so-print-lines td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+  .so-print-lines thead th {
+    background: #e8e8e8 !important;
+    font-weight: 700;
+    text-align: center;
+  }
+  .so-col-no {
+    width: 5%;
+    text-align: center;
+  }
+  .so-col-code {
+    width: 13%;
+  }
+  .so-col-desc {
+    width: 37%;
+  }
+  .so-col-qty {
+    width: 9%;
+    text-align: right;
+  }
+  .so-col-unit {
+    width: 9%;
+    text-align: center;
+  }
+  .so-col-price {
+    width: 12%;
+    text-align: right;
+  }
+  .so-col-amount {
+    width: 15%;
+    text-align: right;
+  }
+  .so-pad-row td {
+    height: 20px;
+  }
+
+  /* Totals block: baht text on the left, figures on the right */
+  .so-print-totals-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .so-print-bahttext {
+    flex: 1;
+    border: 1px solid #999;
+    padding: 6px 8px;
+    font-size: 11px;
+    align-self: stretch;
+  }
+  .so-bahttext-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .so-bahttext-value {
+    font-weight: 700;
+  }
+  .so-print-totals {
+    border-collapse: collapse;
+    min-width: 260px;
+  }
+  .so-print-totals td {
+    border: 1px solid #999;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .so-total-label {
+    background: #f7f7f7 !important;
+    font-weight: 600;
+  }
+  .so-total-value {
+    text-align: right;
+    min-width: 110px;
+  }
+  .so-total-grand .so-total-label,
+  .so-total-grand .so-total-value {
+    background: #e8e8e8 !important;
+    font-weight: 700;
+    font-size: 12px;
+  }
+
+  /* Notes */
+  .so-print-note {
+    font-size: 11px;
+    margin: 8px 0;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+  }
+
+  /* Signatures */
+  .so-print-signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    gap: 16px;
+  }
+  .so-sign-box {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+  }
+  .so-sign-line {
+    border-bottom: 1px dotted #000;
+    margin: 0 8px 6px 8px;
+    height: 28px;
+  }
+  .so-sign-role {
+    font-weight: 600;
+  }
+  .so-sign-date {
+    margin-top: 6px;
+    color: #333;
+  }
+}

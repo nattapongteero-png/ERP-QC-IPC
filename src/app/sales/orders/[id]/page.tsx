@@ -48,6 +48,7 @@ import {
   ExternalLink,
   FileSpreadsheet,
 } from 'lucide-react';
+import { SalesOrderPrintDocument } from '@/components/sales/SalesOrderPrintDocument';
 
 // ============================================================================
 // Types
@@ -1096,8 +1097,31 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   // ============================================================================
 
   return (
+    <>
+    {/* Printable sales document (hidden on screen, shown only when printing) */}
+    <SalesOrderPrintDocument
+      order={{
+        soNumber: so.soNumber,
+        customerName: so.customerName,
+        customerContact: so.customerContact,
+        customerAddress: so.customerAddress,
+        orderDate: so.orderDate,
+        requiredDate: so.requiredDate,
+        status: so.status,
+        paymentTerms: so.paymentTerms,
+        notes: so.notes,
+        lines: lines.map((l) => ({
+          itemCode: l.itemCode,
+          itemName: l.itemName,
+          itemUnit: l.itemUnit,
+          quantity: l.quantity,
+          unitPrice: l.unitPrice,
+          lineTotal: l.lineTotal,
+        })),
+      }}
+    />
     <MainLayout>
-      <div className="flex flex-col h-full gap-4">
+      <div className="flex flex-col h-full gap-4 no-print">
         {/* Hero Header */}
         <div className={cn('relative overflow-hidden rounded-xl bg-gradient-to-r', statusConfig.gradient)}>
           <div className="absolute inset-0 bg-black/10" />
@@ -1583,5 +1607,6 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         </div>
       </DxPopup>
     </MainLayout>
+    </>
   );
 }
