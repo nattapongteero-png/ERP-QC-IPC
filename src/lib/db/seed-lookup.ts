@@ -60,6 +60,17 @@ const defaultUnits = [
   { code: 'cap', nameTh: 'ฝา', nameEn: 'Cap', symbol: 'cap', description: 'Cap/lid unit', sortOrder: 18 },
 ];
 
+// Default report categories (system-defined dropdown for report templates).
+// These power the "Category" select when creating/organizing reports — a
+// DB-backed lookup, so they must be auto-seeded to appear on a fresh deploy.
+const defaultReportCategories = [
+  { name: 'Inventory Reports', description: 'Stock levels, valuations, and inventory movements', sortOrder: 1 },
+  { name: 'Production Reports', description: 'Work orders, batch records, and production yields', sortOrder: 2 },
+  { name: 'Quality Reports', description: 'Certificates of Analysis, test results, and deviations', sortOrder: 3 },
+  { name: 'Purchasing Reports', description: 'Purchase orders and vendor analysis', sortOrder: 4 },
+  { name: 'Sales Reports', description: 'Sales orders and customer analysis', sortOrder: 5 },
+];
+
 /**
  * Check if a table is empty
  */
@@ -235,6 +246,57 @@ async function seedIssueCategories(isSqlite: boolean): Promise<number> {
 }
 
 /**
+ * Seed report categories if table is empty.
+ * DB-backed dropdown for report templates — without this, a fresh deploy
+ * (empty DB) shows no report categories, the same failure mode that hit
+ * document_types. Seeds only when empty, so re-running is safe and it
+ * never produces the duplicate rows the old manual seed.ts left behind.
+ */
+async function seedReportCategories(isSqlite: boolean): Promise<number> {
+  const tableName = 'report_categories';
+  const isEmpty = await isTableEmpty(tableName, isSqlite);
+
+  if (!isEmpty) {
+    console.log(`[Lookup Seed] Table ${tableName} already has data, skipping seed`);
+    return 0;
+  }
+
+  console.log(`[Lookup Seed] Seeding ${tableName} with ${defaultReportCategories.length} default values...`);
+
+  try {
+    if (isSqlite) {
+      const db = getSqliteDb();
+      const categoriesTable = schema.sqliteReportCategories;
+      for (const category of defaultReportCategories) {
+        await db.insert(categoriesTable).values({
+          name: category.name,
+          description: category.description,
+          sortOrder: category.sortOrder,
+          isActive: true,
+        });
+      }
+    } else {
+      const db = await getMysqlDb();
+      const categoriesTable = schema.mysqlReportCategories;
+      for (const category of defaultReportCategories) {
+        await db.insert(categoriesTable).values({
+          name: category.name,
+          description: category.description,
+          sortOrder: category.sortOrder,
+          isActive: true,
+        });
+      }
+    }
+
+    console.log(`[Lookup Seed] Successfully seeded ${defaultReportCategories.length} report categories`);
+    return defaultReportCategories.length;
+  } catch (error) {
+    console.error(`[Lookup Seed] Failed to seed ${tableName}:`, error);
+    return 0;
+  }
+}
+
+/**
  * Seed all lookup tables if they are empty
  * This function is called during server startup after schema sync
  */
@@ -242,6 +304,7 @@ export async function seedLookupTables(): Promise<{
   categoriesSeeded: number;
   unitsSeeded: number;
   issueCategoriesSeeded: number;
+  reportCategoriesSeeded: number;
 }> {
   const usingSqlite = isSqlite();
   console.log(`[Lookup Seed] Starting lookup tables seeding for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
@@ -249,9 +312,10 @@ export async function seedLookupTables(): Promise<{
   const categoriesSeeded = await seedItemCategories(usingSqlite);
   const unitsSeeded = await seedItemUnits(usingSqlite);
   const issueCategoriesSeeded = await seedIssueCategories(usingSqlite);
+  const reportCategoriesSeeded = await seedReportCategories(usingSqlite);
 
   console.log(`[Lookup Seed] Lookup tables seeding complete.`);
-  console.log(`[Lookup Seed] Categories seeded: ${categoriesSeeded}, Units seeded: ${unitsSeeded}, Issue Categories seeded: ${issueCategoriesSeeded}`);
+  console.log(`[Lookup Seed] Categories seeded: ${categoriesSeeded}, Units seeded: ${unitsSeeded}, Issue Categories seeded: ${issueCategoriesSeeded}, Report Categories seeded: ${reportCategoriesSeeded}`);
 
-  return { categoriesSeeded, unitsSeeded, issueCategoriesSeeded };
+  return { categoriesSeeded, unitsSeeded, issueCategoriesSeeded, reportCategoriesSeeded };
 }
