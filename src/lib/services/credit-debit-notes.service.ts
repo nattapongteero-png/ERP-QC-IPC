@@ -1551,7 +1551,7 @@ export async function getInvoiceLines(
           unitPrice: tables.arInvoiceLines.unitPrice,
           lineTotal: tables.arInvoiceLines.lineTotal,
           itemCode: tables.items.itemCode,
-          itemName: tables.items.name,
+          itemName: tables.items.nameTh,
         })
         .from(tables.arInvoiceLines)
         .leftJoin(tables.items, eq(tables.arInvoiceLines.itemId, tables.items.id))
@@ -1580,7 +1580,7 @@ export async function getInvoiceLines(
           unitPrice: tables.apInvoiceLines.unitPrice,
           lineTotal: tables.apInvoiceLines.lineTotal,
           itemCode: tables.items.itemCode,
-          itemName: tables.items.name,
+          itemName: tables.items.nameTh,
         })
         .from(tables.apInvoiceLines)
         .leftJoin(tables.items, eq(tables.apInvoiceLines.itemId, tables.items.id))

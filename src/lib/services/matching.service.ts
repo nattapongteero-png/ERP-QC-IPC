@@ -688,7 +688,7 @@ export async function getGRIRClearingReport(
         poDate: tables.purchaseOrders.poDate,
         itemId: tables.purchaseOrderLines.itemId,
         itemCode: tables.items.itemCode,
-        itemName: tables.items.name,
+        itemName: tables.items.nameTh,
         poQuantity: tables.purchaseOrderLines.quantity,
         poUnitPrice: tables.purchaseOrderLines.unitPrice,
         poTotal: tables.purchaseOrderLines.lineTotal,
