@@ -102,9 +102,18 @@ describe('signChecklistSchema', () => {
         { templateItemId: 1, isPass: true },
         { templateItemId: 2, isPass: true, remarks: 'looks good' },
       ],
+      sampleQuantity: 5,
       signature: { password: 'pw' },
     });
     expect(ok.success).toBe(true);
+  });
+
+  it('rejects a sign without sampleQuantity (QC-first flow)', () => {
+    const bad = signChecklistSchema.safeParse({
+      items: [{ templateItemId: 1, isPass: true }],
+      signature: { password: 'pw' },
+    });
+    expect(bad.success).toBe(false);
   });
 
   it('rejects an empty items array', () => {
@@ -126,6 +135,7 @@ describe('signChecklistSchema', () => {
   it('accepts PIN-only signature', () => {
     const ok = signChecklistSchema.safeParse({
       items: [{ templateItemId: 1, isPass: true }],
+      sampleQuantity: 5,
       signature: { pin: '1234' },
     });
     expect(ok.success).toBe(true);
@@ -133,12 +143,21 @@ describe('signChecklistSchema', () => {
 });
 
 describe('qaActionSchema', () => {
-  it('accepts a release action without rejectionReason', () => {
+  it('accepts a release action with actualQuantity (no rejectionReason)', () => {
     const ok = qaActionSchema.safeParse({
       action: 'release',
+      actualQuantity: 100,
       signature: { password: 'pw' },
     });
     expect(ok.success).toBe(true);
+  });
+
+  it('rejects a release action without actualQuantity (QC-first flow)', () => {
+    const bad = qaActionSchema.safeParse({
+      action: 'release',
+      signature: { password: 'pw' },
+    });
+    expect(bad.success).toBe(false);
   });
 
   it('rejects a reject action without rejectionReason', () => {

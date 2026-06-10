@@ -14,6 +14,7 @@ const memDb = {
   inventoryLots: [] as Record<string, unknown>[],
   grns: [] as Record<string, unknown>[],
   deviations: [] as Record<string, unknown>[],
+  items: [] as Record<string, unknown>[],
 };
 
 vi.mock('@/lib/db/db-helper', () => ({
@@ -72,6 +73,7 @@ function makeMockDb() {
     if (name === 'inventoryLots') return memDb.inventoryLots;
     if (name === 'goodsReceipts') return memDb.grns;
     if (name === 'deviations') return memDb.deviations;
+    if (name === 'items') return memDb.items;
     return [];
   }
   return {
@@ -112,6 +114,7 @@ describe('Goods Receipt QA — Triple Independence', () => {
     memDb.inventoryLots = [];
     memDb.grns = [];
     memDb.deviations = [];
+    memDb.items = [];
   });
 
   it('blocks the receiver-user from acting as QA approver (Triple Independence)', async () => {
@@ -169,7 +172,9 @@ describe('Goods Receipt QA — Triple Independence', () => {
     expect(caught?.code).toBe(GOODS_RECEIPT_ERROR_CODES.TRIPLE_INDEPENDENCE_VIOLATION);
   });
 
-  it('allows release when QA user differs from receiver', async () => {
+  it('allows release (legacy lot) when QA user differs from receiver', async () => {
+    // Legacy line: a lot already exists (old flow created it at sign). Release
+    // should flip that lot to 'released' without creating a second one.
     const receiverUserId = 7;
     const qaUserId = 8;
     memDb.signatures.push({
@@ -184,13 +189,83 @@ describe('Goods Receipt QA — Triple Independence', () => {
       status: 'qc_approved',
       receiverSignatureId: 1,
       inventoryLotId: 50,
+      sampleQuantity: 10,
       qcSampleId: 30,
     });
     memDb.qcSamples.push({ id: 30, status: 'approved' });
     memDb.users.push({ id: qaUserId, username: 'qa1', fullName: 'QA Officer', title: 'QA' });
     memDb.inventoryLots.push({ id: 50, status: 'quarantine' });
 
-    const result = await qaReleaseLine(100, { password: 'pw' }, qaUserId);
+    const before = memDb.inventoryLots.length;
+    const result = await qaReleaseLine(100, { password: 'pw' }, qaUserId, { actualQuantity: 100 });
     expect(result.lotStatus).toBe('released');
+    // No new lot — the pre-existing one is released in place.
+    expect(memDb.inventoryLots.length).toBe(before);
+  });
+
+  it('QC-first: creates the remainder lot (total − sample) in RM/FG on release', async () => {
+    const receiverUserId = 7;
+    const qaUserId = 8;
+    memDb.signatures.push({
+      id: 1,
+      userId: receiverUserId,
+      entityType: 'goods_receipt_line',
+      entityId: 100,
+    });
+    // QC-first line: no remainder lot yet, only the QC sample was drawn.
+    memDb.lines.push({
+      id: 100,
+      grnId: 1,
+      lineNumber: 1,
+      itemId: 5,
+      unit: 'kg',
+      status: 'qc_approved',
+      receiverSignatureId: 1,
+      inventoryLotId: null,
+      qcLotId: 99,
+      sampleQuantity: 30,
+      qcSampleId: 30,
+    });
+    memDb.qcSamples.push({ id: 30, status: 'registered' });
+    memDb.users.push({ id: qaUserId, username: 'qa1', fullName: 'QA Officer', title: 'QA' });
+    memDb.grns.push({ id: 1, grnNumber: 'GRN-1', warehouseId: 1, sourceType: 'po' });
+    memDb.items.push({ id: 5, code: 'RM-005', nameTh: 'สมุนไพร' });
+
+    const before = memDb.inventoryLots.length;
+    const result = await qaReleaseLine(100, { password: 'pw' }, qaUserId, { actualQuantity: 100 });
+    expect(result.lotStatus).toBe('released');
+    // A new lot was created for the remainder (100 − 30 = 70), released.
+    expect(memDb.inventoryLots.length).toBe(before + 1);
+    const newLot = memDb.inventoryLots[memDb.inventoryLots.length - 1];
+    expect(Number(newLot.quantity)).toBe(70);
+    expect(newLot.status).toBe('released');
+    expect(Number(newLot.warehouseId)).toBe(1);
+  });
+
+  it('QC-first: rejects release when counted total is below the QC sample', async () => {
+    const qaUserId = 8;
+    memDb.signatures.push({
+      id: 1,
+      userId: 7,
+      entityType: 'goods_receipt_line',
+      entityId: 100,
+    });
+    memDb.lines.push({
+      id: 100,
+      grnId: 1,
+      status: 'qc_approved',
+      receiverSignatureId: 1,
+      inventoryLotId: null,
+      sampleQuantity: 30,
+      qcSampleId: 30,
+    });
+    memDb.users.push({ id: qaUserId, username: 'qa1', fullName: 'QA Officer' });
+    memDb.grns.push({ id: 1, grnNumber: 'GRN-1', warehouseId: 1, sourceType: 'po' });
+
+    // total (20) < sample (30) → must throw, no lot created
+    await expect(
+      qaReleaseLine(100, { password: 'pw' }, qaUserId, { actualQuantity: 20 }),
+    ).rejects.toBeInstanceOf(GoodsReceiptError);
+    expect(memDb.inventoryLots.length).toBe(0);
   });
 });

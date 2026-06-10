@@ -22,8 +22,8 @@ vi.mock('@/lib/auth/permission-resolver', () => ({
 const mockRelease = vi.fn();
 const mockReject = vi.fn();
 vi.mock('@/lib/services/goods-receipt-qa.service', () => ({
-  qaReleaseLine: (lineId: number, sig: unknown, userId: number) =>
-    mockRelease(lineId, sig, userId),
+  qaReleaseLine: (lineId: number, sig: unknown, userId: number, options?: unknown) =>
+    mockRelease(lineId, sig, userId, options),
   qaRejectLine: (lineId: number, reason: string, sig: unknown, userId: number) =>
     mockReject(lineId, reason, sig, userId),
 }));
@@ -53,7 +53,7 @@ describe('GRN QA endpoint', () => {
   it('returns 401 when unauthenticated', async () => {
     mockSession.mockResolvedValue(null);
     const res = await POST(
-      makeReq({ action: 'release', signature: { password: 'pw' } }),
+      makeReq({ action: 'release', actualQuantity: 100, signature: { password: 'pw' } }),
       params,
     );
     expect(res.status).toBe(401);
@@ -62,7 +62,7 @@ describe('GRN QA endpoint', () => {
   it('returns 403 when permission missing', async () => {
     mockGetPerms.mockResolvedValue(new Set());
     const res = await POST(
-      makeReq({ action: 'release', signature: { password: 'pw' } }),
+      makeReq({ action: 'release', actualQuantity: 100, signature: { password: 'pw' } }),
       params,
     );
     expect(res.status).toBe(403);
@@ -71,7 +71,7 @@ describe('GRN QA endpoint', () => {
   it('release requires the warehouse permission (QC-only perm is 403)', async () => {
     mockGetPerms.mockResolvedValue(new Set(['quality:incoming:approve']));
     const res = await POST(
-      makeReq({ action: 'release', signature: { password: 'pw' } }),
+      makeReq({ action: 'release', actualQuantity: 100, signature: { password: 'pw' } }),
       params,
     );
     expect(res.status).toBe(403);
@@ -94,7 +94,7 @@ describe('GRN QA endpoint', () => {
       ),
     );
     const res = await POST(
-      makeReq({ action: 'release', signature: { password: 'pw' } }),
+      makeReq({ action: 'release', actualQuantity: 100, signature: { password: 'pw' } }),
       params,
     );
     expect(res.status).toBe(403);
@@ -107,7 +107,7 @@ describe('GRN QA endpoint', () => {
       new GoodsReceiptError(GOODS_RECEIPT_ERROR_CODES.QC_NOT_APPROVED, 'QC failed'),
     );
     const res = await POST(
-      makeReq({ action: 'release', signature: { password: 'pw' } }),
+      makeReq({ action: 'release', actualQuantity: 100, signature: { password: 'pw' } }),
       params,
     );
     expect(res.status).toBe(409);
@@ -122,13 +122,16 @@ describe('GRN QA endpoint', () => {
       deviationId: null,
     });
     const res = await POST(
-      makeReq({ action: 'release', signature: { password: 'pw' } }),
+      makeReq({ action: 'release', actualQuantity: 100, signature: { password: 'pw' } }),
       params,
     );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.lotStatus).toBe('released');
-    expect(mockRelease).toHaveBeenCalledWith(100, { password: 'pw' }, 8);
+    expect(mockRelease).toHaveBeenCalledWith(100, { password: 'pw' }, 8, {
+      actualQuantity: 100,
+      warehouseId: undefined,
+    });
   });
 
   it('routes reject action to qaRejectLine', async () => {
