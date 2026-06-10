@@ -85,7 +85,7 @@ INSERT INTO purchase_requisitions
  (1, 'PR2026-0001', 1, 10, DATE_ADD(NOW(), INTERVAL 14 DAY), 'normal',   'จัดซื้อวัตถุดิบสมุนไพรรอบเดือน', 'สต็อกใกล้ถึงจุดสั่งซื้อ', 'approved', 0, 1, NOW(), 5, NOW(), NOW()),
  (2, 'PR2026-0002', 1, 10, DATE_ADD(NOW(), INTERVAL 7 DAY),  'urgent',   'สั่งซื้อบรรจุภัณฑ์เร่งด่วน', 'รองรับแผนผลิตสัปดาห์หน้า', 'pending_approval', 0, NULL, NULL, 5, NOW(), NOW()),
  (3, 'PR2026-0003', 1, 10, DATE_ADD(NOW(), INTERVAL 30 DAY), 'normal',   'สั่งซื้อสารเติมแต่ง', NULL, 'draft', 0, NULL, NULL, 5, NOW(), NOW()),
- (4, 'PR2026-0004', 1, 10, DATE_ADD(NOW(), INTERVAL 10 DAY), 'critical', 'สั่งซื้อสารสกัดกระชายขาว (ขาดสต็อก)', 'จำเป็นต่อการผลิต WO กระชายขาว', 'converted', 0, 1, NOW(), 5, NOW(), NOW());
+ (4, 'PR2026-0004', 1, 10, DATE_ADD(NOW(), INTERVAL 10 DAY), 'high', 'สั่งซื้อสารสกัดกระชายขาว (ขาดสต็อก)', 'จำเป็นต่อการผลิต WO กระชายขาว', 'converted', 0, 1, NOW(), 5, NOW(), NOW());
 
 INSERT INTO purchase_requisition_lines
  (pr_id, line_number, item_id, description, quantity, unit, estimated_price, line_total, preferred_vendor_id, status, created_at) VALUES
