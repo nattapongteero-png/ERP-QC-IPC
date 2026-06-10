@@ -14,8 +14,13 @@
 
 import { useCallback } from 'react';
 
-// DevExpress Report Viewer styles
-import 'devextreme/dist/css/dx.light.css';
+// DevExpress Report Viewer styles.
+// NOTE: do NOT import a second full DevExtreme base theme (e.g. dx.light.css)
+// here — the app already loads dx.material.teal.light globally via
+// devextreme-provider. Two full themes define the same .dx-overlay-content /
+// .dx-popup / .dx-list rules and fight in the bundled CSS, collapsing dropdown
+// option lists on Chrome (the "lookup shows no options" bug). Only the
+// analytics/reporting-specific CSS belongs here.
 import '@devexpress/analytics-core/dist/css/dx-analytics.common.css';
 import '@devexpress/analytics-core/dist/css/dx-analytics.light.css';
 import 'devexpress-reporting/dist/css/dx-webdocumentviewer.css';

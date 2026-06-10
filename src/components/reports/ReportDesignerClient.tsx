@@ -2,8 +2,11 @@
 
 import { useCallback, useRef } from 'react';
 
-// Import DevExpress Report Designer styles
-import 'devextreme/dist/css/dx.light.css';
+// Import DevExpress Report Designer styles.
+// NOTE: do NOT import a second full DevExtreme base theme (e.g. dx.light.css)
+// here — the app already loads dx.material.teal.light globally. Two full themes
+// collide in the bundled CSS and collapse dropdown option lists on Chrome.
+// Only analytics/reporting-specific CSS belongs here.
 import '@devexpress/analytics-core/dist/css/dx-analytics.common.css';
 import '@devexpress/analytics-core/dist/css/dx-analytics.light.css';
 import '@devexpress/analytics-core/dist/css/dx-querybuilder.css';

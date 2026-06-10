@@ -266,3 +266,55 @@
   min-width: 32px;
   min-height: 32px;
 }
+
+/* ============================================================================
+   Dropdown / Lookup overlay visibility guard  (cross-theme, cross-browser)
+   ----------------------------------------------------------------------------
+   Root cause: the app loads the Material-teal theme globally, while the Report
+   components import the full `dx.light` theme. Both define `.dx-overlay-content`
+   / `.dx-popup` / `.dx-list` sizing rules. When Next.js bundles the CSS, the
+   load order between the two full themes is not guaranteed, and Chrome resolves
+   the cascade differently than Firefox — on Chrome the losing theme could leave
+   the OPEN dropdown's content box collapsed (height 0 / display:none), so the
+   options exist in the DOM but render invisible. This is the "lookup shows no
+   options on Chrome, fine on Firefox" bug seen across inventory/production/qc.
+
+   Fix: this file is imported LAST (see devextreme-provider.tsx), so these rules
+   win the cascade regardless of theme order. They restore DevExtreme's intended
+   behaviour for an OPEN dropdown overlay only — they do not affect closed
+   overlays (DevExtreme toggles `display:none` on the wrapper via inline style,
+   which still takes precedence), so closed dropdowns stay closed.
+   ========================================================================== */
+
+/* The popup that hosts a dropdown's list. When DevExtreme has opened it (the
+   wrapper is rendered without an inline display:none), its content box must be
+   visible and able to size to its list. */
+.dx-dropdowneditor-overlay.dx-overlay-wrapper > .dx-overlay-content,
+.dx-lookup-popup-wrapper.dx-overlay-wrapper > .dx-overlay-content {
+  display: flex !important;
+  flex-direction: column;
+  visibility: visible !important;
+}
+
+/* The scrollable list + its items inside an open dropdown must keep their
+   natural height; a competing theme must not collapse them to 0. */
+.dx-dropdowneditor-overlay .dx-popup-content,
+.dx-lookup-popup-wrapper .dx-popup-content {
+  display: block !important;
+}
+
+.dx-dropdowneditor-overlay .dx-list,
+.dx-dropdowneditor-overlay .dx-scrollable,
+.dx-dropdowneditor-overlay .dx-scrollview,
+.dx-lookup-popup-wrapper .dx-list,
+.dx-lookup-popup-wrapper .dx-scrollable {
+  display: block !important;
+  visibility: visible !important;
+}
+
+.dx-dropdowneditor-overlay .dx-list-item,
+.dx-lookup-popup-wrapper .dx-list-item,
+.dx-dropdowneditor-overlay .dx-item.dx-list-item {
+  display: block !important;
+  visibility: visible !important;
+}
