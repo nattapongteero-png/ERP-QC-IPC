@@ -9,6 +9,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { PRForm } from '@/components/purchasing/PRForm';
+import { PRPrintDocument } from '@/components/purchasing/PRPrintDocument';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
@@ -230,7 +231,9 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="p-4">
+    <>
+    {pr && <PRPrintDocument pr={pr} />}
+    <div className="p-4 no-print">
         <div className="mb-4 flex justify-between items-start">
           <div className="flex items-start gap-3">
             <Button
@@ -252,6 +255,14 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
 
           {/* Action buttons based on status */}
           <div className="flex gap-2">
+            <Button
+              text="พิมพ์ใบ PR"
+              type="normal"
+              stylingMode="outlined"
+              icon="print"
+              onClick={() => window.print()}
+              data-testid="print-pr-btn"
+            />
             {pr?.status === 'draft' && (
               <Button
                 text="ลบใบ PR"
@@ -477,5 +488,6 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           </div>
         </Popup>
     </div>
+    </>
   );
 }

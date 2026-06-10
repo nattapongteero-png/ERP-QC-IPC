@@ -1054,3 +1054,173 @@ a:not([class]):hover {
 .animate-flash-green {
   animation: flash-green 1.5s ease-out;
 }
+
+/* =========================================================
+   Purchase Requisition — printable document
+   ---------------------------------------------------------
+   The PR detail page renders <PRPrintDocument> with class
+   `.print-only` (hidden on screen, revealed by @media print).
+   These rules lay it out as a standard A4 PR form. The screen
+   form is wrapped in `.pr-screen-content` (gets `.no-print` on
+   print) so only the document prints.
+   ========================================================= */
+.pr-print-doc {
+  font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  color: #000;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media print {
+  /* Header */
+  .pr-print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .pr-print-company-name {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .pr-print-company-sub {
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pr-print-company-line {
+    font-size: 11px;
+    color: #222;
+  }
+  .pr-print-title-box {
+    text-align: right;
+    border: 1.5px solid #000;
+    padding: 6px 14px;
+    min-width: 170px;
+  }
+  .pr-print-title {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .pr-print-title-en {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Meta block */
+  .pr-print-meta {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+  }
+  .pr-print-meta td {
+    border: 1px solid #999;
+    padding: 4px 8px;
+    font-size: 11px;
+    vertical-align: top;
+  }
+  .pr-meta-label {
+    background: #f0f0f0 !important;
+    font-weight: 600;
+    width: 18%;
+    white-space: nowrap;
+  }
+  .pr-meta-value {
+    width: 32%;
+  }
+
+  /* Notes */
+  .pr-print-note {
+    font-size: 11px;
+    margin: 8px 0;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+  }
+
+  /* Line items table */
+  .pr-print-lines {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+  }
+  .pr-print-lines th,
+  .pr-print-lines td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+  .pr-print-lines thead th {
+    background: #e8e8e8 !important;
+    font-weight: 700;
+    text-align: center;
+  }
+  .pr-col-no {
+    width: 5%;
+    text-align: center;
+  }
+  .pr-col-code {
+    width: 12%;
+  }
+  .pr-col-desc {
+    width: 38%;
+  }
+  .pr-col-qty {
+    width: 9%;
+    text-align: right;
+  }
+  .pr-col-unit {
+    width: 9%;
+    text-align: center;
+  }
+  .pr-col-price {
+    width: 12%;
+    text-align: right;
+  }
+  .pr-col-amount {
+    width: 15%;
+    text-align: right;
+  }
+  .pr-line-notes {
+    font-size: 10px;
+    color: #555;
+    font-style: italic;
+  }
+  .pr-pad-row td {
+    height: 20px;
+  }
+  .pr-total-label {
+    text-align: right;
+    font-weight: 700;
+    background: #f0f0f0 !important;
+  }
+  .pr-total-value {
+    font-weight: 700;
+    background: #f0f0f0 !important;
+  }
+
+  /* Signatures */
+  .pr-print-signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    gap: 16px;
+  }
+  .pr-sign-box {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+  }
+  .pr-sign-line {
+    border-bottom: 1px dotted #000;
+    margin: 0 8px 6px 8px;
+    height: 28px;
+  }
+  .pr-sign-role {
+    font-weight: 600;
+  }
+  .pr-sign-date {
+    margin-top: 6px;
+    color: #333;
+  }
+}

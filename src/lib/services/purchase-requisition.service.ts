@@ -458,23 +458,21 @@ export async function updatePRLine(
     }
 
     const currentLine = lineResult[0];
-    const newQuantity = data.quantity ?? currentLine.quantity;
-    const newUnitPrice = data.estimatedUnitPrice ?? currentLine.estimatedPrice;
-    const estimatedAmount = newQuantity * newUnitPrice;
+    const newQuantity = Number(data.quantity ?? currentLine.quantity) || 0;
+    const newUnitPrice = Number(data.estimatedUnitPrice ?? currentLine.estimatedPrice) || 0;
+    const lineTotal = newQuantity * newUnitPrice;
 
     await db
       .update(tables.lines)
       .set({
         ...(data.itemId !== undefined && { itemId: data.itemId }),
-        ...(data.itemCode !== undefined && { itemCode: data.itemCode }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.quantity !== undefined && { quantity: data.quantity }),
         ...(data.unitOfMeasure !== undefined && { unit: data.unitOfMeasure }),
         ...(data.estimatedUnitPrice !== undefined && { estimatedPrice: data.estimatedUnitPrice }),
-        estimatedAmount,
-        ...(data.suggestedVendorId !== undefined && { suggestedVendorId: data.suggestedVendorId }),
+        lineTotal,
+        ...(data.suggestedVendorId !== undefined && { preferredVendorId: data.suggestedVendorId }),
         ...(data.notes !== undefined && { notes: data.notes }),
-        updatedAt: getNow(),
       })
       .where(eq(tables.lines.id, lineId));
 
@@ -615,13 +613,15 @@ export async function submitPRForApproval(
     });
 
     // Update PR status
+    // NOTE: submittedAt / approvalRequestId are NOT columns on
+    // purchase_requisitions. The approval linkage lives in the
+    // approval_requests table (looked up by documentType + documentId
+    // in approvePR/rejectPR), so we only persist status here.
     const now = getNow();
     await db
       .update(tables.requisitions)
       .set({
         status: 'pending_approval',
-        submittedAt: now,
-        approvalRequestId: approvalResult.requestId,
         updatedAt: now,
       })
       .where(eq(tables.requisitions.id, prId));
@@ -699,12 +699,11 @@ export async function approvePR(
         })
         .where(eq(tables.requisitions.id, prId));
 
-      // Mark all lines as approved
+      // Mark all lines as approved (lines table has no updatedAt column)
       await db
         .update(tables.lines)
         .set({
           status: 'approved',
-          updatedAt: now,
         })
         .where(eq(tables.lines.prId, prId));
     }
@@ -763,23 +762,23 @@ export async function rejectPR(
     await rejectRequest(approvalRequestId, approverId, reason);
 
     // Update PR status
+    // NOTE: rejectedAt is not a column on purchase_requisitions; the
+    // rejection reason + status capture the rejection.
     const now = getNow();
     await db
       .update(tables.requisitions)
       .set({
         status: 'rejected',
-        rejectedAt: now,
         rejectionReason: reason,
         updatedAt: now,
       })
       .where(eq(tables.requisitions.id, prId));
 
-    // Mark all lines as rejected
+    // Mark all lines as rejected (lines table has no updatedAt column)
     await db
       .update(tables.lines)
       .set({
         status: 'rejected',
-        updatedAt: now,
       })
       .where(eq(tables.lines.prId, prId));
   });
