@@ -148,7 +148,11 @@ export default function MaterialWeighingPage() {
     materials: MaterialLine[];
     requisitionStatus: string;
   }>({
-    queryKey: ['wo-materials', workOrderId],
+    // Distinct key: this query returns { materials, requisitionStatus } (an
+    // object), NOT the array that WithdrawalPanel/ExecutionDashboard cache
+    // under 'wo-materials'. Sharing the key made them read this object and
+    // crash with "(woMaterials ?? []).map is not a function" on navigation.
+    queryKey: ['wo-material-weighing', workOrderId],
     queryFn: async () => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/material-weighing`);
       const data = await res.json();
@@ -276,6 +280,7 @@ export default function MaterialWeighingPage() {
     const eventWorkOrderId = data.workOrderId as number | undefined;
     if (eventWorkOrderId !== workOrderId) return;
     queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-material-weighing', workOrderId] });
     queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
@@ -284,6 +289,7 @@ export default function MaterialWeighingPage() {
     if (data.workOrderId !== workOrderId) return;
     if (data.section !== 'material-weighing' && data.section !== 'status') return;
     queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-material-weighing', workOrderId] });
     queryClient.invalidateQueries({ queryKey: ['work-order', workOrderId] });
   });
 
@@ -332,6 +338,7 @@ export default function MaterialWeighingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-material-weighing', workOrderId] });
       toast.success(tw('toast.weightRecorded'), tw('toast.weightRecorded'));
       setShowWeighDialog(false);
       setSelectedMaterial(null);
@@ -376,6 +383,7 @@ export default function MaterialWeighingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-material-weighing', workOrderId] });
       toast.success(tw('toast.weightVerified'), tw('toast.weightVerified'));
     },
     onError: (error: Error & { isDualControl?: boolean }) => {
@@ -1158,6 +1166,7 @@ export default function MaterialWeighingPage() {
             returnNumber ? `เลขที่ ${returnNumber} รอ QA ตรวจสอบ` : 'รอ QA ตรวจสอบ',
           );
           queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['wo-material-weighing', workOrderId] });
           queryClient.invalidateQueries({ queryKey: ['material-returns', workOrderId] });
           setShowReturnDialog(false);
           setReturnMaterial(null);
