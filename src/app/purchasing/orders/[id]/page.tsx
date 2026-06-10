@@ -25,6 +25,8 @@ import {
 import { DocumentAttachment } from '@/components/ui/document-attachment';
 import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { POPrintDocument } from '@/components/purchasing/po-print-document';
+import { thaiBahtText } from '@/lib/utils/thai-baht-text';
 
 // VAT rate for Thailand (7%)
 const VAT_RATE = 0.07;
@@ -924,7 +926,39 @@ export default function PurchaseOrderDetailPage() {
 
   return (
     <>
-      <div className="space-y-4">
+      {/* Printable PO document — hidden on screen, shown only when printing */}
+      <POPrintDocument
+        data={{
+          poNumber: po.poNumber,
+          statusTh: statusConfig.labelTh,
+          vendorName: po.vendorName,
+          vendorCode: po.vendorCode,
+          vendorContact: po.vendorContact,
+          vendorPhone: po.vendorPhone,
+          vendorEmail: po.vendorEmail,
+          orderDate: po.orderDate,
+          expectedDate: po.expectedDate,
+          paymentTerms: po.paymentTerms,
+          shippingAddress: po.shippingAddress,
+          notes: po.notes,
+          lines: lines.map((l) => ({
+            id: l.id,
+            itemCode: l.itemCode,
+            itemName: l.itemName,
+            itemNameEn: l.itemNameEn,
+            quantity: Number(l.quantity) || 0,
+            unit: l.unit,
+            itemUnit: l.itemUnit,
+            unitPrice: Number(l.unitPrice) || 0,
+            lineTotal: Number(l.lineTotal) || 0,
+          })),
+          subtotal,
+          vatAmount,
+          grandTotal,
+          grandTotalText: thaiBahtText(grandTotal),
+        }}
+      />
+      <div className="space-y-4 no-print">
         {/* Header */}
         <PageHeader
           title={`${t('orders.detail.title')}: ${po.poNumber}`}
