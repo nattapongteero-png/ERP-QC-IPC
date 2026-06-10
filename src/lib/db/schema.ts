@@ -162,6 +162,10 @@ export const sqliteItems = sqliteTable('items', {
   // Structured strength so BOM + WO can compute (value + selectable unit).
   strengthValue: real('strength_value'),
   strengthUnit: text('strength_unit'), // mg, g, mcg, IU, %, mg/capsule, ...
+  // Net weight of ONE sub-unit of this material in mg — a fixed master-data
+  // property (e.g. an empty size-0 capsule shell). The WO yield step adds
+  // capsuleCount × unitWeightMg to the powder weight for the final filled weight.
+  unitWeightMg: real('unit_weight_mg'),
   gRegNumber: text('g_reg_number'), // เลขที่ทะเบียน G (drug registration number)
   // Unit Cost Calculation fields (014-unit-cost)
   currentWAC: real('current_wac'), // Current weighted average cost
@@ -1863,6 +1867,9 @@ export const mysqlItems = mysqlTable('items', {
   // Structured strength so BOM + WO can compute (value + selectable unit).
   strengthValue: decimal('strength_value', { precision: 15, scale: 4 }),
   strengthUnit: varchar('strength_unit', { length: 30 }),
+  // Net weight of ONE sub-unit in mg (e.g. an empty capsule shell). Used by the
+  // WO yield step: powder weight + capsuleCount × unitWeightMg = filled weight.
+  unitWeightMg: decimal('unit_weight_mg', { precision: 15, scale: 4 }),
   gRegNumber: varchar('g_reg_number', { length: 50 }), // เลขที่ทะเบียน G
   // Unit Cost Calculation fields (014-unit-cost)
   currentWAC: decimal('current_wac', { precision: 15, scale: 4 }), // Current weighted average cost

@@ -11,6 +11,7 @@ import {
   strengthUnitOptions,
   getDefaultFormData,
   itemToFormData,
+  carriesUnitWeight,
   type Item,
 } from '@/components/ui/item-edit-form';
 
@@ -44,6 +45,7 @@ const baseItem = (over: Partial<Item>): Item =>
     strength: null,
     strengthValue: null,
     strengthUnit: null,
+    unitWeightMg: null,
     gRegNumber: null,
     confidentialityLevel: 'public',
     defaultConfidential: false,
@@ -81,5 +83,27 @@ describe('itemToFormData', () => {
     const form = itemToFormData(baseItem({ strengthValue: null, strengthUnit: null }));
     expect(form.strengthValue).toBe('');
     expect(form.strengthUnit).toBe('');
+  });
+
+  it('maps unitWeightMg (empty-capsule weight) to a string and back to empty', () => {
+    expect(itemToFormData(baseItem({ unitWeightMg: 96 })).unitWeightMg).toBe('96');
+    expect(itemToFormData(baseItem({ unitWeightMg: null })).unitWeightMg).toBe('');
+  });
+});
+
+describe('carriesUnitWeight (which items show the per-unit weight field)', () => {
+  it('shows for packaging items (the empty capsule shell)', () => {
+    expect(carriesUnitWeight('packaging', 'Capsule')).toBe(true);
+    expect(carriesUnitWeight('packaging', undefined)).toBe(true);
+  });
+
+  it('shows for any item categorised as Capsule', () => {
+    expect(carriesUnitWeight('consumable', 'Capsule')).toBe(true);
+    expect(carriesUnitWeight('consumable', 'capsule')).toBe(true); // case-insensitive
+  });
+
+  it('hides for ordinary raw materials / finished goods', () => {
+    expect(carriesUnitWeight('raw_material', 'Herb')).toBe(false);
+    expect(carriesUnitWeight('finished_goods', 'finished')).toBe(false);
   });
 });

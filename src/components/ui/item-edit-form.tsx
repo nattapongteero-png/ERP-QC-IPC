@@ -84,6 +84,7 @@ export interface Item {
   strength: string | null;
   strengthValue: number | null;
   strengthUnit: string | null;
+  unitWeightMg: number | null;
   gRegNumber: string | null;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
@@ -120,6 +121,7 @@ export interface ItemFormData {
   strength: string;
   strengthValue: string; // kept as string for the form input; coerced on save
   strengthUnit: string;
+  unitWeightMg: string; // net weight per sub-unit (mg); string for input, coerced on save
   gRegNumber: string;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
@@ -159,6 +161,15 @@ export const strengthUnitOptions = [
 // Item types that carry a meaningful strength/potency value in herbal medicine:
 // finished goods (per-capsule/tablet potency) and WIP/bulk (intermediate potency).
 const STRENGTH_TYPES = ['finished_goods', 'wip'];
+
+// Items whose per-sub-unit net weight matters for the WO filled-weight calc —
+// the empty capsule / tablet shell carried as a packaging line in a BOM. We
+// surface the unitWeightMg field for packaging items so the operator can record
+// "weight of one empty capsule", which the yield step adds to the powder weight.
+export function carriesUnitWeight(type: string, category: string | undefined): boolean {
+  if (type === 'packaging') return true;
+  return (category || '').toLowerCase() === 'capsule';
+}
 
 export const itemTypes = [
   { value: 'raw_material', label: 'Raw Material', translationKey: 'itemForm.types.raw_material', icon: Leaf, color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-200' },
@@ -205,6 +216,7 @@ export const getDefaultFormData = (): ItemFormData => ({
   strength: '',
   strengthValue: '',
   strengthUnit: '',
+  unitWeightMg: '',
   gRegNumber: '',
   confidentialityLevel: 'public',
   defaultConfidential: false,
@@ -245,6 +257,7 @@ export const itemToFormData = (item: Item): ItemFormData => {
   strength: item.strength || '',
   strengthValue: item.strengthValue != null ? String(item.strengthValue) : '',
   strengthUnit: item.strengthUnit || '',
+  unitWeightMg: item.unitWeightMg != null ? String(item.unitWeightMg) : '',
   gRegNumber: item.gRegNumber || '',
   confidentialityLevel: item.confidentialityLevel || 'public',
   defaultConfidential: item.defaultConfidential || false,
@@ -808,6 +821,27 @@ export function ItemEditForm({
                         maxLength={50}
                       />
                       <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.gRegNumber')}</p>
+                    </div>
+                  )}
+                  {/* Net weight per sub-unit (mg) — e.g. weight of one empty
+                      capsule shell. The WO yield step adds capsuleCount × this
+                      to the powder weight to get the final filled weight. */}
+                  {carriesUnitWeight(formData.type, formData.category) && (
+                    <div className="col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        น้ำหนักต่อหน่วย (mg/หน่วย)
+                      </label>
+                      <DxNumberBox
+                        value={formData.unitWeightMg === '' ? null : Number(formData.unitWeightMg)}
+                        onValueChange={(value) =>
+                          updateFormData('unitWeightMg', value == null ? '' : String(value))
+                        }
+                        min={0}
+                        placeholder="เช่น 96 (แคปซูลเปล่าเบอร์ 0)"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        น้ำหนักสุทธิของ 1 หน่วยย่อย เช่น แคปซูลเปล่า 1 เม็ด — ใช้บวกกับน้ำหนักผงยาในขั้นตอนผลิต
+                      </p>
                     </div>
                   )}
                 </div>

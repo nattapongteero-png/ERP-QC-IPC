@@ -107,10 +107,13 @@ export async function POST(request: NextRequest) {
         strength,
         strengthValue,
         strengthUnit,
+        unitWeightMg,
         gRegNumber,
       } = body;
       const strengthValueNum =
         strengthValue === '' || strengthValue == null ? null : Number(strengthValue);
+      const unitWeightMgNum =
+        unitWeightMg === '' || unitWeightMg == null ? null : Number(unitWeightMg);
 
       if (!code || !nameTh || !type || !primaryUnit) {
         return errorResponse('Code, name (Thai), type, and primary unit are required');
@@ -143,6 +146,7 @@ export async function POST(request: NextRequest) {
             confidentialityLevel: confidentialityLevel || 'public',
             defaultConfidential: defaultConfidential || false, strength: strength || null,
             strengthValue: strengthValueNum, strengthUnit: strengthUnit || null,
+            unitWeightMg: unitWeightMgNum,
             gRegNumber: gRegNumber || null,
             isActive: true,
           }).where(eq(itemsTable.id, existingId));
@@ -190,6 +194,7 @@ export async function POST(request: NextRequest) {
           strength: strength || null,
           strengthValue: strengthValueNum,
           strengthUnit: strengthUnit || null,
+          unitWeightMg: unitWeightMgNum,
           gRegNumber: gRegNumber || null,
         });
       });

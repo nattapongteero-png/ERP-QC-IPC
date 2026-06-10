@@ -43,6 +43,8 @@ interface WorkOrderInfo {
   bomYieldTarget?: number | null;
   bomLossAllowance?: number | null;
   bomFillWeightMg?: number | null;
+  emptyCapsuleWeightMg?: number | null;
+  emptyCapsuleItemName?: string | null;
   productSecondaryUnit?: string | null;
   productConversionRate?: number | null;
   bulkOutputQty?: number | null;
@@ -206,13 +208,22 @@ export default function ProductionOutputPage() {
   // Capsule → mg via BOM.fillWeightMg (nullable — not every product has it)
   const conversionRate = Number(workOrder?.productConversionRate) || 0;
   const fillWeightMg = Number(workOrder?.bomFillWeightMg) || 0;
+  // Net weight of one empty capsule shell (from the BOM packaging line's item
+  // master). The filled-capsule weight = powder (fillWeightMg) + this shell.
+  const emptyCapWeightMg = Number(workOrder?.emptyCapsuleWeightMg) || 0;
+  const filledUnitMg = fillWeightMg + emptyCapWeightMg;
   const secondaryUnit = workOrder?.productSecondaryUnit || '';
   const canConvertToCapsule = conversionRate > 0 && !!secondaryUnit;
   const canConvertToWeight = canConvertToCapsule && fillWeightMg > 0;
+  const hasEmptyCapWeight = emptyCapWeightMg > 0;
 
   // Given a box count, derive capsule count and gram weight.
   const boxToCap = (box: number) => (canConvertToCapsule ? box * conversionRate : 0);
+  // Powder-only weight (drives yield against the bulk formula).
   const boxToGram = (box: number) => (canConvertToWeight ? (box * conversionRate * fillWeightMg) / 1000 : 0);
+  // Powder + empty capsule = final filled weight that comes off the line.
+  const boxToFilledGram = (box: number) =>
+    canConvertToWeight ? (box * conversionRate * filledUnitMg) / 1000 : 0;
 
   // Given a user-entered value in the selected mode, compute the box count.
   const toBoxCount = (value: number, mode: BulkInputMode): number => {
@@ -740,22 +751,50 @@ export default function ProductionOutputPage() {
                         )}
                       </div>
 
-                      {/* Powder vs. empty-capsule breakdown — the final filled
-                          weight per the WO = powder (fill weight) + empty
-                          capsule. fillWeightMg = powder per capsule from the BOM. */}
-                      {canConvertToWeight && (
-                        <div className="mb-3 p-3 rounded-lg border border-purple-200 bg-purple-50 text-sm">
-                          <div className="font-semibold text-purple-900 mb-1">องค์ประกอบน้ำหนัก (ต่อ 1 {secondaryUnit || 'หน่วย'})</div>
-                          <div className="grid grid-cols-2 gap-2 text-purple-800">
-                            <div>ผงยา (fill weight): <strong>{fillWeightMg.toLocaleString()} mg</strong></div>
-                            <div>จำนวน: <strong>{boxToCap(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 0 })} {secondaryUnit}</strong></div>
-                            <div className="col-span-2 pt-1 border-t border-purple-200">
-                              น้ำหนักผงยารวม: <strong>{boxToGram(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</strong>
-                              <span className="text-xs text-purple-600"> (ยังไม่รวมแคปซูลเปล่า — บวกน้ำหนักแคปซูลเปล่าจาก BOM เพื่อได้น้ำหนักรวมสุดท้าย)</span>
+                      {/* Filled-weight breakdown — น้ำหนักผงยา + แคปซูลเปล่า.
+                          Powder per unit = fillWeightMg; empty capsule per unit =
+                          emptyCapWeightMg (from the BOM packaging line). When the
+                          capsule weight is known the total is a real number; when
+                          it isn't, we show only the powder and prompt to set it. */}
+                      {canConvertToWeight && (() => {
+                        const caps = boxToCap(formData.actualQuantity);
+                        const powderG = boxToGram(formData.actualQuantity);
+                        const capsG = (caps * emptyCapWeightMg) / 1000;
+                        const filledG = boxToFilledGram(formData.actualQuantity);
+                        return (
+                          <div className="mb-3 p-3 rounded-lg border border-purple-200 bg-purple-50 text-sm">
+                            <div className="font-semibold text-purple-900 mb-1">
+                              องค์ประกอบน้ำหนัก ({caps.toLocaleString(undefined, { maximumFractionDigits: 0 })} {secondaryUnit})
+                            </div>
+                            <div className="space-y-1 text-purple-800">
+                              <div className="flex justify-between">
+                                <span>ผงยา ({fillWeightMg.toLocaleString()} mg/{secondaryUnit})</span>
+                                <strong>{powderG.toLocaleString(undefined, { maximumFractionDigits: 2 })} g</strong>
+                              </div>
+                              {hasEmptyCapWeight ? (
+                                <>
+                                  <div className="flex justify-between">
+                                    <span>
+                                      แคปซูลเปล่า ({emptyCapWeightMg.toLocaleString()} mg/{secondaryUnit})
+                                      {workOrder.emptyCapsuleItemName ? ` · ${workOrder.emptyCapsuleItemName}` : ''}
+                                    </span>
+                                    <strong>+ {capsG.toLocaleString(undefined, { maximumFractionDigits: 2 })} g</strong>
+                                  </div>
+                                  <div className="flex justify-between pt-1 border-t border-purple-200 text-purple-900">
+                                    <span className="font-semibold">น้ำหนักรวมสุดท้าย (ผงยา + แคปซูล)</span>
+                                    <strong>{filledG.toLocaleString(undefined, { maximumFractionDigits: 2 })} g</strong>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="pt-1 border-t border-purple-200 text-xs text-amber-700">
+                                  ⚠ ยังไม่ได้ตั้งค่า &ldquo;น้ำหนักต่อหน่วย&rdquo; ของแคปซูลเปล่าใน BOM นี้ — จึงรวมได้เฉพาะน้ำหนักผงยา
+                                  กรุณาตั้งน้ำหนักแคปซูลเปล่า (mg/เม็ด) ที่หน้าสินค้าของแคปซูลเปล่า เพื่อให้คำนวณน้ำหนักรวมได้
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Yield gauge */}
                       <div className={`p-3 rounded-lg border ${

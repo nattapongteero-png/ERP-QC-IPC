@@ -101,8 +101,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive',
         'tppCode', 'tppName', 'ttmtCode', 'ttmtName', 'drugCode24', 'vmiSyncEnabled',
         'confidentialityLevel', 'defaultConfidential', 'strength', 'gRegNumber',
-        // Structured strength (value + unit) for BOM/WO computation
-        'strengthValue', 'strengthUnit',
+        // Structured strength (value + unit) + per-unit net weight for BOM/WO
+        'strengthValue', 'strengthUnit', 'unitWeightMg',
         // 3-level unit conversion (PU → SU → WU)
         'weightUnit', 'secondaryToWeightRate', 'weightTrackingEnabled'
       ];
@@ -133,6 +133,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           body.strengthValue === '' || body.strengthValue === null
             ? null
             : Number(body.strengthValue);
+      }
+      if (body.unitWeightMg !== undefined) {
+        body.unitWeightMg =
+          body.unitWeightMg === '' || body.unitWeightMg === null
+            ? null
+            : Number(body.unitWeightMg);
       }
 
       for (const field of allowedFields) {

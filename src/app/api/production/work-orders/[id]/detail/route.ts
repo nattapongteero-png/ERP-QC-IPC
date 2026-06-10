@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and } from 'drizzle-orm';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
 import {
   getWOSOPExecution,
@@ -104,6 +104,39 @@ export async function GET(
           workOrder.bomYieldTarget = bomResult[0].yieldTarget;
           workOrder.bomLossAllowance = bomResult[0].lossAllowance;
           workOrder.bomFillWeightMg = bomResult[0].fillWeightMg;
+        }
+
+        // Empty-capsule weight for the filled-weight calc. The capsule shell is
+        // a BOM line whose item is packaging/Capsule and carries a per-unit net
+        // weight (unitWeightMg). Use the first such line; the yield step adds
+        // capsuleCount × this to the powder weight.
+        const bomLines = getTableRef('bOMLines');
+        const itemsT = getTableRef('items');
+        const capLine = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              unitWeightMg: itemsT.unitWeightMg,
+              itemNameTh: itemsT.nameTh,
+              itemType: itemsT.type,
+              itemCategory: itemsT.category,
+            })
+            .from(bomLines)
+            .leftJoin(itemsT, eq(bomLines.itemId, itemsT.id))
+            .where(
+              and(
+                eq(bomLines.bomId, workOrder.bomId as number),
+                eq(itemsT.type, 'packaging'),
+              ),
+            )
+            .orderBy(asc(bomLines.sequence));
+        });
+        // Prefer a packaging line that actually has a recorded per-unit weight.
+        const withWeight = (capLine as Array<{ unitWeightMg: number | string | null; itemNameTh: string | null }>).find(
+          (l) => l.unitWeightMg != null && Number(l.unitWeightMg) > 0,
+        );
+        if (withWeight) {
+          workOrder.emptyCapsuleWeightMg = Number(withWeight.unitWeightMg);
+          workOrder.emptyCapsuleItemName = withWeight.itemNameTh;
         }
       }
 
