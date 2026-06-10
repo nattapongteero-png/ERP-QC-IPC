@@ -20,31 +20,12 @@ import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
 import { useToast } from '@/hooks/use-toast';
 import { ClipboardList, CheckCircle2, XCircle, Clock, ExternalLink } from 'lucide-react';
-
-interface WorkOrderLite {
-  id: number;
-  woNumber: string;
-  status: string;
-  productName: string | null;
-  productCode: string | null;
-  batchNumber: string | null;
-}
-
-// WO statuses that make sense to inspect per inspection type.
-// In-process = currently being produced; Finished = production done.
-const WO_STATUS_BY_TYPE: Record<string, string[] | null> = {
-  incoming: [], // ตรวจรับวัตถุดิบ — ไม่ผูกกับ WO ฝ่ายผลิต
-  in_process: ['released', 'in_progress'],
-  finished: ['completed', 'closed'],
-  ad_hoc: null, // ทุกสถานะ
-};
-
-// Human-readable WO option: "WO-2569-001 — พาราเซตามอล (batch B123)"
-const woOptionLabel = (w: WorkOrderLite) => {
-  const product = w.productName || w.productCode || '';
-  const batch = w.batchNumber ? ` · batch ${w.batchNumber}` : '';
-  return product ? `${w.woNumber} — ${product}${batch}` : `${w.woNumber}${batch}`;
-};
+import {
+  type WorkOrderLite,
+  isWoLinkEnabled,
+  filterWorkOrders,
+  woOptionLabel,
+} from '@/lib/quality/qc-wo-filter';
 
 interface InspectionRow {
   id: number;
@@ -135,14 +116,11 @@ export default function QcInspectionsPage() {
   }, [filterType]);
 
   // WO options filtered to statuses relevant to the chosen inspection type.
-  const allowedWoStatuses = WO_STATUS_BY_TYPE[form.inspectionType];
-  const woEnabled = allowedWoStatuses === null || allowedWoStatuses.length > 0;
-  const filteredWorkOrders = useMemo(() => {
-    if (allowedWoStatuses === null) return workOrders;
-    if (allowedWoStatuses.length === 0) return [];
-    return workOrders.filter((w) => allowedWoStatuses.includes(w.status));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workOrders, form.inspectionType]);
+  const woEnabled = isWoLinkEnabled(form.inspectionType);
+  const filteredWorkOrders = useMemo(
+    () => filterWorkOrders(workOrders, form.inspectionType),
+    [workOrders, form.inspectionType],
+  );
 
   const stats = useMemo(
     () => ({
