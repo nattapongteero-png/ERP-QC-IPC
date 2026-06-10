@@ -46,6 +46,9 @@ export default function GrnDetailPage() {
 
   // Local state for current checklist editing
   const [checklistAnswers, setChecklistAnswers] = useState<Record<number, { isPass: boolean; remarks?: string }>>({});
+  // Actual (counted) quantity captured inside the checklist popup so the QC
+  // signer is never dead-ended by a missing count. Empty string = not entered.
+  const [checklistActualQty, setChecklistActualQty] = useState<string>('');
 
   // GRN data
   const { data, refetch } = useQuery<{ grn: GoodsReceipt; lines: GoodsReceiptLine[] }>({
@@ -109,6 +112,28 @@ export default function GrnDetailPage() {
   const signChecklistMut = useMutation({
     mutationFn: async () => {
       if (!activeLineId || !currentTemplate) throw new Error('Missing data');
+      // The server rejects signing when a line has no actualQuantity. Persisting
+      // the count requires the warehouse 'receive' permission (Triple
+      // Independence: the receiver/counter is a different role from QC). So we
+      // only save the qty from here when the signer also holds that permission
+      // (e.g. admin). A QC-only signer must wait for the warehouse to enter the
+      // count on the grid first — guarded in the UI below.
+      const qty = Number(checklistActualQty);
+      if (!checklistActualQty.trim() || !Number.isFinite(qty) || qty <= 0) {
+        throw new Error('กรุณากรอกจำนวนที่นับได้จริง (มากกว่า 0) ก่อนลงนาม');
+      }
+      const activeLine = (data?.lines ?? []).find((l) => l.id === activeLineId);
+      const qtyMissing = activeLine == null || activeLine.actualQuantity == null;
+      const qtyChanged = activeLine != null && Number(activeLine.actualQuantity) !== qty;
+      if (qtyMissing || qtyChanged) {
+        if (!canRelease) {
+          // QC-only user cannot write the count.
+          throw new Error(
+            'คลังยังไม่ได้บันทึกจำนวนที่นับได้จริงในรายการนี้ — โปรดให้ฝ่ายคลังกรอกจำนวนก่อน แล้วจึงลงนาม',
+          );
+        }
+        await updateLineMut.mutateAsync({ lineId: activeLineId, patch: { actualQuantity: qty } });
+      }
       const items = currentTemplate.items.map((tmpl) => ({
         templateItemId: tmpl.id,
         isPass: checklistAnswers[tmpl.id]?.isPass ?? false,
@@ -131,6 +156,7 @@ export default function GrnDetailPage() {
       qc.invalidateQueries({ queryKey: ['grn-dashboard'] });
       setChecklistOpen(false);
       setChecklistAnswers({});
+      setChecklistActualQty('');
       setSigPassword('');
     },
   });
@@ -282,6 +308,15 @@ export default function GrnDetailPage() {
                         initial[it.id] = { isPass: false };
                       });
                       setChecklistAnswers(initial);
+                      // Pre-fill the counted qty from the line (warehouse may
+                      // have entered it already); fall back to expected.
+                      setChecklistActualQty(
+                        line.actualQuantity != null
+                          ? String(line.actualQuantity)
+                          : line.expectedQuantity != null
+                            ? String(line.expectedQuantity)
+                            : '',
+                      );
                       setChecklistOpen(true);
                     }}
                   />
@@ -326,6 +361,30 @@ export default function GrnDetailPage() {
         height="auto"
       >
         <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+          {/* Counted quantity — required by the server before signing.
+              Editable only for users who can also receive (warehouse / admin);
+              a QC-only signer sees it read-only and must wait for the count. */}
+          <div className="border rounded p-3 bg-amber-50 border-amber-200">
+            <label className="block text-sm font-medium mb-1">
+              จำนวนที่นับได้จริง (Actual quantity) <span className="text-rose-600">*</span>
+            </label>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={checklistActualQty}
+              onChange={(e) => setChecklistActualQty(e.target.value)}
+              readOnly={!canRelease}
+              className={`w-full border rounded px-3 py-2 ${!canRelease ? 'bg-gray-100 text-gray-600' : ''}`}
+              placeholder="กรอกจำนวนที่นับได้จริงก่อนลงนาม"
+              data-testid="checklist-actual-qty"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {canRelease
+                ? 'ระบบจะบันทึกจำนวนนี้ลงรายการก่อนลงนาม — ต้องมากกว่า 0'
+                : 'จำนวนนี้ฝ่ายคลังเป็นผู้กรอก (แยกหน้าที่ตามหลัก Triple Independence) — หากยังว่าง โปรดให้ฝ่ายคลังกรอกก่อนลงนาม'}
+            </p>
+          </div>
           {(currentTemplate?.items ?? []).map((item) => (
             <div key={item.id} className="border rounded p-3 space-y-2">
               <div className="flex items-center gap-2">
@@ -381,7 +440,11 @@ export default function GrnDetailPage() {
               type="success"
               stylingMode="contained"
               text={t('actions.signChecklist')}
-              disabled={signChecklistMut.isPending}
+              disabled={
+                signChecklistMut.isPending ||
+                updateLineMut.isPending ||
+                !(Number(checklistActualQty) > 0)
+              }
               onClick={() => signChecklistMut.mutate()}
             />
           </div>
