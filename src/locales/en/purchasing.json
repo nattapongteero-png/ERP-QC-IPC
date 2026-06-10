@@ -180,7 +180,8 @@
     },
     "actions": {
       "refresh": "Refresh",
-      "createPR": "Create PR"
+      "createPR": "Create PR",
+      "viewDetails": "View Details"
     },
     "grid": {
       "columns": {

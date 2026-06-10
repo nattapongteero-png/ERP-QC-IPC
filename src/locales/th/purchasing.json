@@ -180,7 +180,8 @@
     },
     "actions": {
       "refresh": "รีเฟรช",
-      "createPR": "สร้าง PR"
+      "createPR": "สร้าง PR",
+      "viewDetails": "ดูรายละเอียด"
     },
     "grid": {
       "columns": {
