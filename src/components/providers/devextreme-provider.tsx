@@ -3,6 +3,10 @@
 import { useEffect, useRef } from 'react';
 import { locale as setDxLocale, loadMessages } from "devextreme/localization";
 import config from 'devextreme/core/config';
+import dxSelectBox from 'devextreme/ui/select_box';
+import dxLookup from 'devextreme/ui/lookup';
+import dxDropDownBox from 'devextreme/ui/drop_down_box';
+import dxTagBox from 'devextreme/ui/tag_box';
 import { useLocale } from 'next-intl';
 
 // DevExtreme CSS - imported via JS to avoid @import order issues in bundled CSS
@@ -25,6 +29,32 @@ const LICENSE_KEY = "ewogICJmb3JtYXQiOiAxLAogICJjdXN0b21lcklkIjogIjkyMjY4ODllLTg
 // Set the license key at module load time — BEFORE any DevExtreme component renders.
 // Setting it inside useEffect runs too late; the first render fires the evaluation toast.
 config({ licenseKey: LICENSE_KEY });
+
+// ── Global dropdown-position default (cross-browser parity) ──────────────────
+// Without an explicit popup position, DevExtreme let each browser pick the
+// anchor, so the option list dropped DOWN on Firefox but UP on Chrome (reported
+// by the user). Register the default ONCE on every dropdown-editor component so
+// it fixes all ~185 dropdown usages across the codebase regardless of whether a
+// page imports the component directly, uses the DxSelectBox wrapper, or defines
+// a DataGrid lookup column — no per-file edits, no per-browser branching.
+// Pattern per DevExtreme defaultOptions() API + positionConfig docs (v25.2).
+const DROPDOWN_POSITION_DEFAULT = {
+  options: {
+    dropDownOptions: {
+      position: { my: 'top', at: 'bottom', collision: 'flipfit' },
+    },
+  },
+};
+for (const Comp of [dxSelectBox, dxLookup, dxDropDownBox, dxTagBox]) {
+  try {
+    (Comp as unknown as {
+      defaultOptions: (rule: { device?: unknown; options: Record<string, unknown> }) => void;
+    }).defaultOptions(DROPDOWN_POSITION_DEFAULT);
+  } catch {
+    // No-op if a component's API shifts in a future version; the per-wrapper
+    // position in DxSelectBox still applies as a fallback.
+  }
+}
 
 // Track if messages have been loaded
 const loadedLocales = new Set<string>();
