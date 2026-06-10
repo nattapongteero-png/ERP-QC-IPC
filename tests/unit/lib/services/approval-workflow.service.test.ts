@@ -136,7 +136,11 @@ const createMockDb = () => {
           }
           if (tableName === 'approvalRules') {
             const allRules = Object.values(mockRules).flat();
-            return Promise.resolve(allRules);
+            // Support both `.where(...)` (awaited directly) and
+            // `.where(...).orderBy(...)` (used by findMatchingFlow).
+            const thenable: any = Promise.resolve(allRules);
+            thenable.orderBy = vi.fn().mockResolvedValue(allRules);
+            return thenable;
           }
           if (tableName === 'approvalSteps') {
             const allSteps = Object.values(mockSteps).flat();
@@ -156,7 +160,14 @@ const createMockDb = () => {
               orderBy: vi.fn().mockResolvedValue(mockDelegations),
             };
           }
-          return Promise.resolve([]);
+          // Default (e.g. `users` lookups in resolveApprover): empty result,
+          // chainable so `.where(...).limit(1)` / `.orderBy(...)` don't throw.
+          // Empty `users` is the regression scenario — exercises the
+          // requester fallback in resolveApprover.
+          const empty: any = Promise.resolve([]);
+          empty.limit = vi.fn().mockResolvedValue([]);
+          empty.orderBy = vi.fn().mockResolvedValue([]);
+          return empty;
         }),
         orderBy: vi.fn().mockImplementation(() => {
           if (tableName === 'approvalFlows') {
@@ -193,6 +204,7 @@ import {
   updateApprovalFlow,
   addApprovalRules,
   addApprovalSteps,
+  submitForApproval,
 } from '@/lib/services/approval-workflow.service';
 
 describe('Approval Workflow Service', () => {
@@ -527,6 +539,75 @@ describe('Approval Workflow Service', () => {
       );
 
       expect(stepIds.length).toBe(1);
+    });
+  });
+
+  describe('submitForApproval (regression: empty approver tables)', () => {
+    // Reproduces the NO_MATCHING_FLOW / unassigned-step bug: a fresh deploy
+    // where HR_employees (and even users) resolve to nothing must STILL
+    // produce a usable approval request. The fix routes resolveApprover
+    // through a guaranteed fallback (admin → requester) instead of asserting
+    // a non-null approverId, so no step is ever left assigned to null/NaN.
+
+    it('matches a rule-less flow and submits a request', async () => {
+      const flowId = await createApprovalFlow(
+        { name: 'Default PR Approval', documentType: 'purchase_requisition', priority: 100 },
+        1
+      );
+      await addApprovalSteps(
+        [{ stepOrder: 1, stepName: 'Admin Approval', approverType: 'user', approverId: 1 }],
+        flowId
+      );
+
+      const result = await submitForApproval({
+        documentType: 'purchase_requisition',
+        documentId: 42,
+        requesterId: 7,
+        totalAmount: 28000,
+        priority: 'normal',
+      });
+
+      expect(result.requestId).toBeGreaterThan(0);
+      expect(result.flowName).toBe('Default PR Approval');
+
+      // The request step must have a concrete, non-null assignee.
+      const steps = Object.values(mockRequestSteps).flat();
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps[0].assignedTo).toBe(1); // explicit approverId honored
+    });
+
+    it('falls back to the requester when no approver can be resolved', async () => {
+      // approverType 'role' with no users/employees in the DB previously
+      // produced a null assignee (step.approverId! was undefined). The
+      // fallback chain must now resolve to the requester.
+      const flowId = await createApprovalFlow(
+        { name: 'Role Flow', documentType: 'purchase_requisition' },
+        1
+      );
+      await addApprovalSteps(
+        [{ stepOrder: 1, stepName: 'Some Role', approverType: 'role' }],
+        flowId
+      );
+
+      const result = await submitForApproval({
+        documentType: 'purchase_requisition',
+        documentId: 99,
+        requesterId: 5,
+      });
+
+      expect(result.requestId).toBeGreaterThan(0);
+      const steps = Object.values(mockRequestSteps).flat();
+      expect(steps[0].assignedTo).toBe(5); // requester fallback — never null
+    });
+
+    it('throws NO_MATCHING_FLOW when no flow exists for the document type', async () => {
+      await expect(
+        submitForApproval({
+          documentType: 'purchase_order',
+          documentId: 1,
+          requesterId: 1,
+        })
+      ).rejects.toThrow('NO_MATCHING_FLOW');
     });
   });
 });

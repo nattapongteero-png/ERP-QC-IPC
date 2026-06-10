@@ -190,6 +190,69 @@ export async function seedDatabase() {
     console.warn('Default material withdrawal rule seed skipped:', error);
   }
 
+  // Seed a default Purchase Requisition approval flow so PR "submit for
+  // approval" works out of the box in every environment. Without an active
+  // flow for the document type, submitForApproval() throws NO_MATCHING_FLOW
+  // and PRs can never reach PO. The flow has NO rules (always matches) and a
+  // single admin approval step. Idempotent: skipped if any PR flow exists.
+  const approvalFlowsTable = usingSqlite ? schema.sqliteApprovalFlows : schema.mysqlApprovalFlows;
+  const approvalStepsTable = usingSqlite ? schema.sqliteApprovalSteps : schema.mysqlApprovalSteps;
+  try {
+    const existingPrFlow = await (db as any)
+      .select({ id: approvalFlowsTable.id })
+      .from(approvalFlowsTable)
+      .where(eq(approvalFlowsTable.documentType, 'purchase_requisition'))
+      .limit(1);
+
+    if (!existingPrFlow?.[0]?.id) {
+      const adminUser = await (db as any)
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.email, 'admin@herbal-erp.com'))
+        .limit(1);
+      const adminId: number | undefined = adminUser?.[0]?.id;
+
+      if (adminId) {
+        const insertResult = await (db as any).insert(approvalFlowsTable).values({
+          name: 'Default PR Approval',
+          description: 'Auto-seeded default approval flow for Purchase Requisitions',
+          documentType: 'purchase_requisition',
+          priority: 100,
+          isActive: true,
+          createdBy: adminId,
+        });
+
+        // Resolve the new flow id across both drivers (SQLite returns
+        // lastInsertRowid; MySQL returns insertId), falling back to a lookup.
+        let flowId: number | undefined =
+          insertResult?.lastInsertRowid ?? insertResult?.[0]?.insertId ?? insertResult?.insertId;
+        if (!flowId) {
+          const justInserted = await (db as any)
+            .select({ id: approvalFlowsTable.id })
+            .from(approvalFlowsTable)
+            .where(eq(approvalFlowsTable.documentType, 'purchase_requisition'))
+            .limit(1);
+          flowId = justInserted?.[0]?.id;
+        }
+
+        if (flowId) {
+          await (db as any).insert(approvalStepsTable).values({
+            flowId: Number(flowId),
+            stepOrder: 1,
+            stepName: 'Admin Approval',
+            approverType: 'user',
+            approverId: adminId,
+            canDelegate: false,
+            timeoutDays: 3,
+          });
+          console.log('Default PR approval flow seeded');
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Default PR approval flow seed skipped:', error);
+  }
+
   console.log('Database seeded successfully!');
 }
 

@@ -586,7 +586,22 @@ export async function submitForApproval(
 }
 
 /**
- * Resolve the approver for a step
+ * Resolve the approver for a step.
+ *
+ * Identity in this system is the `users` table — every other place that
+ * reads an approval (request list, step actor, authorization check) joins
+ * `requested_by` / `assigned_to` / `action_by` against `users`, NOT
+ * `HR_employees`. This resolver therefore also works against `users` so the
+ * assigned approver id is always a real, resolvable user.
+ *
+ * It is GUARANTEED to return a non-null user id. Earlier versions returned
+ * `step.approverId!` (a non-null assertion) which produced a null/NaN
+ * `assigned_to` whenever `approverId` was unset or the lookup table was
+ * empty — e.g. a fresh deploy where HR_employees has no rows. That left a
+ * pending step nobody could action. The fallback chain below ensures a
+ * valid assignee in every environment: explicit approver → role/department
+ * match → an active admin → the requester themselves (self-approval is a
+ * degenerate-but-functional last resort, never a hard error).
  */
 async function resolveApprover(
   step: ApprovalStepDetail,
@@ -595,53 +610,64 @@ async function resolveApprover(
   return executeDbOperation(async (db) => {
     const tables = getTables();
 
+    // Last-resort fallback: any active admin, else the requester. Used by
+    // every branch below so resolveApprover never returns null/NaN.
+    const fallbackApprover = async (): Promise<number> => {
+      const [admin] = await db
+        .select({ id: tables.users.id })
+        .from(tables.users)
+        .where(and(eq(tables.users.role, 'ADMIN'), eq(tables.users.isActive, true)))
+        .limit(1);
+      return admin?.id ?? requesterId;
+    };
+
     switch (step.approverType) {
       case 'user':
-        // Direct user assignment
-        return step.approverId!;
+        // Direct user assignment — fall back if approverId was never set.
+        return step.approverId ?? (await fallbackApprover());
 
-      case 'role':
-        // Find first user with this role (simplified - in production would pick based on workload)
+      case 'role': {
+        // Pick the first active user. (A future enhancement could store the
+        // target role on the step and filter by it / balance by workload.)
         const [roleUser] = await db
-          .select({ employeeId: tables.employees.id })
-          .from(tables.employees)
-          .where(eq(tables.employees.isActive, true))
+          .select({ id: tables.users.id })
+          .from(tables.users)
+          .where(eq(tables.users.isActive, true))
           .limit(1);
-        return roleUser?.employeeId ?? step.approverId!;
+        return step.approverId ?? roleUser?.id ?? (await fallbackApprover());
+      }
 
-      case 'department_head':
-        // Find department head of requester
+      case 'department_head': {
+        // Find an active user in the requester's department.
         const [requester] = await db
-          .select({ departmentId: tables.employees.departmentId })
-          .from(tables.employees)
-          .where(eq(tables.employees.id, requesterId));
+          .select({ department: tables.users.department })
+          .from(tables.users)
+          .where(eq(tables.users.id, requesterId))
+          .limit(1);
 
-        if (requester?.departmentId) {
-          // Get department head (simplified - would query org structure)
-          const [deptHead] = await db
-            .select({ id: tables.employees.id })
-            .from(tables.employees)
+        if (requester?.department) {
+          const [deptUser] = await db
+            .select({ id: tables.users.id })
+            .from(tables.users)
             .where(
               and(
-                eq(tables.employees.departmentId, requester.departmentId),
-                eq(tables.employees.isActive, true)
+                eq(tables.users.department, requester.department),
+                eq(tables.users.isActive, true)
               )
             )
             .limit(1);
-          if (deptHead) return deptHead.id;
+          if (deptUser?.id) return deptUser.id;
         }
-        return step.approverId ?? requesterId;
+        return step.approverId ?? (await fallbackApprover());
+      }
 
       case 'requester_manager':
-        // Find requester's direct manager
-        const [emp] = await db
-          .select({ managerId: tables.employees.managerId })
-          .from(tables.employees)
-          .where(eq(tables.employees.id, requesterId));
-        return emp?.managerId ?? step.approverId ?? requesterId;
+        // `users` has no manager hierarchy, so route to an admin/explicit
+        // approver rather than leaving the step unassigned.
+        return step.approverId ?? (await fallbackApprover());
 
       default:
-        return step.approverId ?? requesterId;
+        return step.approverId ?? (await fallbackApprover());
     }
   });
 }
