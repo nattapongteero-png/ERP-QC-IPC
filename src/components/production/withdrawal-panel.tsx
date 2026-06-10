@@ -19,10 +19,11 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
-import { Plus } from 'lucide-react';
+import { Plus, Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
 import { MaterialWithdrawalRequestDialog, type BomMaterialOption, type RoomOption } from './material-withdrawal-request-dialog';
 import { MaterialWithdrawalDetailDialog } from './material-withdrawal-detail-dialog';
 import { PhaseBlockBanner } from './phase-block-banner';
+import type { MaterialWithdrawalRequestSummary, WithdrawalStatus } from '@/types/material-withdrawal';
 
 interface WoMaterialApiRow {
   id: number;
@@ -32,6 +33,23 @@ interface WoMaterialApiRow {
   additionalQtyViaWithdrawalRequest?: number;
   unit: string;
 }
+
+const HISTORY_STATUS: Record<
+  WithdrawalStatus,
+  { label: string; className: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  pending: { label: 'รออนุมัติ', className: 'bg-amber-100 text-amber-800', icon: Clock },
+  approved: { label: 'อนุมัติ — จ่ายของแล้ว', className: 'bg-emerald-100 text-emerald-800', icon: CheckCircle },
+  rejected: { label: 'ปฏิเสธ', className: 'bg-red-100 text-red-800', icon: XCircle },
+  cancelled: { label: 'ยกเลิก', className: 'bg-gray-200 text-gray-700', icon: Ban },
+};
+
+const REASON_LABEL: Record<string, string> = {
+  machine_setup_loss: 'สูญเสียระหว่างตั้งค่าเครื่อง',
+  equipment_trial_run: 'ทดสอบเครื่อง',
+  parameter_adjustment: 'ปรับพารามิเตอร์',
+  other: 'อื่น ๆ',
+};
 
 export interface WithdrawalPanelProps {
   workOrderId: number;
@@ -85,6 +103,21 @@ export function WithdrawalPanel({
     staleTime: 60000,
   });
 
+  // History of extra-withdrawal requests for this WO, so the eBMR shows what
+  // was requested, whether it was approved, and (since approval deducts stock
+  // immediately) that the material has been issued.
+  const { data: history } = useQuery<MaterialWithdrawalRequestSummary[]>({
+    queryKey: ['wo-withdrawal-history', workOrderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/material-withdrawal/requests?workOrderId=${workOrderId}&pageSize=50`);
+      if (!res.ok) return [];
+      const body = await res.json();
+      const items = body?.items ?? body?.data?.items ?? [];
+      return Array.isArray(items) ? items : [];
+    },
+    staleTime: 15000,
+  });
+
   const bomOptions: BomMaterialOption[] = useMemo(
     () =>
       (woMaterials ?? []).map((m) => ({
@@ -126,6 +159,43 @@ export function WithdrawalPanel({
         onViewRequest={(id) => setOpenDetailId(id)}
         materialNameLookup={materialNameLookup}
       />
+
+      {/* History — what was requested for this WO and whether it was approved
+          (approval issues the material from stock immediately). */}
+      {(history?.length ?? 0) > 0 && (
+        <div className="space-y-1.5" data-testid="withdrawal-history">
+          <div className="text-xs font-medium text-blue-900/70">ประวัติการเบิกเพิ่ม</div>
+          {history!.map((req) => {
+            const cfg = HISTORY_STATUS[req.status];
+            const Icon = cfg.icon;
+            return (
+              <button
+                key={req.id}
+                type="button"
+                onClick={() => setOpenDetailId(req.id)}
+                className="w-full text-left rounded-md border bg-white px-3 py-2 hover:border-blue-300 transition flex items-center justify-between gap-3"
+                data-testid={`withdrawal-history-${req.id}`}
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">
+                    #{req.id} · {REASON_LABEL[req.reasonType] ?? req.reasonType}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {req.itemCount} รายการ · {req.requestedBy.name} ·{' '}
+                    {new Date(req.requestedAt).toLocaleDateString('th-TH')}
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${cfg.className}`}
+                >
+                  <Icon className="w-3 h-3" />
+                  {cfg.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <MaterialWithdrawalRequestDialog
         visible={showDialog}
