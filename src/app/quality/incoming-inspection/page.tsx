@@ -28,6 +28,8 @@ interface PendingQaItem {
   unit: string;
   qcSampleId: number | null;
   qcSampleStatus: string | null;
+  lineStatus: string;
+  qcResult: 'pending' | 'passed' | 'failed';
   ageDays: number;
   vendorName: string | null;
 }
@@ -93,22 +95,30 @@ export default function IncomingInspectionPage() {
       </header>
 
       {/* Tiles */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-indigo-900">{t('tiles.pendingQa')}</div>
-          <div className="text-3xl font-bold text-indigo-900 mt-1">{counts?.pendingQaCount ?? 0}</div>
+          <div className="text-xs uppercase opacity-70 text-indigo-900">{t('tiles.pendingChecklist')}</div>
+          <div className="text-3xl font-bold text-indigo-900 mt-1" data-testid="tile-pending-checklist">{counts?.pendingChecklistCount ?? 0}</div>
+        </div>
+        <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
+          <div className="text-xs uppercase opacity-70 text-sky-900">{t('tiles.pendingQa')}</div>
+          <div className="text-3xl font-bold text-sky-900 mt-1">{counts?.pendingQaCount ?? 0}</div>
+        </div>
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+          <div className="text-xs uppercase opacity-70 text-emerald-900">{t('tiles.passed')}</div>
+          <div className="text-3xl font-bold text-emerald-900 mt-1" data-testid="tile-passed">{counts?.passedCount ?? 0}</div>
         </div>
         <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-rose-900">{t('tiles.quarantineAging')}</div>
-          <div className="text-3xl font-bold text-rose-900 mt-1">{counts?.quarantineAgingCount ?? 0}</div>
+          <div className="text-xs uppercase opacity-70 text-rose-900">{t('tiles.rejected')}</div>
+          <div className="text-3xl font-bold text-rose-900 mt-1" data-testid="tile-rejected">{counts?.rejectedCount ?? 0}</div>
         </div>
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
           <div className="text-xs uppercase opacity-70 text-amber-900">{t('tiles.staleQc')}</div>
           <div className="text-3xl font-bold text-amber-900 mt-1">{counts?.staleQcSampleCount ?? 0}</div>
         </div>
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-emerald-900">{t('tiles.releasedToday')}</div>
-          <div className="text-3xl font-bold text-emerald-900 mt-1">{counts?.releasedTodayCount ?? 0}</div>
+        <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+          <div className="text-xs uppercase opacity-70 text-teal-900">{t('tiles.releasedToday')}</div>
+          <div className="text-3xl font-bold text-teal-900 mt-1">{counts?.releasedTodayCount ?? 0}</div>
         </div>
       </div>
 
@@ -165,6 +175,25 @@ export default function IncomingInspectionPage() {
           <Column dataField="vendorName" caption={t('table.columns.vendor')} />
           <Column dataField="actualQuantity" caption={t('table.columns.actualQty')} dataType="number" width={120} />
           <Column dataField="unit" caption="Unit" width={80} />
+          <Column
+            dataField="qcResult"
+            caption={t('table.columns.result')}
+            width={120}
+            cellRender={(c) => {
+              const r = c.value as 'pending' | 'passed' | 'failed';
+              const cls =
+                r === 'passed'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : r === 'failed'
+                    ? 'bg-rose-100 text-rose-800'
+                    : 'bg-amber-100 text-amber-800';
+              return (
+                <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${cls}`} data-testid={`qc-result-${c.data.lineId}`}>
+                  {t(`result.${r}`)}
+                </span>
+              );
+            }}
+          />
           <Column dataField="qcSampleStatus" caption={t('table.columns.qcStatus')} width={120} />
           <Column dataField="ageDays" caption={t('table.columns.ageDays')} width={100} />
         </DataGrid>

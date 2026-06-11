@@ -12,9 +12,16 @@
   "tiles": {
     "pendingChecklist": "Pending Checklist",
     "pendingQa": "Pending QA",
+    "passed": "Passed",
+    "rejected": "Rejected",
     "releasedToday": "Released Today",
     "quarantineAging": "Quarantine > 14 days",
     "staleQc": "Stale QC samples > 30 days"
+  },
+  "result": {
+    "pending": "Pending",
+    "passed": "Passed",
+    "failed": "Failed"
   },
   "sourceType": {
     "po": "Purchase Order (Raw Material)",
@@ -69,6 +76,7 @@
       "receivedDate": "Received Date",
       "receiver": "Receiver",
       "status": "Status",
+      "result": "Result",
       "lineCount": "Lines",
       "item": "Item",
       "expectedQty": "Expected",
@@ -91,6 +99,11 @@
     "viewAudit": "View Audit Trail",
     "refresh": "Refresh",
     "addItem": "Add Item"
+  },
+  "cancel": {
+    "warning": "Cancel this goods receipt — all lines will be voided and nothing enters stock (allowed only while not yet released or QC-sampled, within 24h).",
+    "reasonLabel": "Cancellation reason",
+    "reasonPlaceholder": "Enter a cancellation reason (at least 10 characters)"
   },
   "checklist": {
     "title": "Receipt Checklist",

@@ -43,6 +43,8 @@ export default function GrnDetailPage() {
   const [qaActionOpen, setQaActionOpen] = useState<{ lineId: number; action: 'release' | 'reject' } | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [sigPassword, setSigPassword] = useState('');
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   // Local state for current checklist editing
   const [checklistAnswers, setChecklistAnswers] = useState<Record<number, { isPass: boolean; remarks?: string }>>({});
@@ -185,11 +187,40 @@ export default function GrnDetailPage() {
     },
   });
 
+  // Cancel (void) a GRN that has not been released yet — lines all 'created',
+  // nothing has entered stock. Backend (DELETE) enforces creator + 24h window.
+  const cancelGrnMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/inventory/goods-receipts/${grnId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: cancelReason }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error ?? 'ยกเลิกใบรับของไม่สำเร็จ');
+      return body;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['grn-detail', grnId] });
+      qc.invalidateQueries({ queryKey: ['grn-dashboard'] });
+      qc.invalidateQueries({ queryKey: ['grn-list'] });
+      setCancelOpen(false);
+      setCancelReason('');
+    },
+  });
+
   if (!data) {
     return <div className="p-6 text-gray-500">Loading…</div>;
   }
 
   const { grn, lines } = data;
+  // A GRN can be cancelled only while no line has advanced past 'created'
+  // (i.e. nothing has gone to QC sampling / stock) and it isn't already
+  // released/rejected/cancelled. Matches the backend cancelGrn() guard.
+  const canCancelGrn =
+    !['released', 'partially_released', 'rejected', 'cancelled'].includes(grn.status) &&
+    lines.length > 0 &&
+    lines.every((l) => l.status === 'created');
 
   return (
     <div className="p-6 space-y-4">
@@ -206,10 +237,20 @@ export default function GrnDetailPage() {
             </div>
           </div>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
           <span className="inline-flex px-3 py-1 rounded text-xs font-medium bg-gray-100">
             {t(`status.header.${grn.status}`)}
           </span>
+          {canCancelGrn && (
+            <Button
+              text={t('actions.cancelGrn')}
+              type="danger"
+              stylingMode="outlined"
+              icon="trash"
+              onClick={() => setCancelOpen(true)}
+              data-testid="cancel-grn-btn"
+            />
+          )}
         </div>
       </header>
 
@@ -569,6 +610,53 @@ export default function GrnDetailPage() {
                   })())
               }
               onClick={() => qaActionMut.mutate()}
+            />
+          </div>
+        </div>
+      </Popup>
+
+      {/* Cancel (void) GRN — only when nothing has entered stock */}
+      <Popup
+        visible={cancelOpen}
+        onHiding={() => setCancelOpen(false)}
+        dragEnabled={false}
+        hideOnOutsideClick
+        showTitle
+        title={t('actions.cancelGrn')}
+        width={460}
+        height="auto"
+        data-testid="cancel-grn-popup"
+      >
+        <div className="p-4 space-y-3">
+          <div className="flex items-start gap-2 bg-rose-50 border border-rose-200 rounded p-3 text-rose-900 text-sm">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <span>{t('cancel.warning')}</span>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {t('cancel.reasonLabel')} <span className="text-rose-600">*</span>
+            </label>
+            <TextArea
+              value={cancelReason}
+              height={80}
+              onValueChanged={(e) => setCancelReason(String(e.value ?? ''))}
+              placeholder={t('cancel.reasonPlaceholder')}
+            />
+          </div>
+          {cancelGrnMut.error && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              {(cancelGrnMut.error as Error).message}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button text={t('actions.cancel')} stylingMode="text" onClick={() => setCancelOpen(false)} />
+            <Button
+              text={t('actions.cancelGrn')}
+              type="danger"
+              data-testid="confirm-cancel-grn"
+              disabled={cancelReason.trim().length < 10 || cancelGrnMut.isPending}
+              onClick={() => cancelGrnMut.mutate()}
             />
           </div>
         </div>

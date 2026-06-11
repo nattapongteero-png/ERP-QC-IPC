@@ -157,6 +157,8 @@ export interface GoodsReceiptChecklist {
 export interface IncomingDashboardCounts {
   pendingChecklistCount: number;
   pendingQaCount: number;
+  passedCount: number;
+  rejectedCount: number;
   releasedTodayCount: number;
   quarantineAgingCount: number;
   staleQcSampleCount: number;

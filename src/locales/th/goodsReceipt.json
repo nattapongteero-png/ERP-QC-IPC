@@ -12,9 +12,16 @@
   "tiles": {
     "pendingChecklist": "รอตรวจ Checklist",
     "pendingQa": "รอ QA อนุมัติ",
+    "passed": "ผ่าน",
+    "rejected": "ไม่ผ่าน",
     "releasedToday": "ออกแล้ววันนี้",
     "quarantineAging": "กักกันเกิน 14 วัน",
     "staleQc": "QC sample ค้างเกิน 30 วัน"
+  },
+  "result": {
+    "pending": "รอตรวจ",
+    "passed": "ผ่าน",
+    "failed": "ไม่ผ่าน"
   },
   "sourceType": {
     "po": "Purchase Order (วัตถุดิบ)",
@@ -69,6 +76,7 @@
       "receivedDate": "วันที่รับ",
       "receiver": "ผู้รับ",
       "status": "สถานะ",
+      "result": "ผลตรวจ",
       "lineCount": "จำนวนรายการ",
       "item": "สินค้า",
       "expectedQty": "จำนวนคาด",
@@ -91,6 +99,11 @@
     "viewAudit": "ดู Audit Trail",
     "refresh": "รีเฟรช",
     "addItem": "เพิ่มรายการ"
+  },
+  "cancel": {
+    "warning": "ยกเลิกใบรับของนี้ — รายการทั้งหมดจะถูกยกเลิกและจะไม่เข้าสต็อก (ใช้ได้เฉพาะใบที่ยังไม่ปล่อยเข้าคลังและยังไม่สุ่ม QC ภายใน 24 ชม.)",
+    "reasonLabel": "เหตุผลการยกเลิก",
+    "reasonPlaceholder": "ระบุเหตุผลการยกเลิก (อย่างน้อย 10 ตัวอักษร)"
   },
   "checklist": {
     "title": "Checklist ตรวจรับ",
