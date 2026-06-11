@@ -30,6 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# local-only build logs and machine-specific compose override (not for VCS)
+uat-build*.log
+uat-rebuild*.log
+docker-compose.override.yml
+
 # env files (can opt-in for committing if needed)
 .env*
 

@@ -23,6 +23,14 @@ const nextConfig: NextConfig = {
   // build time for a lower memory ceiling.
   experimental: {
     webpackMemoryOptimizations: true,
+    // Cap the parallel workers Next spawns for "Collecting page data" /
+    // static generation. The default fans out to one worker per CPU core
+    // (this machine reported 7), each a separate process holding its own
+    // module graph — peak RAM blew past the 8GB WSL Docker engine and it
+    // died with "error reading from server: EOF" right after a successful
+    // compile. Limiting to 2 workers keeps the page-data phase within memory.
+    cpus: 2,
+    workerThreads: false,
   },
 
   // Premises module re-homing: these page routes moved under /premises/*.
