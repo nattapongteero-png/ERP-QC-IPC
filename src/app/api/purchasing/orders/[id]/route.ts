@@ -131,6 +131,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ipAddress: getClientIP(request),
       });
 
+      // On transition to 'approved', auto-create a Goods Receipt so the PO
+      // lines appear on the GRN screen (quarantine → QC checklist → release).
+      // Idempotent (autoCreateGrnForSource skips if a GRN already exists) and
+      // best-effort: never fail the PO update if GRN creation errors.
+      if (status === 'approved' && existing.status !== 'approved') {
+        try {
+          const { autoCreateGrnForSource } = await import('@/lib/services/goods-receipt.service');
+          await autoCreateGrnForSource({ sourceType: 'po', poId, userId: session.userId });
+        } catch (err) {
+          console.warn('PO-approved auto-GRN failed (non-fatal):', err);
+        }
+      }
+
       return successResponse({ id: poId }, 'Purchase order updated successfully');
     } catch (error) {
       return serverErrorResponse(error);
