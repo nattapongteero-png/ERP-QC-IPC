@@ -15,11 +15,25 @@ import { DxDataGrid } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
+import { ItemEditDialog, type ItemFormData } from '@/components/ui/item-edit-dialog';
+import { useToast } from '@/hooks/use-toast';
 import {
   Package,
   ChevronRight,
   BoxSelect,
+  Leaf,
+  Search,
+  CheckCircle2,
 } from 'lucide-react';
+
+// Item-type → colored badge config for the material picker grid.
+const materialTypeBadge: Record<string, { label: string; cls: string }> = {
+  raw_material: { label: 'วัตถุดิบ', cls: 'bg-emerald-100 text-emerald-700' },
+  packaging: { label: 'บรรจุภัณฑ์', cls: 'bg-blue-100 text-blue-700' },
+  wip: { label: 'งานระหว่างทำ', cls: 'bg-orange-100 text-orange-700' },
+  extract: { label: 'สารสกัด', cls: 'bg-indigo-100 text-indigo-700' },
+  consumable: { label: 'วัสดุสิ้นเปลือง', cls: 'bg-slate-100 text-slate-600' },
+};
 
 interface BOMLine {
   id: number;
@@ -36,6 +50,7 @@ interface BOMLine {
 export default function NewBOMPage() {
   const router = useRouter();
   const t = useTranslations('production');
+  const toast = useToast();
 
   // Use translation for page title
   const pageTitle = t('newBOM.title');
@@ -63,6 +78,9 @@ export default function NewBOMPage() {
   const [materialItems, setMaterialItems] = useState<Item[]>([]);
   const [materialItemsLoading, setMaterialItemsLoading] = useState(false);
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
+  // Create-new-item dialog opened from inside the material picker, for materials
+  // that don't exist in the Item master yet.
+  const [createItemOpen, setCreateItemOpen] = useState(false);
   // materialGridRef removed - tracking selection via onSelectionChanged state
 
   // Line counter for temporary IDs
@@ -89,6 +107,11 @@ export default function NewBOMPage() {
       setMaterialItemsLoading(false);
     }
   }, [lines]);
+
+  // Count of materials currently in stock — shown in the picker header stats.
+  const materialInStockCount = materialItems.filter(
+    (item) => (Number(item.onHand) || 0) > 0
+  ).length;
 
   // Handle product selection from ItemSearchDialog
   const handleSelectProduct = async (item: Item) => {
@@ -159,6 +182,24 @@ export default function NewBOMPage() {
     setLineCounter(counter);
     setMaterialPickerOpen(false);
     setSelectedMaterialIds([]);
+  };
+
+  // Create a brand-new Item (raw material / packaging) from inside the picker,
+  // then reload the list so it can be selected right away. Mirrors the
+  // allowCreate flow in ItemSearchDialog (DRY).
+  const handleSaveNewItem = async (data: ItemFormData) => {
+    const res = await fetch('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || 'Failed to create item');
+
+    toast.success('สร้างรายการสำเร็จ', `${data.code} - ${data.nameTh}`);
+    setCreateItemOpen(false);
+    // Reload picker list so the new item appears and can be selected immediately.
+    await loadMaterialItems();
   };
 
   const handleUpdateLine = (id: number, field: keyof BOMLine, value: string | number | boolean) => {
@@ -606,91 +647,222 @@ export default function NewBOMPage() {
       <DxPopup
         visible={materialPickerOpen}
         onHiding={() => setMaterialPickerOpen(false)}
-        title="เลือกวัตถุดิบ — Select Materials"
-        width={900}
-        height={600}
+        title=""
+        showTitle={false}
+        width="92%"
+        maxWidth={1080}
+        height="88%"
+        maxHeight={820}
         showCloseButton
       >
-        <div className="flex flex-col h-full p-4 gap-3">
-          <p className="text-sm text-gray-500">
-            เลือกวัตถุดิบที่ต้องการเพิ่มใน BOM (เลือกได้หลายรายการ) แล้วกด &quot;เพิ่มรายการที่เลือก&quot;
-          </p>
-
-          {materialItemsLoading ? (
-            <div className="flex items-center justify-center flex-1">
-              <div className="text-center text-gray-400">
-                <div className="animate-spin h-8 w-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full mx-auto mb-2" />
-                <p>กำลังโหลดรายการ...</p>
+        <div className="flex flex-col h-full bg-slate-50 -m-4">
+          {/* ── Gradient header with live stats ── */}
+          <div className="flex-none bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 px-6 py-5 text-white">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
+                  <Leaf className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold leading-tight">เลือกวัตถุดิบ</h2>
+                  <p className="text-sm text-emerald-50/90">
+                    Select Materials · เลือกได้หลายรายการพร้อมกัน
+                  </p>
+                </div>
+              </div>
+              {/* live stats */}
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-xl bg-white/10 px-4 py-2 text-center ring-1 ring-white/15">
+                  <p className="text-2xl font-bold leading-none">{materialItems.length}</p>
+                  <p className="mt-1 text-[11px] uppercase tracking-wide text-emerald-50/80">รายการ</p>
+                </div>
+                <div className="rounded-xl bg-white/10 px-4 py-2 text-center ring-1 ring-white/15">
+                  <p className="text-2xl font-bold leading-none text-emerald-100">{materialInStockCount}</p>
+                  <p className="mt-1 text-[11px] uppercase tracking-wide text-emerald-50/80">มีสต็อก</p>
+                </div>
+                <div className="rounded-xl bg-white px-4 py-2 text-center text-emerald-700 shadow-sm">
+                  <p className="text-2xl font-bold leading-none">{selectedMaterialIds.length}</p>
+                  <p className="mt-1 text-[11px] uppercase tracking-wide text-emerald-600/80">เลือกแล้ว</p>
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="flex-1 min-h-0">
-              <DxDataGrid
-                dataSource={materialItems}
-                keyExpr="id"
-                showBorders
-                columnAutoWidth
-                height="100%"
-                paging={false}
-                virtualScrolling
-                selection="multiple"
-                selectedRowKeys={selectedMaterialIds}
-                onSelectionChanged={(e) => {
-                  const keys = e.selectedRowKeys as number[];
-                  setSelectedMaterialIds(keys);
-                }}
-                searchPanel
-                filterRow
-                columns={[
-                  { dataField: 'code', caption: 'Item Code', width: 140 },
-                  { dataField: 'nameTh', caption: 'ชื่อวัตถุดิบ' },
-                  { dataField: 'type', caption: 'ประเภท', width: 120,
-                    cellRender: (cellData) => {
-                      const typeLabels: Record<string, string> = {
-                        raw_material: 'วัตถุดิบ',
-                        packaging: 'บรรจุภัณฑ์',
-                        wip: 'งานระหว่างทำ',
-                        extract: 'สารสกัด',
-                        consumable: 'วัสดุสิ้นเปลือง',
-                      };
-                      return <span>{typeLabels[cellData.value as string] || cellData.value}</span>;
-                    },
-                  },
-                  { dataField: 'primaryUnit', caption: 'หน่วย', width: 80 },
-                  { dataField: 'onHand', caption: 'คงเหลือ', width: 100, dataType: 'number', format: '#,##0.##',
-                    cellRender: (cellData) => {
-                      const qty = Number(cellData.value) || 0;
-                      const color = qty <= 0 ? 'text-red-600' : qty <= (Number(cellData.data?.reorderPoint) || 0) ? 'text-amber-600' : 'text-green-600';
-                      return <span className={`font-medium ${color}`}>{qty.toLocaleString()}</span>;
-                    },
-                  },
-                ]}
+          </div>
+
+          {/* ── Toolbar: helper text + add-new ── */}
+          <div className="flex-none border-b border-slate-200 bg-white px-6 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="flex items-center gap-2 text-sm text-slate-500">
+                <Search className="h-4 w-4 text-slate-400" />
+                ใช้ช่องค้นหาในตารางเพื่อกรองตามรหัส/ชื่อ แล้วติ๊กเลือกรายการที่ต้องการ
+              </p>
+              {/* Add a material that doesn't exist in the Item master yet */}
+              <DxButton
+                text="+ เพิ่ม Item ใหม่"
+                type="success"
+                stylingMode="outlined"
+                onClick={() => setCreateItemOpen(true)}
+                elementAttr={{ 'data-testid': 'bom-material-create-btn' }}
               />
             </div>
-          )}
+          </div>
 
-          <div className="flex items-center justify-between pt-3 border-t">
-            <span className="text-sm text-gray-500">
-              เลือกแล้ว {selectedMaterialIds.length} รายการ
-            </span>
-            <div className="flex gap-2">
-              <DxButton
-                text="ยกเลิก"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => setMaterialPickerOpen(false)}
-              />
-              <DxButton
-                text={`เพิ่มรายการที่เลือก (${selectedMaterialIds.length})`}
-                icon="plus"
-                type="success"
-                onClick={handleConfirmAddMaterials}
-                disabled={selectedMaterialIds.length === 0}
-              />
+          {/* ── Grid body ── */}
+          <div className="min-h-0 flex-1 overflow-hidden px-6 py-4">
+            {materialItemsLoading ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center text-slate-400">
+                  <div className="mx-auto mb-3 h-9 w-9 animate-spin rounded-full border-4 border-emerald-100 border-t-emerald-600" />
+                  <p className="text-sm">กำลังโหลดรายการวัตถุดิบ...</p>
+                </div>
+              </div>
+            ) : materialItems.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <div className="mb-4 rounded-full bg-slate-100 p-6">
+                  <Package className="h-12 w-12 text-slate-300" />
+                </div>
+                <p className="mb-1 text-lg font-medium text-slate-700">ยังไม่มีวัตถุดิบในระบบ</p>
+                <p className="mb-4 text-sm text-slate-400">
+                  วัตถุดิบที่ยังไม่มีในรายการ สามารถกดเพิ่มใหม่ได้จากปุ่มด้านล่าง
+                </p>
+                <DxButton
+                  text="+ เพิ่ม Item ใหม่"
+                  type="success"
+                  stylingMode="contained"
+                  onClick={() => setCreateItemOpen(true)}
+                />
+              </div>
+            ) : (
+              <div className="h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <DxDataGrid
+                  dataSource={materialItems}
+                  keyExpr="id"
+                  showBorders={false}
+                  showRowLines
+                  rowAlternationEnabled
+                  columnAutoWidth
+                  height="100%"
+                  paging={false}
+                  virtualScrolling
+                  selection="multiple"
+                  selectedRowKeys={selectedMaterialIds}
+                  onSelectionChanged={(e) => {
+                    const keys = e.selectedRowKeys as number[];
+                    setSelectedMaterialIds(keys);
+                  }}
+                  searchPanel
+                  filterRow
+                  columns={[
+                    {
+                      dataField: 'code',
+                      caption: 'รหัส',
+                      width: 150,
+                      cellRender: (cellData) => (
+                        <span className="font-semibold text-emerald-700">{cellData.value as string}</span>
+                      ),
+                    },
+                    {
+                      dataField: 'nameTh',
+                      caption: 'ชื่อวัตถุดิบ',
+                      minWidth: 200,
+                      cellRender: (cellData) => (
+                        <div>
+                          <p className="font-medium text-slate-800">{cellData.value as string}</p>
+                          {cellData.data?.nameEn && (
+                            <p className="text-xs text-slate-400">{cellData.data.nameEn as string}</p>
+                          )}
+                        </div>
+                      ),
+                    },
+                    {
+                      dataField: 'type',
+                      caption: 'ประเภท',
+                      width: 130,
+                      cellRender: (cellData) => {
+                        const cfg = materialTypeBadge[cellData.value as string] || {
+                          label: (cellData.value as string) || '-',
+                          cls: 'bg-slate-100 text-slate-600',
+                        };
+                        return (
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.cls}`}>
+                            {cfg.label}
+                          </span>
+                        );
+                      },
+                    },
+                    { dataField: 'primaryUnit', caption: 'หน่วย', width: 80, alignment: 'center' },
+                    {
+                      dataField: 'onHand',
+                      caption: 'คงเหลือ',
+                      width: 130,
+                      dataType: 'number',
+                      format: '#,##0.##',
+                      alignment: 'right',
+                      cellRender: (cellData) => {
+                        const qty = Number(cellData.value) || 0;
+                        const reorder = Number(cellData.data?.reorderPoint) || 0;
+                        const tone =
+                          qty <= 0
+                            ? 'text-red-600'
+                            : qty <= reorder
+                              ? 'text-amber-600'
+                              : 'text-emerald-600';
+                        const dot =
+                          qty <= 0 ? 'bg-red-500' : qty <= reorder ? 'bg-amber-500' : 'bg-emerald-500';
+                        return (
+                          <span className={`inline-flex items-center justify-end gap-1.5 font-semibold ${tone}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                            {qty.toLocaleString()}
+                          </span>
+                        );
+                      },
+                    },
+                  ]}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* ── Sticky footer: selection summary + actions ── */}
+          <div className="flex-none border-t border-slate-200 bg-white px-6 py-3.5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                {selectedMaterialIds.length > 0 ? (
+                  <span className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1.5 font-medium text-emerald-700 ring-1 ring-emerald-200">
+                    <CheckCircle2 className="h-4 w-4" />
+                    เลือกแล้ว {selectedMaterialIds.length} รายการ
+                  </span>
+                ) : (
+                  <span className="text-slate-400">ยังไม่ได้เลือกรายการ</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <DxButton
+                  text="ยกเลิก"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setMaterialPickerOpen(false)}
+                />
+                <DxButton
+                  text={`เพิ่มรายการที่เลือก (${selectedMaterialIds.length})`}
+                  icon="plus"
+                  type="success"
+                  onClick={handleConfirmAddMaterials}
+                  disabled={selectedMaterialIds.length === 0}
+                  elementAttr={{ 'data-testid': 'bom-material-confirm-btn' }}
+                />
+              </div>
             </div>
           </div>
         </div>
       </DxPopup>
+
+      {/* Create New Item dialog — for materials not yet in the Item master.
+          Opened from the material picker; on save it reloads the picker list. */}
+      <ItemEditDialog
+        open={createItemOpen}
+        onOpenChange={setCreateItemOpen}
+        onSave={handleSaveNewItem}
+      />
     </div>
   );
 }

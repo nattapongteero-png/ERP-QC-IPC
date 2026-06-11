@@ -38,6 +38,8 @@ vi.mock('lucide-react', () => ({
   Sliders: () => <span data-testid="icon-sliders" />,
   ListChecks: () => <span data-testid="icon-list-checks" />,
   ClipboardCheck: () => <span data-testid="icon-clipboard-check" />,
+  Hash: () => <span data-testid="icon-hash" />,
+  Tag: () => <span data-testid="icon-tag" />,
 }));
 
 // Mock shared components
