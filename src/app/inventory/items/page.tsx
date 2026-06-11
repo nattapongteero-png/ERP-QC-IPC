@@ -57,6 +57,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { ItemEditDialog, Item, ItemFormData } from '@/components/ui/item-edit-dialog';
+import { ITEM_COLUMNS, ITEM_TYPES_CONFIG, ALL_TYPE_KEYS, parseImportRow } from '@/lib/inventory/item-import';
 import { DxConfirmDialog } from '@/components/ui/dx-popup';
 import { cn } from '@/lib/utils/cn';
 
@@ -164,50 +165,9 @@ export default function ItemsPage() {
     }).catch(() => {});
   }, []);
 
-  // ─── Item Import Config ─────────────────────────────────────
-  const ITEM_TYPES_CONFIG = [
-    { key: 'raw_material', label: 'วัตถุดิบ (Raw Material)', sheetName: 'Raw Material' },
-    { key: 'packaging', label: 'บรรจุภัณฑ์ (Packaging)', sheetName: 'Packaging' },
-    { key: 'finished_goods', label: 'สินค้าสำเร็จรูป (Finished Goods)', sheetName: 'Finished Goods' },
-    { key: 'wip', label: 'งานระหว่างผลิต (WIP)', sheetName: 'WIP' },
-    { key: 'consumable', label: 'วัสดุสิ้นเปลือง (Consumable)', sheetName: 'Consumable' },
-  ];
-  const ALL_TYPE_KEYS = ITEM_TYPES_CONFIG.map(t => t.key);
-
-  // Full field set accepted by POST /api/items. `kind` drives import parsing:
-  //   number  -> parsed with Number()
-  //   boolean -> "true/1/yes/ใช่" -> true
-  //   text    -> string (default)
-  const ITEM_COLUMNS = [
-    { header: 'รหัส (Code)*', field: 'code', kind: 'text', required: false },
-    { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', kind: 'text', required: true },
-    { header: 'ชื่อ EN (Name EN)', field: 'nameEn', kind: 'text', required: false },
-    { header: 'หมวดหมู่ (Category)', field: 'category', kind: 'text', required: false },
-    { header: 'หน่วยหลัก (Primary Unit)*', field: 'primaryUnit', kind: 'text', required: true },
-    { header: 'หน่วยรอง (Secondary Unit)', field: 'secondaryUnit', kind: 'text', required: false },
-    { header: 'อัตราแปลง (Conversion Rate)', field: 'conversionRate', kind: 'number', required: false },
-    { header: 'หน่วยน้ำหนัก (Weight Unit)', field: 'weightUnit', kind: 'text', required: false },
-    { header: 'อัตราหน่วยรอง→น้ำหนัก (Sec→Weight Rate)', field: 'secondaryToWeightRate', kind: 'number', required: false },
-    { header: 'ติดตามน้ำหนัก (Weight Tracking: true/false)', field: 'weightTrackingEnabled', kind: 'boolean', required: false },
-    { header: 'อายุการเก็บ (วัน)', field: 'shelfLifeDays', kind: 'number', required: false },
-    { header: 'เงื่อนไขจัดเก็บ', field: 'storageCondition', kind: 'text', required: false },
-    { header: 'สต็อกขั้นต่ำ', field: 'minStock', kind: 'number', required: false },
-    { header: 'สต็อกสูงสุด', field: 'maxStock', kind: 'number', required: false },
-    { header: 'จุดสั่งซื้อ', field: 'reorderPoint', kind: 'number', required: false },
-    { header: 'ควบคุมล็อต (Lot Controlled: true/false)', field: 'isLotControlled', kind: 'boolean', required: false },
-    { header: 'FEFO (true/false)', field: 'isFEFO', kind: 'boolean', required: false },
-    { header: 'ความแรง (Strength)', field: 'strength', kind: 'text', required: false },
-    { header: 'ค่าความแรง (Strength Value)', field: 'strengthValue', kind: 'number', required: false },
-    { header: 'หน่วยความแรง (Strength Unit)', field: 'strengthUnit', kind: 'text', required: false },
-    { header: 'น้ำหนักต่อหน่วย mg (Unit Weight mg)', field: 'unitWeightMg', kind: 'number', required: false },
-    { header: 'บรรจุภัณฑ์หลัก (Primary Packing: true/false)', field: 'isPrimaryPacking', kind: 'boolean', required: false },
-    { header: 'ระดับความลับ (Confidentiality: public/internal/confidential)', field: 'confidentialityLevel', kind: 'text', required: false },
-    { header: 'รหัส TPP', field: 'tppCode', kind: 'text', required: false },
-    { header: 'ชื่อ TPP', field: 'tppName', kind: 'text', required: false },
-    { header: 'รหัส TTMT', field: 'ttmtCode', kind: 'text', required: false },
-    { header: 'ชื่อ TTMT', field: 'ttmtName', kind: 'text', required: false },
-    { header: 'เลขทะเบียนยา (G Reg Number)', field: 'gRegNumber', kind: 'text', required: false },
-  ];
+  // ─── Item Import Config (extracted to a pure, testable lib) ─────────
+  // ITEM_TYPES_CONFIG, ITEM_COLUMNS, ALL_TYPE_KEYS, parseImportRow live in
+  // @/lib/inventory/item-import so the parsing logic can be unit-tested.
 
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
@@ -318,24 +278,12 @@ export default function ItemsPage() {
 
           for (let i = 0; i < jsonData.length; i++) {
             const row = jsonData[i];
-            const nameTh = String(row['ชื่อ TH (Name TH)*'] ?? row['nameTh'] ?? '').trim();
-            const primaryUnit = String(row['หน่วยหลัก (Primary Unit)*'] ?? row['primaryUnit'] ?? '').trim();
-            if (!nameTh || !primaryUnit) { errors.push(`แถว ${i+2}: ไม่มี ชื่อ TH หรือ หน่วยหลัก`); continue; }
-
-            const payload: Record<string, unknown> = { type: tc.key, nameTh, primaryUnit, isActive: true };
-            for (const col of ITEM_COLUMNS) {
-              if (col.field === 'nameTh' || col.field === 'primaryUnit') continue;
-              const val = String(row[col.header] ?? row[col.field] ?? '').trim();
-              if (!val) continue;
-              if (col.kind === 'number') {
-                const num = Number(val);
-                if (!isNaN(num)) payload[col.field] = num;
-              } else if (col.kind === 'boolean') {
-                payload[col.field] = /^(true|1|yes|y|ใช่|t)$/i.test(val);
-              } else {
-                payload[col.field] = val;
-              }
+            const parsed = parseImportRow(row, tc.key);
+            if (!parsed.ok || !parsed.payload) {
+              errors.push(`แถว ${i + 2}: ${parsed.error}`);
+              continue;
             }
+            const payload = parsed.payload;
 
             try {
               const res = await fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
