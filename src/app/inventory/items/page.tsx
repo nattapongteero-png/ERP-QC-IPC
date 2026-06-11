@@ -174,19 +174,39 @@ export default function ItemsPage() {
   ];
   const ALL_TYPE_KEYS = ITEM_TYPES_CONFIG.map(t => t.key);
 
+  // Full field set accepted by POST /api/items. `kind` drives import parsing:
+  //   number  -> parsed with Number()
+  //   boolean -> "true/1/yes/ใช่" -> true
+  //   text    -> string (default)
   const ITEM_COLUMNS = [
-    { header: 'รหัส (Code)*', field: 'code', required: false },
-    { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
-    { header: 'ชื่อ EN (Name EN)', field: 'nameEn', required: false },
-    { header: 'หมวดหมู่ (Category)', field: 'category', required: false },
-    { header: 'หน่วยหลัก (Primary Unit)*', field: 'primaryUnit', required: true },
-    { header: 'หน่วยรอง (Secondary Unit)', field: 'secondaryUnit', required: false },
-    { header: 'อัตราแปลง (Conversion Rate)', field: 'conversionRate', required: false },
-    { header: 'อายุการเก็บ (วัน)', field: 'shelfLifeDays', required: false },
-    { header: 'เงื่อนไขจัดเก็บ', field: 'storageCondition', required: false },
-    { header: 'สต็อกขั้นต่ำ', field: 'minStock', required: false },
-    { header: 'สต็อกสูงสุด', field: 'maxStock', required: false },
-    { header: 'จุดสั่งซื้อ', field: 'reorderPoint', required: false },
+    { header: 'รหัส (Code)*', field: 'code', kind: 'text', required: false },
+    { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', kind: 'text', required: true },
+    { header: 'ชื่อ EN (Name EN)', field: 'nameEn', kind: 'text', required: false },
+    { header: 'หมวดหมู่ (Category)', field: 'category', kind: 'text', required: false },
+    { header: 'หน่วยหลัก (Primary Unit)*', field: 'primaryUnit', kind: 'text', required: true },
+    { header: 'หน่วยรอง (Secondary Unit)', field: 'secondaryUnit', kind: 'text', required: false },
+    { header: 'อัตราแปลง (Conversion Rate)', field: 'conversionRate', kind: 'number', required: false },
+    { header: 'หน่วยน้ำหนัก (Weight Unit)', field: 'weightUnit', kind: 'text', required: false },
+    { header: 'อัตราหน่วยรอง→น้ำหนัก (Sec→Weight Rate)', field: 'secondaryToWeightRate', kind: 'number', required: false },
+    { header: 'ติดตามน้ำหนัก (Weight Tracking: true/false)', field: 'weightTrackingEnabled', kind: 'boolean', required: false },
+    { header: 'อายุการเก็บ (วัน)', field: 'shelfLifeDays', kind: 'number', required: false },
+    { header: 'เงื่อนไขจัดเก็บ', field: 'storageCondition', kind: 'text', required: false },
+    { header: 'สต็อกขั้นต่ำ', field: 'minStock', kind: 'number', required: false },
+    { header: 'สต็อกสูงสุด', field: 'maxStock', kind: 'number', required: false },
+    { header: 'จุดสั่งซื้อ', field: 'reorderPoint', kind: 'number', required: false },
+    { header: 'ควบคุมล็อต (Lot Controlled: true/false)', field: 'isLotControlled', kind: 'boolean', required: false },
+    { header: 'FEFO (true/false)', field: 'isFEFO', kind: 'boolean', required: false },
+    { header: 'ความแรง (Strength)', field: 'strength', kind: 'text', required: false },
+    { header: 'ค่าความแรง (Strength Value)', field: 'strengthValue', kind: 'number', required: false },
+    { header: 'หน่วยความแรง (Strength Unit)', field: 'strengthUnit', kind: 'text', required: false },
+    { header: 'น้ำหนักต่อหน่วย mg (Unit Weight mg)', field: 'unitWeightMg', kind: 'number', required: false },
+    { header: 'บรรจุภัณฑ์หลัก (Primary Packing: true/false)', field: 'isPrimaryPacking', kind: 'boolean', required: false },
+    { header: 'ระดับความลับ (Confidentiality: public/internal/confidential)', field: 'confidentialityLevel', kind: 'text', required: false },
+    { header: 'รหัส TPP', field: 'tppCode', kind: 'text', required: false },
+    { header: 'ชื่อ TPP', field: 'tppName', kind: 'text', required: false },
+    { header: 'รหัส TTMT', field: 'ttmtCode', kind: 'text', required: false },
+    { header: 'ชื่อ TTMT', field: 'ttmtName', kind: 'text', required: false },
+    { header: 'เลขทะเบียนยา (G Reg Number)', field: 'gRegNumber', kind: 'text', required: false },
   ];
 
   const handleDownloadTemplate = () => {
@@ -201,31 +221,43 @@ export default function ItemsPage() {
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instr), 'คำแนะนำ');
 
-    // Data sheets per type
-    const EXAMPLE_DATA: Record<string, Record<string, string | number>[]> = {
+    // Example rows keyed by FIELD (not Thai header). Each row carries every
+    // create-API field so the template demonstrates all columns. Empty string
+    // = optional/leave blank. Mapped to header-keyed rows below so all
+    // ITEM_COLUMNS appear in every sheet (even where the example leaves blank).
+    const EXAMPLE_BY_FIELD: Record<string, Record<string, string | number>[]> = {
       raw_material: [
-        { 'รหัส (Code)*': 'RM-0001', 'ชื่อ TH (Name TH)*': 'การบูร', 'ชื่อ EN (Name EN)': 'Camphor', 'หมวดหมู่ (Category)': 'herb', 'หน่วยหลัก (Primary Unit)*': 'kg', 'หน่วยรอง (Secondary Unit)': 'g', 'อัตราแปลง (Conversion Rate)': 1000, 'อายุการเก็บ (วัน)': 730, 'เงื่อนไขจัดเก็บ': 'เก็บที่อุณหภูมิห้อง แห้ง', 'สต็อกขั้นต่ำ': 50, 'สต็อกสูงสุด': 500, 'จุดสั่งซื้อ': 100 },
-        { 'รหัส (Code)*': 'RM-0002', 'ชื่อ TH (Name TH)*': 'พิมเสน', 'ชื่อ EN (Name EN)': 'Borneol', 'หมวดหมู่ (Category)': 'herb', 'หน่วยหลัก (Primary Unit)*': 'kg', 'หน่วยรอง (Secondary Unit)': 'g', 'อัตราแปลง (Conversion Rate)': 1000, 'อายุการเก็บ (วัน)': 365, 'เงื่อนไขจัดเก็บ': 'เก็บในภาชนะปิดสนิท', 'สต็อกขั้นต่ำ': 30, 'สต็อกสูงสุด': 300, 'จุดสั่งซื้อ': 60 },
+        { code: 'RM-0001', nameTh: 'การบูร', nameEn: 'Camphor', category: 'herb', primaryUnit: 'kg', secondaryUnit: 'g', conversionRate: 1000, weightUnit: 'g', secondaryToWeightRate: 1, weightTrackingEnabled: 'true', shelfLifeDays: 730, storageCondition: 'เก็บที่อุณหภูมิห้อง แห้ง', minStock: 50, maxStock: 500, reorderPoint: 100, isLotControlled: 'true', isFEFO: 'true', strength: '', strengthValue: '', strengthUnit: '', unitWeightMg: '', isPrimaryPacking: 'false', confidentialityLevel: 'public', tppCode: '', tppName: '', ttmtCode: '', ttmtName: '', gRegNumber: '' },
+        { code: 'RM-0002', nameTh: 'สารสกัดขมิ้นชัน', nameEn: 'Turmeric Extract', category: 'extract', primaryUnit: 'kg', secondaryUnit: 'g', conversionRate: 1000, weightUnit: 'g', secondaryToWeightRate: 1, weightTrackingEnabled: 'true', shelfLifeDays: 365, storageCondition: 'เก็บที่ 2-8°C', minStock: 10, maxStock: 100, reorderPoint: 20, isLotControlled: 'true', isFEFO: 'true', strength: '', strengthValue: '', strengthUnit: '', unitWeightMg: '', isPrimaryPacking: 'false', confidentialityLevel: 'confidential', tppCode: '', tppName: '', ttmtCode: 'TTMT-001', ttmtName: 'Curcuma longa', gRegNumber: '' },
       ],
       packaging: [
-        { 'รหัส (Code)*': 'RP-0001', 'ชื่อ TH (Name TH)*': 'ขวดแก้วขนาด 10 มล', 'ชื่อ EN (Name EN)': 'Glass Bottle 10mL', 'หมวดหมู่ (Category)': 'bottle', 'หน่วยหลัก (Primary Unit)*': 'box', 'หน่วยรอง (Secondary Unit)': 'pcs', 'อัตราแปลง (Conversion Rate)': 100, 'อายุการเก็บ (วัน)': '', 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง', 'สต็อกขั้นต่ำ': 1000, 'สต็อกสูงสุด': 10000, 'จุดสั่งซื้อ': 2000 },
-        { 'รหัส (Code)*': 'RP-0002', 'ชื่อ TH (Name TH)*': 'ฉลากยาสมุนไพร', 'ชื่อ EN (Name EN)': 'Herbal Product Label', 'หมวดหมู่ (Category)': 'label', 'หน่วยหลัก (Primary Unit)*': 'roll', 'หน่วยรอง (Secondary Unit)': 'pcs', 'อัตราแปลง (Conversion Rate)': 500, 'อายุการเก็บ (วัน)': '', 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง หลีกเลี่ยงแสงแดด', 'สต็อกขั้นต่ำ': 500, 'สต็อกสูงสุด': 5000, 'จุดสั่งซื้อ': 1000 },
+        { code: 'PK-0001', nameTh: 'ขวดแก้วสีชา 100 ml', nameEn: 'Amber Glass Bottle 100mL', category: 'bottle', primaryUnit: 'box', secondaryUnit: 'pcs', conversionRate: 100, weightUnit: '', secondaryToWeightRate: '', weightTrackingEnabled: 'false', shelfLifeDays: '', storageCondition: 'เก็บในที่แห้ง', minStock: 1000, maxStock: 10000, reorderPoint: 2000, isLotControlled: 'false', isFEFO: 'false', strength: '', strengthValue: '', strengthUnit: '', unitWeightMg: 140000, isPrimaryPacking: 'true', confidentialityLevel: 'public', tppCode: '', tppName: '', ttmtCode: '', ttmtName: '', gRegNumber: '' },
+        { code: 'PK-0002', nameTh: 'ฉลากยาสมุนไพร', nameEn: 'Herbal Product Label', category: 'label', primaryUnit: 'roll', secondaryUnit: 'pcs', conversionRate: 500, weightUnit: '', secondaryToWeightRate: '', weightTrackingEnabled: 'false', shelfLifeDays: '', storageCondition: 'เก็บในที่แห้ง หลีกเลี่ยงแสงแดด', minStock: 500, maxStock: 5000, reorderPoint: 1000, isLotControlled: 'false', isFEFO: 'false', strength: '', strengthValue: '', strengthUnit: '', unitWeightMg: '', isPrimaryPacking: 'false', confidentialityLevel: 'public', tppCode: '', tppName: '', ttmtCode: '', ttmtName: '', gRegNumber: '' },
       ],
       finished_goods: [
-        { 'รหัส (Code)*': 'FG-0001', 'ชื่อ TH (Name TH)*': 'ยาหม่องสมุนไพร 10g', 'ชื่อ EN (Name EN)': 'Herbal Balm 10g', 'หมวดหมู่ (Category)': 'finished', 'หน่วยหลัก (Primary Unit)*': 'box', 'หน่วยรอง (Secondary Unit)': 'bottle', 'อัตราแปลง (Conversion Rate)': 12, 'อายุการเก็บ (วัน)': 1095, 'เงื่อนไขจัดเก็บ': 'เก็บที่อุณหภูมิไม่เกิน 30°C', 'สต็อกขั้นต่ำ': 100, 'สต็อกสูงสุด': 5000, 'จุดสั่งซื้อ': 500 },
-        { 'รหัส (Code)*': 'FG-0002', 'ชื่อ TH (Name TH)*': 'แคปซูลฟ้าทะลายโจร 400mg', 'ชื่อ EN (Name EN)': 'Andrographis Capsule 400mg', 'หมวดหมู่ (Category)': 'finished', 'หน่วยหลัก (Primary Unit)*': 'box', 'หน่วยรอง (Secondary Unit)': 'bottle', 'อัตราแปลง (Conversion Rate)': 6, 'อายุการเก็บ (วัน)': 730, 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง พ้นแสงแดด', 'สต็อกขั้นต่ำ': 200, 'สต็อกสูงสุด': 10000, 'จุดสั่งซื้อ': 1000 },
+        { code: 'FG-0001', nameTh: 'แคปซูลขมิ้นชัน 500 mg (60 แคปซูล)', nameEn: 'Turmeric Capsule 500mg', category: 'finished', primaryUnit: 'bottle', secondaryUnit: 'cap', conversionRate: 60, weightUnit: 'mg', secondaryToWeightRate: 500, weightTrackingEnabled: 'false', shelfLifeDays: 730, storageCondition: 'เก็บที่อุณหภูมิไม่เกิน 30°C', minStock: 100, maxStock: 5000, reorderPoint: 500, isLotControlled: 'true', isFEFO: 'true', strength: '500 mg', strengthValue: 500, strengthUnit: 'mg', unitWeightMg: 500, isPrimaryPacking: 'false', confidentialityLevel: 'public', tppCode: 'TPP-0001', tppName: 'แคปซูลขมิ้นชัน', ttmtCode: '', ttmtName: '', gRegNumber: 'G-12345' },
       ],
       wip: [
-        { 'รหัส (Code)*': 'WIP-0001', 'ชื่อ TH (Name TH)*': 'ผงสมุนไพรผสม สูตร A', 'ชื่อ EN (Name EN)': 'Herbal Powder Mix Formula A', 'หมวดหมู่ (Category)': 'semi_finished', 'หน่วยหลัก (Primary Unit)*': 'kg', 'หน่วยรอง (Secondary Unit)': 'g', 'อัตราแปลง (Conversion Rate)': 1000, 'อายุการเก็บ (วัน)': 180, 'เงื่อนไขจัดเก็บ': 'เก็บในถุงปิดสนิท อุณหภูมิห้อง', 'สต็อกขั้นต่ำ': 10, 'สต็อกสูงสุด': 100, 'จุดสั่งซื้อ': 20 },
+        { code: 'WIP-0001', nameTh: 'ผงผสมขมิ้นชัน (bulk)', nameEn: 'Turmeric Blend Bulk', category: 'semi_finished', primaryUnit: 'kg', secondaryUnit: 'g', conversionRate: 1000, weightUnit: 'g', secondaryToWeightRate: 1, weightTrackingEnabled: 'true', shelfLifeDays: 90, storageCondition: 'เก็บในถุงปิดสนิท อุณหภูมิห้อง', minStock: 10, maxStock: 100, reorderPoint: 20, isLotControlled: 'true', isFEFO: 'true', strength: '', strengthValue: '', strengthUnit: '', unitWeightMg: '', isPrimaryPacking: 'false', confidentialityLevel: 'internal', tppCode: '', tppName: '', ttmtCode: '', ttmtName: '', gRegNumber: '' },
       ],
       consumable: [
-        { 'รหัส (Code)*': 'CS-0001', 'ชื่อ TH (Name TH)*': 'ถุงมือยาง ไซส์ M', 'ชื่อ EN (Name EN)': 'Latex Gloves Size M', 'หมวดหมู่ (Category)': 'consumable', 'หน่วยหลัก (Primary Unit)*': 'box', 'หน่วยรอง (Secondary Unit)': 'pcs', 'อัตราแปลง (Conversion Rate)': 100, 'อายุการเก็บ (วัน)': 1825, 'เงื่อนไขจัดเก็บ': 'เก็บในที่แห้ง', 'สต็อกขั้นต่ำ': 20, 'สต็อกสูงสุด': 200, 'จุดสั่งซื้อ': 50 },
+        { code: 'CS-0001', nameTh: 'ถุงมือไนไตรล์ ไซส์ M', nameEn: 'Nitrile Gloves Size M', category: 'consumable', primaryUnit: 'box', secondaryUnit: 'pcs', conversionRate: 100, weightUnit: '', secondaryToWeightRate: '', weightTrackingEnabled: 'false', shelfLifeDays: 1825, storageCondition: 'เก็บในที่แห้ง', minStock: 20, maxStock: 200, reorderPoint: 50, isLotControlled: 'false', isFEFO: 'false', strength: '', strengthValue: '', strengthUnit: '', unitWeightMg: '', isPrimaryPacking: 'false', confidentialityLevel: 'public', tppCode: '', tppName: '', ttmtCode: '', ttmtName: '', gRegNumber: '' },
       ],
     };
 
+    // Map field-keyed example rows -> header-keyed rows, ensuring EVERY column
+    // appears (blank where the example omitted it).
+    const toHeaderRow = (r: Record<string, string | number>): Record<string, string | number> => {
+      const out: Record<string, string | number> = {};
+      for (const col of ITEM_COLUMNS) out[col.header] = r[col.field] ?? '';
+      return out;
+    };
+
     for (const tc of ITEM_TYPES_CONFIG) {
-      const rows = EXAMPLE_DATA[tc.key] || [];
-      const ws = XLSX.utils.json_to_sheet(rows);
+      const rows = (EXAMPLE_BY_FIELD[tc.key] || []).map(toHeaderRow);
+      // header-only fallback so the sheet still shows all columns if no example
+      const sheetData = rows.length ? rows : [toHeaderRow({})];
+      const ws = XLSX.utils.json_to_sheet(sheetData, { header: ITEM_COLUMNS.map(c => c.header) });
       ws['!cols'] = ITEM_COLUMNS.map(() => ({ wch: 25 }));
       XLSX.utils.book_append_sheet(wb, ws, tc.sheetName);
     }
@@ -247,6 +279,16 @@ export default function ItemsPage() {
       ['bag', 'ถุง'], ['roll', 'ม้วน'], ['sheet', 'แผ่น'],
       ['set', 'ชุด'], ['carton', 'ลัง'], ['drum', 'ถัง'],
       ['can', 'กระป๋อง'], ['tube', 'หลอด'], ['cap', 'ฝา'],
+      [''],
+      ['ค่า Boolean (true/false)', ''], ['ค่า', 'คำอธิบาย'],
+      ['true', 'ใช่ / เปิดใช้งาน (รับ: true, 1, yes, ใช่)'],
+      ['false', 'ไม่ / ปิด (เว้นว่าง = false)'],
+      ['', '(ใช้กับ: ติดตามน้ำหนัก, ควบคุมล็อต, FEFO, บรรจุภัณฑ์หลัก)'],
+      [''],
+      ['ระดับความลับ (Confidentiality Level)', ''], ['ค่า', 'คำอธิบาย'],
+      ['public', 'ทั่วไป (ค่าเริ่มต้น)'], ['internal', 'ภายใน'], ['confidential', 'ลับ (สูตร/วัตถุดิบสำคัญ)'],
+      [''],
+      ['หมายเหตุ', 'ทุกคอลัมน์ของระบบถูกใส่ในแต่ละ Sheet แล้ว — กรอกเฉพาะที่ต้องการ ที่เหลือเว้นว่างได้'],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lookupRows), 'ตัวเลือก (Lookup)');
     XLSX.writeFile(wb, 'Item_Import_Templates.xlsx');
@@ -284,9 +326,14 @@ export default function ItemsPage() {
             for (const col of ITEM_COLUMNS) {
               if (col.field === 'nameTh' || col.field === 'primaryUnit') continue;
               const val = String(row[col.header] ?? row[col.field] ?? '').trim();
-              if (val) {
+              if (!val) continue;
+              if (col.kind === 'number') {
                 const num = Number(val);
-                payload[col.field] = !isNaN(num) && col.field.match(/Stock|Point|Rate|Days/) ? num : val;
+                if (!isNaN(num)) payload[col.field] = num;
+              } else if (col.kind === 'boolean') {
+                payload[col.field] = /^(true|1|yes|y|ใช่|t)$/i.test(val);
+              } else {
+                payload[col.field] = val;
               }
             }
 
@@ -418,26 +465,30 @@ export default function ItemsPage() {
   // going through the DataGrid toolbar. Keeps the current type/search filter
   // so the operator gets what they see.
   const handleDownloadData = () => {
-    const rows = filteredItems.map((it) => ({
-      'รหัส (Code)': it.code,
-      'ชื่อ TH': it.nameTh,
-      'ชื่อ EN': it.nameEn || '',
-      'ประเภท': it.type,
-      'หมวดหมู่': it.category || '',
-      'หน่วยหลัก': it.primaryUnit,
-      'หน่วยรอง': it.secondaryUnit || '',
-      'อัตราแปลง': it.conversionFactor ?? '',
-      'อายุการเก็บ (วัน)': it.shelfLifeDays ?? '',
-      'เงื่อนไขจัดเก็บ': it.storageConditions || '',
-      'สต็อกต่ำสุด': it.minStock ?? '',
-      'สต็อกสูงสุด': it.maxStock ?? '',
-      'จุดสั่งซื้อ': it.reorderPoint ?? '',
-      'คงเหลือ (on_hand)': it.onHand ?? '',
-      'สถานะ': it.isActive ? 'Active' : 'Inactive',
-    }));
+    // Export current items using the SAME column set as the import template, so
+    // the file round-trips: edit the exported rows and re-import them directly.
+    // Booleans render as 'true'/'false'; an extra 'ประเภท (Type)' col is added
+    // up front so a single sheet captures all types (import reads per-sheet, so
+    // this export sheet is for review/edit — split per type before re-import).
+    const boolKeys = new Set(ITEM_COLUMNS.filter(c => c.kind === 'boolean').map(c => c.field));
+    const rows = filteredItems.map((it) => {
+      const rec = it as unknown as Record<string, unknown>;
+      const out: Record<string, string | number> = { 'ประเภท (Type)': String(rec.type ?? '') };
+      for (const col of ITEM_COLUMNS) {
+        const v = rec[col.field];
+        out[col.header] = boolKeys.has(col.field)
+          ? (v ? 'true' : 'false')
+          : (v === null || v === undefined ? '' : (v as string | number));
+      }
+      // useful read-only context columns
+      out['คงเหลือ (on_hand)'] = (rec.onHand as number) ?? '';
+      out['มูลค่า (on_hand_cost)'] = (rec.onHandCost as number) ?? '';
+      out['สถานะ (Status)'] = rec.isActive ? 'Active' : 'Inactive';
+      return out;
+    });
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = Array(15).fill({ wch: 18 });
+    ws['!cols'] = Array(ITEM_COLUMNS.length + 4).fill({ wch: 20 });
     XLSX.utils.book_append_sheet(wb, ws, 'Items');
     const ts = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `items-${ts}.xlsx`);
