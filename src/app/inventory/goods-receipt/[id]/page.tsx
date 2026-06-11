@@ -318,7 +318,14 @@ export default function GrnDetailPage() {
                   <Button
                     text={t('actions.release')}
                     type="success"
-                    onClick={() => setQaActionOpen({ lineId: line.id, action: 'release' })}
+                    onClick={() => {
+                      // Default the counted-quantity to the expected (received)
+                      // quantity so "เข้าคลัง" shows expected − QC sample from the
+                      // start; the warehouse can still adjust it to the real count.
+                      const exp = Number(line.expectedQuantity);
+                      setReleaseActualQty(Number.isFinite(exp) && exp > 0 ? String(exp) : '');
+                      setQaActionOpen({ lineId: line.id, action: 'release' });
+                    }}
                   />
                 )}
                 {line.status === 'qc_approved' && !canRelease && (
