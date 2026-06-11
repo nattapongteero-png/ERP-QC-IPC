@@ -358,6 +358,11 @@ export default function GrnDetailPage() {
             </label>
             <input
               type="number"
+              inputMode="decimal"
+              name="checklist-sample-qty"
+              autoComplete="off"
+              data-lpignore="true"
+              data-form-type="other"
               min={0}
               step="any"
               value={checklistSampleQty}
@@ -405,6 +410,9 @@ export default function GrnDetailPage() {
             <label className="block text-sm font-medium mb-1">Password</label>
             <input
               type="password"
+              name="esign-password"
+              autoComplete="new-password"
+              data-lpignore="true"
               value={sigPassword}
               onChange={(e) => setSigPassword(e.target.value)}
               className="w-full border rounded px-3 py-2"
@@ -465,6 +473,11 @@ export default function GrnDetailPage() {
                     </label>
                     <input
                       type="number"
+                      inputMode="decimal"
+                      name="release-actual-qty"
+                      autoComplete="off"
+                      data-lpignore="true"
+                      data-form-type="other"
                       min={0}
                       step="any"
                       value={releaseActualQty}
@@ -514,6 +527,9 @@ export default function GrnDetailPage() {
             <label className="block text-sm font-medium mb-1">Password</label>
             <input
               type="password"
+              name="esign-password"
+              autoComplete="new-password"
+              data-lpignore="true"
               value={sigPassword}
               onChange={(e) => setSigPassword(e.target.value)}
               className="w-full border rounded px-3 py-2"
