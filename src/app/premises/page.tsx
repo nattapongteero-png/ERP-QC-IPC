@@ -17,6 +17,7 @@ import {
   Droplets,
   Bell,
   Sparkles,
+  Scale,
   ChevronRight,
 } from 'lucide-react';
 
@@ -38,6 +39,15 @@ const cards = [
     titleTh: 'ตรวจสภาพแวดล้อม',
     titleEn: 'Environmental Inspection',
     desc: 'บันทึกตรวจสภาพแวดล้อมพื้นที่ผลิตตามรอบ (อุณหภูมิ/ความชื้น/สภาพพื้นที่)',
+  },
+  {
+    href: '/premises/scale-verification',
+    icon: Scale,
+    iconBg: 'bg-cyan-100',
+    iconColor: 'text-cyan-600',
+    titleTh: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)',
+    titleEn: 'Scale Verification',
+    desc: 'ตรวจสอบเครื่องชั่งด้วยลูกตุ้มมาตรฐานก่อนใช้งาน (ตั้งค่าทะเบียนลูกตุ้มที่ Master Data > ทะเบียนลูกตุ้มมาตรฐาน)',
   },
   {
     href: '/premises/sanitation',

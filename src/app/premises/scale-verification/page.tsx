@@ -3,6 +3,9 @@
 /**
  * Scale Verification — main dashboard
  * Feature: 021-scale-verification
+ *
+ * Lives under the Premises & Facilities (อาคารและสถานที่) module — GMP
+ * "Premises and Equipment". Backend API stays at /api/quality/scale-verifications.
  */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -118,7 +121,7 @@ export default function ScaleVerificationPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <BackButton href="/quality" label="Quality" />
+      <BackButton href="/premises" label="อาคารและสถานที่" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -267,7 +270,7 @@ export default function ScaleVerificationPage() {
                   type="normal"
                   stylingMode="text"
                   onClick={() =>
-                    router.push(`/quality/scale-verification/${row.scaleId}/history`)
+                    router.push(`/premises/scale-verification/${row.scaleId}/history`)
                   }
                   render={() => (
                     <span className="inline-flex items-center gap-1 text-sm text-indigo-700">

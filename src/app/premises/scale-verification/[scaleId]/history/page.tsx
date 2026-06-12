@@ -7,7 +7,7 @@
  * scale. Editing is intentionally absent — verification records carry an
  * electronic signature and are immutable under GMP / 21 CFR Part 11.
  *
- * Reached from the main /quality/scale-verification table via the
+ * Reached from the main /premises/scale-verification table via the
  * "ประวัติ" link in the actions column.
  */
 import { useQuery } from '@tanstack/react-query';
@@ -72,7 +72,7 @@ export default function ScaleHistoryPage() {
       <div className="flex items-center gap-3">
         <Button
           icon="back"
-          onClick={() => router.push('/quality/scale-verification')}
+          onClick={() => router.push('/premises/scale-verification')}
           stylingMode="text"
           render={() => (
             <span className="inline-flex items-center gap-1.5 text-sm">

@@ -120,7 +120,7 @@ export function ScaleVerificationBanner({ scaleId, onScaleChange, isWaterMateria
               ต้องตรวจเครื่องชั่งด้วยลูกตุ้มมาตรฐานก่อนชั่งวัตถุดิบทุกครั้ง
             </div>
             <Link
-              href="/quality/scale-verification"
+              href="/premises/scale-verification"
               target="_blank"
               className="inline-flex items-center gap-1 mt-2 text-xs font-medium underline"
             >

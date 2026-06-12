@@ -130,8 +130,6 @@ const navigation: NavItem[] = [
       { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
       // Inspections
       { name: 'Incoming Inspection (QC)', href: '/quality/incoming-inspection', icon: ClipboardCheck },
-      // Equipment checks
-      { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/quality/scale-verification', icon: Scale },
       // Deviations & audit
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
       { name: 'QC Audit Trail', href: '/quality/audit-trail', icon: ScrollText },
@@ -146,6 +144,7 @@ const navigation: NavItem[] = [
       { name: 'Premises Overview', href: '/premises', icon: Building2 },
       { name: 'Storage Monitoring', href: '/premises/storage-monitoring', icon: Thermometer },
       { name: 'ตรวจสภาพแวดล้อม', href: '/premises/environmental/inspections', icon: Thermometer },
+      { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/premises/scale-verification', icon: Scale },
       { name: 'การจัดการสุขาภิบาล', href: '/premises/sanitation', icon: Sparkles },
       { name: 'ระบบน้ำ (Water Quality)', href: '/premises/environmental/water-quality', icon: Droplets },
       { name: 'แจ้งเตือนบำรุงรักษา', href: '/premises/notifications', icon: Bell },

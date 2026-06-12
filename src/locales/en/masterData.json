@@ -56,7 +56,7 @@
     "standardWeights": {
       "title": "Standard Weights Registry",
       "description": "Certified test weights used to verify scales before weighing",
-      "usedIn": "Quality > Scale Verification"
+      "usedIn": "Premises & Facilities > Scale Verification"
     },
     "maintenancePlanTemplates": {
       "title": "Maintenance Plan Templates",
