@@ -6952,7 +6952,9 @@ export const mysqlQcSampleTests = mysqlTable('qc_sample_tests', {
   specMin: decimal('spec_min', { precision: 15, scale: 4 }),
   specMax: decimal('spec_max', { precision: 15, scale: 4 }),
   specTarget: decimal('spec_target', { precision: 15, scale: 4 }),
-  specText: varchar('spec_text', { length: 500 }),
+  // JSON envelope from ipc_criteria.specification — may exceed 500 chars for
+  // pass_fail / multi-point / visual-checklist criteria types (see line ~2314).
+  specText: mysqlText('spec_text'),
   unit: varchar('unit', { length: 20 }),
   testMethod: varchar('test_method', { length: 255 }),
   numericResult: decimal('numeric_result', { precision: 15, scale: 4 }),
