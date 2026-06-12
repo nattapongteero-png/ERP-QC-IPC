@@ -119,7 +119,10 @@ export const addOrUpdateTestSchema = z
     specMin: z.number().nullable().optional(),
     specMax: z.number().nullable().optional(),
     specTarget: z.number().nullable().optional(),
-    specText: z.string().max(500).nullable().optional(),
+    // spec_text snapshots ipc_criteria.specification — a JSON envelope for
+    // visual/checklist criteria that can far exceed 500 chars. DB column is
+    // TEXT; keep the schema generous to match.
+    specText: z.string().max(20000).nullable().optional(),
     unit: z.string().max(20).nullable().optional(),
     testMethod: z.string().max(255).nullable().optional(),
     // Result fields — the service computes resultStatus from these.
