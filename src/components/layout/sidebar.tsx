@@ -128,8 +128,10 @@ const navigation: NavItem[] = [
       { name: 'ใบตรวจ QC', href: '/quality/qc-inspections', icon: ClipboardList },
       // Certificate of Analysis (templates live inside this page)
       { name: 'Certificate of Analysis', href: '/quality/coa', icon: Award },
-      // Inspections
-      { name: 'Incoming Inspection (QC)', href: '/quality/incoming-inspection', icon: ClipboardCheck },
+      // Incoming Inspection (QC) — removed from the menu; the "รอลงทะเบียน QC"
+      // panel in QC Entry now surfaces the lines awaiting registration. The
+      // /quality/incoming-inspection route + API remain for the aging/overview
+      // dashboard if it needs to be re-linked later.
       // Deviations & audit
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
       { name: 'QC Audit Trail', href: '/quality/audit-trail', icon: ScrollText },

@@ -58,6 +58,7 @@ interface PendingTaskRow {
   itemCode: string;
   itemName: string;
   actualQuantity: number;
+  expectedQuantity: number;
   unit: string;
   qcSampleId: number | null;
   qcSampleStatus: string | null;
@@ -488,7 +489,7 @@ export default function QcEntryListPage() {
                     {task.itemName || task.itemCode}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {task.itemCode} · {Number(task.actualQuantity).toLocaleString()} {task.unit}
+                    {task.itemCode} · {Number(task.actualQuantity || task.expectedQuantity || 0).toLocaleString()} {task.unit}
                     {task.vendorName ? ` · ${task.vendorName}` : ''}
                   </p>
                 </button>

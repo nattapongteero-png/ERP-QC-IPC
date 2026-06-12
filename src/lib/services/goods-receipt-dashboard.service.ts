@@ -99,6 +99,7 @@ export async function getPendingQaList(): Promise<Array<{
   itemCode: string;
   itemName: string;
   actualQuantity: number;
+  expectedQuantity: number;
   unit: string;
   qcSampleId: number | null;
   qcSampleStatus: string | null;
@@ -121,6 +122,7 @@ export async function getPendingQaList(): Promise<Array<{
         itemCode: t.items.code,
         itemName: t.items.nameTh,
         actualQuantity: t.lines.actualQuantity,
+        expectedQuantity: t.lines.expectedQuantity,
         unit: t.lines.unit,
         qcSampleId: t.lines.qcSampleId,
         qcSampleStatus: t.qcSamples.status,
@@ -158,6 +160,7 @@ export async function getPendingQaList(): Promise<Array<{
         itemCode: r.itemCode ?? '',
         itemName: r.itemName ?? '',
         actualQuantity: Number(r.actualQuantity ?? 0),
+        expectedQuantity: Number(r.expectedQuantity ?? 0),
         unit: String(r.unit ?? ''),
         qcSampleId: r.qcSampleId != null ? Number(r.qcSampleId) : null,
         qcSampleStatus: r.qcSampleStatus ?? null,
