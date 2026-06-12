@@ -43,6 +43,7 @@ import {
   ChevronUp,
   FlaskConical,
 } from 'lucide-react';
+import { parseSpecPayload } from '@/lib/master-data/ipc-spec-payload';
 import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
 import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
 
@@ -270,8 +271,50 @@ function resultBadge(status: string) {
   }
 }
 
+/**
+ * specText snapshots ipc_criteria.specification — for non-numeric criteria
+ * (visual checklist, pass/fail, text, multi_point, …) it's a JSON envelope,
+ * not a human-readable string. Decode it to a short readable summary instead
+ * of dumping the raw JSON. Falls back to the raw string for legacy/plain rows.
+ */
+function readableSpecText(test: QcSampleTestRow): string | null {
+  const raw = test.specText;
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  // Only attempt to decode when it looks like our JSON envelope.
+  if (!trimmed.startsWith('{')) return raw;
+  const payload = parseSpecPayload(test.criteriaType ?? 'numeric', trimmed);
+  if (!payload) return raw;
+  switch (payload.type) {
+    case 'visual': {
+      const parts = [payload.description?.trim()].filter(Boolean) as string[];
+      if (payload.checklist?.length) {
+        parts.push(payload.checklist.map((c) => `• ${c}`).join('  '));
+      }
+      return parts.join('  —  ') || raw;
+    }
+    case 'pass_fail':
+      return `ผ่าน: ${payload.passDefinition || '—'} / ไม่ผ่าน: ${payload.failDefinition || '—'}`;
+    case 'text':
+      return payload.format || payload.example || raw;
+    case 'multi_point':
+      return `${payload.pointCount} จุด · เป้า ${payload.perPointTarget} ± ${payload.perPointTolerance}%`;
+    case 'tare':
+      return `${payload.referenceLabel || 'Tare'} (${payload.referenceUnit || ''})`;
+    case 'calibration':
+      return `สอบเทียบ ${payload.instrumentName || ''} กับ ${payload.standardValue} ${payload.standardUnit}`;
+    case 'calculated':
+      return payload.formula || raw;
+    case 'custom_multi_field':
+      return payload.fields?.map((f) => f.label).filter(Boolean).join(', ') || raw;
+    default:
+      return raw;
+  }
+}
+
 function formatSpec(test: QcSampleTestRow): string {
-  if (test.specText) return test.specText;
+  const readable = readableSpecText(test);
+  if (readable) return readable;
   if (test.specMin != null && test.specMax != null) {
     return `${test.specMin} – ${test.specMax}${test.unit ? ' ' + test.unit : ''}`;
   }
