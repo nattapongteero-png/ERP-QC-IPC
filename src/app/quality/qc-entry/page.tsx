@@ -52,6 +52,23 @@ interface QcSampleRow {
   };
 }
 
+/** GRN line awaiting checklist sign (no qc_sample yet) — from pending-qa API. */
+interface PendingTaskRow {
+  grnId: number;
+  grnNumber: string;
+  lineId: number;
+  itemCode: string;
+  itemName: string;
+  actualQuantity: number;
+  unit: string;
+  qcSampleId: number | null;
+  qcSampleStatus: string | null;
+  lineStatus: string;
+  qcResult: 'pending' | 'passed' | 'failed';
+  ageDays: number;
+  vendorName: string | null;
+}
+
 const STATUS_OPTIONS = [
   { value: '', label: 'ทุกสถานะ' },
   { value: 'registered', label: 'ลงทะเบียน (Registered)' },
@@ -120,6 +137,11 @@ export default function QcEntryListPage() {
   const [rows, setRows] = useState<QcSampleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // Pending registration worklist — GRN lines received but whose checklist is
+  // not yet signed (lineStatus 'created' → no qc_sample exists yet). Signing
+  // the checklist on the GRN auto-creates the sample, so we link there.
+  const [pendingTasks, setPendingTasks] = useState<PendingTaskRow[]>([]);
 
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [sourceFilter, setSourceFilter] = useState<string>('');
@@ -224,9 +246,29 @@ export default function QcEntryListPage() {
     }
   }, [statusFilter, sourceFilter, dateFrom, dateTo]);
 
+  const fetchPendingTasks = useCallback(async () => {
+    try {
+      const res = await fetch('/api/quality/incoming-inspection/pending-qa');
+      if (!res.ok) {
+        setPendingTasks([]);
+        return;
+      }
+      const data = await res.json();
+      const items = (data?.items || []) as PendingTaskRow[];
+      // Only lines still awaiting checklist sign (no sample registered yet).
+      setPendingTasks(items.filter((i) => i.lineStatus === 'created'));
+    } catch {
+      setPendingTasks([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSamples();
   }, [fetchSamples]);
+
+  useEffect(() => {
+    fetchPendingTasks();
+  }, [fetchPendingTasks]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
@@ -428,7 +470,10 @@ export default function QcEntryListPage() {
                 icon="refresh"
                 text="Refresh"
                 stylingMode="outlined"
-                onClick={fetchSamples}
+                onClick={() => {
+                  void fetchSamples();
+                  void fetchPendingTasks();
+                }}
               />
               <DxButton
                 icon="preferences"
@@ -487,6 +532,50 @@ export default function QcEntryListPage() {
             accentColor="border-cyan-500"
           />
         </div>
+
+        {/* Pending registration — GRN lines received but not yet checklist-signed.
+            Signing the checklist on the GRN auto-registers the QC sample. */}
+        {pendingTasks.length > 0 && (
+          <div
+            className="bg-amber-50 border border-amber-200 rounded-xl shadow-sm p-3 md:p-4"
+            data-testid="pending-registration-panel"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="h-4 w-4 text-amber-600" />
+              <h2 className="text-sm font-semibold text-amber-900">
+                รอลงทะเบียน QC ({pendingTasks.length})
+              </h2>
+              <span className="text-xs text-amber-700">
+                — รายการรับเข้าที่รอเซ็นใบตรวจรับ ระบบจะลงทะเบียนตัวอย่างให้อัตโนมัติเมื่อเซ็น checklist
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {pendingTasks.map((task) => (
+                <button
+                  key={task.lineId}
+                  type="button"
+                  onClick={() => router.push(`/inventory/goods-receipt/${task.grnId}`)}
+                  className="text-left bg-white border border-amber-200 rounded-lg p-3 hover:border-amber-400 hover:shadow-sm transition"
+                  data-testid={`pending-task-${task.lineId}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs text-gray-500">{task.grnNumber}</span>
+                    {task.ageDays > 0 && (
+                      <span className="text-[11px] text-amber-700">{task.ageDays} วัน</span>
+                    )}
+                  </div>
+                  <p className="font-medium text-gray-900 truncate mt-0.5">
+                    {task.itemName || task.itemCode}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {task.itemCode} · {Number(task.actualQuantity).toLocaleString()} {task.unit}
+                    {task.vendorName ? ` · ${task.vendorName}` : ''}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Filter row */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 md:p-4">

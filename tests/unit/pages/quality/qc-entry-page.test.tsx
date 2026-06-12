@@ -102,8 +102,46 @@ const MOCK_ITEMS = [
   { id: 12, code: 'FG-001', nameTh: 'ยาแคปซูลฟ้าทะลายโจร', nameEn: 'Andrographis' },
 ];
 
+const MOCK_PENDING = {
+  items: [
+    {
+      grnId: 7,
+      grnNumber: 'GRN-2026-0007',
+      lineId: 21,
+      itemCode: 'RM-001',
+      itemName: 'ขมิ้นชัน',
+      actualQuantity: 100,
+      unit: 'kg',
+      qcSampleId: null,
+      qcSampleStatus: null,
+      lineStatus: 'created',
+      qcResult: 'pending',
+      ageDays: 2,
+      vendorName: 'ผู้ขาย A',
+    },
+    // qc_approved line must be filtered OUT — only 'created' is "pending registration".
+    {
+      grnId: 8,
+      grnNumber: 'GRN-2026-0008',
+      lineId: 22,
+      itemCode: 'FG-001',
+      itemName: 'ยาแคปซูล',
+      actualQuantity: 50,
+      unit: 'box',
+      qcSampleId: 99,
+      qcSampleStatus: 'registered',
+      lineStatus: 'qc_approved',
+      qcResult: 'passed',
+      ageDays: 1,
+      vendorName: null,
+    },
+  ],
+  total: 2,
+};
+
 function baseFetchMock() {
   setupFetchMock({
+    '/api/quality/incoming-inspection/pending-qa': { data: MOCK_PENDING },
     '/api/quality/qc-samples': { data: { success: true, data: [] } },
     '/api/items': { data: createPaginatedResponse(MOCK_ITEMS) },
   });
@@ -137,6 +175,19 @@ describe('QcEntryListPage', () => {
       // The old broken endpoint must never be called.
       expect(urls.some((u) => u.includes('/api/master-data/items'))).toBe(false);
     });
+  });
+
+  it('shows the pending-registration panel with only checklist-unsigned (created) GRN lines', async () => {
+    baseFetchMock();
+    renderWithProviders(<QcEntryListPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('pending-registration-panel')).toBeInTheDocument();
+    });
+    // The 'created' line is a pending task; the 'qc_approved' line is filtered out.
+    expect(screen.getByTestId('pending-task-21')).toBeInTheDocument();
+    expect(screen.queryByTestId('pending-task-22')).not.toBeInTheDocument();
+    expect(screen.getByText('รอลงทะเบียน QC (1)')).toBeInTheDocument();
   });
 
   it('opens the Quick Add dialog with the product field present', async () => {
