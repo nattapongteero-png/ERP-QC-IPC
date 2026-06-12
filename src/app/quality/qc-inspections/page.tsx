@@ -220,14 +220,14 @@ export default function QcInspectionsPage() {
     { dataField: 'inspectorName', caption: 'ผู้ตรวจ', width: 130 },
     {
       caption: '',
-      width: 80,
+      width: 130,
       cellRender: (c: any) => (
         <button
-          className="text-xs text-blue-700 hover:underline"
+          className="px-3 py-1 text-xs font-medium rounded border border-emerald-600 text-emerald-700 hover:bg-emerald-50"
           onClick={() => setDetail(c.data as InspectionRow)}
           data-testid={`open-detail-${c.data.id}`}
         >
-          เปิด
+          รายละเอียด / บันทึกผล
         </button>
       ),
     },
@@ -396,22 +396,20 @@ export default function QcInspectionsPage() {
           </div>
         </DxPopup>
 
-        {/* Detail dialog */}
-        {/* deferRendering=false: children read `detail`, which is set in the
-            same click that flips visible=true. With the default deferred
-            render DevExtreme caches the empty initial pass and the popup
-            shows blank. */}
+        {/* Detail dialog — use contentRender so DevExtreme portals the body
+            into the popup content area. Passing dynamic children directly (with
+            deferRendering=false) rendered an empty popup with the form leaking
+            onto the page (DevExpress T1064246). */}
         <DxPopup
           visible={!!detail}
           onHiding={() => setDetail(null)}
           title={detail ? detail.inspectionNumber : ''}
           width={760}
-          height="auto"
+          height="80vh"
           showCloseButton
-          deferRendering={false}
-        >
-          {detail && (
-            <div className="space-y-3 p-2">
+          contentRender={() =>
+            detail ? (
+            <div className="space-y-3 p-2 h-full overflow-y-auto">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-500">ประเภท:</span> {typeLabel(detail.inspectionType)}
@@ -492,8 +490,9 @@ export default function QcInspectionsPage() {
                 />
               </div>
             </div>
-          )}
-        </DxPopup>
+            ) : null
+          }
+        />
 
         {loading && <div className="text-center text-gray-500 py-4">กำลังโหลด...</div>}
       </div>

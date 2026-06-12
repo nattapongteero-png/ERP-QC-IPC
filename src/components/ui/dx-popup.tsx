@@ -62,8 +62,13 @@ export interface DxPopupProps {
   wrapperAttr?: Record<string, string>;
   /** Additional CSS class */
   className?: string;
-  /** Content */
-  children: React.ReactNode;
+  /** Content (omit when using contentRender) */
+  children?: React.ReactNode;
+  /** Render function for the popup body. Preferred over `children` for dynamic
+   *  content: DevExtreme portals the returned node into the popup's content
+   *  area, avoiding the "blank popup / content leaks onto the page" issue that
+   *  plain children can hit (see DevExpress T1064246). */
+  contentRender?: () => React.ReactNode;
   /** Toolbar items */
   toolbarItems?: Array<{
     widget?: 'dxButton';
@@ -144,6 +149,7 @@ export function DxPopup({
   wrapperAttr,
   className,
   children,
+  contentRender,
   toolbarItems,
   deferRendering = true,
 }: DxPopupProps) {
@@ -201,8 +207,9 @@ export function DxPopup({
       wrapperAttr={{ ...wrapperAttr, className }}
       toolbarItems={toolbarItems}
       deferRendering={deferRendering}
+      contentRender={contentRender}
     >
-      {children}
+      {contentRender ? undefined : children}
     </Popup>
   );
 }

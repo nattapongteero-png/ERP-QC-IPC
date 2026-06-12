@@ -55,8 +55,18 @@ vi.mock('@/components/ui/dx-text-area', () => ({
 }));
 
 vi.mock('@/components/ui/dx-popup', () => ({
-  DxPopup: ({ visible, children }: { visible?: boolean; children?: React.ReactNode }) =>
-    visible ? <div data-testid="dx-popup">{children}</div> : null,
+  DxPopup: ({
+    visible,
+    children,
+    contentRender,
+  }: {
+    visible?: boolean;
+    children?: React.ReactNode;
+    contentRender?: () => React.ReactNode;
+  }) =>
+    visible ? (
+      <div data-testid="dx-popup">{contentRender ? contentRender() : children}</div>
+    ) : null,
 }));
 
 vi.mock('@/components/ui/badge', () => ({
