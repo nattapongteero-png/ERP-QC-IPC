@@ -320,9 +320,12 @@ export async function signChecklist(
     // Line status after signing:
     //  - mandatory item failed  → 'checklist_done' (quarantined, blocks release)
     //  - QC sample failed to create → 'checklist_done' (blocks release too)
-    //  - all passed → 'qc_approved' (warehouse may count the remainder & release)
+    //  - all passed → 'qc_pending' (awaiting lab test result — the warehouse
+    //    can only release once the linked qc_sample is approved/released; that
+    //    propagation flips the line to 'qc_approved'. See
+    //    qc-sample.service.updateSampleStatus → syncGrnLineFromSample.)
     const newStatus =
-      checklistFailed || qcSampleCreationFailed ? 'checklist_done' : 'qc_approved';
+      checklistFailed || qcSampleCreationFailed ? 'checklist_done' : 'qc_pending';
     await db
       .update(t.lines)
       .set({

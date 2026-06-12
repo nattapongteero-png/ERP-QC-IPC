@@ -24,7 +24,7 @@
  */
 
 import { eq, and, desc, asc, gte, lte, like, or, inArray, sql, isNull } from 'drizzle-orm';
-import { executeDbOperation, getInsertId, getAffectedRows } from '../db/db-helper';
+import { executeDbOperation, getInsertId, getAffectedRows, getTableRef } from '../db/db-helper';
 import { isSqlite } from '../db';
 import { getNow, toQueryDate, toDbDate } from '../db/date-utils';
 import {
@@ -1605,6 +1605,57 @@ export interface UpdateStatusResult {
   toStatus: string;
 }
 
+/**
+ * Quality gate (goods-receipt flow item 4): when a QC sample that was created
+ * from an incoming GRN line reaches a terminal-quality decision, propagate it
+ * back to that goods_receipt_lines row so the warehouse release gate reflects
+ * the lab result:
+ *   - sample approved/released → line 'qc_pending' → 'qc_approved' (releasable)
+ *   - sample rejected          → line              → 'rejected'    (blocked)
+ * Best-effort + idempotent: only advances a line still in 'qc_pending', never
+ * downgrades a line already released, and never throws into the sample flow.
+ */
+async function syncGrnLineFromSample(
+  db: any,
+  sampleId: number,
+  toStatus: string,
+): Promise<void> {
+  const tables = getTables();
+  const lines = getTableRef('goodsReceiptLines');
+
+  const target =
+    toStatus === 'approved' || toStatus === 'released'
+      ? 'qc_approved'
+      : toStatus === 'rejected'
+        ? 'rejected'
+        : null;
+  if (!target) return;
+
+  // Resolve the GRN line this sample was drawn from.
+  const [sample] = await db
+    .select({ grnLineId: tables.samples.sourceGrnLineId })
+    .from(tables.samples)
+    .where(eq(tables.samples.id, sampleId))
+    .limit(1);
+  const grnLineId = sample?.grnLineId != null ? Number(sample.grnLineId) : null;
+  if (!grnLineId) return; // standalone sample, not from a GRN
+
+  const [line] = await db
+    .select({ id: lines.id, status: lines.status })
+    .from(lines)
+    .where(eq(lines.id, grnLineId))
+    .limit(1);
+  if (!line) return;
+  // Only act while the line is awaiting the lab result. Don't touch lines that
+  // are already released/cancelled/rejected.
+  if (String(line.status) !== 'qc_pending') return;
+
+  await db
+    .update(lines)
+    .set({ status: target, updatedAt: getNow() })
+    .where(eq(lines.id, grnLineId));
+}
+
 export async function updateSampleStatus(
   id: number,
   action: SampleAction,
@@ -1727,6 +1778,15 @@ export async function updateSampleStatus(
     }
 
     await db.update(tables.samples).set(updates).where(eq(tables.samples.id, id));
+
+    // Quality gate — reflect the lab decision back onto the originating GRN
+    // line so the warehouse release gate honours pass/fail (best-effort).
+    try {
+      await syncGrnLineFromSample(db, id, toStatus);
+    } catch (err) {
+      console.warn('[qc-sample] GRN line sync failed (non-fatal)', err);
+    }
+
     return { sampleId: id, fromStatus, toStatus };
   });
 }

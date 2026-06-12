@@ -134,10 +134,11 @@ export async function getPendingQaList(): Promise<Array<{
       .leftJoin(t.qcSamples, eq(t.qcSamples.id, t.lines.qcSampleId))
       .leftJoin(t.vendors, eq(t.vendors.id, t.grns.vendorId))
       // QC inspection queue + recent outcomes: lines awaiting the QC checklist
-      // ('created'), plus recently inspected lines so the result (ผ่าน /
-      // ไม่ผ่าน) is visible — 'qc_approved'/'released_to_stock' = passed,
-      // 'rejected' = failed. Released-to-stock is excluded (already in stock).
-      .where(inArray(t.lines.status, ['created', 'qc_approved', 'rejected']))
+      // ('created'), lines awaiting the lab result ('qc_pending'), plus recently
+      // inspected lines so the result (ผ่าน / ไม่ผ่าน) is visible —
+      // 'qc_approved'/'released_to_stock' = passed, 'rejected' = failed.
+      // Released-to-stock is excluded (already in stock).
+      .where(inArray(t.lines.status, ['created', 'qc_pending', 'qc_approved', 'rejected']))
       .orderBy(desc(t.lines.id))
       .limit(200);
 
@@ -145,8 +146,8 @@ export async function getPendingQaList(): Promise<Array<{
       // Map the line lifecycle to a QC outcome shown in the grid.
       const ls = String(r.lineStatus ?? '');
       const qcResult =
-        ls === 'created'
-          ? 'pending'
+        ls === 'created' || ls === 'qc_pending'
+          ? 'pending' // created = awaiting checklist; qc_pending = awaiting lab
           : ls === 'rejected'
             ? 'failed'
             : 'passed'; // qc_approved / released_to_stock
