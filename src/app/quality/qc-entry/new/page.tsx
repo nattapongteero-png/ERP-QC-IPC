@@ -1,16 +1,23 @@
 'use client';
 
 /**
- * QC Entry — Register New Sample
+ * QC Entry — Register New Sample (+ Sample Requisition)
  *
- * Operator-facing form for registering a QC sample. Layout is mobile-first:
- * single-column on small screens, two-column on md+. Source-type drives the
- * "ref" field — outgoing_shipment surfaces customer + SO ref; work_order_batch
- * surfaces a free-text WO ref. The Apply Default Panel toggle (default ON)
- * seeds tests from qc_test_panels matching the chosen product.
+ * Operator-facing form for registering a QC sample AND drawing the sample qty
+ * from the source quarantine lot in one submission. Mirrors the QC Entry guide:
+ *
+ *   1. ผู้ขอเบิก / Request — requester + purpose (routine/retest/stability/complaint)
+ *   2. Source — type + ref; auto-derived from the picked lot's PO#/GRN link
+ *   3. Product + quarantine lot — autofills lot#, dates, qty, unit
+ *   4. Sample-size calc — per test-panel row choose USP n / √(lotQty)+1 / fixed,
+ *      add a buffer %, and the total draw is validated against lot stock
+ *   5. Retain sample — separate qty stored in the Retain Sample warehouse
+ *
+ * On submit the service decrements the source lot by (sampleQty + retainSampleQty)
+ * via inventory_transactions and seeds the default test panel.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
@@ -21,7 +28,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { useToast } from '@/hooks/use-toast';
-import { TestTube } from 'lucide-react';
+import { TestTube, AlertTriangle } from 'lucide-react';
 
 const SOURCE_OPTIONS = [
   { value: 'raw_material_lot', label: 'วัตถุดิบเข้า (Raw material lot)' },
@@ -33,6 +40,22 @@ const SOURCE_OPTIONS = [
   { value: 'other', label: 'อื่นๆ (Other)' },
 ];
 
+const PURPOSE_OPTIONS = [
+  { value: 'routine', label: 'Routine QC — ทดสอบรับเข้าปกติ' },
+  { value: 'retest', label: 'Retest — ทดสอบซ้ำหลัง deviation' },
+  { value: 'stability', label: 'Stability — ติดตามความคงตัว' },
+  { value: 'complaint', label: 'Complaint — ตรวจสอบเรื่องร้องเรียน' },
+];
+
+/** Per-test sampling mode shown in the sample-size table. */
+const MODE_OPTIONS: { key: SampleMode; label: string }[] = [
+  { key: 'usp', label: 'USP (n ตามมาตรฐาน)' },
+  { key: 'sqrt', label: '√n + 1 (ตามจำนวน lot)' },
+  { key: 'fixed', label: 'กำหนดเอง' },
+];
+
+type SampleMode = 'usp' | 'sqrt' | 'fixed';
+
 interface ProductOption {
   id: number;
   code: string;
@@ -40,7 +63,6 @@ interface ProductOption {
   nameEn?: string;
   category?: string | null;
   primaryUnit?: string;
-  /** Master-data storage profile (e.g. "ต่ำกว่า 30°C") used to auto-fill the form. */
   storageCondition?: string | null;
 }
 
@@ -61,6 +83,33 @@ interface QuarantineLot {
   unit: string;
   manufacturingDate: string | null;
   expiryDate: string | null;
+  /** PO# carried from goods receipt — drives sourceRef/sourceType auto-derive. */
+  poNumber?: string | null;
+  sourceGrnLineId?: number | null;
+}
+
+interface PanelRow {
+  criteriaId: number;
+  criteriaCode: string | null;
+  criteriaName: string | null;
+  criteriaNameTh: string | null;
+  criteriaSampleSize: number | null;
+}
+
+/** Per-test sampling config keyed by criteriaId. */
+interface TestCfg {
+  selected: boolean;
+  mode: SampleMode;
+  fixedQty: number;
+}
+
+/** USP / √n / fixed sample-size formula (mirrors the QC Entry guide). */
+function computeSampleSize(uspSize: number, cfg: TestCfg, lotQty: number): number {
+  if (!cfg.selected) return 0;
+  if (cfg.mode === 'usp') return uspSize;
+  if (cfg.mode === 'sqrt') return lotQty > 0 ? Math.ceil(Math.sqrt(lotQty) + 1) : 0;
+  if (cfg.mode === 'fixed') return Math.max(0, Number(cfg.fixedQty) || 0);
+  return uspSize;
 }
 
 export default function QcEntryNewPage() {
@@ -71,8 +120,12 @@ export default function QcEntryNewPage() {
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [quarantineLots, setQuarantineLots] = useState<QuarantineLot[]>([]);
+  const [panel, setPanel] = useState<PanelRow[]>([]);
+  const [testCfg, setTestCfg] = useState<Record<number, TestCfg>>({});
 
   // Form state
+  const [requestedBy, setRequestedBy] = useState<string>('');
+  const [purpose, setPurpose] = useState<string>('routine');
   const [sourceType, setSourceType] = useState<string>('raw_material_lot');
   const [sourceRefText, setSourceRefText] = useState<string>('');
   const [productId, setProductId] = useState<number | null>(null);
@@ -91,54 +144,83 @@ export default function QcEntryNewPage() {
   );
   const [notes, setNotes] = useState<string>('');
   const [applyDefaultPanel, setApplyDefaultPanel] = useState<boolean>(true);
+  const [bufferPct, setBufferPct] = useState<number>(20);
+  const [retainSampleQty, setRetainSampleQty] = useState<number | null>(null);
+  const [retainStorage, setRetainStorage] = useState<string>('');
 
   useEffect(() => {
     (async () => {
       try {
-        // Pull all items so we can resolve master-data fields (storageCondition,
-        // primaryUnit) once a product is picked. The dropdown itself is filtered
-        // to products that actually have quarantine lots.
         const res = await fetch('/api/items?limit=500');
         const data = await res.json();
-        if (data.success) {
-          const items = data.data?.items || [];
-          setProducts(items);
-        }
+        if (data.success) setProducts(data.data?.items || []);
       } catch {
-        // Ignore — selectbox just stays empty.
+        /* selectbox stays empty */
       }
     })();
     (async () => {
       try {
-        // Quarantine lots drive both the product list and the lot selector.
-        // status=quarantine is a server-side filter on inventory_lots.
         const res = await fetch('/api/inventory/lots?status=quarantine&limit=500');
         const data = await res.json();
         if (data.success) {
-          const items = (data.data?.items || []) as QuarantineLot[];
-          setQuarantineLots(items);
+          setQuarantineLots((data.data?.items || []) as QuarantineLot[]);
         }
       } catch {
-        // Ignore — empty list means "no products available".
+        /* empty list = no products available */
       }
     })();
     (async () => {
       try {
         const res = await fetch('/api/customers?limit=500');
         const data = await res.json();
-        if (data.success) {
-          const items = data.data?.items || data.data || [];
-          setCustomers(items);
-        }
+        if (data.success) setCustomers(data.data?.items || data.data || []);
       } catch {
-        // Ignore — customer selectbox stays empty.
+        /* customer selectbox stays empty */
       }
     })();
   }, []);
 
+  // Load the default test panel whenever the product changes — drives the
+  // sample-size table. Reset config so each product starts at USP defaults.
+  useEffect(() => {
+    if (!productId) {
+      setPanel([]);
+      setTestCfg({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/quality/test-panels?productId=${productId}&isActive=true`,
+        );
+        const data = await res.json();
+        if (cancelled) return;
+        const rows = (data.success ? data.data?.items || [] : []) as PanelRow[];
+        setPanel(rows);
+        const cfg: Record<number, TestCfg> = {};
+        for (const r of rows) {
+          cfg[r.criteriaId] = {
+            selected: true,
+            mode: 'usp',
+            fixedQty: r.criteriaSampleSize ?? 1,
+          };
+        }
+        setTestCfg(cfg);
+      } catch {
+        if (!cancelled) {
+          setPanel([]);
+          setTestCfg({});
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [productId]);
+
   // Only show products that have at least one lot in quarantine status.
-  // We dedupe by itemId because a product can have multiple lots in quarantine.
-  const productItems = (() => {
+  const productItems = useMemo(() => {
     const itemIdsWithQuarantine = new Set(quarantineLots.map((l) => l.itemId));
     return products
       .filter((p) => itemIdsWithQuarantine.has(p.id))
@@ -147,9 +229,8 @@ export default function QcEntryNewPage() {
         label: `${p.code} — ${p.nameTh}${p.nameEn ? ' / ' + p.nameEn : ''}`,
         primaryUnit: p.primaryUnit,
       }));
-  })();
+  }, [products, quarantineLots]);
 
-  // Lots for the currently-selected product.
   const lotsForProduct = productId
     ? quarantineLots.filter((l) => l.itemId === productId)
     : [];
@@ -164,7 +245,7 @@ export default function QcEntryNewPage() {
     label: `${c.code} — ${c.name}`,
   }));
 
-  /** Apply a lot's data into the form fields (qty, unit, mfg/exp dates, lot#). */
+  /** Apply a lot's data into the form fields + auto-derive sourceType/ref. */
   const applyLotToForm = (lot: QuarantineLot | null) => {
     if (!lot) {
       setSelectedLotId(null);
@@ -180,9 +261,49 @@ export default function QcEntryNewPage() {
     setUnit(lot.unit || '');
     setManufactureDate(lot.manufacturingDate ? String(lot.manufacturingDate).slice(0, 10) : '');
     setExpiryDate(lot.expiryDate ? String(lot.expiryDate).slice(0, 10) : '');
+    // Auto-derive source ref + type from the lot's origin reference.
+    const ref = (lot.poNumber || '').trim();
+    if (ref && !sourceRefText.trim()) setSourceRefText(ref);
+    if (ref.startsWith('WO-') || ref.startsWith('WO')) {
+      setSourceType('work_order_batch');
+    } else if (ref.startsWith('PO-') || ref.startsWith('PO')) {
+      setSourceType('raw_material_lot');
+    }
   };
 
   const isOutgoing = sourceType === 'outgoing_shipment';
+  const lotQty = quantityReceived ?? 0;
+
+  // Computed sample sizes per selected test + buffer + total.
+  const computedTests = useMemo(
+    () =>
+      panel
+        .filter((t) => testCfg[t.criteriaId]?.selected)
+        .map((t) => {
+          const cfg = testCfg[t.criteriaId];
+          return {
+            ...t,
+            mode: cfg.mode,
+            fixedQty: cfg.fixedQty,
+            computedQty: computeSampleSize(t.criteriaSampleSize ?? 1, cfg, lotQty),
+          };
+        }),
+    [panel, testCfg, lotQty],
+  );
+
+  const testSampleSum = computedTests.reduce((s, t) => s + t.computedQty, 0);
+  const bufferQty = Math.ceil((testSampleSum * bufferPct) / 100);
+  const totalSampleQty = testSampleSum + bufferQty;
+  const retainQty = retainSampleQty ?? 0;
+  const totalDraw = totalSampleQty + retainQty;
+  const exceedsStock = selectedLotId != null && lotQty > 0 && totalDraw > lotQty;
+
+  const updateCfg = (criteriaId: number, patch: Partial<TestCfg>) => {
+    setTestCfg((prev) => ({
+      ...prev,
+      [criteriaId]: { ...prev[criteriaId], ...patch },
+    }));
+  };
 
   const handleSubmit = async () => {
     if (!productId) {
@@ -191,6 +312,13 @@ export default function QcEntryNewPage() {
     }
     if (!receivedDate) {
       toast.error('กรุณาระบุวันที่รับตัวอย่าง');
+      return;
+    }
+    if (exceedsStock) {
+      toast.error(
+        'จำนวนที่ต้องเบิกเกินคงเหลือใน lot',
+        `ต้องเบิก ${totalDraw} แต่คงเหลือ ${lotQty}`,
+      );
       return;
     }
     setSubmitting(true);
@@ -212,16 +340,19 @@ export default function QcEntryNewPage() {
           customerId: isOutgoing ? customerId : null,
           salesOrderRef: isOutgoing ? salesOrderRef || null : null,
           receivedDate,
+          requestedBy: requestedBy || null,
+          purpose: purpose || null,
           notes: notes || null,
           applyDefaultPanel,
+          // Sample requisition — service decrements the source lot.
+          sourceLotId: selectedLotId,
+          sampleQty: totalSampleQty > 0 ? totalSampleQty : null,
+          retainSampleQty: retainQty > 0 ? retainQty : null,
         }),
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error(
-          'ลงทะเบียนไม่สำเร็จ',
-          data.error || 'Unknown error',
-        );
+        toast.error('ลงทะเบียนไม่สำเร็จ', data.error || 'Unknown error');
         return;
       }
       toast.success(
@@ -241,10 +372,10 @@ export default function QcEntryNewPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-5 p-4 md:p-6 max-w-4xl">
+      <div className="flex flex-col gap-5 p-4 md:p-6 max-w-4xl" data-testid="qc-new-form">
         <ResponsivePageHeader
-          title="ลงทะเบียนตัวอย่าง QC"
-          subtitle="Register a new QC sample"
+          title="ลงทะเบียน + ขอเบิกตัวอย่าง QC"
+          subtitle="เบิก lot กักกัน → ตัดสต็อก + ลงทะเบียนตัวอย่างในใบเดียว"
           icon={TestTube}
           iconBgColor="bg-cyan-100"
           iconColor="text-cyan-600"
@@ -264,6 +395,29 @@ export default function QcEntryNewPage() {
         />
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 md:p-6 space-y-5">
+          {/* Request */}
+          <section>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">
+              ผู้ขอเบิก / Request
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DxTextBox
+                label="ผู้ขอเบิก"
+                value={requestedBy}
+                onValueChange={setRequestedBy}
+                placeholder="ชื่อผู้ขอเบิกตัวอย่าง"
+              />
+              <DxSelectBox
+                label="วัตถุประสงค์"
+                value={purpose}
+                items={PURPOSE_OPTIONS}
+                displayExpr="label"
+                valueExpr="value"
+                onValueChange={(v) => setPurpose(String(v ?? 'routine'))}
+              />
+            </div>
+          </section>
+
           {/* Source */}
           <section>
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
@@ -280,10 +434,10 @@ export default function QcEntryNewPage() {
                 required
               />
               <DxTextBox
-                label="อ้างอิง (WO#, Lot#, ฯลฯ)"
+                label="อ้างอิง (PO#, WO#, Lot#, ฯลฯ)"
                 value={sourceRefText}
                 onValueChange={setSourceRefText}
-                placeholder="เช่น WO2604297175"
+                placeholder="เช่น PO-2569-0438"
               />
             </div>
           </section>
@@ -304,25 +458,16 @@ export default function QcEntryNewPage() {
                   onValueChange={(v) => {
                     const next = v == null ? null : Number(v);
                     setProductId(next);
-                    // Reset lot fields whenever the product changes.
                     applyLotToForm(null);
                     if (!next) {
                       setStorageConditions('');
                       return;
                     }
                     const p = products.find((x) => x.id === next);
-                    // Storage condition is master-data on the item, not on the lot.
-                    if (p?.storageCondition) {
-                      setStorageConditions(p.storageCondition);
-                    }
+                    if (p?.storageCondition) setStorageConditions(p.storageCondition);
                     if (p?.primaryUnit && !unit) setUnit(p.primaryUnit);
-                    // If exactly one lot is in quarantine for this product,
-                    // auto-fill it; otherwise wait for user to pick from the
-                    // lot dropdown surfaced below.
                     const matchingLots = quarantineLots.filter((l) => l.itemId === next);
-                    if (matchingLots.length === 1) {
-                      applyLotToForm(matchingLots[0]);
-                    }
+                    if (matchingLots.length === 1) applyLotToForm(matchingLots[0]);
                   }}
                   searchEnabled
                   required
@@ -335,8 +480,6 @@ export default function QcEntryNewPage() {
                 )}
               </div>
 
-              {/* Lot selector — appears only when the product has >1 lot in quarantine.
-                  Single-lot products auto-fill silently above. */}
               {productId && lotsForProduct.length > 1 && (
                 <div className="md:col-span-2">
                   <DxSelectBox
@@ -356,7 +499,6 @@ export default function QcEntryNewPage() {
                 </div>
               )}
 
-              {/* Single-lot indicator — shows the auto-filled lot for context. */}
               {productId && lotsForProduct.length === 1 && selectedLotId && (
                 <div className="md:col-span-2 bg-emerald-50 border border-emerald-200 rounded-md p-2 text-xs text-emerald-800">
                   Lot เดียวในสถานะกักกัน: <strong>{lotsForProduct[0].lotNumber}</strong> — ดึงข้อมูลให้อัตโนมัติ
@@ -372,7 +514,7 @@ export default function QcEntryNewPage() {
               />
               <div className="grid grid-cols-2 gap-3">
                 <DxNumberBox
-                  label="จำนวน"
+                  label="จำนวนคงเหลือใน lot"
                   value={quantityReceived}
                   onValueChange={(v) => setQuantityReceived(v ?? null)}
                   readOnly={selectedLotId != null}
@@ -407,6 +549,149 @@ export default function QcEntryNewPage() {
                 value={storageConditions}
                 onValueChange={setStorageConditions}
                 placeholder="เช่น ต่ำกว่า 30°C"
+              />
+            </div>
+          </section>
+
+          {/* Sample-size calc — only when a panel exists for the product */}
+          {productId && panel.length > 0 && (
+            <section data-testid="sample-size-section">
+              <h2 className="text-sm font-semibold text-gray-700 mb-3">
+                คำนวณจำนวนสุ่ม / Sample size
+              </h2>
+              <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-600">
+                    <tr>
+                      <th className="text-left p-2 font-medium">ทดสอบ</th>
+                      <th className="text-left p-2 font-medium">วิธีคำนวณ</th>
+                      <th className="text-right p-2 font-medium w-28">จำนวนสุ่ม</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {panel.map((t) => {
+                      const cfg = testCfg[t.criteriaId] ?? {
+                        selected: true,
+                        mode: 'usp' as SampleMode,
+                        fixedQty: t.criteriaSampleSize ?? 1,
+                      };
+                      const qty = computeSampleSize(t.criteriaSampleSize ?? 1, cfg, lotQty);
+                      return (
+                        <tr key={t.criteriaId} className="border-t border-gray-100">
+                          <td className="p-2">
+                            <label className="flex items-center gap-2">
+                              <DxCheckBox
+                                value={cfg.selected}
+                                onValueChange={(v) =>
+                                  updateCfg(t.criteriaId, { selected: Boolean(v) })
+                                }
+                              />
+                              <span>
+                                {t.criteriaNameTh || t.criteriaName || t.criteriaCode}
+                                {t.criteriaCode && (
+                                  <span className="text-xs text-gray-400 ml-1">
+                                    ({t.criteriaCode})
+                                  </span>
+                                )}
+                              </span>
+                            </label>
+                          </td>
+                          <td className="p-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {MODE_OPTIONS.map((opt) => (
+                                <button
+                                  key={opt.key}
+                                  type="button"
+                                  disabled={!cfg.selected}
+                                  onClick={() => updateCfg(t.criteriaId, { mode: opt.key })}
+                                  className={`px-2 py-1 text-xs rounded border ${
+                                    cfg.mode === opt.key
+                                      ? 'bg-cyan-600 text-white border-cyan-600'
+                                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                  } ${!cfg.selected ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                              {cfg.mode === 'fixed' && cfg.selected && (
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={cfg.fixedQty}
+                                  onChange={(e) =>
+                                    updateCfg(t.criteriaId, {
+                                      fixedQty: Number(e.target.value),
+                                    })
+                                  }
+                                  className="w-20 px-2 py-1 text-xs border border-gray-300 rounded"
+                                />
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-2 text-right font-mono">{qty}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Buffer + totals */}
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-gray-600 whitespace-nowrap">
+                    Buffer (เผื่อทดสอบซ้ำ)
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={bufferPct}
+                    onChange={(e) => setBufferPct(Number(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className="text-sm font-mono w-12 text-right">{bufferPct}%</span>
+                </div>
+                <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">รวมจำนวนสุ่ม</span>
+                    <span className="font-mono" data-testid="test-sample-sum">
+                      {testSampleSum}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Buffer</span>
+                    <span className="font-mono">+{bufferQty}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold border-t border-cyan-200 mt-1 pt-1">
+                    <span>ต้องเบิกทดสอบรวม</span>
+                    <span className="font-mono" data-testid="total-sample-qty">
+                      {totalSampleQty} {unit}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Retain sample */}
+          <section>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">
+              ตัวอย่างคงคลัง / Retain sample
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DxNumberBox
+                label="จำนวน retain"
+                value={retainSampleQty}
+                onValueChange={(v) => setRetainSampleQty(v ?? null)}
+                min={0}
+              />
+              <DxTextBox
+                label="ที่เก็บ / Storage location"
+                value={retainStorage}
+                onValueChange={setRetainStorage}
+                placeholder="เช่น WH-RETAIN-01"
               />
             </div>
           </section>
@@ -475,6 +760,20 @@ export default function QcEntryNewPage() {
             </div>
           </section>
 
+          {/* Stock-exceeded warning */}
+          {exceedsStock && (
+            <div
+              className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+              data-testid="stock-warning"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>
+                จำนวนที่ต้องเบิก ({totalDraw} {unit}) เกินคงเหลือใน lot ({lotQty} {unit}) —
+                ลดจำนวนสุ่ม / buffer / retain
+              </span>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
             <DxButton
               text="ยกเลิก"
@@ -487,7 +786,7 @@ export default function QcEntryNewPage() {
               icon="save"
               type="default"
               onClick={handleSubmit}
-              disabled={submitting || !productId}
+              disabled={submitting || !productId || exceedsStock}
             />
           </div>
         </div>

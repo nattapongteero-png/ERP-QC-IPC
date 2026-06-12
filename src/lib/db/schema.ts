@@ -6639,6 +6639,9 @@ export const sqliteQcSamples = sqliteTable('qc_samples', {
   salesOrderRef: text('sales_order_ref'),
   receivedDate: text('received_date').notNull(),
   receivedBy: integer('received_by').notNull().references(() => sqliteUsers.id),
+  // Sample-requisition context (QC Entry guide) — who requested the draw and why.
+  requestedBy: text('requested_by'),
+  purpose: text('purpose'), // routine|retest|stability|complaint
   status: text('status').notNull().default('draft'),
   notes: text('notes'),
   // Feature 020: link back to GRN line, plus flag for QC manager review when default panel missing
@@ -6904,6 +6907,9 @@ export const mysqlQcSamples = mysqlTable('qc_samples', {
   salesOrderRef: varchar('sales_order_ref', { length: 50 }),
   receivedDate: datetime('received_date').notNull(),
   receivedBy: int('received_by').notNull().references(() => mysqlUsers.id),
+  // Sample-requisition context (QC Entry guide) — who requested the draw and why.
+  requestedBy: varchar('requested_by', { length: 255 }),
+  purpose: varchar('purpose', { length: 30 }), // routine|retest|stability|complaint
   status: varchar('status', { length: 20 }).notNull().default('draft'),
   notes: mysqlText('notes'),
   // Feature 020: link back to GRN line + flag for QC manager review

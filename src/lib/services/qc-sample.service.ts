@@ -284,6 +284,8 @@ export interface TestPanelRow {
   criteriaCode: string | null;
   criteriaName: string | null;
   criteriaNameTh: string | null;
+  /** Default n-samples per test from ipc_criteria — drives QC Entry sample-size calc. */
+  criteriaSampleSize: number | null;
   isRequired: boolean;
   sequence: number;
   isActive: boolean;
@@ -551,6 +553,8 @@ export async function createQcSample(
       salesOrderRef: input.salesOrderRef ?? null,
       receivedDate: toDbDate(input.receivedDate),
       receivedBy: input.receivedBy,
+      requestedBy: input.requestedBy ?? null,
+      purpose: input.purpose ?? null,
       status: 'registered',
       notes: input.notes ?? null,
       createdAt: now,
@@ -1817,6 +1821,7 @@ export async function listTestPanels(
         criteriaCode: tables.criteria.code,
         criteriaName: tables.criteria.name,
         criteriaNameTh: tables.criteria.nameTh,
+        criteriaSampleSize: tables.criteria.sampleSize,
         isRequired: tables.panels.isRequired,
         sequence: tables.panels.sequence,
         isActive: tables.panels.isActive,
@@ -1839,6 +1844,7 @@ export async function listTestPanels(
       criteriaCode: r.criteriaCode ?? null,
       criteriaName: r.criteriaName ?? null,
       criteriaNameTh: r.criteriaNameTh ?? null,
+      criteriaSampleSize: r.criteriaSampleSize != null ? Number(r.criteriaSampleSize) : null,
       isRequired: Boolean(r.isRequired),
       sequence: Number(r.sequence) || 1,
       isActive: Boolean(r.isActive),
@@ -1860,6 +1866,7 @@ export async function getTestPanel(id: number): Promise<TestPanelRow | null> {
         criteriaCode: tables.criteria.code,
         criteriaName: tables.criteria.name,
         criteriaNameTh: tables.criteria.nameTh,
+        criteriaSampleSize: tables.criteria.sampleSize,
         isRequired: tables.panels.isRequired,
         sequence: tables.panels.sequence,
         isActive: tables.panels.isActive,
@@ -1881,6 +1888,7 @@ export async function getTestPanel(id: number): Promise<TestPanelRow | null> {
       criteriaCode: r.criteriaCode ?? null,
       criteriaName: r.criteriaName ?? null,
       criteriaNameTh: r.criteriaNameTh ?? null,
+      criteriaSampleSize: r.criteriaSampleSize != null ? Number(r.criteriaSampleSize) : null,
       isRequired: Boolean(r.isRequired),
       sequence: Number(r.sequence) || 1,
       isActive: Boolean(r.isActive),

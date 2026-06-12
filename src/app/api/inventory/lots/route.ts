@@ -94,6 +94,10 @@ export async function GET(request: NextRequest) {
             itemType: itemsTable.type,
             warehouseId: lotsTable.warehouseId,
             warehouseName: warehousesTable.name,
+            // Source reference (PO#) + GRN link — lets QC Entry auto-fill the
+            // sample's sourceRef/sourceType from the originating receipt.
+            poNumber: lotsTable.poNumber,
+            sourceGrnLineId: lotsTable.sourceGrnLineId,
             vendorLotNumber: lotsTable.vendorLotNumber,
             cost: lotsTable.cost,
             createdAt: lotsTable.createdAt,

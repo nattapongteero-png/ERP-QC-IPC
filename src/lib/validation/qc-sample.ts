@@ -76,6 +76,9 @@ export const createQcSampleSchema = z.object({
   salesOrderRef: z.string().max(50).nullable().optional(),
   receivedDate: z.string().min(1, 'receivedDate is required'),
   receivedBy: z.number().int().positive('receivedBy is required'),
+  // Sample-requisition context (QC Entry guide).
+  requestedBy: z.string().max(255).nullable().optional(),
+  purpose: z.enum(['routine', 'retest', 'stability', 'complaint']).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   // When true, seed qc_sample_tests rows from the matching qc_test_panels for
   // this product (or product_category). Operator can still add/remove tests
