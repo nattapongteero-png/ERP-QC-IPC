@@ -276,7 +276,19 @@ export default function GrnDetailPage() {
         <Editing mode="row" allowUpdating useIcons />
         <Paging pageSize={20} />
         <Column dataField="lineNumber" caption="#" width={60} allowEditing={false} />
-        <Column dataField="itemId" caption={t('table.columns.item')} allowEditing={false} />
+        <Column
+          dataField="itemCode"
+          caption={t('table.columns.item')}
+          allowEditing={false}
+          cellRender={(cell) => (
+            <div>
+              <p className="font-medium">{cell.data.itemCode || `#${cell.data.itemId}`}</p>
+              {cell.data.itemName && (
+                <p className="text-xs text-gray-500">{cell.data.itemName}</p>
+              )}
+            </div>
+          )}
+        />
         <Column
           dataField="expectedQuantity"
           caption={t('table.columns.expectedQty')}

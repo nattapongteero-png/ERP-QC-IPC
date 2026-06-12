@@ -353,14 +353,21 @@ export async function getGrnById(
       throw new GoodsReceiptError(GOODS_RECEIPT_ERROR_CODES.NOT_FOUND, 'GRN not found');
 
     const lineRows = await db
-      .select()
+      .select({
+        line: t.lines,
+        itemCode: t.items.code,
+        itemName: t.items.nameTh,
+      })
       .from(t.lines)
+      .leftJoin(t.items, eq(t.lines.itemId, t.items.id))
       .where(eq(t.lines.grnId, id))
       .orderBy(t.lines.lineNumber);
 
     return {
       grn: normalizeGrn(grnRows[0]),
-      lines: lineRows.map(normalizeLine),
+      lines: lineRows.map((r: any) =>
+        normalizeLine({ ...r.line, itemCode: r.itemCode, itemName: r.itemName }),
+      ),
     };
   });
 }
@@ -564,6 +571,8 @@ function normalizeLine(row: any): GoodsReceiptLine {
     grnId: Number(row.grnId),
     lineNumber: Number(row.lineNumber),
     itemId: Number(row.itemId),
+    itemCode: row.itemCode ?? null,
+    itemName: row.itemName ?? null,
     expectedQuantity: Number(row.expectedQuantity),
     actualQuantity: row.actualQuantity != null ? Number(row.actualQuantity) : null,
     sampleQuantity: row.sampleQuantity != null ? Number(row.sampleQuantity) : null,

@@ -115,6 +115,9 @@ export interface GoodsReceiptLine {
   grnId: number;
   lineNumber: number;
   itemId: number;
+  /** Item master code + name, joined for display (null if item missing). */
+  itemCode: string | null;
+  itemName: string | null;
   expectedQuantity: number;
   actualQuantity: number | null;
   sampleQuantity: number | null;
