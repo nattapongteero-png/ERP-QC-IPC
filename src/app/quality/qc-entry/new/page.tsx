@@ -181,7 +181,7 @@ export default function QcEntryNewPage() {
   }, []);
 
   // Load the default test panel whenever the product changes — drives the
-  // sample-size table. Reset config so each product starts at USP defaults.
+  // sample-size table. Reset config so each product starts at the √n+1 plan.
   useEffect(() => {
     if (!productId) {
       setPanel([]);
@@ -202,7 +202,10 @@ export default function QcEntryNewPage() {
         for (const r of rows) {
           cfg[r.criteriaId] = {
             selected: true,
-            mode: 'usp',
+            // Default to the pharmacopoeial √n+1 sampling plan (the standard the
+            // QC team uses). Operators can switch a row to USP n or a fixed
+            // count when a criterion calls for it.
+            mode: 'sqrt',
             fixedQty: r.criteriaSampleSize ?? 1,
           };
         }
@@ -572,7 +575,7 @@ export default function QcEntryNewPage() {
                     {panel.map((t) => {
                       const cfg = testCfg[t.criteriaId] ?? {
                         selected: true,
-                        mode: 'usp' as SampleMode,
+                        mode: 'sqrt' as SampleMode,
                         fixedQty: t.criteriaSampleSize ?? 1,
                       };
                       const qty = computeSampleSize(t.criteriaSampleSize ?? 1, cfg, lotQty);
