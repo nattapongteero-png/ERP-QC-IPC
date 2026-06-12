@@ -13,6 +13,22 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+// PO lifecycle state machine — enforced server-side so a PO cannot skip the
+// approval step (e.g. jump draft → received). The receive endpoint advances
+// 'partial'/'received' from 'sent' as goods arrive.
+//   draft → pending_approval → approved → sent → partial → received
+// Any non-terminal status may be cancelled. Re-setting the same status (no-op)
+// and edits that don't change status are always allowed.
+const PO_STATUS_TRANSITIONS: Record<string, string[]> = {
+  draft: ['pending_approval', 'cancelled'],
+  pending_approval: ['approved', 'draft', 'cancelled'],
+  approved: ['sent', 'cancelled'],
+  sent: ['partial', 'received', 'cancelled'],
+  partial: ['received', 'cancelled'],
+  received: [],
+  cancelled: [],
+};
+
 // GET /api/purchasing/orders/[id] - Get single purchase order
 export async function GET(request: NextRequest, { params }: RouteParams) {
   return withAuth(request, async () => {
@@ -103,6 +119,21 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return errorResponse('Purchase order not found', 404);
       }
 
+      // Enforce the PO lifecycle: reject illegal status jumps (e.g. skipping
+      // approval). A no-op (same status) or a status-less edit is allowed.
+      if (status !== undefined && status !== existing.status) {
+        const allowed = PO_STATUS_TRANSITIONS[existing.status] ?? [];
+        if (!allowed.includes(status)) {
+          return errorResponse(
+            `ไม่สามารถเปลี่ยนสถานะจาก "${existing.status}" เป็น "${status}" ได้` +
+              (allowed.length
+                ? ` (อนุญาต: ${allowed.join(', ')})`
+                : ' (สถานะนี้สิ้นสุดแล้ว)'),
+            400,
+          );
+        }
+      }
+
       // Build update object
       const updateData: Record<string, unknown> = {
         updatedAt: dbDate(),
@@ -131,16 +162,24 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ipAddress: getClientIP(request),
       });
 
-      // On transition to 'approved', auto-create a Goods Receipt so the PO
+      // Auto-create a Goods Receipt once the PO advances past draft, so the PO
       // lines appear on the GRN screen (quarantine → QC checklist → release).
-      // Idempotent (autoCreateGrnForSource skips if a GRN already exists) and
-      // best-effort: never fail the PO update if GRN creation errors.
-      if (status === 'approved' && existing.status !== 'approved') {
+      // Triggered on the first transition into any of approved/sent/partial/
+      // received — covers POs advanced via this PATCH or the legacy /receive
+      // path (which sets 'received'/'partial'). Idempotent
+      // (autoCreateGrnForSource skips if a GRN already exists) and best-effort:
+      // never fail the PO update if GRN creation errors.
+      const GRN_TRIGGER_STATUSES = ['approved', 'sent', 'partial', 'received'];
+      if (
+        status !== undefined &&
+        GRN_TRIGGER_STATUSES.includes(status) &&
+        status !== existing.status
+      ) {
         try {
           const { autoCreateGrnForSource } = await import('@/lib/services/goods-receipt.service');
           await autoCreateGrnForSource({ sourceType: 'po', poId, userId: session.userId });
         } catch (err) {
-          console.warn('PO-approved auto-GRN failed (non-fatal):', err);
+          console.warn('PO auto-GRN failed (non-fatal):', err);
         }
       }
 

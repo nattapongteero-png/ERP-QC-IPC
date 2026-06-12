@@ -193,6 +193,16 @@ export async function POST(
         });
       }
 
+      // Ensure the PO appears on the GRN/QC flow. This legacy receive path
+      // creates a quarantine lot directly; auto-create the GRN too (idempotent)
+      // so the lines surface in QC Entry's "รอลงทะเบียน" panel. Best-effort.
+      try {
+        const { autoCreateGrnForSource } = await import('@/lib/services/goods-receipt.service');
+        await autoCreateGrnForSource({ sourceType: 'po', poId, userId: session.userId });
+      } catch (err) {
+        console.warn('PO-receive auto-GRN failed (non-fatal):', err);
+      }
+
       await createAuditLog({
         userId: session.userId,
         action: 'CREATE',

@@ -217,6 +217,18 @@ const STATUS_CONFIG: Record<POStatus, {
   },
 };
 
+// Mirror of the backend PO state machine (api/purchasing/orders/[id]) so the
+// edit dropdown only offers legal next statuses (current + allowed targets).
+const PO_STATUS_TRANSITIONS: Record<string, string[]> = {
+  draft: ['pending_approval', 'cancelled'],
+  pending_approval: ['approved', 'draft', 'cancelled'],
+  approved: ['sent', 'cancelled'],
+  sent: ['partial', 'received', 'cancelled'],
+  partial: ['received', 'cancelled'],
+  received: [],
+  cancelled: [],
+};
+
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'ร่าง' },
   { value: 'pending_approval', label: 'รออนุมัติ' },
@@ -1252,7 +1264,11 @@ export default function PurchaseOrderDetailPage() {
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
                               <DxSelectBox
-                                items={STATUS_OPTIONS}
+                                items={STATUS_OPTIONS.filter(
+                                  (o) =>
+                                    o.value === po.status ||
+                                    (PO_STATUS_TRANSITIONS[po.status] ?? []).includes(o.value),
+                                )}
                                 value={editPOForm.status}
                                 onValueChange={(v) => setEditPOForm({ ...editPOForm, status: v })}
                               />
