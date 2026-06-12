@@ -31,6 +31,17 @@ import type {
   ChecklistTemplate,
 } from '@/types/goods-receipt';
 
+/**
+ * Pharmacopoeial √n+1 sampling plan — the default QC sample size to draw from
+ * a received lot of size `n`: ⌈√n + 1⌉, never more than the lot itself.
+ * Returns 0 for an empty/zero lot.
+ */
+function sqrtSamplePlan(lotQty: number | null | undefined): number {
+  const n = Number(lotQty);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(n, Math.ceil(Math.sqrt(n) + 1));
+}
+
 export default function GrnDetailPage() {
   const params = useParams<{ id: string }>();
   const grnId = Number(params.id);
@@ -356,8 +367,10 @@ export default function GrnDetailPage() {
                         initial[it.id] = { isPass: false };
                       });
                       setChecklistAnswers(initial);
-                      // QC enters the sample qty fresh each time — no pre-fill.
-                      setChecklistSampleQty('');
+                      // Pre-fill the QC sample qty with the pharmacopoeial
+                      // √n+1 plan (⌈√expectedQty + 1⌉), capped at the line qty.
+                      // QC can still override before signing.
+                      setChecklistSampleQty(String(sqrtSamplePlan(line.expectedQuantity)));
                       setChecklistOpen(true);
                     }}
                   />
@@ -434,6 +447,24 @@ export default function GrnDetailPage() {
             <p className="text-xs text-gray-500 mt-1">
               ระบบจะหักจำนวนนี้เข้าคลังตัวอย่าง QC — ส่วนที่เหลือฝ่ายคลังจะนับและรับเข้าคลังภายหลัง
             </p>
+            {(() => {
+              const activeLine = (data?.lines ?? []).find((l) => l.id === activeLineId);
+              const plan = sqrtSamplePlan(activeLine?.expectedQuantity);
+              if (plan <= 0) return null;
+              return (
+                <p className="text-xs text-amber-700 mt-1">
+                  ตั้งต้นตามแผนสุ่ม √n+1 (เภสัชกรรม): จาก {Number(activeLine?.expectedQuantity).toLocaleString()}{' '}
+                  {activeLine?.unit} → แนะนำ <strong>{plan}</strong>{' '}
+                  <button
+                    type="button"
+                    className="underline hover:text-amber-900"
+                    onClick={() => setChecklistSampleQty(String(plan))}
+                  >
+                    ใช้ค่านี้
+                  </button>
+                </p>
+              );
+            })()}
           </div>
           {(currentTemplate?.items ?? []).map((item) => (
             <div key={item.id} className="border rounded p-3 space-y-2">
