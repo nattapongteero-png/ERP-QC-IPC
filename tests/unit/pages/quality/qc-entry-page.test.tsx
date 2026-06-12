@@ -17,8 +17,9 @@ import {
   createPaginatedResponse,
 } from '../../../helpers/ui-test-utils';
 
+const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
+  useRouter: () => ({ push: mockPush, back: vi.fn() }),
 }));
 
 vi.mock('lucide-react', () => ({
@@ -161,20 +162,16 @@ describe('QcEntryListPage', () => {
     });
   });
 
-  it('loads products from /api/items when Quick Add opens (not the broken /api/master-data/items)', async () => {
+  it('single "register new" button navigates to the full /new form', async () => {
     baseFetchMock();
     renderWithProviders(<QcEntryListPage />);
 
-    await waitFor(() => expect(screen.getByTestId('qc-entry-quick-add')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('qc-entry-register-new')).toBeInTheDocument());
+    // The old Quick Add dialog trigger must be gone — one entry point only.
+    expect(screen.queryByTestId('qc-entry-quick-add')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('qc-entry-quick-add'));
-
-    await waitFor(() => {
-      const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
-      expect(urls.some((u) => u.includes('/api/items'))).toBe(true);
-      // The old broken endpoint must never be called.
-      expect(urls.some((u) => u.includes('/api/master-data/items'))).toBe(false);
-    });
+    fireEvent.click(screen.getByTestId('qc-entry-register-new'));
+    expect(mockPush).toHaveBeenCalledWith('/quality/qc-entry/new');
   });
 
   it('shows the pending-registration panel with only checklist-unsigned (created) GRN lines', async () => {
@@ -190,16 +187,4 @@ describe('QcEntryListPage', () => {
     expect(screen.getByText('รอลงทะเบียน QC (1)')).toBeInTheDocument();
   });
 
-  it('opens the Quick Add dialog with the product field present', async () => {
-    baseFetchMock();
-    renderWithProviders(<QcEntryListPage />);
-
-    await waitFor(() => expect(screen.getByTestId('qc-entry-quick-add')).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('qc-entry-quick-add'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('dx-popup')).toBeInTheDocument();
-      expect(screen.getByTestId('quick-add-product')).toBeInTheDocument();
-    });
-  });
 });

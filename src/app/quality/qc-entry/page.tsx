@@ -17,8 +17,6 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxPopup } from '@/components/ui/dx-popup';
-import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -148,80 +146,6 @@ export default function QcEntryListPage() {
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   const [search, setSearch] = useState<string>('');
-
-  // Audit Q2 — quick add dialog (single-page UX). Power users can still
-  // open the full /new form for the long-tail source types.
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [productOptions, setProductOptions] = useState<{ id: number; code: string; nameTh: string }[]>([]);
-  const [quickForm, setQuickForm] = useState({
-    productId: null as number | null,
-    sourceType: 'raw_material_lot',
-    sourceRefText: '',
-    lotNumber: '',
-    receivedDate: new Date().toISOString().slice(0, 10),
-    applyDefaultPanel: true,
-  });
-  const [submittingQuick, setSubmittingQuick] = useState(false);
-
-  const loadProducts = useCallback(async () => {
-    if (productOptions.length > 0) return;
-    try {
-      const res = await fetch('/api/items?limit=500');
-      const j = await res.json();
-      const items = j?.data?.items || j?.data || j?.items || [];
-      setProductOptions(
-        items.map((p: any) => ({
-          id: p.id,
-          code: p.code,
-          nameTh: p.nameTh || p.nameEn || p.code,
-        })),
-      );
-    } catch {
-      /* ignore */
-    }
-  }, [productOptions.length]);
-
-  const submitQuickAdd = async () => {
-    if (!quickForm.productId) {
-      toast.error('กรุณาเลือกสินค้า');
-      return;
-    }
-    setSubmittingQuick(true);
-    try {
-      const res = await fetch('/api/quality/qc-samples', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: quickForm.productId,
-          sourceType: quickForm.sourceType,
-          sourceRefText: quickForm.sourceRefText || null,
-          lotNumber: quickForm.lotNumber || null,
-          receivedDate: quickForm.receivedDate,
-          applyDefaultPanel: quickForm.applyDefaultPanel,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        toast.error('สร้างตัวอย่างไม่สำเร็จ', data?.error || 'Unknown error');
-        return;
-      }
-      toast.success('สร้างตัวอย่าง QC แล้ว', `Sample ${data.data?.sampleNumber || ''}`);
-      setShowQuickAdd(false);
-      setQuickForm({
-        productId: null,
-        sourceType: 'raw_material_lot',
-        sourceRefText: '',
-        lotNumber: '',
-        receivedDate: new Date().toISOString().slice(0, 10),
-        applyDefaultPanel: true,
-      });
-      // Stay on the list page — single-page UX. User can click the row
-      // to drill into recording results inline.
-      void fetchSamples();
-    } finally {
-      setSubmittingQuick(false);
-    }
-  };
 
   const fetchSamples = useCallback(async () => {
     setLoading(true);
@@ -481,21 +405,17 @@ export default function QcEntryListPage() {
                 stylingMode="outlined"
                 onClick={() => router.push('/quality/test-panels')}
               />
+              {/* Single registration entry point — the full form at /new covers
+                  the sample-requisition fields (sample size, buffer, retain,
+                  auto-derive from lot). PO/WO sources arrive via the
+                  pending-registration panel above; the form handles the
+                  manual sources (returns, stability, COA, etc.). */}
               <DxButton
                 icon="plus"
                 text="ลงทะเบียนตัวอย่างใหม่"
                 type="default"
-                onClick={() => {
-                  void loadProducts();
-                  setShowQuickAdd(true);
-                }}
-                data-testid="qc-entry-quick-add"
-              />
-              <DxButton
-                icon="edit"
-                text="ฟอร์มเต็ม"
-                stylingMode="outlined"
                 onClick={() => router.push('/quality/qc-entry/new')}
+                data-testid="qc-entry-register-new"
               />
             </div>
           }
@@ -639,10 +559,7 @@ export default function QcEntryListPage() {
                 icon="plus"
                 text="ลงทะเบียนตัวอย่างใหม่"
                 type="default"
-                onClick={() => {
-                  void loadProducts();
-                  setShowQuickAdd(true);
-                }}
+                onClick={() => router.push('/quality/qc-entry/new')}
               />
             </div>
           ) : (
@@ -665,116 +582,6 @@ export default function QcEntryListPage() {
           )}
         </div>
       </div>
-
-      {/* Audit Q2 — quick add dialog */}
-      <DxPopup
-        visible={showQuickAdd}
-        onHiding={() => setShowQuickAdd(false)}
-        title="ลงทะเบียนตัวอย่าง QC (Quick Add)"
-        width={560}
-        height="auto"
-        showCloseButton
-      >
-        <div className="space-y-3 p-2">
-          <div className="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded px-3 py-2">
-            ลงทะเบียนเร็วด้วย 4 ช่องหลัก แล้วระบบจะตั้งชุดทดสอบ (test panel)
-            ให้อัตโนมัติตามสินค้า — ไม่ต้องกรอกจำนวน/วันผลิต/วันหมดอายุเหมือนฟอร์มเต็ม
-            (กรอกเพิ่มภายหลังที่หน้ารายละเอียดได้)
-          </div>
-          {productOptions.length === 0 && (
-            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-              กำลังโหลดรายการสินค้า… หากไม่มีสินค้าให้เลือก
-              โปรดตรวจสอบว่ามีสินค้าในระบบ (Master Data → สินค้า)
-            </div>
-          )}
-          <DxSelectBox
-            placeholder="สินค้า *"
-            dataSource={productOptions.map((p) => ({
-              id: p.id,
-              name: `${p.code} — ${p.nameTh}`,
-            }))}
-            valueExpr="id"
-            displayExpr="name"
-            value={quickForm.productId}
-            onValueChanged={(e) => setQuickForm({ ...quickForm, productId: e.value })}
-            searchEnabled
-            noDataText="ไม่พบสินค้า — ตรวจสอบข้อมูลใน Master Data"
-            data-testid="quick-add-product"
-          />
-          <DxSelectBox
-            placeholder="ที่มา"
-            dataSource={[
-              { id: 'raw_material_lot', name: 'วัตถุดิบเข้า' },
-              { id: 'work_order_batch', name: 'ใบสั่งผลิต (WO)' },
-              { id: 'customer_return', name: 'คืนจากลูกค้า' },
-              { id: 'stability', name: 'ความคงตัว' },
-              { id: 'purchased_herb', name: 'ซื้อสมุนไพร' },
-              { id: 'other', name: 'อื่น ๆ' },
-            ]}
-            valueExpr="id"
-            displayExpr="name"
-            value={quickForm.sourceType}
-            onValueChanged={(e) => setQuickForm({ ...quickForm, sourceType: e.value })}
-          />
-          <DxTextBox
-            placeholder="ref / ข้อมูลที่มา (optional)"
-            value={quickForm.sourceRefText}
-            onValueChanged={(e) =>
-              setQuickForm({ ...quickForm, sourceRefText: e.value || '' })
-            }
-          />
-          <DxTextBox
-            placeholder="Lot number (optional)"
-            value={quickForm.lotNumber}
-            onValueChanged={(e) =>
-              setQuickForm({ ...quickForm, lotNumber: e.value || '' })
-            }
-          />
-          <DxDateBox
-            placeholder="วันที่รับตัวอย่าง"
-            value={quickForm.receivedDate}
-            onValueChanged={(e) => {
-              const v = e.value as Date | string | null;
-              setQuickForm({
-                ...quickForm,
-                receivedDate:
-                  v instanceof Date
-                    ? v.toISOString().slice(0, 10)
-                    : (v as string) || quickForm.receivedDate,
-              });
-            }}
-          />
-          <DxCheckBox
-            text="ใช้ default test panel ของสินค้านี้"
-            value={quickForm.applyDefaultPanel}
-            onValueChanged={(e) =>
-              setQuickForm({ ...quickForm, applyDefaultPanel: !!e.value })
-            }
-          />
-          <div className="flex justify-between items-center pt-2 border-t">
-            <button
-              className="text-xs text-blue-700 hover:underline"
-              onClick={() => {
-                setShowQuickAdd(false);
-                router.push('/quality/qc-entry/new');
-              }}
-              data-testid="quick-add-open-full"
-            >
-              ต้องการกรอกรายละเอียดเต็ม? เปิดฟอร์มเต็ม
-            </button>
-            <div className="flex gap-2">
-              <DxButton text="ยกเลิก" onClick={() => setShowQuickAdd(false)} />
-              <DxButton
-                text="บันทึก"
-                type="success"
-                onClick={submitQuickAdd}
-                disabled={submittingQuick}
-                data-testid="quick-add-submit"
-              />
-            </div>
-          </div>
-        </div>
-      </DxPopup>
     </>
   );
 }
