@@ -19,6 +19,7 @@ import { Edit, Trash2, CheckCircle, Archive, Copy, DollarSign, ChevronDown, Sett
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
 import { BOMAccessControlTab, ConfidentialityBanner } from '@/components/bom';
 import { formatNumber, formatMoney } from '@/lib/utils/number-format';
+import { useToast } from '@/hooks/use-toast';
 import type { BOMConfidentialityInfo } from '@/types/confidentiality';
 
 interface BOMLine {
@@ -91,6 +92,7 @@ export default function BOMDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const t = useTranslations('production');
+  const toast = useToast();
 
   // Use translation for page title
   const pageTitle = t('bomDetail.title');
@@ -346,10 +348,17 @@ export default function BOMDetailPage() {
       const result = await response.json();
       if (result.success) {
         setCopyDialogOpen(false);
+        toast.success('คัดลอก BOM สำเร็จ', `สร้าง ${copyForm.newCode} เป็นฉบับร่างแล้ว`);
         router.push(`/production/bom/${result.data.id}`);
+      } else {
+        // Surface the real reason (most often: the new code already exists) —
+        // previously this only console.error'd, so the dialog just sat there
+        // and the user thought "copy doesn't work".
+        toast.error('คัดลอก BOM ไม่สำเร็จ', result.error || 'รหัส BOM อาจซ้ำกับที่มีอยู่แล้ว — ลองเปลี่ยนรหัสใหม่');
       }
     } catch (error) {
       console.error('Failed to copy BOM:', error);
+      toast.error('คัดลอก BOM ไม่สำเร็จ', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
       setCopying(false);
     }
@@ -1235,19 +1244,24 @@ export default function BOMDetailPage() {
         showCloseButton
       >
         <div className="space-y-4 p-4">
-          <p className="text-sm text-gray-500">
-            Create a copy of this BOM with a new code. The copy will be created as a draft.
-          </p>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-sm text-emerald-900 leading-relaxed">
+            <p className="font-semibold mb-0.5">คัดลอก BOM นี้เป็นสูตรใหม่</p>
+            <p className="text-xs text-emerald-800">
+              จะสร้าง BOM ใหม่ที่มี<strong>วัตถุดิบและสูตรเหมือนต้นฉบับทุกอย่าง</strong> โดยตั้งสถานะเป็น
+              <strong> ฉบับร่าง (draft)</strong> ให้แก้ไขต่อได้ — ต้นฉบับไม่ถูกแตะต้อง ใช้เมื่อต้องการทำเวอร์ชันใหม่หรือสูตรใกล้เคียง
+            </p>
+          </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">New BOM Code *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">รหัส BOM ใหม่ *</label>
             <DxTextBox
               value={copyForm.newCode}
               onValueChange={(value) => setCopyForm({ ...copyForm, newCode: value })}
-              placeholder="Enter new BOM code"
+              placeholder="เช่น BOM-FG-0001-V2"
             />
+            <p className="text-xs text-gray-500 mt-1">ต้องไม่ซ้ำกับรหัส BOM ที่มีอยู่</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Version</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">เวอร์ชัน</label>
             <DxTextBox
               value={copyForm.newVersion}
               onValueChange={(value) => setCopyForm({ ...copyForm, newVersion: value })}
@@ -1255,23 +1269,23 @@ export default function BOMDetailPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ BOM</label>
             <DxTextBox
               value={copyForm.newName}
               onValueChange={(value) => setCopyForm({ ...copyForm, newName: value })}
-              placeholder="Enter new BOM name"
+              placeholder="ชื่อสูตรใหม่"
             />
           </div>
           <div className="flex justify-end gap-2 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setCopyDialogOpen(false)}
             />
             <DxButton
-              text={copying ? 'Copying...' : 'Copy BOM'}
-              type="default"
+              text={copying ? 'กำลังคัดลอก...' : 'คัดลอก BOM'}
+              type="success"
               onClick={handleCopy}
               disabled={copying || !copyForm.newCode}
             />

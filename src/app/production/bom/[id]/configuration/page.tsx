@@ -589,6 +589,9 @@ export default function BOMConfigurationPage() {
   const [dialogType, setDialogType] = useState<'room' | 'equipment' | 'condition' | 'sop' | 'qc'>('room');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
+  // Source BOM selected in the Copy-Configuration dialog (the dialog used to
+  // have a dead free-text "BOM ID" input + a button with no onClick).
+  const [copySourceId, setCopySourceId] = useState<number | null>(null);
 
   // BOM SOP-step IPC linker state.
   // selectedStepForIPC = the BOM SOP step the operator is managing IPCs for.
@@ -1374,6 +1377,21 @@ export default function BOMConfigurationPage() {
     });
   };
 
+  // Selectable source BOMs for the Copy-Configuration dialog (exclude self).
+  const { data: copySourceBoms = [] } = useQuery<Array<{ id: number; code: string; name: string; label: string }>>({
+    queryKey: ['bom-copy-sources', bomId],
+    enabled: showCopyDialog,
+    queryFn: async () => {
+      const res = await fetch('/api/bom?limit=1000');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      const items = (data.data?.items || []) as Array<{ id: number; code: string; name: string }>;
+      return items
+        .filter((b) => b.id !== bomId)
+        .map((b) => ({ ...b, label: `${b.code} — ${b.name}` }));
+    },
+  });
+
   // Copy configuration mutation
   const copyConfigMutation = useMutation({
     mutationFn: async (sourceBomId: number) => {
@@ -1393,8 +1411,9 @@ export default function BOMConfigurationPage() {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
       queryClient.invalidateQueries({ queryKey: ['bom-packaging-qc', bomId] });
       queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
-      toast.success('Configuration Copied', 'BOM configuration has been copied successfully.');
+      toast.success('คัดลอกการตั้งค่าสำเร็จ', 'คัดลอกการตั้งค่า BOM เรียบร้อยแล้ว');
       setShowCopyDialog(false);
+      setCopySourceId(null);
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -3097,26 +3116,37 @@ export default function BOMConfigurationPage() {
         dragEnabled={false}
       >
         <div className="p-4 space-y-4">
-          <p className="text-sm text-gray-600">
-            Copy all configuration (rooms, equipment, environmental conditions, SOP steps, packaging QC)
-            from another BOM to this one. Existing configuration will be replaced.
-          </p>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-sm text-emerald-900 leading-relaxed">
+            <p className="font-semibold mb-0.5">คัดลอกการตั้งค่าจาก BOM อื่น</p>
+            <p className="text-xs text-emerald-800">
+              ดึงการตั้งค่าทั้งหมด (ห้องผลิต, เครื่องจักร, สภาวะแวดล้อม, ขั้นตอน SOP, QC บรรจุภัณฑ์)
+              จาก BOM ที่เลือกมาใส่ BOM นี้ เพื่อไม่ต้องตั้งค่าใหม่ทั้งหมด
+            </p>
+          </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Source BOM</label>
-            <DxTextBox placeholder="Enter source BOM ID" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">เลือก BOM ต้นทาง *</label>
+            <DxSelectBox
+              items={copySourceBoms}
+              value={copySourceId}
+              onValueChange={(v) => setCopySourceId(v ?? null)}
+              valueExpr="id"
+              displayExpr="label"
+              searchEnabled
+              placeholder="ค้นหา/เลือก BOM ที่ต้องการคัดลอกการตั้งค่า"
+            />
           </div>
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <p className="text-sm text-amber-800">
-              <strong>Warning:</strong> This will replace all existing configuration for this BOM.
-              This action cannot be undone.
+              <strong>คำเตือน:</strong> การตั้งค่าเดิมทั้งหมดของ BOM นี้จะถูกแทนที่ และไม่สามารถย้อนกลับได้
             </p>
           </div>
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowCopyDialog(false)} />
+            <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => { setShowCopyDialog(false); setCopySourceId(null); }} />
             <DxButton
-              text="Copy Configuration"
-              type="default"
-              disabled={copyConfigMutation.isPending}
+              text={copyConfigMutation.isPending ? 'กำลังคัดลอก...' : 'คัดลอกการตั้งค่า'}
+              type="success"
+              onClick={() => { if (copySourceId) copyConfigMutation.mutate(copySourceId); }}
+              disabled={copyConfigMutation.isPending || !copySourceId}
             />
           </div>
         </div>

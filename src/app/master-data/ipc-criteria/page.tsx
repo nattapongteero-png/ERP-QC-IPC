@@ -43,20 +43,20 @@ function renderSpecCell(d: IPCCriteria) {
     ? []
     : lines;
   return (
-    <div className="text-sm space-y-0.5">
-      <span className="inline-flex text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded">
+    <div className="text-sm space-y-1">
+      <span className="inline-flex text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded">
         {getCriteriaTypeLabel(type)}
       </span>
-      {visibleLines.slice(0, 3).map((ln: { icon: string; text: string; tone?: string }, i: number) => (
+      {visibleLines.map((ln: { icon: string; text: string; tone?: string }, i: number) => (
         <div
           key={i}
-          className={`text-xs flex items-start gap-1 ${
+          className={`text-sm flex items-start gap-1.5 ${
             ln.tone === 'pass' ? 'text-emerald-700'
             : ln.tone === 'fail' ? 'text-rose-700'
-            : 'text-gray-500'
+            : 'text-gray-700'
           }`}
         >
-          <span className="flex-none w-3 text-center">{ln.icon}</span>
+          <span className="flex-none w-4 text-center">{ln.icon}</span>
           <span className="break-words">{ln.text}</span>
         </div>
       ))}
@@ -133,7 +133,7 @@ export default function IPCCriteriaPage() {
             const d = cell.data as IPCCriteria;
             return (
               <div className="flex flex-col">
-                <span className="font-mono text-xs font-semibold text-emerald-700">{d.code}</span>
+                <span className="font-mono text-sm font-semibold text-emerald-700">{d.code}</span>
                 <span className="text-sm font-medium text-gray-900 truncate" title={d.nameTh || d.name}>{d.nameTh || d.name}</span>
                 {d.nameTh && d.name !== d.nameTh && (
                   <span className="text-xs text-gray-500 truncate" title={d.name}>{d.name}</span>
