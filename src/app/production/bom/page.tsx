@@ -48,12 +48,14 @@ import { useToast } from '@/hooks/use-toast';
 import { formatNumber } from '@/lib/utils/number-format';
 import type { BOMDashboard } from '@/app/api/bom/dashboard/route';
 
-// Status configuration - Simplified workflow: draft → approved → obsolete
+// Status configuration — each status a visually DISTINCT colour (not two
+// near-identical greens): approved=emerald, active=blue, draft=amber,
+// obsolete=gray. Solid-ish fills + bold text so they're easy to tell apart.
 const statusConfig = {
-  draft: { translationKey: 'draft', color: 'bg-amber-100 text-amber-700', borderColor: 'border-amber-500' },
-  active: { translationKey: 'active', color: 'bg-teal-100 text-teal-700', borderColor: 'border-teal-500' },
-  approved: { translationKey: 'approved', color: 'bg-emerald-100 text-emerald-700', borderColor: 'border-emerald-500' },
-  obsolete: { translationKey: 'obsolete', color: 'bg-gray-100 text-gray-600', borderColor: 'border-gray-400' },
+  draft: { translationKey: 'draft', color: 'bg-amber-100 text-amber-800 font-semibold', borderColor: 'border-amber-500' },
+  active: { translationKey: 'active', color: 'bg-blue-100 text-blue-800 font-semibold', borderColor: 'border-blue-500' },
+  approved: { translationKey: 'approved', color: 'bg-emerald-100 text-emerald-800 font-semibold', borderColor: 'border-emerald-500' },
+  obsolete: { translationKey: 'obsolete', color: 'bg-gray-200 text-gray-700 font-semibold', borderColor: 'border-gray-400' },
 };
 
 // Chart color palette
