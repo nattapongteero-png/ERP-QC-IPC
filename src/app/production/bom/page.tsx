@@ -382,7 +382,7 @@ export default function BOMDashboardPage() {
                     <Connector visible width={1} />
                   </Label>
                 </Series>
-                <Legend horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" rowCount={1} />
+                <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" itemTextPosition="right" />
                 <Tooltip enabled format="fixedPoint" />
               </PieChart>
             </div>

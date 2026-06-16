@@ -604,10 +604,10 @@ export default function EmployeesPage() {
                 </PieSeries>
                 <PieLegend
                   visible
-                  horizontalAlignment="center"
-                  verticalAlignment="bottom"
+                  orientation="vertical"
+                  horizontalAlignment="right"
+                  verticalAlignment="top"
                   itemTextPosition="right"
-                  orientation="horizontal"
                 />
                 <PieTooltip enabled customizeTooltip={customizePieTooltip} />
               </PieChart>

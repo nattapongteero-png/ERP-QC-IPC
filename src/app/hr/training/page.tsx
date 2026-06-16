@@ -851,10 +851,10 @@ export default function TrainingDashboardPage() {
                   </Series>
                   <Legend
                     visible
-                    verticalAlignment="bottom"
-                    horizontalAlignment="center"
+                    orientation="vertical"
+                    horizontalAlignment="right"
+                    verticalAlignment="top"
                     itemTextPosition="right"
-                    orientation="horizontal"
                   />
                   <PieTooltip
                     enabled
@@ -891,10 +891,10 @@ export default function TrainingDashboardPage() {
                   </Series>
                   <Legend
                     visible
-                    verticalAlignment="bottom"
-                    horizontalAlignment="center"
+                    orientation="vertical"
+                    horizontalAlignment="right"
+                    verticalAlignment="top"
                     itemTextPosition="right"
-                    orientation="horizontal"
                   />
                   <PieTooltip
                     enabled

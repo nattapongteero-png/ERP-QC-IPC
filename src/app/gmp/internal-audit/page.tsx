@@ -842,8 +842,9 @@ export default function InternalAuditDashboardPage() {
                   </PieSeries>
                   <PieLegend
                     visible={true}
-                    horizontalAlignment="center"
-                    verticalAlignment="bottom"
+                    orientation="vertical"
+                    horizontalAlignment="right"
+                    verticalAlignment="top"
                     itemTextPosition="right"
                   />
                   <PieTooltip enabled={true} format="fixedPoint" />

@@ -336,10 +336,10 @@ export default function BatchRecordsDashboardPage() {
                 </Label>
               </Series>
               <Legend
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                 itemTextPosition="right"
-                rowCount={1}
               />
               <Tooltip enabled format="fixedPoint" />
             </PieChart>

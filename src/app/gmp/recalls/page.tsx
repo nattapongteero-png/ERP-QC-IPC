@@ -746,8 +746,9 @@ export default function RecallsDashboardPage() {
               </Series>
               <Legend
                 visible={true}
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
               />
               <Tooltip enabled={true} />
             </PieChart>

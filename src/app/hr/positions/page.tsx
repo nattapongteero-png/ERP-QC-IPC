@@ -885,10 +885,10 @@ export default function PositionsPage() {
                   </Series>
                   <Legend
                     visible
-                    verticalAlignment="bottom"
-                    horizontalAlignment="center"
+                    orientation="vertical"
+                    horizontalAlignment="right"
+                    verticalAlignment="top"
                     itemTextPosition="right"
-                    orientation="horizontal"
                   />
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Tooltip enabled customizeTooltip={(point: any) => ({
@@ -918,10 +918,10 @@ export default function PositionsPage() {
                   </Series>
                   <Legend
                     visible
-                    verticalAlignment="bottom"
-                    horizontalAlignment="center"
+                    orientation="vertical"
+                    horizontalAlignment="right"
+                    verticalAlignment="top"
                     itemTextPosition="right"
-                    orientation="horizontal"
                   />
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Tooltip enabled customizeTooltip={(point: any) => ({

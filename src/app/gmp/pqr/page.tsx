@@ -562,8 +562,9 @@ export default function PqrDashboardPage() {
                         </PieLabel>
                       </PieSeries>
                       <PieLegend
-                        verticalAlignment="bottom"
-                        horizontalAlignment="center"
+                        orientation="vertical"
+                        horizontalAlignment="right"
+                        verticalAlignment="top"
                         itemTextPosition="right"
                       />
                       <PieTooltip enabled />
