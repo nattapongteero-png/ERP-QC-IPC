@@ -135,8 +135,8 @@ export default function EnvironmentalConditionsPage() {
           <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
-            <span className="font-mono font-medium text-teal-700">{cell.value}</span>
+          <DxColumn dataField="code" caption="Code" width={160} cellRender={(cell) => (
+            <span className="font-mono font-medium text-teal-700 whitespace-nowrap">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Profile Name" minWidth={200} />
           <DxColumn caption="Temperature Range" minWidth={170} cellRender={(cell) => renderTempRange(cell.data)} />

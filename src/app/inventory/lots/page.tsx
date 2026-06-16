@@ -875,11 +875,11 @@ export default function LotsPage() {
       caption: t('lots.grid.columns.lotNumber'),
       minWidth: 180,
       cellRender: (cellInfo) => (
-        <div className="flex items-center gap-2">
-          <span className={cn('p-1 rounded', STATUS_CONFIG[cellInfo.data.status as StatusType]?.bgColor, STATUS_CONFIG[cellInfo.data.status as StatusType]?.textColor)}>
+        <div className="flex items-center gap-2 flex-nowrap">
+          <span className={cn('p-1 rounded shrink-0', STATUS_CONFIG[cellInfo.data.status as StatusType]?.bgColor, STATUS_CONFIG[cellInfo.data.status as StatusType]?.textColor)}>
             {STATUS_CONFIG[cellInfo.data.status as StatusType]?.icon}
           </span>
-          <span className="font-mono text-emerald-600 hover:text-emerald-800">{cellInfo.data.lotNumber}</span>
+          <span className="font-mono text-emerald-600 hover:text-emerald-800 whitespace-nowrap">{cellInfo.data.lotNumber}</span>
         </div>
       ),
     },

@@ -137,8 +137,8 @@ export default function PackagingQCCriteriaPage() {
           <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
-            <span className="font-mono font-medium text-emerald-700">{cell.value}</span>
+          <DxColumn dataField="code" caption="Code" width={170} cellRender={(cell) => (
+            <span className="font-mono font-medium text-emerald-700 whitespace-nowrap">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Criteria Name" minWidth={200} />
           <DxColumn caption="Weight Range" minWidth={160} cellRender={(cell) => renderWeightRange(cell.data)} />

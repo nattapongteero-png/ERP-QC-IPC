@@ -336,18 +336,18 @@ export default function WarehousesPage() {
     {
       dataField: 'temperatureMin',
       caption: t('warehouses.table.columns.temperature'),
-      width: 150,
+      width: 175,
       hideOnMobile: true,
       hideOnTablet: true,
       cellRender: (cellInfo) => {
         const hasTemp = cellInfo.data.temperatureMin !== null && cellInfo.data.temperatureMax !== null;
         return (
           <div className={cn(
-            'flex items-center gap-1.5 px-2 py-1 rounded-md',
+            'inline-flex items-center gap-1.5 px-2 py-1 rounded-md flex-nowrap',
             hasTemp ? 'bg-cyan-50' : ''
           )}>
-            <Thermometer className={cn('h-3.5 w-3.5', hasTemp ? 'text-cyan-600' : 'text-gray-400')} />
-            <span className={hasTemp ? 'text-cyan-700 font-medium' : 'text-gray-400'}>
+            <Thermometer className={cn('h-3.5 w-3.5 shrink-0', hasTemp ? 'text-cyan-600' : 'text-gray-400')} />
+            <span className={cn('whitespace-nowrap', hasTemp ? 'text-cyan-700 font-medium' : 'text-gray-400')}>
               {hasTemp
                 ? `${cellInfo.data.temperatureMin}°C - ${cellInfo.data.temperatureMax}°C`
                 : '-'}
@@ -359,18 +359,18 @@ export default function WarehousesPage() {
     {
       dataField: 'humidityMin',
       caption: t('warehouses.table.columns.humidity'),
-      width: 140,
+      width: 160,
       hideOnMobile: true,
       hideOnTablet: true,
       cellRender: (cellInfo) => {
         const hasHumidity = cellInfo.data.humidityMin !== null && cellInfo.data.humidityMax !== null;
         return (
           <div className={cn(
-            'flex items-center gap-1.5 px-2 py-1 rounded-md',
+            'inline-flex items-center gap-1.5 px-2 py-1 rounded-md flex-nowrap',
             hasHumidity ? 'bg-emerald-50' : ''
           )}>
-            <Droplets className={cn('h-3.5 w-3.5', hasHumidity ? 'text-emerald-600' : 'text-gray-400')} />
-            <span className={hasHumidity ? 'text-emerald-700 font-medium' : 'text-gray-400'}>
+            <Droplets className={cn('h-3.5 w-3.5 shrink-0', hasHumidity ? 'text-emerald-600' : 'text-gray-400')} />
+            <span className={cn('whitespace-nowrap', hasHumidity ? 'text-emerald-700 font-medium' : 'text-gray-400')}>
               {hasHumidity
                 ? `${cellInfo.data.humidityMin}% - ${cellInfo.data.humidityMax}%`
                 : '-'}

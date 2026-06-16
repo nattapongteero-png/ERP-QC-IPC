@@ -23,13 +23,15 @@ interface ProductionRoom {
   isActive: boolean;
 }
 
+// Each room type gets a DISTINCT colour so the Type column isn't a wall of
+// identical green badges. Hues kept within a warm/cool spread for legibility.
 const roomTypes = [
-  { value: 'weighing', label: 'Weighing Room' },
-  { value: 'mixing', label: 'Mixing Room' },
-  { value: 'packaging', label: 'Packaging Room' },
-  { value: 'storage', label: 'Storage Area' },
-  { value: 'preparation', label: 'Preparation Room' },
-  { value: 'production', label: 'Production Room' },
+  { value: 'weighing', label: 'Weighing Room', badge: 'bg-emerald-100 text-emerald-800' },
+  { value: 'mixing', label: 'Mixing Room', badge: 'bg-blue-100 text-blue-800' },
+  { value: 'packaging', label: 'Packaging Room', badge: 'bg-purple-100 text-purple-800' },
+  { value: 'storage', label: 'Storage Area', badge: 'bg-amber-100 text-amber-800' },
+  { value: 'preparation', label: 'Preparation Room', badge: 'bg-cyan-100 text-cyan-800' },
+  { value: 'production', label: 'Production Room', badge: 'bg-rose-100 text-rose-800' },
 ];
 
 export default function ProductionRoomsPage() {
@@ -66,7 +68,7 @@ export default function ProductionRoomsPage() {
   const renderRoomTypeBadge = (roomType: string) => {
     const type = roomTypes.find((t) => t.value === roomType);
     return (
-      <span className="dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+      <span className={`dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${type?.badge || 'bg-gray-100 text-gray-700'}`}>
         <Building2 className="h-3 w-3 flex-shrink-0" />
         {type?.label || roomType}
       </span>
@@ -113,8 +115,8 @@ export default function ProductionRoomsPage() {
           <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
-            <span className="font-mono font-medium text-emerald-700">{cell.value}</span>
+          <DxColumn dataField="code" caption="Code" width={160} cellRender={(cell) => (
+            <span className="font-mono font-medium text-emerald-700 whitespace-nowrap">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Name (EN)" minWidth={150} />
           <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />

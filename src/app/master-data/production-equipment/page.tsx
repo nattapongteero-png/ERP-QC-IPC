@@ -27,16 +27,22 @@ interface ProductionEquipment {
   isActive: boolean;
 }
 
+// Distinct colour per equipment type so the Type column isn't a wall of
+// identical purple badges. Includes mill/sieve/balance (seen in data, were
+// previously missing → fell back to the raw value + default purple).
 const equipmentTypes = [
-  { value: 'scale', label: 'Scale' },
-  { value: 'mixer', label: 'Mixer' },
-  { value: 'hotplate', label: 'Hotplate' },
-  { value: 'container', label: 'Container' },
-  { value: 'tool', label: 'Tool' },
-  { value: 'filler', label: 'Filler' },
-  { value: 'tank', label: 'Tank' },
-  { value: 'pump', label: 'Pump' },
-  { value: 'other', label: 'Other' },
+  { value: 'scale', label: 'Scale', badge: 'bg-emerald-100 text-emerald-800' },
+  { value: 'balance', label: 'Balance', badge: 'bg-teal-100 text-teal-800' },
+  { value: 'mixer', label: 'Mixer', badge: 'bg-blue-100 text-blue-800' },
+  { value: 'hotplate', label: 'Hotplate', badge: 'bg-red-100 text-red-800' },
+  { value: 'container', label: 'Container', badge: 'bg-amber-100 text-amber-800' },
+  { value: 'tool', label: 'Tool', badge: 'bg-purple-100 text-purple-800' },
+  { value: 'filler', label: 'Filler', badge: 'bg-cyan-100 text-cyan-800' },
+  { value: 'mill', label: 'Mill', badge: 'bg-orange-100 text-orange-800' },
+  { value: 'sieve', label: 'Sieve', badge: 'bg-lime-100 text-lime-800' },
+  { value: 'tank', label: 'Tank', badge: 'bg-indigo-100 text-indigo-800' },
+  { value: 'pump', label: 'Pump', badge: 'bg-pink-100 text-pink-800' },
+  { value: 'other', label: 'Other', badge: 'bg-gray-100 text-gray-700' },
 ];
 
 export default function ProductionEquipmentPage() {
@@ -85,7 +91,7 @@ export default function ProductionEquipmentPage() {
   const renderTypeBadge = (type: string) => {
     const typeInfo = equipmentTypes.find((t) => t.value === type);
     return (
-      <span className="dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+      <span className={`dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${typeInfo?.badge || 'bg-gray-100 text-gray-700'}`}>
         <Wrench className="h-3 w-3 flex-shrink-0" />
         {typeInfo?.label || type}
       </span>
@@ -134,8 +140,8 @@ export default function ProductionEquipmentPage() {
           <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
-            <span className="font-mono font-medium text-purple-700">{cell.value}</span>
+          <DxColumn dataField="code" caption="Code" width={160} cellRender={(cell) => (
+            <span className="font-mono font-medium text-purple-700 whitespace-nowrap">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Name (EN)" minWidth={150} />
           <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />

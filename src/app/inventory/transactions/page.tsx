@@ -358,14 +358,14 @@ export default function TransactionsPage() {
     {
       dataField: 'transactionNumber',
       caption: t('transactions.table.columns.transactionNumber'),
-      width: 180,
+      width: 210,
       cellRender: (cellInfo) => {
         const txnType = normalizeType(cellInfo.data.type) as TransactionTypeFilter;
         const config = TYPE_CONFIG[txnType];
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-nowrap">
             <div className={cn(
-              'h-8 w-8 rounded-lg flex items-center justify-center',
+              'h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
               txnType === 'RECEIVE' ? 'bg-emerald-100' :
               txnType === 'ISSUE' ? 'bg-red-100' :
               txnType === 'TRANSFER' ? 'bg-emerald-100' :
@@ -386,7 +386,7 @@ export default function TransactionsPage() {
                 {config?.icon}
               </span>
             </div>
-            <span className="font-mono font-semibold text-gray-900">{cellInfo.data.transactionNumber}</span>
+            <span className="font-mono font-semibold text-gray-900 whitespace-nowrap">{cellInfo.data.transactionNumber}</span>
           </div>
         );
       },
@@ -394,12 +394,12 @@ export default function TransactionsPage() {
     {
       dataField: 'type',
       caption: t('transactions.table.columns.type'),
-      width: 120,
+      width: 140,
       cellRender: (cellInfo) => {
         const txnType = normalizeType(cellInfo.data.type) as TransactionTypeFilter;
         const config = TYPE_CONFIG[txnType];
         return (
-          <Badge variant={config?.badgeVariant || 'default'}>
+          <Badge variant={config?.badgeVariant || 'default'} className="whitespace-nowrap">
             {config ? t(`transactions.types.${config.translationKey}`) : cellInfo.data.type}
           </Badge>
         );
@@ -477,11 +477,11 @@ export default function TransactionsPage() {
     {
       dataField: 'referenceType',
       caption: t('transactions.table.columns.reference'),
-      width: 130,
+      width: 160,
       hideOnMobile: true,
       cellRender: (cellInfo) => (
         cellInfo.data.referenceType ? (
-          <span className="text-sm px-2 py-0.5 bg-gray-100 rounded text-gray-600">
+          <span className="text-sm px-2 py-0.5 bg-gray-100 rounded text-gray-600 whitespace-nowrap inline-block">
             {cellInfo.data.referenceType}: {cellInfo.data.referenceId || '-'}
           </span>
         ) : <span className="text-gray-400">-</span>

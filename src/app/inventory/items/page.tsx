@@ -474,13 +474,13 @@ export default function ItemsPage() {
   const renderCodeCell = useCallback((data: { data: Item }) => {
     const config = ITEM_TYPE_CONFIG[data.data.type as ItemType];
     return (
-      <div className="flex items-center gap-2">
-        <span className={cn('p-1 rounded', config?.bgColor, config?.textColor)}>
+      <div className="flex items-center gap-2 flex-nowrap">
+        <span className={cn('p-1 rounded shrink-0', config?.bgColor, config?.textColor)}>
           {config?.icon}
         </span>
         <button
           onClick={() => router.push(`/inventory/items/${data.data.id}`)}
-          className="font-mono text-amber-600 hover:text-amber-800 hover:underline"
+          className="font-mono text-amber-600 hover:text-amber-800 hover:underline whitespace-nowrap"
         >
           {data.data.code}
         </button>
@@ -785,7 +785,7 @@ export default function ItemsPage() {
             <Column
               dataField="code"
               caption={t('items.grid.columns.code')}
-              width={150}
+              width={185}
               cellRender={renderCodeCell}
             />
             <Column

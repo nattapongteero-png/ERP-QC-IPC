@@ -127,8 +127,8 @@ export default function ExpiryAlertsPage() {
 
   const expiredColumns: DxDataGridColumn[] = [
     rowNumberColumn,
-    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 150 },
-    { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 120, hideOnMobile: true },
+    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 185, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.lotNumber}</span> },
+    { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 155, hideOnMobile: true, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.itemCode}</span> },
     { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
     {
       dataField: 'quantity',
@@ -136,7 +136,7 @@ export default function ExpiryAlertsPage() {
       width: 120,
       cellRender: (cellInfo) => formatNumber(cellInfo.data.quantity),
     },
-    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 120, hideOnMobile: true },
+    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 150, hideOnMobile: true, cellRender: (cellInfo) => <span className="whitespace-nowrap">{cellInfo.data.expiryDate}</span> },
     {
       dataField: 'daysExpired',
       caption: t('expiryAlerts.columns.daysExpired'),
@@ -151,8 +151,8 @@ export default function ExpiryAlertsPage() {
 
   const nearExpiryColumns: DxDataGridColumn[] = [
     rowNumberColumn,
-    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 150 },
-    { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 120, hideOnMobile: true },
+    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 185, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.lotNumber}</span> },
+    { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 155, hideOnMobile: true, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.itemCode}</span> },
     { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
     {
       dataField: 'quantity',
@@ -160,7 +160,7 @@ export default function ExpiryAlertsPage() {
       width: 120,
       cellRender: (cellInfo) => formatNumber(cellInfo.data.quantity),
     },
-    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 120, hideOnMobile: true },
+    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 150, hideOnMobile: true, cellRender: (cellInfo) => <span className="whitespace-nowrap">{cellInfo.data.expiryDate}</span> },
     {
       dataField: 'daysToExpiry',
       caption: t('expiryAlerts.columns.daysToExpiry'),
