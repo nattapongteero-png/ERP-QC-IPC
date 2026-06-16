@@ -629,29 +629,35 @@ export function ItemEditForm({
 
   return (
     <div className={cn('flex flex-col h-full min-h-0 organic-form', className)}>
-      {/* Organic theme — scoped DevExtreme input restyle (CSS only, no logic) */}
+      {/* Organic theme — scoped DevExtreme input restyle (CSS only, no logic). */}
       <style jsx global>{`
-        .organic-form .dx-texteditor.dx-editor-outlined {
+        .organic-form .dx-texteditor.dx-editor-filled {
           border: 1px solid #D9EFE4;
           border-radius: 11px;
-          background: #FBFEFC;
+          background-color: #FBFEFC;
           box-shadow: 0 1px 2px rgba(6,78,59,0.04);
         }
-        .organic-form .dx-texteditor.dx-editor-outlined.dx-state-hover {
-          border-color: #A7F3D0;
+        .organic-form .dx-texteditor.dx-editor-filled::before,
+        .organic-form .dx-texteditor.dx-editor-filled::after {
+          display: none !important;
         }
-        .organic-form .dx-texteditor.dx-editor-outlined.dx-state-focused {
+        .organic-form .dx-texteditor.dx-editor-filled.dx-state-hover {
+          border-color: #A7F3D0;
+          background-color: #F4FBF7;
+        }
+        .organic-form .dx-texteditor.dx-editor-filled.dx-state-focused {
           border-color: #10B981;
+          background-color: #fff;
           box-shadow: 0 0 0 3px rgba(16,185,129,.12);
         }
-        .organic-form .dx-texteditor.dx-editor-outlined.dx-state-disabled {
-          background: #F1F5F4;
+        .organic-form .dx-texteditor.dx-editor-filled.dx-state-disabled {
+          background-color: #F1F5F4;
           border-color: #E5EFEA;
         }
         .organic-form .dx-texteditor-input {
           color: #0F2E22;
         }
-        .organic-form .dx-placeholder {
+        .organic-form .dx-placeholder::before {
           color: #8AA79B;
         }
         /* SelectBox dropdown arrow + NumberBox spin buttons tint */
