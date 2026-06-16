@@ -133,7 +133,7 @@ export default function PackagingMaterialsPage({ params }: PackagingMaterialsPag
               <Box className="w-6 h-6" />
               {t('page.title')} — WO #{workOrderId}
             </h1>
-            <p className="text-gray-600 text-sm mt-1">{t('page.description')}</p>
+            <p className="text-[#4B7163] text-sm mt-1">{t('page.description')}</p>
           </div>
           <div className="flex gap-2">
             <Button

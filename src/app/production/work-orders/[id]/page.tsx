@@ -1168,7 +1168,7 @@ export default function WorkOrderDetailPage() {
                       <div
                         key={d.id}
                         onClick={() => router.push(`/quality/deviations/${d.id}`)}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-white hover:border-rose-300 hover:bg-rose-50/30 cursor-pointer transition-colors"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-emerald-100 bg-white hover:border-rose-300 hover:bg-rose-50/30 cursor-pointer transition-colors"
                       >
                         <AlertCircle className="h-5 w-5 text-rose-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">

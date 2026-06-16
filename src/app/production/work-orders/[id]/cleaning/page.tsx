@@ -392,7 +392,7 @@ export default function CleaningPage() {
                   return (
                     <div
                       key={`${item.type}-${item.id}`}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border border-emerald-100 rounded-lg hover:shadow-[0_6px_20px_rgba(6,78,59,0.07)] transition-shadow"
                     >
                       <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
                         <div className={`p-2 rounded-lg flex-shrink-0 ${item.type === 'room' ? 'bg-blue-100' : 'bg-purple-100'}`}>

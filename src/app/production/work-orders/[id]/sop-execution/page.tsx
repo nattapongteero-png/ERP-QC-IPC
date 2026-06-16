@@ -809,7 +809,7 @@ export default function SOPExecutionPage() {
     const isMultiStage = stages.length > 0;
 
     return (
-      <div className="mt-2 p-2 rounded-lg bg-white border border-gray-200 text-xs space-y-2">
+      <div className="mt-2 p-2 rounded-lg bg-white border border-emerald-100 text-xs space-y-2">
         <div className="flex items-center justify-between text-[11px] text-gray-500">
           <span>
             {ipc.recordedTestedByName && <>โดย <span className="font-medium text-gray-700">{ipc.recordedTestedByName}</span> · </>}

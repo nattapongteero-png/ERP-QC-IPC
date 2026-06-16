@@ -230,11 +230,11 @@ export default function LotPatternsPage() {
 
       {/* System Lot Card */}
       {system && (
-        <div className="bg-white border rounded-lg p-5 shadow-sm">
+        <div className="bg-white border border-emerald-100 rounded-[18px] p-5 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">เลข Lot ระบบ (System)</h3>
-              <p className="text-sm text-gray-500">รูปแบบที่ระบบจะสร้างให้เมื่อกดปุ่ม "สร้าง" ในหน้ารับ Lot</p>
+              <h3 className="text-lg font-semibold text-[#064E3B]">เลข Lot ระบบ (System)</h3>
+              <p className="text-sm text-[#4B7163]">รูปแบบที่ระบบจะสร้างให้เมื่อกดปุ่ม "สร้าง" ในหน้ารับ Lot</p>
             </div>
             <DxButton text="แก้ไข" type="default" onClick={() => openEdit(system)} data-testid="edit-system" />
           </div>
@@ -261,11 +261,11 @@ export default function LotPatternsPage() {
 
       {/* Vendor Lot Card */}
       {vendor && (
-        <div className="bg-white border rounded-lg p-5 shadow-sm">
+        <div className="bg-white border border-emerald-100 rounded-[18px] p-5 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">เลข Lot ผู้ขาย (Vendor)</h3>
-              <p className="text-sm text-gray-500">ข้อความ hint และกฎตรวจรูปแบบเลข Lot ที่ผู้ใช้กรอก</p>
+              <h3 className="text-lg font-semibold text-[#064E3B]">เลข Lot ผู้ขาย (Vendor)</h3>
+              <p className="text-sm text-[#4B7163]">ข้อความ hint และกฎตรวจรูปแบบเลข Lot ที่ผู้ใช้กรอก</p>
             </div>
             <DxButton text="แก้ไข" type="default" onClick={() => openEdit(vendor)} data-testid="edit-vendor" />
           </div>

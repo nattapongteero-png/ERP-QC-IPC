@@ -325,7 +325,7 @@ export default function ItemCodePatternsPage() {
           ระบบจะหาเลข sequence ที่ว่างถัดไปอัตโนมัติเสมอ (เติมช่องว่างที่ลบไปแล้ว)
         </div>
 
-        <div className="bg-white border rounded-lg">
+        <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
           <DxDataGrid
             dataSource={rows}
             keyExpr="itemType"

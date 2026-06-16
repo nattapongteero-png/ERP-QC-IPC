@@ -679,7 +679,7 @@ export default function MaterialWeighingPage() {
                 return (
                   <div
                     key={material.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border border-emerald-100 rounded-lg hover:shadow-[0_6px_20px_rgba(6,78,59,0.07)] transition-shadow"
                   >
                     <div className="flex items-start gap-4 min-w-0 flex-1">
                       <div className={`p-2 rounded-lg ${material.isWater ? 'bg-blue-100' : 'bg-amber-100'}`}>
@@ -699,7 +699,7 @@ export default function MaterialWeighingPage() {
                             <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">Water</span>
                           )}
                         </div>
-                        <p className="font-medium text-gray-900">{getDisplayName(material)}</p>
+                        <p className="font-medium text-[#064E3B]">{getDisplayName(material)}</p>
                         <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
                           <span>
                             {tw('material.planned')}: <strong>{material.plannedQty} {material.unit}</strong>

@@ -642,7 +642,7 @@ export default function ProductionOutputPage() {
                         className={`p-3 border-2 rounded-lg text-left transition-all ${
                           inputMode === 'weight'
                             ? 'border-emerald-500 bg-emerald-50 shadow'
-                            : 'border-gray-200 bg-white hover:border-emerald-300'
+                            : 'border-emerald-100 bg-white hover:border-emerald-300'
                         } ${!canConvertToWeight ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <div className="text-2xl">⚖</div>
@@ -656,7 +656,7 @@ export default function ProductionOutputPage() {
                         className={`p-3 border-2 rounded-lg text-left transition-all ${
                           inputMode === 'count_cap'
                             ? 'border-emerald-500 bg-emerald-50 shadow'
-                            : 'border-gray-200 bg-white hover:border-emerald-300'
+                            : 'border-emerald-100 bg-white hover:border-emerald-300'
                         } ${!canConvertToCapsule ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <div className="text-2xl">🔢</div>
@@ -669,7 +669,7 @@ export default function ProductionOutputPage() {
                         className={`p-3 border-2 rounded-lg text-left transition-all cursor-pointer ${
                           inputMode === 'count_box'
                             ? 'border-emerald-500 bg-emerald-50 shadow'
-                            : 'border-gray-200 bg-white hover:border-emerald-300'
+                            : 'border-emerald-100 bg-white hover:border-emerald-300'
                         }`}
                       >
                         <div className="text-2xl">📦</div>
@@ -959,7 +959,7 @@ export default function ProductionOutputPage() {
               </div>
 
               {/* Action Buttons — stack on mobile, inline on tablet+ */}
-              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4 border-t border-gray-100">
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4 border-t border-emerald-50">
                 {isEditing && (
                   <DxButton
                     text={tw('form.cancel')}

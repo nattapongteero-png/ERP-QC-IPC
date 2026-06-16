@@ -144,7 +144,7 @@ export default function SOPTemplatesPage() {
       />
 
       {/* Data Grid */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-4">
         <DxDataGrid
           dataSource={(templates || []).map((t, i) => ({ ...t, _rowNumber: i + 1 }))}
           keyExpr="id"

@@ -505,11 +505,11 @@ export default function PackagingQCPage() {
           />
 
           {/* RECORDS */}
-          <Card className="border-gray-100">
+          <Card className="border-emerald-50">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-1 w-12 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500" />
-                <h3 className="font-bold text-gray-900">{t('common.history')} ({totalChecks})</h3>
+                <h3 className="font-bold text-[#064E3B]">{t('common.history')} ({totalChecks})</h3>
               </div>
 
               {weightLoading ? (
@@ -1033,11 +1033,11 @@ export default function PackagingQCPage() {
         </div>
 
         {/* RECORDS */}
-        <Card className="border-gray-100">
+        <Card className="border-emerald-50">
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-1 w-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
-              <h3 className="font-bold text-gray-900">{t('common.history')} ({totalIntegrity})</h3>
+              <h3 className="font-bold text-[#064E3B]">{t('common.history')} ({totalIntegrity})</h3>
             </div>
 
             {integrityLoading ? (
@@ -1293,7 +1293,7 @@ function StatCard({
     rose: 'from-rose-500 to-pink-500 shadow-rose-200',
   };
   return (
-    <div className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-2xl bg-white border border-emerald-50 p-4 shadow-[0_6px_20px_rgba(6,78,59,0.07)] hover:shadow-md transition-shadow">
       <div className="flex items-center gap-3">
         <div
           className={`h-10 w-10 rounded-xl bg-gradient-to-br ${toneClasses[tone]} text-white flex items-center justify-center shadow`}

@@ -112,7 +112,7 @@ export default function IPCCriteriaPage() {
       />
 
       {/* Desktop / Tablet — DataGrid */}
-      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="hidden md:block bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-4">
         <DxDataGrid
           dataSource={(criteria || []).map((c: any, i: number) => ({ ...c, _rowNumber: i + 1 }))}
           keyExpr="id"
@@ -193,7 +193,7 @@ export default function IPCCriteriaPage() {
           <div className="text-center py-8 text-gray-400">ยังไม่มีข้อมูล QC & IPC Criteria</div>
         ) : (
           (criteria || []).map((d: IPCCriteria, i: number) => (
-            <div key={d.id} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+            <div key={d.id} className="bg-white border border-emerald-100 rounded-[18px] p-3 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">

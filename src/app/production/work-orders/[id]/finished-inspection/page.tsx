@@ -386,7 +386,7 @@ export default function FinishedInspectionPage() {
           <Card className={`border-2 ${
             inspection.status === 'passed' ? 'border-green-200 bg-green-50' :
             inspection.status === 'failed' ? 'border-red-200 bg-red-50' :
-            'border-gray-200'
+            'border-emerald-100'
           }`}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -592,7 +592,7 @@ export default function FinishedInspectionPage() {
                   </div>
 
                   {inspection.notes && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="mt-4 p-3 bg-[#F6FCF9] rounded-lg">
                       <p className="text-sm text-gray-700 whitespace-pre-line"><strong>Notes:</strong> {inspection.notes}</p>
                     </div>
                   )}

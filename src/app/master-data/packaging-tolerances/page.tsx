@@ -84,7 +84,7 @@ export default function PackagingTolerancesPage() {
             <Sliders className="w-6 h-6" />
             {t('tolerances.title')}
           </h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <p className="text-[#4B7163] text-sm mt-1">
             ตั้งค่าเกณฑ์ Variance Tolerance ของแต่ละหมวด Packaging — ใช้ในการตรวจสอบ Return
           </p>
         </div>

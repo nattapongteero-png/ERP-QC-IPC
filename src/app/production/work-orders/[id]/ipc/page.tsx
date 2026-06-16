@@ -852,7 +852,7 @@ export default function IPCPage() {
                       {test.rounds && test.rounds.length > 0 ? (
                         <div className="space-y-3">
                           {test.rounds.map((round) => (
-                            <div key={round.round} className="border rounded-lg p-3 bg-gray-50/50">
+                            <div key={round.round} className="border rounded-lg p-3 bg-[#F6FCF9]">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-semibold text-gray-800">

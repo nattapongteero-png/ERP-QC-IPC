@@ -42,7 +42,7 @@ export default function MaterialWithdrawalPendingPage() {
             <Inbox className="w-6 h-6" />
             {t('breadcrumbs.pending')}
           </h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <p className="text-[#4B7163] text-sm mt-1">
             {t('page.description')}
           </p>
         </div>
@@ -71,7 +71,7 @@ export default function MaterialWithdrawalPendingPage() {
       {isLoading ? (
         <div className="text-center py-10 text-gray-500">Loading...</div>
       ) : items.length === 0 ? (
-        <div className="rounded-md border bg-white p-8 text-center text-gray-500">
+        <div className="rounded-[18px] border border-emerald-100 bg-white p-8 text-center text-[#4B7163] shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
           {/* Empty state */}
           ไม่มีคำขอรออนุมัติ
         </div>
@@ -122,7 +122,7 @@ function PendingCard({
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left rounded-md border bg-white p-4 hover:bg-gray-50 hover:border-blue-300 transition"
+      className="w-full text-left rounded-[18px] border border-emerald-100 bg-white p-4 shadow-[0_6px_20px_rgba(6,78,59,0.07)] hover:bg-[#F6FCF9] hover:border-emerald-300 transition"
     >
       <div className="flex items-start justify-between gap-4">
         <div>

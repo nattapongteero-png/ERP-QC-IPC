@@ -64,7 +64,7 @@ export default function MaterialWithdrawalListPage() {
             <Layers className="w-6 h-6" />
             {t('page.title')}
           </h1>
-          <p className="text-gray-600 text-sm mt-1">{t('page.description')}</p>
+          <p className="text-[#4B7163] text-sm mt-1">{t('page.description')}</p>
         </div>
         <Button text={t('buttons.refresh')} onClick={() => refetch()} />
       </header>
@@ -98,8 +98,8 @@ export default function MaterialWithdrawalListPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 rounded-md border bg-white p-3">
-        <span className="text-sm font-medium">{t('table.columns.status')}</span>
+      <div className="flex items-center gap-3 rounded-[18px] border border-emerald-100 bg-white p-3 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
+        <span className="text-sm font-medium text-[#064E3B]">{t('table.columns.status')}</span>
         <SelectBox
           dataSource={STATUS_OPTIONS.map((opt) => ({
             value: opt.value,
@@ -164,13 +164,13 @@ function KpiCard({
   color: string;
 }) {
   return (
-    <div className="rounded-md border bg-white p-3 flex items-center gap-3">
+    <div className="rounded-[18px] border border-emerald-100 bg-white p-3 flex items-center gap-3 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
       <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full ${color}`}>
         <Icon className="w-5 h-5" />
       </span>
       <div>
         <div className="text-2xl font-bold">{value}</div>
-        <div className="text-sm text-gray-500">{label}</div>
+        <div className="text-sm text-[#4B7163]">{label}</div>
       </div>
     </div>
   );

@@ -47,7 +47,7 @@ export default function ReceiptTolerancesPage() {
             <Sliders className="w-6 h-6" />
             {t('tolerances.title')}
           </h1>
-          <p className="text-gray-600 text-sm mt-1">{t('tolerances.subtitle')}</p>
+          <p className="text-[#4B7163] text-sm mt-1">{t('tolerances.subtitle')}</p>
         </div>
         <Button text={t('actions.refresh')} onClick={() => refetch()} />
       </header>

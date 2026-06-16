@@ -284,7 +284,7 @@ export default function SamplingPlansPage() {
           <StatCard label="ผูกกับ Item เฉพาะ" value={stats.itemScoped} icon={ListChecks} />
         </div>
 
-        <div className="flex items-center gap-3 bg-white border rounded-lg p-3">
+        <div className="flex items-center gap-3 bg-white border border-emerald-100 rounded-xl p-3 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -296,7 +296,7 @@ export default function SamplingPlansPage() {
           </label>
         </div>
 
-        <div className="bg-white border rounded-lg">
+        <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
           <DxDataGrid
             dataSource={rows}
             keyExpr="id"

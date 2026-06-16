@@ -117,7 +117,7 @@ export default function WorkOrderExecutionPage() {
                 Actual: <strong>{workOrder.actualQuantity || 0}</strong>
               </span>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-[#4B7163]">
               Progress based on BOM configuration
             </div>
           </div>

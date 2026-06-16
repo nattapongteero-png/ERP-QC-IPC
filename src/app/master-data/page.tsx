@@ -281,7 +281,7 @@ export default function MasterDataPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownloadTemplate}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-800 bg-white border border-emerald-100 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow transition-all"
             >
               <Download className="h-4 w-4" />
               {t('actions.downloadTemplate')}
@@ -300,17 +300,17 @@ export default function MasterDataPage() {
       {/* Module Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {masterDataModules.map((module) => (
-          <Link key={module.href} href={module.href} className="group bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-gray-200 transition-all">
+          <Link key={module.href} href={module.href} className="group bg-white rounded-2xl shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-5 hover:shadow-md hover:border-emerald-300 hover:-translate-y-0.5 transition-all">
             <div className="flex items-start gap-4">
               <div className={`flex-shrink-0 w-12 h-12 rounded-lg ${module.iconBgColor} flex items-center justify-center`}>
                 <module.icon className={`h-6 w-6 ${module.iconColor}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors flex items-center gap-2">
+                <h3 className="text-base font-semibold text-[#064E3B] group-hover:text-emerald-600 transition-colors flex items-center gap-2">
                   {t(`modules.${module.key}.title`)}
                   <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">{t(`modules.${module.key}.description`)}</p>
+                <p className="text-sm text-[#4B7163] mt-1">{t(`modules.${module.key}.description`)}</p>
                 <p className="text-xs text-blue-600 mt-2">
                   <span className="font-medium">{t('about.usedInLabel')}:</span> {t(`modules.${module.key}.usedIn`)}
                 </p>
