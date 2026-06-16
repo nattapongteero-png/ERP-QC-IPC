@@ -1439,7 +1439,6 @@ export default function LotsPage() {
                 columns={columns}
                 loading={isLoading}
                 sorting
-                headerFilter
                 wordWrapEnabled
                 columnAutoWidth
                 allowColumnResizing

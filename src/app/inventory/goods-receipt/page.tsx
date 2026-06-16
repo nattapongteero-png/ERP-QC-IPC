@@ -134,8 +134,8 @@ export default function GoodsReceiptListPage() {
         onRowClick={(e) => router.push(`/inventory/goods-receipt/${e.key}`)}
         data-testid="grn-list-grid"
       >
-        <FilterRow visible />
-        <HeaderFilter visible />
+        <FilterRow visible={false} />
+        <HeaderFilter visible={false} />
         <Paging pageSize={20} />
         <Column dataField="grnNumber" caption={t('table.columns.grnNumber')} width={150} />
         <Column

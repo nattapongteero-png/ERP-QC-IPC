@@ -707,7 +707,6 @@ export default function TransactionsPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              headerFilter
               pageSize={20}
               height="auto"
               noDataText={t('transactions.noDataText')}

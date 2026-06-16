@@ -762,7 +762,7 @@ export default function ItemsPage() {
           >
             <SearchPanel visible={true} placeholder={t('items.searchPlaceholder')} width={250} />
             <FilterRow visible={false} />
-            <HeaderFilter visible={true} />
+            <HeaderFilter visible={false} />
             <GroupPanel visible={true} />
             <Grouping autoExpandAll={false} />
             <ColumnChooser enabled={false} mode="select" />

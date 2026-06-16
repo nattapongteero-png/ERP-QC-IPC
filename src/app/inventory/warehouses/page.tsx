@@ -625,7 +625,6 @@ export default function WarehousesPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              headerFilter
               responsiveColumns
               virtualScrolling={filteredWarehouses.length > 100}
               height={600}
