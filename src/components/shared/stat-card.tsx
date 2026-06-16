@@ -26,15 +26,18 @@ export interface TrendIndicator {
 export type StatCardTone =
   | 'emerald' | 'blue' | 'amber' | 'rose' | 'violet' | 'cyan' | 'gray' | 'plain';
 
+/* White card surface + a tone-coloured LEFT ACCENT BAR + tone-coloured icon.
+   Label is a neutral grey, value is near-black — the colour comes from the
+   left bar and the icon, not a tinted fill (matches the agreed design). */
 const TONE_STYLES: Record<StatCardTone, { bg: string; border: string; label: string; value: string; icon: string; accent: string }> = {
-  emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', label: 'text-emerald-700', value: 'text-emerald-900', icon: 'text-emerald-500', accent: 'border-l-emerald-500' },
-  blue:    { bg: 'bg-blue-50',    border: 'border-blue-200',    label: 'text-blue-700',    value: 'text-blue-900',    icon: 'text-blue-500',    accent: 'border-l-blue-500' },
-  amber:   { bg: 'bg-amber-50',   border: 'border-amber-200',   label: 'text-amber-700',   value: 'text-amber-900',   icon: 'text-amber-500',   accent: 'border-l-amber-500' },
-  rose:    { bg: 'bg-rose-50',    border: 'border-rose-200',    label: 'text-rose-700',    value: 'text-rose-900',    icon: 'text-rose-500',    accent: 'border-l-rose-500' },
-  violet:  { bg: 'bg-violet-50',  border: 'border-violet-200',  label: 'text-violet-700',  value: 'text-violet-900',  icon: 'text-violet-500',  accent: 'border-l-violet-500' },
-  cyan:    { bg: 'bg-cyan-50',    border: 'border-cyan-200',    label: 'text-cyan-700',    value: 'text-cyan-900',    icon: 'text-cyan-500',    accent: 'border-l-cyan-500' },
-  gray:    { bg: 'bg-gray-50',    border: 'border-gray-200',    label: 'text-gray-600',    value: 'text-gray-900',    icon: 'text-gray-400',    accent: 'border-l-gray-400' },
-  plain:   { bg: 'bg-white',      border: 'border-gray-200',    label: 'text-gray-500',    value: 'text-gray-900',    icon: 'text-emerald-500', accent: 'border-l-emerald-500' },
+  emerald: { bg: 'bg-white', border: 'border-gray-200', label: 'text-gray-500', value: 'text-gray-900', icon: 'text-emerald-500', accent: 'border-l-emerald-500' },
+  blue:    { bg: 'bg-white', border: 'border-gray-200', label: 'text-gray-500', value: 'text-gray-900', icon: 'text-blue-500',    accent: 'border-l-blue-500' },
+  amber:   { bg: 'bg-white', border: 'border-gray-200', label: 'text-gray-500', value: 'text-gray-900', icon: 'text-amber-500',   accent: 'border-l-amber-500' },
+  rose:    { bg: 'bg-white', border: 'border-gray-200', label: 'text-gray-500', value: 'text-gray-900', icon: 'text-rose-500',    accent: 'border-l-rose-500' },
+  violet:  { bg: 'bg-white', border: 'border-gray-200', label: 'text-gray-500', value: 'text-gray-900', icon: 'text-violet-500',  accent: 'border-l-violet-500' },
+  cyan:    { bg: 'bg-white', border: 'border-gray-200', label: 'text-gray-500', value: 'text-gray-900', icon: 'text-cyan-500',    accent: 'border-l-cyan-500' },
+  gray:    { bg: 'bg-white', border: 'border-gray-200', label: 'text-gray-500', value: 'text-gray-900', icon: 'text-gray-400',    accent: 'border-l-gray-400' },
+  plain:   { bg: 'bg-white', border: 'border-gray-200', label: 'text-gray-500', value: 'text-gray-900', icon: 'text-emerald-500', accent: 'border-l-emerald-500' },
 };
 
 export interface StatCardProps {
@@ -125,7 +128,7 @@ export function StatCard({
           )}
         </div>
         {Icon && (
-          <div className={`flex-shrink-0 w-11 h-11 rounded-xl bg-white/60 flex items-center justify-center`}>
+          <div className={`flex-shrink-0 w-11 h-11 flex items-center justify-center`}>
             <Icon className={`h-6 w-6 ${iconColor || toneStyle.icon}`} />
           </div>
         )}
