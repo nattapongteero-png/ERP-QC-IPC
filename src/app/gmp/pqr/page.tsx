@@ -409,7 +409,7 @@ export default function PqrDashboardPage() {
   // Cell renderers
   const renderReportNumber = (cellData: { data: PqrReport }) => {
     return (
-      <span className="font-mono font-semibold text-indigo-700">
+      <span className="font-mono font-semibold text-emerald-700">
         {cellData.data.reportNumber}
       </span>
     );
@@ -469,7 +469,7 @@ export default function PqrDashboardPage() {
             e.stopPropagation();
             router.push(`/gmp/pqr/${report.id}`);
           }}
-          className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+          className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
           title="View Details"
         >
           <Eye className="h-4 w-4" />
@@ -500,7 +500,7 @@ export default function PqrDashboardPage() {
     <>
       <div className="flex flex-col h-full gap-6 -m-4 md:-m-6">
         {/* Professional Header */}
-        <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 p-6 text-white">
+        <div className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-500 p-6 text-white">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -508,7 +508,7 @@ export default function PqrDashboardPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">{t('pqr.pageTitle')}</h1>
-                <p className="text-indigo-100 text-sm">{t('pqr.description')}</p>
+                <p className="text-emerald-100 text-sm">{t('pqr.description')}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -528,7 +528,7 @@ export default function PqrDashboardPage() {
               </button>
               <button
                 onClick={() => setShowNewDialog(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors font-medium"
               >
                 <Plus className="h-4 w-4" />
                 <span className="text-sm">New PQR</span>
@@ -567,7 +567,7 @@ export default function PqrDashboardPage() {
               {/* Status Cards */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Activity className="h-5 w-5 text-indigo-600" />
+                  <Activity className="h-5 w-5 text-emerald-600" />
                   <h3 className="font-semibold text-gray-900">Reports by Status</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -582,7 +582,7 @@ export default function PqrDashboardPage() {
                 {/* Status Distribution */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-indigo-600" />
+                    <TrendingUp className="h-5 w-5 text-emerald-600" />
                     <h3 className="font-semibold text-gray-900">Status Distribution</h3>
                   </div>
                   {statusChartData.length > 0 ? (
@@ -616,7 +616,7 @@ export default function PqrDashboardPage() {
                 {/* Reports by Year */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-4">
-                    <Calendar className="h-5 w-5 text-indigo-600" />
+                    <Calendar className="h-5 w-5 text-emerald-600" />
                     <h3 className="font-semibold text-gray-900">Reports by Year</h3>
                   </div>
                   {yearChartData.length > 0 ? (
@@ -651,7 +651,7 @@ export default function PqrDashboardPage() {
               {/* Average Metrics */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Target className="h-5 w-5 text-indigo-600" />
+                  <Target className="h-5 w-5 text-emerald-600" />
                   <h3 className="font-semibold text-gray-900">Average Metrics</h3>
                 </div>
                 <div className="space-y-3">
@@ -677,7 +677,7 @@ export default function PqrDashboardPage() {
                     target={95}
                     icon={<ClipboardCheck className="h-4 w-4" />}
                     iconColor="text-blue-600"
-                    bgGradient="from-blue-50 to-indigo-50"
+                    bgGradient="from-emerald-50 to-teal-50"
                   />
                   <MetricIndicator
                     label="Complaint Rate"
@@ -693,16 +693,16 @@ export default function PqrDashboardPage() {
               {/* Quick Stats */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Percent className="h-5 w-5 text-indigo-600" />
+                  <Percent className="h-5 w-5 text-emerald-600" />
                   <h3 className="font-semibold text-gray-900">Quick Summary</h3>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-indigo-600" />
-                      <span className="text-sm text-indigo-700">Total Reports</span>
+                      <FileText className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm text-emerald-700">Total Reports</span>
                     </div>
-                    <span className="text-lg font-bold text-indigo-700">{dashboard?.totalReports ?? 0}</span>
+                    <span className="text-lg font-bold text-emerald-700">{dashboard?.totalReports ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -746,14 +746,14 @@ export default function PqrDashboardPage() {
                     onClick={() => setActiveTab(tab.key)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       activeTab === tab.key
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-emerald-600 text-white'
                         : 'text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     {tab.label}
                     <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
                       activeTab === tab.key
-                        ? 'bg-indigo-500 text-white'
+                        ? 'bg-emerald-500 text-white'
                         : 'bg-gray-200 text-gray-600'
                     }`}>
                       {tab.count}
@@ -941,14 +941,14 @@ export default function PqrDashboardPage() {
       >
         <div className="flex flex-col">
           {/* Professional Header */}
-          <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 px-6 py-5 text-white">
+          <div className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 px-6 py-5 text-white">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
                 <FileBarChart className="h-7 w-7" />
               </div>
               <div>
                 <h2 className="text-xl font-bold">สร้างรายงาน PQR ใหม่</h2>
-                <p className="text-indigo-100 text-sm">Product Quality Review - รายงานทบทวนคุณภาพผลิตภัณฑ์ประจำปี</p>
+                <p className="text-emerald-100 text-sm">Product Quality Review - รายงานทบทวนคุณภาพผลิตภัณฑ์ประจำปี</p>
               </div>
             </div>
           </div>
@@ -958,7 +958,7 @@ export default function PqrDashboardPage() {
             {/* Product Selection Section */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <PackageCheck className="h-5 w-5 text-indigo-600" />
+                <PackageCheck className="h-5 w-5 text-emerald-600" />
                 <label className="text-sm font-semibold text-gray-800">เลือกผลิตภัณฑ์ *</label>
               </div>
 
@@ -988,18 +988,18 @@ export default function PqrDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowProductDialog(true)}
-                  className="w-full flex items-center justify-between p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
+                  className="w-full flex items-center justify-between p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-emerald-400 hover:bg-emerald-50 transition-all group"
                 >
-                  <div className="flex items-center gap-3 text-gray-500 group-hover:text-indigo-600">
-                    <div className="p-2 bg-gray-100 group-hover:bg-indigo-100 rounded-lg transition-colors">
+                  <div className="flex items-center gap-3 text-gray-500 group-hover:text-emerald-600">
+                    <div className="p-2 bg-gray-100 group-hover:bg-emerald-100 rounded-lg transition-colors">
                       <Package className="h-5 w-5" />
                     </div>
                     <div className="text-left">
                       <span className="block font-medium">คลิกเพื่อเลือกผลิตภัณฑ์...</span>
-                      <span className="text-xs text-gray-400 group-hover:text-indigo-400">เฉพาะผลิตภัณฑ์สำเร็จรูป (Finished Goods)</span>
+                      <span className="text-xs text-gray-400 group-hover:text-emerald-400">เฉพาะผลิตภัณฑ์สำเร็จรูป (Finished Goods)</span>
                     </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-indigo-500" />
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-emerald-500" />
                 </button>
               )}
             </div>
@@ -1007,7 +1007,7 @@ export default function PqrDashboardPage() {
             {/* Review Year Section */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Hash className="h-5 w-5 text-indigo-600" />
+                <Hash className="h-5 w-5 text-emerald-600" />
                 <label className="text-sm font-semibold text-gray-800">ปีที่ทบทวน (Review Year) *</label>
               </div>
               <div className="max-w-[200px]">
@@ -1029,7 +1029,7 @@ export default function PqrDashboardPage() {
             {/* Review Period Section */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <CalendarRange className="h-5 w-5 text-indigo-600" />
+                <CalendarRange className="h-5 w-5 text-emerald-600" />
                 <label className="text-sm font-semibold text-gray-800">ช่วงเวลาที่ทบทวน (Review Period)</label>
                 <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded">ไม่บังคับ</span>
               </div>
@@ -1062,7 +1062,7 @@ export default function PqrDashboardPage() {
             </div>
 
             {/* Info Box */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-blue-200 rounded-xl p-4">
               <div className="flex items-start gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
                   <Sparkles className="h-5 w-5 text-blue-600" />
