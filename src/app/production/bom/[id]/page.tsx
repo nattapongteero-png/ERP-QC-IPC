@@ -963,8 +963,8 @@ export default function BOMDetailPage() {
                     onClick={() => setActiveTab('access')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === 'access'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                        ? 'border-emerald-500 text-emerald-700'
+                        : 'border-transparent text-gray-500 hover:text-emerald-700'
                     }`}
                     data-testid="tab-access-control"
                   >

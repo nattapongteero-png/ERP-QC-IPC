@@ -465,7 +465,7 @@ export default function BatchRecordsDashboardPage() {
                     {renderStatusBadge(record.status)}
                     <p className="text-xs text-gray-400 mt-1 truncate max-w-[140px]">{record.productName}</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-indigo-500 transition-colors" />
+                  <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-emerald-600 transition-colors" />
                 </div>
               </div>
             )) || (
@@ -600,7 +600,7 @@ export default function BatchRecordsDashboardPage() {
               placeholder={t('batchRecords.registry.searchPlaceholder')}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
           <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap">
@@ -860,7 +860,7 @@ function BatchRecordCardList({
               <button
                 type="button"
                 onClick={() => onView(r.id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 transition-colors min-h-[44px]"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 transition-colors min-h-[44px]"
               >
                 <Eye className="h-4 w-4" />
                 <span>{t('batchRecords.mobile.viewDetails')}</span>

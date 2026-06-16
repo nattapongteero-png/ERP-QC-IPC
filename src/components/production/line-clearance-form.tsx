@@ -223,7 +223,7 @@ export function LineClearanceForm({
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 bg-gradient-to-r from-emerald-50 to-blue-50 border-b border-gray-200">
+      <div className="px-6 py-4 bg-gradient-to-r from-emerald-50 to-emerald-100/40 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">

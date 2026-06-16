@@ -567,7 +567,7 @@ export default function WorkOrdersPage() {
   // Cell renderers
   const renderWOCell = useCallback((data: { data: WorkOrder }) => (
     <div className="min-w-0">
-      <p className="font-mono font-semibold text-blue-600">{data.data.woNumber || '-'}</p>
+      <p className="font-mono font-semibold text-emerald-600">{data.data.woNumber || '-'}</p>
       <p className="text-xs text-gray-500 font-mono">{data.data.batchNumber || '-'}</p>
     </div>
   ), []);
@@ -584,7 +584,7 @@ export default function WorkOrdersPage() {
     if (!wo.bomCode) return <span className="text-gray-400 text-xs">-</span>;
     return (
       <div className="dx-cell-wrap">
-        <p className="font-mono font-semibold text-indigo-700 text-sm break-words">{wo.bomCode}</p>
+        <p className="font-mono font-semibold text-emerald-700 text-sm break-words">{wo.bomCode}</p>
         {wo.bomVersion && (
           <p className="text-xs text-gray-500">v{wo.bomVersion}</p>
         )}
@@ -663,7 +663,7 @@ export default function WorkOrdersPage() {
           <>
             <button
               onClick={(e) => handleEditClick(e, wo)}
-              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+              className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
               title={t('workOrders.actions.editWO')}
               data-testid={`edit-wo-${wo.id}`}
             >
@@ -684,7 +684,7 @@ export default function WorkOrdersPage() {
             e.stopPropagation();
             router.push(`/production/work-orders/${wo.id}`);
           }}
-          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
           title={t('workOrders.actions.viewWO')}
           data-testid={`view-wo-${wo.id}`}
         >
@@ -809,7 +809,7 @@ export default function WorkOrdersPage() {
         <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5 min-h-0">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-indigo-500" />
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
               {t('workOrders.charts.byStatus')}
             </h3>
           </div>
@@ -1230,9 +1230,9 @@ export default function WorkOrdersPage() {
       >
         <div className="p-4 space-y-4">
           {selectedWO && (
-            <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm font-semibold text-blue-700">{selectedWO.woNumber}</p>
-              <p className="text-xs text-blue-600">{selectedWO.productName}</p>
+            <div className="mb-3 p-3 bg-[#F4FBF7] rounded-lg border border-emerald-200">
+              <p className="text-sm font-semibold text-emerald-700">{selectedWO.woNumber}</p>
+              <p className="text-xs text-emerald-600">{selectedWO.productName}</p>
             </div>
           )}
           <div>
@@ -1509,7 +1509,7 @@ function WorkOrderMobileList({
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="min-w-0 flex-1">
-                  <p className="font-mono font-semibold text-blue-600 text-base truncate">
+                  <p className="font-mono font-semibold text-emerald-600 text-base truncate">
                     {wo.woNumber}
                   </p>
                   <p className="text-xs text-gray-500 font-mono">{wo.batchNumber || '-'}</p>
@@ -1528,7 +1528,7 @@ function WorkOrderMobileList({
               {wo.bomCode && (
                 <p className="text-xs mb-2">
                   <span className="text-gray-500">BOM: </span>
-                  <span className="font-mono font-semibold text-indigo-700">{wo.bomCode}</span>
+                  <span className="font-mono font-semibold text-emerald-700">{wo.bomCode}</span>
                   {wo.bomVersion && (
                     <span className="text-gray-500 ml-1">v{wo.bomVersion}</span>
                   )}
@@ -1566,7 +1566,7 @@ function WorkOrderMobileList({
               <button
                 type="button"
                 onClick={() => onView(wo.id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 transition-colors min-h-[44px]"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 transition-colors min-h-[44px]"
               >
                 <Eye className="h-4 w-4" />
                 <span>ดู</span>

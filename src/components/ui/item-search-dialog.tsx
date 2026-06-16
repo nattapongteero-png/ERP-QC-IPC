@@ -317,7 +317,7 @@ export function ItemSearchDialog({
         <div className={`p-1.5 rounded-lg ${typeConfig.bgColor}`}>
           <TypeIcon className={`h-4 w-4 ${typeConfig.color}`} />
         </div>
-        <span className="font-bold text-blue-600">{item.code}</span>
+        <span className="font-bold text-emerald-700">{item.code}</span>
       </div>
     );
   };
@@ -411,9 +411,9 @@ export function ItemSearchDialog({
   };
 
   const renderDialogContent = () => (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-[#F6FCF9]">
       {/* Header with Title and Stats */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
+      <div className="bg-gradient-to-r from-[#064E3B] to-emerald-600 text-white px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-lg">
@@ -421,7 +421,7 @@ export function ItemSearchDialog({
             </div>
             <div>
               <h2 className="text-xl font-bold">{title}</h2>
-              <p className="text-blue-100 text-sm">Double-click or select and confirm to choose an item</p>
+              <p className="text-emerald-100 text-sm">Double-click or select and confirm to choose an item</p>
             </div>
           </div>
 
@@ -430,16 +430,16 @@ export function ItemSearchDialog({
             <div className="flex items-center gap-4">
               <div className="text-center px-3 py-1 bg-white/10 rounded-lg">
                 <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-blue-100">Total Items</p>
+                <p className="text-xs text-emerald-100">Total Items</p>
               </div>
               <div className="text-center px-3 py-1 bg-white/10 rounded-lg">
                 <p className="text-2xl font-bold text-green-300">{stats.inStock}</p>
-                <p className="text-xs text-blue-100">In Stock</p>
+                <p className="text-xs text-emerald-100">In Stock</p>
               </div>
               {stats.lowStock > 0 && (
                 <div className="text-center px-3 py-1 bg-white/10 rounded-lg">
                   <p className="text-2xl font-bold text-amber-300">{stats.lowStock}</p>
-                  <p className="text-xs text-blue-100">Low Stock</p>
+                  <p className="text-xs text-emerald-100">Low Stock</p>
                 </div>
               )}
             </div>
@@ -643,9 +643,9 @@ export function ItemSearchDialog({
 
           <div className="flex items-center gap-2">
             {selectedItem && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200 mr-2">
-                <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-700">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200 mr-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-700">
                   Selected: {selectedItem.code}
                 </span>
               </div>

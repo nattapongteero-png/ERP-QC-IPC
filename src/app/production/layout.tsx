@@ -68,6 +68,12 @@ export default function ProductionLayout({
           }
           .production-organic .dx-datagrid .dx-row-alt > td { background-color: #FAFDFB; }
           .production-organic .dx-datagrid .dx-data-row:hover > td { background-color: #FFFBEB !important; }
+          /* Show full cell text — wrap instead of ellipsis-clipping */
+          .production-organic .dx-datagrid .dx-data-row > td {
+            white-space: normal;
+            text-overflow: clip;
+            word-break: break-word;
+          }
           .production-organic .dx-pager {
             border-top: 1px solid #EEF7F2;
             background: #FBFEFC;
@@ -85,6 +91,30 @@ export default function ProductionLayout({
             border-radius: 11px;
           }
           .production-organic .dx-datagrid-search-panel .dx-icon-search { color: #4B7163; }
+
+          /* ── Tabs (DxTabs) → organic active + smooth transition ── */
+          .production-organic .dx-tabs {
+            background: transparent;
+            border-bottom: 1px solid #DCEFE6;
+          }
+          .production-organic .dx-tab {
+            transition: color .2s ease, background-color .2s ease;
+          }
+          .production-organic .dx-tab .dx-tab-text { color: #4B7163; }
+          .production-organic .dx-tab.dx-state-hover { background-color: #F0FBF5; }
+          .production-organic .dx-tab.dx-tab-selected .dx-tab-text {
+            color: #064E3B;
+            font-weight: 600;
+          }
+          /* the selected-tab underline indicator — emerald + animated slide */
+          .production-organic .dx-tabs .dx-tab-selected::after,
+          .production-organic .dx-tabs .dx-tab.dx-tab-selected::before {
+            background: linear-gradient(90deg, #10B981, #059669) !important;
+            transition: all .25s ease;
+          }
+          .production-organic .dx-tab.dx-state-focused {
+            box-shadow: inset 0 0 0 1px rgba(16,185,129,.35);
+          }
         `}</style>
         {children}
       </div>

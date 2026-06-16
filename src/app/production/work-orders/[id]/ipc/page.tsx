@@ -789,7 +789,7 @@ export default function IPCPage() {
                             <button
                               type="button"
                               onClick={() => setPreviewDocId(criteriaDocMap[test.ipcCriteriaId!].docId)}
-                              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
                               title="ดูเอกสาร GMP"
                             >
                               <FileText className="h-3.5 w-3.5" />
@@ -873,7 +873,7 @@ export default function IPCPage() {
                                 <div className="flex items-center gap-2">
                                   {!round.isApproved && (
                                     <button
-                                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                      className="text-xs text-emerald-600 hover:text-emerald-800 underline"
                                       onClick={() => openInlineRecord(test, round.round)}
                                     >
                                       แก้ไข

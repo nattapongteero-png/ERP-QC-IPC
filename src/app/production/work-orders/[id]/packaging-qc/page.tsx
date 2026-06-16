@@ -591,7 +591,7 @@ export default function PackagingQCPage() {
                             <div className="flex gap-1.5">
                               <button
                                 onClick={() => handleEditWeightLog(log)}
-                                className="rounded-lg bg-white text-blue-600 hover:bg-blue-50 active:bg-blue-100 px-3 py-1.5 text-xs font-semibold border border-blue-200 transition-colors flex items-center gap-1 shadow-sm"
+                                className="rounded-lg bg-white text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100 px-3 py-1.5 text-xs font-semibold border border-emerald-200 transition-colors flex items-center gap-1 shadow-sm"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                                 {t('common.edit')}

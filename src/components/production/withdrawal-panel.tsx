@@ -139,10 +139,10 @@ export function WithdrawalPanel({
   return (
     <div
       data-testid="withdrawal-panel"
-      className="space-y-3 rounded-lg border-2 border-blue-200 bg-blue-50/50 p-4"
+      className="space-y-3 rounded-lg border-2 border-emerald-200 bg-[#F4FBF7] p-4"
     >
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-blue-900 flex items-center gap-2">
+        <h3 className="font-semibold text-emerald-900 flex items-center gap-2">
           <Plus className="w-4 h-4" />
           {t('page.title')}
         </h3>
@@ -164,7 +164,7 @@ export function WithdrawalPanel({
           (approval issues the material from stock immediately). */}
       {(history?.length ?? 0) > 0 && (
         <div className="space-y-1.5" data-testid="withdrawal-history">
-          <div className="text-xs font-medium text-blue-900/70">ประวัติการเบิกเพิ่ม</div>
+          <div className="text-xs font-medium text-emerald-900/70">ประวัติการเบิกเพิ่ม</div>
           {history!.map((req) => {
             const cfg = HISTORY_STATUS[req.status];
             const Icon = cfg.icon;
@@ -173,7 +173,7 @@ export function WithdrawalPanel({
                 key={req.id}
                 type="button"
                 onClick={() => setOpenDetailId(req.id)}
-                className="w-full text-left rounded-md border bg-white px-3 py-2 hover:border-blue-300 transition flex items-center justify-between gap-3"
+                className="w-full text-left rounded-md border bg-white px-3 py-2 hover:border-emerald-300 transition flex items-center justify-between gap-3"
                 data-testid={`withdrawal-history-${req.id}`}
               >
                 <div className="min-w-0">

@@ -80,6 +80,23 @@ export default function InventoryLayout({ children }: { children: React.ReactNod
         .inventory-organic .dx-datagrid .dx-data-row:hover > td {
           background-color: #FFFBEB !important;
         }
+        /* Show full cell text — wrap instead of ellipsis-clipping */
+        .inventory-organic .dx-datagrid .dx-data-row > td {
+          white-space: normal;
+          text-overflow: clip;
+          word-break: break-word;
+        }
+        /* Smooth, theme-aligned DxTabs */
+        .inventory-organic .dx-tabs { background: transparent; border-bottom: 1px solid #DCEFE6; }
+        .inventory-organic .dx-tab { transition: color .2s ease, background-color .2s ease; }
+        .inventory-organic .dx-tab .dx-tab-text { color: #4B7163; }
+        .inventory-organic .dx-tab.dx-state-hover { background-color: #F0FBF5; }
+        .inventory-organic .dx-tab.dx-tab-selected .dx-tab-text { color: #064E3B; font-weight: 600; }
+        .inventory-organic .dx-tabs .dx-tab-selected::after,
+        .inventory-organic .dx-tabs .dx-tab.dx-tab-selected::before {
+          background: linear-gradient(90deg, #10B981, #059669) !important;
+          transition: all .25s ease;
+        }
         .inventory-organic .dx-pager {
           border-top: 1px solid #EEF7F2;
           background: #FBFEFC;

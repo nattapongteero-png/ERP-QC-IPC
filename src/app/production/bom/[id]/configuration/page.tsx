@@ -241,7 +241,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                   ))}
                 </div>
               </div>
-              <button onClick={() => openEdit(cfg)} className="p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100">
+              <button onClick={() => openEdit(cfg)} className="p-1 text-gray-400 hover:text-emerald-700 opacity-0 group-hover:opacity-100">
                 <Pencil className="h-4 w-4" />
               </button>
               <button onClick={() => { if (confirm('Remove?')) delMut.mutate(cfg.id); }} className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100">
@@ -2288,7 +2288,7 @@ export default function BOMConfigurationPage() {
                           <button
                             type="button"
                             onClick={() => editPendingEntry(entry)}
-                            className="p-1 text-gray-400 hover:text-blue-600"
+                            className="p-1 text-gray-400 hover:text-emerald-700"
                             title="Edit"
                           >
                             <Pencil className="h-4 w-4" />
@@ -2766,7 +2766,7 @@ export default function BOMConfigurationPage() {
                 <div className="flex gap-1">
                   <button
                     onClick={() => openEditIpcLink(link)}
-                    className="p-1 text-gray-400 hover:text-blue-600"
+                    className="p-1 text-gray-400 hover:text-emerald-700"
                     title="Edit"
                   >
                     <Pencil className="h-4 w-4" />

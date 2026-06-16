@@ -142,7 +142,7 @@ export function PackagingReturnDialog({
     >
       <div className="p-4 space-y-3">
         {issuance && (
-          <div className="rounded-md bg-blue-50 text-blue-900 px-3 py-2 text-sm">
+          <div className="rounded-md bg-[#F4FBF7] text-emerald-900 px-3 py-2 text-sm">
             <strong>Issued: {issuance.quantity} {issuance.unit}</strong>
             {issuance.containerLabel && (
               <> · Container: <code>{issuance.containerLabel}</code></>

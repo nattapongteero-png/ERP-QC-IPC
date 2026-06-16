@@ -710,15 +710,18 @@ export default function WorkOrderDetailPage() {
     },
     {
       caption: 'รายละเอียด',
-      width: 110,
+      width: 130,
+      alignment: 'center',
       cellRender: (cellInfo) => (
-        <button
-          type="button"
-          onClick={() => router.push(buildQCDrillUrl(cellInfo.data))}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
-        >
-          ดูรายละเอียด →
-        </button>
+        <div className="flex justify-center pr-1">
+          <button
+            type="button"
+            onClick={() => router.push(buildQCDrillUrl(cellInfo.data))}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+          >
+            ดูรายละเอียด →
+          </button>
+        </div>
       ),
     },
   ];
@@ -793,7 +796,7 @@ export default function WorkOrderDetailPage() {
               Batch: {workOrder.batchNumber || 'N/A'}
               {workOrder.bomCode && (
                 <span className="ml-3">
-                  · BOM: <span className="font-mono font-semibold text-indigo-700">{workOrder.bomCode}</span>
+                  · BOM: <span className="font-mono font-semibold text-emerald-700">{workOrder.bomCode}</span>
                   {workOrder.bomVersion && <span className="text-xs text-gray-500 ml-1">v{workOrder.bomVersion}</span>}
                 </span>
               )}
@@ -926,7 +929,7 @@ export default function WorkOrderDetailPage() {
                     <div className="col-span-2">
                       <dt className="text-sm text-gray-500">BOM</dt>
                       <dd className="font-medium">
-                        <span className="font-mono text-indigo-700">{workOrder.bomCode}</span>
+                        <span className="font-mono text-emerald-700">{workOrder.bomCode}</span>
                         {workOrder.bomVersion && (
                           <span className="text-xs text-gray-500 ml-2">v{workOrder.bomVersion}</span>
                         )}

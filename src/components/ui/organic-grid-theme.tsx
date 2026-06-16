@@ -65,6 +65,24 @@ export function OrganicGridTheme() {
       }
       .organic-grid .dx-datagrid .dx-row-alt > td { background-color: #FAFDFB; }
       .organic-grid .dx-datagrid .dx-data-row:hover > td { background-color: #FFFBEB !important; }
+      /* Show full cell text — let columnAutoWidth size to content instead of
+         clipping with an ellipsis (data cells wrap rather than truncate). */
+      .organic-grid .dx-datagrid .dx-data-row > td {
+        white-space: normal;
+        text-overflow: clip;
+        word-break: break-word;
+      }
+      /* Smooth, theme-aligned DxTabs: animated emerald indicator + hover */
+      .organic-grid .dx-tabs { background: transparent; border-bottom: 1px solid #DCEFE6; }
+      .organic-grid .dx-tab { transition: color .2s ease, background-color .2s ease; }
+      .organic-grid .dx-tab .dx-tab-text { color: #4B7163; }
+      .organic-grid .dx-tab.dx-state-hover { background-color: #F0FBF5; }
+      .organic-grid .dx-tab.dx-tab-selected .dx-tab-text { color: #064E3B; font-weight: 600; }
+      .organic-grid .dx-tabs .dx-tab-selected::after,
+      .organic-grid .dx-tabs .dx-tab.dx-tab-selected::before {
+        background: linear-gradient(90deg, #10B981, #059669) !important;
+        transition: all .25s ease;
+      }
       .organic-grid .dx-pager {
         border-top: 1px solid #EEF7F2;
         background: #FBFEFC;

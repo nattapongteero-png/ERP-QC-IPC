@@ -50,9 +50,9 @@ import type { BOMDashboard } from '@/app/api/bom/dashboard/route';
 
 // Status configuration - Simplified workflow: draft → approved → obsolete
 const statusConfig = {
-  draft: { translationKey: 'draft', color: 'bg-amber-100 text-amber-800', borderColor: 'border-amber-500' },
-  active: { translationKey: 'active', color: 'bg-teal-100 text-teal-800', borderColor: 'border-teal-500' },
-  approved: { translationKey: 'approved', color: 'bg-green-100 text-green-800', borderColor: 'border-green-500' },
+  draft: { translationKey: 'draft', color: 'bg-amber-100 text-amber-700', borderColor: 'border-amber-500' },
+  active: { translationKey: 'active', color: 'bg-teal-100 text-teal-700', borderColor: 'border-teal-500' },
+  approved: { translationKey: 'approved', color: 'bg-emerald-100 text-emerald-700', borderColor: 'border-emerald-500' },
   obsolete: { translationKey: 'obsolete', color: 'bg-gray-100 text-gray-600', borderColor: 'border-gray-400' },
 };
 
@@ -639,7 +639,7 @@ export default function BOMDashboardPage() {
                           e.stopPropagation();
                           handleView(bom);
                         }}
-                        className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                        className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
                         title="View"
                       >
                         <Eye className="h-4 w-4" />
@@ -651,7 +651,7 @@ export default function BOMDashboardPage() {
                               e.stopPropagation();
                               handleEdit(bom);
                             }}
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
                             title="Edit"
                           >
                             <Pencil className="h-4 w-4" />
@@ -794,7 +794,7 @@ function BomCardList({
               <button
                 type="button"
                 onClick={() => onView(bom)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 transition-colors min-h-[44px]"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 transition-colors min-h-[44px]"
               >
                 <Eye className="h-4 w-4" />
                 <span>{t('workOrders.actions.viewDetails') || 'View'}</span>

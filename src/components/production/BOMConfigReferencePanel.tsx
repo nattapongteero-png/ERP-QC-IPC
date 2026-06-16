@@ -94,20 +94,20 @@ export default function BOMConfigReferencePanel({
     : t('bomConfiguration.summary');
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+    <div className="bg-[#F4FBF7] border border-emerald-200 rounded-lg overflow-hidden">
       <button
         data-testid="bom-config-toggle"
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-blue-100 transition-colors"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-emerald-50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-2">
-          <Info className="h-5 w-5 text-blue-600" />
+          <Info className="h-5 w-5 text-emerald-600" />
           <span className="font-medium text-blue-800">{title}</span>
         </div>
         {expanded ? (
-          <ChevronDown className="h-4 w-4 text-blue-600" />
+          <ChevronDown className="h-4 w-4 text-emerald-600" />
         ) : (
-          <ChevronRight className="h-4 w-4 text-blue-600" />
+          <ChevronRight className="h-4 w-4 text-emerald-600" />
         )}
       </button>
 
@@ -165,13 +165,13 @@ export default function BOMConfigReferencePanel({
                       <span>{locale === 'th' && s.stepNameTh ? s.stepNameTh : s.stepName}</span>
                     </div>
                     {s.parameters && Object.keys(s.parameters).length > 0 && (
-                      <div className="mt-1 text-xs text-blue-600">
+                      <div className="mt-1 text-xs text-emerald-600">
                         {t('bomConfiguration.parameters')}:{' '}
                         {Object.entries(s.parameters).map(([key, val]) => `${key}: ${val}`).join(', ')}
                       </div>
                     )}
                     {(s.instructions || s.instructionsTh) && (
-                      <div className="mt-1 text-xs text-blue-600">
+                      <div className="mt-1 text-xs text-emerald-600">
                         {t('bomConfiguration.instructions')}: {locale === 'th' && s.instructionsTh ? s.instructionsTh : s.instructions}
                       </div>
                     )}
