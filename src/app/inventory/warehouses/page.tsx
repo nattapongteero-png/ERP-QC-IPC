@@ -514,29 +514,25 @@ export default function WarehousesPage() {
             label={t('stats.total')}
             value={warehouses.length}
             icon={Boxes}
-            iconColor="text-emerald-500"
-            accentColor="border-emerald-500"
+            tone="emerald"
           />
           <StatCard
             label={t('stats.active')}
             value={activeCount}
             icon={CheckCircle}
-            iconColor="text-emerald-500"
-            accentColor="border-emerald-500"
+            tone="blue"
           />
           <StatCard
             label={t('stats.coldStorage')}
             value={coldStorageCount}
             icon={Snowflake}
-            iconColor="text-cyan-500"
-            accentColor="border-cyan-500"
+            tone="cyan"
           />
           <StatCard
             label={t('stats.inactive')}
             value={inactiveCount}
             icon={XCircle}
-            iconColor="text-gray-400"
-            accentColor="border-gray-400"
+            tone="gray"
           />
         </div>
 

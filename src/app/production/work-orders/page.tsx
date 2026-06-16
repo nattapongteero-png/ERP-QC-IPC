@@ -1135,6 +1135,8 @@ export default function WorkOrdersPage() {
         title={t('workOrders.actions.editWO')}
         width={500}
         height="auto"
+        maxHeight="90vh"
+        fullScreenOnMobile
         toolbarItems={[
           {
             widget: 'dxButton',

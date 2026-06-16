@@ -144,8 +144,10 @@ export default function BOMDashboardPage() {
     },
   });
 
-  // Prepare chart data
-  const statusChartData = useMemo(() => dashboard
+  // Prepare chart data. Guard byStatus too — a dashboard payload without it
+  // (older API shape / partial mock) otherwise crashes the whole page render
+  // via Object.entries(undefined).
+  const statusChartData = useMemo(() => dashboard?.byStatus
     ? Object.entries(dashboard.byStatus)
         .filter(([, value]) => value > 0)
         .map(([status, count]) => ({
@@ -291,39 +293,42 @@ export default function BOMDashboardPage() {
         }
       />
 
-      {/* KPI Stat Cards - 4 cards */}
+      {/* KPI Stat Cards — soft-tinted by meaning (goods-receipt concept):
+          total=emerald, approved=blue, draft=amber (needs review),
+          obsolete=gray. Approved/draft/obsolete deep-link into the matching
+          registry tab; work-orders → its page. */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label={t('bom.stats.totalBOMs')}
           value={dashboard?.totalBOMs ?? 0}
           icon={ClipboardList}
-          iconColor="text-emerald-500"
-          accentColor="border-emerald-500"
+          tone="emerald"
           isLoading={dashboardLoading}
+          onClick={() => setActiveTab('all')}
         />
         <StatCard
-          label={t('bom.stats.activeBOMs')}
+          label={t('bom.tabs.approved')}
           value={(dashboard?.activeBOMs ?? 0)}
           icon={CheckCircle}
-          iconColor="text-emerald-500"
-          accentColor="border-emerald-500"
+          tone="blue"
           isLoading={dashboardLoading}
+          onClick={() => setActiveTab('approved')}
         />
         <StatCard
           label={t('bom.stats.draftBOMs')}
           value={dashboard?.draftBOMs ?? 0}
           icon={Clock}
-          iconColor="text-amber-500"
-          accentColor="border-amber-500"
+          tone="amber"
           isLoading={dashboardLoading}
+          onClick={() => setActiveTab('draft')}
         />
         <StatCard
           label={t('bom.stats.obsolete')}
           value={dashboard?.obsoleteBOMs ?? 0}
           icon={XCircle}
-          iconColor="text-gray-400"
-          accentColor="border-gray-400"
+          tone="gray"
           isLoading={dashboardLoading}
+          onClick={() => setActiveTab('obsolete')}
         />
       </div>
 
@@ -333,8 +338,7 @@ export default function BOMDashboardPage() {
           label={t('bom.stats.workOrders')}
           value={dashboard?.activeWorkOrders ?? 0}
           icon={Factory}
-          iconColor="text-emerald-500"
-          accentColor="border-emerald-500"
+          tone="violet"
           isLoading={dashboardLoading}
           href="/production/work-orders"
         />
@@ -342,16 +346,14 @@ export default function BOMDashboardPage() {
           label={t('bom.stats.materials')}
           value={dashboard?.totalMaterials ?? 0}
           icon={Package}
-          iconColor="text-purple-500"
-          accentColor="border-purple-500"
+          tone="cyan"
           isLoading={dashboardLoading}
         />
         <StatCard
           label={t('bom.stats.avgPerBOM')}
           value={dashboard?.avgMaterialsPerBOM?.toFixed(1) ?? '0'}
           icon={Layers}
-          iconColor="text-emerald-500"
-          accentColor="border-emerald-500"
+          tone="emerald"
           isLoading={dashboardLoading}
         />
       </div>

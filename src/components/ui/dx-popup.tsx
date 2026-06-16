@@ -133,7 +133,10 @@ export function DxPopup({
   width = 'auto',
   height = 'auto',
   maxWidth,
-  maxHeight,
+  // Default cap so a tall dialog never grows past the viewport and hides its
+  // bottom toolbar (save/cancel) off-screen — DevExtreme then scrolls the
+  // content area and keeps the toolbar pinned. Callers can override.
+  maxHeight = '90vh',
   minWidth = 300,
   minHeight,
   dragEnabled = true,

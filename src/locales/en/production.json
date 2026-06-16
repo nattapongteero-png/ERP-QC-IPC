@@ -189,6 +189,20 @@
       "avgPerBOM": "Avg/BOM",
       "obsolete": "Obsolete"
     },
+    "statsDesc": {
+      "totalBOMs": "All manufacturing recipes in the system",
+      "approvedBOMs": "Approved — ready to create work orders",
+      "draftBOMs": "Still draft — awaiting review/approval",
+      "obsolete": "Retired, kept for history",
+      "workOrders": "Work orders currently in progress",
+      "materials": "Distinct materials used across all BOMs",
+      "avgPerBOM": "Average materials per recipe"
+    },
+    "statsAction": {
+      "viewAll": "View all",
+      "review": "Review",
+      "open": "Open"
+    },
     "charts": {
       "statusDistribution": "Status Distribution",
       "topProducts": "Top Products",

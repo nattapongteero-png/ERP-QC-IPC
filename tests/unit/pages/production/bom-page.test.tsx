@@ -98,10 +98,13 @@ describe('BOMDashboardPage', () => {
       renderWithProviders(<BOMDashboardPage />);
 
       await waitFor(() => {
+        // Primary KPI cards (soft-tinted, clickable to filter the registry).
+        // The "active" card is now labelled "Approved" (matches the tab/status).
         expect(screen.getByText('Total BOMs')).toBeInTheDocument();
-        expect(screen.getByText('Active BOMs')).toBeInTheDocument();
+        expect(screen.getAllByText('Approved').length).toBeGreaterThan(0);
         expect(screen.getByText('Draft BOMs')).toBeInTheDocument();
-        expect(screen.getByText('Work Orders')).toBeInTheDocument();
+        // "Obsolete" appears both as a KPI card and a filter tab.
+        expect(screen.getAllByText('Obsolete').length).toBeGreaterThan(0);
       });
     });
 
