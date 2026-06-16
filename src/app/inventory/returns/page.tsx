@@ -392,7 +392,6 @@ export default function MaterialReturnsInboxPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              filterRow
               headerFilter
               pageSize={20}
               height="auto"

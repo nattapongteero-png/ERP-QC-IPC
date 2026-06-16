@@ -707,7 +707,6 @@ export default function TransactionsPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              filterRow
               headerFilter
               export
               exportFileName="inventory-transactions"

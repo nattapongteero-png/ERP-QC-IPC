@@ -625,7 +625,6 @@ export default function WarehousesPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              filterRow
               headerFilter
               export
               exportFileName="warehouses"

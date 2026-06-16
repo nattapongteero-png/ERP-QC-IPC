@@ -65,12 +65,14 @@ export default function InventoryLayout({ children }: { children: React.ReactNod
           font-weight: 600;
           color: #065F46;
         }
-        /* header captions on a single line (data rows keep wrapping) */
+        /* header captions on a single line, shown in full (no ellipsis clip).
+           nowrap + visible overflow lets columnAutoWidth size the column to
+           the caption so headers like "รายการ"/"วันหมดอายุ" aren't cut off. */
         .inventory-organic .dx-datagrid-headers .dx-header-row > td,
         .inventory-organic .dx-datagrid-headers .dx-header-row > td .dx-datagrid-text-content {
           white-space: nowrap !important;
-          text-overflow: ellipsis;
-          overflow: hidden;
+          overflow: visible;
+          text-overflow: clip;
         }
         .inventory-organic .dx-datagrid .dx-row-alt > td {
           background-color: #FAFDFB;
