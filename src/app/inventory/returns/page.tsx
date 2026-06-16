@@ -325,7 +325,7 @@ export default function MaterialReturnsInboxPage() {
         </div>
 
         {/* Filter row — stacks on mobile */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 md:p-4">
+        <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-3 md:p-4">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="md:col-span-2">
               <DxTextBox
@@ -369,7 +369,7 @@ export default function MaterialReturnsInboxPage() {
         </div>
 
         {/* Data grid */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
           {loading ? (
             <div className="p-6 text-center text-gray-500">กำลังโหลด...</div>
           ) : filtered.length === 0 ? (

@@ -497,15 +497,15 @@ function DataGridLoadingSkeleton() {
 /** All-clear empty state — no expired or near-expiry lots */
 function AllClearEmptyState({ t }: { t: TranslateFn }) {
   return (
-    <div className="bg-white border border-emerald-100 rounded-xl shadow-sm">
+    <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
       <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
         <div className="h-20 w-20 rounded-2xl bg-emerald-100 flex items-center justify-center mb-5">
           <CheckCircle className="h-10 w-10 text-emerald-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-[#064E3B] mb-2">
           {t('expiryAlerts.allClear.title')}
         </h3>
-        <p className="text-sm text-gray-500 max-w-sm">
+        <p className="text-sm text-[#4B7163] max-w-sm">
           {t('expiryAlerts.allClear.description')}
         </p>
       </div>

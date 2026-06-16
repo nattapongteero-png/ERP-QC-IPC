@@ -85,11 +85,11 @@ export default function GoodsReceiptListPage() {
       <BackButton href="/inventory" label="Inventory" />
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-bold flex items-center gap-2 text-[#064E3B]">
             <ClipboardCheck className="w-6 h-6" />
             {t('page.title')}
           </h1>
-          <p className="text-gray-600 text-sm mt-1">{t('page.subtitle')}</p>
+          <p className="text-[#4B7163] text-sm mt-1">{t('page.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button text={t('actions.refresh')} onClick={() => refetch()} />

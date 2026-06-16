@@ -1139,7 +1139,7 @@ export default function LotsPage() {
                   });
                 }}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 min-h-[40px]"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-emerald-800 bg-white border border-emerald-100 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow transition-all disabled:opacity-50 min-h-[40px]"
                 aria-label={t('common.refresh')}
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
@@ -1149,7 +1149,7 @@ export default function LotsPage() {
               </button>
               <button
                 onClick={() => router.push('/inventory/items')}
-                className="hidden md:inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[40px]"
+                className="hidden md:inline-flex items-center gap-2 px-3 py-2 text-sm text-emerald-800 bg-white border border-emerald-100 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow transition-all min-h-[40px]"
               >
                 <Package className="h-4 w-4" />
                 {t('lots.viewItems')}
@@ -1192,7 +1192,7 @@ export default function LotsPage() {
             verbatim duplicate of /inventory/requisitions which confused
             users. Unwrapped to a plain div so it now acts as the page's
             summary header only. */}
-        <div className="mb-4 rounded-xl border border-gray-200 shadow-sm bg-white">
+        <div className="mb-4 rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] bg-white">
           <div className="w-full p-4 text-left">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center bg-emerald-100 text-emerald-600">
@@ -1242,12 +1242,12 @@ export default function LotsPage() {
         </div>
 
         {/* DataGrid Card */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
           {/* Tabs + Stats Header */}
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="px-4 py-3 border-b border-emerald-50 bg-gradient-to-b from-[#FBFEFC] to-[#F6FCF9]">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               {/* Status Tabs */}
-              <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200 overflow-x-auto">
+              <div className="flex items-center gap-1 bg-[#F1FAF5] rounded-xl p-1 border border-emerald-100 overflow-x-auto">
                 {(Object.keys(STATUS_CONFIG) as StatusType[]).map((status) => {
                   const config = STATUS_CONFIG[status];
                   const count = statusCounts[status];
@@ -1258,15 +1258,15 @@ export default function LotsPage() {
                       className={cn(
                         'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
                         statusFilter === status
-                          ? status === '' ? 'bg-gray-900 text-white' : `${config.bgColor} ${config.textColor}`
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                          ? status === '' ? 'bg-gradient-to-br from-[#064E3B] to-emerald-600 text-white shadow-sm' : `${config.bgColor} ${config.textColor}`
+                          : 'text-[#4B7163] hover:text-[#064E3B] hover:bg-[#E6F6EE]'
                       )}
                     >
                       {config.icon}
                       {status === '' ? t('common.all') : t(`lots.status.${config.translationKey}`)}
                       <span className={cn(
                         'text-xs px-1.5 py-0.5 rounded-full',
-                        statusFilter === status ? (status === '' ? 'bg-gray-700' : 'bg-white/50') : 'bg-gray-200'
+                        statusFilter === status ? (status === '' ? 'bg-white/20 text-white' : 'bg-white/50') : 'bg-emerald-100 text-emerald-800'
                       )}>
                         {count}
                       </span>
@@ -1322,7 +1322,7 @@ export default function LotsPage() {
               setQuickFilter('');
             };
             return (
-              <div className="bg-gradient-to-b from-white to-gray-50/50 border-b border-gray-100">
+              <div className="bg-gradient-to-b from-white to-[#F6FCF9] border-b border-emerald-50">
                 {/* ── Row 1: Main filters with labels ── */}
                 <div className="px-4 pt-3 pb-2">
                   <div className="flex flex-wrap items-end gap-x-4 gap-y-2 filter-compact">

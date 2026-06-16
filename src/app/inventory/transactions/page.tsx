@@ -97,7 +97,7 @@ const TYPE_CONFIG: Record<TransactionTypeFilter, {
 }> = {
   '': {
     translationKey: 'all',
-    bgColor: 'bg-gray-900',
+    bgColor: 'bg-gradient-to-br from-[#064E3B] to-emerald-600',
     textColor: 'text-white',
     icon: <Boxes className="h-4 w-4" />,
     badgeVariant: 'default',
@@ -600,10 +600,10 @@ export default function TransactionsPage() {
         </div>
 
         {/* DataGrid Card */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
           {/* Filter Header: Type Tabs */}
-          <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
-            <div className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x">
+          <div className="px-3 py-3 sm:px-4 border-b border-emerald-50 bg-gradient-to-b from-[#FBFEFC] to-[#F6FCF9]">
+            <div className="flex items-center gap-1 p-1 bg-[#F1FAF5] border border-emerald-100 rounded-xl overflow-x-auto scrollbar-thin snap-x">
               {(Object.keys(TYPE_CONFIG) as TransactionTypeFilter[]).map((type) => {
                 const config = TYPE_CONFIG[type];
                 const count = typeCounts[type];
@@ -617,7 +617,7 @@ export default function TransactionsPage() {
                       'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]',
                       isActive
                         ? `${config.bgColor} ${config.textColor} shadow-sm`
-                        : `text-gray-600 hover:bg-gray-100`
+                        : `text-[#4B7163] hover:text-[#064E3B] hover:bg-[#E6F6EE]`
                     )}
                   >
                     {config.icon}
@@ -625,8 +625,8 @@ export default function TransactionsPage() {
                     <span className={cn(
                       'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
                       isActive
-                        ? 'bg-white/25 text-inherit'
-                        : 'bg-gray-200 text-gray-700'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-emerald-100 text-emerald-800'
                     )}>
                       {count}
                     </span>
@@ -637,7 +637,7 @@ export default function TransactionsPage() {
           </div>
 
           {/* Search + Date Filter Row */}
-          <div className="px-3 py-3 sm:px-4 border-b border-gray-100">
+          <div className="px-3 py-3 sm:px-4 border-b border-emerald-50">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1 w-full sm:max-w-md">
                 <DxTextBox

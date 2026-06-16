@@ -385,7 +385,7 @@ export default function MaterialRequisitionsInboxPage() {
           />
         </div>
 
-        <div className="p-4 rounded-2xl border border-gray-200 bg-white space-y-3">
+        <div className="p-4 rounded-2xl border border-emerald-100 bg-white shadow-[0_6px_20px_rgba(6,78,59,0.07)] space-y-3">
           {/* Row 1: status + search + refresh */}
           <div className="flex flex-wrap gap-3 items-end">
             <div className="w-56">
@@ -443,19 +443,19 @@ export default function MaterialRequisitionsInboxPage() {
             <div className="flex flex-wrap gap-2 items-center">
               <span className="text-xs text-gray-400">ด่วน:</span>
               <button
-                className="text-xs px-2 py-1 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700"
+                className="text-xs px-2 py-1 rounded-md border border-emerald-100 bg-[#F6FCF9] hover:bg-[#E6F6EE] text-[#4B7163]"
                 onClick={() => setDatePreset('today')}
               >วันนี้</button>
               <button
-                className="text-xs px-2 py-1 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700"
+                className="text-xs px-2 py-1 rounded-md border border-emerald-100 bg-[#F6FCF9] hover:bg-[#E6F6EE] text-[#4B7163]"
                 onClick={() => setDatePreset('last7')}
               >7 วันล่าสุด</button>
               <button
-                className="text-xs px-2 py-1 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700"
+                className="text-xs px-2 py-1 rounded-md border border-emerald-100 bg-[#F6FCF9] hover:bg-[#E6F6EE] text-[#4B7163]"
                 onClick={() => setDatePreset('last30')}
               >30 วัน</button>
               <button
-                className="text-xs px-2 py-1 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700"
+                className="text-xs px-2 py-1 rounded-md border border-emerald-100 bg-[#F6FCF9] hover:bg-[#E6F6EE] text-[#4B7163]"
                 onClick={() => setDatePreset('thisMonth')}
               >เดือนนี้</button>
             </div>
@@ -466,7 +466,7 @@ export default function MaterialRequisitionsInboxPage() {
               className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
                 insufficientOnly
                   ? 'bg-red-50 border-red-300 text-red-700'
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  : 'bg-white border-emerald-100 text-[#4B7163] hover:bg-[#F6FCF9]'
               }`}
             >
               <AlertTriangle className="h-3.5 w-3.5" />
@@ -516,7 +516,7 @@ export default function MaterialRequisitionsInboxPage() {
             กำลังโหลด...
           </div>
         ) : filteredRows.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center text-gray-500">
+          <div className="rounded-2xl border border-dashed border-emerald-100 bg-white p-12 text-center text-gray-500">
             <Package className="h-10 w-10 mx-auto mb-3 text-gray-400" />
             ไม่พบใบเบิกในเงื่อนไขที่เลือก
           </div>
@@ -528,11 +528,11 @@ export default function MaterialRequisitionsInboxPage() {
               return (
                 <div
                   key={req.workOrderId}
-                  className="rounded-2xl border border-gray-200 bg-white overflow-hidden"
+                  className="rounded-2xl border border-emerald-100 bg-white shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden"
                 >
                   <button
                     onClick={() => toggle(req.workOrderId)}
-                    className="w-full px-5 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors text-left"
+                    className="w-full px-5 py-4 flex items-center gap-4 hover:bg-[#F6FCF9] transition-colors text-left"
                   >
                     {isOpen ? (
                       <ChevronDown className="h-5 w-5 text-gray-400" />
@@ -571,7 +571,7 @@ export default function MaterialRequisitionsInboxPage() {
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 pb-5 border-t border-gray-100 bg-gray-50/50">
+                    <div className="px-5 pb-5 border-t border-emerald-50 bg-gradient-to-b from-[#FBFEFC] to-[#F6FCF9]">
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead className="text-xs text-gray-500 uppercase">
