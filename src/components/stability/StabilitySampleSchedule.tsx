@@ -35,22 +35,22 @@ const statusConfig: Record<
   { label: string; color: string; icon: React.ReactNode }
 > = {
   pending: {
-    label: 'Pending',
+    label: 'รอดำเนินการ',
     color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
     icon: <Clock className="h-3 w-3" />,
   },
   sampled: {
-    label: 'Sampled',
+    label: 'เก็บตัวอย่างแล้ว',
     color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     icon: <FlaskConical className="h-3 w-3" />,
   },
   tested: {
-    label: 'Tested',
+    label: 'ทดสอบแล้ว',
     color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     icon: <CheckCircle className="h-3 w-3" />,
   },
   skipped: {
-    label: 'Skipped',
+    label: 'ข้าม',
     color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     icon: <SkipForward className="h-3 w-3" />,
   },
@@ -153,19 +153,19 @@ export function StabilitySampleSchedule({
             rel="noopener noreferrer"
           >
             <AlertTriangle className="h-3 w-3" />
-            <span>Yes (DEV)</span>
+            <span>ใช่ (DEV)</span>
           </a>
         );
       }
       return (
         <span className="inline-flex items-center gap-1 text-red-600 font-medium">
           <AlertTriangle className="h-3 w-3" />
-          <span>Yes</span>
+          <span>ใช่</span>
         </span>
       );
     }
 
-    return <span className="text-green-600">No</span>;
+    return <span className="text-green-600">ไม่</span>;
   };
 
   const renderActionsCell = (cellData: { data: StabilitySample }) => {
@@ -175,7 +175,7 @@ export function StabilitySampleSchedule({
     if (sample.status === 'pending' || sample.status === 'sampled') {
       return (
         <DxButton
-          text="Record Test"
+          text="บันทึกผลทดสอบ"
           stylingMode="text"
           onClick={() => setTestDialogSample(sample)}
         />
@@ -191,26 +191,26 @@ export function StabilitySampleSchedule({
 
         <DxColumn
           dataField="timepoint"
-          caption="Timepoint"
+          caption="จุดเวลา"
           width={100}
           cellRender={renderTimepointCell}
         />
-        <DxColumn dataField="sampleNumber" caption="Sample #" width={120} />
+        <DxColumn dataField="sampleNumber" caption="เลขตัวอย่าง" width={120} />
         <DxColumn
-          caption="Scheduled"
+          caption="กำหนดการ"
           width={120}
           cellRender={renderScheduledDateCell}
           allowSorting={false}
         />
         <DxColumn
           dataField="actualDate"
-          caption="Actual Date"
+          caption="วันที่จริง"
           dataType="date"
           width={110}
         />
         <DxColumn
           dataField="status"
-          caption="Status"
+          caption="สถานะ"
           width={100}
           cellRender={renderStatusCell}
         />
@@ -221,11 +221,11 @@ export function StabilitySampleSchedule({
           allowFiltering={false}
           allowSorting={false}
         />
-        <DxColumn dataField="sampledByName" caption="Sampled By" width={120} />
-        <DxColumn dataField="notes" caption="Notes" minWidth={150} />
+        <DxColumn dataField="sampledByName" caption="ผู้เก็บตัวอย่าง" width={120} />
+        <DxColumn dataField="notes" caption="หมายเหตุ" minWidth={150} />
         {canEdit && (
           <DxColumn
-            caption="Actions"
+            caption="การดำเนินการ"
             width={120}
             cellRender={renderActionsCell}
             allowFiltering={false}
@@ -238,7 +238,7 @@ export function StabilitySampleSchedule({
       <DxPopup
         visible={!!testDialogSample}
         onHiding={() => setTestDialogSample(null)}
-        title={`Record Test - ${testDialogSample?.sampleNumber || ''}`}
+        title={`บันทึกผลทดสอบ - ${testDialogSample?.sampleNumber || ''}`}
         width={450}
         height="auto"
         showCloseButton
@@ -247,32 +247,32 @@ export function StabilitySampleSchedule({
           {testDialogSample && (
             <div className="p-3 bg-muted rounded-lg text-sm">
               <div className="grid grid-cols-2 gap-2">
-                <div>Timepoint:</div>
+                <div>จุดเวลา:</div>
                 <div className="font-semibold">{testDialogSample.timepoint}M</div>
-                <div>Scheduled:</div>
+                <div>กำหนดการ:</div>
                 <div className="font-semibold">{testDialogSample.scheduledDate}</div>
               </div>
             </div>
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Quality Test ID *</label>
+            <label className="text-sm font-medium">รหัสการทดสอบคุณภาพ *</label>
             <DxNumberBox
               value={testData.qualityTestId}
               onValueChanged={(e) =>
                 setTestData({ ...testData, qualityTestId: e.value || 0 })
               }
               min={1}
-              placeholder="Enter quality test ID..."
+              placeholder="กรอกรหัสการทดสอบคุณภาพ..."
             />
             <p className="text-xs text-muted-foreground">
-              Reference to the quality_tests table record
+              อ้างอิงถึงระเบียนในตาราง quality_tests
             </p>
           </div>
 
           <div className="space-y-2">
             <DxCheckBox
-              text="OOS Detected"
+              text="พบ OOS (ผลนอกข้อกำหนด)"
               value={testData.oosDetected}
               onValueChanged={(e) =>
                 setTestData({ ...testData, oosDetected: e.value || false })
@@ -281,11 +281,11 @@ export function StabilitySampleSchedule({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Notes</label>
+            <label className="text-sm font-medium">หมายเหตุ</label>
             <DxTextArea
               value={testData.notes || ''}
               onValueChange={(value) => setTestData({ ...testData, notes: value || '' })}
-              placeholder="Add test notes..."
+              placeholder="เพิ่มหมายเหตุการทดสอบ..."
               height={80}
             />
           </div>
@@ -298,12 +298,12 @@ export function StabilitySampleSchedule({
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => setTestDialogSample(null)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Record Test"
+              text="บันทึกผลทดสอบ"
               onClick={handleRecordTest}
               type="default"
               disabled={!testData.qualityTestId || recordTestMutation.isPending}

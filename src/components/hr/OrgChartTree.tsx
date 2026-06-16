@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState, useMemo, useRef } from 'react';
-import TreeList, { Column, Editing, Selection, SearchPanel, HeaderFilter, Scrolling, Sorting, ColumnChooser, Lookup } from 'devextreme-react/tree-list';
+import TreeList, { Column, Editing, Selection, SearchPanel, Scrolling, Sorting, ColumnChooser, Lookup } from 'devextreme-react/tree-list';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { buddhistDateFormat } from '@/components/ui/dx-date-box';
 import { useToast } from '@/components/ui/toast';
@@ -386,7 +386,6 @@ export function OrgChartTree({
     >
       <Selection mode="single" />
       <SearchPanel visible placeholder="ค้นหา..." />
-      <HeaderFilter visible />
       <Scrolling mode="standard" />
       <Sorting mode="multiple" />
       <ColumnChooser enabled mode="select" />

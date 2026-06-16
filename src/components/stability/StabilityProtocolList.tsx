@@ -24,26 +24,26 @@ const statusConfig: Record<
   { label: string; color: string; icon: React.ReactNode }
 > = {
   draft: {
-    label: 'Draft',
+    label: 'ฉบับร่าง',
     color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     icon: <Clock className="h-3 w-3" />,
   },
   approved: {
-    label: 'Approved',
+    label: 'อนุมัติแล้ว',
     color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     icon: <CheckCircle className="h-3 w-3" />,
   },
   obsolete: {
-    label: 'Obsolete',
+    label: 'ยกเลิกใช้งาน',
     color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
     icon: <Archive className="h-3 w-3" />,
   },
 };
 
 const studyTypeLabels: Record<string, string> = {
-  long_term: 'Long-Term',
-  accelerated: 'Accelerated',
-  intermediate: 'Intermediate',
+  long_term: 'ระยะยาว',
+  accelerated: 'เร่งสภาวะ',
+  intermediate: 'ระยะกลาง',
 };
 
 export function StabilityProtocolList({
@@ -84,13 +84,13 @@ export function StabilityProtocolList({
     return (
       <div className="flex items-center gap-1">
         <DxButton
-          text="View"
+          text="ดูรายละเอียด"
           stylingMode="text"
           onClick={() => router.push(`/gmp/stability/protocols/${protocol.id}`)}
         />
         {protocol.status === 'draft' && onApprove && (
           <DxButton
-            text="Approve"
+            text="อนุมัติ"
             stylingMode="text"
             type="success"
             onClick={() => onApprove(protocol.id)}
@@ -112,34 +112,34 @@ export function StabilityProtocolList({
         }
       }}
     >
-      <DxSearchPanel visible placeholder="Search protocols..." />
+      <DxSearchPanel visible placeholder="ค้นหาโปรโตคอล..." />
       <DxPaging defaultPageSize={15} />
 
-      <DxColumn dataField="protocolNumber" caption="Protocol #" width={150} />
-      <DxColumn dataField="name" caption="Name" minWidth={200} />
-      <DxColumn dataField="productName" caption="Product" minWidth={150} />
+      <DxColumn dataField="protocolNumber" caption="เลขที่โปรโตคอล" width={150} />
+      <DxColumn dataField="name" caption="ชื่อ" minWidth={200} />
+      <DxColumn dataField="productName" caption="ผลิตภัณฑ์" minWidth={150} />
       <DxColumn
         dataField="studyType"
-        caption="Study Type"
+        caption="ประเภทการศึกษา"
         width={120}
         cellRender={renderStudyTypeCell}
       />
-      <DxColumn dataField="storageCondition" caption="Storage" width={130} />
+      <DxColumn dataField="storageCondition" caption="สภาวะจัดเก็บ" width={130} />
       <DxColumn
         dataField="timepoints"
-        caption="Timepoints (months)"
+        caption="จุดเวลาตรวจ (เดือน)"
         width={180}
         cellRender={renderTimepointsCell}
         allowSorting={false}
       />
       <DxColumn
         dataField="status"
-        caption="Status"
+        caption="สถานะ"
         width={110}
         cellRender={renderStatusCell}
       />
       <DxColumn
-        caption="Actions"
+        caption="การดำเนินการ"
         width={130}
         cellRender={renderActionsCell}
         allowFiltering={false}

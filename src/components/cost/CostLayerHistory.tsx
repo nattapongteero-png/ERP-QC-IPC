@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import DataGrid, { Column, Paging, Pager, FilterRow, Sorting } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Paging, Pager, Sorting } from 'devextreme-react/data-grid';
 import type { ItemCostLayer, CostLayerTransactionType } from '@/types/unit-cost';
 
 interface CostLayerHistoryProps {
@@ -113,7 +113,6 @@ export function CostLayerHistory({ itemId, className = '' }: CostLayerHistoryPro
           }
         }}
       >
-        <FilterRow visible={true} />
         <Sorting mode="single" />
 
         <Column

@@ -10,8 +10,6 @@ import * as React from 'react';
 import DataGrid, {
   Column,
   Paging,
-  FilterRow,
-  HeaderFilter,
   Scrolling,
   LoadPanel,
   ColumnChooser,
@@ -258,8 +256,6 @@ export function VmiTransactionLog({
       >
         <LoadPanel enabled={isLoading} />
         <Scrolling mode="virtual" />
-        <FilterRow visible={true} />
-        <HeaderFilter visible={true} />
         <ColumnChooser enabled={true} mode="select" />
         <Paging enabled={true} pageSize={50} />
 

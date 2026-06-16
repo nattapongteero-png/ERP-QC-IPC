@@ -15,8 +15,6 @@ import DataGrid, {
   Paging,
   Pager,
   SearchPanel,
-  FilterRow,
-  HeaderFilter,
   ColumnChooser,
   Export,
   Grouping,
@@ -119,23 +117,24 @@ function getDaysUntilDue(dateStr: string | null): number | null {
 // Master detail component for samples
 function SamplesDetail({ data }: { data: { data: StabilityStudy } }) {
   const study = data.data;
+  const t = useTranslations('gmp');
   return (
     <div className="p-4 bg-gray-50 border-t border-gray-200">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
         <div>
-          <span className="text-gray-500">Protocol:</span>
+          <span className="text-gray-500">{t('stability.studyList.grid.detail.protocol')}:</span>
           <p className="font-medium">{study.protocolNumber || '-'}</p>
         </div>
         <div>
-          <span className="text-gray-500">Chamber Location:</span>
+          <span className="text-gray-500">{t('stability.studyList.grid.detail.chamberLocation')}:</span>
           <p className="font-medium">{study.chamberLocation || '-'}</p>
         </div>
         <div>
-          <span className="text-gray-500">Current Timepoint:</span>
+          <span className="text-gray-500">{t('stability.studyList.grid.detail.currentTimepoint')}:</span>
           <p className="font-medium">{study.currentTimepoint !== null ? `${study.currentTimepoint}M` : '-'}</p>
         </div>
         <div>
-          <span className="text-gray-500">Created By:</span>
+          <span className="text-gray-500">{t('stability.studyList.grid.detail.createdBy')}:</span>
           <p className="font-medium">{study.createdByName || '-'}</p>
         </div>
       </div>
@@ -189,7 +188,7 @@ export function StabilityStudyList({
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bgColor} ${config.textColor} ${config.borderColor}`}
       >
         {config.icon}
-        {config.label}
+        {t(`stability.studyList.statusLabels.${cellData.value}`)}
       </span>
     );
   };
@@ -356,9 +355,7 @@ export function StabilityStudyList({
         </Toolbar>
 
         {/* Features */}
-        <SearchPanel visible placeholder="Search studies..." width={250} />
-        <FilterRow visible />
-        <HeaderFilter visible />
+        <SearchPanel visible placeholder="ค้นหาการศึกษา..." width={250} />
         <ColumnChooser enabled mode="select" />
         <Grouping autoExpandAll={false} />
         <GroupPanel visible />
@@ -400,39 +397,39 @@ export function StabilityStudyList({
         />
         <Column
           dataField="studyNumber"
-          caption="Study #"
+          caption="เลขที่การศึกษา"
           width={160}
           fixed
           cellRender={renderStudyNumberCell}
         />
         <Column
-          caption="Product / Lot"
+          caption="ผลิตภัณฑ์ / ล็อต"
           minWidth={200}
           cellRender={renderProductCell}
           allowFiltering={false}
         />
         <Column
           dataField="protocolNumber"
-          caption="Protocol"
+          caption="โปรโตคอล"
           width={130}
           visible={false}
         />
         <Column
           dataField="startDate"
-          caption="Start Date"
+          caption="วันที่เริ่ม"
           dataType="date"
           format="dd MMM yyyy"
           width={120}
         />
         <Column
           dataField="currentTimepoint"
-          caption="Timepoint"
+          caption="จุดเวลา"
           width={100}
           alignment="center"
           cellRender={renderTimepointCell}
         />
         <Column
-          caption="Next Due"
+          caption="ครบกำหนดถัดไป"
           width={140}
           cellRender={renderNextDueCell}
           allowFiltering={false}
@@ -447,7 +444,7 @@ export function StabilityStudyList({
         />
         <Column
           dataField="status"
-          caption="Status"
+          caption="สถานะ"
           width={120}
           cellRender={renderStatusCell}
         />

@@ -19,9 +19,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   Sorting,
-  HeaderFilter,
   LoadPanel,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -419,8 +417,6 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             noDataText="No access grants configured. Add users or groups to allow access to confidential items."
           >
             <LoadPanel enabled={isLoadingGrants} />
-            <FilterRow visible />
-            <HeaderFilter visible />
             <Sorting mode="multiple" />
             <Paging defaultPageSize={10} />
             <Pager

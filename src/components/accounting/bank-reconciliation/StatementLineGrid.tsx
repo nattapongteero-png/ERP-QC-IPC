@@ -10,7 +10,6 @@ import DataGrid, {
   Column,
   Paging,
   Selection,
-  FilterRow,
   Toolbar,
   Item,
 } from 'devextreme-react/data-grid';
@@ -143,7 +142,6 @@ export function StatementLineGrid({
       {!readOnly && (
         <Selection mode="multiple" selectAllMode="allPages" showCheckBoxesMode="always" />
       )}
-      <FilterRow visible={true} />
       <Paging defaultPageSize={20} />
 
       <Column
