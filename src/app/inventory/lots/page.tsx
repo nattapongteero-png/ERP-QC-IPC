@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -198,15 +198,26 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+// Statuses that can pre-select the tab via ?status= in the URL (e.g. the
+// dashboard "Lots in Quarantine" card → /inventory/lots?status=quarantine).
+const LOT_STATUS_VALUES: StatusType[] = ['', 'quarantine', 'released', 'rejected', 'blocked'];
+
 export default function LotsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('inventory');
   const [lots, setLots] = useState<Lot[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusType>('');
+  // Seed the status tab from the URL so the dashboard deep-link lands on the
+  // matching filtered view instead of staying on "All".
+  const initialStatus = (() => {
+    const s = (searchParams.get('status') || '').toLowerCase() as StatusType;
+    return LOT_STATUS_VALUES.includes(s) ? s : '';
+  })();
+  const [statusFilter, setStatusFilter] = useState<StatusType>(initialStatus);
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('');
   const [warehouseFilter, setWarehouseFilter] = useState<number | ''>('');
   const [expiryFrom, setExpiryFrom] = useState('');
