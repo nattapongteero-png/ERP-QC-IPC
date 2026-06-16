@@ -118,7 +118,7 @@ export function MaterialWithdrawalDetailDialog({
                 {t('common.requests')}
               </h3>
               <table className="w-full text-sm border-collapse">
-                <thead className="bg-gray-50 text-left">
+                <thead className="bg-[#F1FAF5] text-left text-[#065F46]">
                   <tr>
                     <th className="px-2 py-1">{t('table.columns.material')}</th>
                     <th className="px-2 py-1 text-right">{t('table.columns.quantityRequested')}</th>
@@ -191,7 +191,7 @@ export function MaterialWithdrawalDetailDialog({
             )}
 
             {data.approval && (
-              <section className="rounded-md border bg-gray-50 p-3 text-sm space-y-1">
+              <section className="rounded-md border border-emerald-100 bg-[#F6FCF9] p-3 text-sm space-y-1">
                 <div className="font-semibold">
                   {data.approval.action === 'approve'
                     ? t('toast.approved.success')

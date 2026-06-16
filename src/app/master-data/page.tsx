@@ -288,7 +288,7 @@ export default function MasterDataPage() {
             </button>
             <button
               onClick={() => { setShowImportDialog(true); setImportLog([]); }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
             >
               <Upload className="h-4 w-4" />
               {t('actions.importExcel')}
@@ -354,7 +354,7 @@ export default function MasterDataPage() {
                   <label className="text-sm font-medium text-gray-700">1. เลือกหัวข้อที่ต้องการนำเข้า</label>
                   <button
                     onClick={toggleAll}
-                    className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    className="text-xs font-medium text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
                   >
                     {selectedModules.length === ALL_MODULE_KEYS.length ? (
                       <><CheckSquare className="h-3.5 w-3.5" /> ยกเลิกทั้งหมด</>
@@ -371,14 +371,14 @@ export default function MasterDataPage() {
                       <label
                         key={key}
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
-                          isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
+                          isSelected ? 'border-emerald-500 bg-emerald-50' : 'border-emerald-100 hover:bg-[#F6FCF9]'
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleModule(key)}
-                          className="h-4 w-4 rounded text-blue-600"
+                          className="h-4 w-4 rounded text-emerald-600"
                         />
                         <span className="text-sm font-medium text-gray-900 flex-1">{config.label}</span>
                         <span className="text-xs text-gray-400">Sheet: {config.sheetName}</span>
@@ -397,7 +397,7 @@ export default function MasterDataPage() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={importing}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50"
                   >
                     <Upload className="h-5 w-5" />
                     {importing ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}

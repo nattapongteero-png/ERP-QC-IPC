@@ -38,6 +38,7 @@ import {
   SearchX,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { formatNumber } from '@/lib/utils/number-format';
 
 // Type configuration for tabs
 type WarehouseTypeFilter = '' | 'raw_material' | 'wip' | 'finished_goods' | 'quarantine' | 'rejected' | 'cold_storage';
@@ -387,7 +388,7 @@ export default function WarehousesPage() {
         <div className="flex items-center gap-1">
           <Database className="h-3.5 w-3.5 text-gray-400" />
           <span className="text-gray-700 font-medium">
-            {cellInfo.data.capacity ? cellInfo.data.capacity.toLocaleString() : '-'}
+            {cellInfo.data.capacity ? formatNumber(cellInfo.data.capacity) : '-'}
           </span>
         </div>
       ),
@@ -776,7 +777,7 @@ function WarehouseCardList({
                   {w.capacity ? (
                     <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
                       <Database className="h-3 w-3" />
-                      {w.capacity.toLocaleString()}
+                      {formatNumber(w.capacity)}
                     </span>
                   ) : null}
                 </div>

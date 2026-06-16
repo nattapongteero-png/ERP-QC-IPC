@@ -45,6 +45,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { formatNumber } from '@/lib/utils/number-format';
 import type { BOMDashboard } from '@/app/api/bom/dashboard/route';
 
 // Status configuration - Simplified workflow: draft → approved → obsolete
@@ -599,7 +600,7 @@ export default function BOMDashboardPage() {
                 alignment="right"
                 cellRender={(cell) => (
                   <span className="tabular-nums text-sm">
-                    {cell.data.standardBatchSize != null ? Number(cell.data.standardBatchSize).toLocaleString() : '-'} {cell.data.batchUnit || ''}
+                    {cell.data.standardBatchSize != null ? formatNumber(cell.data.standardBatchSize) : '-'} {cell.data.batchUnit || ''}
                   </span>
                 )}
               />
@@ -775,7 +776,7 @@ function BomCardList({
                   {bom.standardBatchSize != null && (
                     <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
                       <Layers className="h-3 w-3" />
-                      {Number(bom.standardBatchSize).toLocaleString()} {bom.batchUnit || ''}
+                      {formatNumber(bom.standardBatchSize)} {bom.batchUnit || ''}
                     </span>
                   )}
                   {bom.createdAt && (

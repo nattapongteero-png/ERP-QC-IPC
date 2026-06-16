@@ -17,6 +17,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import { ItemEditDialog, type ItemFormData } from '@/components/ui/item-edit-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { formatNumber } from '@/lib/utils/number-format';
 import {
   Package,
   ChevronRight,
@@ -810,7 +811,7 @@ export default function NewBOMPage() {
                         return (
                           <span className={`inline-flex items-center justify-end gap-1.5 font-semibold ${tone}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-                            {qty.toLocaleString()}
+                            {formatNumber(qty)}
                           </span>
                         );
                       },

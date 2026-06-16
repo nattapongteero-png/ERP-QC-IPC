@@ -18,6 +18,7 @@ import { Badge, getStatusVariant } from '@/components/ui/badge';
 import { Edit, Trash2, CheckCircle, Archive, Copy, DollarSign, ChevronDown, Settings, Lock, Shield } from 'lucide-react';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
 import { BOMAccessControlTab, ConfidentialityBanner } from '@/components/bom';
+import { formatNumber, formatMoney } from '@/lib/utils/number-format';
 import type { BOMConfidentialityInfo } from '@/types/confidentiality';
 
 interface BOMLine {
@@ -573,7 +574,7 @@ export default function BOMDetailPage() {
         if (line.isHidden) {
           return <span className="text-gray-400">-</span>;
         }
-        return <span>{Number(line.quantity).toLocaleString()} {line.unit}</span>;
+        return <span>{formatNumber(line.quantity)} {line.unit}</span>;
       },
     },
     {
@@ -587,7 +588,7 @@ export default function BOMDetailPage() {
           return <span className="text-gray-400">-</span>;
         }
         const costInfo = bomCost?.breakdown?.find(b => b.itemId === line.itemId);
-        return <span className="text-gray-600">{costInfo ? `${costInfo.unitCost.toLocaleString()} THB` : '-'}</span>;
+        return <span className="text-gray-600">{costInfo ? `${formatMoney(costInfo.unitCost)} THB` : '-'}</span>;
       },
     },
     {
@@ -601,7 +602,7 @@ export default function BOMDetailPage() {
           return <span className="text-gray-400">-</span>;
         }
         const costInfo = bomCost?.breakdown?.find(b => b.itemId === line.itemId);
-        return <span className="font-medium text-green-700">{costInfo ? `${costInfo.totalCost.toLocaleString()} THB` : '-'}</span>;
+        return <span className="font-medium text-green-700">{costInfo ? `${formatMoney(costInfo.totalCost)} THB` : '-'}</span>;
       },
     },
     {
@@ -812,7 +813,7 @@ export default function BOMDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Batch Size</p>
-                <p className="text-2xl font-bold text-blue-600">{Number(bom.batchSize).toLocaleString() || 0}</p>
+                <p className="text-2xl font-bold text-blue-600">{formatNumber(bom.batchSize) || 0}</p>
                 <p className="text-xs text-gray-500">{bom.batchUnit}</p>
               </div>
             </CardContent>
@@ -821,7 +822,7 @@ export default function BOMDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Theoretical Yield</p>
-                <p className="text-2xl font-bold text-purple-600">{Number(bom.theoreticalYield).toLocaleString() || '-'}</p>
+                <p className="text-2xl font-bold text-purple-600">{formatNumber(bom.theoreticalYield) || '-'}</p>
                 <p className="text-xs text-gray-500">{bom.productUnit}</p>
               </div>
             </CardContent>
@@ -865,10 +866,10 @@ export default function BOMDetailPage() {
                 ) : bomCost?.totalMaterialCost !== undefined ? (
                   <>
                     <p className="text-2xl font-bold text-green-700">
-                      {bomCost.totalMaterialCost.toLocaleString()} {bomCost.currency}
+                      {formatMoney(bomCost.totalMaterialCost)} {bomCost.currency}
                     </p>
                     <p className="text-xs text-green-600">
-                      {bomCost.costPerUnit?.toLocaleString() || '0'} {bomCost.currency}/{bom.batchUnit}
+                      {formatMoney(bomCost.costPerUnit) || '0'} {bomCost.currency}/{bom.batchUnit}
                     </p>
                   </>
                 ) : (
@@ -945,8 +946,8 @@ export default function BOMDetailPage() {
                   onClick={() => setActiveTab('materials')}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'materials'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? 'border-emerald-500 text-emerald-700'
+                      : 'border-transparent text-gray-500 hover:text-emerald-700'
                   }`}
                   data-testid="tab-materials"
                 >

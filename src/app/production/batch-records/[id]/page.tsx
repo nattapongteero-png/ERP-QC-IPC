@@ -377,7 +377,7 @@ export default function BatchRecordDetailPage() {
                 onClick={() => navigateToStep(step.id)}
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                   step.id === record.id
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-gradient-to-br from-[#064E3B] to-emerald-600 text-white'
                     : step.status === 'completed'
                     ? 'bg-green-100 text-green-700 hover:bg-green-200'
                     : step.status === 'in_progress'
@@ -764,7 +764,7 @@ export default function BatchRecordDetailPage() {
                       onClick={() => navigateToStep(step.id)}
                       className={`w-full text-left p-2 rounded-md transition-colors ${
                         step.id === record.id
-                          ? 'bg-blue-50 border border-blue-200'
+                          ? 'bg-emerald-50 border border-emerald-200'
                           : 'hover:bg-gray-50'
                       }`}
                     >

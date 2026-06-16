@@ -17,6 +17,7 @@ import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import { ClipboardCheck, AlertCircle, CheckCircle2, Users } from 'lucide-react';
+import { formatNumber } from '@/lib/utils/number-format';
 
 interface WOAssignee {
   id: number;
@@ -714,7 +715,7 @@ export default function WorkOrderDetailPage() {
         <button
           type="button"
           onClick={() => router.push(buildQCDrillUrl(cellInfo.data))}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
         >
           ดูรายละเอียด →
         </button>
@@ -826,7 +827,7 @@ export default function WorkOrderDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Planned Qty</p>
-                <p className="text-2xl font-bold text-blue-600">{workOrder.plannedQty?.toLocaleString() || 0}</p>
+                <p className="text-2xl font-bold text-blue-600">{formatNumber(workOrder.plannedQty) || 0}</p>
                 <p className="text-xs text-gray-500">{workOrder.productUnit}</p>
               </div>
             </CardContent>
@@ -835,7 +836,7 @@ export default function WorkOrderDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Actual Qty</p>
-                <p className="text-2xl font-bold text-green-600">{workOrder.actualQty?.toLocaleString() || 0}</p>
+                <p className="text-2xl font-bold text-green-600">{formatNumber(workOrder.actualQty) || 0}</p>
                 <p className="text-xs text-gray-500">{workOrder.productUnit}</p>
               </div>
             </CardContent>

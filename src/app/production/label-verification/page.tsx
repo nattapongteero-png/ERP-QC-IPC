@@ -265,7 +265,7 @@ function LabelVerificationContent() {
         />
 
         {/* Work Order Selector */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Select Work Order</h3>
           <div className="max-w-lg">
             <DxSelectBox
@@ -294,7 +294,7 @@ function LabelVerificationContent() {
 
         {/* Labels List */}
         {selectedWorkOrderId && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Labels</h3>
               {!selectedLabelId && (
@@ -322,8 +322,8 @@ function LabelVerificationContent() {
                     key={item.label.id}
                     className={`p-4 rounded-lg border cursor-pointer transition-all ${
                       selectedLabelId === item.label.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-gray-200 hover:border-emerald-400'
                     }`}
                     onClick={() => {
                       setSelectedLabelId(item.label.id);
@@ -373,7 +373,7 @@ function LabelVerificationContent() {
         {selectedWorkOrderId && (
           <>
             {isLoadingLabel && selectedLabelId ? (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12">
+              <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-12">
                 <div className="flex flex-col items-center justify-center text-gray-500">
                   <Loader2 className="h-8 w-8 animate-spin mb-4" />
                   <p>Loading label data...</p>
@@ -404,7 +404,7 @@ function LabelVerificationContent() {
 
         {/* Empty State */}
         {!selectedWorkOrderId && !isLoadingWorkOrders && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12">
+          <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-12">
             <div className="flex flex-col items-center justify-center text-gray-500">
               <Tag className="h-16 w-16 mb-4 text-gray-300" />
               <h3 className="text-lg font-medium text-gray-700 mb-2">Select a Work Order</h3>

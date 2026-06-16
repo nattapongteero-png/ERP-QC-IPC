@@ -9,6 +9,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { toLocalDateStr } from '@/lib/utils/date-format';
+import { formatNumber } from '@/lib/utils/number-format';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -597,7 +598,7 @@ export default function WorkOrdersPage() {
     return (
       <div className="min-w-0">
         <p className="font-medium">
-          {wo.actualQuantity?.toLocaleString() || '0'} / {wo.plannedQuantity?.toLocaleString() || '-'} {wo.unit}
+          {formatNumber(wo.actualQuantity) || '0'} / {formatNumber(wo.plannedQuantity) || '-'} {wo.unit}
         </p>
         {wo.status === 'in_progress' && (
           <div className="mt-1 w-full bg-gray-200 rounded-full h-1.5">
@@ -1537,10 +1538,10 @@ function WorkOrderMobileList({
               <div className="flex items-center justify-between text-xs mt-2">
                 <span className="text-gray-600">
                   <span className="font-semibold">
-                    {wo.actualQuantity?.toLocaleString() || '0'}
+                    {formatNumber(wo.actualQuantity) || '0'}
                   </span>
                   {' / '}
-                  {wo.plannedQuantity?.toLocaleString() || '-'} {wo.unit}
+                  {formatNumber(wo.plannedQuantity) || '-'} {wo.unit}
                 </span>
                 {wo.priority && (
                   <span className="inline-flex items-center gap-1 text-gray-500">

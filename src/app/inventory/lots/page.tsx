@@ -26,6 +26,7 @@ import type { DataGridTypes } from 'devextreme-react/data-grid';
 import { toast } from 'sonner';
 import { calculateIssuance, type UnitConfig } from '@/lib/utils/unit-conversion';
 import { cn } from '@/lib/utils/cn';
+import { formatNumber } from '@/lib/utils/number-format';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 
 /** Get today's date as YYYY-MM-DD using local timezone (avoids UTC shift from toISOString) */
@@ -955,10 +956,10 @@ export default function LotsPage() {
       dataType: 'number',
       cellRender: (cellInfo) => (
         <div>
-          <p className="font-medium text-gray-900">{Number(cellInfo.data.quantity).toLocaleString()} <span className="text-xs text-gray-500 font-normal">{cellInfo.data.unit}</span></p>
+          <p className="font-medium text-gray-900">{formatNumber(cellInfo.data.quantity)} <span className="text-xs text-gray-500 font-normal">{cellInfo.data.unit}</span></p>
           {cellInfo.data.reservedQuantity > 0 && (
             <p className="text-xs text-orange-600 flex items-center gap-1">
-              <Clock className="h-3 w-3" /> {t('lots.reserved')}: {Number(cellInfo.data.reservedQuantity).toLocaleString()}
+              <Clock className="h-3 w-3" /> {t('lots.reserved')}: {formatNumber(cellInfo.data.reservedQuantity)}
             </p>
           )}
         </div>
@@ -1205,7 +1206,7 @@ export default function LotsPage() {
                 </div>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-2xl font-bold text-gray-900 tabular-nums">
-                    {lots.length.toLocaleString()}
+                    {formatNumber(lots.length)}
                   </span>
                   <span className="text-sm text-gray-500">lots</span>
                   <span className="text-gray-300">·</span>
@@ -1291,7 +1292,7 @@ export default function LotsPage() {
                 )}
                 <div className="flex items-center gap-1.5 text-gray-500">
                   <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <span>{stats.totalQuantity.toLocaleString()} {t('common.units')}</span>
+                  <span>{formatNumber(stats.totalQuantity)} {t('common.units')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-gray-500">
                   <DollarSign className="h-4 w-4 text-emerald-500" />
@@ -1837,7 +1838,7 @@ export default function LotsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">{t('lots.qc.quantity')}:</span>
-                <span className="font-medium">{Number(qcLot.quantity)?.toLocaleString()} {qcLot.unit}</span>
+                <span className="font-medium">{formatNumber(qcLot.quantity)} {qcLot.unit}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">{t('lots.qc.expiryDate')}:</span>
@@ -1899,7 +1900,7 @@ export default function LotsPage() {
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600">{t('lots.trace.quantity')}:</span>
-                  <span className="font-medium">{Number(traceLot.quantity)?.toLocaleString()} {traceLot.unit}</span>
+                  <span className="font-medium">{formatNumber(traceLot.quantity)} {traceLot.unit}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-gray-400" />
@@ -1929,7 +1930,7 @@ export default function LotsPage() {
                         <Badge variant={getStatusVariant(lot.status)} size="sm">{t(`lots.status.${lot.status}`)}</Badge>
                       </div>
                       <div className="text-blue-600 mt-1">
-                        {lot.itemCode} - {lot.quantity?.toLocaleString()} {lot.unit}
+                        {lot.itemCode} - {formatNumber(lot.quantity)} {lot.unit}
                       </div>
                     </div>
                   ))}
@@ -1952,7 +1953,7 @@ export default function LotsPage() {
                         <Badge variant={getStatusVariant(lot.status)} size="sm">{t(`lots.status.${lot.status}`)}</Badge>
                       </div>
                       <div className="text-purple-600 mt-1">
-                        {lot.itemCode} - {lot.quantity?.toLocaleString()} {lot.unit}
+                        {lot.itemCode} - {formatNumber(lot.quantity)} {lot.unit}
                       </div>
                     </div>
                   ))}
