@@ -7,6 +7,7 @@
  * validity checks for vendor regex).
  */
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -122,6 +123,7 @@ const DEFAULT_FORM: FormState = {
 };
 
 export default function LotPatternsPage() {
+  const router = useRouter();
   const toast = useToast();
   const [rows, setRows] = useState<PatternRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -215,6 +217,11 @@ export default function LotPatternsPage() {
       <ResponsivePageHeader
         title="รูปแบบเลข Lot"
         subtitle="ตั้งค่ารูปแบบเลข Lot ของระบบ และกฎตรวจเลข Lot ของผู้ขาย"
+        onBack={() => router.push('/master-data')}
+        breadcrumbs={[
+          { label: 'Master Data', href: '/master-data' },
+          { label: 'รูปแบบเลข Lot' },
+        ]}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

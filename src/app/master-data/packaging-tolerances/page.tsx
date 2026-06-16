@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, Editing, FilterRow, Paging } from 'devextreme-react/data-grid';
@@ -78,6 +79,11 @@ export default function PackagingTolerancesPage() {
 
   return (
     <div className="p-6 space-y-4">
+      <nav className="text-sm text-[#4B7163]">
+        <Link href="/master-data" className="hover:text-[#064E3B] hover:underline">Master Data</Link>
+        <span className="mx-1.5 text-emerald-300">/</span>
+        <span className="text-[#064E3B] font-medium">เกณฑ์ Tolerance ของ Packaging</span>
+      </nav>
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

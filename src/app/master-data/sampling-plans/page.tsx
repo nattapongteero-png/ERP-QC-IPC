@@ -4,6 +4,7 @@
  * Per-item / per-category AQL, sample size, frequency, retain qty.
  */
 import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -53,6 +54,7 @@ const LEVEL_OPTIONS = [
 ];
 
 export default function SamplingPlansPage() {
+  const router = useRouter();
   const toast = useToast();
   const [rows, setRows] = useState<PlanRow[]>([]);
   const [items, setItems] = useState<{ id: number; code: string; nameTh: string }[]>([]);
@@ -268,6 +270,11 @@ export default function SamplingPlansPage() {
         <ResponsivePageHeader
           title="QC Sampling Plan Master"
           subtitle="กำหนดแผน sampling ตาม item/category — AQL, sample size, frequency"
+          onBack={() => router.push('/master-data')}
+          breadcrumbs={[
+            { label: 'Master Data', href: '/master-data' },
+            { label: 'QC Sampling Plan' },
+          ]}
           actions={
             <DxButton
               text="+ แผนใหม่"

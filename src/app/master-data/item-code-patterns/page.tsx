@@ -8,6 +8,7 @@
  * live preview so the designer can see the format before saving.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -121,6 +122,7 @@ const DEFAULT_FORM: FormState = {
 };
 
 export default function ItemCodePatternsPage() {
+  const router = useRouter();
   const toast = useToast();
   const [rows, setRows] = useState<PatternRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -289,7 +291,7 @@ export default function ItemCodePatternsPage() {
       cellRender: (c: any) => (
         <div className="flex gap-3">
           <button
-            className="text-xs text-blue-700 hover:underline"
+            className="text-xs text-emerald-700 hover:underline"
             onClick={() => openEdit(c.data as PatternRow)}
             data-testid={`edit-${c.data.itemType}`}
           >
@@ -312,6 +314,11 @@ export default function ItemCodePatternsPage() {
         <ResponsivePageHeader
           title="รูปแบบรหัสสินค้า (Item Code Pattern)"
           subtitle="กำหนดรูปแบบรหัสที่ใช้สร้างอัตโนมัติเมื่อกดปุ่ม 'สร้างรหัส' ในหน้าเพิ่ม/แก้ไขสินค้า"
+          onBack={() => router.push('/master-data')}
+          breadcrumbs={[
+            { label: 'Master Data', href: '/master-data' },
+            { label: 'รูปแบบรหัสสินค้า' },
+          ]}
         />
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
