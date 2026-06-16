@@ -362,7 +362,7 @@ export default function PackagingQCPage() {
 
     return (
       <div
-        className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50/30"
+        className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-emerald-50/30"
         style={{
           fontFamily:
             'var(--font-inter), var(--font-sarabun), system-ui, -apple-system, sans-serif',
@@ -370,7 +370,7 @@ export default function PackagingQCPage() {
       >
         <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
           {/* HERO */}
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 shadow-xl shadow-indigo-500/20">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-500 shadow-xl shadow-emerald-500/20">
             <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
             <div className="absolute -bottom-16 -left-16 h-60 w-60 rounded-full bg-cyan-300/20 blur-3xl" />
             <Scale className="absolute top-6 right-8 h-32 w-32 text-white/10" />
@@ -408,11 +408,11 @@ export default function PackagingQCPage() {
 
           {/* CRITERIA + ACTION */}
           <div className="grid md:grid-cols-3 gap-4">
-            <Card className="md:col-span-2 border-indigo-100 bg-white">
+            <Card className="md:col-span-2 border-emerald-100 bg-white">
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="h-4 w-4 text-indigo-500" />
-                  <span className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                  <Sparkles className="h-4 w-4 text-emerald-500" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
                     {t('weight.criteria')}
                   </span>
                 </div>
@@ -420,21 +420,21 @@ export default function PackagingQCPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <div className="text-xs text-gray-500 mb-1">{t('weight.minWeight')}</div>
-                      <div className="text-xl font-bold text-indigo-700">
+                      <div className="text-xl font-bold text-emerald-700">
                         {criteria.weightMin}
                         <span className="text-sm font-normal text-gray-500 ml-1">g</span>
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-gray-500 mb-1">{t('weight.maxWeight')}</div>
-                      <div className="text-xl font-bold text-indigo-700">
+                      <div className="text-xl font-bold text-emerald-700">
                         {criteria.weightMax}
                         <span className="text-sm font-normal text-gray-500 ml-1">g</span>
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-gray-500 mb-1">{t('weight.sampleSize')}</div>
-                      <div className="text-xl font-bold text-indigo-700">
+                      <div className="text-xl font-bold text-emerald-700">
                         {criteria.sampleSize}
                       </div>
                     </div>
@@ -475,7 +475,7 @@ export default function PackagingQCPage() {
               icon={<Activity className="h-5 w-5" />}
               label={t('weight.totalChecks')}
               value={totalChecks}
-              tone="indigo"
+              tone="emerald"
             />
             <StatCard
               icon={<CheckCircle2 className="h-5 w-5" />}
@@ -508,7 +508,7 @@ export default function PackagingQCPage() {
           <Card className="border-emerald-50">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-4">
-                <div className="h-1 w-12 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500" />
+                <div className="h-1 w-12 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500" />
                 <h3 className="font-bold text-[#064E3B]">{t('common.history')} ({totalChecks})</h3>
               </div>
 
@@ -518,7 +518,7 @@ export default function PackagingQCPage() {
                 </div>
               ) : totalChecks === 0 ? (
                 <EmptyState
-                  icon={<Scale className="h-10 w-10 text-indigo-400" />}
+                  icon={<Scale className="h-10 w-10 text-emerald-400" />}
                   title={t('weight.emptyTitle')}
                   hint={t('weight.emptyHint')}
                 />
@@ -613,7 +613,7 @@ export default function PackagingQCPage() {
                             <StatChip
                               label={t('weight.avg')}
                               value={`${avg.toFixed(2)}g`}
-                              tone="indigo"
+                              tone="emerald"
                             />
                             <StatChip
                               label={t('weight.min')}
@@ -702,14 +702,14 @@ export default function PackagingQCPage() {
             )}
 
             {criteria && (
-              <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 p-4">
-                <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">
+              <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-50 border border-emerald-100 p-4">
+                <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">
                   {t('weight.criteriaLabel')}
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-sm">
                   <div>
                     <span className="text-gray-500">{t('weight.criteriaRange')}</span>{' '}
-                    <strong className="text-indigo-800">
+                    <strong className="text-emerald-800">
                       {criteria.weightMin}–{criteria.weightMax}g
                     </strong>
                   </div>
@@ -727,7 +727,7 @@ export default function PackagingQCPage() {
 
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
-                <Hash className="h-4 w-4 text-indigo-500" />
+                <Hash className="h-4 w-4 text-emerald-500" />
                 {t('weight.inputLabel')}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-1">
@@ -776,7 +776,7 @@ export default function PackagingQCPage() {
               </div>
               {criteria && (
                 <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
-                  <span className="text-indigo-500">ⓘ</span>
+                  <span className="text-emerald-500">ⓘ</span>
                   {t('weight.helperText', {
                     min: criteria.weightMin,
                     max: criteria.weightMax,
@@ -1260,7 +1260,7 @@ function StatChip({
   tone: 'indigo' | 'emerald' | 'rose';
 }) {
   const toneClasses = {
-    indigo: 'text-indigo-700 bg-indigo-50',
+    indigo: 'text-emerald-700 bg-emerald-50',
     emerald: 'text-emerald-700 bg-emerald-50',
     rose: 'text-rose-700 bg-rose-50',
   };
@@ -1286,7 +1286,7 @@ function StatCard({
   tone: 'indigo' | 'purple' | 'emerald' | 'amber' | 'rose';
 }) {
   const toneClasses = {
-    indigo: 'from-indigo-500 to-blue-500 shadow-indigo-200',
+    indigo: 'from-emerald-500 to-teal-500 shadow-emerald-200',
     purple: 'from-purple-500 to-fuchsia-500 shadow-purple-200',
     emerald: 'from-emerald-500 to-teal-500 shadow-emerald-200',
     amber: 'from-amber-500 to-orange-500 shadow-amber-200',

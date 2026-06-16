@@ -1699,7 +1699,7 @@ export default function LotsPage() {
           {/* Phase 4: GMP Compliance Fields (FR-055) */}
           <div className="border-t pt-4 mt-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <Package className="h-4 w-4 text-blue-500" />
+              <Package className="h-4 w-4 text-emerald-500" />
               {t('lots.form.gmpSection')}
             </h3>
 
@@ -1918,18 +1918,18 @@ export default function LotsPage() {
             {/* Backward Trace (Source Lots) */}
             {traceData.backward && traceData.backward.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-semibold mb-3 flex items-center gap-2 text-blue-800">
+                <h3 className="font-semibold mb-3 flex items-center gap-2 text-emerald-800">
                   <ArrowRight className="h-4 w-4 rotate-180" />
                   {t('lots.trace.sourceLots')}
                 </h3>
                 <div className="space-y-2">
                   {traceData.backward.map((lot: TraceLot, idx: number) => (
-                    <div key={idx} className="p-3 bg-blue-50 rounded-lg text-sm border border-blue-200">
+                    <div key={idx} className="p-3 bg-emerald-50 rounded-lg text-sm border border-emerald-200">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium text-blue-800">{lot.lotNumber}</span>
+                        <span className="font-medium text-emerald-800">{lot.lotNumber}</span>
                         <Badge variant={getStatusVariant(lot.status)} size="sm">{t(`lots.status.${lot.status}`)}</Badge>
                       </div>
-                      <div className="text-blue-600 mt-1">
+                      <div className="text-emerald-600 mt-1">
                         {lot.itemCode} - {formatNumber(lot.quantity)} {lot.unit}
                       </div>
                     </div>
@@ -2001,7 +2001,7 @@ export default function LotsPage() {
               <div>
                 <span className="block text-sm font-medium text-gray-700 mb-2">เลือกไฟล์ Excel</span>
                 <label
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer ${importingLots ? 'opacity-50 pointer-events-none' : ''}`}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer ${importingLots ? 'opacity-50 pointer-events-none' : ''}`}
                 >
                   <input type="file" accept=".xlsx,.xls" onChange={handleImportLots} className="sr-only" />
                   <Upload className="h-5 w-5" />{importingLots ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}

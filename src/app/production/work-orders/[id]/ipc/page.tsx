@@ -576,7 +576,7 @@ export default function IPCPage() {
           <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div
               className={`h-2.5 rounded-full transition-all ${
-                progressPercent === 100 ? 'bg-emerald-500' : 'bg-blue-500'
+                progressPercent === 100 ? 'bg-emerald-500' : 'bg-emerald-400'
               }`}
               style={{ width: `${progressPercent}%` }}
             />
@@ -750,7 +750,7 @@ export default function IPCPage() {
                             );
                           })()}
                           {test.totalRounds > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                               Round {test.totalRounds}
                             </span>
                           )}
@@ -957,7 +957,7 @@ export default function IPCPage() {
                     <div className="mt-3 pt-3 border-t border-emerald-200 bg-emerald-50/50 rounded-lg p-3 space-y-3">
                       {/* Round indicator */}
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800">
                           Round {recordRound}
                         </span>
                         {recordRound > 1 && (
@@ -1301,7 +1301,7 @@ function SpecInfoCard({ test }: { test: IPCTest }) {
   if (ct === 'numeric' || ct === 'checkbox') {
     if (test.specMinValue == null && !test.specSpecification) return null;
     return (
-      <div className="text-xs text-blue-700 bg-blue-50 rounded p-2">
+      <div className="text-xs text-emerald-700 bg-emerald-50 rounded p-2">
         {test.specMinValue != null && test.specMaxValue != null && (
           <span>
             Range: {test.specMinValue} - {test.specMaxValue}

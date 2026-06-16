@@ -182,7 +182,7 @@ export default function WarehouseDetailPage() {
       dataField: 'lotNumber',
       caption: t('warehouses.detail.columns.lotNumber'),
       cellRender: (cellInfo) => (
-        <span className="font-medium text-blue-600">{cellInfo.data.lotNumber}</span>
+        <span className="font-medium text-emerald-600">{cellInfo.data.lotNumber}</span>
       )
     },
     {
@@ -346,12 +346,12 @@ export default function WarehouseDetailPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-100 rounded-lg">
+                <div className="p-3 bg-emerald-100 rounded-lg">
                   <span className="text-2xl">📦</span>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">{t('warehouses.detail.stats.totalLots')}</p>
-                  <p className="text-2xl font-bold text-blue-600">{summary.totalLots}</p>
+                  <p className="text-2xl font-bold text-emerald-600">{summary.totalLots}</p>
                 </div>
               </div>
             </CardContent>

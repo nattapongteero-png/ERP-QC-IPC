@@ -892,11 +892,11 @@ export function ItemEditForm({
                 description={t('itemForm.sections.vmiDesc')}
               >
                 {/* VMI Sync Enable Toggle */}
-                <div className="mb-5 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="mb-5 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${formData.vmiSyncEnabled ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                        <RefreshCw className={`h-5 w-5 ${formData.vmiSyncEnabled ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <div className={`p-2 rounded-lg ${formData.vmiSyncEnabled ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+                        <RefreshCw className={`h-5 w-5 ${formData.vmiSyncEnabled ? 'text-emerald-600' : 'text-gray-400'}`} />
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{t('itemForm.vmi.enableSync')}</p>
@@ -935,7 +935,7 @@ export function ItemEditForm({
                       />
                     </div>
                     {formData.tppName && (
-                      <p className="text-xs text-blue-600 mt-1 truncate" title={formData.tppName}>
+                      <p className="text-xs text-emerald-600 mt-1 truncate" title={formData.tppName}>
                         {formData.tppName}
                       </p>
                     )}
@@ -1073,11 +1073,11 @@ export function ItemEditForm({
                   </div>
 
                   {formData.secondaryUnit && formData.conversionFactor && (
-                    <div className="bg-blue-50 rounded-xl p-4 flex items-center gap-3 border border-blue-100">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Info className="h-4 w-4 text-blue-600" />
+                    <div className="bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
+                      <div className="p-2 bg-emerald-100 rounded-lg">
+                        <Info className="h-4 w-4 text-emerald-600" />
                       </div>
-                      <div className="text-sm text-blue-700">
+                      <div className="text-sm text-emerald-700">
                         <span className="font-semibold">{t('itemForm.conversion.label')}</span> 1 {unitOptions.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit} = {formData.conversionFactor.toLocaleString()} {unitOptions.find(u => u.value === formData.secondaryUnit)?.label || formData.secondaryUnit}
                       </div>
                     </div>

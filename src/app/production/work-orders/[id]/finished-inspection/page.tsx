@@ -525,9 +525,9 @@ export default function FinishedInspectionPage() {
                 </Card>
 
                 {/* Action buttons: Save Draft / Confirm */}
-                <Card className="border-blue-200 bg-blue-50">
+                <Card className="border-emerald-200 bg-emerald-50">
                   <CardContent className="p-4 flex items-center justify-between">
-                    <p className="text-sm text-blue-800">
+                    <p className="text-sm text-emerald-800">
                       Inspector digital signature will be recorded automatically (user login + timestamp).
                     </p>
                     <div className="flex gap-2">
@@ -605,7 +605,7 @@ export default function FinishedInspectionPage() {
                   )}
 
                   {(inspection.reInspectorId || inspection.reInspectorName) && (
-                    <div className="mt-2 text-sm text-blue-600 flex items-center gap-4">
+                    <div className="mt-2 text-sm text-emerald-600 flex items-center gap-4">
                       <span className="flex items-center gap-1"><UserCheck className="h-4 w-4" /> ผู้ตรวจซ้ำ: {inspection.reInspectorName || `User#${inspection.reInspectorId}`}</span>
                       {inspection.reInspectedAt && <span>{new Date(inspection.reInspectedAt).toLocaleString('th-TH')}</span>}
                     </div>

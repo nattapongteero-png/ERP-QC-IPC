@@ -755,13 +755,13 @@ function PhaseStatusBanner({
   // Phase Completed (frozen — read-only history)
   if (info.status === 'completed') {
     return (
-      <div className="mx-4 mt-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 flex items-start gap-3">
-        <CheckCircle2 className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+      <div className="mx-4 mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-start gap-3">
+        <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
         <div className="text-sm flex-1">
-          <p className="font-semibold text-blue-900">
+          <p className="font-semibold text-emerald-900">
             {phaseLabel} Frozen — ข้อมูลย้อนหลัง (Read-only)
           </p>
-          <p className="text-blue-800 mt-0.5">
+          <p className="text-emerald-800 mt-0.5">
             เริ่ม: {fmtTime(info.startedAt)} · สิ้นสุด: {fmtTime(info.completedAt)}
           </p>
         </div>

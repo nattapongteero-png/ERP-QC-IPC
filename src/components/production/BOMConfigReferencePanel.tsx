@@ -102,7 +102,7 @@ export default function BOMConfigReferencePanel({
       >
         <div className="flex items-center gap-2">
           <Info className="h-5 w-5 text-emerald-600" />
-          <span className="font-medium text-blue-800">{title}</span>
+          <span className="font-medium text-emerald-800">{title}</span>
         </div>
         {expanded ? (
           <ChevronDown className="h-4 w-4 text-emerald-600" />
@@ -115,10 +115,10 @@ export default function BOMConfigReferencePanel({
         <div className="px-4 pb-4 space-y-3">
           {shouldShow('rooms') && (
             <div>
-              <h4 className="text-sm font-semibold text-blue-700 mb-1">{t('bomConfiguration.rooms')}</h4>
+              <h4 className="text-sm font-semibold text-emerald-700 mb-1">{t('bomConfiguration.rooms')}</h4>
               <div className="flex flex-wrap gap-2">
                 {rooms.map((r) => (
-                  <span key={r.id} className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-blue-200 text-sm text-blue-800">
+                  <span key={r.id} className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-emerald-200 text-sm text-emerald-800">
                     <strong>{r.roomCode}</strong> ({locale === 'th' && r.roomNameTh ? r.roomNameTh : r.roomName})
                   </span>
                 ))}
@@ -128,10 +128,10 @@ export default function BOMConfigReferencePanel({
 
           {shouldShow('equipment') && (
             <div>
-              <h4 className="text-sm font-semibold text-blue-700 mb-1">{t('bomConfiguration.equipment')}</h4>
+              <h4 className="text-sm font-semibold text-emerald-700 mb-1">{t('bomConfiguration.equipment')}</h4>
               <div className="flex flex-wrap gap-2">
                 {equipment.map((e) => (
-                  <span key={e.id} className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-blue-200 text-sm text-blue-800">
+                  <span key={e.id} className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-emerald-200 text-sm text-emerald-800">
                     <strong>{e.equipmentCode}</strong> ({locale === 'th' && e.equipmentNameTh ? e.equipmentNameTh : e.equipmentName})
                   </span>
                 ))}
@@ -141,9 +141,9 @@ export default function BOMConfigReferencePanel({
 
           {shouldShow('environmental') && (
             <div>
-              <h4 className="text-sm font-semibold text-blue-700 mb-1">{t('bomConfiguration.environmentalConditions')}</h4>
+              <h4 className="text-sm font-semibold text-emerald-700 mb-1">{t('bomConfiguration.environmentalConditions')}</h4>
               {conditions.map((c) => (
-                <div key={c.id} className="text-sm text-blue-800 bg-white rounded border border-blue-200 p-2 mb-1">
+                <div key={c.id} className="text-sm text-emerald-800 bg-white rounded border border-emerald-200 p-2 mb-1">
                   <span className="font-medium">{c.conditionName}</span>
                   {' — '}
                   {t('bomConfiguration.temperatureRange')}: {c.temperatureMin}-{c.temperatureMax}°C,{' '}
@@ -156,10 +156,10 @@ export default function BOMConfigReferencePanel({
 
           {shouldShow('sopSteps') && (
             <div>
-              <h4 className="text-sm font-semibold text-blue-700 mb-1">{t('bomConfiguration.sopSteps')}</h4>
+              <h4 className="text-sm font-semibold text-emerald-700 mb-1">{t('bomConfiguration.sopSteps')}</h4>
               <div className="space-y-1">
                 {sopSteps.map((s) => (
-                  <div key={s.id} className="text-sm text-blue-800 bg-white rounded border border-blue-200 p-2">
+                  <div key={s.id} className="text-sm text-emerald-800 bg-white rounded border border-emerald-200 p-2">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{t('bomConfiguration.step', { sequence: s.sequence })}:</span>
                       <span>{locale === 'th' && s.stepNameTh ? s.stepNameTh : s.stepName}</span>
@@ -183,9 +183,9 @@ export default function BOMConfigReferencePanel({
 
           {shouldShow('packagingQC') && (
             <div>
-              <h4 className="text-sm font-semibold text-blue-700 mb-1">{t('bomConfiguration.packagingQC')}</h4>
+              <h4 className="text-sm font-semibold text-emerald-700 mb-1">{t('bomConfiguration.packagingQC')}</h4>
               {packagingQC.map((q) => (
-                <div key={q.id} className="text-sm text-blue-800 bg-white rounded border border-blue-200 p-2">
+                <div key={q.id} className="text-sm text-emerald-800 bg-white rounded border border-emerald-200 p-2">
                   <span className="font-medium">{q.criteriaName}</span>
                   {' — '}
                   {t('bomConfiguration.weightMin')}: {q.weightMin}g,{' '}

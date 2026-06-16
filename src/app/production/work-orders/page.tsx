@@ -701,8 +701,8 @@ export default function WorkOrdersPage() {
         title={t('workOrders.pageTitle')}
         subtitle={t('workOrders.description')}
         icon={Factory}
-        iconBgColor="bg-indigo-100"
-        iconColor="text-indigo-600"
+        iconBgColor="bg-emerald-100"
+        iconColor="text-emerald-700"
         breadcrumbs={[
           { label: t('breadcrumbs.production'), href: '/production' },
           { label: t('workOrders.breadcrumbs.workOrders') },
@@ -741,8 +741,8 @@ export default function WorkOrdersPage() {
           label={t('workOrders.stats.totalOrders')}
           value={stats.total}
           icon={ClipboardList}
-          iconColor="text-indigo-500"
-          accentColor="border-indigo-500"
+          iconColor="text-emerald-600"
+          accentColor="border-emerald-600"
           isLoading={isLoading}
         />
         <StatCard
@@ -1428,7 +1428,7 @@ export default function WorkOrdersPage() {
               <p className="text-sm text-gray-500 mb-4">
                 {selectedWO.productName}
                 {selectedWO.batchNumber && (
-                  <span className="ml-2 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                  <span className="ml-2 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
                     Batch: {selectedWO.batchNumber}
                   </span>
                 )}

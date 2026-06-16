@@ -357,7 +357,7 @@ export default function CleaningPage() {
                 <span className="text-xl font-bold">{progress.completed}</span>
                 <span className="text-xs">/{progress.total} Cleaned</span>
               </div>
-              <div className="text-blue-800">
+              <div className="text-emerald-800">
                 <span className="text-xl font-bold">{progress.verified}</span>
                 <span className="text-xs">/{progress.total} Verified</span>
               </div>
@@ -432,7 +432,7 @@ export default function CleaningPage() {
                               </span>
                               <span>by {item.cleaningLog.operatorName}</span>
                               {item.cleaningLog.verifierName && (
-                                <span className="flex items-center gap-1 text-blue-600">
+                                <span className="flex items-center gap-1 text-emerald-600">
                                   <UserCheck className="h-3 w-3" />
                                   Verified by {item.cleaningLog.verifierName}
                                 </span>

@@ -813,7 +813,7 @@ export default function BOMDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Batch Size</p>
-                <p className="text-2xl font-bold text-blue-600">{formatNumber(bom.batchSize) || 0}</p>
+                <p className="text-2xl font-bold text-emerald-600">{formatNumber(bom.batchSize) || 0}</p>
                 <p className="text-xs text-gray-500">{bom.batchUnit}</p>
               </div>
             </CardContent>

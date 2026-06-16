@@ -1288,8 +1288,8 @@ export default function SOPExecutionPage() {
         title={phaseFilter ? `SOP Execution — ${SOP_PHASE_LABELS[phaseFilter]}` : 'SOP Execution'}
         subtitle={`${workOrder.woNumber} | Batch: ${workOrder.batchNumber}`}
         icon={ClipboardList}
-        iconBgColor="bg-blue-100"
-        iconColor="text-blue-600"
+        iconBgColor="bg-emerald-100"
+        iconColor="text-emerald-600"
         breadcrumbs={[
           { label: 'Production', href: '/production' },
           { label: 'Work Orders', href: '/production/work-orders' },
@@ -1523,7 +1523,7 @@ export default function SOPExecutionPage() {
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); setPreviewDocId(step.templateGmpDocumentId!); }}
-                              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+                              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
                               title="ดูเอกสาร GMP ของ SOP Template"
                             >
                               <FileText className="h-3.5 w-3.5" />
@@ -1533,18 +1533,18 @@ export default function SOPExecutionPage() {
 
                           {/* BOM Instructions */}
                           {stepInstructions && (
-                            <div className="mt-3 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/70 rounded-xl p-3.5 shadow-sm">
-                              <p className="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-1.5 flex items-center gap-1.5">
+                            <div className="mt-3 bg-gradient-to-br from-emerald-50 to-emerald-50 border border-emerald-200/70 rounded-xl p-3.5 shadow-sm">
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 mb-1.5 flex items-center gap-1.5">
                                 <ListChecks className="h-3.5 w-3.5" />
                                 {t('bomConfiguration.instructions')}
                               </p>
-                              <p className="text-sm text-blue-900 leading-relaxed">{stepInstructions}</p>
+                              <p className="text-sm text-emerald-900 leading-relaxed">{stepInstructions}</p>
                               {/* Show secondary language instructions */}
                               {locale === 'th' && step.instructions && step.instructionsTh && (
-                                <p className="text-xs text-blue-600/80 mt-1.5 italic">{step.instructions}</p>
+                                <p className="text-xs text-emerald-600/80 mt-1.5 italic">{step.instructions}</p>
                               )}
                               {locale !== 'th' && step.instructionsTh && (
-                                <p className="text-xs text-blue-600/80 mt-1.5 italic">{step.instructionsTh}</p>
+                                <p className="text-xs text-emerald-600/80 mt-1.5 italic">{step.instructionsTh}</p>
                               )}
                             </div>
                           )}
@@ -1646,7 +1646,7 @@ export default function SOPExecutionPage() {
                                               <button
                                                 type="button"
                                                 onClick={(e) => { e.stopPropagation(); setPreviewDocId(sub.gmpDocumentId!); }}
-                                                className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                                className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
                                                 title="ดูเอกสาร GMP"
                                               >
                                                 <FileText className="h-3.5 w-3.5" />
@@ -1746,7 +1746,7 @@ export default function SOPExecutionPage() {
                                                         <button
                                                           type="button"
                                                           onClick={(e) => { e.stopPropagation(); setPreviewDocId(ipc.gmpDocumentId!); }}
-                                                          className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                                          className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
                                                           title="ดูเอกสาร GMP ของ IPC"
                                                         >
                                                           <FileText className="h-3 w-3" />
@@ -1780,9 +1780,9 @@ export default function SOPExecutionPage() {
                               {stepEquipmentIds.map((eqId) => {
                                 const equip = equipmentLookup.get(eqId);
                                 return equip ? (
-                                  <span key={eqId} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-200 rounded text-sm text-indigo-800">
+                                  <span key={eqId} className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded text-sm text-emerald-800">
                                     <strong>{equip.code}</strong>
-                                    <span className="text-indigo-600">({locale === 'th' && equip.nameTh ? equip.nameTh : equip.name})</span>
+                                    <span className="text-emerald-600">({locale === 'th' && equip.nameTh ? equip.nameTh : equip.name})</span>
                                   </span>
                                 ) : (
                                   <span key={eqId} className="inline-flex items-center px-2 py-1 bg-gray-100 rounded text-sm text-gray-500">
@@ -1889,7 +1889,7 @@ export default function SOPExecutionPage() {
                                           <button
                                             type="button"
                                             onClick={(e) => { e.stopPropagation(); setPreviewDocId(ipc.gmpDocumentId!); }}
-                                            className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                            className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
                                             title="ดูเอกสาร GMP ของ IPC"
                                           >
                                             <FileText className="h-3 w-3" />
@@ -1954,7 +1954,7 @@ export default function SOPExecutionPage() {
                                 <span>เสร็จ: {new Date(step.completedAt).toLocaleString('th-TH')}{step.operatorName ? ` โดย ${step.operatorName}` : ''}</span>
                               )}
                               {step.verifiedAt && (
-                                <span className="text-blue-600">ตรวจสอบ: {new Date(step.verifiedAt).toLocaleString('th-TH')}{step.verifierName ? ` โดย ${step.verifierName}` : ''}</span>
+                                <span className="text-emerald-600">ตรวจสอบ: {new Date(step.verifiedAt).toLocaleString('th-TH')}{step.verifierName ? ` โดย ${step.verifierName}` : ''}</span>
                               )}
                             </div>
                           )}
@@ -2082,8 +2082,8 @@ export default function SOPExecutionPage() {
             const eqIds = parseJson<number[]>(selectedStep?.equipmentIds);
             if (!eqIds || eqIds.length === 0) return null;
             return (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-                <h5 className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 mb-2 flex items-center gap-1.5">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <h5 className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 mb-2 flex items-center gap-1.5">
                   <Wrench className="h-3.5 w-3.5" />
                   {t('bomConfiguration.equipment')}
                 </h5>
@@ -2091,9 +2091,9 @@ export default function SOPExecutionPage() {
                   {eqIds.map((eqId) => {
                     const equip = equipmentLookup.get(eqId);
                     return equip ? (
-                      <span key={eqId} className="inline-flex items-center gap-1 px-2 py-1 bg-white text-sm text-indigo-800 rounded-lg border border-indigo-200 shadow-sm">
+                      <span key={eqId} className="inline-flex items-center gap-1 px-2 py-1 bg-white text-sm text-emerald-800 rounded-lg border border-emerald-200 shadow-sm">
                         <strong>{equip.code}</strong>
-                        <span className="text-indigo-600">({locale === 'th' && equip.nameTh ? equip.nameTh : equip.name})</span>
+                        <span className="text-emerald-600">({locale === 'th' && equip.nameTh ? equip.nameTh : equip.name})</span>
                       </span>
                     ) : null;
                   })}
@@ -2499,7 +2499,7 @@ export default function SOPExecutionPage() {
                         <button
                           type="button"
                           onClick={() => setPreviewDocId(ipc.gmpDocumentId!)}
-                          className="mb-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                          className="mb-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
                           title="ดูเอกสาร GMP ของ IPC"
                         >
                           <FileText className="h-3.5 w-3.5" />

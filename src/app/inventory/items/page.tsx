@@ -594,7 +594,7 @@ export default function ItemsPage() {
             e.stopPropagation();
             handleEdit(data.data);
           }}
-          className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+          className="p-1 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded"
           title={t('items.buttons.edit')}
         >
           <Edit className="h-4 w-4" />
@@ -1033,14 +1033,14 @@ export default function ItemsPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-gray-700">1. เลือกประเภทสินค้าที่ต้องการนำเข้า</label>
-                  <button onClick={() => setSelectedTypes(prev => prev.length === ALL_TYPE_KEYS.length ? [] : [...ALL_TYPE_KEYS])} className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                  <button onClick={() => setSelectedTypes(prev => prev.length === ALL_TYPE_KEYS.length ? [] : [...ALL_TYPE_KEYS])} className="text-xs font-medium text-emerald-600 hover:text-emerald-800 flex items-center gap-1">
                     {selectedTypes.length === ALL_TYPE_KEYS.length ? <><CheckSquare className="h-3.5 w-3.5" /> ยกเลิกทั้งหมด</> : <><Square className="h-3.5 w-3.5" /> เลือกทั้งหมด</>}
                   </button>
                 </div>
                 <div className="space-y-1.5">
                   {ITEM_TYPES_CONFIG.map(tc => (
-                    <label key={tc.key} className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${selectedTypes.includes(tc.key) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
-                      <input type="checkbox" checked={selectedTypes.includes(tc.key)} onChange={() => setSelectedTypes(prev => prev.includes(tc.key) ? prev.filter(k => k !== tc.key) : [...prev, tc.key])} className="h-4 w-4 rounded text-blue-600" />
+                    <label key={tc.key} className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${selectedTypes.includes(tc.key) ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                      <input type="checkbox" checked={selectedTypes.includes(tc.key)} onChange={() => setSelectedTypes(prev => prev.includes(tc.key) ? prev.filter(k => k !== tc.key) : [...prev, tc.key])} className="h-4 w-4 rounded text-emerald-600" />
                       <span className="text-sm font-medium text-gray-900 flex-1">{tc.label}</span>
                       <span className="text-xs text-gray-400">Sheet: {tc.sheetName}</span>
                     </label>
@@ -1050,7 +1050,7 @@ export default function ItemsPage() {
               {selectedTypes.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">2. เลือกไฟล์ Excel ({selectedTypes.length} ประเภท)</label>
-                  <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50">
+                  <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50">
                     <Upload className="h-5 w-5" />{importing ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
                   </button>
                 </div>

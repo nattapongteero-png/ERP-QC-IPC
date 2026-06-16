@@ -256,8 +256,8 @@ export default function BOMDashboardPage() {
           label={t('bom.stats.totalBOMs')}
           value={dashboard?.totalBOMs ?? 0}
           icon={ClipboardList}
-          iconColor="text-indigo-500"
-          accentColor="border-indigo-500"
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
           isLoading={dashboardLoading}
         />
         <StatCard
@@ -292,8 +292,8 @@ export default function BOMDashboardPage() {
           label={t('bom.stats.workOrders')}
           value={dashboard?.activeWorkOrders ?? 0}
           icon={Factory}
-          iconColor="text-blue-500"
-          accentColor="border-blue-500"
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
           isLoading={dashboardLoading}
           href="/production/work-orders"
         />
@@ -309,8 +309,8 @@ export default function BOMDashboardPage() {
           label={t('bom.stats.avgPerBOM')}
           value={dashboard?.avgMaterialsPerBOM?.toFixed(1) ?? '0'}
           icon={Layers}
-          iconColor="text-indigo-500"
-          accentColor="border-indigo-500"
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
           isLoading={dashboardLoading}
         />
       </div>
@@ -780,7 +780,7 @@ function BomCardList({
                     </span>
                   )}
                   {bom.createdAt && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                    <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
                       <Clock className="h-3 w-3" />
                       {formatDate(bom.createdAt)}
                     </span>

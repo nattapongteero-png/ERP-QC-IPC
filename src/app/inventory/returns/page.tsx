@@ -193,7 +193,7 @@ export default function MaterialReturnsInboxPage() {
       width: 140,
       cellRender: (cell) =>
         cell.data.woNumber ? (
-          <span className="font-mono text-sm text-blue-600">{cell.data.woNumber}</span>
+          <span className="font-mono text-sm text-emerald-600">{cell.data.woNumber}</span>
         ) : (
           <span className="text-gray-400">—</span>
         ),
@@ -318,8 +318,8 @@ export default function MaterialReturnsInboxPage() {
             label="รวมจำนวน"
             value={formatNumber(stats.totalQty, 2)}
             icon={Inbox}
-            iconColor="text-blue-500"
-            accentColor="border-blue-500"
+            iconColor="text-emerald-500"
+            accentColor="border-emerald-500"
           />
         </div>
 

@@ -367,10 +367,10 @@ export default function WarehousesPage() {
         return (
           <div className={cn(
             'flex items-center gap-1.5 px-2 py-1 rounded-md',
-            hasHumidity ? 'bg-blue-50' : ''
+            hasHumidity ? 'bg-emerald-50' : ''
           )}>
-            <Droplets className={cn('h-3.5 w-3.5', hasHumidity ? 'text-blue-600' : 'text-gray-400')} />
-            <span className={hasHumidity ? 'text-blue-700 font-medium' : 'text-gray-400'}>
+            <Droplets className={cn('h-3.5 w-3.5', hasHumidity ? 'text-emerald-600' : 'text-gray-400')} />
+            <span className={hasHumidity ? 'text-emerald-700 font-medium' : 'text-gray-400'}>
               {hasHumidity
                 ? `${cellInfo.data.humidityMin}% - ${cellInfo.data.humidityMax}%`
                 : '-'}
@@ -419,7 +419,7 @@ export default function WarehousesPage() {
               e.stopPropagation();
               handleView(cellInfo.data as WarehouseType);
             }}
-            className="p-2 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+            className="p-2 rounded-md text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
           >
             <Eye className="h-4 w-4" />
           </button>
@@ -460,8 +460,8 @@ export default function WarehousesPage() {
           title={t('warehouses.pageTitle')}
           subtitle={t('warehouses.description')}
           icon={Warehouse}
-          iconBgColor="bg-indigo-100"
-          iconColor="text-indigo-600"
+          iconBgColor="bg-emerald-100"
+          iconColor="text-emerald-600"
           actions={
             <div className="flex items-center gap-2 flex-wrap">
               <DxButton
@@ -514,8 +514,8 @@ export default function WarehousesPage() {
             label={t('stats.total')}
             value={warehouses.length}
             icon={Boxes}
-            iconColor="text-indigo-500"
-            accentColor="border-indigo-500"
+            iconColor="text-emerald-500"
+            accentColor="border-emerald-500"
           />
           <StatCard
             label={t('stats.active')}
@@ -769,7 +769,7 @@ function WarehouseCardList({
                     </span>
                   )}
                   {hasHumidity && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                    <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
                       <Droplets className="h-3 w-3" />
                       {w.humidityMin}–{w.humidityMax}%
                     </span>
@@ -789,7 +789,7 @@ function WarehouseCardList({
               <button
                 type="button"
                 onClick={() => onView(w)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 transition-colors min-h-[44px]"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 transition-colors min-h-[44px]"
               >
                 <Eye className="h-4 w-4" />
                 <span>{t('warehouses.viewDetails')}</span>
@@ -865,8 +865,8 @@ function DataGridLoadingSkeleton() {
 function EmptyState({ onCreate, t }: { onCreate: () => void; t: TranslateFn }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-      <div className="h-20 w-20 rounded-2xl bg-indigo-100 flex items-center justify-center mb-5">
-        <Warehouse className="h-10 w-10 text-indigo-600" />
+      <div className="h-20 w-20 rounded-2xl bg-emerald-100 flex items-center justify-center mb-5">
+        <Warehouse className="h-10 w-10 text-emerald-600" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
         {t('warehouses.emptyTitle') || 'ยังไม่มีคลังสินค้า'}

@@ -162,7 +162,7 @@ export default function UnitConversionTestPage() {
             )}
           </div>
 
-          <div className="mt-4 rounded-xl bg-blue-50 border border-blue-100 p-3 text-sm text-blue-700">
+          <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">
             <strong>Conversion summary:</strong>{' '}
             1 {setup.primaryUnit} = {setup.conversionRate?.toLocaleString() ?? '?'} {setup.secondaryUnit}
             {setup.weightTrackingEnabled && setup.secondaryToWeightRate ? (

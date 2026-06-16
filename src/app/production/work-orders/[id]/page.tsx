@@ -653,7 +653,7 @@ export default function WorkOrderDetailPage() {
         return (
           <div className="text-xs space-y-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-px rounded">
+              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-px rounded">
                 {getCriteriaTypeLabel(ctype)}
               </span>
               <span className="text-gray-900 break-words">{headline}</span>
@@ -830,7 +830,7 @@ export default function WorkOrderDetailPage() {
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Planned Qty</p>
-                <p className="text-2xl font-bold text-blue-600">{formatNumber(workOrder.plannedQty) || 0}</p>
+                <p className="text-2xl font-bold text-emerald-600">{formatNumber(workOrder.plannedQty) || 0}</p>
                 <p className="text-xs text-gray-500">{workOrder.productUnit}</p>
               </div>
             </CardContent>
@@ -948,7 +948,7 @@ export default function WorkOrderDetailPage() {
                   {workOrder.drugCode24 && (
                     <div>
                       <dt className="text-sm text-gray-500">รหัสยา 24 หลัก</dt>
-                      <dd className="font-medium text-blue-700">{workOrder.drugCode24}</dd>
+                      <dd className="font-medium text-emerald-700">{workOrder.drugCode24}</dd>
                     </div>
                   )}
                   {workOrder.gRegNumber && (
@@ -1260,7 +1260,7 @@ export default function WorkOrderDetailPage() {
                     {ebmr.drugCode24 && (
                       <div className="min-w-0">
                         <p className="text-sm text-gray-500">รหัสยา 24 หลัก</p>
-                        <p className="font-semibold text-blue-700 break-all">{ebmr.drugCode24}</p>
+                        <p className="font-semibold text-emerald-700 break-all">{ebmr.drugCode24}</p>
                       </div>
                     )}
                     {ebmr.gRegNumber && (
@@ -1429,7 +1429,7 @@ export default function WorkOrderDetailPage() {
                       <div key={br.id} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-medium">
+                            <span className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-medium">
                               {br.sequence}
                             </span>
                             <h4 className="font-medium text-gray-900">{br.stepName}</h4>

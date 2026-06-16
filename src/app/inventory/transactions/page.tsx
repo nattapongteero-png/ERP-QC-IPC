@@ -540,8 +540,8 @@ export default function TransactionsPage() {
           title={t('transactions.pageTitle')}
           subtitle={t('transactions.description')}
           icon={ArrowLeftRight}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
+          iconBgColor="bg-emerald-100"
+          iconColor="text-emerald-600"
           actions={
             <div className="flex items-center gap-2 flex-wrap">
               <DxButton
@@ -574,8 +574,8 @@ export default function TransactionsPage() {
             label={t('transactions.stats.total')}
             value={allTransactions.length}
             icon={Boxes}
-            iconColor="text-indigo-500"
-            accentColor="border-indigo-500"
+            iconColor="text-emerald-500"
+            accentColor="border-emerald-500"
           />
           <StatCard
             label={t('transactions.stats.incoming')}
@@ -595,8 +595,8 @@ export default function TransactionsPage() {
             label={t('transactions.stats.today')}
             value={todayCount}
             icon={Calendar}
-            iconColor="text-blue-500"
-            accentColor="border-blue-500"
+            iconColor="text-emerald-500"
+            accentColor="border-emerald-500"
           />
         </div>
 
@@ -771,19 +771,19 @@ export default function TransactionsPage() {
               searchEnabled
             />
             {selectedLot && (
-              <div className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-lg border border-blue-200/50">
+              <div className="mt-2 p-3 bg-gradient-to-r from-emerald-50 to-emerald-100/50 rounded-lg border border-emerald-200/50">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-blue-600">{t('transactions.form.lotInfo.item')}</span>
-                    <p className="font-medium text-blue-900">{selectedLot.itemName}</p>
+                    <span className="text-emerald-600">{t('transactions.form.lotInfo.item')}</span>
+                    <p className="font-medium text-emerald-900">{selectedLot.itemName}</p>
                   </div>
                   <div>
-                    <span className="text-blue-600">{t('transactions.form.lotInfo.available')}</span>
-                    <p className="font-medium text-blue-900">{selectedLot.quantity} {selectedLot.unit}</p>
+                    <span className="text-emerald-600">{t('transactions.form.lotInfo.available')}</span>
+                    <p className="font-medium text-emerald-900">{selectedLot.quantity} {selectedLot.unit}</p>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-blue-600">{t('transactions.form.lotInfo.warehouse')}</span>
-                    <p className="font-medium text-blue-900">{selectedLot.warehouseName}</p>
+                    <span className="text-emerald-600">{t('transactions.form.lotInfo.warehouse')}</span>
+                    <p className="font-medium text-emerald-900">{selectedLot.warehouseName}</p>
                   </div>
                 </div>
               </div>
@@ -1068,8 +1068,8 @@ function DataGridLoadingSkeleton() {
 function EmptyState({ onCreateNew, t }: { onCreateNew: () => void; t: TranslateFn }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-      <div className="h-20 w-20 rounded-2xl bg-blue-100 flex items-center justify-center mb-5">
-        <ArrowLeftRight className="h-10 w-10 text-blue-600" />
+      <div className="h-20 w-20 rounded-2xl bg-emerald-100 flex items-center justify-center mb-5">
+        <ArrowLeftRight className="h-10 w-10 text-emerald-600" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
         {t('transactions.empty.title')}

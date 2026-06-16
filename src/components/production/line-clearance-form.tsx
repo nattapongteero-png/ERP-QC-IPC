@@ -305,7 +305,7 @@ export function LineClearanceForm({
             <div className="space-y-2 text-sm">
               {performerName && (
                 <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4 text-blue-600" />
+                  <UserCheck className="h-4 w-4 text-emerald-600" />
                   <span className="text-gray-600">Performed by:</span>
                   <span className="font-medium text-gray-900">{performerName}</span>
                   {performedAt && (
@@ -358,7 +358,7 @@ export function LineClearanceForm({
               </span>
             )}
             {canVerify && (
-              <span className="flex items-center gap-1.5 text-blue-600">
+              <span className="flex items-center gap-1.5 text-emerald-600">
                 <UserCheck className="h-4 w-4" />
                 Review the checklist and approve or reject
               </span>

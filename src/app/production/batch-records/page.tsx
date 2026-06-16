@@ -254,8 +254,8 @@ export default function BatchRecordsDashboardPage() {
           label={t('batchRecords.stats.total')}
           value={dashboard?.totalRecords ?? 0}
           icon={FileText}
-          iconColor="text-indigo-500"
-          accentColor="border-indigo-500"
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
           isLoading={dashboardLoading}
         />
         <StatCard
@@ -317,8 +317,8 @@ export default function BatchRecordsDashboardPage() {
         {/* Status Distribution */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0">
           <div className="flex items-center gap-2 mb-4">
-            <div className="p-2 bg-indigo-50 rounded-lg">
-              <Activity className="h-5 w-5 text-indigo-600" />
+            <div className="p-2 bg-emerald-50 rounded-lg">
+              <Activity className="h-5 w-5 text-emerald-600" />
             </div>
             <h3 className="font-semibold text-gray-900">{t('batchRecords.charts.statusDistribution')}</h3>
           </div>
@@ -499,14 +499,14 @@ export default function BatchRecordsDashboardPage() {
       )}
 
       {dashboard && dashboard.inProgressRecords > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg shrink-0">
-              <PlayCircle className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-emerald-100 rounded-lg shrink-0">
+              <PlayCircle className="h-5 w-5 text-emerald-600" />
             </div>
             <div className="min-w-0">
-              <h4 className="font-semibold text-blue-800">{t('batchRecords.alerts.activeTitle')}</h4>
-              <p className="text-sm text-blue-700 mt-1">
+              <h4 className="font-semibold text-emerald-800">{t('batchRecords.alerts.activeTitle')}</h4>
+              <p className="text-sm text-emerald-700 mt-1">
                 {t('batchRecords.alerts.activeDescription', {
                   count: dashboard.inProgressRecords,
                   suffix: dashboard.inProgressRecords > 1 ? 's ' : ' ',
@@ -517,7 +517,7 @@ export default function BatchRecordsDashboardPage() {
                   setStatusFilter('in_progress');
                   setActiveTab('in_progress');
                 }}
-                className="mt-2 text-sm font-medium text-blue-800 hover:text-blue-900 flex items-center gap-1"
+                className="mt-2 text-sm font-medium text-emerald-800 hover:text-emerald-900 flex items-center gap-1"
               >
                 {t('batchRecords.alerts.viewInProgress')} <ChevronRight className="h-4 w-4" />
               </button>
@@ -532,8 +532,8 @@ export default function BatchRecordsDashboardPage() {
         <div className="border-b border-emerald-50 px-3 py-3 sm:px-4 bg-gradient-to-r from-white to-[#F6FCF9]">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-indigo-50 rounded-lg">
-                <FileText className="h-5 w-5 text-indigo-600" />
+              <div className="p-2 bg-emerald-50 rounded-lg">
+                <FileText className="h-5 w-5 text-emerald-600" />
               </div>
               <h3 className="font-semibold text-[#064E3B]">{t('batchRecords.registry.title')}</h3>
             </div>
@@ -665,7 +665,7 @@ export default function BatchRecordsDashboardPage() {
                 minWidth={180}
                 cellRender={(cell) => (
                   <div>
-                    <span className="font-mono font-medium text-indigo-700">{cell.data.woNumber}</span>
+                    <span className="font-mono font-medium text-emerald-700">{cell.data.woNumber}</span>
                     <p className="text-xs text-gray-500">{cell.data.batchNumber}</p>
                   </div>
                 )}
@@ -691,7 +691,7 @@ export default function BatchRecordsDashboardPage() {
                     <div className="text-xs space-y-0.5">
                       <div className="flex gap-3">
                         {d.sopSteps > 0 && (
-                          <span className="text-blue-700">{t('batchRecords.execution.sopPrefix')} {d.sopVerified}/{d.sopSteps}</span>
+                          <span className="text-emerald-700">{t('batchRecords.execution.sopPrefix')} {d.sopVerified}/{d.sopSteps}</span>
                         )}
                         {d.cleaningLogs > 0 && (
                           <span className="text-green-700">{t('batchRecords.execution.cleanPrefix')} {d.cleaningLogs}</span>
@@ -792,7 +792,7 @@ function BatchRecordCardList({
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="min-w-0">
-                    <p className="font-mono font-semibold text-indigo-700 text-base truncate">{r.woNumber}</p>
+                    <p className="font-mono font-semibold text-emerald-700 text-base truncate">{r.woNumber}</p>
                     <p className="text-xs text-gray-500 font-mono truncate mt-0.5">{r.batchNumber}</p>
                   </div>
                   {renderStatusBadge(r.status)}
@@ -810,7 +810,7 @@ function BatchRecordCardList({
                 {/* Tags row: execution counts */}
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   {sopProgress && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                    <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
                       SOP: {sopProgress}
                     </span>
                   )}

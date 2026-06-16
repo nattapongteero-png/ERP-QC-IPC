@@ -276,8 +276,8 @@ export default function ProductionAnalyticsPage() {
         title={t('analytics.pageTitle')}
         subtitle={t('analytics.description')}
         icon={BarChart3}
-        iconBgColor="bg-indigo-100"
-        iconColor="text-indigo-600"
+        iconBgColor="bg-emerald-100"
+        iconColor="text-emerald-600"
         breadcrumbs={[
           { label: t('breadcrumbs.production'), href: '/production' },
           { label: t('workOrders.breadcrumbs.workOrders'), href: '/production/work-orders' },
@@ -300,8 +300,8 @@ export default function ProductionAnalyticsPage() {
           label={t('analytics.stats.totalOrders')}
           value={stats.total}
           icon={Package}
-          iconColor="text-indigo-500"
-          accentColor="border-indigo-500"
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
           isLoading={isLoading}
         />
         <StatCard
@@ -316,8 +316,8 @@ export default function ProductionAnalyticsPage() {
           label={t('analytics.stats.completionRate')}
           value={stats.completionRate > 0 ? `${stats.completionRate.toFixed(1)}%` : '-'}
           icon={Target}
-          iconColor="text-blue-500"
-          accentColor="border-blue-500"
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
           isLoading={isLoading}
         />
         <StatCard
@@ -359,7 +359,7 @@ export default function ProductionAnalyticsPage() {
         {/* Monthly Volume */}
         <div className="lg:col-span-2 bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
           <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4 text-indigo-500" />
+            <TrendingUp className="w-4 h-4 text-emerald-500" />
             {t('analytics.charts.monthlyVolume')}
           </h3>
           {monthlyData.length > 0 ? (
@@ -465,7 +465,7 @@ export default function ProductionAnalyticsPage() {
         {/* Production Count by Product */}
         <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
           <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-indigo-500" />
+            <BarChart3 className="w-4 h-4 text-emerald-500" />
             {t('analytics.charts.productionByProduct')}
           </h3>
           {productionByProduct.length > 0 ? (
@@ -570,7 +570,7 @@ export default function ProductionAnalyticsPage() {
         {/* Priority Completion Rate */}
         <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
           <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
-            <Target className="w-4 h-4 text-blue-500" />
+            <Target className="w-4 h-4 text-emerald-500" />
             {t('analytics.charts.priorityCompletion')}
           </h3>
           {priorityCompletionData.some(d => d.total > 0) ? (

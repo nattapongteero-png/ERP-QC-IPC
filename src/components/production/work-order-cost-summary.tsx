@@ -117,8 +117,8 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-blue-100">
-                <Package className="h-6 w-6 text-blue-600" />
+              <div className="p-3 rounded-full bg-emerald-100">
+                <Package className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Material Cost</p>

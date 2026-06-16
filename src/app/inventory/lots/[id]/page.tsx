@@ -360,7 +360,7 @@ export default function LotDetailPage() {
       dataField: 'referenceNumber',
       caption: 'Reference',
       cellRender: (cellInfo) => cellInfo.data.referenceType && cellInfo.data.referenceNumber ? (
-        <span className="text-blue-600">{cellInfo.data.referenceType}: {cellInfo.data.referenceNumber}</span>
+        <span className="text-emerald-600">{cellInfo.data.referenceType}: {cellInfo.data.referenceNumber}</span>
       ) : '-'
     },
     { dataField: 'reason', caption: 'Reason', cellRender: (cellInfo) => cellInfo.data.reason || '-' },
@@ -412,7 +412,7 @@ export default function LotDetailPage() {
     {
       dataField: 'woNumber',
       caption: 'WO Number',
-      cellRender: (cellInfo) => <span className="font-medium text-blue-600 cursor-pointer hover:underline">{cellInfo.data.woNumber}</span>
+      cellRender: (cellInfo) => <span className="font-medium text-emerald-600 cursor-pointer hover:underline">{cellInfo.data.woNumber}</span>
     },
     {
       dataField: 'status',
@@ -611,17 +611,17 @@ export default function LotDetailPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500 rounded-lg">
+                <div className="p-2 bg-emerald-500 rounded-lg">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm text-blue-600">Total Quantity</p>
-                  <p className="text-2xl font-bold text-blue-800">{lot.quantity.toLocaleString()} {lot.unit}</p>
+                  <p className="text-sm text-emerald-600">Total Quantity</p>
+                  <p className="text-2xl font-bold text-emerald-800">{lot.quantity.toLocaleString()} {lot.unit}</p>
                 </div>
               </div>
             </CardContent>
@@ -1060,7 +1060,7 @@ export default function LotDetailPage() {
                       width: 160,
                       cellRender: (c) => (
                         <span
-                          className="font-medium text-blue-600 cursor-pointer hover:underline"
+                          className="font-medium text-emerald-600 cursor-pointer hover:underline"
                           onClick={() => router.push(`/quality/qc-entry/${c.data.id}`)}
                         >
                           {c.data.sampleNumber}
@@ -1182,8 +1182,8 @@ export default function LotDetailPage() {
                 <div className="space-y-4">
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-blue-100 rounded-full">
-                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="p-3 bg-emerald-100 rounded-full">
+                        <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                       </div>

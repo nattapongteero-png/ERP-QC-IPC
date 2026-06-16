@@ -178,7 +178,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
         {/* New workflow: Phase Level is now the master scope for this BOM
             (must be populated first). SOP Steps reference IPCs from here —
             cannot bind anything that isn't declared at phase level. */}
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/70 px-3 py-2.5 text-xs text-blue-900 leading-relaxed">
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-xs text-emerald-900 leading-relaxed">
           <p className="font-semibold mb-0.5">ขั้นตอนการกำหนด IPC สำหรับ BOM นี้</p>
           <ol className="list-decimal pl-5 space-y-0.5">
             <li>
@@ -188,7 +188,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
               <strong>tab &quot;SOP Steps&quot; → ปุ่ม &quot;Manage&quot; ในแต่ละ step:</strong> เลือก IPC จากที่กำหนดในข้อ 1 มาผูกกับ step หรือ sub-step เฉพาะ
             </li>
           </ol>
-          <p className="mt-1.5 text-[11px] text-blue-700">
+          <p className="mt-1.5 text-[11px] text-emerald-700">
             IPC ที่ไม่ได้กำหนดในข้อ 1 จะไม่สามารถผูกกับ SOP step ได้
           </p>
         </div>
@@ -216,7 +216,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs text-emerald-600">{cfg.criteriaCode}</span>
                   <span className="font-medium">{cfg.criteriaNameTh || cfg.criteriaName}</span>
-                  <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
                     {getCriteriaTypeLabel(cfg.criteriaType || 'numeric')}
                   </span>
                   {cfg.isCritical && <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Critical</span>}
@@ -1640,7 +1640,7 @@ export default function BOMConfigurationPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-blue-600" />
+                    <Building2 className="h-5 w-5 text-emerald-600" />
                     <h3 className="text-lg font-medium">Required Rooms</h3>
                   </div>
                   <DxButton
@@ -1768,7 +1768,7 @@ export default function BOMConfigurationPage() {
                   <DxColumn dataField="stepName" caption="Step Name (EN)" />
                   <DxColumn dataField="stepNameTh" caption="Step Name (TH)" />
                   <DxColumn dataField="requiresVerification" caption="Verification" width={120} cellRender={(cell) => (
-                    <span className={`px-2 py-0.5 rounded text-xs ${cell.value ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`px-2 py-0.5 rounded text-xs ${cell.value ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'}`}>
                       {cell.value ? 'Required' : 'Not Required'}
                     </span>
                   )} />
@@ -1806,7 +1806,7 @@ export default function BOMConfigurationPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <Scale className="h-5 w-5 text-indigo-600" />
+                    <Scale className="h-5 w-5 text-emerald-600" />
                     <h3 className="text-lg font-medium">Packaging QC Criteria</h3>
                   </div>
                   <DxButton
@@ -1829,7 +1829,7 @@ export default function BOMConfigurationPage() {
                   <DxColumn dataField="criteria.code" caption="Criteria Code" width={120} />
                   <DxColumn dataField="criteria.name" caption="Criteria Name" />
                   <DxColumn caption="Weight Range" width={150} cellRender={(cell) => (
-                    <span className="text-blue-700">{cell.data.criteria?.weightMin}-{cell.data.criteria?.weightMax}g</span>
+                    <span className="text-emerald-700">{cell.data.criteria?.weightMin}-{cell.data.criteria?.weightMax}g</span>
                   )} />
                   <DxColumn caption="Sample Criteria" width={150} cellRender={(cell) => (
                     <span className="text-gray-600">≤{cell.data.criteria?.maxFailures}/{cell.data.criteria?.sampleSize} fail</span>
@@ -2621,12 +2621,12 @@ export default function BOMConfigurationPage() {
                 />
               </div>
               {qcForm.criteriaId > 0 && (
-                <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-                  <p className="text-sm text-indigo-800">
+                <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                  <p className="text-sm text-emerald-800">
                     <strong>Selected Criteria:</strong>{' '}
                     {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.name}
                   </p>
-                  <p className="text-sm text-indigo-700 mt-1">
+                  <p className="text-sm text-emerald-700 mt-1">
                     Weight: {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.weightMin}-
                     {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.weightMax}g |
                     Sample: {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.sampleSize} units |
@@ -2729,7 +2729,7 @@ export default function BOMConfigurationPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-xs text-emerald-700">{link.criteriaCode}</span>
                     <span className="font-medium">{link.criteriaNameTh || link.criteriaName}</span>
-                    <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
                       {getCriteriaTypeLabel(link.criteriaType || 'numeric')}
                     </span>
                     {link.isCritical && (

@@ -481,19 +481,19 @@ export default function MaterialRequisitionsInboxPage() {
               <Filter className="h-3.5 w-3.5 text-gray-400" />
               <span className="text-xs text-gray-500">ตัวกรองที่ใช้:</span>
               {statusFilter !== 'requested' && (
-                <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
                   สถานะ: {STATUS_OPTIONS.find((s) => s.value === statusFilter)?.label}
                   <button onClick={() => setStatusFilter('requested')}><X className="h-3 w-3" /></button>
                 </span>
               )}
               {search.trim() && (
-                <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
                   ค้นหา: &quot;{search}&quot;
                   <button onClick={() => setSearch('')}><X className="h-3 w-3" /></button>
                 </span>
               )}
               {(dateFrom || dateTo) && (
-                <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
                   วันที่: {dateFrom || '…'} ถึง {dateTo || '…'}
                   <button onClick={() => { setDateFrom(''); setDateTo(''); }}><X className="h-3 w-3" /></button>
                 </span>

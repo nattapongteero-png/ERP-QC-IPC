@@ -470,7 +470,7 @@ export default function ProductionOutputPage() {
                 )}
                 <div>
                   <p className="text-sm text-gray-600">{isBulkStage ? 'Recorded At' : tw('yield.yieldPercent')}</p>
-                  <p className="text-xl font-bold text-blue-700">
+                  <p className="text-xl font-bold text-emerald-700">
                     {isBulkStage
                       ? (workOrder.bulkOutputRecordedAt
                           ? new Date(workOrder.bulkOutputRecordedAt).toLocaleString('th-TH')
@@ -487,7 +487,7 @@ export default function ProductionOutputPage() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                  <BarChart3 className="h-5 w-5 text-emerald-600" />
                   <h3 className="font-semibold">{tw('yield.title')}</h3>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getYieldStatusStyle(yieldData.status)}`}>
                     {getYieldStatusIcon(yieldData.status)}
@@ -508,9 +508,9 @@ export default function ProductionOutputPage() {
                     <p className="text-sm text-gray-500">{tw('yield.actualReject')}</p>
                     <p className="text-lg font-semibold text-red-600">{formatNumber(yieldData.actualReject)}</p>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-lg">
+                  <div className="p-3 bg-emerald-50 rounded-lg">
                     <p className="text-sm text-gray-500">{tw('yield.yieldPercent')}</p>
-                    <p className="text-lg font-bold text-blue-700">{yieldData.yieldPercent.toFixed(2)}%</p>
+                    <p className="text-lg font-bold text-emerald-700">{yieldData.yieldPercent.toFixed(2)}%</p>
                   </div>
                   <div className="p-3 bg-orange-50 rounded-lg">
                     <p className="text-sm text-gray-500">{tw('yield.rejectPercent')}</p>
@@ -558,7 +558,7 @@ export default function ProductionOutputPage() {
               {/* BOM Target — show plan + thresholds in every unit the operator
                   will see on the line so no mental conversion is needed. */}
               {(workOrder.bomYieldTarget || workOrder.bomLossAllowance || isBulkStage) && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-sm text-emerald-900">
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2">
                     <span className="font-semibold">🎯 BOM Target</span>
                     {workOrder.bomYieldTarget != null && (
@@ -568,12 +568,12 @@ export default function ProductionOutputPage() {
                       <span>Loss ≤ <strong>{Number(workOrder.bomLossAllowance).toFixed(2)}%</strong></span>
                     )}
                   </div>
-                  <div className="border-t border-blue-200 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <div className="border-t border-emerald-200 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                     <div>
-                      <div className="text-blue-700 uppercase tracking-wide text-[11px]">จำนวนแผน</div>
+                      <div className="text-emerald-700 uppercase tracking-wide text-[11px]">จำนวนแผน</div>
                       <div className="font-semibold text-base">{formatNumber(workOrder.plannedQuantity)} {workOrder.unit}</div>
                       {isBulkStage && canConvertToCapsule && (
-                        <div className="text-blue-700">
+                        <div className="text-emerald-700">
                           = {formatNumber(boxToCap(Number(workOrder.plannedQuantity)))} {secondaryUnit}
                           {canConvertToWeight && (
                             <> · {formatNumber(boxToGram(Number(workOrder.plannedQuantity)), 2)} g</>
@@ -583,12 +583,12 @@ export default function ProductionOutputPage() {
                     </div>
                     {workOrder.bomYieldTarget != null && (
                       <div>
-                        <div className="text-blue-700 uppercase tracking-wide text-[11px]">ต่ำสุดที่ผ่าน (Yield)</div>
+                        <div className="text-emerald-700 uppercase tracking-wide text-[11px]">ต่ำสุดที่ผ่าน (Yield)</div>
                         <div className="font-semibold text-base">
                           {formatNumber(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100, 2)} {workOrder.unit}
                         </div>
                         {isBulkStage && canConvertToCapsule && (
-                          <div className="text-blue-700">
+                          <div className="text-emerald-700">
                             = {formatNumber(boxToCap(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100), 0)} {secondaryUnit}
                             {canConvertToWeight && (
                               <> · {formatNumber(boxToGram(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100), 2)} g</>
@@ -599,7 +599,7 @@ export default function ProductionOutputPage() {
                     )}
                     {workOrder.bomLossAllowance != null && (
                       <div>
-                        <div className="text-blue-700 uppercase tracking-wide text-[11px]">สูญเสียสูงสุด</div>
+                        <div className="text-emerald-700 uppercase tracking-wide text-[11px]">สูญเสียสูงสุด</div>
                         <div className="font-semibold text-base">
                           {formatNumber(Number(workOrder.plannedQuantity) * Number(workOrder.bomLossAllowance) / 100, 2)} {workOrder.unit}
                         </div>

@@ -208,11 +208,11 @@ export function LabelVerificationForm({
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
+      <div className="px-6 py-4 bg-gradient-to-r from-emerald-50 to-emerald-100/40 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Tag className="h-5 w-5 text-blue-600" />
+            <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <Tag className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Label Verification</h3>
@@ -340,7 +340,7 @@ export function LabelVerificationForm({
             <div className="space-y-2 text-sm">
               {operatorName && (
                 <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4 text-blue-600" />
+                  <UserCheck className="h-4 w-4 text-emerald-600" />
                   <span className="text-gray-600">Verified by:</span>
                   <span className="font-medium text-gray-900">{operatorName}</span>
                 </div>
@@ -363,7 +363,7 @@ export function LabelVerificationForm({
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               {canVerify && (
-                <span className="flex items-center gap-1.5 text-blue-600">
+                <span className="flex items-center gap-1.5 text-emerald-600">
                   <Eye className="h-4 w-4" />
                   Review the label and verify or reject
                 </span>
