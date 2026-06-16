@@ -44,12 +44,27 @@ const statusColors: Record<NotificationResponseStatus, string> = {
 };
 
 const statusOptions = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'acknowledged', label: 'Acknowledged' },
-  { value: 'returning', label: 'Returning' },
-  { value: 'returned', label: 'Returned' },
-  { value: 'unresponsive', label: 'Unresponsive' },
+  { value: 'pending', label: 'รอดำเนินการ' },
+  { value: 'acknowledged', label: 'รับทราบแล้ว' },
+  { value: 'returning', label: 'กำลังส่งคืน' },
+  { value: 'returned', label: 'ส่งคืนแล้ว' },
+  { value: 'unresponsive', label: 'ไม่ตอบกลับ' },
 ];
+
+const statusLabels: Record<NotificationResponseStatus, string> = {
+  pending: 'รอดำเนินการ',
+  acknowledged: 'รับทราบแล้ว',
+  returning: 'กำลังส่งคืน',
+  returned: 'ส่งคืนแล้ว',
+  unresponsive: 'ไม่ตอบกลับ',
+};
+
+const methodLabels: Record<NotificationMethod, string> = {
+  phone: 'โทรศัพท์',
+  email: 'อีเมล',
+  fax: 'แฟกซ์',
+  courier: 'พัสดุ/ขนส่ง',
+};
 
 async function fetchNotifications(recallId: number): Promise<RecallNotification[]> {
   const response = await fetch(`/api/recalls/${recallId}/notifications`);
@@ -121,7 +136,7 @@ export function RecallNotificationTracker({
   const renderMethodCell = (cellData: { value: NotificationMethod }) => (
     <div className="flex items-center gap-2">
       {methodIcons[cellData.value]}
-      <span className="capitalize">{cellData.value}</span>
+      <span>{methodLabels[cellData.value] ?? cellData.value}</span>
     </div>
   );
 
@@ -129,7 +144,7 @@ export function RecallNotificationTracker({
     <span
       className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[cellData.value]}`}
     >
-      {cellData.value.replace('_', ' ')}
+      {statusLabels[cellData.value] ?? cellData.value}
     </span>
   );
 
@@ -137,7 +152,7 @@ export function RecallNotificationTracker({
     if (!canEdit) return null;
     return (
       <DxButton
-        text="Update"
+        text="อัปเดต"
         stylingMode="text"
         onClick={() => handleEdit(cellData.data)}
       />
@@ -150,19 +165,19 @@ export function RecallNotificationTracker({
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-muted/50 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold">{stats.total}</div>
-          <div className="text-xs text-muted-foreground">Total Notified</div>
+          <div className="text-xs text-muted-foreground">แจ้งเตือนทั้งหมด</div>
         </div>
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold text-blue-600">{stats.acknowledged}</div>
-          <div className="text-xs text-muted-foreground">Responded</div>
+          <div className="text-xs text-muted-foreground">ตอบกลับแล้ว</div>
         </div>
         <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold text-green-600">{stats.returned}</div>
-          <div className="text-xs text-muted-foreground">Returned</div>
+          <div className="text-xs text-muted-foreground">ส่งคืนแล้ว</div>
         </div>
         <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold text-red-600">{stats.unresponsive}</div>
-          <div className="text-xs text-muted-foreground">Unresponsive</div>
+          <div className="text-xs text-muted-foreground">ไม่ตอบกลับ</div>
         </div>
       </div>
 
@@ -175,37 +190,37 @@ export function RecallNotificationTracker({
       >
         <DxPaging defaultPageSize={10} />
 
-        <DxColumn dataField="customerName" caption="Customer" minWidth={150} />
+        <DxColumn dataField="customerName" caption="ลูกค้า" minWidth={150} />
         <DxColumn
           dataField="notificationMethod"
-          caption="Method"
+          caption="ช่องทาง"
           width={100}
           cellRender={renderMethodCell}
         />
-        <DxColumn dataField="notifiedAt" caption="Notified" dataType="date" width={110} />
+        <DxColumn dataField="notifiedAt" caption="วันที่แจ้ง" dataType="date" width={110} />
         <DxColumn
           dataField="responseStatus"
-          caption="Status"
+          caption="สถานะ"
           width={120}
           cellRender={renderStatusCell}
         />
         <DxColumn
           dataField="quantityDistributed"
-          caption="Distributed"
+          caption="จำนวนที่กระจาย"
           width={100}
           dataType="number"
           format="#,##0"
         />
         <DxColumn
           dataField="quantityReturned"
-          caption="Returned"
+          caption="จำนวนที่ส่งคืน"
           width={90}
           dataType="number"
           format="#,##0"
         />
         {canEdit && (
           <DxColumn
-            caption="Actions"
+            caption="การดำเนินการ"
             width={80}
             cellRender={renderActionsCell}
             allowFiltering={false}
@@ -218,14 +233,14 @@ export function RecallNotificationTracker({
       <DxPopup
         visible={!!editingNotification}
         onHiding={() => setEditingNotification(null)}
-        title="Update Notification Status"
+        title="อัปเดตสถานะการแจ้งเตือน"
         width={400}
         height="auto"
         showCloseButton
       >
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Response Status</label>
+            <label className="text-sm font-medium">สถานะการตอบกลับ</label>
             <DxSelectBox
               dataSource={statusOptions}
               valueExpr="value"
@@ -238,7 +253,7 @@ export function RecallNotificationTracker({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Quantity Returned</label>
+            <label className="text-sm font-medium">จำนวนที่ส่งคืน</label>
             <DxNumberBox
               value={updateData.quantityReturned || 0}
               onValueChanged={(e) =>
@@ -250,13 +265,13 @@ export function RecallNotificationTracker({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Notes</label>
+            <label className="text-sm font-medium">หมายเหตุ</label>
             <DxTextArea
               value={updateData.notes || ''}
               onValueChange={(value) =>
                 setUpdateData({ ...updateData, notes: value || '' })
               }
-              placeholder="Add notes..."
+              placeholder="เพิ่มหมายเหตุ..."
               height={80}
             />
           </div>
@@ -269,12 +284,12 @@ export function RecallNotificationTracker({
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => setEditingNotification(null)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Save"
+              text="บันทึก"
               onClick={handleSave}
               type="default"
               disabled={updateMutation.isPending}

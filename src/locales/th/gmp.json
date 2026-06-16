@@ -178,6 +178,23 @@
         "long_term": "ระยะยาว",
         "accelerated": "เร่งรัด",
         "intermediate": "ระยะกลาง"
+      },
+      "grid": {
+        "searchPlaceholder": "ค้นหาการศึกษา...",
+        "lotPrefix": "ล็อต",
+        "overdue": "เกินกำหนด",
+        "daysRemaining": "เหลือ {days} วัน",
+        "daysShort": "{days} วัน",
+        "daysUnit": "วัน",
+        "viewDetails": "ดูรายละเอียด",
+        "moreOptions": "ตัวเลือกเพิ่มเติม",
+        "total": "ทั้งหมด: {0}",
+        "detail": {
+          "protocol": "โปรโตคอล",
+          "chamberLocation": "ตำแหน่งห้องเก็บ",
+          "currentTimepoint": "จุดทดสอบปัจจุบัน",
+          "createdBy": "สร้างโดย"
+        }
       }
     },
     "search": {

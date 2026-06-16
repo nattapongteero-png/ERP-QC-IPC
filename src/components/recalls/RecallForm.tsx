@@ -42,18 +42,18 @@ interface User {
 const recallClasses: { value: RecallClass; label: string; description: string }[] = [
   {
     value: 'class_i',
-    label: 'Class I',
-    description: 'Serious health hazard or death possible',
+    label: 'ระดับ 1 (Class I)',
+    description: 'อันตรายร้ายแรงต่อสุขภาพหรืออาจถึงแก่ชีวิต',
   },
   {
     value: 'class_ii',
-    label: 'Class II',
-    description: 'May cause temporary health problems',
+    label: 'ระดับ 2 (Class II)',
+    description: 'อาจก่อให้เกิดปัญหาสุขภาพชั่วคราว',
   },
   {
     value: 'class_iii',
-    label: 'Class III',
-    description: 'Unlikely to cause health problems',
+    label: 'ระดับ 3 (Class III)',
+    description: 'ไม่น่าจะก่อให้เกิดปัญหาสุขภาพ',
   },
 ];
 
@@ -135,16 +135,16 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
     const newErrors: Record<string, string> = {};
 
     if (!formData.reason || formData.reason.length < 10) {
-      newErrors.reason = 'Reason must be at least 10 characters';
+      newErrors.reason = 'เหตุผลต้องมีอย่างน้อย 10 ตัวอักษร';
     }
     if (!formData.productId) {
-      newErrors.productId = 'Product is required';
+      newErrors.productId = 'กรุณาเลือกผลิตภัณฑ์';
     }
     if (formData.affectedLots.length === 0) {
-      newErrors.affectedLots = 'At least one lot must be selected';
+      newErrors.affectedLots = 'ต้องเลือกอย่างน้อยหนึ่งล็อต';
     }
     if (!formData.coordinatorId) {
-      newErrors.coordinatorId = 'Coordinator is required';
+      newErrors.coordinatorId = 'กรุณาเลือกผู้ประสานงาน';
     }
 
     setErrors(newErrors);
@@ -175,7 +175,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
     <div className="space-y-6 p-4">
       {/* Recall Class */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Recall Classification *</label>
+        <label className="text-sm font-medium">ระดับการเรียกคืน *</label>
         <div className="grid grid-cols-1 gap-2">
           {recallClasses.map((cls) => (
             <button
@@ -197,14 +197,14 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
 
       {/* Product */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Product *</label>
+        <label className="text-sm font-medium">ผลิตภัณฑ์ *</label>
         <DxSelectBox
           dataSource={products as unknown as Record<string, unknown>[]}
           valueExpr="id"
           displayExpr="name"
           value={formData.productId || null}
           onValueChanged={(e) => handleProductChange(e.value || 0)}
-          placeholder="Select product..."
+          placeholder="เลือกผลิตภัณฑ์..."
           searchEnabled
           showClearButton
         />
@@ -215,7 +215,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
 
       {/* Affected Lots */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Affected Lots *</label>
+        <label className="text-sm font-medium">ล็อตที่ได้รับผลกระทบ *</label>
         <DxTagBox
           dataSource={lots as unknown as Record<string, unknown>[]}
           valueExpr="id"
@@ -224,7 +224,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
           onValueChanged={(e) =>
             setFormData({ ...formData, affectedLots: e.value || [] })
           }
-          placeholder="Select affected lots..."
+          placeholder="เลือกล็อตที่ได้รับผลกระทบ..."
           searchEnabled
           showSelectionControls
           disabled={!formData.productId}
@@ -236,11 +236,11 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
 
       {/* Reason */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Reason for Recall *</label>
+        <label className="text-sm font-medium">เหตุผลการเรียกคืน *</label>
         <DxTextArea
           value={formData.reason}
           onValueChange={(value) => setFormData({ ...formData, reason: value || '' })}
-          placeholder="Describe the reason for this recall..."
+          placeholder="อธิบายเหตุผลของการเรียกคืนนี้..."
           height={100}
         />
         {errors.reason && <p className="text-xs text-destructive">{errors.reason}</p>}
@@ -248,7 +248,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
 
       {/* Coordinator */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Recall Coordinator *</label>
+        <label className="text-sm font-medium">ผู้ประสานงานการเรียกคืน *</label>
         <DxSelectBox
           dataSource={users as unknown as Record<string, unknown>[]}
           valueExpr="id"
@@ -257,7 +257,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
           onValueChanged={(e) =>
             setFormData({ ...formData, coordinatorId: e.value || 0 })
           }
-          placeholder="Select coordinator..."
+          placeholder="เลือกผู้ประสานงาน..."
           searchEnabled
         />
         {errors.coordinatorId && (
@@ -274,9 +274,9 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t">
-        <DxButton text="Cancel" onClick={onCancel} stylingMode="outlined" />
+        <DxButton text="ยกเลิก" onClick={onCancel} stylingMode="outlined" />
         <DxButton
-          text="Initiate Recall"
+          text="เริ่มการเรียกคืน"
           onClick={handleSubmit}
           type="danger"
           disabled={createMutation.isPending}

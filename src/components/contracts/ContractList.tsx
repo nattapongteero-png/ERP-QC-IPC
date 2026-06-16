@@ -32,22 +32,22 @@ const statusConfig: Record<
   { label: string; color: string; icon: React.ReactNode }
 > = {
   active: {
-    label: 'Active',
+    label: 'ใช้งานอยู่',
     color: 'bg-green-100 text-green-800',
     icon: <CheckCircle className="h-3 w-3" />,
   },
   expired: {
-    label: 'Expired',
+    label: 'หมดอายุ',
     color: 'bg-red-100 text-red-800',
     icon: <XCircle className="h-3 w-3" />,
   },
   terminated: {
-    label: 'Terminated',
+    label: 'ยกเลิกสัญญา',
     color: 'bg-gray-100 text-gray-800',
     icon: <XCircle className="h-3 w-3" />,
   },
   pending: {
-    label: 'Pending',
+    label: 'รอดำเนินการ',
     color: 'bg-yellow-100 text-yellow-800',
     icon: <Clock className="h-3 w-3" />,
   },
@@ -55,15 +55,15 @@ const statusConfig: Record<
 
 const typeConfig: Record<ContractorType, { label: string; icon: React.ReactNode }> = {
   manufacturer: {
-    label: 'Manufacturer',
+    label: 'ผู้ผลิต',
     icon: <Building2 className="h-3 w-3" />,
   },
   laboratory: {
-    label: 'Laboratory',
+    label: 'ห้องปฏิบัติการ',
     icon: <FlaskConical className="h-3 w-3" />,
   },
   both: {
-    label: 'Both',
+    label: 'ทั้งสองอย่าง',
     icon: <Package className="h-3 w-3" />,
   },
 };
@@ -148,7 +148,7 @@ export function ContractList({
     const contract = cellData.data;
     return (
       <DxButton
-        text="View"
+        text="ดู"
         stylingMode="text"
         onClick={(e) => {
           e?.event?.stopPropagation();
@@ -178,20 +178,20 @@ export function ContractList({
         }
       }}
     >
-      <DxSearchPanel visible placeholder="Search contracts..." />
+      <DxSearchPanel visible placeholder="ค้นหาสัญญา..." />
       <DxPaging defaultPageSize={15} />
 
-      <DxColumn dataField="contractNumber" caption="Contract #" width={140} />
-      <DxColumn dataField="contractorName" caption="Contractor" minWidth={180} />
+      <DxColumn dataField="contractNumber" caption="เลขที่สัญญา" width={140} />
+      <DxColumn dataField="contractorName" caption="ผู้รับจ้าง" minWidth={180} />
       <DxColumn
         dataField="contractorType"
-        caption="Type"
+        caption="ประเภท"
         width={130}
         cellRender={renderTypeCell}
       />
-      <DxColumn dataField="effectiveDate" caption="Effective" dataType="date" width={110} />
+      <DxColumn dataField="effectiveDate" caption="วันที่มีผล" dataType="date" width={110} />
       <DxColumn
-        caption="Expires"
+        caption="วันที่สิ้นสุด"
         width={140}
         cellRender={renderExpirationCell}
         allowFiltering={false}
@@ -199,12 +199,12 @@ export function ContractList({
       />
       <DxColumn
         dataField="batchCount"
-        caption="Batches"
+        caption="จำนวนแบตช์"
         width={80}
         alignment="center"
       />
       <DxColumn
-        caption="Next Audit"
+        caption="ตรวจประเมินครั้งถัดไป"
         width={120}
         cellRender={renderAuditCell}
         allowFiltering={false}
@@ -212,12 +212,12 @@ export function ContractList({
       />
       <DxColumn
         dataField="status"
-        caption="Status"
+        caption="สถานะ"
         width={110}
         cellRender={renderStatusCell}
       />
       <DxColumn
-        caption="Actions"
+        caption="การดำเนินการ"
         width={80}
         cellRender={renderActionsCell}
         allowFiltering={false}

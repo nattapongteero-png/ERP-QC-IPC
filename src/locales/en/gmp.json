@@ -178,6 +178,23 @@
         "long_term": "Long Term",
         "accelerated": "Accelerated",
         "intermediate": "Intermediate"
+      },
+      "grid": {
+        "searchPlaceholder": "Search studies...",
+        "lotPrefix": "Lot",
+        "overdue": "Overdue",
+        "daysRemaining": "{days}d remaining",
+        "daysShort": "{days}d",
+        "daysUnit": "days",
+        "viewDetails": "View Details",
+        "moreOptions": "More Options",
+        "total": "Total: {0}",
+        "detail": {
+          "protocol": "Protocol",
+          "chamberLocation": "Chamber Location",
+          "currentTimepoint": "Current Timepoint",
+          "createdBy": "Created By"
+        }
       }
     },
     "search": {

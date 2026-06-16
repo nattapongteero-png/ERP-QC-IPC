@@ -28,9 +28,9 @@ interface ContractDataEntryDialogProps {
 }
 
 const contractorTypes = [
-  { value: 'manufacturer', label: 'Manufacturer' },
-  { value: 'laboratory', label: 'Laboratory' },
-  { value: 'both', label: 'Both' },
+  { value: 'manufacturer', label: 'ผู้ผลิต' },
+  { value: 'laboratory', label: 'ห้องปฏิบัติการ' },
+  { value: 'both', label: 'ทั้งสองอย่าง' },
 ];
 
 export function ContractDataEntryDialog({
@@ -111,32 +111,32 @@ export function ContractDataEntryDialog({
     <Popup
       visible={visible}
       onHiding={onClose}
-      title={mode === 'create' ? 'New Manufacturing Contract' : 'Edit Contract'}
+      title={mode === 'create' ? 'สัญญาการผลิตใหม่' : 'แก้ไขสัญญา'}
       width={700}
       height="auto"
       maxHeight="90vh"
       showCloseButton
       dragEnabled={false}
     >
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 max-h-[80vh] overflow-y-auto">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error.message}
           </div>
         )}
 
-        <FormSection title="Contractor Information" columns={2}>
-          <FormField label="Contractor Name" required colSpan={2}>
+        <FormSection title="ข้อมูลผู้รับจ้าง" columns={2}>
+          <FormField label="ชื่อผู้รับจ้าง" required colSpan={2}>
             <DxTextBox
               value={formData.contractorName}
               onValueChanged={(e) =>
                 setFormData((prev) => ({ ...prev, contractorName: e.value }))
               }
-              placeholder="Enter contractor name"
+              placeholder="กรอกชื่อผู้รับจ้าง"
             />
           </FormField>
 
-          <FormField label="Contractor Type" required>
+          <FormField label="ประเภทผู้รับจ้าง" required>
             <DxSelectBox
               dataSource={contractorTypes}
               displayExpr="label"
@@ -151,18 +151,18 @@ export function ContractDataEntryDialog({
             />
           </FormField>
 
-          <FormField label="Scope" colSpan={2}>
+          <FormField label="ขอบเขตงาน" colSpan={2}>
             <DxTextArea
               value={formData.scope || ''}
               onValueChanged={(e) => setFormData((prev) => ({ ...prev, scope: e.value }))}
-              placeholder="Describe contract scope..."
+              placeholder="อธิบายขอบเขตของสัญญา..."
               height={80}
             />
           </FormField>
         </FormSection>
 
-        <FormSection title="Contract Period" columns={2}>
-          <FormField label="Effective Date">
+        <FormSection title="ระยะเวลาสัญญา" columns={2}>
+          <FormField label="วันที่มีผล">
             <DxDateBox
               value={formData.effectiveDate || undefined}
               onValueChanged={(e) =>
@@ -178,7 +178,7 @@ export function ContractDataEntryDialog({
             />
           </FormField>
 
-          <FormField label="Expiration Date">
+          <FormField label="วันที่สิ้นสุด">
             <DxDateBox
               value={formData.expirationDate || undefined}
               onValueChanged={(e) =>
@@ -195,18 +195,18 @@ export function ContractDataEntryDialog({
           </FormField>
         </FormSection>
 
-        <FormSection title="Contact Information" columns={2}>
-          <FormField label="Contact Person">
+        <FormSection title="ข้อมูลติดต่อ" columns={2}>
+          <FormField label="ผู้ติดต่อ">
             <DxTextBox
               value={formData.contactPerson || ''}
               onValueChanged={(e) =>
                 setFormData((prev) => ({ ...prev, contactPerson: e.value }))
               }
-              placeholder="Contact person name"
+              placeholder="ชื่อผู้ติดต่อ"
             />
           </FormField>
 
-          <FormField label="Email">
+          <FormField label="อีเมล">
             <DxTextBox
               value={formData.contactEmail || ''}
               onValueChanged={(e) =>
@@ -217,7 +217,7 @@ export function ContractDataEntryDialog({
             />
           </FormField>
 
-          <FormField label="Phone">
+          <FormField label="เบอร์โทรศัพท์">
             <DxTextBox
               value={formData.contactPhone || ''}
               onValueChanged={(e) =>
@@ -228,21 +228,21 @@ export function ContractDataEntryDialog({
           </FormField>
         </FormSection>
 
-        <FormSection title="Additional Information" columns={1}>
-          <FormField label="Notes">
+        <FormSection title="ข้อมูลเพิ่มเติม" columns={1}>
+          <FormField label="หมายเหตุ">
             <DxTextArea
               value={formData.notes || ''}
               onValueChanged={(e) => setFormData((prev) => ({ ...prev, notes: e.value }))}
-              placeholder="Additional notes..."
+              placeholder="หมายเหตุเพิ่มเติม..."
               height={80}
             />
           </FormField>
         </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t">
-          <DxButton text="Cancel" stylingMode="outlined" onClick={onClose} />
+          <DxButton text="ยกเลิก" stylingMode="outlined" onClick={onClose} />
           <DxButton
-            text={mode === 'create' ? 'Create Contract' : 'Save Changes'}
+            text={mode === 'create' ? 'สร้างสัญญา' : 'บันทึกการเปลี่ยนแปลง'}
             type="success"
             onClick={handleSubmit}
             disabled={isLoading || !formData.contractorName.trim()}

@@ -101,7 +101,7 @@ async function createRecall(data: RecallCreate): Promise<Recall> {
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to create recall');
+    throw new Error(result.error || 'ไม่สามารถสร้างการเรียกคืนได้');
   }
   return result.data;
 }
@@ -114,7 +114,7 @@ async function updateRecall(id: number, data: Partial<RecallCreate>): Promise<Re
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to update recall');
+    throw new Error(result.error || 'ไม่สามารถอัปเดตการเรียกคืนได้');
   }
   return result.data;
 }
@@ -126,20 +126,20 @@ async function updateRecall(id: number, data: Partial<RecallCreate>): Promise<Re
 const recallClassOptions: { value: RecallClass; label: string; description: string; color: string }[] = [
   {
     value: 'class_i',
-    label: 'Class I',
-    description: 'Serious health hazard or death possible',
+    label: 'ระดับ 1',
+    description: 'อันตรายร้ายแรงต่อสุขภาพหรืออาจถึงแก่ชีวิต',
     color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-300',
   },
   {
     value: 'class_ii',
-    label: 'Class II',
-    description: 'May cause temporary health problems',
+    label: 'ระดับ 2',
+    description: 'อาจทำให้เกิดปัญหาสุขภาพชั่วคราว',
     color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-300',
   },
   {
     value: 'class_iii',
-    label: 'Class III',
-    description: 'Unlikely to cause health problems',
+    label: 'ระดับ 3',
+    description: 'ไม่น่าจะทำให้เกิดปัญหาสุขภาพ',
     color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-300',
   },
 ];
@@ -282,16 +282,16 @@ export function RecallDataEntryDialog({
     const newErrors: Record<string, string> = {};
 
     if (!formData.reason || formData.reason.length < 10) {
-      newErrors.reason = 'Reason must be at least 10 characters';
+      newErrors.reason = 'เหตุผลต้องมีอย่างน้อย 10 ตัวอักษร';
     }
     if (!formData.productId) {
-      newErrors.productId = 'Product is required';
+      newErrors.productId = 'กรุณาเลือกผลิตภัณฑ์';
     }
     if (formData.affectedLots.length === 0) {
-      newErrors.affectedLots = 'At least one lot must be selected';
+      newErrors.affectedLots = 'ต้องเลือกอย่างน้อยหนึ่งล็อต';
     }
     if (!formData.coordinatorId) {
-      newErrors.coordinatorId = 'Coordinator is required';
+      newErrors.coordinatorId = 'กรุณาเลือกผู้ประสานงาน';
     }
 
     setErrors(newErrors);
@@ -348,10 +348,10 @@ export function RecallDataEntryDialog({
   const dialogTitle =
     customTitle ||
     (isEditing
-      ? `Edit Recall ${recall?.recallNumber}`
+      ? `แก้ไขการเรียกคืน ${recall?.recallNumber}`
       : hasLinkedComplaint
-        ? 'Initiate Recall from Complaint'
-        : 'Initiate Product Recall');
+        ? 'เริ่มการเรียกคืนจากข้อร้องเรียน'
+        : 'เริ่มการเรียกคืนผลิตภัณฑ์');
 
   // Generate a key for the dialog based on recall id to force remount on recall change
   const dialogKey = recall ? `edit-${recall.id}` : 'create';
@@ -382,12 +382,12 @@ export function RecallDataEntryDialog({
           </div>
           <div>
             <p className="font-medium text-red-800 dark:text-red-200">
-              Product Recall {isEditing ? 'Modification' : 'Initiation'}
+              {isEditing ? 'การแก้ไขการเรียกคืนผลิตภัณฑ์' : 'การเริ่มการเรียกคืนผลิตภัณฑ์'}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               {isEditing
-                ? 'Modify recall details. Product and lots cannot be changed after initiation.'
-                : 'A product recall will notify all affected customers and may require regulatory reporting.'}
+                ? 'แก้ไขรายละเอียดการเรียกคืน ไม่สามารถเปลี่ยนผลิตภัณฑ์และล็อตได้หลังจากเริ่มการเรียกคืนแล้ว'
+                : 'การเรียกคืนผลิตภัณฑ์จะแจ้งเตือนลูกค้าที่ได้รับผลกระทบทั้งหมด และอาจต้องรายงานต่อหน่วยงานกำกับดูแล'}
             </p>
           </div>
         </div>
@@ -398,7 +398,7 @@ export function RecallDataEntryDialog({
             <div className="flex items-center gap-2">
               <Link2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                Linked to Complaint: <span className="font-mono font-medium">{linkedComplaintNumber}</span>
+                เชื่อมโยงกับข้อร้องเรียน: <span className="font-mono font-medium">{linkedComplaintNumber}</span>
               </p>
             </div>
           </div>
@@ -417,7 +417,7 @@ export function RecallDataEntryDialog({
           <div className="space-y-2">
             <label className="text-sm font-medium flex items-center gap-1.5">
               <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
-              Recall Classification <span className="text-destructive">*</span>
+              ระดับการเรียกคืน <span className="text-destructive">*</span>
             </label>
             <div className="grid grid-cols-1 gap-2">
               {recallClassOptions.map((cls) => (
@@ -456,7 +456,7 @@ export function RecallDataEntryDialog({
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-1.5">
               <Package className="h-3.5 w-3.5 text-muted-foreground" />
-              Product <span className="text-destructive">*</span>
+              ผลิตภัณฑ์ <span className="text-destructive">*</span>
             </label>
             <DxSelectBox
               items={productItems}
@@ -464,7 +464,7 @@ export function RecallDataEntryDialog({
               valueExpr="value"
               displayExpr="label"
               onValueChange={handleProductChange}
-              placeholder="Select product..."
+              placeholder="เลือกผลิตภัณฑ์..."
               searchEnabled
               showClearButton
               disabled={isEditing}
@@ -476,7 +476,7 @@ export function RecallDataEntryDialog({
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-1.5">
               <Package className="h-3.5 w-3.5 text-muted-foreground" />
-              Affected Lots <span className="text-destructive">*</span>
+              ล็อตที่ได้รับผลกระทบ <span className="text-destructive">*</span>
             </label>
             <DxTagBox
               dataSource={lotItems as unknown as Record<string, unknown>[]}
@@ -484,7 +484,7 @@ export function RecallDataEntryDialog({
               displayExpr="lotNumber"
               value={formData.affectedLots}
               onValueChanged={(e) => handleFieldChange('affectedLots', e.value || [])}
-              placeholder="Select affected lots..."
+              placeholder="เลือกล็อตที่ได้รับผลกระทบ..."
               searchEnabled
               showSelectionControls
               disabled={!formData.productId || isEditing}
@@ -492,7 +492,7 @@ export function RecallDataEntryDialog({
             {errors.affectedLots && <p className="text-xs text-destructive">{errors.affectedLots}</p>}
             {formData.affectedLots.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                {formData.affectedLots.length} lot(s) selected
+                เลือกแล้ว {formData.affectedLots.length} ล็อต
               </p>
             )}
           </div>
@@ -500,12 +500,12 @@ export function RecallDataEntryDialog({
           {/* Reason */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">
-              Reason for Recall <span className="text-destructive">*</span>
+              เหตุผลการเรียกคืน <span className="text-destructive">*</span>
             </label>
             <DxTextArea
               value={formData.reason}
               onValueChange={(value) => handleFieldChange('reason', value || '')}
-              placeholder="Describe the reason for this recall in detail..."
+              placeholder="อธิบายเหตุผลของการเรียกคืนครั้งนี้โดยละเอียด..."
               height={100}
             />
             {errors.reason && <p className="text-xs text-destructive">{errors.reason}</p>}
@@ -515,7 +515,7 @@ export function RecallDataEntryDialog({
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />
-              Recall Coordinator <span className="text-destructive">*</span>
+              ผู้ประสานงานการเรียกคืน <span className="text-destructive">*</span>
             </label>
             <DxSelectBox
               items={userItems}
@@ -523,7 +523,7 @@ export function RecallDataEntryDialog({
               valueExpr="value"
               displayExpr="label"
               onValueChange={(value) => handleFieldChange('coordinatorId', value)}
-              placeholder="Select coordinator..."
+              placeholder="เลือกผู้ประสานงาน..."
               searchEnabled
             />
             {errors.coordinatorId && <p className="text-xs text-destructive">{errors.coordinatorId}</p>}
@@ -533,13 +533,13 @@ export function RecallDataEntryDialog({
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t">
           <DxButton
-            text="Cancel"
+            text="ยกเลิก"
             onClick={onClose}
             stylingMode="outlined"
             disabled={isSubmitting}
           />
           <DxButton
-            text={isEditing ? 'Save Changes' : 'Initiate Recall'}
+            text={isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'เริ่มการเรียกคืน'}
             icon={isEditing ? 'save' : 'warning'}
             onClick={handleSubmit}
             type="danger"
