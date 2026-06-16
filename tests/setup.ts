@@ -120,6 +120,31 @@ const createMockCSSStyleDeclaration = (): CSSStyleDeclaration => {
   return mockStyle as unknown as CSSStyleDeclaration;
 };
 
+// jsdom has no EventSource — pages using SSE (use-realtime-topic) crash on
+// render without this. Provide an inert stub so components mount in tests.
+if (typeof globalThis !== 'undefined' && typeof (globalThis as { EventSource?: unknown }).EventSource === 'undefined') {
+  class MockEventSource {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSED = 2;
+    readonly CONNECTING = 0;
+    readonly OPEN = 1;
+    readonly CLOSED = 2;
+    url = '';
+    readyState = 0;
+    withCredentials = false;
+    onopen: ((this: MockEventSource, ev: Event) => unknown) | null = null;
+    onmessage: ((this: MockEventSource, ev: MessageEvent) => unknown) | null = null;
+    onerror: ((this: MockEventSource, ev: Event) => unknown) | null = null;
+    constructor(url?: string) { this.url = url || ''; }
+    addEventListener() {}
+    removeEventListener() {}
+    dispatchEvent() { return false; }
+    close() { this.readyState = 2; }
+  }
+  (globalThis as { EventSource?: unknown }).EventSource = MockEventSource;
+}
+
 // Mock window.getComputedStyle for DevExtreme theme system compatibility
 if (typeof window !== 'undefined') {
   const originalGetComputedStyle = window.getComputedStyle;

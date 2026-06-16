@@ -32,16 +32,6 @@ import {
   Tooltip,
   Connector,
 } from 'devextreme-react/pie-chart';
-import {
-  Chart,
-  CommonSeriesSettings,
-  Series as ChartSeries,
-  ArgumentAxis,
-  ValueAxis,
-  Legend as ChartLegend,
-  Tooltip as ChartTooltip,
-  Label as ChartLabel,
-} from 'devextreme-react/chart';
 import { DxPopup, DxConfirmDialog } from '@/components/ui/dx-popup';
 import notify from 'devextreme/ui/notify';
 import DateBox from 'devextreme-react/date-box';
@@ -59,13 +49,11 @@ import type { ExportingEvent } from 'devextreme/ui/data_grid';
 import {
   Factory,
   ClipboardList,
-  Clock,
   PlayCircle,
   CheckCircle,
   XCircle,
   Rocket,
   TrendingUp,
-  BarChart3,
   Calendar,
   Percent,
   AlertTriangle,
@@ -735,8 +723,11 @@ export default function WorkOrdersPage() {
         }
       />
 
-      {/* Stats Row — progressive breakpoints: 2 cols mobile, 4 tablet, 4 desktop, 8 wide */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 gap-3 md:gap-4">
+      {/* Primary KPIs — only the metrics NOT already shown by the status donut
+          / status tabs below, so nothing is repeated: total volume, how many
+          are actively running, how many are urgent, and the completion rate.
+          Per-status counts live in the donut + the filter tabs only. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label={t('workOrders.stats.totalOrders')}
           value={stats.total}
@@ -746,35 +737,11 @@ export default function WorkOrdersPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label={t('workOrders.stats.planned')}
-          value={stats.planned}
-          icon={Clock}
-          iconColor="text-emerald-500"
-          accentColor="border-emerald-500"
-          isLoading={isLoading}
-        />
-        <StatCard
-          label={t('workOrders.stats.released')}
-          value={stats.released}
-          icon={Rocket}
-          iconColor="text-violet-500"
-          accentColor="border-violet-500"
-          isLoading={isLoading}
-        />
-        <StatCard
-          label={t('workOrders.stats.inProgress')}
-          value={stats.inProgress}
+          label={t('workOrders.charts.activeOrders')}
+          value={stats.active}
           icon={PlayCircle}
           iconColor="text-amber-500"
           accentColor="border-amber-500"
-          isLoading={isLoading}
-        />
-        <StatCard
-          label={t('workOrders.stats.completed')}
-          value={stats.completed}
-          icon={CheckCircle}
-          iconColor="text-emerald-500"
-          accentColor="border-emerald-500"
           isLoading={isLoading}
         />
         <StatCard
@@ -786,19 +753,11 @@ export default function WorkOrdersPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label={t('workOrders.stats.today')}
-          value={stats.todayPlanned}
-          icon={Calendar}
-          iconColor="text-purple-500"
-          accentColor="border-purple-500"
-          isLoading={isLoading}
-        />
-        <StatCard
-          label={t('workOrders.stats.avgYield')}
-          value={stats.avgYield > 0 ? `${Number(stats.avgYield).toFixed(1)}%` : '-'}
-          icon={Percent}
-          iconColor="text-cyan-500"
-          accentColor="border-cyan-500"
+          label={t('workOrders.charts.completionRate')}
+          value={`${Number(stats.completionRate).toFixed(1)}%`}
+          icon={Target}
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
           isLoading={isLoading}
         />
       </div>
@@ -864,71 +823,59 @@ export default function WorkOrdersPage() {
           )}
         </div>
 
-        {/* Priority Distribution — gives the operator a glanceable count
-            of currently-active WOs split by urgency. The bars alone weren't
-            self-explaining (no axis labels, no priority threshold, all one
-            color), so we added: a subtitle that names the data source, a
-            threshold legend, color-coded bars (High=red / Med=amber /
-            Low=green), and per-bar count labels. */}
+        {/* Priority breakdown of ACTIVE work orders — replaces a heavy, hard-to-
+            read DevExtreme bar chart with three labelled progress bars so the
+            operator can see at a glance how the open workload splits by urgency.
+            Each row: colour-coded label + count + %-of-active bar. */}
         <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5 md:col-span-2 lg:col-span-2">
-          <div className="flex items-start justify-between mb-1 gap-2">
+          <div className="flex items-start justify-between mb-4 gap-2">
             <div>
               <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-amber-500" />
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
                 {t('workOrders.charts.byPriority')}
               </h3>
               <p className="text-xs text-[#4B7163] mt-0.5">
-                จำนวน WO ที่ยังทำงานอยู่ (ไม่นับ Completed / Cancelled) แบ่งตามระดับ Priority
+                งานที่ยังดำเนินการอยู่ ({priorityChartTotal} ใบ) แบ่งตามระดับความเร่งด่วน
               </p>
             </div>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
-              <span className="text-gray-500">รวม</span>
-              <span className="font-bold text-gray-900">{priorityChartTotal}</span>
-              <span className="text-gray-500">orders</span>
-            </span>
           </div>
-          <div className="mb-3 flex flex-wrap gap-2 text-[11px] text-gray-600">
-            <span className="inline-flex items-center gap-1">
-              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-500" /> High = priority 1–3 (เร่งด่วน)
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-500" /> Medium = 4–6
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Low = 7 ขึ้นไป
-            </span>
-          </div>
-          {priorityChartData.some(d => d.count > 0) ? (
-            <Chart id="priority-chart" dataSource={priorityChartData} size={{ height: 240 }}>
-              <CommonSeriesSettings argumentField="priority" type="bar" barWidth={40} />
-              <ChartSeries
-                valueField="count"
-                name="Orders"
-                color="#6366f1"
-              >
-                <ChartLabel
-                  visible={true}
-                  backgroundColor="transparent"
-                  font={{ size: 12, weight: 600 }}
-                  customizeText={(arg: { value: string | number | Date; valueText: string }) => arg.valueText}
-                />
-              </ChartSeries>
-              <ArgumentAxis>
-                <ChartLabel font={{ size: 12 }} />
-              </ArgumentAxis>
-              <ValueAxis allowDecimals={false} />
-              <ChartLegend visible={false} />
-              <ChartTooltip
-                enabled={true}
-                customizeTooltip={(arg: { argumentText?: string; valueText?: string }) => ({
-                  text: `${arg.argumentText}: ${arg.valueText} active order${Number(arg.valueText) === 1 ? '' : 's'}`,
-                })}
-              />
-            </Chart>
+          {priorityChartTotal > 0 ? (
+            <div className="space-y-4">
+              {priorityChartData.map((d) => {
+                const pct = priorityChartTotal > 0 ? Math.round((d.count / priorityChartTotal) * 100) : 0;
+                const meta: Record<string, { label: string; hint: string; bar: string; text: string }> = {
+                  'High (1-3)': { label: 'เร่งด่วนสูง', hint: 'priority 1–3', bar: 'bg-red-500', text: 'text-red-600' },
+                  'Medium (4-6)': { label: 'ปานกลาง', hint: 'priority 4–6', bar: 'bg-amber-500', text: 'text-amber-600' },
+                  'Low (7+)': { label: 'ต่ำ', hint: 'priority 7+', bar: 'bg-emerald-500', text: 'text-emerald-600' },
+                };
+                const m = meta[d.priority] || { label: d.priority, hint: '', bar: 'bg-gray-400', text: 'text-gray-600' };
+                return (
+                  <div key={d.priority}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-block w-2.5 h-2.5 rounded-sm ${m.bar}`} />
+                        <span className="text-sm font-medium text-gray-800">{m.label}</span>
+                        <span className="text-xs text-gray-400">{m.hint}</span>
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={`text-lg font-bold ${m.text}`}>{d.count}</span>
+                        <span className="text-xs text-gray-400">({pct}%)</span>
+                      </div>
+                    </div>
+                    <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${m.bar} transition-all duration-500`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-gray-400">
+            <div className="h-[180px] flex items-center justify-center text-gray-400">
               <div className="text-center">
-                <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <CheckCircle className="w-10 h-10 mx-auto mb-2 opacity-50 text-emerald-400" />
                 <p className="text-sm">{t('workOrders.charts.noActiveOrders')}</p>
               </div>
             </div>
@@ -957,18 +904,8 @@ export default function WorkOrdersPage() {
               </div>
             </div>
 
-            {/* Active Orders */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-gradient-to-r from-amber-500 to-amber-600 rounded text-white">
-                  <PlayCircle className="h-3.5 w-3.5" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">{t('workOrders.charts.activeOrders')}</span>
-              </div>
-              <span className="text-sm font-bold text-amber-600">{stats.active}</span>
-            </div>
-
-            {/* Average Yield */}
+            {/* Average Yield — the one quality metric not surfaced by the KPI
+                row or the status donut, so it earns its place here. */}
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded text-white">
@@ -984,49 +921,23 @@ export default function WorkOrdersPage() {
               </span>
             </div>
 
-            {/* Cancelled */}
+            {/* Today's planned starts — actionable, not shown elsewhere. */}
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-gradient-to-r from-red-500 to-red-600 rounded text-white">
-                  <XCircle className="h-3.5 w-3.5" />
+                <div className="p-1.5 bg-gradient-to-r from-purple-500 to-purple-600 rounded text-white">
+                  <Calendar className="h-3.5 w-3.5" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">{t('workOrders.charts.cancelled')}</span>
+                <span className="text-sm font-medium text-gray-700">{t('workOrders.stats.today')}</span>
               </div>
-              <span className="text-sm font-bold text-red-600">{stats.cancelled}</span>
+              <span className="text-sm font-bold text-purple-600">{stats.todayPlanned}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Status Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
-        {(Object.keys(STATUS_CONFIG) as Array<keyof typeof STATUS_CONFIG>).map(status => {
-          const config = STATUS_CONFIG[status];
-          const count = workOrders.filter(wo => wo.status === status).length;
-          const IconComponent = config.icon;
-          return (
-            <div
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`bg-white rounded-[18px] border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
-                statusFilter === status ? 'border-emerald-500 shadow-md' : 'border-emerald-100'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${config.bgClass.split(' ')[0]}`}>
-                    <IconComponent className="h-5 w-5" style={{ color: config.color }} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{t(`workOrders.status.${config.translationKey}`)}</p>
-                  </div>
-                </div>
-                <span className="text-2xl font-bold" style={{ color: config.color }}>{count}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* (Removed the per-status summary card row — it duplicated the status
+          donut above and the filter tabs below. Status filtering now lives in
+          the tabs only.) */}
 
       {/* Main Content - Tabs + DataGrid */}
       <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">

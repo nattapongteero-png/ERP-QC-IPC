@@ -149,10 +149,12 @@ describe('WorkOrdersPage', () => {
       renderWithProviders(<WorkOrdersPage />);
 
       await waitFor(() => {
+        // Trimmed KPI row (no longer duplicates the status donut/tabs): total,
+        // active, high priority, completion rate.
         expect(screen.getByText('Total Orders')).toBeInTheDocument();
         expect(screen.getByText('High Priority')).toBeInTheDocument();
-        expect(screen.getByText('Today')).toBeInTheDocument();
-        expect(screen.getByText('Avg Yield')).toBeInTheDocument();
+        expect(screen.getAllByText('Active Orders').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Completion Rate').length).toBeGreaterThan(0);
       });
     });
   });
@@ -246,8 +248,9 @@ describe('WorkOrdersPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Performance')).toBeInTheDocument();
-        expect(screen.getByText('Completion Rate')).toBeInTheDocument();
-        expect(screen.getByText('Active Orders')).toBeInTheDocument();
+        expect(screen.getAllByText('Completion Rate').length).toBeGreaterThan(0);
+        // Performance card trimmed to the metrics not shown elsewhere:
+        // completion rate, average yield, today's planned.
         expect(screen.getByText('Average Yield')).toBeInTheDocument();
       });
     });
