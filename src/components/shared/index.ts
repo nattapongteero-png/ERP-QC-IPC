@@ -22,6 +22,9 @@ export type { PositionSelectProps } from './PositionSelect';
 export { StatCard } from './stat-card';
 export type { StatCardProps, TrendIndicator } from './stat-card';
 
+export { StatusStepper } from './StatusStepper';
+export type { StatusStepperProps, StepperStep } from './StatusStepper';
+
 export { ResponsivePageHeader } from './responsive-page-header';
 export type { ResponsivePageHeaderProps } from './responsive-page-header';
 

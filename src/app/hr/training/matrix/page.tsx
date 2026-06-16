@@ -10,7 +10,6 @@ import DataGrid, {
   Scrolling,
   Paging,
   ColumnFixing,
-  Export,
 } from 'devextreme-react/data-grid';
 import SelectBox from 'devextreme-react/select-box';
 import { useQuery } from '@tanstack/react-query';
@@ -303,7 +302,6 @@ export default function CompetencyMatrixPage() {
           <Scrolling mode="virtual" columnRenderingMode="virtual" />
           <ColumnFixing enabled />
           <Paging enabled={false} />
-          <Export enabled />
 
           <Column
             dataField="employeeName"

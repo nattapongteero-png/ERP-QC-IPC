@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
-import DataGrid, { Column, Export, Summary, TotalItem } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
 import {
   AccountingPageHeader,
@@ -214,7 +214,6 @@ export default function ReportsPage() {
         <Column dataField="periodCredit" caption="Credit" format="#,##0.00" width={120} />
         <Column dataField="closingDebit" caption="Closing Debit" format="#,##0.00" width={120} />
         <Column dataField="closingCredit" caption="Closing Credit" format="#,##0.00" width={120} />
-        <Export enabled allowExportSelectedData={false} />
         <Summary>
           <TotalItem column="periodDebit" summaryType="sum" valueFormat="#,##0.00" />
           <TotalItem column="periodCredit" summaryType="sum" valueFormat="#,##0.00" />

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import DataGrid, { Column, Summary, TotalItem, ColumnChooser, Export, Grouping, GroupPanel } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Summary, TotalItem, Grouping, GroupPanel } from 'devextreme-react/data-grid';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ReportLanguageProvider, useReportLanguage } from '@/contexts/report-language-context';
@@ -155,8 +155,6 @@ function TrialBalanceContent() {
           >
             <GroupPanel visible />
             <Grouping autoExpandAll />
-            <ColumnChooser enabled />
-            <Export enabled />
             <Column dataField="accountCode" caption={t('accountCode')} width={100} />
             <Column dataField="accountName" caption={t('accountName')} />
             <Column dataField="category" caption="Category" groupIndex={0} />

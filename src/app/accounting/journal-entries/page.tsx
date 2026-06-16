@@ -38,10 +38,6 @@ import DataGrid, {
   Paging,
   Pager,
   SearchPanel,
-  Toolbar,
-  Item,
-  Export,
-  ColumnChooser,
   Sorting,
   Summary,
   TotalItem,
@@ -616,15 +612,8 @@ export default function JournalEntriesPage() {
               />
               <SearchPanel visible={false} placeholder={t('journalEntries.search')} />
               <Sorting mode="multiple" />
-              <ColumnChooser enabled />
-              <Export enabled />
 
               <MasterDetail enabled component={renderDetail} />
-
-              <Toolbar>
-                <Item name="exportButton" location="after" />
-                <Item name="columnChooserButton" location="after" />
-              </Toolbar>
 
               <Column
                 dataField="_rowNumber"

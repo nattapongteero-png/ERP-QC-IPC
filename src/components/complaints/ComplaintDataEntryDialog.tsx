@@ -131,25 +131,25 @@ async function updateComplaint(id: number, data: Partial<ComplaintCreate>): Prom
 // ============================================
 
 const sourceOptions = [
-  { value: 'customer', label: 'Customer', icon: User },
-  { value: 'distributor', label: 'Distributor', icon: Package },
-  { value: 'regulatory', label: 'Regulatory Authority', icon: FileText },
-  { value: 'internal', label: 'Internal', icon: AlertTriangle },
+  { value: 'customer', label: 'ลูกค้า', icon: User },
+  { value: 'distributor', label: 'ตัวแทนจำหน่าย', icon: Package },
+  { value: 'regulatory', label: 'หน่วยงานกำกับดูแล', icon: FileText },
+  { value: 'internal', label: 'ภายในองค์กร', icon: AlertTriangle },
 ];
 
 const categoryOptions = [
-  { value: 'quality', label: 'Quality' },
-  { value: 'efficacy', label: 'Efficacy' },
-  { value: 'safety', label: 'Safety' },
-  { value: 'packaging', label: 'Packaging' },
-  { value: 'labeling', label: 'Labeling' },
-  { value: 'other', label: 'Other' },
+  { value: 'quality', label: 'คุณภาพ' },
+  { value: 'efficacy', label: 'ประสิทธิภาพ' },
+  { value: 'safety', label: 'ความปลอดภัย' },
+  { value: 'packaging', label: 'บรรจุภัณฑ์' },
+  { value: 'labeling', label: 'ฉลาก' },
+  { value: 'other', label: 'อื่นๆ' },
 ];
 
 const severityOptions = [
-  { value: 'minor', label: 'Minor', color: 'bg-green-100 text-green-800' },
-  { value: 'major', label: 'Major', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'critical', label: 'Critical', color: 'bg-red-100 text-red-800' },
+  { value: 'minor', label: 'เล็กน้อย', color: 'bg-green-100 text-green-800' },
+  { value: 'major', label: 'ปานกลาง', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'critical', label: 'รุนแรง', color: 'bg-red-100 text-red-800' },
 ];
 
 // ============================================
@@ -268,13 +268,13 @@ export function ComplaintDataEntryDialog({
     const newErrors: Record<string, string> = {};
 
     if (!formData.receivedDate) {
-      newErrors.receivedDate = 'Received date is required';
+      newErrors.receivedDate = 'กรุณาระบุวันที่รับเรื่อง';
     }
     if (!formData.productId) {
-      newErrors.productId = 'Product is required';
+      newErrors.productId = 'กรุณาเลือกผลิตภัณฑ์';
     }
     if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+      newErrors.description = 'กรุณาระบุรายละเอียด';
     }
 
     setErrors(newErrors);
@@ -312,7 +312,7 @@ export function ComplaintDataEntryDialog({
 
   // Determine dialog title
   const dialogTitle =
-    customTitle || (isEditing ? 'Edit Complaint' : 'Register New Complaint');
+    customTitle || (isEditing ? 'แก้ไขข้อร้องเรียน' : 'ลงทะเบียนข้อร้องเรียนใหม่');
 
   // Generate a key for the dialog based on complaint id to force remount on complaint change
   const dialogKey = complaint ? `edit-${complaint.id}` : 'create';
@@ -344,7 +344,7 @@ export function ComplaintDataEntryDialog({
           </div>
           <div>
             <p className="text-sm text-muted-foreground">
-              {isEditing ? `Editing complaint ${complaint?.complaintNumber}` : 'Create a new customer complaint record'}
+              {isEditing ? `กำลังแก้ไขข้อร้องเรียน ${complaint?.complaintNumber}` : 'สร้างบันทึกข้อร้องเรียนของลูกค้า'}
             </p>
           </div>
         </div>
@@ -364,7 +364,7 @@ export function ComplaintDataEntryDialog({
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                Received Date <span className="text-destructive">*</span>
+                วันที่รับเรื่อง <span className="text-destructive">*</span>
               </label>
               <DxDateBox
                 value={formData.receivedDate || undefined}
@@ -387,7 +387,7 @@ export function ComplaintDataEntryDialog({
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                Source
+                แหล่งที่มา
               </label>
               <DxSelectBox
                 items={sourceOptions.map((s) => ({ value: s.value, label: s.label }))}
@@ -406,12 +406,12 @@ export function ComplaintDataEntryDialog({
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5 text-muted-foreground" />
-                Customer Name
+                ชื่อลูกค้า
               </label>
               <DxTextBox
                 value={formData.customerName}
                 onValueChange={(value) => handleFieldChange('customerName', value || '')}
-                placeholder="Enter customer name"
+                placeholder="กรอกชื่อลูกค้า"
                 disabled={isEditing}
               />
             </div>
@@ -420,12 +420,12 @@ export function ComplaintDataEntryDialog({
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                Contact Info
+                ข้อมูลติดต่อ
               </label>
               <DxTextBox
                 value={formData.customerContact}
                 onValueChange={(value) => handleFieldChange('customerContact', value || '')}
-                placeholder="Phone, email, or address"
+                placeholder="โทรศัพท์ อีเมล หรือที่อยู่"
                 disabled={isEditing}
               />
             </div>
@@ -437,7 +437,7 @@ export function ComplaintDataEntryDialog({
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                Product <span className="text-destructive">*</span>
+                ผลิตภัณฑ์ <span className="text-destructive">*</span>
               </label>
               <DxSelectBox
                 items={(products || []).map((p) => ({
@@ -451,7 +451,7 @@ export function ComplaintDataEntryDialog({
                   handleFieldChange('productId', value);
                   handleFieldChange('lotId', null);
                 }}
-                placeholder="Select product"
+                placeholder="เลือกผลิตภัณฑ์..."
                 searchEnabled
                 disabled={isEditing}
               />
@@ -464,7 +464,7 @@ export function ComplaintDataEntryDialog({
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                Lot Number
+                เลขล็อต
               </label>
               <DxSelectBox
                 items={(lots || []).map((l) => ({ value: l.id, label: l.lotNumber }))}
@@ -472,7 +472,7 @@ export function ComplaintDataEntryDialog({
                 valueExpr="value"
                 displayExpr="label"
                 onValueChange={(value) => handleFieldChange('lotId', value)}
-                placeholder="Select lot (optional)"
+                placeholder="เลือกล็อต (ถ้ามี)"
                 showClearButton
                 disabled={!formData.productId || isEditing}
               />
@@ -485,7 +485,7 @@ export function ComplaintDataEntryDialog({
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
-                Category
+                หมวดหมู่
               </label>
               <DxSelectBox
                 items={categoryOptions}
@@ -501,7 +501,7 @@ export function ComplaintDataEntryDialog({
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <AlertCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                Severity <span className="text-destructive">*</span>
+                ความรุนแรง <span className="text-destructive">*</span>
               </label>
               <DxSelectBox
                 items={severityOptions.map((s) => ({ value: s.value, label: s.label }))}
@@ -517,7 +517,8 @@ export function ComplaintDataEntryDialog({
                     formData.severity
                   )}`}
                 >
-                  {formData.severity.toUpperCase()}
+                  {severityOptions.find((o) => o.value === formData.severity)?.label ||
+                    formData.severity}
                 </span>
               </div>
             </div>
@@ -526,12 +527,12 @@ export function ComplaintDataEntryDialog({
           {/* Description */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">
-              Description <span className="text-destructive">*</span>
+              รายละเอียด <span className="text-destructive">*</span>
             </label>
             <DxTextArea
               value={formData.description}
               onValueChange={(value) => handleFieldChange('description', value || '')}
-              placeholder="Describe the complaint in detail including symptoms, circumstances, and any relevant information..."
+              placeholder="อธิบายข้อร้องเรียนโดยละเอียด รวมถึงอาการ สถานการณ์ และข้อมูลที่เกี่ยวข้อง..."
               height={120}
               disabled={isEditing}
             />
@@ -547,14 +548,14 @@ export function ComplaintDataEntryDialog({
                 <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
                 <div className="space-y-2 flex-1">
                   <p className="font-medium text-orange-800 dark:text-orange-200">
-                    Regulatory Assessment
+                    การประเมินด้านกฎหมาย
                   </p>
                   <DxCheckBox
                     value={formData.regulatoryReportRequired}
                     onValueChange={(value) =>
                       handleFieldChange('regulatoryReportRequired', value ?? false)
                     }
-                    text="This complaint requires reporting to regulatory authorities"
+                    text="ข้อร้องเรียนนี้ต้องรายงานต่อหน่วยงานกำกับดูแล"
                   />
                 </div>
               </div>
@@ -565,13 +566,13 @@ export function ComplaintDataEntryDialog({
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t">
           <DxButton
-            text="Cancel"
+            text="ยกเลิก"
             onClick={onClose}
             stylingMode="outlined"
             disabled={isSubmitting}
           />
           <DxButton
-            text={isEditing ? 'Save Changes' : 'Register Complaint'}
+            text={isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'ลงทะเบียนข้อร้องเรียน'}
             icon="save"
             onClick={handleSubmit}
             type="success"

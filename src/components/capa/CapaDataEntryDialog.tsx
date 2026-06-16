@@ -79,7 +79,7 @@ async function createCapa(data: CapaCreate): Promise<Capa> {
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to create CAPA');
+    throw new Error(result.error || 'ไม่สามารถสร้าง CAPA ได้');
   }
   return result.data;
 }
@@ -95,7 +95,7 @@ async function createCapaFromDeviation(
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to create CAPA');
+    throw new Error(result.error || 'ไม่สามารถสร้าง CAPA ได้');
   }
   return result.data;
 }
@@ -108,7 +108,7 @@ async function updateCapa(id: number, data: Partial<CapaCreate>): Promise<Capa> 
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to update CAPA');
+    throw new Error(result.error || 'ไม่สามารถอัปเดต CAPA ได้');
   }
   return result.data;
 }
@@ -118,32 +118,32 @@ async function updateCapa(id: number, data: Partial<CapaCreate>): Promise<Capa> 
 // ============================================
 
 const sourceTypeOptions = [
-  { value: 'deviation', label: 'Deviation' },
-  { value: 'complaint', label: 'Complaint' },
-  { value: 'audit_finding', label: 'Audit Finding' },
-  { value: 'other', label: 'Other' },
+  { value: 'deviation', label: 'ความเบี่ยงเบน' },
+  { value: 'complaint', label: 'ข้อร้องเรียน' },
+  { value: 'audit_finding', label: 'ข้อค้นพบจากการตรวจประเมิน' },
+  { value: 'other', label: 'อื่น ๆ' },
 ];
 
 const typeOptions = [
-  { value: 'corrective', label: 'Corrective' },
-  { value: 'preventive', label: 'Preventive' },
-  { value: 'both', label: 'Both' },
+  { value: 'corrective', label: 'การแก้ไข' },
+  { value: 'preventive', label: 'การป้องกัน' },
+  { value: 'both', label: 'ทั้งสองอย่าง' },
 ];
 
 const priorityOptions = [
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
-  { value: 'critical', label: 'Critical' },
+  { value: 'low', label: 'ต่ำ' },
+  { value: 'medium', label: 'ปานกลาง' },
+  { value: 'high', label: 'สูง' },
+  { value: 'critical', label: 'วิกฤต' },
 ];
 
 const rootCauseCategoryOptions = [
-  { value: 'Human Error', label: 'Human Error (Man)' },
-  { value: 'Equipment Failure', label: 'Equipment Failure (Machine)' },
-  { value: 'Material Defect', label: 'Material Defect (Material)' },
-  { value: 'Method Issue', label: 'Method Issue (Method)' },
-  { value: 'Environment Factor', label: 'Environment Factor' },
-  { value: 'Measurement Error', label: 'Measurement Error' },
+  { value: 'Human Error', label: 'ความผิดพลาดของบุคลากร (Man)' },
+  { value: 'Equipment Failure', label: 'ความล้มเหลวของอุปกรณ์ (Machine)' },
+  { value: 'Material Defect', label: 'ข้อบกพร่องของวัตถุดิบ (Material)' },
+  { value: 'Method Issue', label: 'ปัญหาด้านวิธีการ (Method)' },
+  { value: 'Environment Factor', label: 'ปัจจัยด้านสิ่งแวดล้อม' },
+  { value: 'Measurement Error', label: 'ความผิดพลาดในการวัด' },
 ];
 
 // ============================================
@@ -200,7 +200,7 @@ export function CapaDataEntryDialog({
     }
 
     return {
-      title: linkedSourceNumber ? `CAPA for ${linkedSourceNumber}` : '',
+      title: linkedSourceNumber ? `CAPA สำหรับ ${linkedSourceNumber}` : '',
       sourceType: linkedSourceType,
       sourceId: linkedSourceId,
       type: 'corrective',
@@ -286,13 +286,13 @@ export function CapaDataEntryDialog({
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = 'กรุณาระบุหัวข้อ';
     }
     if (!formData.ownerId) {
-      newErrors.ownerId = 'Owner is required';
+      newErrors.ownerId = 'กรุณาระบุผู้รับผิดชอบ';
     }
     if (!formData.dueDate) {
-      newErrors.dueDate = 'Due date is required';
+      newErrors.dueDate = 'กรุณาระบุวันที่กำหนดเสร็จ';
     }
 
     setErrors(newErrors);
@@ -333,11 +333,13 @@ export function CapaDataEntryDialog({
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   // Determine dialog title
+  const linkedSourceTypeLabel =
+    sourceTypeOptions.find((o) => o.value === linkedSourceType)?.label || 'อื่น ๆ';
   const dialogTitle = customTitle || (isEditing
-    ? 'Edit CAPA'
+    ? 'แก้ไข CAPA'
     : hasLinkedSource
-    ? `Create CAPA from ${linkedSourceType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`
-    : 'Create New CAPA');
+    ? `สร้าง CAPA จาก${linkedSourceTypeLabel}`
+    : 'สร้าง CAPA ใหม่');
 
   // Generate a key for the dialog based on capa id to force remount on capa change
   const dialogKey = capa ? `edit-${capa.id}` : 'create';
@@ -362,7 +364,7 @@ export function CapaDataEntryDialog({
             <div className="flex items-center gap-2">
               <Link2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                Linked to: <span className="font-mono font-medium">{linkedSourceNumber}</span>
+                เชื่อมโยงกับ: <span className="font-mono font-medium">{linkedSourceNumber}</span>
               </p>
             </div>
           </div>
@@ -380,12 +382,12 @@ export function CapaDataEntryDialog({
           {/* Title */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">
-              Title <span className="text-destructive">*</span>
+              หัวข้อ <span className="text-destructive">*</span>
             </label>
             <DxTextBox
               value={formData.title}
               onValueChange={(value) => handleFieldChange('title', value || '')}
-              placeholder="Enter CAPA title"
+              placeholder="กรอกหัวข้อ CAPA"
             />
             {errors.title && (
               <p className="text-xs text-destructive">{errors.title}</p>
@@ -395,7 +397,7 @@ export function CapaDataEntryDialog({
           {/* Source Type (only for new CAPA without linked source) */}
           {!hasLinkedSource && !isEditing && (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Source Type</label>
+              <label className="text-sm font-medium">ประเภทแหล่งที่มา</label>
               <DxSelectBox
                 items={sourceTypeOptions}
                 value={formData.sourceType}
@@ -411,7 +413,7 @@ export function CapaDataEntryDialog({
             {/* CAPA Type */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium">
-                CAPA Type <span className="text-destructive">*</span>
+                ประเภท CAPA <span className="text-destructive">*</span>
               </label>
               <DxSelectBox
                 items={typeOptions}
@@ -426,7 +428,7 @@ export function CapaDataEntryDialog({
             {/* Priority */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium">
-                Priority <span className="text-destructive">*</span>
+                ความสำคัญ <span className="text-destructive">*</span>
               </label>
               <DxSelectBox
                 items={priorityOptions}
@@ -443,7 +445,7 @@ export function CapaDataEntryDialog({
             {/* Owner */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium">
-                Owner <span className="text-destructive">*</span>
+                ผู้รับผิดชอบ <span className="text-destructive">*</span>
               </label>
               <DxSelectBox
                 items={(users || []).map((u) => ({ value: u.id, label: u.name }))}
@@ -451,7 +453,7 @@ export function CapaDataEntryDialog({
                 valueExpr="value"
                 displayExpr="label"
                 onValueChange={(value) => handleFieldChange('ownerId', value)}
-                placeholder="Select owner"
+                placeholder="เลือกผู้รับผิดชอบ"
                 searchEnabled
               />
               {errors.ownerId && (
@@ -462,7 +464,7 @@ export function CapaDataEntryDialog({
             {/* Due Date */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium">
-                Due Date <span className="text-destructive">*</span>
+                วันที่กำหนดเสร็จ <span className="text-destructive">*</span>
               </label>
               <DxDateBox
                 value={formData.dueDate || undefined}
@@ -483,25 +485,25 @@ export function CapaDataEntryDialog({
 
           {/* Root Cause Category */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Root Cause Category (5M+E)</label>
+            <label className="text-sm font-medium">หมวดหมู่สาเหตุที่แท้จริง (5M+E)</label>
             <DxSelectBox
               items={rootCauseCategoryOptions}
               value={formData.rootCauseCategory}
               valueExpr="value"
               displayExpr="label"
               onValueChange={(value) => handleFieldChange('rootCauseCategory', value || '')}
-              placeholder="Select category"
+              placeholder="เลือกหมวดหมู่"
               showClearButton
             />
           </div>
 
           {/* Root Cause Analysis */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Root Cause Analysis (5-Why)</label>
+            <label className="text-sm font-medium">การวิเคราะห์สาเหตุที่แท้จริง (5-Why)</label>
             <DxTextArea
               value={formData.rootCauseAnalysis}
               onValueChange={(value) => handleFieldChange('rootCauseAnalysis', value || '')}
-              placeholder="Enter root cause analysis using the 5-Why method..."
+              placeholder="กรอกการวิเคราะห์สาเหตุที่แท้จริงด้วยวิธี 5-Why..."
               height={100}
             />
           </div>
@@ -510,13 +512,13 @@ export function CapaDataEntryDialog({
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t">
           <DxButton
-            text="Cancel"
+            text="ยกเลิก"
             onClick={onClose}
             stylingMode="outlined"
             disabled={isSubmitting}
           />
           <DxButton
-            text={isEditing ? 'Save Changes' : 'Create CAPA'}
+            text={isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'สร้าง CAPA'}
             icon="save"
             onClick={handleSubmit}
             type="success"

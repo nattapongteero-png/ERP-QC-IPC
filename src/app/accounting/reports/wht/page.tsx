@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button as DxButton } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
-import DataGrid, { Column, Export, Summary, TotalItem } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
 import {
   AccountingPageHeader,
@@ -286,7 +286,6 @@ export default function WHTReportPage() {
                   format="#,##0.00"
                   width={130}
                 />
-                <Export enabled allowExportSelectedData />
                 <Summary>
                   <TotalItem column="paymentAmount" summaryType="sum" valueFormat="#,##0.00" />
                   <TotalItem column="whtAmount" summaryType="sum" valueFormat="#,##0.00" />

@@ -594,9 +594,9 @@ export default function DeviationsPage() {
                 <Label visible={false} />
               </Series>
               <Legend
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
                 text: `${arg.argumentText}: ${arg.valueText} ${t('common.items')}`
@@ -631,9 +631,9 @@ export default function DeviationsPage() {
                 <Label visible={false} />
               </Series>
               <Legend
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
                 text: `${arg.argumentText}: ${arg.valueText} ${t('common.items')}`
@@ -668,9 +668,9 @@ export default function DeviationsPage() {
                 <Label visible={false} />
               </Series>
               <Legend
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
                 text: `${arg.argumentText}: ${arg.valueText} ${t('common.items')}`
@@ -810,9 +810,6 @@ export default function DeviationsPage() {
         columns={columns}
         loading={false}
         sorting
-        export
-        exportFileName="deviations"
-        columnChooser
         responsiveColumns
         // 20 records per page — virtualScrolling kicks in only above 100
         // rows where paging would create excessive Prev/Next clicks.

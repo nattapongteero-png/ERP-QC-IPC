@@ -63,7 +63,7 @@ async function createCapa(data: CapaCreate): Promise<Capa> {
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to create CAPA');
+    throw new Error(result.error || 'ไม่สามารถสร้าง CAPA ได้');
   }
   return result.data;
 }
@@ -79,7 +79,7 @@ async function createCapaFromDeviation(
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to create CAPA');
+    throw new Error(result.error || 'ไม่สามารถสร้าง CAPA ได้');
   }
   return result.data;
 }
@@ -92,7 +92,7 @@ async function updateCapa(id: number, data: Partial<CapaCreate>): Promise<Capa> 
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to update CAPA');
+    throw new Error(result.error || 'ไม่สามารถอัปเดต CAPA ได้');
   }
   return result.data;
 }
@@ -113,7 +113,7 @@ export function CapaForm({
 
   // Form state
   const [formData, setFormData] = useState<FormData>({
-    title: capa?.title || (deviationNumber ? `CAPA for ${deviationNumber}` : ''),
+    title: capa?.title || (deviationNumber ? `CAPA สำหรับ ${deviationNumber}` : ''),
     sourceType: capa?.sourceType || (isFromDeviation ? 'deviation' : 'other'),
     sourceId: capa?.sourceId || deviationId || null,
     type: capa?.type || 'corrective',
@@ -182,13 +182,13 @@ export function CapaForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = 'กรุณาระบุหัวข้อ';
     }
     if (!formData.ownerId) {
-      newErrors.ownerId = 'Owner is required';
+      newErrors.ownerId = 'กรุณาระบุผู้รับผิดชอบ';
     }
     if (!formData.dueDate) {
-      newErrors.dueDate = 'Due date is required';
+      newErrors.dueDate = 'กรุณาระบุวันที่กำหนดเสร็จ';
     }
 
     setErrors(newErrors);
@@ -215,42 +215,42 @@ export function CapaForm({
 
   // Source type options
   const sourceTypeOptions = [
-    { value: 'deviation', label: 'Deviation' },
-    { value: 'complaint', label: 'Complaint' },
-    { value: 'audit_finding', label: 'Audit Finding' },
-    { value: 'other', label: 'Other' },
+    { value: 'deviation', label: 'ความเบี่ยงเบน' },
+    { value: 'complaint', label: 'ข้อร้องเรียน' },
+    { value: 'audit_finding', label: 'ผลการตรวจประเมิน' },
+    { value: 'other', label: 'อื่นๆ' },
   ];
 
   // CAPA type options
   const typeOptions = [
-    { value: 'corrective', label: 'Corrective' },
-    { value: 'preventive', label: 'Preventive' },
-    { value: 'both', label: 'Both' },
+    { value: 'corrective', label: 'การแก้ไข' },
+    { value: 'preventive', label: 'การป้องกัน' },
+    { value: 'both', label: 'ทั้งสองอย่าง' },
   ];
 
   // Priority options
   const priorityOptions = [
-    { value: 'low', label: 'Low' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' },
-    { value: 'critical', label: 'Critical' },
+    { value: 'low', label: 'ต่ำ' },
+    { value: 'medium', label: 'ปานกลาง' },
+    { value: 'high', label: 'สูง' },
+    { value: 'critical', label: 'วิกฤต' },
   ];
 
   // Root cause categories (5M+E)
   const rootCauseCategoryOptions = [
-    { value: 'Human Error', label: 'Human Error (Man)' },
-    { value: 'Equipment Failure', label: 'Equipment Failure (Machine)' },
-    { value: 'Material Defect', label: 'Material Defect (Material)' },
-    { value: 'Method Issue', label: 'Method Issue (Method)' },
-    { value: 'Environment Factor', label: 'Environment Factor' },
-    { value: 'Measurement Error', label: 'Measurement Error' },
+    { value: 'Human Error', label: 'ความผิดพลาดจากคน (Man)' },
+    { value: 'Equipment Failure', label: 'เครื่องจักรขัดข้อง (Machine)' },
+    { value: 'Material Defect', label: 'วัตถุดิบบกพร่อง (Material)' },
+    { value: 'Method Issue', label: 'ปัญหาด้านวิธีการ (Method)' },
+    { value: 'Environment Factor', label: 'ปัจจัยด้านสภาพแวดล้อม' },
+    { value: 'Measurement Error', label: 'ความผิดพลาดในการวัด' },
   ];
 
   return (
     <div className="space-y-6 p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">
-          {isEditing ? 'Edit CAPA' : isFromDeviation ? 'Create CAPA from Deviation' : 'New CAPA'}
+          {isEditing ? 'แก้ไข CAPA' : isFromDeviation ? 'สร้าง CAPA จากความเบี่ยงเบน' : 'สร้าง CAPA ใหม่'}
         </h2>
         {onCancel && (
           <button
@@ -265,7 +265,7 @@ export function CapaForm({
       {isFromDeviation && deviationNumber && (
         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            Creating CAPA linked to Deviation: <span className="font-mono font-medium">{deviationNumber}</span>
+            กำลังสร้าง CAPA ที่เชื่อมโยงกับความเบี่ยงเบน: <span className="font-mono font-medium">{deviationNumber}</span>
           </p>
         </div>
       )}
@@ -280,12 +280,12 @@ export function CapaForm({
         {/* Title */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Title <span className="text-destructive">*</span>
+            หัวข้อ <span className="text-destructive">*</span>
           </label>
           <DxTextBox
             value={formData.title}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, title: value || '' }))}
-            placeholder="Enter CAPA title"
+            placeholder="กรอกหัวข้อ CAPA"
           />
           {errors.title && (
             <p className="text-sm text-destructive">{errors.title}</p>
@@ -295,7 +295,7 @@ export function CapaForm({
         {/* Source Type (hidden if from deviation) */}
         {!isFromDeviation && !isEditing && (
           <div className="space-y-2">
-            <label className="text-sm font-medium">Source Type</label>
+            <label className="text-sm font-medium">ประเภทแหล่งที่มา</label>
             <DxSelectBox
               items={sourceTypeOptions}
               value={formData.sourceType}
@@ -309,7 +309,7 @@ export function CapaForm({
         {/* CAPA Type */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            CAPA Type <span className="text-destructive">*</span>
+            ประเภท CAPA <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
             items={typeOptions}
@@ -324,7 +324,7 @@ export function CapaForm({
         {/* Priority */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Priority <span className="text-destructive">*</span>
+            ความสำคัญ <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
             items={priorityOptions}
@@ -338,7 +338,7 @@ export function CapaForm({
         {/* Owner */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Owner <span className="text-destructive">*</span>
+            ผู้รับผิดชอบ <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
             items={(users || []).map((u) => ({ value: u.id, label: u.name }))}
@@ -346,7 +346,7 @@ export function CapaForm({
             valueExpr="value"
             displayExpr="label"
             onValueChange={(value) => setFormData((prev) => ({ ...prev, ownerId: value }))}
-            placeholder="Select owner"
+            placeholder="เลือกผู้รับผิดชอบ"
             disabled={isEditing}
           />
           {errors.ownerId && (
@@ -357,7 +357,7 @@ export function CapaForm({
         {/* Due Date */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Due Date <span className="text-destructive">*</span>
+            วันที่กำหนดเสร็จ <span className="text-destructive">*</span>
           </label>
           <DxDateBox
             value={formData.dueDate || undefined}
@@ -378,25 +378,25 @@ export function CapaForm({
 
         {/* Root Cause Category */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Root Cause Category (5M+E)</label>
+          <label className="text-sm font-medium">หมวดหมู่สาเหตุที่แท้จริง (5M+E)</label>
           <DxSelectBox
             items={rootCauseCategoryOptions}
             value={formData.rootCauseCategory}
             valueExpr="value"
             displayExpr="label"
             onValueChange={(value) => setFormData((prev) => ({ ...prev, rootCauseCategory: value || '' }))}
-            placeholder="Select category"
+            placeholder="เลือกหมวดหมู่"
             showClearButton
           />
         </div>
 
         {/* Root Cause Analysis */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Root Cause Analysis (5-Why)</label>
+          <label className="text-sm font-medium">การวิเคราะห์สาเหตุที่แท้จริง (5-Why)</label>
           <DxTextArea
             value={formData.rootCauseAnalysis}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, rootCauseAnalysis: value || '' }))}
-            placeholder="Enter root cause analysis..."
+            placeholder="กรอกการวิเคราะห์สาเหตุที่แท้จริง..."
             height={120}
           />
         </div>
@@ -404,7 +404,7 @@ export function CapaForm({
         {/* Actions */}
         <div className="flex items-center gap-3 pt-4">
           <DxButton
-            text={isEditing ? 'Save Changes' : 'Create CAPA'}
+            text={isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'สร้าง CAPA'}
             icon="save"
             onClick={handleSubmit}
             type="success"
@@ -412,7 +412,7 @@ export function CapaForm({
           />
           {onCancel && (
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={onCancel}
               stylingMode="outlined"
               disabled={isSubmitting}

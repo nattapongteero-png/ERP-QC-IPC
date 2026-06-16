@@ -428,9 +428,9 @@ export default function SanitationDashboardPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                 font={{ size: 11 }}
               />
               <Tooltip
@@ -555,11 +555,11 @@ export default function SanitationDashboardPage() {
       </div>
 
       {/* Compliance Trend Chart */}
-      {(trendsLoading || complianceTrendData.length > 0) && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-5">
+      {(trendsLoading || complianceTrendData.some((d) => (d.completed ?? 0) + (d.missed ?? 0) > 0)) && (
+        <div className="bg-white rounded-xl border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4 md:p-5">
           <div className="flex items-center justify-between mb-4 gap-2">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-indigo-500" />
+              <BarChart3 className="w-4 h-4 text-emerald-500" />
               {t('sanitation.charts.complianceTrend')}
             </h3>
             <span className="text-xs sm:text-sm text-gray-500">{trends?.period}</span>
@@ -581,9 +581,9 @@ export default function SanitationDashboardPage() {
               <ValueAxis />
               <ChartLegend
                 visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
               />
               <ChartTooltip
                 enabled={true}

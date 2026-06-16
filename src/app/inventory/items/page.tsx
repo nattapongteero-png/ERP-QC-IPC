@@ -20,8 +20,6 @@ import DataGrid, {
   FilterRow,
   SearchPanel,
   HeaderFilter,
-  ColumnChooser,
-  Export,
   Grouping,
   GroupPanel,
   Summary,
@@ -29,10 +27,6 @@ import DataGrid, {
   Toolbar,
   Item as ToolbarItem,
 } from 'devextreme-react/data-grid';
-import { Workbook } from 'exceljs';
-import { saveAs } from 'file-saver';
-import { exportDataGrid } from 'devextreme/excel_exporter';
-import type { ExportingEvent } from 'devextreme/ui/data_grid';
 import {
   Leaf,
   FlaskConical,
@@ -442,34 +436,6 @@ export default function ItemsPage() {
     XLSX.writeFile(wb, `items-${ts}.xlsx`);
   };
 
-  // Excel export handler
-  const onExporting = useCallback((e: ExportingEvent) => {
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet('Items');
-
-    exportDataGrid({
-      component: e.component,
-      worksheet,
-      autoFilterEnabled: true,
-      customizeCell: ({ gridCell, excelCell }) => {
-        if (gridCell?.rowType === 'data') {
-          if (gridCell.column?.dataField === 'type') {
-            const type = gridCell.value as ItemType;
-            const config = ITEM_TYPE_CONFIG[type];
-            excelCell.value = config ? t(`items.types.${config.translationKey}`) : type;
-          }
-          if (gridCell.column?.dataField === 'isActive') {
-            excelCell.value = gridCell.value ? t('items.status.active') : t('items.status.inactive');
-          }
-        }
-      },
-    }).then(() => {
-      workbook.xlsx.writeBuffer().then((buffer) => {
-        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'inventory-items.xlsx');
-      });
-    });
-  }, [t]);
-
   // Custom cell renderers
   const renderCodeCell = useCallback((data: { data: Item }) => {
     const config = ITEM_TYPE_CONFIG[data.data.type as ItemType];
@@ -752,7 +718,6 @@ export default function ItemsPage() {
             allowColumnResizing={true}
             columnAutoWidth={true}
             wordWrapEnabled={true}
-            onExporting={onExporting}
             onRowClick={(e) => {
               if (e.data?.id) {
                 router.push(`/inventory/items/${e.data.id}`);
@@ -765,8 +730,6 @@ export default function ItemsPage() {
             <HeaderFilter visible={false} />
             <GroupPanel visible={true} />
             <Grouping autoExpandAll={false} />
-            <ColumnChooser enabled={false} mode="select" />
-            <Export enabled={false} />
 
             <Column
               dataField="_rowNumber"

@@ -110,46 +110,46 @@ function AuditsPageContent() {
   const createMutation = useMutation({
     mutationFn: createAudit,
     onSuccess: () => {
-      toast.success('Audit scheduled successfully');
+      toast.success('กำหนดการตรวจประเมินเรียบร้อยแล้ว');
       queryClient.invalidateQueries({ queryKey: ['audits'] });
       setShowCreatePopup(false);
       // Remove new param from URL
       router.replace('/gmp/internal-audit/audits');
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to schedule audit');
+      toast.error(err.message || 'ไม่สามารถกำหนดการตรวจประเมินได้');
     },
   });
 
   const startMutation = useMutation({
     mutationFn: startAudit,
     onSuccess: () => {
-      toast.success('Audit started');
+      toast.success('เริ่มการตรวจประเมินแล้ว');
       queryClient.invalidateQueries({ queryKey: ['audits'] });
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to start audit');
+      toast.error(err.message || 'ไม่สามารถเริ่มการตรวจประเมินได้');
     },
   });
 
   const completeMutation = useMutation({
     mutationFn: completeAudit,
     onSuccess: () => {
-      toast.success('Audit completed');
+      toast.success('การตรวจประเมินเสร็จสิ้นแล้ว');
       queryClient.invalidateQueries({ queryKey: ['audits'] });
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to complete audit');
+      toast.error(err.message || 'ไม่สามารถปิดการตรวจประเมินได้');
     },
   });
 
   const handleCreate = () => {
     if (!formData.scope.trim()) {
-      toast.error('Scope is required');
+      toast.error('กรุณาระบุขอบเขตการตรวจประเมิน');
       return;
     }
     if (formData.gmpChapters.length === 0) {
-      toast.error('At least one GMP chapter is required');
+      toast.error('กรุณาเลือกหมวด GMP อย่างน้อยหนึ่งหมวด');
       return;
     }
     createMutation.mutate(formData);
@@ -160,21 +160,21 @@ function AuditsPageContent() {
   };
 
   const handleStart = (auditId: number) => {
-    if (confirm('Are you sure you want to start this audit?')) {
+    if (confirm('คุณต้องการเริ่มการตรวจประเมินนี้ใช่หรือไม่?')) {
       startMutation.mutate(auditId);
     }
   };
 
   const handleComplete = (auditId: number) => {
-    if (confirm('Are you sure you want to complete this audit?')) {
+    if (confirm('คุณต้องการปิดการตรวจประเมินนี้ใช่หรือไม่?')) {
       completeMutation.mutate(auditId);
     }
   };
 
   const auditTypeOptions = [
-    { id: 'internal', name: 'Internal Audit' },
-    { id: 'external', name: 'External Audit' },
-    { id: 'regulatory', name: 'Regulatory Audit' },
+    { id: 'internal', name: 'การตรวจประเมินภายใน' },
+    { id: 'external', name: 'การตรวจประเมินภายนอก' },
+    { id: 'regulatory', name: 'การตรวจประเมินตามกฎระเบียบ' },
   ];
 
   const chapterOptions = Object.entries(GMP_CHAPTERS).map(([id, name]) => ({
@@ -186,9 +186,9 @@ function AuditsPageContent() {
     return (
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
-          <p className="text-red-600">Error loading audits: {(error as Error).message}</p>
+          <p className="text-red-600">เกิดข้อผิดพลาดในการโหลดการตรวจประเมิน: {(error as Error).message}</p>
           <DxButton
-            text="Retry"
+            text="ลองใหม่"
             onClick={() => queryClient.invalidateQueries({ queryKey: ['audits'] })}
             className="mt-4"
           />
@@ -202,11 +202,11 @@ function AuditsPageContent() {
       {/* Page Header */}
       <ResponsivePageHeader
         title={t('internalAudit.audits.title')}
-        subtitle={planId ? `Audits for Plan #${planId}` : t('internalAudit.audits.description')}
+        subtitle={planId ? `การตรวจประเมินสำหรับแผน #${planId}` : t('internalAudit.audits.description')}
         onBack={() => router.push('/gmp/internal-audit')}
         actions={
           <DxButton
-            text="Schedule Audit"
+            text="กำหนดการตรวจประเมิน"
             icon="plus"
             onClick={() => setShowCreatePopup(true)}
             type="default"
@@ -233,7 +233,7 @@ function AuditsPageContent() {
           setShowCreatePopup(false);
           router.replace('/gmp/internal-audit/audits');
         }}
-        title="Schedule Audit"
+        title="กำหนดการตรวจประเมิน"
         width={600}
         height="auto"
         showCloseButton
@@ -242,7 +242,7 @@ function AuditsPageContent() {
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Audit Type *</label>
+              <label className="block text-sm font-medium mb-1">ประเภทการตรวจประเมิน *</label>
               <DxSelectBox
                 value={formData.auditType}
                 onValueChanged={(e) => setFormData({ ...formData, auditType: e.value })}
@@ -252,7 +252,7 @@ function AuditsPageContent() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Scheduled Date *</label>
+              <label className="block text-sm font-medium mb-1">วันที่กำหนดตรวจประเมิน *</label>
               <DxDateBox
                 value={formData.scheduledDate}
                 onValueChanged={(e) =>
@@ -263,38 +263,38 @@ function AuditsPageContent() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Scope *</label>
+            <label className="block text-sm font-medium mb-1">ขอบเขตการตรวจประเมิน *</label>
             <DxTextBox
               value={formData.scope}
               onValueChanged={(e) => setFormData({ ...formData, scope: e.value })}
-              placeholder="e.g., Production Area, Quality Control Lab"
+              placeholder="เช่น พื้นที่การผลิต, ห้องปฏิบัติการควบคุมคุณภาพ"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">GMP Chapters *</label>
+            <label className="block text-sm font-medium mb-1">หมวด GMP *</label>
             <DxTagBox
               value={formData.gmpChapters}
               onValueChanged={(e) => setFormData({ ...formData, gmpChapters: e.value })}
               dataSource={chapterOptions}
               valueExpr="id"
               displayExpr="name"
-              placeholder="Select GMP chapters to audit"
+              placeholder="เลือกหมวด GMP ที่ต้องการตรวจประเมิน"
               showSelectionControls
               applyValueMode="useButtons"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Objectives</label>
+            <label className="block text-sm font-medium mb-1">วัตถุประสงค์</label>
             <DxTextArea
               value={formData.objectives}
               onValueChanged={(e) => setFormData({ ...formData, objectives: e.value })}
-              placeholder="Enter audit objectives"
+              placeholder="กรอกวัตถุประสงค์ของการตรวจประเมิน"
               height={100}
             />
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => {
                 setShowCreatePopup(false);
                 router.replace('/gmp/internal-audit/audits');
@@ -302,7 +302,7 @@ function AuditsPageContent() {
               stylingMode="outlined"
             />
             <DxButton
-              text="Schedule"
+              text="กำหนดการตรวจประเมิน"
               onClick={handleCreate}
               type="default"
               disabled={createMutation.isPending}

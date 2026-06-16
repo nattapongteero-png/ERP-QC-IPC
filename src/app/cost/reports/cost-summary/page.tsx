@@ -22,7 +22,6 @@ import DataGrid, {
   Sorting,
   Summary,
   TotalItem,
-  Export,
 } from 'devextreme-react/data-grid';
 import type { DataGridRef } from 'devextreme-react/data-grid';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -418,7 +417,6 @@ export default function CostSummaryReportPage() {
               }}
               data-testid="cost-summary-grid"
             >
-              <Export enabled={false} />
               <Sorting mode="single" />
 
               <Column

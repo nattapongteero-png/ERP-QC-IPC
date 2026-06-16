@@ -578,9 +578,9 @@ export default function ComplaintsListPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                 font={{ size: 11 }}
               />
               <Tooltip
@@ -624,9 +624,9 @@ export default function ComplaintsListPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                 font={{ size: 11 }}
               />
               <Tooltip
@@ -670,9 +670,9 @@ export default function ComplaintsListPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                 font={{ size: 11 }}
               />
               <Tooltip
@@ -877,9 +877,6 @@ export default function ComplaintsListPage() {
             keyExpr="id"
             columns={columns}
             sorting
-            export
-            exportFileName="complaints"
-            columnChooser
             responsiveColumns
             virtualScrolling={filteredComplaints.length > 100}
             height={600}

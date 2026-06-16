@@ -22,7 +22,6 @@ import DataGrid, {
   FilterRow,
   SearchPanel,
   HeaderFilter,
-  Export,
 } from 'devextreme-react/data-grid';
 import {
   PieChart,
@@ -42,10 +41,6 @@ import TextBox from 'devextreme-react/text-box';
 import { DxButton } from '@/components/ui/dx-button';
 import { cn } from '@/lib/utils/cn';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { Workbook } from 'exceljs';
-import { saveAs } from 'file-saver';
-import { exportDataGrid } from 'devextreme/excel_exporter';
-import type { ExportingEvent } from 'devextreme/ui/data_grid';
 import {
   Factory,
   ClipboardList,
@@ -536,26 +531,6 @@ export default function WorkOrdersPage() {
     status === undefined ? workOrders.length : workOrders.filter((w) => w.status === status).length,
     [workOrders]);
 
-  // Export handler
-  const handleExporting = useCallback((e: ExportingEvent) => {
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet('Work Orders');
-
-    exportDataGrid({
-      component: e.component,
-      worksheet,
-      autoFilterEnabled: true,
-    }).then(() => {
-      workbook.xlsx.writeBuffer().then((buffer) => {
-        saveAs(
-          new Blob([buffer], { type: 'application/octet-stream' }),
-          `Work_Orders_${toLocalDateStr(new Date())}.xlsx`
-        );
-      });
-    });
-    e.cancel = true;
-  }, []);
-
   // Cell renderers
   const renderWOCell = useCallback((data: { data: WorkOrder }) => (
     <div className="min-w-0">
@@ -1021,7 +996,6 @@ export default function WorkOrdersPage() {
           height="auto"
           columnAutoWidth={true}
           wordWrapEnabled={false}
-          onExporting={handleExporting}
           onRowClick={(e) => {
             if (e.data && e.rowType === 'data') {
               router.push(`/production/work-orders/${e.data.id}`);
@@ -1041,7 +1015,6 @@ export default function WorkOrdersPage() {
           <FilterRow visible={false} />
           <SearchPanel visible={true} placeholder={t('workOrders.grid.searchPlaceholder')} width={250} />
           <HeaderFilter visible={false} />
-          <Export enabled={false} formats={['xlsx']} />
 
           <Column
             dataField="_rowNumber"

@@ -645,7 +645,6 @@ export default function BatchRecordsDashboardPage() {
                 }
               }}
             >
-              <DxSearchPanel visible placeholder={t('batchRecords.registry.dataGridSearch')} />
               <DxPaging defaultPageSize={15} />
 
               <DxColumn

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
+import { StatusStepper } from '@/components/shared';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -235,6 +236,7 @@ export default function DeviationDetailPage() {
             <p className="text-gray-600 mt-1">{deviation.title}</p>
           </div>
           <div className="flex gap-2">
+            {/* eslint-disable-next-line @typescript-eslint/no-unused-expressions */}
             {!isEditing && deviation.status !== 'closed' && (
               <DxButton
                 text="Update CAPA"
@@ -266,6 +268,19 @@ export default function DeviationDetailPage() {
             />
           </div>
         </div>
+
+        {/* Workflow status — สถานะการดำเนินงาน */}
+        <StatusStepper
+          title="สถานะการดำเนินงาน"
+          current={deviation.status}
+          steps={[
+            { key: 'open', label: 'เปิด' },
+            { key: 'in_progress', label: 'กำลังสืบสวน' },
+            { key: 'pending_verification', label: 'รอตรวจสอบ' },
+            { key: 'verified', label: 'ตรวจสอบแล้ว' },
+            { key: 'closed', label: 'ปิด' },
+          ]}
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

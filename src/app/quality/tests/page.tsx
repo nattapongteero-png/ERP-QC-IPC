@@ -19,7 +19,6 @@ import DataGrid, {
   Pager,
   SearchPanel,
   Scrolling,
-  Export,
 } from 'devextreme-react/data-grid';
 import {
   PieChart,
@@ -42,10 +41,6 @@ import {
 import { DxButton } from '@/components/ui/dx-button';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
-import { Workbook } from 'exceljs';
-import { saveAs } from 'file-saver';
-import { exportDataGrid } from 'devextreme/excel_exporter';
-import type { ExportingEvent } from 'devextreme/ui/data_grid';
 import {
   FlaskConical,
   CheckCircle,
@@ -269,26 +264,6 @@ export default function QualityTestsPage() {
   const handleClearFilters = () => {
     setActiveTab('all');
   };
-
-  // Export handler
-  const handleExporting = useCallback((e: ExportingEvent) => {
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet('Quality Tests');
-
-    exportDataGrid({
-      component: e.component,
-      worksheet,
-      autoFilterEnabled: true,
-    }).then(() => {
-      workbook.xlsx.writeBuffer().then((buffer) => {
-        saveAs(
-          new Blob([buffer], { type: 'application/octet-stream' }),
-          `Quality_Tests_${toLocalDateStr(new Date())}.xlsx`
-        );
-      });
-    });
-    e.cancel = true;
-  }, []);
 
   // Cell renderers
   const renderLotCell = useCallback((data: { data: QualityTest }) => (
@@ -543,9 +518,9 @@ export default function QualityTestsPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                 font={{ size: 11 }}
               />
               <Tooltip
@@ -743,7 +718,6 @@ export default function QualityTestsPage() {
             height={500}
             columnAutoWidth={true}
             wordWrapEnabled={false}
-            onExporting={handleExporting}
             onRowClick={(e) => {
               if (e.data && e.rowType === 'data') {
                 router.push(`/quality/tests/${e.data.id}`);
@@ -759,7 +733,6 @@ export default function QualityTestsPage() {
               showNavigationButtons={true}
             />
             <SearchPanel visible={true} placeholder={t('tests.grid.searchPlaceholder')} width={250} />
-            <Export enabled={true} formats={['xlsx']} />
 
             <Column
               dataField="_rowNumber"

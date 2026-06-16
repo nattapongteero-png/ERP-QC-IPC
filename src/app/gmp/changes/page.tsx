@@ -22,10 +22,6 @@ import DataGrid, {
   Pager,
   SearchPanel,
   Sorting,
-  ColumnChooser,
-  Export,
-  Toolbar,
-  Item,
   LoadPanel,
   StateStoring,
 } from 'devextreme-react/data-grid';
@@ -482,8 +478,6 @@ export default function ChangeControlListPage() {
               <StateStoring enabled={true} type="localStorage" storageKey="changeControlGridState" />
               <SearchPanel visible={false} />
               <Sorting mode="multiple" />
-              <ColumnChooser enabled={true} mode="select" />
-              <Export enabled={true} allowExportSelectedData={true} />
               <Paging defaultPageSize={20} />
               <Pager
                 showPageSizeSelector={true}
@@ -564,11 +558,6 @@ export default function ChangeControlListPage() {
                 allowFiltering={false}
                 allowSorting={false}
               />
-
-              <Toolbar>
-                <Item name="columnChooserButton" />
-                <Item name="exportButton" />
-              </Toolbar>
             </DataGrid>
           </div>
         )}

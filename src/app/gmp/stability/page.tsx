@@ -635,9 +635,9 @@ export default function StabilityDashboardPage() {
                 </Series>
                 <Legend
                   visible
-                  orientation="horizontal"
-                  horizontalAlignment="center"
-                  verticalAlignment="bottom"
+                  orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                   font={{ size: 11 }}
                 />
                 <Tooltip

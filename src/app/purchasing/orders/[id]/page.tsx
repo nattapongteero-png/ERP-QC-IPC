@@ -1454,8 +1454,6 @@ export default function PurchaseOrderDetailPage() {
                   showBorders
                   height={450}
                   noDataText="ไม่มีรายการสินค้า"
-                  export
-                  exportFileName={`PO-${po.poNumber}-lines`}
                 />
 
                 {/* Summary Block — toggles with vatDisplayMode */}
@@ -1542,8 +1540,6 @@ export default function PurchaseOrderDetailPage() {
                 showBorders
                 height={450}
                 noDataText="ยังไม่มี Lot ที่รับเข้า"
-                export
-                exportFileName={`PO-${po.poNumber}-lots`}
                 onRowClick={(e) => router.push(`/inventory/lots/${e.data.id}`)}
               />
             )}

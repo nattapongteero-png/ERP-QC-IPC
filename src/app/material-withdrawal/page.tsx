@@ -9,9 +9,10 @@
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { DataGrid, Column, FilterRow, HeaderFilter, Paging, SearchPanel } from 'devextreme-react/data-grid';
+import { DataGrid, Column, FilterRow, HeaderFilter, Paging } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
+import { TextBox } from 'devextreme-react/text-box';
 import { Layers, CheckCircle2, Clock, XCircle, Ban } from 'lucide-react';
 import { MaterialWithdrawalDetailDialog } from '@/components/production/material-withdrawal-detail-dialog';
 import type {
@@ -31,6 +32,7 @@ const STATUS_OPTIONS: { value: WithdrawalStatus | ''; key: string }[] = [
 export default function MaterialWithdrawalListPage() {
   const t = useTranslations('material-withdrawal');
   const [statusFilter, setStatusFilter] = useState<WithdrawalStatus | ''>('');
+  const [searchText, setSearchText] = useState('');
   const [openId, setOpenId] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = useQuery<PaginatedRequests>({
@@ -45,6 +47,15 @@ export default function MaterialWithdrawalListPage() {
     },
     refetchInterval: 30000,
   });
+
+  const filteredItems = useMemo(() => {
+    const items = data?.items ?? [];
+    const q = searchText.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((i) =>
+      JSON.stringify(i).toLowerCase().includes(q)
+    );
+  }, [data, searchText]);
 
   const counts = useMemo(() => {
     const items = data?.items ?? [];
@@ -101,8 +112,8 @@ export default function MaterialWithdrawalListPage() {
         />
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 rounded-[18px] border border-emerald-100 bg-white p-3 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
+      {/* Filters — status + search on one compact top row */}
+      <div className="flex flex-wrap items-center gap-3 rounded-[18px] border border-emerald-100 bg-white p-3 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
         <span className="text-sm font-medium text-[#064E3B]">{t('table.columns.status')}</span>
         <SelectBox
           dataSource={STATUS_OPTIONS.map((opt) => ({
@@ -115,11 +126,20 @@ export default function MaterialWithdrawalListPage() {
           width={220}
           onValueChanged={(e) => setStatusFilter(e.value as WithdrawalStatus | '')}
         />
+        <div className="ml-auto w-full sm:w-64">
+          <TextBox
+            value={searchText}
+            onValueChanged={(e) => setSearchText((e.value as string) ?? '')}
+            placeholder="ค้นหา..."
+            mode="search"
+            width="100%"
+          />
+        </div>
       </div>
 
       {/* Grid */}
       <DataGrid
-        dataSource={data?.items ?? []}
+        dataSource={filteredItems}
         keyExpr="id"
         showBorders
         showRowLines
@@ -131,7 +151,6 @@ export default function MaterialWithdrawalListPage() {
           setOpenId(row.id);
         }}
       >
-        <SearchPanel visible width={240} />
         <FilterRow visible={false} />
         <HeaderFilter visible={false} />
         <Paging pageSize={20} />

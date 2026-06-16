@@ -603,9 +603,6 @@ export default function PurchaseRequisitionsPage() {
             keyExpr="id"
             columns={columns}
             sorting
-            export
-            exportFileName="purchase-requisitions"
-            columnChooser
             responsiveColumns
             virtualScrolling={filteredRequisitions.length > 100}
             height={600}

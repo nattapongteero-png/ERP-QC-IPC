@@ -596,9 +596,6 @@ export default function PurchaseOrdersPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              export
-              exportFileName="purchase-orders"
-              columnChooser
               responsiveColumns
               virtualScrolling={filteredOrders.length > 100}
               height={600}

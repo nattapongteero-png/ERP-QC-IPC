@@ -12,12 +12,10 @@ import DataGrid, {
   Paging,
   Pager,
   Scrolling,
-  Export,
   Toolbar,
   Item,
   Grouping,
   GroupPanel,
-  ColumnChooser,
   StateStoring,
   Summary,
   GroupItem,
@@ -780,17 +778,13 @@ export default function EmployeesPage() {
               showInfo
               showNavigationButtons
             />
-            <Export enabled />
             <GroupPanel visible />
             <Grouping autoExpandAll={false} />
-            <ColumnChooser enabled mode="select" />
             <StateStoring enabled type="localStorage" storageKey="hrEmployeesGrid_v2" />
 
             <Toolbar>
               <Item name="groupPanel" />
               <Item name="searchPanel" />
-              <Item name="columnChooserButton" />
-              <Item name="exportButton" />
             </Toolbar>
 
             <Summary>

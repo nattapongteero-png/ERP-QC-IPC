@@ -13,7 +13,6 @@ import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import DataGrid, {
   Column,
-  Export,
   Paging,
   Pager,
   Sorting,
@@ -524,7 +523,6 @@ export default function EquipmentPage() {
               alignment="center"
             />
 
-            <Export enabled allowExportSelectedData />
             <MasterDetail enabled component={MaintenanceDetailView} />
           </DataGrid>
         </CardContent>

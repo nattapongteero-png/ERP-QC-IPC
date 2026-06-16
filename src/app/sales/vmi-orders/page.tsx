@@ -1069,9 +1069,9 @@ export default function VmiOrdersPage() {
                 <Label visible={false} />
               </Series>
               <Legend
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
               />
               <Tooltip
                 enabled={true}
@@ -1112,9 +1112,9 @@ export default function VmiOrdersPage() {
                 <Label visible={false} />
               </Series>
               <Legend
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
               />
               <Tooltip
                 enabled={true}
@@ -1210,9 +1210,6 @@ export default function VmiOrdersPage() {
           columns={columns}
           loading={isLoading}
           sorting
-          export
-          exportFileName="vmi-orders"
-          columnChooser
           responsiveColumns
           virtualScrolling={filteredOrders.length > 100}
           height={600}

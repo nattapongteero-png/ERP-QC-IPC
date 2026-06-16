@@ -10,7 +10,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -18,7 +17,6 @@ import DataGrid, {
   Pager,
   SearchPanel,
   Scrolling,
-  Export,
 } from 'devextreme-react/data-grid';
 import {
   PieChart,
@@ -33,10 +31,6 @@ import { TextBox } from 'devextreme-react/text-box';
 import { DxButton } from '@/components/ui/dx-button';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
-import { Workbook } from 'exceljs';
-import { saveAs } from 'file-saver';
-import { exportDataGrid } from 'devextreme/excel_exporter';
-import type { ExportingEvent } from 'devextreme/ui/data_grid';
 import {
   ClipboardList,
   FileCheck,
@@ -243,26 +237,6 @@ export default function QualitySpecsPage() {
       return `≤ ${spec.maxValue} ${spec.unit || ''}`.trim();
     }
     return spec.specification || '-';
-  }, []);
-
-  // Export handler
-  const handleExporting = useCallback((e: ExportingEvent) => {
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet('Quality Specs');
-
-    exportDataGrid({
-      component: e.component,
-      worksheet,
-      autoFilterEnabled: true,
-    }).then(() => {
-      workbook.xlsx.writeBuffer().then((buffer) => {
-        saveAs(
-          new Blob([buffer], { type: 'application/octet-stream' }),
-          `Quality_Specs_${toLocalDateStr(new Date())}.xlsx`
-        );
-      });
-    });
-    e.cancel = true;
   }, []);
 
   // Cell renderers
@@ -535,7 +509,6 @@ export default function QualitySpecsPage() {
                 height={500}
                 columnAutoWidth={true}
                 wordWrapEnabled={false}
-                onExporting={handleExporting}
                 onRowClick={(e) => {
                   if (e.data && e.rowType === 'data') {
                     router.push(`/quality/specs/${e.data.id}`);
@@ -551,7 +524,6 @@ export default function QualitySpecsPage() {
                   showNavigationButtons={true}
                 />
                 <SearchPanel visible={true} placeholder={t('specs.grid.searchPlaceholder')} width={250} />
-                <Export enabled={true} formats={['xlsx']} />
 
                 <Column
                   dataField="_rowNumber"
@@ -761,9 +733,9 @@ export default function QualitySpecsPage() {
                   </Series>
                   <Legend
                     visible={true}
-                    orientation="horizontal"
-                    horizontalAlignment="center"
-                    verticalAlignment="bottom"
+                    orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                     font={{ size: 12 }}
                   />
                   <Tooltip
@@ -805,9 +777,9 @@ export default function QualitySpecsPage() {
                   </Series>
                   <Legend
                     visible={true}
-                    orientation="horizontal"
-                    horizontalAlignment="center"
-                    verticalAlignment="bottom"
+                    orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                     font={{ size: 12 }}
                   />
                   <Tooltip

@@ -18,8 +18,6 @@ import DataGrid, {
   Toolbar,
   Item,
   Lookup,
-  Export,
-  ColumnChooser,
   StateStoring,
   Grouping,
   GroupPanel,
@@ -790,15 +788,11 @@ export default function PositionsPage() {
               <Selection mode="single" />
               <Grouping contextMenuEnabled />
               <GroupPanel visible />
-              <ColumnChooser enabled />
               <StateStoring enabled type="localStorage" storageKey="hr-positions-grid-v2" />
-              <Export enabled />
 
               <Toolbar>
                 <Item name="groupPanel" />
                 <Item name="searchPanel" />
-                <Item name="columnChooserButton" />
-                <Item name="exportButton" />
               </Toolbar>
 
               <Column

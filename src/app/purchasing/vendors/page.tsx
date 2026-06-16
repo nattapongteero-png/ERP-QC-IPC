@@ -522,9 +522,6 @@ export default function VendorsPage() {
                 keyExpr="id"
                 columns={columns}
                 sorting
-                export
-                exportFileName="vendors"
-                columnChooser
                 responsiveColumns
                 virtualScrolling={filteredVendors.length > 100}
                 height={600}

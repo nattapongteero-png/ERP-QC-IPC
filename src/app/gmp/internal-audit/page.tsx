@@ -18,8 +18,6 @@ import DataGrid, {
   Paging,
   Pager,
   SearchPanel,
-  ColumnChooser,
-  Export,
   Grouping,
   GroupPanel,
   Summary,
@@ -28,10 +26,6 @@ import DataGrid, {
   Item,
   Scrolling,
 } from 'devextreme-react/data-grid';
-import { Workbook } from 'exceljs';
-import { saveAs } from 'file-saver';
-import { exportDataGrid } from 'devextreme/excel_exporter';
-import type { ExportingEvent } from 'devextreme/ui/data_grid';
 import PieChart, {
   Series as PieSeries,
   Label as PieLabel,
@@ -573,30 +567,6 @@ export default function InternalAuditDashboardPage() {
       { category: t('internalAudit.findingCategories.observation'), count: statistics.findingsByCategory.observation, color: '#64748b' },
     ].filter(d => d.count > 0);
   }, [statistics, t]);
-
-  // Excel export handler
-  const onExporting = useCallback((e: ExportingEvent) => {
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet('Audits');
-
-    exportDataGrid({
-      component: e.component,
-      worksheet,
-      autoFilterEnabled: true,
-      customizeCell: ({ gridCell, excelCell }) => {
-        if (gridCell?.rowType === 'data') {
-          if (gridCell.column?.dataField === 'status') {
-            const status = gridCell.value as AuditStatus;
-            excelCell.value = AUDIT_STATUS_CONFIG[status] ? t(`internalAudit.statusLabels.${status}`) : status;
-          }
-        }
-      },
-    }).then(() => {
-      workbook.xlsx.writeBuffer().then((buffer) => {
-        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), `audits-${currentYear}.xlsx`);
-      });
-    });
-  }, [currentYear]);
 
   // Custom cell renderers
   const renderStatusCell = useCallback((data: { value: AuditStatus }) => {
@@ -1141,7 +1111,6 @@ export default function InternalAuditDashboardPage() {
               allowColumnResizing={true}
               columnAutoWidth={true}
               wordWrapEnabled={true}
-              onExporting={onExporting}
               className="audit-professional-grid"
               style={{ minWidth: 960 }}
             >
@@ -1149,8 +1118,6 @@ export default function InternalAuditDashboardPage() {
               <SearchPanel visible={true} placeholder={t('internalAudit.search.placeholder')} width={250} />
               <GroupPanel visible={true} />
               <Grouping autoExpandAll={false} />
-              <ColumnChooser enabled={true} mode="select" />
-              <Export enabled={true} allowExportSelectedData={false} />
 
               <Column
                 dataField="_rowNumber"
@@ -1235,8 +1202,6 @@ export default function InternalAuditDashboardPage() {
 
               <Toolbar>
                 <Item name="groupPanel" />
-                <Item name="columnChooserButton" />
-                <Item name="exportButton" />
                 <Item name="searchPanel" />
               </Toolbar>
             </DataGrid>

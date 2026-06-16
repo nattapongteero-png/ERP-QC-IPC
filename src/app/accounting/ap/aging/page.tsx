@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button } from 'devextreme-react/button';
-import DataGrid, { Column, Export, Summary, TotalItem } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import {
   ResponsiveContainer,
   BarChart,
@@ -253,7 +253,6 @@ export default function APAgingReportPage() {
                 <Column dataField="days61to90" caption="61-90 Days" format="#,##0.00" width={120} />
                 <Column dataField="over90" caption="90+ Days" format="#,##0.00" width={120} />
                 <Column dataField="total" caption="Total" format="#,##0.00" width={140} />
-                <Export enabled allowExportSelectedData={false} />
                 <Summary>
                   <TotalItem column="current" summaryType="sum" valueFormat="#,##0.00" />
                   <TotalItem column="days1to30" summaryType="sum" valueFormat="#,##0.00" />

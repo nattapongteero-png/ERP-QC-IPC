@@ -607,7 +607,9 @@ export default function CustomersPage() {
                   <Series argumentField="type" valueField="count">
                     <Label visible={false} />
                   </Series>
-                  <Legend orientation="horizontal" horizontalAlignment="center" verticalAlignment="bottom" />
+                  {/* Legend on the RIGHT (vertical) so long Thai labels stack
+                      down the side and never get clipped. */}
+                  <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" />
                   <Tooltip enabled={true} customizeTooltip={(arg) => ({
                     text: `${arg.argumentText}: ${t('customers.cards.count', { count: arg.valueText || 0 })}`
                   })} />
@@ -642,7 +644,7 @@ export default function CustomersPage() {
                   <Series argumentField="type" valueField="credit">
                     <Label visible={false} />
                   </Series>
-                  <Legend orientation="horizontal" horizontalAlignment="center" verticalAlignment="bottom" />
+                  <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" />
                   <Tooltip enabled={true} customizeTooltip={(arg) => ({
                     text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`
                   })} />
@@ -847,9 +849,6 @@ export default function CustomersPage() {
                   columns={columns}
                   loading={isLoading}
                   sorting
-                  export
-                  exportFileName="customers"
-                  columnChooser
                   responsiveColumns
                   virtualScrolling={filteredCustomers.length > 100}
                   height={600}

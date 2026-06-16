@@ -856,9 +856,6 @@ export default function RecallsDashboardPage() {
             keyExpr="id"
             columns={columns}
             sorting
-            export
-            exportFileName="recalls"
-            columnChooser
             responsiveColumns
             virtualScrolling={filteredRecalls.length > 100}
             height={600}

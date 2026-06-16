@@ -21,15 +21,11 @@ import DataGrid, {
   SearchPanel,
   Toolbar,
   Item,
-  Export,
   LoadPanel,
   Summary,
   TotalItem,
   MasterDetail,
 } from 'devextreme-react/data-grid';
-import { exportDataGrid } from 'devextreme/excel_exporter';
-import { Workbook } from 'exceljs';
-import { saveAs } from 'file-saver';
 import { DxButton } from '@/components/ui/dx-button';
 import { MobileListView } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
@@ -57,7 +53,6 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { toLocalDateStr } from '@/lib/utils/date-format';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 import type { VmiSyncType, VmiSyncStatus } from '@/types/vmi';
 
@@ -349,25 +344,6 @@ export default function VmiSyncPage() {
       isRunning: historyData?.items?.some((item) => item.status === 'running') || false,
     };
   }, [historyData]);
-
-  // Handle Excel export
-  const handleExporting = useCallback((e: DataGridTypes.ExportingEvent) => {
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet('VMI Sync History');
-
-    exportDataGrid({
-      component: e.component,
-      worksheet,
-      autoFilterEnabled: true,
-    }).then(() => {
-      workbook.xlsx.writeBuffer().then((buffer) => {
-        saveAs(
-          new Blob([buffer], { type: 'application/octet-stream' }),
-          `vmi-sync-history-${toLocalDateStr(new Date())}.xlsx`
-        );
-      });
-    });
-  }, []);
 
   // Cell render functions
   const renderSyncTypeCell = useCallback((cellInfo: DataGridTypes.ColumnCellTemplateData) => {
@@ -1066,13 +1042,11 @@ export default function VmiSyncPage() {
             wordWrapEnabled={false}
             height={500}
             noDataText={t('sync.history.empty')}
-            onExporting={handleExporting}
             className="dx-card-grid"
           >
             <LoadPanel enabled={isLoading} />
             <SearchPanel visible={true} placeholder={t('sync.history.searchPlaceholder')} width={250} />
             <Sorting mode="multiple" />
-            <Export enabled={true} allowExportSelectedData={false} />
 
             <MasterDetail enabled={true} component={renderMasterDetail} />
 
@@ -1087,7 +1061,6 @@ export default function VmiSyncPage() {
                   hint={t('sync.history.filterHint')}
                 />
               </Item>
-              <Item name="exportButton" location="after" />
             </Toolbar>
 
             <Column

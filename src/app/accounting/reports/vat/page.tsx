@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button as DxButton } from 'devextreme-react/button';
-import DataGrid, { Column, Export, Summary, TotalItem } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
 import {
   AccountingPageHeader,
@@ -236,7 +236,6 @@ export default function VATReportPage() {
                   dataType="number"
                   format="#,##0.00"
                 />
-                <Export enabled allowExportSelectedData />
                 <Summary>
                   <TotalItem column="taxableAmount" summaryType="sum" valueFormat="#,##0.00" />
                   <TotalItem column="vatAmount" summaryType="sum" valueFormat="#,##0.00" />
@@ -303,7 +302,6 @@ export default function VATReportPage() {
                   dataType="number"
                   format="#,##0.00"
                 />
-                <Export enabled allowExportSelectedData />
                 <Summary>
                   <TotalItem column="taxableAmount" summaryType="sum" valueFormat="#,##0.00" />
                   <TotalItem column="vatAmount" summaryType="sum" valueFormat="#,##0.00" />

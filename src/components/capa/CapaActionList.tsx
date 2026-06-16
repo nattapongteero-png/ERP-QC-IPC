@@ -183,7 +183,7 @@ export function CapaActionList({
     if (verified) {
       return (
         <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-          Verified
+          ตรวจสอบแล้ว
         </span>
       );
     }
@@ -195,29 +195,42 @@ export function CapaActionList({
       overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     };
 
+    const statusLabels: Record<CapaActionStatus, string> = {
+      pending: 'รอดำเนินการ',
+      in_progress: 'กำลังดำเนินการ',
+      completed: 'เสร็จสิ้น',
+      overdue: 'เกินกำหนด',
+    };
+
     return (
       <span className={`px-2 py-1 text-xs rounded-full ${statusColors[status]}`}>
-        {status.replace('_', ' ').toUpperCase()}
+        {statusLabels[status]}
       </span>
     );
   };
 
   // Action type options
   const actionTypeOptions = [
-    { value: 'immediate', label: 'Immediate' },
-    { value: 'corrective', label: 'Corrective' },
-    { value: 'preventive', label: 'Preventive' },
+    { value: 'immediate', label: 'แก้ไขทันที' },
+    { value: 'corrective', label: 'แก้ไข' },
+    { value: 'preventive', label: 'ป้องกัน' },
   ];
+
+  const actionTypeLabels: Record<string, string> = {
+    immediate: 'แก้ไขทันที',
+    corrective: 'แก้ไข',
+    preventive: 'ป้องกัน',
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Actions ({actions.length})
+          การดำเนินการ ({actions.length})
         </h3>
         {canEdit && (
           <DxButton
-            text="Add Action"
+            text="เพิ่มการดำเนินการ"
             icon="add"
             onClick={() => {
               loadUsers();
@@ -230,9 +243,9 @@ export function CapaActionList({
 
       {actions.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          <p>No actions defined yet</p>
+          <p>ยังไม่มีการกำหนดการดำเนินการ</p>
           {canEdit && (
-            <p className="text-sm mt-2">Click &quot;Add Action&quot; to create the first action</p>
+            <p className="text-sm mt-2">คลิก &quot;เพิ่มการดำเนินการ&quot; เพื่อสร้างการดำเนินการแรก</p>
           )}
         </div>
       ) : (
@@ -249,11 +262,11 @@ export function CapaActionList({
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="font-medium text-sm">
-                        Action #{action.actionNumber}
+                        การดำเนินการ #{action.actionNumber}
                       </span>
                       <span className="mx-2 text-muted-foreground">-</span>
                       <span className="text-xs px-2 py-0.5 bg-muted rounded capitalize">
-                        {action.actionType}
+                        {actionTypeLabels[action.actionType] ?? action.actionType}
                       </span>
                     </div>
                     {getStatusBadge(action.status, !!action.verifiedBy)}
@@ -271,20 +284,20 @@ export function CapaActionList({
                     {action.dueDate && (
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        Due: {action.dueDate}
+                        กำหนดเสร็จ: {action.dueDate}
                       </span>
                     )}
                     {action.verifiedByName && (
                       <span className="flex items-center gap-1 text-green-600">
                         <Shield className="h-3 w-3" />
-                        Verified by {action.verifiedByName}
+                        ตรวจสอบโดย {action.verifiedByName}
                       </span>
                     )}
                   </div>
 
                   {action.completionNotes && (
                     <div className="mt-2 p-2 bg-muted rounded-md text-sm">
-                      <span className="font-medium">Completion Notes: </span>
+                      <span className="font-medium">บันทึกการดำเนินการเสร็จสิ้น: </span>
                       {action.completionNotes}
                     </div>
                   )}
@@ -294,7 +307,7 @@ export function CapaActionList({
                     <div className="flex items-center gap-2 mt-3">
                       {action.status === 'pending' && (
                         <DxButton
-                          text="Start"
+                          text="เริ่มดำเนินการ"
                           onClick={() => updateMutation.mutate({
                             actionId: action.id,
                             data: { status: 'in_progress' }
@@ -304,7 +317,7 @@ export function CapaActionList({
                       )}
                       {action.status === 'in_progress' && (
                         <DxButton
-                          text="Complete"
+                          text="ทำให้เสร็จสิ้น"
                           onClick={() => {
                             setSelectedAction(action);
                             setShowCompleteDialog(true);
@@ -314,7 +327,7 @@ export function CapaActionList({
                       )}
                       {action.status === 'completed' && !action.verifiedBy && (
                         <DxButton
-                          text="Verify"
+                          text="ตรวจสอบ"
                           icon="check"
                           onClick={() => verifyMutation.mutate(action.id)}
                           type="success"
@@ -334,14 +347,14 @@ export function CapaActionList({
       <DxPopup
         visible={showAddDialog}
         onHiding={() => setShowAddDialog(false)}
-        title="Add Action"
+        title="เพิ่มการดำเนินการ"
         width={500}
         height="auto"
         showCloseButton
       >
         <div className="p-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Action Type</label>
+            <label className="text-sm font-medium">ประเภทการดำเนินการ</label>
             <DxSelectBox
               items={actionTypeOptions}
               value={newAction.actionType}
@@ -352,29 +365,29 @@ export function CapaActionList({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
+            <label className="text-sm font-medium">รายละเอียด</label>
             <DxTextArea
               value={newAction.description}
               onValueChange={(value) => setNewAction((prev) => ({ ...prev, description: value || '' }))}
-              placeholder="Describe the action to be taken..."
+              placeholder="อธิบายการดำเนินการที่ต้องทำ..."
               height={100}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Assignee</label>
+            <label className="text-sm font-medium">ผู้รับผิดชอบ</label>
             <DxSelectBox
               items={users.map((u) => ({ value: u.id, label: u.name }))}
               value={newAction.assigneeId}
               valueExpr="value"
               displayExpr="label"
               onValueChange={(value) => setNewAction((prev) => ({ ...prev, assigneeId: value }))}
-              placeholder="Select assignee"
+              placeholder="เลือกผู้รับผิดชอบ"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Due Date</label>
+            <label className="text-sm font-medium">วันที่กำหนดเสร็จ</label>
             <DxDateBox
               value={newAction.dueDate || undefined}
               onValueChange={(value) =>
@@ -390,12 +403,12 @@ export function CapaActionList({
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => setShowAddDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Add Action"
+              text="เพิ่มการดำเนินการ"
               icon="add"
               onClick={() => addMutation.mutate()}
               type="success"
@@ -413,7 +426,7 @@ export function CapaActionList({
           setSelectedAction(null);
           setCompletionNotes('');
         }}
-        title="Complete Action"
+        title="ทำให้การดำเนินการเสร็จสิ้น"
         width={500}
         height="auto"
         showCloseButton
@@ -421,24 +434,24 @@ export function CapaActionList({
         <div className="p-4 space-y-4">
           {selectedAction && (
             <div className="p-3 bg-muted rounded-lg">
-              <p className="font-medium">Action #{selectedAction.actionNumber}</p>
+              <p className="font-medium">การดำเนินการ #{selectedAction.actionNumber}</p>
               <p className="text-sm text-muted-foreground">{selectedAction.description}</p>
             </div>
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Completion Notes</label>
+            <label className="text-sm font-medium">บันทึกการดำเนินการเสร็จสิ้น</label>
             <DxTextArea
               value={completionNotes}
               onValueChange={(value) => setCompletionNotes(value || '')}
-              placeholder="Describe what was done to complete this action..."
+              placeholder="อธิบายสิ่งที่ได้ทำเพื่อให้การดำเนินการนี้เสร็จสิ้น..."
               height={120}
             />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => {
                 setShowCompleteDialog(false);
                 setSelectedAction(null);
@@ -447,7 +460,7 @@ export function CapaActionList({
               stylingMode="outlined"
             />
             <DxButton
-              text="Mark Complete"
+              text="ยืนยันเสร็จสิ้น"
               icon="check"
               onClick={() => {
                 if (selectedAction) {

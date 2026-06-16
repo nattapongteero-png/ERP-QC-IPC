@@ -180,13 +180,13 @@ export function ComplaintForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.receivedDate) {
-      newErrors.receivedDate = 'Received date is required';
+      newErrors.receivedDate = 'กรุณาระบุวันที่รับเรื่อง';
     }
     if (!formData.productId) {
-      newErrors.productId = 'Product is required';
+      newErrors.productId = 'กรุณาเลือกผลิตภัณฑ์';
     }
     if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+      newErrors.description = 'กรุณากรอกรายละเอียด';
     }
 
     setErrors(newErrors);
@@ -210,34 +210,34 @@ export function ComplaintForm({
 
   // Source options
   const sourceOptions = [
-    { value: 'customer', label: 'Customer' },
-    { value: 'distributor', label: 'Distributor' },
-    { value: 'regulatory', label: 'Regulatory Authority' },
-    { value: 'internal', label: 'Internal' },
+    { value: 'customer', label: 'ลูกค้า' },
+    { value: 'distributor', label: 'ตัวแทนจำหน่าย' },
+    { value: 'regulatory', label: 'หน่วยงานกำกับดูแล' },
+    { value: 'internal', label: 'ภายในองค์กร' },
   ];
 
   // Category options
   const categoryOptions = [
-    { value: 'quality', label: 'Quality' },
-    { value: 'efficacy', label: 'Efficacy' },
-    { value: 'safety', label: 'Safety' },
-    { value: 'packaging', label: 'Packaging' },
-    { value: 'labeling', label: 'Labeling' },
-    { value: 'other', label: 'Other' },
+    { value: 'quality', label: 'คุณภาพ' },
+    { value: 'efficacy', label: 'ประสิทธิภาพ' },
+    { value: 'safety', label: 'ความปลอดภัย' },
+    { value: 'packaging', label: 'บรรจุภัณฑ์' },
+    { value: 'labeling', label: 'ฉลาก' },
+    { value: 'other', label: 'อื่น ๆ' },
   ];
 
   // Severity options
   const severityOptions = [
-    { value: 'minor', label: 'Minor' },
-    { value: 'major', label: 'Major' },
-    { value: 'critical', label: 'Critical' },
+    { value: 'minor', label: 'เล็กน้อย' },
+    { value: 'major', label: 'รุนแรง' },
+    { value: 'critical', label: 'วิกฤต' },
   ];
 
   return (
     <div className="space-y-6 p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">
-          {isEditing ? 'Edit Complaint' : 'New Complaint'}
+          {isEditing ? 'แก้ไขข้อร้องเรียน' : 'ข้อร้องเรียนใหม่'}
         </h2>
         {onCancel && (
           <button
@@ -259,7 +259,7 @@ export function ComplaintForm({
         {/* Received Date */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Received Date <span className="text-destructive">*</span>
+            วันที่รับเรื่อง <span className="text-destructive">*</span>
           </label>
           <DxDateBox
             value={formData.receivedDate || undefined}
@@ -280,7 +280,7 @@ export function ComplaintForm({
 
         {/* Source */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Source</label>
+          <label className="text-sm font-medium">แหล่งที่มา</label>
           <DxSelectBox
             items={sourceOptions}
             value={formData.source}
@@ -293,22 +293,22 @@ export function ComplaintForm({
 
         {/* Customer Name */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Customer Name</label>
+          <label className="text-sm font-medium">ชื่อลูกค้า</label>
           <DxTextBox
             value={formData.customerName}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, customerName: value || '' }))}
-            placeholder="Enter customer name"
+            placeholder="กรอกชื่อลูกค้า"
             disabled={isEditing}
           />
         </div>
 
         {/* Customer Contact */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Customer Contact</label>
+          <label className="text-sm font-medium">ข้อมูลติดต่อ</label>
           <DxTextBox
             value={formData.customerContact}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, customerContact: value || '' }))}
-            placeholder="Phone, email, or address"
+            placeholder="โทรศัพท์ อีเมล หรือที่อยู่"
             disabled={isEditing}
           />
         </div>
@@ -316,7 +316,7 @@ export function ComplaintForm({
         {/* Product */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Product <span className="text-destructive">*</span>
+            ผลิตภัณฑ์ <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
             items={(products || []).map((p) => ({ value: p.id, label: `${p.nameTh} (${p.code})` }))}
@@ -324,7 +324,7 @@ export function ComplaintForm({
             valueExpr="value"
             displayExpr="label"
             onValueChange={(value) => setFormData((prev) => ({ ...prev, productId: value, lotId: null }))}
-            placeholder="Select product"
+            placeholder="เลือกผลิตภัณฑ์..."
             searchEnabled
             disabled={isEditing}
           />
@@ -336,14 +336,14 @@ export function ComplaintForm({
         {/* Lot Number */}
         {formData.productId && (
           <div className="space-y-2">
-            <label className="text-sm font-medium">Lot Number</label>
+            <label className="text-sm font-medium">เลขล็อต</label>
             <DxSelectBox
               items={(lots || []).map((l) => ({ value: l.id, label: l.lotNumber }))}
               value={formData.lotId}
               valueExpr="value"
               displayExpr="label"
               onValueChange={(value) => setFormData((prev) => ({ ...prev, lotId: value }))}
-              placeholder="Select lot (optional)"
+              placeholder="เลือกล็อต (ถ้ามี)"
               showClearButton
               disabled={isEditing}
             />
@@ -352,7 +352,7 @@ export function ComplaintForm({
 
         {/* Category */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Category</label>
+          <label className="text-sm font-medium">หมวดหมู่</label>
           <DxSelectBox
             items={categoryOptions}
             value={formData.category}
@@ -366,7 +366,7 @@ export function ComplaintForm({
         {/* Severity */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Severity <span className="text-destructive">*</span>
+            ความรุนแรง <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
             items={severityOptions}
@@ -380,12 +380,12 @@ export function ComplaintForm({
         {/* Description */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Description <span className="text-destructive">*</span>
+            รายละเอียด <span className="text-destructive">*</span>
           </label>
           <DxTextArea
             value={formData.description}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, description: value || '' }))}
-            placeholder="Describe the complaint in detail..."
+            placeholder="อธิบายข้อร้องเรียนโดยละเอียด..."
             height={120}
             disabled={isEditing}
           />
@@ -397,7 +397,7 @@ export function ComplaintForm({
         {/* Actions */}
         <div className="flex items-center gap-3 pt-4">
           <DxButton
-            text={isEditing ? 'Save Changes' : 'Create Complaint'}
+            text={isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'ลงทะเบียนข้อร้องเรียน'}
             icon="save"
             onClick={handleSubmit}
             type="success"
@@ -405,7 +405,7 @@ export function ComplaintForm({
           />
           {onCancel && (
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={onCancel}
               stylingMode="outlined"
               disabled={isSubmitting}

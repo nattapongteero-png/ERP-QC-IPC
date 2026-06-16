@@ -15,12 +15,10 @@ import DataGrid, {
   Paging,
   Pager,
   Scrolling,
-  Export,
   Toolbar,
   Item,
   Grouping,
   GroupPanel,
-  ColumnChooser,
   StateStoring,
 } from 'devextreme-react/data-grid';
 import PieChart, {
@@ -643,14 +641,12 @@ export default function TrainingDashboardPage() {
             <SearchPanel visible placeholder="ค้นหารอบอบรม..." />
             <Grouping autoExpandAll={false} />
             <GroupPanel visible />
-            <ColumnChooser enabled mode="select" />
             <StateStoring
               enabled
               type="localStorage"
               storageKey="hr_training_sessions_grid_v2"
             />
             <Scrolling mode="virtual" />
-            <Export enabled />
 
             <Column
               dataField="_rowNumber"
@@ -746,8 +742,6 @@ export default function TrainingDashboardPage() {
             <Toolbar>
               <Item name="groupPanel" />
               <Item name="searchPanel" />
-              <Item name="columnChooserButton" />
-              <Item name="exportButton" />
             </Toolbar>
           </DataGrid>
         </div>

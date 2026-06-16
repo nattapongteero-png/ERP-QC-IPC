@@ -24,8 +24,6 @@ import DataGrid, {
   Pager,
   SearchPanel,
   Sorting,
-  ColumnChooser,
-  Export,
   Toolbar,
   Item,
   LoadPanel,
@@ -754,8 +752,6 @@ export default function CapaDashboardPage() {
               <StateStoring enabled={true} type="localStorage" storageKey="capaGridState" />
               <SearchPanel visible={true} width={250} placeholder={t('capa.search.placeholder')} />
               <Sorting mode="multiple" />
-              <ColumnChooser enabled={true} mode="select" />
-              <Export enabled={true} allowExportSelectedData={true} />
               <Paging defaultPageSize={20} />
               <Pager
                 showPageSizeSelector={true}
@@ -841,8 +837,6 @@ export default function CapaDashboardPage() {
 
               <Toolbar>
                 <Item name="searchPanel" />
-                <Item name="columnChooserButton" />
-                <Item name="exportButton" />
               </Toolbar>
             </DataGrid>
           </div>

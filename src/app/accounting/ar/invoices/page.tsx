@@ -20,8 +20,6 @@ import DataGrid, {
   SearchPanel,
   Toolbar,
   Item,
-  Export,
-  ColumnChooser,
   Sorting,
   Summary,
   TotalItem,
@@ -707,13 +705,9 @@ export default function ARInvoicesPage() {
           />
           <SearchPanel visible={true} placeholder="ค้นหา..." />
           <Sorting mode="multiple" />
-          <ColumnChooser enabled={true} />
-          <Export enabled={true} />
 
           <Toolbar>
             <Item name="searchPanel" location="before" />
-            <Item name="exportButton" location="after" />
-            <Item name="columnChooserButton" location="after" />
           </Toolbar>
 
           <Column

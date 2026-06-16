@@ -554,9 +554,9 @@ export default function ContractsDashboardPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                 font={{ size: 11 }}
               />
               <Tooltip
@@ -599,9 +599,9 @@ export default function ContractsDashboardPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
+                orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
                 font={{ size: 11 }}
               />
               <Tooltip

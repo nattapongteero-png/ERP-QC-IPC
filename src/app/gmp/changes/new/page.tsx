@@ -104,19 +104,19 @@ export default function NewChangeRequestPage() {
 
   // Form configuration
   const changeTypeOptions = [
-    { value: 'process', text: 'Process' },
-    { value: 'equipment', text: 'Equipment' },
-    { value: 'document', text: 'Document' },
-    { value: 'supplier', text: 'Supplier' },
-    { value: 'formula', text: 'Formula' },
-    { value: 'other', text: 'Other' },
+    { value: 'process', text: 'กระบวนการ' },
+    { value: 'equipment', text: 'เครื่องจักร/อุปกรณ์' },
+    { value: 'document', text: 'เอกสาร' },
+    { value: 'supplier', text: 'ผู้ขาย/ผู้ส่งมอบ' },
+    { value: 'formula', text: 'สูตรการผลิต' },
+    { value: 'other', text: 'อื่น ๆ' },
   ];
 
   const priorityOptions = [
-    { value: 'low', text: 'Low' },
-    { value: 'medium', text: 'Medium' },
-    { value: 'high', text: 'High' },
-    { value: 'urgent', text: 'Urgent' },
+    { value: 'low', text: 'ต่ำ' },
+    { value: 'medium', text: 'ปานกลาง' },
+    { value: 'high', text: 'สูง' },
+    { value: 'urgent', text: 'เร่งด่วน' },
   ];
 
   const userOptions = users?.map((u) => ({ value: u.id, text: u.name })) || [];
@@ -124,11 +124,11 @@ export default function NewChangeRequestPage() {
   // Handlers
   const handleSubmit = useCallback(() => {
     if (!formData.title.trim()) {
-      alert('Title is required');
+      alert('กรุณากรอกหัวข้อ');
       return;
     }
     if (!formData.ownerId) {
-      alert('Owner is required');
+      alert('กรุณาเลือกผู้รับผิดชอบการเปลี่ยนแปลง');
       return;
     }
 
@@ -155,19 +155,19 @@ export default function NewChangeRequestPage() {
   const formItems = [
     {
       itemType: 'group' as const,
-      caption: 'Basic Information',
+      caption: 'ข้อมูลพื้นฐาน',
       items: [
         {
           dataField: 'title',
-          label: { text: 'Title' },
+          label: { text: 'หัวข้อ' },
           isRequired: true,
           editorOptions: {
-            placeholder: 'Brief description of the change',
+            placeholder: 'คำอธิบายการเปลี่ยนแปลงโดยย่อ',
           },
         },
         {
           dataField: 'changeType',
-          label: { text: 'Change Type' },
+          label: { text: 'ประเภทการเปลี่ยนแปลง' },
           editorType: 'dxSelectBox',
           isRequired: true,
           editorOptions: {
@@ -178,7 +178,7 @@ export default function NewChangeRequestPage() {
         },
         {
           dataField: 'priority',
-          label: { text: 'Priority' },
+          label: { text: 'ความสำคัญ' },
           editorType: 'dxSelectBox',
           isRequired: true,
           editorOptions: {
@@ -189,7 +189,7 @@ export default function NewChangeRequestPage() {
         },
         {
           dataField: 'ownerId',
-          label: { text: 'Change Owner' },
+          label: { text: 'ผู้รับผิดชอบการเปลี่ยนแปลง' },
           editorType: 'dxSelectBox',
           isRequired: true,
           editorOptions: {
@@ -197,66 +197,66 @@ export default function NewChangeRequestPage() {
             displayExpr: 'text',
             valueExpr: 'value',
             searchEnabled: true,
-            placeholder: 'Select owner',
+            placeholder: 'เลือกผู้รับผิดชอบ',
           },
         },
         {
           dataField: 'targetDate',
-          label: { text: 'Target Implementation Date' },
+          label: { text: 'วันที่กำหนดดำเนินการ' },
           editorType: 'dxDateBox',
           editorOptions: {
             type: 'date',
             displayFormat: 'dd MMM yyyy',
-            placeholder: 'Select target date',
+            placeholder: 'เลือกวันที่',
           },
         },
       ],
     },
     {
       itemType: 'group' as const,
-      caption: 'Change Description',
+      caption: 'รายละเอียดการเปลี่ยนแปลง',
       items: [
         {
           dataField: 'description',
-          label: { text: 'Description' },
+          label: { text: 'รายละเอียด' },
           editorType: 'dxTextArea',
           editorOptions: {
             height: 100,
-            placeholder: 'Detailed description of the proposed change',
+            placeholder: 'รายละเอียดของการเปลี่ยนแปลงที่เสนอ',
           },
         },
       ],
     },
     {
       itemType: 'group' as const,
-      caption: 'Change Assessment',
+      caption: 'การประเมินการเปลี่ยนแปลง',
       colCount: 1,
       items: [
         {
           dataField: 'justification',
-          label: { text: 'Justification' },
+          label: { text: 'เหตุผลความจำเป็น' },
           editorType: 'dxTextArea',
           editorOptions: {
             height: 100,
-            placeholder: 'Why is this change necessary?',
+            placeholder: 'เหตุใดจึงจำเป็นต้องมีการเปลี่ยนแปลงนี้?',
           },
         },
         {
           dataField: 'impactAssessment',
-          label: { text: 'Impact Assessment' },
+          label: { text: 'การประเมินผลกระทบ' },
           editorType: 'dxTextArea',
           editorOptions: {
             height: 100,
-            placeholder: 'What areas will be affected by this change?',
+            placeholder: 'การเปลี่ยนแปลงนี้จะส่งผลกระทบต่อส่วนใดบ้าง?',
           },
         },
         {
           dataField: 'riskAssessment',
-          label: { text: 'Risk Assessment' },
+          label: { text: 'การประเมินความเสี่ยง' },
           editorType: 'dxTextArea',
           editorOptions: {
             height: 100,
-            placeholder: 'What are the risks if this change is not implemented?',
+            placeholder: 'มีความเสี่ยงใดบ้างหากไม่ดำเนินการเปลี่ยนแปลงนี้?',
           },
         },
       ],
@@ -283,13 +283,13 @@ export default function NewChangeRequestPage() {
             <div className="flex items-center gap-3">
               <Button
                 icon="back"
-                text="Cancel"
+                text="ยกเลิก"
                 stylingMode="outlined"
                 onClick={handleCancel}
               />
               <Button
                 icon="save"
-                text="Create Change Request"
+                text="สร้างคำขอเปลี่ยนแปลง"
                 type="success"
                 onClick={handleSubmit}
                 disabled={createMutation.isPending}
@@ -305,10 +305,10 @@ export default function NewChangeRequestPage() {
           <div className="flex items-start gap-3">
             <FileEdit className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
-              <p className="font-medium text-blue-800 dark:text-blue-200">Creating a Draft Change Request</p>
+              <p className="font-medium text-blue-800 dark:text-blue-200">การสร้างคำขอเปลี่ยนแปลงแบบร่าง</p>
               <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                This form creates a draft change request. After creation, you can add more details and submit it for approval workflow.
-                All fields except Title and Owner can be updated later.
+                แบบฟอร์มนี้จะสร้างคำขอเปลี่ยนแปลงแบบร่าง หลังจากสร้างแล้ว คุณสามารถเพิ่มรายละเอียดและส่งเข้าสู่ขั้นตอนการอนุมัติได้
+                ทุกฟิลด์ยกเว้นหัวข้อและผู้รับผิดชอบสามารถแก้ไขภายหลังได้
               </p>
             </div>
           </div>
@@ -345,13 +345,13 @@ export default function NewChangeRequestPage() {
         <div className="mt-6 flex items-center justify-end gap-3 lg:hidden">
           <Button
             icon="back"
-            text="Cancel"
+            text="ยกเลิก"
             stylingMode="outlined"
             onClick={handleCancel}
           />
           <Button
             icon="save"
-            text="Create"
+            text="สร้าง"
             type="success"
             onClick={handleSubmit}
             disabled={createMutation.isPending}

@@ -551,9 +551,6 @@ export default function UsersPage() {
                   sorting
                   filterRow
                   headerFilter
-                  export
-                  exportFileName="users"
-                  columnChooser
                   virtualScrolling={filteredUsers.length > 100}
                   fillHeight
                   onRowClick={handleRowClick}

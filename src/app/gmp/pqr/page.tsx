@@ -11,15 +11,12 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DataGrid, {
   Column,
   Paging,
   Pager,
   SearchPanel,
-  ColumnChooser,
-  Export,
   Grouping,
   GroupPanel,
   Summary,
@@ -28,10 +25,6 @@ import DataGrid, {
   Item,
   Scrolling,
 } from 'devextreme-react/data-grid';
-import { Workbook } from 'exceljs';
-import { saveAs } from 'file-saver';
-import { exportDataGrid } from 'devextreme/excel_exporter';
-import type { ExportingEvent } from 'devextreme/ui/data_grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
@@ -370,36 +363,6 @@ export default function PqrDashboardPage() {
       count: item.count,
     }));
   }, [dashboard]);
-
-  // Export handler
-  const handleExporting = (e: ExportingEvent) => {
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet('PQR Reports');
-
-    exportDataGrid({
-      component: e.component,
-      worksheet,
-      autoFilterEnabled: true,
-      customizeCell: ({ gridCell, excelCell }) => {
-        if (gridCell?.rowType === 'header') {
-          excelCell.font = { bold: true };
-          excelCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFE8EAF6' },
-          };
-        }
-      },
-    }).then(() => {
-      workbook.xlsx.writeBuffer().then((buffer) => {
-        saveAs(
-          new Blob([buffer], { type: 'application/octet-stream' }),
-          `PQR_Reports_${toLocalDateStr(new Date())}.xlsx`
-        );
-      });
-    });
-    e.cancel = true;
-  };
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['pqr-dashboard'] });
@@ -779,7 +742,6 @@ export default function PqrDashboardPage() {
                 height={500}
                 columnAutoWidth
                 wordWrapEnabled={false}
-                onExporting={handleExporting}
                 onRowClick={(e) => {
                   if (e.data && e.rowType === 'data') {
                     router.push(`/gmp/pqr/${e.data.id}`);
@@ -790,20 +752,14 @@ export default function PqrDashboardPage() {
                 {/* Toolbar */}
                 <Toolbar>
                   <Item name="groupPanel" />
-                  <Item location="after" name="columnChooserButton" />
-                  <Item location="after" name="exportButton" />
                   <Item location="after" name="searchPanel" />
                 </Toolbar>
 
                 {/* Features */}
                 <SearchPanel visible placeholder="Search reports..." width={250} />
-                <ColumnChooser enabled mode="select" />
                 <Grouping autoExpandAll={false} />
                 <GroupPanel visible />
                 <Scrolling mode="virtual" />
-
-                {/* Export */}
-                <Export enabled allowExportSelectedData formats={['xlsx']} />
 
                 {/* Paging */}
                 <Paging defaultPageSize={15} />

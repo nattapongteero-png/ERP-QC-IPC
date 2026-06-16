@@ -225,9 +225,9 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
               </Label>
             </Series>
             <Legend
-              orientation="horizontal"
-              horizontalAlignment="center"
-              verticalAlignment="bottom"
+              orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
               font={{ size: 11 }}
               rowCount={1}
             />
@@ -270,9 +270,9 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
               </Label>
             </Series>
             <Legend
-              orientation="horizontal"
-              horizontalAlignment="center"
-              verticalAlignment="bottom"
+              orientation="vertical"
+                horizontalAlignment="right"
+                verticalAlignment="top"
               font={{ size: 11 }}
               rowCount={1}
             />

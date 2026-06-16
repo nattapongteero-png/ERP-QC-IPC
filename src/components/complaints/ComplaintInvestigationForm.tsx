@@ -57,7 +57,7 @@ async function routeToQC(complaintId: number, investigatorId: number): Promise<C
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to route complaint');
+    throw new Error(result.error || 'ไม่สามารถส่งต่อข้อร้องเรียนได้');
   }
   return result.data;
 }
@@ -73,7 +73,7 @@ async function recordInvestigation(
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to record investigation');
+    throw new Error(result.error || 'ไม่สามารถบันทึกการสอบสวนได้');
   }
   return result.data;
 }
@@ -130,10 +130,10 @@ export function ComplaintInvestigationForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.rootCause.trim()) {
-      newErrors.rootCause = 'Root cause is required';
+      newErrors.rootCause = 'กรุณาระบุสาเหตุที่แท้จริง';
     }
     if (!formData.conclusion.trim()) {
-      newErrors.conclusion = 'Conclusion is required';
+      newErrors.conclusion = 'กรุณาระบุข้อสรุป';
     }
 
     setErrors(newErrors);
@@ -143,7 +143,7 @@ export function ComplaintInvestigationForm({
   // Handle route to QC
   const handleRouteToQC = () => {
     if (!selectedInvestigatorId) {
-      setErrors({ route: 'Please select an investigator' });
+      setErrors({ route: 'กรุณาเลือกผู้ตรวจสอบ' });
       return;
     }
     routeMutation.mutate();
@@ -164,11 +164,11 @@ export function ComplaintInvestigationForm({
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <UserCheck className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Route to QC</h3>
+          <h3 className="text-lg font-semibold">ส่งต่อให้ฝ่าย QC</h3>
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Assign this complaint to a QC investigator for root cause analysis.
+          มอบหมายข้อร้องเรียนนี้ให้ผู้ตรวจสอบฝ่าย QC เพื่อวิเคราะห์หาสาเหตุที่แท้จริง
         </p>
 
         {errors.route && (
@@ -179,7 +179,7 @@ export function ComplaintInvestigationForm({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Assign Investigator <span className="text-destructive">*</span>
+            มอบหมายผู้ตรวจสอบ <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
             items={(qcUsers || []).map((u) => ({ value: u.id, label: u.displayName }))}
@@ -187,12 +187,12 @@ export function ComplaintInvestigationForm({
             valueExpr="value"
             displayExpr="label"
             onValueChange={(value) => setSelectedInvestigatorId(value)}
-            placeholder="Select QC investigator"
+            placeholder="เลือกผู้ตรวจสอบฝ่าย QC"
           />
         </div>
 
         <DxButton
-          text="Route to QC"
+          text="ส่งต่อให้ฝ่าย QC"
           icon="user"
           onClick={handleRouteToQC}
           type="default"
@@ -210,17 +210,17 @@ export function ComplaintInvestigationForm({
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <FlaskConical className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Investigation</h3>
+          <h3 className="text-lg font-semibold">การสอบสวน</h3>
         </div>
 
         {investigation && (
           <div className="p-3 bg-muted rounded-lg text-sm">
             <div className="flex items-center gap-2 mb-2">
               <UserCheck className="h-4 w-4" />
-              <span>Investigator: {investigation.investigatorName || 'Unknown'}</span>
+              <span>ผู้ตรวจสอบ: {investigation.investigatorName || 'ไม่ทราบ'}</span>
             </div>
             <div className="text-muted-foreground">
-              Started: {investigation.startDate}
+              เริ่มเมื่อ: {investigation.startDate}
             </div>
           </div>
         )}
@@ -233,22 +233,22 @@ export function ComplaintInvestigationForm({
 
         {/* Batch Record Review */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Batch Record Review</label>
+          <label className="text-sm font-medium">การทบทวนบันทึกการผลิตล็อต</label>
           <DxTextArea
             value={formData.batchRecordReview}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, batchRecordReview: value || '' }))}
-            placeholder="Document any findings from batch record review..."
+            placeholder="บันทึกสิ่งที่พบจากการทบทวนบันทึกการผลิตล็อต..."
             height={80}
           />
         </div>
 
         {/* Retain Sample Test */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Retain Sample Test Results</label>
+          <label className="text-sm font-medium">ผลการทดสอบตัวอย่างเก็บกัน</label>
           <DxTextArea
             value={formData.retainSampleTest}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, retainSampleTest: value || '' }))}
-            placeholder="Document test results from retained samples..."
+            placeholder="บันทึกผลการทดสอบจากตัวอย่างที่เก็บกันไว้..."
             height={80}
           />
         </div>
@@ -256,12 +256,12 @@ export function ComplaintInvestigationForm({
         {/* Root Cause */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Root Cause <span className="text-destructive">*</span>
+            สาเหตุที่แท้จริง <span className="text-destructive">*</span>
           </label>
           <DxTextArea
             value={formData.rootCause}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, rootCause: value || '' }))}
-            placeholder="Describe the root cause identified..."
+            placeholder="อธิบายสาเหตุที่แท้จริงที่พบ..."
             height={100}
           />
           {errors.rootCause && (
@@ -272,12 +272,12 @@ export function ComplaintInvestigationForm({
         {/* Conclusion */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Conclusion <span className="text-destructive">*</span>
+            ข้อสรุป <span className="text-destructive">*</span>
           </label>
           <DxTextArea
             value={formData.conclusion}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, conclusion: value || '' }))}
-            placeholder="State the investigation conclusion..."
+            placeholder="ระบุข้อสรุปของการสอบสวน..."
             height={100}
           />
           {errors.conclusion && (
@@ -287,17 +287,17 @@ export function ComplaintInvestigationForm({
 
         {/* Recommendation */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Recommendation</label>
+          <label className="text-sm font-medium">ข้อเสนอแนะ</label>
           <DxTextArea
             value={formData.recommendation}
             onValueChange={(value) => setFormData((prev) => ({ ...prev, recommendation: value || '' }))}
-            placeholder="Recommend corrective/preventive actions..."
+            placeholder="เสนอแนะการดำเนินการแก้ไข/ป้องกัน..."
             height={80}
           />
         </div>
 
         <DxButton
-          text="Complete Investigation"
+          text="เสร็จสิ้นการสอบสวน"
           icon="check"
           onClick={handleRecordInvestigation}
           type="success"
@@ -321,23 +321,23 @@ export function ComplaintInvestigationForm({
             <AlertCircle className="h-5 w-5 text-yellow-600" />
           )}
           <h3 className="text-lg font-semibold">
-            Investigation {isCompleted ? 'Completed' : 'In Progress'}
+            การสอบสวน {isCompleted ? 'เสร็จสิ้น' : 'กำลังดำเนินการ'}
           </h3>
         </div>
 
         <div className="space-y-3 text-sm">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="font-medium text-muted-foreground">Investigator</p>
-              <p>{inv.investigatorName || 'Unknown'}</p>
+              <p className="font-medium text-muted-foreground">ผู้ตรวจสอบ</p>
+              <p>{inv.investigatorName || 'ไม่ทราบ'}</p>
             </div>
             <div>
-              <p className="font-medium text-muted-foreground">Started</p>
+              <p className="font-medium text-muted-foreground">เริ่มเมื่อ</p>
               <p>{inv.startDate}</p>
             </div>
             {inv.completionDate && (
               <div>
-                <p className="font-medium text-muted-foreground">Completed</p>
+                <p className="font-medium text-muted-foreground">เสร็จสิ้นเมื่อ</p>
                 <p>{inv.completionDate}</p>
               </div>
             )}
@@ -345,21 +345,21 @@ export function ComplaintInvestigationForm({
 
           {inv.rootCause && (
             <div>
-              <p className="font-medium text-muted-foreground">Root Cause</p>
+              <p className="font-medium text-muted-foreground">สาเหตุที่แท้จริง</p>
               <p className="whitespace-pre-wrap bg-muted p-2 rounded-md mt-1">{inv.rootCause}</p>
             </div>
           )}
 
           {inv.conclusion && (
             <div>
-              <p className="font-medium text-muted-foreground">Conclusion</p>
+              <p className="font-medium text-muted-foreground">ข้อสรุป</p>
               <p className="whitespace-pre-wrap bg-muted p-2 rounded-md mt-1">{inv.conclusion}</p>
             </div>
           )}
 
           {inv.recommendation && (
             <div>
-              <p className="font-medium text-muted-foreground">Recommendation</p>
+              <p className="font-medium text-muted-foreground">ข้อเสนอแนะ</p>
               <p className="whitespace-pre-wrap bg-muted p-2 rounded-md mt-1">{inv.recommendation}</p>
             </div>
           )}

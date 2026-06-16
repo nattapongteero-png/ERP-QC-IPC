@@ -75,7 +75,7 @@ export default function AuditPlansPage() {
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [formData, setFormData] = useState({
     planYear: currentYear,
-    name: `Annual Audit Plan ${currentYear}`,
+    name: `แผนการตรวจประเมินภายในประจำปี ${currentYear}`,
     description: '',
   });
 
@@ -87,34 +87,34 @@ export default function AuditPlansPage() {
   const createMutation = useMutation({
     mutationFn: createPlan,
     onSuccess: () => {
-      toast.success('Audit plan created successfully');
+      toast.success('สร้างแผนการตรวจประเมินสำเร็จ');
       queryClient.invalidateQueries({ queryKey: ['audit-plans'] });
       setShowCreatePopup(false);
       setFormData({
         planYear: currentYear,
-        name: `Annual Audit Plan ${currentYear}`,
+        name: `แผนการตรวจประเมินภายในประจำปี ${currentYear}`,
         description: '',
       });
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to create audit plan');
+      toast.error(err.message || 'ไม่สามารถสร้างแผนการตรวจประเมินได้');
     },
   });
 
   const approveMutation = useMutation({
     mutationFn: approvePlan,
     onSuccess: () => {
-      toast.success('Audit plan approved');
+      toast.success('อนุมัติแผนการตรวจประเมินแล้ว');
       queryClient.invalidateQueries({ queryKey: ['audit-plans'] });
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to approve audit plan');
+      toast.error(err.message || 'ไม่สามารถอนุมัติแผนการตรวจประเมินได้');
     },
   });
 
   const handleCreate = () => {
     if (!formData.name.trim()) {
-      toast.error('Plan name is required');
+      toast.error('กรุณากรอกชื่อแผนการตรวจประเมิน');
       return;
     }
     createMutation.mutate(formData);
@@ -125,7 +125,7 @@ export default function AuditPlansPage() {
   };
 
   const handleApprove = (planId: number) => {
-    if (confirm('Are you sure you want to approve this audit plan?')) {
+    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการอนุมัติแผนการตรวจประเมินนี้?')) {
       approveMutation.mutate(planId);
     }
   };
@@ -134,9 +134,9 @@ export default function AuditPlansPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
-          <p className="text-red-600">Error loading audit plans: {(error as Error).message}</p>
+          <p className="text-red-600">เกิดข้อผิดพลาดในการโหลดแผนการตรวจประเมิน: {(error as Error).message}</p>
           <DxButton
-            text="Retry"
+            text="ลองใหม่"
             onClick={() => queryClient.invalidateQueries({ queryKey: ['audit-plans'] })}
             className="mt-4"
           />
@@ -154,7 +154,7 @@ export default function AuditPlansPage() {
         onBack={() => router.push('/gmp/internal-audit')}
         actions={
           <DxButton
-            text="Create Plan"
+            text="สร้างแผน"
             icon="plus"
             onClick={() => setShowCreatePopup(true)}
             type="default"
@@ -177,7 +177,7 @@ export default function AuditPlansPage() {
       <DxPopup
         visible={showCreatePopup}
         onHiding={() => setShowCreatePopup(false)}
-        title="Create Audit Plan"
+        title="สร้างแผนการตรวจประเมิน"
         width={500}
         height="auto"
         showCloseButton
@@ -185,7 +185,7 @@ export default function AuditPlansPage() {
       >
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Plan Year</label>
+            <label className="block text-sm font-medium mb-1">ปีของแผน</label>
             <DxNumberBox
               value={formData.planYear}
               onValueChanged={(e) => setFormData({ ...formData, planYear: e.value })}
@@ -195,30 +195,30 @@ export default function AuditPlansPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Plan Name *</label>
+            <label className="block text-sm font-medium mb-1">ชื่อแผน *</label>
             <DxTextBox
               value={formData.name}
               onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-              placeholder="Enter plan name"
+              placeholder="กรอกชื่อแผน"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
+            <label className="block text-sm font-medium mb-1">รายละเอียด</label>
             <DxTextArea
               value={formData.description}
               onValueChanged={(e) => setFormData({ ...formData, description: e.value })}
-              placeholder="Enter plan description"
+              placeholder="กรอกรายละเอียดแผน"
               height={100}
             />
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => setShowCreatePopup(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Create"
+              text="สร้าง"
               onClick={handleCreate}
               type="default"
               disabled={createMutation.isPending}

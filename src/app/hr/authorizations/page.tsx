@@ -18,9 +18,7 @@ import DataGrid, {
   Item,
   Grouping,
   GroupPanel,
-  ColumnChooser,
   StateStoring,
-  Export,
 } from 'devextreme-react/data-grid';
 import PieChart, {
   Series,
@@ -668,10 +666,8 @@ export default function AuthorizationsPage() {
             <SearchPanel visible placeholder={t('common.search')} />
             <Grouping autoExpandAll={false} />
             <GroupPanel visible />
-            <ColumnChooser enabled mode="select" />
             <StateStoring enabled type="localStorage" storageKey="hr_authorizations_grid_v2" />
             <Scrolling mode="virtual" />
-            <Export enabled />
 
             <Column
               dataField="_rowNumber"
@@ -743,8 +739,6 @@ export default function AuthorizationsPage() {
             <Toolbar>
               <Item name="groupPanel" />
               <Item name="searchPanel" />
-              <Item name="columnChooserButton" />
-              <Item name="exportButton" />
             </Toolbar>
           </DataGrid>
         </div>

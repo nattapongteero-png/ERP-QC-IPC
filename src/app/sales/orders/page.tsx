@@ -649,7 +649,7 @@ export default function SalesOrdersPage() {
                 <Series argumentField="status" valueField="count">
                   <Label visible={false} />
                 </Series>
-                <Legend horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" />
+                <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" itemTextPosition="right" />
                 <Tooltip enabled customizeTooltip={(arg) => ({
                   text: `${arg.argumentText}: ${arg.valueText}`,
                 })} />
@@ -684,7 +684,7 @@ export default function SalesOrdersPage() {
                 <Series argumentField="status" valueField="value">
                   <Label visible={false} />
                 </Series>
-                <Legend horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" />
+                <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" itemTextPosition="right" />
                 <Tooltip enabled customizeTooltip={(arg) => ({
                   text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`,
                 })} />
@@ -845,9 +845,6 @@ export default function SalesOrdersPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              export
-              exportFileName="sales-orders"
-              columnChooser
               responsiveColumns
               pageSize={20}
               virtualScrolling={filteredOrders.length > 100}

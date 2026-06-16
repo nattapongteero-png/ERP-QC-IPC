@@ -16,7 +16,6 @@ import DataGrid, {
   SearchPanel,
   Summary,
   TotalItem,
-  Export,
   Toolbar,
   Item as ToolbarItem,
 } from 'devextreme-react/data-grid';
@@ -681,11 +680,9 @@ export default function ARReceiptsPage() {
               >
                 <Paging defaultPageSize={20} />
                 <SearchPanel visible placeholder="Search receipts..." />
-                <Export enabled allowExportSelectedData />
 
                 <Toolbar>
                   <ToolbarItem name="searchPanel" location="before" />
-                  <ToolbarItem name="exportButton" location="after" />
                 </Toolbar>
 
                 <Column
