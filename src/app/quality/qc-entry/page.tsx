@@ -569,8 +569,6 @@ export default function QcEntryListPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              filterRow
-              headerFilter
               pageSize={20}
               height="auto"
               noDataText="ไม่พบข้อมูล"

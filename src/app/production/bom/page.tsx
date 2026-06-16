@@ -360,8 +360,9 @@ export default function BOMDashboardPage() {
 
       {/* Charts & Cards Section - hidden on small screens to prioritize the list */}
       <div className="hidden xl:grid grid-cols-1 xl:grid-cols-3 gap-3">
-        {/* Status Distribution */}
-        <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-5 min-w-0">
+        {/* Status Distribution — flex column so the chart fills the card to the
+            same height as the neighbouring lists (no empty gap at the bottom). */}
+        <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-5 min-w-0 flex flex-col">
           <div className="flex items-center gap-2.5 mb-4">
             <div className="p-2 bg-emerald-50 rounded-lg">
               <Boxes className="h-5 w-5 text-emerald-600" />
@@ -369,23 +370,24 @@ export default function BOMDashboardPage() {
             <h3 className="font-semibold text-[#064E3B] text-base">{t('bom.charts.statusDistribution')}</h3>
           </div>
           {statusChartData.length > 0 ? (
-            <PieChart
-              dataSource={statusChartData}
-              palette={chartColors}
-              type="doughnut"
-              innerRadius={0.65}
-              size={{ height: 200 }}
-            >
-              <Series argumentField="status" valueField="count">
-                <Label visible format="fixedPoint">
-                  <Connector visible width={1} />
-                </Label>
-              </Series>
-              <Legend horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" rowCount={1} />
-              <Tooltip enabled format="fixedPoint" />
-            </PieChart>
+            <div className="flex-1 min-h-[220px]">
+              <PieChart
+                dataSource={statusChartData}
+                palette={chartColors}
+                type="doughnut"
+                innerRadius={0.65}
+              >
+                <Series argumentField="status" valueField="count">
+                  <Label visible format="fixedPoint">
+                    <Connector visible width={1} />
+                  </Label>
+                </Series>
+                <Legend horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" rowCount={1} />
+                <Tooltip enabled format="fixedPoint" />
+              </PieChart>
+            </div>
           ) : (
-            <div className="flex items-center justify-center h-[200px] text-gray-400">
+            <div className="flex flex-1 items-center justify-center min-h-[220px] text-gray-400">
               <div className="text-center">
                 <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">{t('bom.charts.noBOMsFound')}</p>

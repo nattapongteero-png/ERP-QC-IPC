@@ -499,8 +499,6 @@ export default function TestPanelsAdminPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              filterRow
-              headerFilter
               groupPanel
               pageSize={50}
               height="auto"

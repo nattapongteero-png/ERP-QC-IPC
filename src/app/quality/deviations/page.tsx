@@ -810,8 +810,6 @@ export default function DeviationsPage() {
         columns={columns}
         loading={false}
         sorting
-        filterRow
-        headerFilter
         export
         exportFileName="deviations"
         columnChooser

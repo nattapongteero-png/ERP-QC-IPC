@@ -735,7 +735,7 @@ function SelectInput({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        className="px-3 py-2 bg-[#FBFEFC] border border-[#D9EFE4] rounded-[11px] text-sm text-[#0F2E22] focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15"
       >
         {options.map((o) => (
           <option key={o.id} value={o.id}>
@@ -768,7 +768,7 @@ function TextInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        className="px-3 py-2 bg-[#FBFEFC] border border-[#D9EFE4] rounded-[11px] text-sm text-[#0F2E22] focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15"
       />
     </label>
   );

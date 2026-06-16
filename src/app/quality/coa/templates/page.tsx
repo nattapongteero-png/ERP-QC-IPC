@@ -346,8 +346,6 @@ export default function CoaTemplatesPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              filterRow
-              headerFilter
               pageSize={20}
               height="auto"
               onRowClick={(e) => {
