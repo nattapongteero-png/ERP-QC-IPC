@@ -316,23 +316,23 @@ interface SectionCardProps {
 export function SectionCard({ icon, title, description, children, className, variant = 'default' }: SectionCardProps) {
   return (
     <div className={cn(
-      'rounded-2xl border bg-white overflow-hidden',
-      variant === 'highlight' ? 'border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white' : 'border-gray-200',
+      'rounded-[18px] border bg-white overflow-hidden shadow-[0_6px_20px_rgba(6,78,59,0.07)]',
+      variant === 'highlight' ? 'border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white' : 'border-emerald-100',
       className
     )}>
       <div className={cn(
         'px-5 py-4 border-b flex items-center gap-3',
-        variant === 'highlight' ? 'border-emerald-100 bg-emerald-50/50' : 'border-gray-100 bg-gray-50/50'
+        variant === 'highlight' ? 'border-emerald-100 bg-emerald-50/50' : 'border-emerald-50 bg-gradient-to-b from-[#FBFEFC] to-[#F6FCF9]'
       )}>
         <div className={cn(
           'p-2.5 rounded-xl',
-          variant === 'highlight' ? 'bg-emerald-100' : 'bg-white border border-gray-200'
+          variant === 'highlight' ? 'bg-emerald-100' : 'bg-white border border-emerald-100'
         )}>
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-          {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+          <h3 className="text-sm font-semibold text-[#064E3B]">{title}</h3>
+          {description && <p className="text-xs text-[#4B7163] mt-0.5">{description}</p>}
         </div>
       </div>
       <div className="p-5">
@@ -480,7 +480,7 @@ export function TypeSelector({ value, onChange }: TypeSelectorProps) {
               'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200',
               isSelected
                 ? `${type.bgColor} ${type.borderColor} ring-2 ring-offset-2 ring-${type.value === 'raw_material' ? 'green' : type.value === 'packaging' ? 'blue' : type.value === 'wip' ? 'orange' : type.value === 'finished_goods' ? 'purple' : 'gray'}-200`
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                : 'border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/40 hover:-translate-y-0.5'
             )}
           >
             <div className={cn(
@@ -631,7 +631,7 @@ export function ItemEditForm({
     <div className={cn('flex flex-col h-full min-h-0', className)}>
       {/* Header */}
       {showHeader && (
-        <div className="flex-none px-4 md:px-6 py-4 border-b bg-white z-10">
+        <div className="flex-none px-4 md:px-6 py-4 border-b border-emerald-100 bg-white z-10">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center gap-4">
               {onCancel && (
@@ -647,10 +647,10 @@ export function ItemEditForm({
                 <TypeIcon className={cn('h-7 w-7', typeConfig.color)} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-[#064E3B]">
                   {isEditing ? t('itemForm.editTitle') : t('itemForm.createTitle')}
                 </h1>
-                <p className="text-sm text-gray-500 mt-0.5">
+                <p className="text-sm text-[#4B7163] mt-0.5">
                   {isEditing
                     ? t('itemForm.editSubtitle', { code: item.code, name: item.nameTh })
                     : t('itemForm.createSubtitle')}
@@ -682,7 +682,7 @@ export function ItemEditForm({
       )}
 
       {/* Scrollable Body */}
-      <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/50">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-[#F4FBF7]">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 lg:py-8">
           <div className="grid grid-cols-12 gap-6">
 
@@ -1334,21 +1334,21 @@ export function ItemEditForm({
                 description={t('itemForm.sections.quickSummaryDesc')}
               >
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <div className="flex items-center justify-between py-2 border-b border-emerald-50">
                     <span className="text-sm text-gray-500">{t('itemForm.fields.type')}</span>
                     <div className="flex items-center gap-2">
                       <TypeIcon className={cn('h-4 w-4', typeConfig.color)} />
                       <span className="text-sm font-medium text-gray-900">{t(typeConfig.translationKey)}</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <div className="flex items-center justify-between py-2 border-b border-emerald-50">
                     <span className="text-sm text-gray-500">{t('itemForm.fields.primaryUnit')}</span>
                     <span className="text-sm font-medium text-gray-900">
                       {unitOptions.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit}
                     </span>
                   </div>
                   {formData.category && (
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div className="flex items-center justify-between py-2 border-b border-emerald-50">
                       <span className="text-sm text-gray-500">{t('itemForm.fields.category')}</span>
                       <span className="text-sm font-medium text-gray-900">
                         {categoryOptions.find(c => c.value === formData.category)?.label || formData.category}
@@ -1356,7 +1356,7 @@ export function ItemEditForm({
                     </div>
                   )}
                   {formData.shelfLifeDays && formData.shelfLifeDays > 0 && (
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div className="flex items-center justify-between py-2 border-b border-emerald-50">
                       <span className="text-sm text-gray-500">{t('itemForm.fields.shelfLife')}</span>
                       <span className="text-sm font-medium text-gray-900">
                         {Math.floor(formData.shelfLifeDays / 365) > 0 && `${Math.floor(formData.shelfLifeDays / 365)} ${t('itemForm.years')}`}
@@ -1367,13 +1367,13 @@ export function ItemEditForm({
                     </div>
                   )}
                   {formData.minStock !== null && (
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div className="flex items-center justify-between py-2 border-b border-emerald-50">
                       <span className="text-sm text-gray-500">{t('itemForm.fields.minStock')}</span>
                       <span className="text-sm font-medium text-gray-900">{formData.minStock?.toLocaleString()}</span>
                     </div>
                   )}
                   {formData.reorderPoint !== null && (
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div className="flex items-center justify-between py-2 border-b border-emerald-50">
                       <span className="text-sm text-gray-500">{t('itemForm.fields.reorderPoint')}</span>
                       <span className="text-sm font-medium text-gray-900">{formData.reorderPoint?.toLocaleString()}</span>
                     </div>
@@ -1429,7 +1429,7 @@ export function ItemEditForm({
       </div>
 
       {/* Footer - pinned at bottom via flex layout */}
-      <div className="flex-none border-t border-gray-200 bg-gray-50/80 backdrop-blur-sm z-10">
+      <div className="flex-none border-t border-emerald-100 bg-[#F6FCF9]/90 backdrop-blur-sm z-10">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-gray-400">
             {isEditing && item?.createdAt ? (

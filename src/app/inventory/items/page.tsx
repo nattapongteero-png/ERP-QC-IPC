@@ -617,7 +617,7 @@ export default function ItemsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-4">
+      <div className="space-y-4 organic-items">
         {/* Page Header */}
         <PageHeader
           title={t('items.pageTitle')}
@@ -628,10 +628,10 @@ export default function ItemsPage() {
                 onClick={handleRefresh}
                 disabled={isLoading}
                 className={cn(
-                  "inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors",
+                  "inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-xl transition-all shadow-sm",
                   isLoading
                     ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
-                    : "text-gray-600 bg-white border-gray-300 hover:bg-gray-50"
+                    : "text-emerald-800 bg-white border-emerald-100 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow"
                 )}
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
@@ -639,27 +639,27 @@ export default function ItemsPage() {
               </button>
               <button
                 onClick={() => router.push('/inventory/lots')}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-emerald-800 bg-white border border-emerald-100 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow transition-all"
               >
                 <Warehouse className="h-4 w-4" />
                 {t('items.viewLots')}
               </button>
-              <button onClick={handleDownloadData} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors">
+              <button onClick={handleDownloadData} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow transition-all">
                 <Download className="h-4 w-4" /> Download Excel
               </button>
               {isAdmin && (
                 <>
-                  <button onClick={handleDownloadTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  <button onClick={handleDownloadTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-amber-300 hover:shadow transition-all">
                     <Download className="h-4 w-4" /> {t('common.downloadTemplate')}
                   </button>
-                  <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                  <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-blue-300 hover:shadow transition-all">
                     <Upload className="h-4 w-4" /> {t('common.importExcel')}
                   </button>
                 </>
               )}
               <button
                 onClick={() => router.push('/inventory/items/new')}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-md shadow-emerald-500/30 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-500/40 transition-all font-medium"
               >
                 <Plus className="h-4 w-4" />
                 {t('items.addItem')}
@@ -669,25 +669,25 @@ export default function ItemsPage() {
         />
 
         {/* Items DataGrid Card */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
           {/* Tabs + Stats Header */}
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="px-4 py-3 border-b border-emerald-50 bg-gradient-to-b from-[#FBFEFC] to-[#F6FCF9]">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               {/* Type Tabs */}
-              <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200 overflow-x-auto">
+              <div className="flex items-center gap-1 bg-[#F1FAF5] rounded-xl p-1 border border-emerald-100 overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('all')}
                   className={cn(
-                    'px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                    'px-3 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap',
                     activeTab === 'all'
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      ? 'bg-gradient-to-br from-[#064E3B] to-emerald-600 text-white shadow-sm'
+                      : 'text-[#4B7163] hover:text-[#064E3B] hover:bg-[#E6F6EE]'
                   )}
                 >
                   {t('common.all')}
                   <span className={cn(
                     'ml-1.5 text-xs px-1.5 py-0.5 rounded-full',
-                    activeTab === 'all' ? 'bg-gray-700' : 'bg-gray-200'
+                    activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
                   )}>{totalItems}</span>
                 </button>
                 {(Object.keys(ITEM_TYPE_CONFIG) as ItemType[]).map((type) => {
@@ -697,17 +697,17 @@ export default function ItemsPage() {
                       key={type}
                       onClick={() => setActiveTab(type)}
                       className={cn(
-                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap',
                         activeTab === type
-                          ? `${config.bgColor} ${config.textColor}`
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                          ? `${config.bgColor} ${config.textColor} ${config.borderColor} border shadow-sm`
+                          : 'text-[#4B7163] hover:text-[#064E3B] hover:bg-[#E6F6EE]'
                       )}
                     >
                       {config.icon}
                       {t(`items.types.${config.translationKey}`)}
                       <span className={cn(
                         'text-xs px-1.5 py-0.5 rounded-full',
-                        activeTab === type ? 'bg-white/50' : 'bg-gray-200'
+                        activeTab === type ? 'bg-white/60' : 'bg-emerald-100 text-emerald-800'
                       )}>
                         {typeCounts[type]}
                       </span>
@@ -730,12 +730,12 @@ export default function ItemsPage() {
                     <span className="font-medium">{statistics.itemsInQuarantine} {t('stats.inQuarantine')}</span>
                   </div>
                 )}
-                <div className="flex items-center gap-1.5 text-gray-500">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                <div className="flex items-center gap-1.5 text-[#4B7163]">
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
                   <span>{statistics.activeItems} {t('stats.active')}</span>
                 </div>
-                <div className="text-gray-400">|</div>
-                <span className="text-gray-500">{t('common.itemsShown', { count: filteredItems.length })}</span>
+                <div className="text-emerald-200">|</div>
+                <span className="text-[#4B7163]">{t('common.itemsShown', { count: filteredItems.length })}</span>
               </div>
             </div>
           </div>
@@ -927,18 +927,18 @@ export default function ItemsPage() {
         confirmType="danger"
       />
 
-      {/* Custom styles */}
+      {/* Custom styles — Organic Biophilic theme */}
       <style jsx global>{`
         .items-professional-grid {
           font-family: inherit;
         }
         .items-professional-grid .dx-datagrid-headers {
-          background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
-          border-bottom: 2px solid #e2e8f0;
+          background: linear-gradient(180deg, #F1FAF5, #E9F6F0);
+          border-bottom: 2px solid #DCEFE6;
         }
         .items-professional-grid .dx-datagrid-headers .dx-header-row td {
           font-weight: 600;
-          color: #334155;
+          color: #065F46;
           padding: 12px 8px;
         }
         .items-professional-grid .dx-data-row td {
@@ -952,7 +952,7 @@ export default function ItemsPage() {
           cursor: pointer;
         }
         .items-professional-grid .dx-row-alt > td {
-          background-color: #fafafa;
+          background-color: #FAFDFB;
         }
         .items-professional-grid .dx-datagrid-search-panel {
           margin-left: 0;
@@ -966,7 +966,19 @@ export default function ItemsPage() {
         }
         .items-professional-grid .dx-pager {
           padding: 12px 16px;
-          border-top: 1px solid #e2e8f0;
+          border-top: 1px solid #EEF7F2;
+          background: #FBFEFC;
+        }
+        /* Pager selected page → emerald gradient */
+        .items-professional-grid .dx-pager .dx-page.dx-selection {
+          background: linear-gradient(135deg, #10B981, #059669);
+          color: #fff;
+          border-radius: 9px;
+        }
+        /* Search box focus ring */
+        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor.dx-state-focused {
+          border-color: #10B981;
+          box-shadow: 0 0 0 3px rgba(16,185,129,.12);
         }
       `}</style>
 
@@ -975,10 +987,10 @@ export default function ItemsPage() {
 
       {/* Import Dialog */}
       {showImportDialog && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
-              <h2 className="text-lg font-semibold text-gray-900">นำเข้ารายการสินค้า</h2>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#064E3B]/30 backdrop-blur-sm">
+          <div className="bg-white rounded-[18px] shadow-[0_14px_34px_rgba(6,78,59,0.14)] w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-emerald-50 shrink-0">
+              <h2 className="text-lg font-semibold text-[#064E3B]">นำเข้ารายการสินค้า</h2>
               <button onClick={() => setShowImportDialog(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X className="h-5 w-5 text-gray-500" /></button>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto flex-1">
