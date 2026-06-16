@@ -617,8 +617,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     return (
       <div className="flex items-center gap-2">
         <div className="relative flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+          {/* recorded/บันทึก = blue underlay; verified/ตรวจสอบ = green overlay
+              on top, so a card that's recorded-but-not-verified reads blue and
+              turns green as items get verified. */}
           <div
-            className="absolute inset-y-0 left-0 bg-emerald-500 transition-all duration-300"
+            className="absolute inset-y-0 left-0 bg-sky-500 transition-all duration-300"
             style={{ width: `${completedPct}%` }}
           />
           <div

@@ -1230,16 +1230,9 @@ export default function SOPExecutionPage() {
   // phase a visually distinct identity.
   const phaseTheme = (phase?: SOPPhase | null) => {
     switch (phase) {
+      // Four phases get four DISTINCT colours (emerald → sky → amber → violet)
+      // so they read apart at a glance, while staying on the organic palette.
       case 'pre_production':
-        return {
-          gradient: 'from-teal-500 to-emerald-500',
-          softBg: 'from-teal-50 to-emerald-50',
-          border: 'border-teal-300',
-          accent: 'bg-teal-500',
-          text: 'text-teal-700',
-          ring: 'ring-teal-200',
-        };
-      case 'production':
         return {
           gradient: 'from-emerald-500 to-teal-500',
           softBg: 'from-emerald-50 to-teal-50',
@@ -1247,6 +1240,15 @@ export default function SOPExecutionPage() {
           accent: 'bg-emerald-500',
           text: 'text-emerald-700',
           ring: 'ring-emerald-200',
+        };
+      case 'production':
+        return {
+          gradient: 'from-sky-500 to-blue-500',
+          softBg: 'from-sky-50 to-blue-50',
+          border: 'border-sky-300',
+          accent: 'bg-sky-500',
+          text: 'text-sky-700',
+          ring: 'ring-sky-200',
         };
       case 'post_production':
         return {
@@ -1259,12 +1261,12 @@ export default function SOPExecutionPage() {
         };
       case 'packaging':
         return {
-          gradient: 'from-lime-500 to-green-600',
-          softBg: 'from-lime-50 to-green-50',
-          border: 'border-lime-300',
-          accent: 'bg-lime-500',
-          text: 'text-lime-700',
-          ring: 'ring-lime-200',
+          gradient: 'from-violet-500 to-purple-500',
+          softBg: 'from-violet-50 to-purple-50',
+          border: 'border-violet-300',
+          accent: 'bg-violet-500',
+          text: 'text-violet-700',
+          ring: 'ring-violet-200',
         };
       default:
         return {
