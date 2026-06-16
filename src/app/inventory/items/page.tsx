@@ -761,7 +761,7 @@ export default function ItemsPage() {
             className="items-professional-grid"
           >
             <SearchPanel visible={true} placeholder={t('items.searchPlaceholder')} width={250} />
-            <FilterRow visible={true} />
+            <FilterRow visible={false} />
             <HeaderFilter visible={true} />
             <GroupPanel visible={true} />
             <Grouping autoExpandAll={false} />
@@ -941,6 +941,12 @@ export default function ItemsPage() {
           color: #065F46;
           padding: 12px 8px;
         }
+        /* Keep header captions on a single line (no wrapping) */
+        .items-professional-grid .dx-datagrid-headers .dx-header-row td .dx-datagrid-text-content {
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          overflow: hidden;
+        }
         .items-professional-grid .dx-data-row td {
           padding: 10px 8px;
           vertical-align: middle;
@@ -975,7 +981,22 @@ export default function ItemsPage() {
           color: #fff;
           border-radius: 9px;
         }
-        /* Search box focus ring */
+        /* Search box — organic styling */
+        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor {
+          border: 1px solid #D9EFE4;
+          border-radius: 11px;
+          background: #FBFEFC;
+        }
+        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor .dx-placeholder,
+        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor input {
+          color: #0F2E22;
+        }
+        .items-professional-grid .dx-datagrid-search-panel .dx-icon-search {
+          color: #4B7163;
+        }
+        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor.dx-state-hover {
+          border-color: #A7F3D0;
+        }
         .items-professional-grid .dx-datagrid-search-panel .dx-texteditor.dx-state-focused {
           border-color: #10B981;
           box-shadow: 0 0 0 3px rgba(16,185,129,.12);

@@ -628,7 +628,38 @@ export function ItemEditForm({
   const TypeIcon = typeConfig.icon;
 
   return (
-    <div className={cn('flex flex-col h-full min-h-0', className)}>
+    <div className={cn('flex flex-col h-full min-h-0 organic-form', className)}>
+      {/* Organic theme — scoped DevExtreme input restyle (CSS only, no logic) */}
+      <style jsx global>{`
+        .organic-form .dx-texteditor.dx-editor-outlined {
+          border: 1px solid #D9EFE4;
+          border-radius: 11px;
+          background: #FBFEFC;
+          box-shadow: 0 1px 2px rgba(6,78,59,0.04);
+        }
+        .organic-form .dx-texteditor.dx-editor-outlined.dx-state-hover {
+          border-color: #A7F3D0;
+        }
+        .organic-form .dx-texteditor.dx-editor-outlined.dx-state-focused {
+          border-color: #10B981;
+          box-shadow: 0 0 0 3px rgba(16,185,129,.12);
+        }
+        .organic-form .dx-texteditor.dx-editor-outlined.dx-state-disabled {
+          background: #F1F5F4;
+          border-color: #E5EFEA;
+        }
+        .organic-form .dx-texteditor-input {
+          color: #0F2E22;
+        }
+        .organic-form .dx-placeholder {
+          color: #8AA79B;
+        }
+        /* SelectBox dropdown arrow + NumberBox spin buttons tint */
+        .organic-form .dx-dropdowneditor-icon,
+        .organic-form .dx-numberbox-spin-icon {
+          color: #4B7163;
+        }
+      `}</style>
       {/* Header */}
       {showHeader && (
         <div className="flex-none px-4 md:px-6 py-4 border-b border-emerald-100 bg-white z-10">
