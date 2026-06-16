@@ -808,7 +808,7 @@ export default function ItemsPage() {
             <Column
               dataField="onHand"
               caption={t('items.grid.columns.onHandQty')}
-              width={140}
+              width={170}
               cellRender={renderStockCell}
             />
             <Column
@@ -859,7 +859,7 @@ export default function ItemsPage() {
             <Column
               dataField="shelfLifeDays"
               caption={t('items.grid.columns.shelfLife')}
-              width={100}
+              width={120}
               cellRender={(data) => data.value ? t('items.grid.shelfLifeDays', { days: data.value }) : '-'}
             />
             <Column
@@ -941,9 +941,12 @@ export default function ItemsPage() {
           color: #065F46;
           padding: 12px 8px;
         }
-        /* Keep header captions on a single line (no wrapping) */
-        .items-professional-grid .dx-datagrid-headers .dx-header-row td .dx-datagrid-text-content {
-          white-space: nowrap;
+        /* Keep header captions on a single line (no wrapping). wordWrapEnabled
+           wraps both header + data; this forces the HEADER row to nowrap while
+           data rows keep wrapping. Target both the td and the text wrapper. */
+        .items-professional-grid .dx-datagrid-headers .dx-header-row > td,
+        .items-professional-grid .dx-datagrid-headers .dx-header-row > td .dx-datagrid-text-content {
+          white-space: nowrap !important;
           text-overflow: ellipsis;
           overflow: hidden;
         }
@@ -981,23 +984,33 @@ export default function ItemsPage() {
           color: #fff;
           border-radius: 9px;
         }
-        /* Search box — organic styling */
-        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor {
+        /* Search box — organic styling.
+           NOTE: the DevExtreme search panel renders as dx-editor-FILLED
+           (a grey filled box), not dx-editor-outlined — target it directly
+           and flatten the filled background to match the theme. */
+        .items-professional-grid .dx-datagrid-search-panel.dx-texteditor.dx-editor-filled {
+          background-color: #FBFEFC;
           border: 1px solid #D9EFE4;
           border-radius: 11px;
-          background: #FBFEFC;
         }
-        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor .dx-placeholder,
-        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor input {
+        .items-professional-grid .dx-datagrid-search-panel.dx-editor-filled::after {
+          display: none; /* remove the filled-variant bottom underline */
+        }
+        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor-input {
           color: #0F2E22;
+        }
+        .items-professional-grid .dx-datagrid-search-panel .dx-placeholder::before {
+          color: #8AA79B;
         }
         .items-professional-grid .dx-datagrid-search-panel .dx-icon-search {
           color: #4B7163;
         }
-        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor.dx-state-hover {
+        .items-professional-grid .dx-datagrid-search-panel.dx-editor-filled.dx-state-hover {
+          background-color: #F4FBF7;
           border-color: #A7F3D0;
         }
-        .items-professional-grid .dx-datagrid-search-panel .dx-texteditor.dx-state-focused {
+        .items-professional-grid .dx-datagrid-search-panel.dx-editor-filled.dx-state-focused {
+          background-color: #fff;
           border-color: #10B981;
           box-shadow: 0 0 0 3px rgba(16,185,129,.12);
         }
