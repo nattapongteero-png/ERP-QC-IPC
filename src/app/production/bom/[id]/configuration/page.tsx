@@ -221,11 +221,11 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                   </span>
                   {cfg.isCritical && <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Critical</span>}
                 </div>
-                <div className="mt-1 space-y-0.5">
+                <div className="mt-1 space-y-1">
                   {summaryLines.map((line: { icon: string; text: string; tone?: string }, i: number) => (
                     <div
                       key={i}
-                      className={`text-xs flex items-start gap-1.5 ${
+                      className={`text-sm flex items-start gap-1.5 ${
                         line.tone === 'pass'
                           ? 'text-emerald-700'
                           : line.tone === 'fail'
@@ -332,15 +332,44 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                               />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono text-xs text-emerald-600">{c.code}</span>
+                                  <span className="font-mono text-sm text-emerald-600">{c.code}</span>
                                   <span className="text-sm font-medium">{c.nameTh || c.name}</span>
                                   {c.isCritical && (
-                                    <span className="text-[10px] text-red-600 bg-red-50 px-1 py-0.5 rounded">Critical</span>
+                                    <span className="text-[11px] text-red-600 bg-red-50 px-1 py-0.5 rounded">Critical</span>
                                   )}
                                 </div>
-                                {c.specification && (
-                                  <div className="text-xs text-gray-500">{c.specification}</div>
-                                )}
+                                {/* Render the spec as readable summary lines, NOT the raw
+                                    JSON payload — some criteria store a structured spec
+                                    ({"type":"visual",...}) that dumped unreadable text here. */}
+                                {(() => {
+                                  const specLines = formatSpecSummary({
+                                    criteriaType: c.criteriaType || 'numeric',
+                                    specification: c.specification,
+                                    sampleSize: c.sampleSize,
+                                    minValue: c.minValue,
+                                    maxValue: c.maxValue,
+                                    unit: c.unit,
+                                  });
+                                  if (specLines.length === 0) return null;
+                                  return (
+                                    <div className="mt-1 space-y-1">
+                                      {specLines.map((line: { icon: string; text: string; tone?: string }, i: number) => (
+                                        <div
+                                          key={i}
+                                          className={`text-sm flex items-start gap-1.5 ${
+                                            line.tone === 'pass' ? 'text-emerald-700'
+                                              : line.tone === 'fail' ? 'text-rose-700'
+                                              : line.tone === 'meta' ? 'text-gray-500'
+                                              : 'text-gray-600'
+                                          }`}
+                                        >
+                                          <span className="flex-none w-4 text-center select-none">{line.icon}</span>
+                                          <span className="break-words">{line.text}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </label>
                           );
