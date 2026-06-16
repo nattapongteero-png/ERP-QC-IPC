@@ -40,7 +40,7 @@ import SelectBox from 'devextreme-react/select-box';
 import TextArea from 'devextreme-react/text-area';
 import TextBox from 'devextreme-react/text-box';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxTabs } from '@/components/ui/dx-tabs';
+import { cn } from '@/lib/utils/cn';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -138,7 +138,7 @@ const STATUS_CONFIG = {
   planned: {
     translationKey: 'planned',
     color: '#3b82f6',
-    bgClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    bgClass: 'bg-blue-100 text-blue-700 border-blue-200',
     icon: ClipboardList,
   },
   released: {
@@ -518,19 +518,23 @@ export default function WorkOrdersPage() {
   );
 
   // Status tabs
+  // Status filter tabs. Each tab (except "All") carries the colour of its
+  // matching status badge so the filter row stays visually in sync with the
+  // status column below — selected tab = solid status colour, count pill =
+  // the status' soft tint. "All" uses the emerald theme primary.
   const statusTabs = useMemo(() => [
-    { id: 0, text: t('workOrders.tabs.all'), icon: 'selectall' },
-    { id: 1, text: t('workOrders.status.planned'), icon: 'event' },
-    { id: 2, text: t('workOrders.status.released'), icon: 'share' },
-    { id: 3, text: t('workOrders.status.inProgress'), icon: 'runner' },
-    { id: 4, text: t('workOrders.status.completed'), icon: 'check' },
-    { id: 5, text: t('workOrders.status.cancelled'), icon: 'close' },
+    { status: undefined as string | undefined, text: t('workOrders.tabs.all'), icon: ClipboardList, activeBg: 'bg-emerald-600', softPill: 'bg-emerald-100 text-emerald-800' },
+    { status: 'planned', text: t('workOrders.status.planned'), icon: ClipboardList, activeBg: 'bg-blue-600', softPill: 'bg-blue-100 text-blue-800' },
+    { status: 'released', text: t('workOrders.status.released'), icon: Rocket, activeBg: 'bg-violet-600', softPill: 'bg-violet-100 text-violet-800' },
+    { status: 'in_progress', text: t('workOrders.status.inProgress'), icon: PlayCircle, activeBg: 'bg-amber-500', softPill: 'bg-amber-100 text-amber-800' },
+    { status: 'completed', text: t('workOrders.status.completed'), icon: CheckCircle, activeBg: 'bg-emerald-600', softPill: 'bg-emerald-100 text-emerald-800' },
+    { status: 'cancelled', text: t('workOrders.status.cancelled'), icon: XCircle, activeBg: 'bg-red-600', softPill: 'bg-red-100 text-red-800' },
   ], [t]);
 
-  const handleTabChange = (index: number) => {
-    const statusMap: (string | undefined)[] = [undefined, 'planned', 'released', 'in_progress', 'completed', 'cancelled'];
-    setStatusFilter(statusMap[index]);
-  };
+  // Count of WOs per tab status (undefined = all) for the count pill.
+  const tabCount = useCallback((status: string | undefined) =>
+    status === undefined ? workOrders.length : workOrders.filter((w) => w.status === status).length,
+    [workOrders]);
 
   // Export handler
   const handleExporting = useCallback((e: ExportingEvent) => {
@@ -635,8 +639,8 @@ export default function WorkOrdersPage() {
     if (!config) return <span className="text-gray-400">{data.data.status}</span>;
     const IconComponent = config.icon;
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bgClass}`}>
-        <IconComponent className="h-3 w-3" />
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${config.bgClass}`}>
+        <IconComponent className="h-3 w-3 shrink-0" />
         {t(`workOrders.status.${config.translationKey}`)}
       </span>
     );
@@ -945,18 +949,34 @@ export default function WorkOrdersPage() {
         <div className="border-b border-emerald-50 px-3 sm:px-4 py-3 bg-gradient-to-r from-white to-[#F6FCF9]">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-              <DxTabs
-                items={statusTabs}
-                selectedIndex={
-                  statusFilter === undefined ? 0 :
-                  statusFilter === 'planned' ? 1 :
-                  statusFilter === 'released' ? 2 :
-                  statusFilter === 'in_progress' ? 3 :
-                  statusFilter === 'completed' ? 4 : 5
-                }
-                onSelectedIndexChange={handleTabChange}
-                stylingMode="secondary"
-              />
+              <div className="inline-flex items-center gap-1 p-1 bg-[#F1FAF5] border border-emerald-100 rounded-xl">
+                {statusTabs.map((tab) => {
+                  const isSelected = statusFilter === tab.status;
+                  const Icon = tab.icon;
+                  const count = tabCount(tab.status);
+                  return (
+                    <button
+                      key={tab.text}
+                      type="button"
+                      onClick={() => setStatusFilter(tab.status)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
+                        isSelected ? `${tab.activeBg} text-white shadow-sm` : 'text-gray-600 hover:bg-white/70'
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span>{tab.text}</span>
+                      <span className={cn(
+                        'ml-0.5 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                        isSelected ? 'bg-white/25 text-white' : tab.softPill
+                      )}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap">
               <Factory className="w-4 h-4 text-gray-400" />
@@ -1078,7 +1098,7 @@ export default function WorkOrdersPage() {
           <Column
             dataField="status"
             caption={t('workOrders.grid.columns.status')}
-            width={130}
+            width={160}
             cellRender={renderStatusCell}
           />
           <Column

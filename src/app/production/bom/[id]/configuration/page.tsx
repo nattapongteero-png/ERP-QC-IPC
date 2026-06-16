@@ -1587,15 +1587,18 @@ export default function BOMConfigurationPage() {
   };
 
   const renderPhaseBadge = (phase: string) => {
+    // Distinct hue per phase along the production flow so the Phase column isn't
+    // a wall of near-identical greens (production/post_production/packaging were
+    // all green before). nowrap keeps each label on one line.
     const colors: Record<string, string> = {
       pre_production: 'bg-amber-100 text-amber-800',
-      production: 'bg-emerald-100 text-emerald-800',
-      post_production: 'bg-green-100 text-green-800',
-      pre_packaging: 'bg-purple-100 text-purple-800',
+      production: 'bg-blue-100 text-blue-800',
+      post_production: 'bg-violet-100 text-violet-800',
+      pre_packaging: 'bg-cyan-100 text-cyan-800',
       packaging: 'bg-emerald-100 text-emerald-800',
     };
     return (
-      <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${colors[phase] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${colors[phase] || 'bg-gray-100 text-gray-800'}`}>
         {getPhaseLabel(phase)}
       </span>
     );
