@@ -1440,9 +1440,6 @@ export default function LotsPage() {
                 loading={isLoading}
                 sorting
                 headerFilter
-                export
-                exportFileName="inventory-lots"
-                columnChooser
                 wordWrapEnabled
                 columnAutoWidth
                 allowColumnResizing

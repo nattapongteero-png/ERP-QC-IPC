@@ -765,8 +765,8 @@ export default function ItemsPage() {
             <HeaderFilter visible={true} />
             <GroupPanel visible={true} />
             <Grouping autoExpandAll={false} />
-            <ColumnChooser enabled={true} mode="select" />
-            <Export enabled={true} />
+            <ColumnChooser enabled={false} mode="select" />
+            <Export enabled={false} />
 
             <Column
               dataField="_rowNumber"
@@ -897,8 +897,6 @@ export default function ItemsPage() {
 
             <Toolbar>
               <ToolbarItem name="groupPanel" />
-              <ToolbarItem name="columnChooserButton" />
-              <ToolbarItem name="exportButton" />
               <ToolbarItem name="searchPanel" />
             </Toolbar>
           </DataGrid>

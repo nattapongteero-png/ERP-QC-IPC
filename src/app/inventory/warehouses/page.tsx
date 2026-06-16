@@ -626,9 +626,6 @@ export default function WarehousesPage() {
               columns={columns}
               sorting
               headerFilter
-              export
-              exportFileName="warehouses"
-              columnChooser
               responsiveColumns
               virtualScrolling={filteredWarehouses.length > 100}
               height={600}

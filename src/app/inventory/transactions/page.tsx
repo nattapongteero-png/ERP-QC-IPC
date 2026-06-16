@@ -708,9 +708,6 @@ export default function TransactionsPage() {
               columns={columns}
               sorting
               headerFilter
-              export
-              exportFileName="inventory-transactions"
-              columnChooser
               pageSize={20}
               height="auto"
               noDataText={t('transactions.noDataText')}
