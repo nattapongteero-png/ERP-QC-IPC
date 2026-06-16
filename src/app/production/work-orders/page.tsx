@@ -805,9 +805,9 @@ export default function WorkOrdersPage() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         {/* Status Distribution */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 min-h-0">
+        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5 min-h-0">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-indigo-500" />
               {t('workOrders.charts.byStatus')}
             </h3>
@@ -869,14 +869,14 @@ export default function WorkOrdersPage() {
             color), so we added: a subtitle that names the data source, a
             threshold legend, color-coded bars (High=red / Med=amber /
             Low=green), and per-bar count labels. */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:col-span-2 lg:col-span-2">
+        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5 md:col-span-2 lg:col-span-2">
           <div className="flex items-start justify-between mb-1 gap-2">
             <div>
-              <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-amber-500" />
                 {t('workOrders.charts.byPriority')}
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-[#4B7163] mt-0.5">
                 จำนวน WO ที่ยังทำงานอยู่ (ไม่นับ Completed / Cancelled) แบ่งตามระดับ Priority
               </p>
             </div>
@@ -935,9 +935,9 @@ export default function WorkOrdersPage() {
         </div>
 
         {/* Performance Summary */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-500" />
               {t('workOrders.charts.performance')}
             </h3>
@@ -1007,8 +1007,8 @@ export default function WorkOrdersPage() {
             <div
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`bg-white rounded-xl border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
-                statusFilter === status ? 'border-indigo-500 shadow-md' : 'border-gray-200'
+              className={`bg-white rounded-[18px] border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
+                statusFilter === status ? 'border-emerald-500 shadow-md' : 'border-emerald-100'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -1028,9 +1028,9 @@ export default function WorkOrdersPage() {
       </div>
 
       {/* Main Content - Tabs + DataGrid */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
         {/* Tabs Header — scroll horizontally on mobile if overflowing */}
-        <div className="border-b border-gray-200 px-3 sm:px-4 py-3 bg-gradient-to-r from-gray-50/50 to-white">
+        <div className="border-b border-emerald-50 px-3 sm:px-4 py-3 bg-gradient-to-r from-white to-[#F6FCF9]">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
               <DxTabs
@@ -1106,10 +1106,10 @@ export default function WorkOrdersPage() {
             displayMode="full"
             infoText="หน้า {0} จาก {1} (รวม {2} รายการ)"
           />
-          <FilterRow visible={true} />
+          <FilterRow visible={false} />
           <SearchPanel visible={true} placeholder={t('workOrders.grid.searchPlaceholder')} width={250} />
-          <HeaderFilter visible={true} />
-          <Export enabled={true} formats={['xlsx']} />
+          <HeaderFilter visible={false} />
+          <Export enabled={false} formats={['xlsx']} />
 
           <Column
             dataField="_rowNumber"

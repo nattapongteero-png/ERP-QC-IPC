@@ -750,7 +750,6 @@ export default function NewBOMPage() {
                     setSelectedMaterialIds(keys);
                   }}
                   searchPanel
-                  filterRow
                   columns={[
                     {
                       dataField: 'code',

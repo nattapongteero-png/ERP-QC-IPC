@@ -356,8 +356,8 @@ export default function ProductionAnalyticsPage() {
       {/* Row 1: Monthly Volume + Status Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
         {/* Monthly Volume */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
+        <div className="lg:col-span-2 bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
+          <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4 text-indigo-500" />
             {t('analytics.charts.monthlyVolume')}
           </h3>
@@ -386,8 +386,8 @@ export default function ProductionAnalyticsPage() {
         </div>
 
         {/* Status Overview */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
+          <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
             <Clock className="w-4 h-4 text-violet-500" />
             {t('analytics.charts.statusOverview')}
           </h3>
@@ -433,8 +433,8 @@ export default function ProductionAnalyticsPage() {
       {/* Row 2: Yield by Product + Production Count by Product */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
         {/* Yield by Product */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
+          <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
             <Percent className="w-4 h-4 text-cyan-500" />
             {t('analytics.charts.yieldByProduct')}
           </h3>
@@ -462,8 +462,8 @@ export default function ProductionAnalyticsPage() {
         </div>
 
         {/* Production Count by Product */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
+          <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
             <BarChart3 className="w-4 h-4 text-indigo-500" />
             {t('analytics.charts.productionByProduct')}
           </h3>
@@ -494,8 +494,8 @@ export default function ProductionAnalyticsPage() {
       {/* Row 3: Lead Time + On-Time Delivery + Priority Completion */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
         {/* Lead Time by Product */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
+          <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
             <Timer className="w-4 h-4 text-amber-500" />
             {t('analytics.charts.leadTimeByProduct')}
           </h3>
@@ -523,8 +523,8 @@ export default function ProductionAnalyticsPage() {
         </div>
 
         {/* On-Time Delivery */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
+          <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
             <Truck className="w-4 h-4 text-green-500" />
             {t('analytics.charts.onTimeDelivery')}
           </h3>
@@ -567,8 +567,8 @@ export default function ProductionAnalyticsPage() {
         </div>
 
         {/* Priority Completion Rate */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5">
+          <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2 mb-4">
             <Target className="w-4 h-4 text-blue-500" />
             {t('analytics.charts.priorityCompletion')}
           </h3>

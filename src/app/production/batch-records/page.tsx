@@ -527,15 +527,15 @@ export default function BatchRecordsDashboardPage() {
       )}
 
       {/* Records List Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+      <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 min-w-0 overflow-hidden">
         {/* Tabs Header */}
-        <div className="border-b border-gray-100 px-3 py-3 sm:px-4 bg-gradient-to-r from-gray-50/50 to-white">
+        <div className="border-b border-emerald-50 px-3 py-3 sm:px-4 bg-gradient-to-r from-white to-[#F6FCF9]">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-indigo-50 rounded-lg">
                 <FileText className="h-5 w-5 text-indigo-600" />
               </div>
-              <h3 className="font-semibold text-gray-900">{t('batchRecords.registry.title')}</h3>
+              <h3 className="font-semibold text-[#064E3B]">{t('batchRecords.registry.title')}</h3>
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <DxSelectBox
@@ -550,13 +550,13 @@ export default function BatchRecordsDashboardPage() {
             </div>
           </div>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-3">
-            <TabsList className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x w-full justify-start">
+            <TabsList className="flex items-center gap-1 p-1 bg-[#F1FAF5] border border-emerald-100 rounded-xl overflow-x-auto scrollbar-thin snap-x w-full justify-start">
               <TabsTrigger
                 value="all"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]"
               >
                 <span>{t('batchRecords.tabs.all')}</span>
-                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-gray-200 text-gray-700">
+                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
                   {totalCount}
                 </span>
               </TabsTrigger>
@@ -565,7 +565,7 @@ export default function BatchRecordsDashboardPage() {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]"
               >
                 <span>{t('batchRecords.tabs.inProgress')}</span>
-                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-gray-200 text-gray-700">
+                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
                   {inProgressTabCount}
                 </span>
               </TabsTrigger>
@@ -574,7 +574,7 @@ export default function BatchRecordsDashboardPage() {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]"
               >
                 <span>{t('batchRecords.tabs.pending')}</span>
-                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-gray-200 text-gray-700">
+                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
                   {pendingTabCount}
                 </span>
               </TabsTrigger>
@@ -583,7 +583,7 @@ export default function BatchRecordsDashboardPage() {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]"
               >
                 <span>{t('batchRecords.tabs.completed')}</span>
-                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-gray-200 text-gray-700">
+                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
                   {completedTabCount}
                 </span>
               </TabsTrigger>

@@ -317,12 +317,12 @@ export default function BOMDashboardPage() {
       {/* Charts & Cards Section - hidden on small screens to prioritize the list */}
       <div className="hidden xl:grid grid-cols-1 xl:grid-cols-3 gap-3">
         {/* Status Distribution */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0">
+        <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-5 min-w-0">
           <div className="flex items-center gap-2.5 mb-4">
             <div className="p-2 bg-emerald-50 rounded-lg">
               <Boxes className="h-5 w-5 text-emerald-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 text-base">{t('bom.charts.statusDistribution')}</h3>
+            <h3 className="font-semibold text-[#064E3B] text-base">{t('bom.charts.statusDistribution')}</h3>
           </div>
           {statusChartData.length > 0 ? (
             <PieChart
@@ -351,12 +351,12 @@ export default function BOMDashboardPage() {
         </div>
 
         {/* Top Products */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0 overflow-hidden">
+        <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-5 min-w-0 overflow-hidden">
           <div className="flex items-center gap-2.5 mb-4">
             <div className="p-2 bg-purple-50 rounded-lg">
               <Package className="h-5 w-5 text-purple-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 text-base">{t('bom.charts.topProducts')}</h3>
+            <h3 className="font-semibold text-[#064E3B] text-base">{t('bom.charts.topProducts')}</h3>
           </div>
           <div className="space-y-2.5">
             {dashboard?.topProducts?.slice(0, 4).map((product, index) => (
@@ -383,12 +383,12 @@ export default function BOMDashboardPage() {
         </div>
 
         {/* Recent BOMs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0 overflow-hidden">
+        <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-5 min-w-0 overflow-hidden">
           <div className="flex items-center gap-2.5 mb-4">
             <div className="p-2 bg-amber-50 rounded-lg">
               <ClipboardList className="h-5 w-5 text-amber-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 text-base">{t('bom.charts.recentBOMs')}</h3>
+            <h3 className="font-semibold text-[#064E3B] text-base">{t('bom.charts.recentBOMs')}</h3>
           </div>
           <div className="space-y-2.5">
             {dashboard?.recentBOMs?.slice(0, 4).map((bom) => (
@@ -444,11 +444,11 @@ export default function BOMDashboardPage() {
       )}
 
       {/* BOM List Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+      <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 min-w-0 overflow-hidden">
         {/* Filter / Tab row */}
-        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
+        <div className="px-3 py-3 sm:px-4 border-b border-emerald-50 bg-gradient-to-r from-white to-[#F6FCF9]">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-lg overflow-x-auto scrollbar-thin snap-x w-full justify-start">
+            <TabsList className="flex items-center gap-1 p-1 bg-[#F1FAF5] border border-emerald-100 rounded-xl overflow-x-auto scrollbar-thin snap-x w-full justify-start">
               {tabs.map((tab) => (
                 <TabsTrigger
                   key={tab.key}
@@ -456,7 +456,7 @@ export default function BOMDashboardPage() {
                   className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]"
                 >
                   <span>{tab.label}</span>
-                  <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-gray-200 text-gray-700">
+                  <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
                     {tab.count}
                   </span>
                 </TabsTrigger>
@@ -466,7 +466,7 @@ export default function BOMDashboardPage() {
         </div>
 
         {/* Search row */}
-        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="px-3 py-3 sm:px-4 border-b border-emerald-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
