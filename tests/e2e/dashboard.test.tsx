@@ -296,8 +296,12 @@ describe('Dashboard Page E2E', () => {
       render(<DashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Module KPIs')).toBeInTheDocument();
-        expect(screen.getByText('ตัวชี้วัดประสิทธิภาพแยกตามโมดูล')).toBeInTheDocument();
+        // Global next-intl mock (tests/setup.ts) resolves the EN locale, so the
+        // card renders cardTitle + cardDescription from src/locales/en/dashboard.json.
+        expect(screen.getAllByText('Module KPIs').length).toBeGreaterThan(0);
+        expect(
+          screen.getByText('Performance indicators broken down by module')
+        ).toBeInTheDocument();
       });
     });
 
