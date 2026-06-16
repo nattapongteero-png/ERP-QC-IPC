@@ -291,9 +291,10 @@ export default function GrnDetailPage() {
           dataField="itemCode"
           caption={t('table.columns.item')}
           allowEditing={false}
+          minWidth={230}
           cellRender={(cell) => (
-            <div>
-              <p className="font-medium">{cell.data.itemCode || `#${cell.data.itemId}`}</p>
+            <div className="min-w-0">
+              <p className="font-medium font-mono whitespace-nowrap">{cell.data.itemCode || `#${cell.data.itemId}`}</p>
               {cell.data.itemName && (
                 <p className="text-xs text-gray-500">{cell.data.itemName}</p>
               )}
@@ -440,7 +441,7 @@ export default function GrnDetailPage() {
               step="any"
               value={checklistSampleQty}
               onChange={(e) => setChecklistSampleQty(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
               placeholder="กรอกจำนวนที่สุ่มไปตรวจ"
               data-testid="checklist-sample-qty"
             />
@@ -506,7 +507,7 @@ export default function GrnDetailPage() {
               data-lpignore="true"
               value={sigPassword}
               onChange={(e) => setSigPassword(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
               placeholder="Sign with current password"
             />
           </div>
@@ -573,7 +574,7 @@ export default function GrnDetailPage() {
                       step="any"
                       value={releaseActualQty}
                       onChange={(e) => setReleaseActualQty(e.target.value)}
-                      className="w-full border rounded px-3 py-2"
+                      className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
                       placeholder="กรอกจำนวนรวมที่รับจริง"
                       data-testid="release-actual-qty"
                     />
@@ -623,7 +624,7 @@ export default function GrnDetailPage() {
               data-lpignore="true"
               value={sigPassword}
               onChange={(e) => setSigPassword(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
               placeholder="Sign with current password"
             />
           </div>

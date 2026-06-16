@@ -1199,59 +1199,9 @@ export default function LotsPage() {
           }
         />
 
-        {/* รายการ Lot — stat summary card. Used to be a TabsTrigger with
-            a sibling "ใบเบิกวัตถุดิบ" tab, but the requisition tab was a
-            verbatim duplicate of /inventory/requisitions which confused
-            users. Unwrapped to a plain div so it now acts as the page's
-            summary header only. */}
-        <div className="mb-4 rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] bg-white">
-          <div className="w-full p-4 text-left">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center bg-emerald-100 text-emerald-600">
-                <Boxes className="h-6 w-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline justify-between gap-2">
-                  <h3 className="font-semibold text-gray-900 text-base">รายการ Lot</h3>
-                  <span className="text-xs text-gray-400 flex-shrink-0">Inventory Lots</span>
-                </div>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-2xl font-bold text-gray-900 tabular-nums">
-                    {formatNumber(lots.length)}
-                  </span>
-                  <span className="text-sm text-gray-500">lots</span>
-                  <span className="text-gray-300">·</span>
-                  <span className="text-sm font-medium text-emerald-600 tabular-nums">
-                    {formatCurrency(stats.totalValue)}
-                  </span>
-                </div>
-                {/* Metric chips */}
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  {stats.quarantineCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                      <Clock className="h-3 w-3" /> {stats.quarantineCount} กักกัน
-                    </span>
-                  )}
-                  {stats.releasedCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                      <CheckCircle className="h-3 w-3" /> {stats.releasedCount} ปล่อย
-                    </span>
-                  )}
-                  {stats.nearExpiryCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
-                      <AlertTriangle className="h-3 w-3" /> {stats.nearExpiryCount} ใกล้หมดอายุ
-                    </span>
-                  )}
-                  {stats.expiredCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-                      <XCircle className="h-3 w-3" /> {stats.expiredCount} หมดอายุ
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* (Removed the "รายการ Lot" summary card — its lot count, value and
+            quarantine/released/near-expiry/expired chips duplicated the status
+            tabs + compact stats row in the grid header just below.) */}
 
         {/* DataGrid Card */}
         <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
@@ -1456,9 +1406,7 @@ export default function LotsPage() {
                 allowColumnResizing
                 paging
                 pageSize={20}
-                height={600}
-                mobileHeight={480}
-                tabletHeight={540}
+                height="auto"
                 responsiveColumns
                 onRowClick={handleRowClick}
                 noDataText={t('lots.noLots')}
