@@ -207,7 +207,7 @@ describe('Dashboard card navigation links', () => {
       await waitFor(() => {
         expect(screen.getByTestId('stat-link-pending-pos')).toHaveAttribute(
           'href',
-          '/purchasing/orders'
+          '/purchasing/orders?status=draft'
         );
       });
     });
@@ -217,7 +217,7 @@ describe('Dashboard card navigation links', () => {
       await waitFor(() => {
         expect(screen.getByTestId('stat-link-pending-sos')).toHaveAttribute(
           'href',
-          '/sales/orders'
+          '/sales/orders?status=draft'
         );
       });
     });

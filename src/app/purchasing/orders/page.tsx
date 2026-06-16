@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -157,15 +157,26 @@ const formatCurrency = (amount: number, currency: string = 'THB') => {
 // next-intl translator type (compatible superset for helper components)
 type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string;
 
+// Valid status values that can pre-filter the grid via ?status= in the URL
+// (e.g. dashboard "Pending POs" → /purchasing/orders?status=draft).
+const PO_STATUS_VALUES: POStatusFilter[] = ['', 'draft', 'pending_approval', 'approved', 'sent', 'partial', 'received', 'cancelled'];
+
 export default function PurchaseOrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('purchasing');
   const tCommon = useTranslations('common');
   const { isMobile } = useMobile();
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<POStatusFilter>('');
+  // Seed the status tab from the URL so deep-links (dashboard cards) land on
+  // the matching filtered view instead of the unfiltered "all" list.
+  const initialStatus = (() => {
+    const s = (searchParams.get('status') || '').toLowerCase() as POStatusFilter;
+    return PO_STATUS_VALUES.includes(s) ? s : '';
+  })();
+  const [statusFilter, setStatusFilter] = useState<POStatusFilter>(initialStatus);
   const [deleteTarget, setDeleteTarget] = useState<PurchaseOrder | null>(null);
   const [deleting, setDeleting] = useState(false);
 

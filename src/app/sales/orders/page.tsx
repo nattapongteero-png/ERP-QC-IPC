@@ -10,7 +10,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -233,12 +233,19 @@ async function fetchOrders() {
 
 export default function SalesOrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('sales');
   const tCommon = useTranslations('common');
   const locale = useLocale();
   const { isMobile } = useMobile();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
+  // Seed the status tab from the URL so deep-links (dashboard "Pending SOs"
+  // card → /sales/orders?status=draft) open on the matching filtered view.
+  const initialStatus = (() => {
+    const s = (searchParams.get('status') || '').toLowerCase() as StatusFilter;
+    return STATUS_ORDER.includes(s) ? s : '';
+  })();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus);
 
   // Data fetching with React Query
   const { data: orders = [], isLoading, refetch } = useQuery<SalesOrder[]>({

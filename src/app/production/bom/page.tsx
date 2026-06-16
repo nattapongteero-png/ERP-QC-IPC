@@ -46,16 +46,49 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatNumber } from '@/lib/utils/number-format';
+import { cn } from '@/lib/utils/cn';
 import type { BOMDashboard } from '@/app/api/bom/dashboard/route';
 
-// Status configuration — each status a visually DISTINCT colour (not two
-// near-identical greens): approved=emerald, active=blue, draft=amber,
-// obsolete=gray. Solid-ish fills + bold text so they're easy to tell apart.
+// Status configuration — each status a DISTINCT hue so badges never blur
+// together (approved=emerald and active were both greens before). Each entry
+// also carries the tab "active pill" classes so the filter tabs up top use the
+// SAME colour as the matching status badge below (visual correspondence).
+//   approved = emerald (green) · active = blue · draft = amber · obsolete = gray
 const statusConfig = {
-  draft: { translationKey: 'draft', color: 'bg-amber-100 text-amber-800 font-semibold', borderColor: 'border-amber-500' },
-  active: { translationKey: 'active', color: 'bg-teal-100 text-teal-800 font-semibold', borderColor: 'border-teal-500' },
-  approved: { translationKey: 'approved', color: 'bg-emerald-100 text-emerald-800 font-semibold', borderColor: 'border-emerald-500' },
-  obsolete: { translationKey: 'obsolete', color: 'bg-gray-200 text-gray-700 font-semibold', borderColor: 'border-gray-400' },
+  draft: {
+    translationKey: 'draft',
+    color: 'bg-amber-100 text-amber-800 font-semibold',
+    borderColor: 'border-amber-500',
+    tabActive: 'bg-amber-500 text-white',
+    countBadge: 'bg-amber-100 text-amber-800',
+  },
+  active: {
+    translationKey: 'active',
+    color: 'bg-blue-100 text-blue-800 font-semibold',
+    borderColor: 'border-blue-500',
+    tabActive: 'bg-blue-600 text-white',
+    countBadge: 'bg-blue-100 text-blue-800',
+  },
+  approved: {
+    translationKey: 'approved',
+    color: 'bg-emerald-100 text-emerald-800 font-semibold',
+    borderColor: 'border-emerald-500',
+    tabActive: 'bg-emerald-600 text-white',
+    countBadge: 'bg-emerald-100 text-emerald-800',
+  },
+  obsolete: {
+    translationKey: 'obsolete',
+    color: 'bg-gray-200 text-gray-700 font-semibold',
+    borderColor: 'border-gray-400',
+    tabActive: 'bg-gray-500 text-white',
+    countBadge: 'bg-gray-200 text-gray-700',
+  },
+};
+
+// "All" tab uses a neutral emerald (theme primary) since it isn't a status.
+const allTabConfig = {
+  tabActive: 'bg-emerald-600 text-white',
+  countBadge: 'bg-emerald-100 text-emerald-800',
 };
 
 // Chart color palette
@@ -202,13 +235,15 @@ export default function BOMDashboardPage() {
   const obsoleteCount = bomData?.filter((b) => b.status === 'obsolete').length || 0;
 
   // One tab per status the registry can display (statusConfig), so the filter
-  // surface never has fewer options than the badges shown in the grid.
-  const tabs: Array<{ key: string; label: string; count: number }> = [
-    { key: 'all', label: t('bom.tabs.all'), count: totalCount },
-    { key: 'approved', label: t('bom.tabs.approved'), count: approvedCount },
-    { key: 'active', label: t('bom.tabs.active'), count: activeCount },
-    { key: 'draft', label: t('bom.tabs.draft'), count: draftCount },
-    { key: 'obsolete', label: t('bom.tabs.obsolete'), count: obsoleteCount },
+  // surface never has fewer options than the badges shown in the grid. Each tab
+  // carries the colour of its matching status badge (tabActive when selected,
+  // countBadge for the count pill) so the filter and the grid stay in sync.
+  const tabs: Array<{ key: string; label: string; count: number; tabActive: string; countBadge: string }> = [
+    { key: 'all', label: t('bom.tabs.all'), count: totalCount, ...allTabConfig },
+    { key: 'approved', label: t('bom.tabs.approved'), count: approvedCount, tabActive: statusConfig.approved.tabActive, countBadge: statusConfig.approved.countBadge },
+    { key: 'active', label: t('bom.tabs.active'), count: activeCount, tabActive: statusConfig.active.tabActive, countBadge: statusConfig.active.countBadge },
+    { key: 'draft', label: t('bom.tabs.draft'), count: draftCount, tabActive: statusConfig.draft.tabActive, countBadge: statusConfig.draft.countBadge },
+    { key: 'obsolete', label: t('bom.tabs.obsolete'), count: obsoleteCount, tabActive: statusConfig.obsolete.tabActive, countBadge: statusConfig.obsolete.countBadge },
   ];
 
   const showEmptyState = !bomLoading && (bomData?.length || 0) === 0;
@@ -456,18 +491,29 @@ export default function BOMDashboardPage() {
         <div className="px-3 py-3 sm:px-4 border-b border-emerald-50 bg-gradient-to-r from-white to-[#F6FCF9]">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="flex items-center gap-1 p-1 bg-[#F1FAF5] border border-emerald-100 rounded-xl overflow-x-auto scrollbar-thin snap-x w-full justify-start">
-              {tabs.map((tab) => (
-                <TabsTrigger
-                  key={tab.key}
-                  value={tab.key}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]"
-                >
-                  <span>{tab.label}</span>
-                  <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
-                    {tab.count}
-                  </span>
-                </TabsTrigger>
-              ))}
+              {tabs.map((tab) => {
+                const isSelected = activeTab === tab.key;
+                return (
+                  <TabsTrigger
+                    key={tab.key}
+                    value={tab.key}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]',
+                      // When selected, paint the tab in its status colour so it
+                      // matches the badge below; otherwise keep it neutral.
+                      isSelected ? `${tab.tabActive} shadow-sm` : 'text-gray-600 hover:bg-white/60'
+                    )}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={cn(
+                      'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                      isSelected ? 'bg-white/25 text-white' : tab.countBadge
+                    )}>
+                      {tab.count}
+                    </span>
+                  </TabsTrigger>
+                );
+              })}
             </TabsList>
           </Tabs>
         </div>

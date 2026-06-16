@@ -50,6 +50,12 @@ export async function GET(
             lossAllowance: bomTable.lossAllowance,
             theoreticalYield: bomTable.theoreticalYield,
             fillWeightMg: bomTable.fillWeightMg,
+            // Product master-data strength so the UI can default the BOM's
+            // fill-weight field from the item's "ความแรง" when the BOM itself
+            // has none yet (FR: auto-seed from item base data).
+            productStrengthValue: itemsTable.strengthValue,
+            productStrengthUnit: itemsTable.strengthUnit,
+            productUnitWeightMg: itemsTable.unitWeightMg,
             effectiveDate: bomTable.effectiveDate,
             expiryDate: bomTable.expiryDate,
             createdAt: bomTable.createdAt,

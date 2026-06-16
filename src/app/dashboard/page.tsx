@@ -244,7 +244,7 @@ export default function DashboardPage() {
               </Link>
 
               <Link
-                href="/purchasing/orders"
+                href="/purchasing/orders?status=draft"
                 data-testid="stat-link-pending-pos"
                 className="block rounded-xl"
               >
@@ -261,7 +261,7 @@ export default function DashboardPage() {
               </Link>
 
               <Link
-                href="/sales/orders"
+                href="/sales/orders?status=draft"
                 data-testid="stat-link-pending-sos"
                 className="block rounded-xl"
               >

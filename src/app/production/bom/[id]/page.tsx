@@ -73,6 +73,11 @@ interface BOMDetail {
   lossAllowance: number;
   theoreticalYield: number;
   fillWeightMg: number | null;
+  // Product master-data strength (from the item's "ความแรง") — used to seed
+  // the fill-weight field when the BOM has no value of its own.
+  productStrengthValue?: number | string | null;
+  productStrengthUnit?: string | null;
+  productUnitWeightMg?: number | string | null;
   effectiveDate: string;
   expiryDate: string;
   createdAt: string;
@@ -226,7 +231,12 @@ export default function BOMDetailPage() {
           yieldTarget: Number(result.data.yieldTarget) || 0,
           lossAllowance: Number(result.data.lossAllowance) || 0,
           theoreticalYield: Number(result.data.theoreticalYield) || 0,
-          fillWeightMg: Number(result.data.fillWeightMg) || 0,
+          // Auto-seed fill weight from the product item's strength ("ความแรง")
+          // when the BOM has no value yet, so the operator doesn't start at 0.
+          fillWeightMg:
+            Number(result.data.fillWeightMg) ||
+            Number(result.data.productStrengthValue) ||
+            0,
           effectiveDate: result.data.effectiveDate?.split('T')[0] || '',
           expiryDate: result.data.expiryDate?.split('T')[0] || '',
         });
@@ -519,20 +529,20 @@ export default function BOMDetailPage() {
     {
       dataField: 'itemCode',
       caption: 'Item Code',
-      width: 140,
+      width: 180,
       cellRender: (cellInfo) => {
         const line = cellInfo.data as BOMLine;
         if (line.isHidden) {
           return <span className="text-gray-400 italic">-</span>;
         }
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-nowrap">
             {line.isConfidential && (
-              <span title="Confidential Item">
+              <span title="Confidential Item" className="shrink-0">
                 <Lock className="h-3.5 w-3.5 text-amber-500" />
               </span>
             )}
-            <span className="font-medium">{line.itemCode}</span>
+            <span className="font-medium whitespace-nowrap font-mono text-sm">{line.itemCode}</span>
           </div>
         );
       },
