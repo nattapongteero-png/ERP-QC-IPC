@@ -1232,12 +1232,12 @@ export default function SOPExecutionPage() {
     switch (phase) {
       case 'pre_production':
         return {
-          gradient: 'from-sky-500 to-cyan-500',
-          softBg: 'from-sky-50 to-cyan-50',
-          border: 'border-sky-300',
-          accent: 'bg-sky-500',
-          text: 'text-sky-700',
-          ring: 'ring-sky-200',
+          gradient: 'from-teal-500 to-emerald-500',
+          softBg: 'from-teal-50 to-emerald-50',
+          border: 'border-teal-300',
+          accent: 'bg-teal-500',
+          text: 'text-teal-700',
+          ring: 'ring-teal-200',
         };
       case 'production':
         return {
@@ -1259,21 +1259,21 @@ export default function SOPExecutionPage() {
         };
       case 'packaging':
         return {
-          gradient: 'from-violet-500 to-fuchsia-500',
-          softBg: 'from-violet-50 to-fuchsia-50',
-          border: 'border-violet-300',
-          accent: 'bg-violet-500',
-          text: 'text-violet-700',
-          ring: 'ring-violet-200',
+          gradient: 'from-lime-500 to-green-600',
+          softBg: 'from-lime-50 to-green-50',
+          border: 'border-lime-300',
+          accent: 'bg-lime-500',
+          text: 'text-lime-700',
+          ring: 'ring-lime-200',
         };
       default:
         return {
-          gradient: 'from-slate-600 to-slate-700',
-          softBg: 'from-slate-50 to-gray-50',
-          border: 'border-slate-300',
-          accent: 'bg-slate-500',
-          text: 'text-slate-700',
-          ring: 'ring-slate-200',
+          gradient: 'from-emerald-600 to-emerald-700',
+          softBg: 'from-emerald-50 to-emerald-50',
+          border: 'border-emerald-300',
+          accent: 'bg-emerald-500',
+          text: 'text-emerald-700',
+          ring: 'ring-emerald-200',
         };
     }
   };
@@ -1282,7 +1282,7 @@ export default function SOPExecutionPage() {
   const completedPct = progress.total > 0 ? (progress.completed / progress.total) * 100 : 0;
 
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border bg-gradient-to-br from-slate-50 via-white to-slate-50 min-h-screen">
+    <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border bg-[#F6FCF9] min-h-screen">
       {/* Header */}
       <ResponsivePageHeader
         title={phaseFilter ? `SOP Execution — ${SOP_PHASE_LABELS[phaseFilter]}` : 'SOP Execution'}
@@ -1375,7 +1375,7 @@ export default function SOPExecutionPage() {
       </div>
 
       {/* Steps List */}
-      <Card className="rounded-2xl border-slate-200/70 shadow-sm shadow-slate-200/40 backdrop-blur-sm bg-white/80">
+      <Card className="rounded-2xl border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.06)] backdrop-blur-sm bg-white">
         <CardContent className="p-4 md:p-5">
           {stepsLoading ? (
             <div className="flex flex-col items-center justify-center h-40 gap-3">
@@ -1385,8 +1385,8 @@ export default function SOPExecutionPage() {
           ) : !displaySteps || displaySteps.length === 0 ? (
             executionNotInitialized ? (
               <div className="text-center py-16">
-                <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-cyan-100 shadow-inner">
-                  <ClipboardList className="h-10 w-10 text-sky-600" />
+                <div className="mx-auto mb-4 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 shadow-inner">
+                  <ClipboardList className="h-10 w-10 text-emerald-600" />
                 </div>
                 <p className="text-slate-800 font-semibold text-lg">
                   BOM มีขั้นตอน SOP {bomConfig!.sopSteps.length} ขั้นตอน
@@ -1462,14 +1462,14 @@ export default function SOPExecutionPage() {
                 return (
                   <div
                     key={step.id}
-                    className={`group relative overflow-hidden rounded-2xl border bg-white/95 backdrop-blur-sm shadow-sm shadow-slate-200/60 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 ${
+                    className={`group relative overflow-hidden rounded-2xl border bg-white backdrop-blur-sm shadow-[0_6px_20px_rgba(6,78,59,0.06)] transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-emerald-300 ${
                       step.status === 'in_progress'
                         ? 'border-amber-300 ring-2 ring-amber-100 bg-gradient-to-br from-amber-50/40 to-white'
                         : step.status === 'verified'
                           ? 'border-emerald-200/70'
                           : step.status === 'deviation'
                             ? 'border-rose-200 ring-1 ring-rose-100'
-                            : 'border-slate-200/70'
+                            : 'border-emerald-100'
                     }`}
                   >
                     {/* Phase color accent stripe — left edge */}
@@ -1503,7 +1503,7 @@ export default function SOPExecutionPage() {
                               {statusInfo.label}
                             </span>
                             {step.requiresVerification && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
                                 <UserCheck className="h-2.5 w-2.5" />
                                 Requires Verification
                               </span>
@@ -1622,7 +1622,7 @@ export default function SOPExecutionPage() {
                                       >
                                         <div className="flex items-start gap-2.5">
                                           <div
-                                            className={`flex-none w-6 h-6 mt-0.5 rounded-md border-2 flex items-center justify-center transition-all ${isConfirmed ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border-emerald-600 shadow-sm' : 'border-slate-300 bg-white hover:border-emerald-400'} ${subStepsEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                                            className={`flex-none w-6 h-6 mt-0.5 rounded-md border-2 flex items-center justify-center transition-all ${isConfirmed ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border-emerald-600 shadow-sm' : 'border-emerald-200 bg-white hover:border-emerald-400'} ${subStepsEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
                                             onClick={() => subStepsEditable && toggleSubStep(step, sub.id)}
                                           >
                                             {isConfirmed && (
@@ -1799,7 +1799,7 @@ export default function SOPExecutionPage() {
                               <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('bomConfiguration.parameters')}</span>
                               <div className="mt-1 flex flex-wrap gap-2">
                                 {Object.entries(expectedParams).map(([key, value]) => (
-                                  <span key={key} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
+                                  <span key={key} className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50/60 border border-emerald-100 rounded text-sm">
                                     {getParamIcon(key)}
                                     <span className="text-gray-600">{key}:</span>
                                     <span className="font-medium">{value}</span>
@@ -1838,7 +1838,7 @@ export default function SOPExecutionPage() {
                                   return (
                                     <div
                                       key={ipc.id}
-                                      className="p-2 rounded-lg border bg-white flex items-start gap-2"
+                                      className="p-2 rounded-lg border border-emerald-100 bg-white flex items-start gap-2"
                                     >
                                       <FlaskConical className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                                       <div className="flex-1 min-w-0">
@@ -2060,14 +2060,14 @@ export default function SOPExecutionPage() {
             const expected = parseJson<Record<string, number>>(selectedStep?.expectedParameters);
             if (!expected || Object.keys(expected).length === 0) return null;
             return (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-2 flex items-center gap-1.5">
+              <div className="bg-[#F6FCF9] border border-emerald-100 rounded-xl p-4">
+                <h5 className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 mb-2 flex items-center gap-1.5">
                   <Gauge className="h-3.5 w-3.5" />
                   {t('bomConfiguration.parameters')}
                 </h5>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(expected).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm bg-white px-2.5 py-1.5 rounded-lg border border-slate-100">
+                    <div key={key} className="flex justify-between text-sm bg-white px-2.5 py-1.5 rounded-lg border border-emerald-100">
                       <span className="text-slate-600">{key}</span>
                       <span className="font-semibold text-slate-900 tabular-nums">{value}</span>
                     </div>
@@ -2102,12 +2102,12 @@ export default function SOPExecutionPage() {
             );
           })()}
 
-          <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-3">
-            <Clock className="inline h-3.5 w-3.5 text-slate-500 mr-1 -mt-0.5" />
+          <p className="text-xs text-slate-600 leading-relaxed bg-[#F6FCF9] border border-emerald-100 rounded-lg p-3">
+            <Clock className="inline h-3.5 w-3.5 text-emerald-500 mr-1 -mt-0.5" />
             Starting this step will record the current time and operator. You can then record actual parameters when completing the step.
           </p>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+          <div className="flex justify-end gap-2 pt-3 border-t border-emerald-100">
             <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowExecuteDialog(false)} />
             <DxButton
               text="Start Step"
@@ -2163,8 +2163,8 @@ export default function SOPExecutionPage() {
             const expected = parseJson<Record<string, number>>(selectedStep?.expectedParameters);
             if (!expected || Object.keys(expected).length === 0) return null;
             return (
-              <div className="space-y-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <div className="space-y-3 bg-[#F6FCF9] border border-emerald-100 rounded-xl p-4">
+                <h5 className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
                   <Gauge className="h-3.5 w-3.5" />
                   Record Actual Parameters
                 </h5>
@@ -2363,8 +2363,8 @@ export default function SOPExecutionPage() {
             </div>
           )}
 
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-2">Notes</label>
+          <div className="bg-white border border-emerald-100 rounded-xl p-4">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-emerald-700 mb-2">Notes</label>
             <DxTextArea
               value={notes}
               onValueChanged={(e) => setNotes(e.value)}
@@ -2376,7 +2376,7 @@ export default function SOPExecutionPage() {
         </div>
         {/* Sticky footer — never scrolls, so the submit button is always
             in reach even with long lists of IPC tests above. */}
-        <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white shrink-0">
+        <div className="flex justify-end gap-2 px-5 py-3 border-t border-emerald-100 bg-gradient-to-r from-[#F6FCF9] to-white shrink-0">
           <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setShowCompleteDialog(false)} />
           <DxButton
             text={completeStepMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก SOP Step'}
@@ -2624,7 +2624,7 @@ export default function SOPExecutionPage() {
               );
             })()}
           </div>
-          <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white shrink-0">
+          <div className="flex justify-end gap-2 px-5 py-3 border-t border-emerald-100 bg-gradient-to-r from-[#F6FCF9] to-white shrink-0">
             <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setShowIPCDialog(false)} />
             <DxButton
               text={recordIPCOnlyMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก IPC'}
@@ -2853,7 +2853,7 @@ export default function SOPExecutionPage() {
             )}
           </div>
           {retestTarget && (
-            <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-gradient-to-r from-amber-50 to-white shrink-0">
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-emerald-100 bg-gradient-to-r from-amber-50 to-white shrink-0">
               <DxButton text="ยกเลิก" stylingMode="outlined" onClick={closeRetest} />
               <DxButton
                 text={addIPCRoundMutation.isPending ? 'กำลังบันทึก...' : `บันทึกรอบ ${retestTarget.nextRound}`}
