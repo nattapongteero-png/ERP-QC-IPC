@@ -20,6 +20,39 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
 }));
 
+// Mock next-intl — return the key so testids/text stay deterministic
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
+// Mock hooks that touch browser-only APIs (useMobile/matchMedia, EventSource)
+vi.mock('@/hooks/use-mobile', () => ({
+  useMobile: () => ({ isMobile: false }),
+}));
+vi.mock('@/hooks/use-realtime-topic', () => ({
+  useRealtimeTopic: vi.fn(),
+}));
+
+// Mock shared layout/UI primitives used in render
+vi.mock('@/components/shared', () => ({
+  ResponsivePageHeader: ({ title, actions }: any) => (
+    <div data-testid="page-header">{title}{actions}</div>
+  ),
+  StatCard: ({ label, value }: any) => (
+    <div data-testid="stat-card">{label}: {value}</div>
+  ),
+}));
+vi.mock('@/components/ui/dx-popup', () => ({
+  DxPopup: ({ visible, children }: any) => (visible ? <div data-testid="popup">{children}</div> : null),
+  DxConfirmDialog: ({ visible, children }: any) => (visible ? <div data-testid="confirm-dialog">{children}</div> : null),
+}));
+vi.mock('@/components/ui/dx-button', () => ({
+  DxButton: ({ text, onClick }: any) => <button onClick={onClick}>{text}</button>,
+}));
+vi.mock('@/components/ui/dx-tabs', () => ({
+  DxTabs: () => <div data-testid="tabs" />,
+}));
+
 // Mock TanStack Query with test data
 const mockRefetch = vi.fn();
 const mockMutate = vi.fn();
@@ -136,6 +169,11 @@ import WorkOrdersPage from '@/app/production/work-orders/page';
 describe('WorkOrdersPage - Edit/Delete functionality', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Component fetches /api/hr/employees on mount; provide a valid response
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, data: { items: [] } }),
+    }) as any;
   });
 
   it('renders without crashing', () => {

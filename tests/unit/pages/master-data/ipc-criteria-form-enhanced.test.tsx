@@ -47,12 +47,14 @@ import { IPCCriteriaForm } from '@/components/master-data/IPCCriteriaForm';
 describe('IPCCriteriaForm Enhanced', () => {
   it('renders without crashing in create mode', () => {
     render(<IPCCriteriaForm mode="create" />);
-    expect(screen.getByText('New IPC Criteria')).toBeDefined();
+    expect(screen.getByText('New QC & IPC Criteria')).toBeDefined();
   });
 
   it('renders dosage form field', () => {
     render(<IPCCriteriaForm mode="create" />);
-    expect(screen.getByText(/รูปแบบยา/)).toBeDefined();
+    // Use the full, unique label text — the short "รูปแบบยา" fragment also
+    // appears inside SearchableSelect option labels, matching multiple nodes.
+    expect(screen.getByText('รูปแบบยา (Dosage Form)')).toBeDefined();
   });
 
   it('renders criteria type field', () => {

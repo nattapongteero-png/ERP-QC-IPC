@@ -85,25 +85,29 @@ describe('IPCCriteriaForm — Spec Target + Tolerance', () => {
 
   it('renders Spec Tolerance field distinct from Sample Failure Tolerance', () => {
     render(<IPCCriteriaForm mode="edit" id={42} />);
-    // Spec tolerance (drives Min/Max)
+    // Spec tolerance (drives Min/Max) — labelled "±% Tolerance (Spec Range)"
     expect(screen.getByText(/Tolerance \(Spec Range\)/i)).toBeDefined();
-    // Sample failure tolerance (batch acceptance)
-    expect(screen.getByText(/Sample Failure Tolerance/i)).toBeDefined();
+    // The separate batch-acceptance tolerance is labelled "Tolerance ±%" in the
+    // Sampling Plan section — distinct field from the spec-range tolerance above.
+    expect(screen.getByText('Tolerance ±%')).toBeDefined();
   });
 
   it('shows auto-calculated Min/Max from Target 300 and 5% tolerance', () => {
     render(<IPCCriteriaForm mode="edit" id={42} />);
-    // 300 ± 5% → Min = 285, Max = 315
-    const calcPreview = screen.getByText(/Auto-calculated/i);
+    // 300 ± 5% → Min = 285, Max = 315. The accepted-range preview ("ช่วงที่ยอมรับ")
+    // renders both bounds.
+    const calcPreview = screen.getByText(/ช่วงที่ยอมรับ/);
     expect(calcPreview).toBeDefined();
-    expect(calcPreview.textContent).toContain('285');
-    expect(calcPreview.textContent).toContain('315');
+    // The min/max values live in sibling nodes within the same preview container.
+    expect(calcPreview.parentElement?.textContent).toContain('285');
+    expect(calcPreview.parentElement?.textContent).toContain('315');
   });
 
   it('marks Min/Max fields as auto-calculated when Target is set', () => {
     render(<IPCCriteriaForm mode="edit" id={42} />);
-    // The "คำนวณอัตโนมัติ" (auto-calculated) label appears next to Min/Max
-    const labels = screen.getAllByText(/คำนวณอัตโนมัติ/);
+    // The "Auto" badge (AutoBadge) is rendered next to both the Min Value and
+    // Max Value labels when a numeric Target is present.
+    const labels = screen.getAllByText('Auto');
     expect(labels.length).toBeGreaterThanOrEqual(2); // one for Min, one for Max
   });
 });

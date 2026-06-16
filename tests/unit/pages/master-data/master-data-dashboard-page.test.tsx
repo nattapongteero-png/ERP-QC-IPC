@@ -81,7 +81,10 @@ describe('MasterDataPage', () => {
       renderWithProviders(<MasterDataPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Manage master data for GMP-compliant production')).toBeInTheDocument();
+        // Subtitle comes from i18n key page.description (masterData.json).
+        expect(
+          screen.getByText(/Manage master data used by other screens/),
+        ).toBeInTheDocument();
       });
     });
 
