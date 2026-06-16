@@ -9,8 +9,6 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
-  HeaderFilter,
-  FilterRow,
   Paging,
   Pager,
   Scrolling,
@@ -460,8 +458,6 @@ export default function RolesPage() {
             className="cursor-pointer"
           >
             <LoadPanel enabled={isLoading} />
-            <HeaderFilter visible />
-            <FilterRow visible />
             <Scrolling mode="virtual" />
             <Paging defaultPageSize={20} />
             <Pager

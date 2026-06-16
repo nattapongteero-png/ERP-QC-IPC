@@ -12,7 +12,6 @@ import { toLocalDateStr } from '@/lib/utils/date-format';
 import DataGrid, {
   Column,
   Paging,
-  FilterRow,
   Toolbar,
   Item,
 } from 'devextreme-react/data-grid';
@@ -188,7 +187,6 @@ export default function StandardCostsPage() {
             loadPanel={{ enabled: loading }}
             data-testid="standard-costs-grid"
           >
-            <FilterRow visible={true} />
             <Paging defaultPageSize={10} />
             <Toolbar>
               <Item location="before">

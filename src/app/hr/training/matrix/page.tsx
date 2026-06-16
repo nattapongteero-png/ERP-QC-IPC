@@ -7,7 +7,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
-  HeaderFilter,
   Scrolling,
   Paging,
   ColumnFixing,
@@ -301,7 +300,6 @@ export default function CompetencyMatrixPage() {
           loadPanel={{ enabled: isLoading }}
           columnAutoWidth={false}
         >
-          <HeaderFilter visible />
           <Scrolling mode="virtual" columnRenderingMode="virtual" />
           <ColumnFixing enabled />
           <Paging enabled={false} />

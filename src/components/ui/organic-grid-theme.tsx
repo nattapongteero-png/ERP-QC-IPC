@@ -65,12 +65,22 @@ export function OrganicGridTheme() {
       }
       .organic-grid .dx-datagrid .dx-row-alt > td { background-color: #FAFDFB; }
       .organic-grid .dx-datagrid .dx-data-row:hover > td { background-color: #FFFBEB !important; }
-      /* Show full cell text — let columnAutoWidth size to content instead of
-         clipping with an ellipsis (data cells wrap rather than truncate). */
+      /* Data cells on a SINGLE line — no wrapping (matches the nowrap header);
+         clip overflow with an ellipsis so rows stay one line tall. */
       .organic-grid .dx-datagrid .dx-data-row > td {
-        white-space: normal;
+        white-space: nowrap !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .organic-grid .dx-datagrid .dx-data-row > td .dx-datagrid-text-content {
+        white-space: nowrap !important;
+      }
+      /* Action cells (any cell containing a button/link) must NOT be clipped —
+         let the button show in full so it never gets cut at the column edge. */
+      .organic-grid .dx-datagrid .dx-data-row > td:has(button),
+      .organic-grid .dx-datagrid .dx-data-row > td:has(a) {
+        overflow: visible;
         text-overflow: clip;
-        word-break: break-word;
       }
       /* Smooth, theme-aligned DxTabs: animated emerald indicator + hover */
       .organic-grid .dx-tabs { background: transparent; border-bottom: 1px solid #DCEFE6; }

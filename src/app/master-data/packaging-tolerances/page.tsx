@@ -9,13 +9,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DataGrid, Column, Editing, FilterRow, Paging } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Editing, Paging } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { NumberBox } from 'devextreme-react/number-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import { TextArea } from 'devextreme-react/text-area';
-import { Sliders, Plus } from 'lucide-react';
+import { Sliders, Plus, Trash2 } from 'lucide-react';
 import type { PackagingTolerance, PackagingCategory } from '@/types/packaging';
 import { PACKAGING_CATEGORIES } from '@/types/packaging';
 
@@ -122,7 +122,6 @@ export default function PackagingTolerancesPage() {
           await updateMut.mutateAsync({ id: e.key as number, patch: newValue });
         }}
       >
-        <FilterRow visible={false} />
         <Paging pageSize={20} />
         <Editing mode="row" allowUpdating />
         <Column
@@ -153,6 +152,38 @@ export default function PackagingTolerancesPage() {
           width={120}
         />
         <Column dataField="notes" caption={t('tolerances.columns.notes')} />
+        <Column
+          caption="การจัดการ"
+          width={110}
+          alignment="center"
+          allowEditing={false}
+          allowSorting={false}
+          allowFiltering={false}
+          cellRender={(c) => {
+            const row = c.data as PackagingTolerance;
+            return (
+              <div className="flex items-center justify-center">
+                <button
+                  type="button"
+                  title="ลบ (ปิดใช้งาน)"
+                  disabled={updateMut.isPending}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `ลบหมวด "${t(`tolerances.categories.${row.packagingCategory}`)}" ?`
+                      )
+                    ) {
+                      updateMut.mutate({ id: row.id, patch: { isActive: false } });
+                    }
+                  }}
+                  className="p-1.5 rounded-md text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          }}
+        />
       </DataGrid>
 
       {/* Add tolerance popup */}

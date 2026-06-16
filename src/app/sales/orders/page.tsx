@@ -845,8 +845,6 @@ export default function SalesOrdersPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              filterRow
-              headerFilter
               export
               exportFileName="sales-orders"
               columnChooser

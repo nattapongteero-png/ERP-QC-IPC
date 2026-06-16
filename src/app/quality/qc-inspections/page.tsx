@@ -178,7 +178,10 @@ export default function QcInspectionsPage() {
       return;
     }
     toast.success('อัปเดตผลการตรวจแล้ว');
-    setDetail({ ...detail, overallResult });
+    // Close the dialog so the user lands back on the (refreshed) list and can
+    // see the updated result in the table — leaving it open looked like nothing
+    // happened / the row "disappeared".
+    setDetail(null);
     void loadRows();
   };
 
@@ -219,11 +222,12 @@ export default function QcInspectionsPage() {
     },
     { dataField: 'inspectorName', caption: 'ผู้ตรวจ', width: 130 },
     {
-      caption: '',
-      width: 130,
+      caption: 'ดำเนินการ',
+      width: 170,
+      alignment: 'center',
       cellRender: (c: any) => (
         <button
-          className="px-3 py-1 text-xs font-medium rounded border border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+          className="px-3 py-1 text-xs font-medium rounded border border-emerald-600 text-emerald-700 hover:bg-emerald-50 whitespace-nowrap"
           onClick={() => setDetail(c.data as InspectionRow)}
           data-testid={`open-detail-${c.data.id}`}
         >

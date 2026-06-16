@@ -847,8 +847,6 @@ export default function CustomersPage() {
                   columns={columns}
                   loading={isLoading}
                   sorting
-                  filterRow
-                  headerFilter
                   export
                   exportFileName="customers"
                   columnChooser

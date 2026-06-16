@@ -652,83 +652,47 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-blue-500" />
-                <div className="flex-1 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <ShoppingCart className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">ใบสั่งซื้อทั้งหมด</p>
-                      <p className="text-2xl font-bold text-gray-900">{summary.totalOrders}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="flex items-center gap-3">
+              <ShoppingCart className="h-6 w-6 text-blue-500" />
+              <div>
+                <p className="text-sm text-gray-500">ใบสั่งซื้อทั้งหมด</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.totalOrders}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-green-500" />
-                <div className="flex-1 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="h-6 w-6 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">มูลค่ารวม</p>
-                      <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalAmount)}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-6 w-6 text-emerald-500" />
+              <div>
+                <p className="text-sm text-gray-500">มูลค่ารวม</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalAmount)}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-purple-500" />
-                <div className="flex-1 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                      <Package className="h-6 w-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">รายการใน AVL</p>
-                      <p className="text-2xl font-bold text-gray-900">{summary.approvedItemsCount}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-violet-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="flex items-center gap-3">
+              <Package className="h-6 w-6 text-violet-500" />
+              <div>
+                <p className="text-sm text-gray-500">รายการใน AVL</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.approvedItemsCount}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-cyan-500" />
-                <div className="flex-1 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 bg-cyan-100 rounded-xl flex items-center justify-center">
-                      <Truck className="h-6 w-6 text-cyan-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Lead Time</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {vendor.leadTimeDays ? `${vendor.leadTimeDays} วัน` : '-'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-cyan-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="flex items-center gap-3">
+              <Truck className="h-6 w-6 text-cyan-500" />
+              <div>
+                <p className="text-sm text-gray-500">Lead Time</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {vendor.leadTimeDays ? `${vendor.leadTimeDays} วัน` : '-'}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Tabs Content */}

@@ -20,7 +20,6 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   Sorting,
   SearchPanel,
 } from 'devextreme-react/data-grid';
@@ -393,7 +392,6 @@ export default function LandedCostsPage() {
               }}
               data-testid="landed-costs-grid"
             >
-              <FilterRow visible />
               <SearchPanel visible={false} />
               <Sorting mode="single" />
 

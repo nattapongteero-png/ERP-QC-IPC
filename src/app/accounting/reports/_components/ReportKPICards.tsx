@@ -18,11 +18,13 @@ export interface ReportKPICardsProps {
   isLoading?: boolean;
 }
 
+// White card + tone-coloured LEFT accent bar (matches the shared StatCard
+// style). Colour comes from the left bar, not a tinted fill; value is near-black.
 const statusStyles = {
-  good: { border: 'border-emerald-200', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  warning: { border: 'border-amber-200', bg: 'bg-amber-50', text: 'text-amber-700' },
-  danger: { border: 'border-red-200', bg: 'bg-red-50', text: 'text-red-700' },
-  neutral: { border: 'border-gray-200', bg: 'bg-gray-50', text: 'text-gray-700' },
+  good: { accent: 'border-l-emerald-500', text: 'text-gray-900' },
+  warning: { accent: 'border-l-amber-500', text: 'text-gray-900' },
+  danger: { accent: 'border-l-rose-500', text: 'text-gray-900' },
+  neutral: { accent: 'border-l-gray-400', text: 'text-gray-900' },
 };
 
 export function ReportKPICards({ kpis, isLoading }: ReportKPICardsProps) {
@@ -74,9 +76,9 @@ export function ReportKPICards({ kpis, isLoading }: ReportKPICardsProps) {
           <Card
             key={kpi.labelKey}
             data-testid={`kpi-${kpi.labelKey}`}
-            className={`p-4 border-2 ${styles.border}`}
+            className={`p-4 bg-white border border-gray-200 border-l-4 ${styles.accent}`}
           >
-            <p className="text-sm font-medium text-gray-600 truncate">{t(kpi.labelKey)}</p>
+            <p className="text-sm font-medium text-gray-500 truncate">{t(kpi.labelKey)}</p>
             <p className={`mt-1 text-xl font-bold ${styles.text}`}>{formatValue(kpi)}</p>
             {trend && (
               <div className={`flex items-center gap-1 mt-1 text-xs ${trend.color}`}>

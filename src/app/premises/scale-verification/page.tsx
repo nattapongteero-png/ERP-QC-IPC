@@ -135,30 +135,30 @@ export default function ScaleVerificationPage() {
 
       {/* Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div>
-            <div className="text-xs uppercase tracking-wide opacity-70 text-emerald-900">{t('tiles.scalesActive')}</div>
-            <div className="text-3xl font-bold text-emerald-900 mt-1">{activeCount}</div>
+            <div className="text-xs uppercase tracking-wide text-gray-500">{t('tiles.scalesActive')}</div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{activeCount}</div>
           </div>
-          <CheckCircle2 className="w-5 h-5 opacity-60" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
         </div>
-        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-rose-500 rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div>
-            <div className="text-xs uppercase tracking-wide opacity-70 text-rose-900">{t('tiles.scalesOos')}</div>
-            <div className="text-3xl font-bold text-rose-900 mt-1">{oosCount}</div>
+            <div className="text-xs uppercase tracking-wide text-gray-500">{t('tiles.scalesOos')}</div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{oosCount}</div>
           </div>
-          <XCircle className="w-5 h-5 opacity-60" />
+          <XCircle className="w-5 h-5 text-rose-500" />
         </div>
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-indigo-900">{t('tiles.verificationsToday')}</div>
-          <div className="text-3xl font-bold text-indigo-900 mt-1">{scales.filter((s) => s.lastVerifiedAt?.slice(0, 10) === today).length}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">{t('tiles.verificationsToday')}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{scales.filter((s) => s.lastVerifiedAt?.slice(0, 10) === today).length}</div>
         </div>
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div>
-            <div className="text-xs uppercase opacity-70 text-amber-900">{t('tiles.expiringSoon')}</div>
-            <div className="text-3xl font-bold text-amber-900 mt-1">{expiringSoonCount}</div>
+            <div className="text-xs uppercase text-gray-500">{t('tiles.expiringSoon')}</div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{expiringSoonCount}</div>
           </div>
-          <AlertTriangle className="w-5 h-5 opacity-60" />
+          <AlertTriangle className="w-5 h-5 text-amber-500" />
         </div>
       </div>
 

@@ -625,17 +625,17 @@ export default function MaterialWeighingPage() {
 
       {/* Progress Card — stacks on mobile so the progress bar gets full
           width instead of being squeezed between the two stats blocks. */}
-      <Card className="border-amber-200 bg-amber-50">
+      <Card className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-6 flex-wrap">
-              <div className="text-amber-800">
-                <span className="text-2xl font-bold">{progress.weighed}</span>
-                <span className="text-sm">/{progress.total} {tw('progress.weighed')}</span>
+              <div>
+                <span className="text-2xl font-bold text-gray-900">{progress.weighed}</span>
+                <span className="text-sm text-gray-500">/{progress.total} {tw('progress.weighed')}</span>
               </div>
-              <div className="text-emerald-800">
-                <span className="text-2xl font-bold">{progress.verified}</span>
-                <span className="text-sm">/{progress.total} {tw('progress.verified')}</span>
+              <div>
+                <span className="text-2xl font-bold text-gray-900">{progress.verified}</span>
+                <span className="text-sm text-gray-500">/{progress.total} {tw('progress.verified')}</span>
               </div>
             </div>
             <div className="flex-1 sm:max-w-xs sm:mx-2">

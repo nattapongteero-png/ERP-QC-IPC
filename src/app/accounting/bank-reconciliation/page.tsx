@@ -14,8 +14,6 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
-  HeaderFilter,
   Sorting,
 } from 'devextreme-react/data-grid';
 import { Landmark, FileText, Clock, CheckCircle, AlertCircle, Eye, Edit, Trash2 } from 'lucide-react';
@@ -271,8 +269,6 @@ export default function BankReconciliationPage() {
             className="min-h-[400px]"
             data-testid="statements-grid"
           >
-            <FilterRow visible />
-            <HeaderFilter visible />
             <Sorting mode="multiple" />
             <Paging defaultPageSize={20} />
             <Pager

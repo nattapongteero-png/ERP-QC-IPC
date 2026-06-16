@@ -1286,18 +1286,18 @@ function StatCard({
   tone: 'indigo' | 'purple' | 'emerald' | 'amber' | 'rose';
 }) {
   const toneClasses = {
-    indigo: 'from-emerald-500 to-teal-500 shadow-emerald-200',
-    purple: 'from-purple-500 to-fuchsia-500 shadow-purple-200',
-    emerald: 'from-emerald-500 to-teal-500 shadow-emerald-200',
-    amber: 'from-amber-500 to-orange-500 shadow-amber-200',
-    rose: 'from-rose-500 to-pink-500 shadow-rose-200',
+    indigo: { bar: 'border-l-emerald-500', icon: 'text-emerald-500' },
+    purple: { bar: 'border-l-violet-500', icon: 'text-violet-500' },
+    emerald: { bar: 'border-l-emerald-500', icon: 'text-emerald-500' },
+    amber: { bar: 'border-l-amber-500', icon: 'text-amber-500' },
+    rose: { bar: 'border-l-rose-500', icon: 'text-rose-500' },
   };
   return (
-    <div className="rounded-2xl bg-white border border-emerald-50 p-4 shadow-[0_6px_20px_rgba(6,78,59,0.07)] hover:shadow-md transition-shadow">
+    <div
+      className={`rounded-[14px] bg-white border border-gray-200 border-l-4 ${toneClasses[tone].bar} p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] hover:shadow-md transition-shadow`}
+    >
       <div className="flex items-center gap-3">
-        <div
-          className={`h-10 w-10 rounded-xl bg-gradient-to-br ${toneClasses[tone]} text-white flex items-center justify-center shadow`}
-        >
+        <div className={`flex items-center justify-center ${toneClasses[tone].icon}`}>
           {icon}
         </div>
         <div className="min-w-0">

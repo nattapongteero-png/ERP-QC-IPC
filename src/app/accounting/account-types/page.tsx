@@ -531,8 +531,6 @@ export default function AccountTypesPage() {
             keyExpr="id"
             columns={columns}
             sorting
-            filterRow
-            headerFilter
             responsiveColumns
             height={560}
             mobileHeight={480}

@@ -12,7 +12,6 @@ import { LoadIndicator } from 'devextreme-react/load-indicator';
 import DataGrid, {
   Column,
   Paging,
-  FilterRow,
   Toolbar,
   Item,
   SearchPanel,
@@ -176,7 +175,6 @@ export default function CreditDebitNotesPage() {
             data-testid="notes-grid"
           >
             <SearchPanel visible={true} placeholder="Search notes..." />
-            <FilterRow visible={true} />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">

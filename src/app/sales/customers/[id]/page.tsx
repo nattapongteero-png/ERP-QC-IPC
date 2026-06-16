@@ -1227,83 +1227,47 @@ export default function CustomerDetailPage({
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-blue-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <ShoppingBag className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('customers.detail.stats.totalOrders')}</p>
-                      <p className="text-lg font-bold text-blue-600">{summary.totalOrders}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('customers.detail.stats.totalOrders')}</p>
+                <p className="text-lg font-bold text-gray-900">{summary.totalOrders}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-green-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-green-100 rounded-lg flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('customers.detail.stats.totalSales')}</p>
-                      <p className="text-lg font-bold text-green-600">{formatCurrencyShort(summary.totalAmount)}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-emerald-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('customers.detail.stats.totalSales')}</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrencyShort(summary.totalAmount)}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-purple-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <CreditCard className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('customers.detail.stats.creditLimit')}</p>
-                      <p className="text-lg font-bold text-purple-600">{formatCurrencyShort(customer.creditLimit)}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-violet-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-violet-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('customers.detail.stats.creditLimit')}</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrencyShort(customer.creditLimit)}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className={cn('w-1', customer.isActive ? 'bg-emerald-500' : 'bg-amber-500')} />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center', customer.isActive ? 'bg-emerald-100' : 'bg-amber-100')}>
-                      <CheckCircle className={cn('h-5 w-5', customer.isActive ? 'text-emerald-600' : 'text-amber-600')} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('customers.detail.stats.status')}</p>
-                      <p className={cn('text-lg font-bold', customer.isActive ? 'text-emerald-600' : 'text-amber-600')}>
-                        {customer.isActive ? t('customers.detail.statusActive') : t('customers.detail.statusInactive')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+          <div className={cn('bg-white border border-gray-200 border-l-4 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3', customer.isActive ? 'border-l-emerald-500' : 'border-l-amber-500')}>
+            <div className="flex items-center gap-2">
+              <CheckCircle className={cn('h-5 w-5', customer.isActive ? 'text-emerald-500' : 'text-amber-500')} />
+              <div>
+                <p className="text-xs text-gray-500">{t('customers.detail.stats.status')}</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {customer.isActive ? t('customers.detail.statusActive') : t('customers.detail.statusInactive')}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Tabs Content */}

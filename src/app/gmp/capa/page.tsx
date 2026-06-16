@@ -22,10 +22,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
-  HeaderFilter,
   SearchPanel,
-  Selection,
   Sorting,
   ColumnChooser,
   Export,
@@ -756,12 +753,9 @@ export default function CapaDashboardPage() {
               <LoadPanel enabled={true} />
               <StateStoring enabled={true} type="localStorage" storageKey="capaGridState" />
               <SearchPanel visible={true} width={250} placeholder={t('capa.search.placeholder')} />
-              <FilterRow visible={true} />
-              <HeaderFilter visible={true} />
               <Sorting mode="multiple" />
               <ColumnChooser enabled={true} mode="select" />
               <Export enabled={true} allowExportSelectedData={true} />
-              <Selection mode="multiple" showCheckBoxesMode="onClick" />
               <Paging defaultPageSize={20} />
               <Pager
                 showPageSizeSelector={true}

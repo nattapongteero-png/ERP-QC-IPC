@@ -877,8 +877,6 @@ export default function ComplaintsListPage() {
             keyExpr="id"
             columns={columns}
             sorting
-            filterRow
-            headerFilter
             export
             exportFileName="complaints"
             columnChooser

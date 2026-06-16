@@ -20,7 +20,6 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   Sorting,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -400,7 +399,6 @@ export default function WorkCentersPage() {
               }}
               data-testid="work-centers-grid"
             >
-              <FilterRow visible />
               <Sorting mode="single" />
 
               <Column

@@ -11,8 +11,6 @@ import { toLocalDateStr } from '@/lib/utils/date-format';
 import DataGrid, {
   Column,
   SearchPanel,
-  HeaderFilter,
-  FilterRow,
   Paging,
   Pager,
   Scrolling,
@@ -668,8 +666,6 @@ export default function AuthorizationsPage() {
             loadPanel={{ enabled: isLoading }}
           >
             <SearchPanel visible placeholder={t('common.search')} />
-            <HeaderFilter visible />
-            <FilterRow visible />
             <Grouping autoExpandAll={false} />
             <GroupPanel visible />
             <ColumnChooser enabled mode="select" />

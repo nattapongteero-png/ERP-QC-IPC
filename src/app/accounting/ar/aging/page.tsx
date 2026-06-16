@@ -12,7 +12,6 @@ import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
-  FilterRow,
   SearchPanel,
   Summary,
   TotalItem,
@@ -448,7 +447,6 @@ export default function ARAgingPage() {
                 hoverStateEnabled
               >
                 <Paging defaultPageSize={20} />
-                <FilterRow visible />
                 <SearchPanel visible placeholder="Search customers..." />
                 <Export enabled allowExportSelectedData />
 

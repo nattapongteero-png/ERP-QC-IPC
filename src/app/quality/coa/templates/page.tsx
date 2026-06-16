@@ -196,11 +196,11 @@ export default function CoaTemplatesPage() {
     {
       dataField: '_actions',
       caption: 'การกระทำ',
-      width: 320,
+      width: 360,
       allowFiltering: false,
       allowSorting: false,
       cellRender: (cell) => (
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-1 flex-nowrap whitespace-nowrap">
           <DxButton
             text="Edit"
             icon="edit"

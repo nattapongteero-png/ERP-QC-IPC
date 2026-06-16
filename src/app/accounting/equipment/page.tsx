@@ -16,8 +16,6 @@ import DataGrid, {
   Export,
   Paging,
   Pager,
-  FilterRow,
-  HeaderFilter,
   Sorting,
   LoadPanel,
   MasterDetail,
@@ -459,8 +457,6 @@ export default function EquipmentPage() {
             className="min-h-[400px]"
           >
             <LoadPanel enabled={isLoading} />
-            <FilterRow visible />
-            <HeaderFilter visible />
             <Sorting mode="multiple" />
             <Paging defaultPageSize={20} />
             <Pager

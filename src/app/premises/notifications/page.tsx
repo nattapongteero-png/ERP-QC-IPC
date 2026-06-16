@@ -202,33 +202,33 @@ export default function MaintenanceAlertsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-rose-500 rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div>
-            <div className="text-xs uppercase opacity-70 text-rose-900">{t('tiles.overdue')}</div>
-            <div className="text-3xl font-bold text-rose-900 mt-1">{overdue}</div>
+            <div className="text-xs uppercase text-gray-500">{t('tiles.overdue')}</div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{overdue}</div>
           </div>
-          <AlertTriangle className="w-5 h-5 opacity-60 text-rose-900" />
+          <AlertTriangle className="w-5 h-5 text-rose-500" />
         </div>
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div>
-            <div className="text-xs uppercase opacity-70 text-amber-900">{t('tiles.dueIn7d')}</div>
-            <div className="text-3xl font-bold text-amber-900 mt-1">{in7d}</div>
+            <div className="text-xs uppercase text-gray-500">{t('tiles.dueIn7d')}</div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{in7d}</div>
           </div>
-          <Clock className="w-5 h-5 opacity-60 text-amber-900" />
+          <Clock className="w-5 h-5 text-amber-500" />
         </div>
-        <div className="bg-sky-50 border border-sky-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div>
-            <div className="text-xs uppercase opacity-70 text-sky-900">{t('tiles.dueIn30d')}</div>
-            <div className="text-3xl font-bold text-sky-900 mt-1">{in30d}</div>
+            <div className="text-xs uppercase text-gray-500">{t('tiles.dueIn30d')}</div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{in30d}</div>
           </div>
-          <AlertCircle className="w-5 h-5 opacity-60 text-sky-900" />
+          <AlertCircle className="w-5 h-5 text-blue-500" />
         </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div>
-            <div className="text-xs uppercase opacity-70 text-slate-900">{t('tiles.open')}</div>
-            <div className="text-3xl font-bold text-slate-900 mt-1">{open.length}</div>
+            <div className="text-xs uppercase text-gray-500">{t('tiles.open')}</div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{open.length}</div>
           </div>
-          <Bell className="w-5 h-5 opacity-60 text-slate-900" />
+          <Bell className="w-5 h-5 text-gray-500" />
         </div>
       </div>
 

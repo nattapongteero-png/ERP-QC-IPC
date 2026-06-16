@@ -13,7 +13,6 @@ import { TextArea } from 'devextreme-react/text-area';
 import DataGrid, {
   Column,
   Paging,
-  FilterRow,
   Toolbar,
   Item,
   SearchPanel,
@@ -238,7 +237,6 @@ export default function MatchingExceptionsPage() {
             data-testid="exceptions-grid"
           >
             <SearchPanel visible={true} placeholder="Search exceptions..." />
-            <FilterRow visible={true} />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">

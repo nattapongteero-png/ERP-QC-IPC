@@ -18,8 +18,6 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
-  HeaderFilter,
   Sorting,
 } from 'devextreme-react/data-grid';
 import {
@@ -503,8 +501,6 @@ export default function FixedAssetsPage() {
               }}
               className="min-h-[400px]"
             >
-              <FilterRow visible />
-              <HeaderFilter visible />
               <Sorting mode="multiple" />
               <Paging defaultPageSize={20} />
               <Pager

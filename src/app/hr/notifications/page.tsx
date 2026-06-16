@@ -8,8 +8,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import DataGrid, {
   Column,
-  HeaderFilter,
-  FilterRow,
   Paging,
   Pager,
   Scrolling,
@@ -491,8 +489,6 @@ export default function NotificationsPage() {
             hoverStateEnabled
           >
             <LoadPanel enabled={isLoading} />
-            <HeaderFilter visible />
-            <FilterRow visible />
             <Scrolling mode="virtual" />
             <Paging defaultPageSize={20} />
             <Pager

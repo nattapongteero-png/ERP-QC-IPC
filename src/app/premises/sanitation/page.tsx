@@ -678,6 +678,7 @@ export default function SanitationDashboardPage() {
           <div className="overflow-x-auto">
             <DxDataGrid
               dataSource={pendingTasksWithRowNum}
+              keyExpr="_rowNumber"
               columns={taskColumns}
               showBorders={false}
               rowAlternationEnabled

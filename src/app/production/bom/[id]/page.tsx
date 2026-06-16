@@ -828,55 +828,55 @@ export default function BOMDetailPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-          <Card>
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Batch Size</p>
-                <p className="text-2xl font-bold text-emerald-600">{formatNumber(bom.batchSize) || 0}</p>
+                <p className="text-sm text-gray-500">Batch Size</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(bom.batchSize) || 0}</p>
                 <p className="text-xs text-gray-500">{bom.batchUnit}</p>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-violet-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Theoretical Yield</p>
-                <p className="text-2xl font-bold text-purple-600">{formatNumber(bom.theoreticalYield) || '-'}</p>
+                <p className="text-sm text-gray-500">Theoretical Yield</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(bom.theoreticalYield) || '-'}</p>
                 <p className="text-xs text-gray-500">{bom.productUnit}</p>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Yield Target</p>
-                <p className="text-2xl font-bold text-green-600">{bom.yieldTarget || '-'}%</p>
+                <p className="text-sm text-gray-500">Yield Target</p>
+                <p className="text-2xl font-bold text-gray-900">{bom.yieldTarget || '-'}%</p>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Loss Allowance</p>
-                <p className="text-2xl font-bold text-yellow-600">{bom.lossAllowance || '-'}%</p>
+                <p className="text-sm text-gray-500">Loss Allowance</p>
+                <p className="text-2xl font-bold text-gray-900">{bom.lossAllowance || '-'}%</p>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Materials</p>
-                <p className="text-2xl font-bold text-gray-600">{bom.lines?.length || 0}</p>
+                <p className="text-sm text-gray-500">Materials</p>
+                <p className="text-2xl font-bold text-gray-900">{bom.lines?.length || 0}</p>
                 <p className="text-xs text-gray-500">items</p>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-green-50 border-green-200">
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-teal-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <DollarSign className="h-4 w-4 text-green-600" />
-                  <p className="text-sm text-green-700 font-medium">Material Cost</p>
+                  <DollarSign className="h-4 w-4 text-teal-500" />
+                  <p className="text-sm text-gray-500 font-medium">Material Cost</p>
                 </div>
                 {loadingCost ? (
                   <div className="flex justify-center">
@@ -884,10 +884,10 @@ export default function BOMDetailPage() {
                   </div>
                 ) : bomCost?.totalMaterialCost !== undefined ? (
                   <>
-                    <p className="text-2xl font-bold text-green-700">
+                    <p className="text-2xl font-bold text-gray-900">
                       {formatMoney(bomCost.totalMaterialCost)} {bomCost.currency}
                     </p>
-                    <p className="text-xs text-green-600">
+                    <p className="text-xs text-gray-500">
                       {formatMoney(bomCost.costPerUnit) || '0'} {bomCost.currency}/{bom.batchUnit}
                     </p>
                   </>

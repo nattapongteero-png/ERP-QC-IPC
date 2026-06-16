@@ -37,12 +37,9 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
-  HeaderFilter,
   SearchPanel,
   Toolbar,
   Item,
-  Selection,
   Export,
   ColumnChooser,
   Sorting,
@@ -617,11 +614,8 @@ export default function JournalEntriesPage() {
                 allowedPageSizes={[10, 20, 50]}
                 showInfo
               />
-              <FilterRow visible />
-              <HeaderFilter visible />
               <SearchPanel visible={false} placeholder={t('journalEntries.search')} />
               <Sorting mode="multiple" />
-              <Selection mode="single" />
               <ColumnChooser enabled />
               <Export enabled />
 

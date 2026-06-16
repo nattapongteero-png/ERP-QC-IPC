@@ -77,50 +77,42 @@ export default function StabilityTrendsPage() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <FlaskConical className="h-5 w-5 text-blue-600" />
-            </div>
+            <FlaskConical className="h-5 w-5 text-blue-500" />
             <div>
-              <p className="text-2xl font-bold">{trends?.totalActiveStudies || 0}</p>
-              <p className="text-sm text-muted-foreground">{t('stability.dashboard.activeStudies')}</p>
+              <p className="text-2xl font-bold text-gray-900">{trends?.totalActiveStudies || 0}</p>
+              <p className="text-sm text-gray-500">{t('stability.dashboard.activeStudies')}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-rose-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-            </div>
+            <AlertTriangle className="h-5 w-5 text-rose-500" />
             <div>
-              <p className="text-2xl font-bold">{trends?.overduesamples || 0}</p>
-              <p className="text-sm text-muted-foreground">{t('stability.dashboard.overdueSamples')}</p>
+              <p className="text-2xl font-bold text-gray-900">{trends?.overduesamples || 0}</p>
+              <p className="text-sm text-gray-500">{t('stability.dashboard.overdueSamples')}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-orange-600" />
-            </div>
+            <TrendingUp className="h-5 w-5 text-amber-500" />
             <div>
-              <p className="text-2xl font-bold">{trends?.oosThisMonth || 0}</p>
-              <p className="text-sm text-muted-foreground">{t('stability.dashboard.oosThisMonth')}</p>
+              <p className="text-2xl font-bold text-gray-900">{trends?.oosThisMonth || 0}</p>
+              <p className="text-sm text-gray-500">{t('stability.dashboard.oosThisMonth')}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <Package className="h-5 w-5 text-green-600" />
-            </div>
+            <Package className="h-5 w-5 text-emerald-500" />
             <div>
-              <p className="text-2xl font-bold">{trends?.studiesByProduct.length || 0}</p>
-              <p className="text-sm text-muted-foreground">{t('stability.dashboard.productsTracked')}</p>
+              <p className="text-2xl font-bold text-gray-900">{trends?.studiesByProduct.length || 0}</p>
+              <p className="text-sm text-gray-500">{t('stability.dashboard.productsTracked')}</p>
             </div>
           </div>
         </div>

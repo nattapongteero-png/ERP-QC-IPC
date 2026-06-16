@@ -332,6 +332,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
             showPageSizeSelector
             allowedPageSizes={allowedPageSizes}
             showInfo
+            showNavigationButtons
             infoText="หน้า {0} จาก {1} ({2} รายการ)"
           />
         </>

@@ -14,7 +14,6 @@ import { SelectBox } from 'devextreme-react/select-box';
 import DataGrid, {
   Column,
   Paging,
-  FilterRow,
   Toolbar,
   Item,
   SearchPanel,
@@ -140,7 +139,6 @@ export default function DebitNotesPage() {
             data-testid="notes-grid"
           >
             <SearchPanel visible={true} placeholder="Search debit notes..." />
-            <FilterRow visible={true} />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">

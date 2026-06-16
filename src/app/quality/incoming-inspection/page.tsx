@@ -96,29 +96,29 @@ export default function IncomingInspectionPage() {
 
       {/* Tiles */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-indigo-900">{t('tiles.pendingChecklist')}</div>
-          <div className="text-3xl font-bold text-indigo-900 mt-1" data-testid="tile-pending-checklist">{counts?.pendingChecklistCount ?? 0}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">{t('tiles.pendingChecklist')}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1" data-testid="tile-pending-checklist">{counts?.pendingChecklistCount ?? 0}</div>
         </div>
-        <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-sky-900">{t('tiles.pendingQa')}</div>
-          <div className="text-3xl font-bold text-sky-900 mt-1">{counts?.pendingQaCount ?? 0}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-cyan-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">{t('tiles.pendingQa')}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{counts?.pendingQaCount ?? 0}</div>
         </div>
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-emerald-900">{t('tiles.passed')}</div>
-          <div className="text-3xl font-bold text-emerald-900 mt-1" data-testid="tile-passed">{counts?.passedCount ?? 0}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">{t('tiles.passed')}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1" data-testid="tile-passed">{counts?.passedCount ?? 0}</div>
         </div>
-        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-rose-900">{t('tiles.rejected')}</div>
-          <div className="text-3xl font-bold text-rose-900 mt-1" data-testid="tile-rejected">{counts?.rejectedCount ?? 0}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-rose-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">{t('tiles.rejected')}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1" data-testid="tile-rejected">{counts?.rejectedCount ?? 0}</div>
         </div>
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-amber-900">{t('tiles.staleQc')}</div>
-          <div className="text-3xl font-bold text-amber-900 mt-1">{counts?.staleQcSampleCount ?? 0}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">{t('tiles.staleQc')}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{counts?.staleQcSampleCount ?? 0}</div>
         </div>
-        <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-teal-900">{t('tiles.releasedToday')}</div>
-          <div className="text-3xl font-bold text-teal-900 mt-1">{counts?.releasedTodayCount ?? 0}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-teal-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">{t('tiles.releasedToday')}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{counts?.releasedTodayCount ?? 0}</div>
         </div>
       </div>
 

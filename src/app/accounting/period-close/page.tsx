@@ -9,7 +9,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
-import DataGrid, { Column, Paging, FilterRow, Selection, Sorting } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Paging, Selection, Sorting } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
 
 // DevExtreme Charts
@@ -590,7 +590,6 @@ export default function PeriodClosePage() {
               width="100%"
             >
               <Selection mode="single" />
-              <FilterRow visible />
               <Sorting mode="single" />
               <Paging defaultPageSize={12} />
               <Column dataField="periodName" caption={t('periodClose.columns.period')} minWidth={140} />

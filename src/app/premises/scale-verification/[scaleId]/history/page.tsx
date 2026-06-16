@@ -91,32 +91,32 @@ export default function ScaleHistoryPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="bg-gray-50 border rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70">บันทึกทั้งหมด</div>
-          <div className="text-3xl font-bold mt-1">{history.length}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">บันทึกทั้งหมด</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{history.length}</div>
         </div>
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] flex items-center justify-between">
           <div>
-            <div className="text-xs uppercase opacity-70 text-emerald-900">ผ่าน</div>
-            <div className="text-3xl font-bold text-emerald-900 mt-1">{passCount}</div>
+            <div className="text-xs uppercase text-gray-500">ผ่าน</div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{passCount}</div>
           </div>
-          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
         </div>
-        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-rose-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] flex items-center justify-between">
           <div>
-            <div className="text-xs uppercase opacity-70 text-rose-900">ไม่ผ่าน</div>
-            <div className="text-3xl font-bold text-rose-900 mt-1">{failCount}</div>
+            <div className="text-xs uppercase text-gray-500">ไม่ผ่าน</div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{failCount}</div>
           </div>
-          <XCircle className="w-5 h-5 text-rose-600" />
+          <XCircle className="w-5 h-5 text-rose-500" />
         </div>
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 border-l-4 border-l-cyan-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] flex items-center justify-between">
           <div>
-            <div className="text-xs uppercase opacity-70 text-indigo-900">ใช้งานอยู่</div>
-            <div className="text-base font-medium text-indigo-900 mt-1">
+            <div className="text-xs uppercase text-gray-500">ใช้งานอยู่</div>
+            <div className="text-base font-medium text-gray-900 mt-1">
               {data?.current ? '✓ มี verification ที่ยังไม่หมดอายุ' : 'หมดอายุแล้ว / ยังไม่เคยตรวจ'}
             </div>
           </div>
-          <Clock className="w-5 h-5 text-indigo-600" />
+          <Clock className="w-5 h-5 text-cyan-500" />
         </div>
       </div>
 

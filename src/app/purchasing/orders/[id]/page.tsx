@@ -1454,7 +1454,6 @@ export default function PurchaseOrderDetailPage() {
                   showBorders
                   height={450}
                   noDataText="ไม่มีรายการสินค้า"
-                  filterRow
                   export
                   exportFileName={`PO-${po.poNumber}-lines`}
                 />
@@ -1543,7 +1542,6 @@ export default function PurchaseOrderDetailPage() {
                 showBorders
                 height={450}
                 noDataText="ยังไม่มี Lot ที่รับเข้า"
-                filterRow
                 export
                 exportFileName={`PO-${po.poNumber}-lots`}
                 onRowClick={(e) => router.push(`/inventory/lots/${e.data.id}`)}

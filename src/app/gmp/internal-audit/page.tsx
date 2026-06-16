@@ -17,9 +17,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   SearchPanel,
-  HeaderFilter,
   ColumnChooser,
   Export,
   Grouping,
@@ -29,7 +27,6 @@ import DataGrid, {
   Toolbar,
   Item,
   Scrolling,
-  Selection,
 } from 'devextreme-react/data-grid';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -93,6 +90,8 @@ const AUDIT_STATUS_CONFIG: Record<AuditStatus, {
   bgColor: string;
   textColor: string;
   borderColor: string;
+  accentBorder: string;
+  accentText: string;
   chartColor: string;
   icon: React.ReactNode;
 }> = {
@@ -101,6 +100,8 @@ const AUDIT_STATUS_CONFIG: Record<AuditStatus, {
     bgColor: 'bg-blue-50',
     textColor: 'text-blue-700',
     borderColor: 'border-blue-200',
+    accentBorder: 'border-l-blue-500',
+    accentText: 'text-blue-500',
     chartColor: '#3b82f6',
     icon: <Calendar className="h-3.5 w-3.5" />,
   },
@@ -109,6 +110,8 @@ const AUDIT_STATUS_CONFIG: Record<AuditStatus, {
     bgColor: 'bg-amber-50',
     textColor: 'text-amber-700',
     borderColor: 'border-amber-200',
+    accentBorder: 'border-l-amber-500',
+    accentText: 'text-amber-500',
     chartColor: '#f59e0b',
     icon: <Clock className="h-3.5 w-3.5" />,
   },
@@ -117,6 +120,8 @@ const AUDIT_STATUS_CONFIG: Record<AuditStatus, {
     bgColor: 'bg-emerald-50',
     textColor: 'text-emerald-700',
     borderColor: 'border-emerald-200',
+    accentBorder: 'border-l-emerald-500',
+    accentText: 'text-emerald-500',
     chartColor: '#10b981',
     icon: <CheckCircle className="h-3.5 w-3.5" />,
   },
@@ -125,6 +130,8 @@ const AUDIT_STATUS_CONFIG: Record<AuditStatus, {
     bgColor: 'bg-slate-50',
     textColor: 'text-slate-700',
     borderColor: 'border-slate-200',
+    accentBorder: 'border-l-gray-500',
+    accentText: 'text-gray-500',
     chartColor: '#64748b',
     icon: <XCircle className="h-3.5 w-3.5" />,
   },
@@ -182,9 +189,8 @@ function StatusCard({
   count: number;
   total: number;
   config: {
-    bgColor: string;
-    textColor: string;
-    borderColor: string;
+    accentBorder: string;
+    accentText: string;
     icon: React.ReactNode;
   };
   label: string;
@@ -192,18 +198,18 @@ function StatusCard({
 }) {
   const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
-    <div className={`${config.bgColor} border ${config.borderColor} rounded-xl p-4 transition-all hover:shadow-md`}>
+    <div className={`bg-white border border-gray-200 border-l-4 ${config.accentBorder} rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] transition-all hover:shadow-md`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <div className={`p-1.5 rounded-lg ${config.bgColor} ${config.textColor} flex-shrink-0`}>
+          <div className={`${config.accentText} flex-shrink-0`}>
             {config.icon}
           </div>
           <div className="min-w-0">
-            <p className={`text-xs font-medium ${config.textColor} truncate`}>{label}</p>
+            <p className="text-xs font-medium text-gray-500 truncate">{label}</p>
             <p className="text-xs text-gray-500">{percentage}{percentSuffix}</p>
           </div>
         </div>
-        <p className={`text-2xl font-bold ${config.textColor} flex-shrink-0`}>{count}</p>
+        <p className="text-2xl font-bold text-gray-900 flex-shrink-0">{count}</p>
       </div>
     </div>
   );
@@ -1140,14 +1146,11 @@ export default function InternalAuditDashboardPage() {
               style={{ minWidth: 960 }}
             >
               <Scrolling mode="virtual" />
-              <Selection mode="multiple" showCheckBoxesMode="onClick" />
               <SearchPanel visible={true} placeholder={t('internalAudit.search.placeholder')} width={250} />
-              <FilterRow visible={true} />
-              <HeaderFilter visible={true} />
               <GroupPanel visible={true} />
               <Grouping autoExpandAll={false} />
               <ColumnChooser enabled={true} mode="select" />
-              <Export enabled={true} allowExportSelectedData={true} />
+              <Export enabled={true} allowExportSelectedData={false} />
 
               <Column
                 dataField="_rowNumber"

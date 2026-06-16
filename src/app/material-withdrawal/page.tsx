@@ -75,25 +75,29 @@ export default function MaterialWithdrawalListPage() {
           label={t('table.columns.id')}
           value={counts.total}
           icon={Layers}
-          color="bg-blue-100 text-blue-700"
+          accent="border-l-blue-500"
+          iconCls="text-blue-500"
         />
         <KpiCard
           label={t('status.pending')}
           value={counts.pending}
           icon={Clock}
-          color="bg-amber-100 text-amber-700"
+          accent="border-l-amber-500"
+          iconCls="text-amber-500"
         />
         <KpiCard
           label={t('status.approved')}
           value={counts.approved}
           icon={CheckCircle2}
-          color="bg-emerald-100 text-emerald-700"
+          accent="border-l-emerald-500"
+          iconCls="text-emerald-500"
         />
         <KpiCard
           label={t('status.rejected')}
           value={counts.rejected}
           icon={XCircle}
-          color="bg-red-100 text-red-700"
+          accent="border-l-rose-500"
+          iconCls="text-rose-500"
         />
       </div>
 
@@ -156,22 +160,25 @@ function KpiCard({
   label,
   value,
   icon: Icon,
-  color,
+  accent,
+  iconCls,
 }: {
   label: string;
   value: number;
   icon: React.ComponentType<{ className?: string }>;
-  color: string;
+  accent: string;
+  iconCls: string;
 }) {
+  // White card + tone-coloured left accent bar + coloured icon (matches StatCard).
   return (
-    <div className="rounded-[18px] border border-emerald-100 bg-white p-3 flex items-center gap-3 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
-      <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full ${color}`}>
+    <div className={`rounded-[14px] border border-gray-200 border-l-4 ${accent} bg-white p-4 flex items-center justify-between gap-3 shadow-[0_6px_20px_rgba(6,78,59,0.06)]`}>
+      <div>
+        <div className="text-2xl font-bold text-gray-900">{value}</div>
+        <div className="text-sm text-gray-500">{label}</div>
+      </div>
+      <span className={`inline-flex items-center justify-center w-10 h-10 ${iconCls}`}>
         <Icon className="w-5 h-5" />
       </span>
-      <div>
-        <div className="text-2xl font-bold">{value}</div>
-        <div className="text-sm text-[#4B7163]">{label}</div>
-      </div>
     </div>
   );
 }

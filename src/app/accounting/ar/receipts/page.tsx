@@ -13,7 +13,6 @@ import { toLocalDateStr } from '@/lib/utils/date-format';
 import DataGrid, {
   Column,
   Paging,
-  FilterRow,
   SearchPanel,
   Summary,
   TotalItem,
@@ -681,7 +680,6 @@ export default function ARReceiptsPage() {
                 hoverStateEnabled
               >
                 <Paging defaultPageSize={20} />
-                <FilterRow visible />
                 <SearchPanel visible placeholder="Search receipts..." />
                 <Export enabled allowExportSelectedData />
 

@@ -826,55 +826,45 @@ export default function WorkOrderDetailPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 no-print">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Planned Qty</p>
-                <p className="text-2xl font-bold text-emerald-600">{formatNumber(workOrder.plannedQty) || 0}</p>
-                <p className="text-xs text-gray-500">{workOrder.productUnit}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Actual Qty</p>
-                <p className="text-2xl font-bold text-green-600">{formatNumber(workOrder.actualQty) || 0}</p>
-                <p className="text-xs text-gray-500">{workOrder.productUnit}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Yield</p>
-                <p className={`text-2xl font-bold ${summary.yieldPercent && summary.yieldPercent >= 95 ? 'text-green-600' : summary.yieldPercent && summary.yieldPercent >= 90 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {summary.yieldPercent ? `${summary.yieldPercent}%` : 'N/A'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Production Time</p>
-                <p className="text-2xl font-bold text-gray-600">
-                  {summary.productionTimeHours ? `${summary.productionTimeHours}h` : 'N/A'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">QC Tests</p>
-                <p className="text-2xl font-bold text-gray-600">
-                  {summary.qcPassCount}/{summary.qcTestCount}
-                </p>
-                <p className="text-xs text-gray-500">Passed</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-500">Planned Qty</p>
+              <p className="text-2xl font-bold text-gray-900">{formatNumber(workOrder.plannedQty) || 0}</p>
+              <p className="text-xs text-gray-500">{workOrder.productUnit}</p>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-500">Actual Qty</p>
+              <p className="text-2xl font-bold text-gray-900">{formatNumber(workOrder.actualQty) || 0}</p>
+              <p className="text-xs text-gray-500">{workOrder.productUnit}</p>
+            </div>
+          </div>
+          <div className={`bg-white border border-gray-200 border-l-4 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4 ${summary.yieldPercent && summary.yieldPercent >= 95 ? 'border-l-emerald-500' : summary.yieldPercent && summary.yieldPercent >= 90 ? 'border-l-amber-500' : 'border-l-rose-500'}`}>
+            <div className="text-center">
+              <p className="text-sm text-gray-500">Yield</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {summary.yieldPercent ? `${summary.yieldPercent}%` : 'N/A'}
+              </p>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-500">Production Time</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {summary.productionTimeHours ? `${summary.productionTimeHours}h` : 'N/A'}
+              </p>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-cyan-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-500">QC Tests</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {summary.qcPassCount}/{summary.qcTestCount}
+              </p>
+              <p className="text-xs text-gray-500">Passed</p>
+            </div>
+          </div>
         </div>
 
         {/* Line Clearance Status Card removed — clearance now lives in

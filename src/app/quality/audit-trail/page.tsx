@@ -694,23 +694,24 @@ function KpiCard({
   value: number;
   color: 'emerald' | 'teal' | 'sky' | 'amber';
 }) {
+  // White card + tone-coloured left accent bar + coloured icon (matches StatCard).
   const colorMap = {
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', icon: 'bg-emerald-100' },
-    teal: { bg: 'bg-teal-50', text: 'text-teal-700', icon: 'bg-teal-100' },
-    sky: { bg: 'bg-sky-50', text: 'text-sky-700', icon: 'bg-sky-100' },
-    amber: { bg: 'bg-amber-50', text: 'text-amber-700', icon: 'bg-amber-100' },
+    emerald: { accent: 'border-l-emerald-500', icon: 'text-emerald-500' },
+    teal: { accent: 'border-l-teal-500', icon: 'text-teal-500' },
+    sky: { accent: 'border-l-sky-500', icon: 'text-sky-500' },
+    amber: { accent: 'border-l-amber-500', icon: 'text-amber-500' },
   };
   const c = colorMap[color];
   return (
     <div
-      className={`${c.bg} border border-gray-100 rounded-xl p-4 flex items-center gap-3`}
+      className={`bg-white border border-gray-200 border-l-4 ${c.accent} rounded-[14px] p-4 flex items-center gap-3 shadow-[0_6px_20px_rgba(6,78,59,0.06)]`}
     >
-      <div className={`${c.icon} p-2 rounded-lg`}>
-        <Icon className={`h-5 w-5 ${c.text}`} />
+      <div className="p-2">
+        <Icon className={`h-5 w-5 ${c.icon}`} />
       </div>
       <div>
-        <p className="text-xs text-gray-600">{label}</p>
-        <p className={`text-xl font-bold ${c.text}`}>
+        <p className="text-xs font-medium text-gray-500">{label}</p>
+        <p className="text-xl font-bold text-gray-900">
           {value.toLocaleString()}
         </p>
       </div>

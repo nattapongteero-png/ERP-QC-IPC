@@ -391,16 +391,19 @@ export default function ReportsPage() {
       {/* Summary Buckets */}
       <div className="grid grid-cols-5 gap-4 mb-8">
         {report.buckets.map((bucket, idx) => {
-          const colors = [
-            'from-green-50 to-emerald-50 border-green-200',
-            'from-blue-50 to-cyan-50 border-blue-200',
-            'from-yellow-50 to-amber-50 border-yellow-200',
-            'from-orange-50 to-red-50 border-orange-200',
-            'from-red-50 to-rose-50 border-red-300',
+          const accents = [
+            'border-l-emerald-500',
+            'border-l-blue-500',
+            'border-l-amber-500',
+            'border-l-orange-500',
+            'border-l-rose-500',
           ];
           return (
-            <div key={bucket.range} className={`border rounded-xl p-4 text-center bg-gradient-to-br ${colors[idx]}`}>
-              <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">{bucket.range}</div>
+            <div
+              key={bucket.range}
+              className={`bg-white border border-gray-200 border-l-4 ${accents[idx]} rounded-[14px] p-4 text-center shadow-[0_6px_20px_rgba(6,78,59,0.06)]`}
+            >
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">{bucket.range}</div>
               <div className="text-2xl font-bold text-gray-900 mt-2">{bucket.amount.toLocaleString()}</div>
               <div className="text-xs text-gray-500 mt-1">{bucket.count} invoices</div>
             </div>

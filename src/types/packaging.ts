@@ -33,7 +33,7 @@ export const VARIANCE_REASONS = [
 ] as const;
 export type VarianceReason = (typeof VARIANCE_REASONS)[number];
 
-export const PACKAGING_CATEGORIES = ['capsule', 'bottle', 'cap', 'label', 'other'] as const;
+export const PACKAGING_CATEGORIES = ['capsule', 'bottle', 'cap', 'label', 'blister', 'box', 'other'] as const;
 export type PackagingCategory = (typeof PACKAGING_CATEGORIES)[number];
 
 // ---------------------------------------------------------------------------

@@ -9,11 +9,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import DataGrid, {
   Column,
   SearchPanel,
-  HeaderFilter,
-  FilterRow,
   Paging,
   Pager,
-  Selection,
   Scrolling,
   Export,
   Toolbar,
@@ -775,8 +772,6 @@ export default function EmployeesPage() {
             className="[&_.dx-datagrid-headers]:bg-slate-50/80 [&_.dx-datagrid-headers]:border-b [&_.dx-datagrid-headers]:border-slate-200 [&_.dx-header-row>td]:font-semibold [&_.dx-header-row>td]:text-slate-600 [&_.dx-header-row>td]:text-xs [&_.dx-header-row>td]:uppercase [&_.dx-header-row>td]:tracking-wider [&_.dx-header-row>td]:py-3.5 [&_.dx-data-row]:border-b [&_.dx-data-row]:border-slate-100 [&_.dx-data-row:hover]:bg-blue-50/50 [&_.dx-data-row]:transition-colors [&_.dx-data-row]:cursor-pointer"
           >
             <SearchPanel visible placeholder={t('employees.searchPlaceholder')} width={280} />
-            <HeaderFilter visible />
-            <FilterRow visible={false} />
             <Scrolling mode="virtual" />
             <Paging defaultPageSize={25} />
             <Pager
@@ -785,7 +780,6 @@ export default function EmployeesPage() {
               showInfo
               showNavigationButtons
             />
-            <Selection mode="single" />
             <Export enabled />
             <GroupPanel visible />
             <Grouping autoExpandAll={false} />
@@ -847,14 +841,7 @@ export default function EmployeesPage() {
               alignment="center"
               hidingPriority={1}
               groupIndex={-1}
-            >
-              <HeaderFilter
-                dataSource={STATUS_OPTIONS.map((o) => ({
-                  text: o.label,
-                  value: o.value,
-                }))}
-              />
-            </Column>
+            />
             <Column
               dataField="hireDate"
               caption={t('employees.hireDateLabel')}

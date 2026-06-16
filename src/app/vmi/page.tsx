@@ -283,133 +283,73 @@ export default function VmiPage() {
 
         {/* Order Status Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-amber-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-amber-100 rounded-lg flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orderStatus.pending')}</p>
-                      <p className="text-lg font-bold text-amber-600">{stats?.orders.pendingOrders || 0}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orderStatus.pending')}</p>
+                <p className="text-lg font-bold text-gray-900">{stats?.orders.pendingOrders || 0}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-blue-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <CheckCircle className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orderStatus.confirmed')}</p>
-                      <p className="text-lg font-bold text-blue-600">{stats?.orders.confirmedOrders || 0}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orderStatus.confirmed')}</p>
+                <p className="text-lg font-bold text-gray-900">{stats?.orders.confirmedOrders || 0}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-violet-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-violet-100 rounded-lg flex items-center justify-center">
-                      <Package className="h-5 w-5 text-violet-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orderStatus.processing')}</p>
-                      <p className="text-lg font-bold text-violet-600">{stats?.orders.processingOrders || 0}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-violet-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-violet-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orderStatus.processing')}</p>
+                <p className="text-lg font-bold text-gray-900">{stats?.orders.processingOrders || 0}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-cyan-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-cyan-100 rounded-lg flex items-center justify-center">
-                      <Truck className="h-5 w-5 text-cyan-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orderStatus.shippedToday')}</p>
-                      <p className="text-lg font-bold text-cyan-600">{stats?.orders.shippedToday || 0}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-cyan-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-cyan-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orderStatus.shippedToday')}</p>
+                <p className="text-lg font-bold text-gray-900">{stats?.orders.shippedToday || 0}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-green-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-green-100 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orderStatus.delivered')}</p>
-                      <p className="text-lg font-bold text-green-600">{stats?.orders.deliveredOrders || 0}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-emerald-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orderStatus.delivered')}</p>
+                <p className="text-lg font-bold text-gray-900">{stats?.orders.deliveredOrders || 0}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className={cn(
-            'overflow-hidden',
-            (stats?.orders.unmatchedItems || 0) > 0 && 'ring-2 ring-red-200'
+          <div className={cn(
+            'bg-white border border-gray-200 border-l-4 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3',
+            (stats?.orders.unmatchedItems || 0) > 0 ? 'border-l-rose-500' : 'border-l-gray-500'
           )}>
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className={cn('w-1', (stats?.orders.unmatchedItems || 0) > 0 ? 'bg-red-500' : 'bg-gray-300')} />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className={cn(
-                      'h-9 w-9 rounded-lg flex items-center justify-center',
-                      (stats?.orders.unmatchedItems || 0) > 0 ? 'bg-red-100' : 'bg-gray-100'
-                    )}>
-                      <AlertTriangle className={cn(
-                        'h-5 w-5',
-                        (stats?.orders.unmatchedItems || 0) > 0 ? 'text-red-600' : 'text-gray-400'
-                      )} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orderStatus.unmatched')}</p>
-                      <p className={cn(
-                        'text-lg font-bold',
-                        (stats?.orders.unmatchedItems || 0) > 0 ? 'text-red-600' : 'text-gray-400'
-                      )}>
-                        {stats?.orders.unmatchedItems || 0}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className={cn(
+                'h-5 w-5',
+                (stats?.orders.unmatchedItems || 0) > 0 ? 'text-rose-500' : 'text-gray-500'
+              )} />
+              <div>
+                <p className="text-xs text-gray-500">{t('orderStatus.unmatched')}</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {stats?.orders.unmatchedItems || 0}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Main Content Grid */}

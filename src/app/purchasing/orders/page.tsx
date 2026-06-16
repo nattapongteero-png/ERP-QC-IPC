@@ -596,8 +596,6 @@ export default function PurchaseOrdersPage() {
               keyExpr="id"
               columns={columns}
               sorting
-              filterRow
-              headerFilter
               export
               exportFileName="purchase-orders"
               columnChooser

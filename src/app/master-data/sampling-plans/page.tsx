@@ -15,7 +15,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useToast } from '@/hooks/use-toast';
-import { Layers, CheckCircle2, ListChecks } from 'lucide-react';
+import { Layers, CheckCircle2, ListChecks, Edit, Trash2 } from 'lucide-react';
 
 interface PlanRow {
   id: number;
@@ -179,15 +179,15 @@ export default function SamplingPlansPage() {
     void load();
   };
 
-  const deactivate = async (row: PlanRow) => {
-    if (!confirm(`ปิดใช้งานแผน ${row.code}?`)) return;
+  const removePlan = async (row: PlanRow) => {
+    if (!confirm(`ลบแผน ${row.code}?`)) return;
     const res = await fetch(`/api/master-data/sampling-plans/${row.id}`, { method: 'DELETE' });
     if (!res.ok) {
       const j = await res.json();
-      toast.error('ปิดใช้งานไม่สำเร็จ', j?.error);
+      toast.error('ลบไม่สำเร็จ', j?.error);
       return;
     }
-    toast.success('ปิดใช้งานแล้ว');
+    toast.success('ลบแล้ว');
     void load();
   };
 
@@ -241,25 +241,27 @@ export default function SamplingPlansPage() {
         c.value ? <Badge className="bg-emerald-100 text-emerald-700">✓</Badge> : <Badge className="bg-gray-200 text-gray-600">—</Badge>,
     },
     {
-      caption: '',
-      width: 140,
+      caption: 'Actions',
+      width: 110,
+      alignment: 'center',
       cellRender: (c: any) => (
-        <div className="flex gap-1">
+        <div className="flex items-center justify-center gap-1">
           <button
-            className="text-xs text-emerald-700 hover:underline"
+            className="p-1.5 rounded text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
             onClick={() => openEdit(c.data as PlanRow)}
+            title="แก้ไข"
             data-testid={`edit-${c.data.id}`}
           >
-            แก้ไข
+            <Edit className="h-4 w-4" />
           </button>
-          {c.data.isActive && (
-            <button
-              className="text-xs text-red-600 hover:underline"
-              onClick={() => deactivate(c.data as PlanRow)}
-            >
-              ปิดใช้
-            </button>
-          )}
+          <button
+            className="p-1.5 rounded text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+            onClick={() => removePlan(c.data as PlanRow)}
+            title="ลบ"
+            data-testid={`delete-${c.data.id}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       ),
     },

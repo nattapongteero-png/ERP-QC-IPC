@@ -21,10 +21,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   Sorting,
-  Selection,
-  HeaderFilter,
   LoadPanel,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -387,10 +384,7 @@ export default function MatchingTolerancesPage() {
             data-testid="tolerances-grid"
           >
             <LoadPanel enabled={isLoading} />
-            <FilterRow visible />
-            <HeaderFilter visible />
             <Sorting mode="multiple" />
-            <Selection mode="none" />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector

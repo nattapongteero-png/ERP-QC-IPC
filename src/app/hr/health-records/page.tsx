@@ -10,12 +10,9 @@ import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
   SearchPanel,
-  HeaderFilter,
-  FilterRow,
   Paging,
   Pager,
   Scrolling,
-  Selection,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -367,10 +364,7 @@ export default function HealthRecordsPage() {
               className="min-h-[400px]"
             >
             <SearchPanel visible placeholder={t('common.search')} width={200} />
-            <HeaderFilter visible />
-            <FilterRow visible />
             <Scrolling mode="virtual" />
-            <Selection mode="none" />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector

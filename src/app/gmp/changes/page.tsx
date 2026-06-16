@@ -20,10 +20,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
-  HeaderFilter,
   SearchPanel,
-  Selection,
   Sorting,
   ColumnChooser,
   Export,
@@ -484,12 +481,9 @@ export default function ChangeControlListPage() {
               <LoadPanel enabled={true} />
               <StateStoring enabled={true} type="localStorage" storageKey="changeControlGridState" />
               <SearchPanel visible={false} />
-              <FilterRow visible={true} />
-              <HeaderFilter visible={true} />
               <Sorting mode="multiple" />
               <ColumnChooser enabled={true} mode="select" />
               <Export enabled={true} allowExportSelectedData={true} />
-              <Selection mode="multiple" showCheckBoxesMode="onClick" />
               <Paging defaultPageSize={20} />
               <Pager
                 showPageSizeSelector={true}

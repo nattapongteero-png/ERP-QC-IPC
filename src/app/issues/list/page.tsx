@@ -18,10 +18,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   Sorting,
-  Selection,
-  HeaderFilter,
   LoadPanel,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -327,10 +324,7 @@ function IssuesListContent() {
             className="dx-card"
           >
             <LoadPanel enabled={isLoading || isFetching} />
-            <FilterRow visible={true} />
-            <HeaderFilter visible={true} />
             <Sorting mode="multiple" />
-            <Selection mode="single" />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector={true}

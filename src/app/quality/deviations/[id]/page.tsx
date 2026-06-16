@@ -269,46 +269,38 @@ export default function DeviationDetailPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Status</p>
-                <Badge variant={getStatusVariant(deviation.status)} className="text-lg mt-1">
-                  {deviation.status}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Severity</p>
-                <Badge variant={getSeverityVariant(deviation.severity)} className="text-lg mt-1">
-                  {deviation.severity}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Days Open</p>
-                <p className={`text-2xl font-bold ${metrics.isOverdue ? 'text-red-600' : 'text-blue-600'}`}>
-                  {metrics.daysOpen}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Due Date</p>
-                <p className={`text-lg font-bold ${metrics.isOverdue ? 'text-red-600' : 'text-gray-600'}`}>
-                  {deviation.dueDate ? new Date(deviation.dueDate).toLocaleDateString('th-TH') : '-'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-500">Status</p>
+              <Badge variant={getStatusVariant(deviation.status)} className="text-lg mt-1">
+                {deviation.status}
+              </Badge>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-500">Severity</p>
+              <Badge variant={getSeverityVariant(deviation.severity)} className="text-lg mt-1">
+                {deviation.severity}
+              </Badge>
+            </div>
+          </div>
+          <div className={`bg-white border border-gray-200 border-l-4 ${metrics.isOverdue ? 'border-l-rose-500' : 'border-l-blue-500'} rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4`}>
+            <div className="text-center">
+              <p className="text-sm text-gray-500">Days Open</p>
+              <p className={`text-2xl font-bold ${metrics.isOverdue ? 'text-rose-500' : 'text-gray-900'}`}>
+                {metrics.daysOpen}
+              </p>
+            </div>
+          </div>
+          <div className={`bg-white border border-gray-200 border-l-4 ${metrics.isOverdue ? 'border-l-rose-500' : 'border-l-gray-500'} rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4`}>
+            <div className="text-center">
+              <p className="text-sm text-gray-500">Due Date</p>
+              <p className={`text-lg font-bold ${metrics.isOverdue ? 'text-rose-500' : 'text-gray-900'}`}>
+                {deviation.dueDate ? new Date(deviation.dueDate).toLocaleDateString('th-TH') : '-'}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Overdue Alert */}

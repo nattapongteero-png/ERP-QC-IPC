@@ -143,23 +143,25 @@ function FindingsPageContent() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-lg p-4 text-center">
-          <p className="text-2xl font-bold text-orange-600">{openCount}</p>
-          <p className="text-sm text-muted-foreground">Open</p>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <p className="text-2xl font-bold text-gray-900">{openCount}</p>
+          <p className="text-sm text-gray-500">Open</p>
         </div>
-        <div className="bg-card border rounded-lg p-4 text-center">
-          <p className="text-2xl font-bold text-blue-600">{capaCount}</p>
-          <p className="text-sm text-muted-foreground">CAPA Assigned</p>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <p className="text-2xl font-bold text-gray-900">{capaCount}</p>
+          <p className="text-sm text-gray-500">CAPA Assigned</p>
         </div>
-        <div className="bg-card border rounded-lg p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{closedCount}</p>
-          <p className="text-sm text-muted-foreground">Closed</p>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <p className="text-2xl font-bold text-gray-900">{closedCount}</p>
+          <p className="text-sm text-gray-500">Closed</p>
         </div>
-        <div className="bg-card border rounded-lg p-4 text-center">
-          <p className={`text-2xl font-bold ${criticalCount > 0 ? 'text-red-600' : 'text-green-600'}`}>
-            {criticalCount}
-          </p>
-          <p className="text-sm text-muted-foreground">Critical Open</p>
+        <div
+          className={`bg-white border border-gray-200 border-l-4 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] ${
+            criticalCount > 0 ? 'border-l-rose-500' : 'border-l-emerald-500'
+          }`}
+        >
+          <p className="text-2xl font-bold text-gray-900">{criticalCount}</p>
+          <p className="text-sm text-gray-500">Critical Open</p>
         </div>
       </div>
 

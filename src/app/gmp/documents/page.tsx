@@ -21,10 +21,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
-  HeaderFilter,
   SearchPanel,
-  Selection,
   Sorting,
   ColumnChooser,
   Export,
@@ -651,12 +648,9 @@ export default function GmpDocumentsDashboardPage() {
             <LoadPanel enabled={true} />
             <StateStoring enabled={true} type="localStorage" storageKey="documentGridState" />
             <SearchPanel visible={false} />
-            <FilterRow visible={true} />
-            <HeaderFilter visible={true} />
             <Sorting mode="multiple" />
             <ColumnChooser enabled={true} mode="select" />
-            <Export enabled={true} allowExportSelectedData={true} />
-            <Selection mode="multiple" showCheckBoxesMode="onClick" />
+            <Export enabled={true} />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector={true}

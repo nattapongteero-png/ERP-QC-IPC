@@ -10,8 +10,6 @@ import { useTranslations, useLocale } from 'next-intl';
 import TreeList, {
   Column,
   SearchPanel,
-  HeaderFilter,
-  Selection,
 } from 'devextreme-react/tree-list';
 import Form, { SimpleItem, GroupItem, RequiredRule, StringLengthRule, PatternRule } from 'devextreme-react/form';
 import notify from 'devextreme/ui/notify';
@@ -633,8 +631,6 @@ export default function ChartOfAccountsPage() {
                 onRowDblClick={handleRowDblClick}
               >
                 <SearchPanel visible={false} />
-                <HeaderFilter visible={true} />
-                <Selection mode="single" />
 
                 <Column
                   dataField="code"

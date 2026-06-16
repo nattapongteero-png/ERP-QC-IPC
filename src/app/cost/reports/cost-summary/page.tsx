@@ -19,7 +19,6 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   Sorting,
   Summary,
   TotalItem,
@@ -420,7 +419,6 @@ export default function CostSummaryReportPage() {
               data-testid="cost-summary-grid"
             >
               <Export enabled={false} />
-              <FilterRow visible />
               <Sorting mode="single" />
 
               <Column

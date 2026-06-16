@@ -11,8 +11,6 @@ import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
   SearchPanel,
-  HeaderFilter,
-  FilterRow,
   Paging,
   Pager,
   Selection,
@@ -781,8 +779,6 @@ export default function PositionsPage() {
               selectedRowKeys={selectedPosition ? [selectedPosition.id] : []}
             >
               <SearchPanel visible placeholder={t('common.search')} width={200} />
-              <HeaderFilter visible />
-              <FilterRow visible />
               <Scrolling mode="virtual" />
               <Paging defaultPageSize={20} />
               <Pager

@@ -17,9 +17,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   SearchPanel,
-  HeaderFilter,
   ColumnChooser,
   Export,
   Grouping,
@@ -29,7 +27,6 @@ import DataGrid, {
   Toolbar,
   Item,
   Scrolling,
-  Selection,
 } from 'devextreme-react/data-grid';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -133,18 +130,31 @@ const STATUS_CONFIG: Record<PqrStatus, {
 // Helper Components
 // ============================================
 
+type KpiTone = 'blue' | 'gray' | 'amber' | 'emerald' | 'rose' | 'violet';
+
+const KPI_TONE_BAR: Record<KpiTone, string> = {
+  blue: 'border-l-blue-500',
+  gray: 'border-l-gray-500',
+  amber: 'border-l-amber-500',
+  emerald: 'border-l-emerald-500',
+  rose: 'border-l-rose-500',
+  violet: 'border-l-violet-500',
+};
+
 function MetricCard({
   value,
   label,
-  color = 'text-gray-900'
+  tone = 'gray',
 }: {
   value: number | string;
   label: string;
-  color?: string;
+  tone?: KpiTone;
 }) {
   return (
-    <div className="text-center px-4 py-3">
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+    <div
+      className={`bg-white border border-gray-200 border-l-4 ${KPI_TONE_BAR[tone]} rounded-[14px] px-4 py-3 shadow-[0_6px_20px_rgba(6,78,59,0.06)]`}
+    >
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
       <p className="text-xs text-gray-500 mt-0.5">{label}</p>
     </div>
   );
@@ -529,21 +539,21 @@ export default function PqrDashboardPage() {
 
         {/* Quick Stats Bar */}
         <div className="mx-4 md:mx-6 -mt-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 divide-x divide-gray-200 bg-white rounded-xl shadow-lg border border-gray-100">
-            <MetricCard value={dashboard?.totalReports ?? 0} label="Total Reports" />
-            <MetricCard value={dashboard?.byStatus?.draft ?? 0} label="Draft" color="text-slate-600" />
-            <MetricCard value={dashboard?.pendingReview ?? 0} label="Under Review" color="text-amber-600" />
-            <MetricCard value={dashboard?.byStatus?.approved ?? 0} label="Approved" color="text-emerald-600" />
-            <MetricCard value={dashboard?.approvedThisYear ?? 0} label={`${currentYear} Approved`} color="text-blue-600" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            <MetricCard value={dashboard?.totalReports ?? 0} label="Total Reports" tone="blue" />
+            <MetricCard value={dashboard?.byStatus?.draft ?? 0} label="Draft" tone="gray" />
+            <MetricCard value={dashboard?.pendingReview ?? 0} label="Under Review" tone="amber" />
+            <MetricCard value={dashboard?.byStatus?.approved ?? 0} label="Approved" tone="emerald" />
+            <MetricCard value={dashboard?.approvedThisYear ?? 0} label={`${currentYear} Approved`} tone="blue" />
             <MetricCard
               value={dashboard?.averageMetrics?.deviationRate != null ? `${dashboard.averageMetrics.deviationRate}%` : 'N/A'}
               label="Avg Deviation"
-              color="text-red-600"
+              tone="rose"
             />
             <MetricCard
               value={dashboard?.averageMetrics?.oosRate != null ? `${dashboard.averageMetrics.oosRate}%` : 'N/A'}
               label="Avg OOS"
-              color="text-purple-600"
+              tone="violet"
             />
           </div>
         </div>
@@ -787,13 +797,10 @@ export default function PqrDashboardPage() {
 
                 {/* Features */}
                 <SearchPanel visible placeholder="Search reports..." width={250} />
-                <FilterRow visible />
-                <HeaderFilter visible />
                 <ColumnChooser enabled mode="select" />
                 <Grouping autoExpandAll={false} />
                 <GroupPanel visible />
                 <Scrolling mode="virtual" />
-                <Selection mode="single" />
 
                 {/* Export */}
                 <Export enabled allowExportSelectedData formats={['xlsx']} />

@@ -10,11 +10,8 @@ import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
   SearchPanel,
-  HeaderFilter,
-  FilterRow,
   Paging,
   Pager,
-  Selection,
   Scrolling,
   Toolbar,
   Item,
@@ -184,12 +181,9 @@ export default function TrainingCoursesPage() {
           loadPanel={{ enabled: isLoading }}
         >
           <SearchPanel visible placeholder="ค้นหา..." width={200} />
-          <HeaderFilter visible />
-          <FilterRow visible />
           <Scrolling mode="virtual" />
           <Paging defaultPageSize={20} />
           <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
-          <Selection mode="single" />
 
           <Toolbar>
             <Item name="searchPanel" />

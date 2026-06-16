@@ -603,8 +603,6 @@ export default function PurchaseRequisitionsPage() {
             keyExpr="id"
             columns={columns}
             sorting
-            filterRow
-            headerFilter
             export
             exportFileName="purchase-requisitions"
             columnChooser

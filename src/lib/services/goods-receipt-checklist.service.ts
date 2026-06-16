@@ -436,6 +436,47 @@ export async function listTemplates(
 }
 
 // ============================================
+// Delete a template version (admin)
+// ============================================
+
+/**
+ * Delete a checklist template version. If the deleted row was the current
+ * version, the most recent remaining version for the same category is promoted
+ * back to current so the category never loses its active template silently.
+ */
+export async function deleteTemplateVersion(id: number): Promise<{ deleted: boolean }> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+
+    const rows = await db.select().from(t.templates).where(eq(t.templates.id, id)).limit(1);
+    if (rows.length === 0) {
+      throw new GoodsReceiptError(GOODS_RECEIPT_ERROR_CODES.NOT_FOUND, 'Template not found');
+    }
+    const target = rows[0];
+
+    await db.delete(t.templates).where(eq(t.templates.id, id));
+
+    // Promote the newest surviving version of that category back to current.
+    if (target.isCurrent) {
+      const remaining = await db
+        .select()
+        .from(t.templates)
+        .where(eq(t.templates.category, target.category))
+        .orderBy(desc(t.templates.version))
+        .limit(1);
+      if (remaining.length > 0) {
+        await db
+          .update(t.templates)
+          .set({ isCurrent: true })
+          .where(eq(t.templates.id, remaining[0].id));
+      }
+    }
+
+    return { deleted: true };
+  });
+}
+
+// ============================================
 // Create new template version (admin)
 // ============================================
 

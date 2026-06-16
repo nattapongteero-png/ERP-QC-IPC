@@ -6,12 +6,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { DataGrid, Column, Paging, FilterRow, Editing } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Paging, Editing } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
-import { Wrench, Plus } from 'lucide-react';
+import { Wrench, Plus, Trash2 } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
 import type { MaintenancePlanTemplate } from '@/types/equipment-notifications';
 
@@ -50,6 +50,27 @@ export default function MaintenancePlanTemplatesPage() {
       return res.json();
     },
   });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/master-data/maintenance-plan-templates/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? 'Failed to delete');
+      }
+      return res.json().catch(() => null);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mp-templates'] });
+    },
+  });
+
+  const handleDelete = (r: MaintenancePlanTemplate) => {
+    if (!confirm(`ลบ Template "${r.name}" ?`)) return;
+    deleteMut.mutate(r.id);
+  };
 
   const createMut = useMutation({
     mutationFn: async () => {
@@ -110,21 +131,9 @@ export default function MaintenancePlanTemplatesPage() {
           }
           qc.invalidateQueries({ queryKey: ['mp-templates'] });
         }}
-        onRowRemoving={async (e) => {
-          const r = e.data as MaintenancePlanTemplate;
-          const res = await fetch(`/api/master-data/maintenance-plan-templates/${r.id}`, {
-            method: 'DELETE',
-          });
-          if (!res.ok) {
-            e.cancel = true;
-            return;
-          }
-          qc.invalidateQueries({ queryKey: ['mp-templates'] });
-        }}
       >
-        <FilterRow visible={false} />
         <Paging pageSize={20} />
-        <Editing mode="row" allowUpdating allowDeleting useIcons />
+        <Editing mode="row" allowUpdating useIcons />
         <Column dataField="name" caption="Name" />
         <Column dataField="description" caption="Description" />
         <Column dataField="maintenanceType" caption="Type" width={140} />
@@ -137,6 +146,28 @@ export default function MaintenancePlanTemplatesPage() {
         />
         <Column dataField="alertDaysBefore" caption="Alert (days before)" width={150} />
         <Column dataField="isActive" caption="Active" dataType="boolean" width={80} />
+        <Column
+          caption="Actions"
+          width={110}
+          alignment="center"
+          allowSorting={false}
+          allowFiltering={false}
+          cellRender={(c) => {
+            const r = c.data as MaintenancePlanTemplate;
+            return (
+              <button
+                type="button"
+                title="Delete"
+                aria-label="Delete"
+                onClick={() => handleDelete(r)}
+                disabled={deleteMut.isPending}
+                className="p-1.5 rounded text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            );
+          }}
+        />
       </DataGrid>
 
       <Popup

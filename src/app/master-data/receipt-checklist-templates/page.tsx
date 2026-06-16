@@ -12,7 +12,7 @@ import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
 import { CheckBox } from 'devextreme-react/check-box';
-import { ListChecks, Plus } from 'lucide-react';
+import { ListChecks, Plus, Edit, Trash2 } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
 import { CHECKLIST_CATEGORIES, type ChecklistCategory, type ChecklistTemplate } from '@/types/goods-receipt';
 
@@ -26,10 +26,39 @@ export default function ReceiptChecklistTemplatesPage() {
   const t = useTranslations('goodsReceipt');
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [newCategory, setNewCategory] = useState<ChecklistCategory>('raw_material');
   const [newItems, setNewItems] = useState<NewItemRow[]>([
     { label: '', isMandatory: true, sortOrder: 1 },
   ]);
+
+  // "Editing" a versioned checklist template means seeding the create form from
+  // an existing version, then publishing a new current version (POST). There is
+  // no in-place mutation for an immutable historical version.
+  const openCreate = () => {
+    setEditingId(null);
+    setNewCategory('raw_material');
+    setNewItems([{ label: '', isMandatory: true, sortOrder: 1 }]);
+    setCreateOpen(true);
+  };
+
+  const openEdit = (tpl: ChecklistTemplate) => {
+    setEditingId(tpl.id);
+    setNewCategory(tpl.category);
+    setNewItems(
+      tpl.items.length > 0
+        ? tpl.items
+            .slice()
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((it, idx) => ({
+              label: it.label,
+              isMandatory: it.isMandatory,
+              sortOrder: idx + 1,
+            }))
+        : [{ label: '', isMandatory: true, sortOrder: 1 }],
+    );
+    setCreateOpen(true);
+  };
 
   const { data } = useQuery<ChecklistTemplate[]>({
     queryKey: ['receipt-templates'],
@@ -56,9 +85,28 @@ export default function ReceiptChecklistTemplatesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['receipt-templates'] });
       setCreateOpen(false);
+      setEditingId(null);
       setNewItems([{ label: '', isMandatory: true, sortOrder: 1 }]);
     },
   });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/master-data/receipt-checklist-templates?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      return res.json().catch(() => ({}));
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['receipt-templates'] });
+    },
+  });
+
+  const handleDelete = (row: ChecklistTemplate) => {
+    if (typeof window !== 'undefined' && !window.confirm('ลบเทมเพลตเวอร์ชันนี้?')) return;
+    deleteMut.mutate(row.id);
+  };
 
   return (
     <div className="p-6 space-y-4">
@@ -73,7 +121,7 @@ export default function ReceiptChecklistTemplatesPage() {
         <Button
           type="default"
           stylingMode="contained"
-          onClick={() => setCreateOpen(true)}
+          onClick={openCreate}
           render={() => (
             <span className="inline-flex items-center gap-1">
               <Plus className="w-4 h-4" />
@@ -122,14 +170,49 @@ export default function ReceiptChecklistTemplatesPage() {
           }}
         />
         <Column dataField="createdAt" caption="Created" width={180} />
+        <Column
+          caption="Actions"
+          width={110}
+          alignment="center"
+          allowSorting={false}
+          cellRender={(c) => {
+            const row = c.data as ChecklistTemplate;
+            return (
+              <div className="flex items-center justify-center gap-1">
+                <button
+                  type="button"
+                  title={t('actions.edit')}
+                  aria-label={t('actions.edit')}
+                  className="p-1.5 rounded text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                  onClick={() => openEdit(row)}
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  title="ลบ"
+                  aria-label="ลบ"
+                  disabled={deleteMut.isPending}
+                  className="p-1.5 rounded text-gray-600 hover:bg-rose-50 hover:text-rose-700 transition-colors disabled:opacity-50"
+                  onClick={() => handleDelete(row)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          }}
+        />
       </DataGrid>
 
       {/* Create popup */}
       <Popup
         visible={createOpen}
-        onHiding={() => setCreateOpen(false)}
+        onHiding={() => {
+          setCreateOpen(false);
+          setEditingId(null);
+        }}
         showCloseButton
-        title={t('checklist.newVersion')}
+        title={editingId != null ? t('actions.edit') : t('checklist.newVersion')}
         width={720}
         height="auto"
       >

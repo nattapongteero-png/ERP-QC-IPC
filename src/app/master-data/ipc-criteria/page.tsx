@@ -145,16 +145,16 @@ export default function IPCCriteriaPage() {
           <DxColumn dataField="sampleSize" caption="Samples" width={80} alignment="center" cellRender={(cell) => (
             <span className="font-mono text-sm">{cell.value}</span>
           )} />
-          <DxColumn caption="Flags" width={140} cellRender={(cell) => {
+          <DxColumn caption="Flags" width={170} cellRender={(cell) => {
             const d = cell.data as IPCCriteria;
             return (
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-nowrap items-center gap-1">
                 {d.isCritical && (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
-                    <AlertCircle className="h-2.5 w-2.5" />Critical
+                  <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded whitespace-nowrap">
+                    <AlertCircle className="h-3 w-3" />Critical
                   </span>
                 )}
-                <span className={`inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
+                <span className={`inline-flex text-xs font-semibold px-2 py-0.5 rounded border whitespace-nowrap ${
                   d.isActive
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : 'bg-gray-50 text-gray-500 border-gray-200'
@@ -164,7 +164,7 @@ export default function IPCCriteriaPage() {
               </div>
             );
           }} />
-          <DxColumn caption="Actions" width={100} alignment="center" fixed={true} fixedPosition="right" cellRender={(cell) => (
+          <DxColumn caption="Actions" width={100} alignment="center" cellRender={(cell) => (
             <div className="flex gap-1 justify-center">
               <button onClick={() => router.push(`/master-data/ipc-criteria/${(cell.data as IPCCriteria).id}`)} className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title="Edit">
                 <Edit className="h-4 w-4" />

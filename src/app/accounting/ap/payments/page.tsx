@@ -18,12 +18,9 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
-  HeaderFilter,
   SearchPanel,
   Toolbar,
   Item,
-  Selection,
   Export,
   ColumnChooser,
   Sorting,
@@ -578,11 +575,8 @@ export default function APPaymentsPage() {
               allowedPageSizes={[10, 20, 50]}
               showInfo={true}
             />
-            <FilterRow visible={true} />
-            <HeaderFilter visible={true} />
             <SearchPanel visible={true} placeholder="Search..." />
             <Sorting mode="multiple" />
-            <Selection mode="single" />
             <ColumnChooser enabled={true} />
             <Export enabled={true} />
 

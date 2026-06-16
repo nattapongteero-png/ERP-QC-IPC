@@ -8,8 +8,9 @@ import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, Editing, Paging } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
-import { Sliders } from 'lucide-react';
+import { Sliders, Plus, Trash2 } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
+import { CHECKLIST_CATEGORIES } from '@/types/goods-receipt';
 import type { ReceiptTolerance, ChecklistCategory } from '@/types/goods-receipt';
 
 export default function ReceiptTolerancesPage() {
@@ -38,6 +39,23 @@ export default function ReceiptTolerancesPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['receipt-tolerances'] }),
   });
 
+  // Categories that do not yet have a tolerance row — the genuine "create" targets.
+  const existingCategories = new Set((data ?? []).map((r) => r.category));
+  const missingCategories = CHECKLIST_CATEGORIES.filter((c) => !existingCategories.has(c));
+
+  const handleAdd = async () => {
+    const category = missingCategories[0];
+    if (!category) return;
+    await upsertMut.mutateAsync({ category, tolerancePercent: 0, isActive: true });
+  };
+
+  const handleDelete = async (row: ReceiptTolerance) => {
+    if (!row?.id) return;
+    if (!confirm('ยืนยันการปิดใช้งานรายการนี้?')) return;
+    // No hard-delete endpoint exists for this resource; deactivate via the upsert API.
+    await upsertMut.mutateAsync({ category: row.category, isActive: false });
+  };
+
   return (
     <div className="p-6 space-y-4">
       <BackButton href="/master-data" label="Master Data" />
@@ -49,7 +67,18 @@ export default function ReceiptTolerancesPage() {
           </h1>
           <p className="text-[#4B7163] text-sm mt-1">{t('tolerances.subtitle')}</p>
         </div>
-        <Button text={t('actions.refresh')} onClick={() => refetch()} />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={missingCategories.length === 0 || upsertMut.isPending}
+            className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" />
+            เพิ่ม
+          </button>
+          <Button text={t('actions.refresh')} onClick={() => refetch()} />
+        </div>
       </header>
 
       <DataGrid
@@ -90,6 +119,28 @@ export default function ReceiptTolerancesPage() {
         />
         <Column dataField="isActive" caption={t('tolerances.columns.isActive')} dataType="boolean" width={100} />
         <Column dataField="notes" caption={t('tolerances.columns.notes')} />
+        <Column
+          caption="จัดการ"
+          width={110}
+          alignment="center"
+          allowEditing={false}
+          allowSorting={false}
+          allowFiltering={false}
+          cellRender={(c) => {
+            const row = c.data as ReceiptTolerance;
+            return (
+              <button
+                type="button"
+                title="ปิดใช้งาน"
+                onClick={() => handleDelete(row)}
+                disabled={!row.isActive || upsertMut.isPending}
+                className="rounded p-1.5 text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            );
+          }}
+        />
       </DataGrid>
     </div>
   );

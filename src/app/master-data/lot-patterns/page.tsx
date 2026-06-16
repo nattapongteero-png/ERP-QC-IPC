@@ -18,7 +18,7 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useToast } from '@/hooks/use-toast';
-import { Tag, Sparkles, Shield } from 'lucide-react';
+import { Tag, Sparkles, Shield, Trash2 } from 'lucide-react';
 
 type PatternType = 'system' | 'vendor';
 type DateFormat = 'YYYYMMDD' | 'YYMMDD' | 'BE-YYMMDD' | 'BE-YYYYMMDD' | 'YYYY-MM-DD' | 'none';
@@ -192,6 +192,58 @@ export default function LotPatternsPage() {
     }
   };
 
+  // Delete = reset this pattern back to safe defaults (deactivated / no custom rule)
+  // via the existing upsert API (POST is keyed by patternType).
+  const resetPattern = async (row: PatternRow) => {
+    const label = row.patternType === 'system' ? 'เลข Lot ระบบ' : 'เลข Lot ผู้ขาย';
+    if (!confirm(`ต้องการลบรูปแบบ "${label}" และคืนค่าเริ่มต้นหรือไม่?`)) return;
+    const payload =
+      row.patternType === 'system'
+        ? {
+            patternType: 'system' as const,
+            prefix: 'LOT',
+            separator: '-',
+            includeDate: true,
+            dateFormat: 'YYYYMMDD' as const,
+            sequenceType: 'random' as const,
+            sequenceLength: 3,
+            sequenceStart: 1,
+            regexPattern: null,
+            hintTh: null,
+            hintEn: null,
+            isActive: false,
+            notes: null,
+          }
+        : {
+            patternType: 'vendor' as const,
+            prefix: '',
+            separator: '-',
+            includeDate: false,
+            dateFormat: 'none' as const,
+            sequenceType: 'random' as const,
+            sequenceLength: 3,
+            sequenceStart: 1,
+            regexPattern: null,
+            hintTh: 'เลข Lot ผู้ขาย',
+            hintEn: 'Vendor Lot Number',
+            isActive: false,
+            notes: null,
+          };
+    try {
+      const res = await fetch('/api/master-data/lot-patterns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'delete failed');
+      toast.success(`ลบรูปแบบ "${label}" และคืนค่าเริ่มต้นแล้ว`);
+      void load();
+    } catch (e) {
+      toast.error('ลบไม่สำเร็จ', (e as Error).message);
+    }
+  };
+
   const livePreview = useMemo(() => {
     if (form.patternType !== 'system') return [];
     const start = form.sequenceStart || 1;
@@ -243,7 +295,19 @@ export default function LotPatternsPage() {
               <h3 className="text-lg font-semibold text-[#064E3B]">เลข Lot ระบบ (System)</h3>
               <p className="text-sm text-[#4B7163]">รูปแบบที่ระบบจะสร้างให้เมื่อกดปุ่ม "สร้าง" ในหน้ารับ Lot</p>
             </div>
-            <DxButton text="แก้ไข" type="default" onClick={() => openEdit(system)} data-testid="edit-system" />
+            <div className="flex items-center gap-2">
+              <DxButton text="แก้ไข" type="default" onClick={() => openEdit(system)} data-testid="edit-system" />
+              <button
+                type="button"
+                onClick={() => resetPattern(system)}
+                title="ลบ / คืนค่าเริ่มต้น"
+                aria-label="ลบรูปแบบเลข Lot ระบบ"
+                className="p-1.5 rounded text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                data-testid="delete-system"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             <div><span className="text-gray-500">Prefix:</span> <strong className="font-mono">{system.prefix || '(ไม่มี)'}</strong></div>
@@ -274,7 +338,19 @@ export default function LotPatternsPage() {
               <h3 className="text-lg font-semibold text-[#064E3B]">เลข Lot ผู้ขาย (Vendor)</h3>
               <p className="text-sm text-[#4B7163]">ข้อความ hint และกฎตรวจรูปแบบเลข Lot ที่ผู้ใช้กรอก</p>
             </div>
-            <DxButton text="แก้ไข" type="default" onClick={() => openEdit(vendor)} data-testid="edit-vendor" />
+            <div className="flex items-center gap-2">
+              <DxButton text="แก้ไข" type="default" onClick={() => openEdit(vendor)} data-testid="edit-vendor" />
+              <button
+                type="button"
+                onClick={() => resetPattern(vendor)}
+                title="ลบ / คืนค่าเริ่มต้น"
+                aria-label="ลบรูปแบบเลข Lot ผู้ขาย"
+                className="p-1.5 rounded text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                data-testid="delete-vendor"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div>

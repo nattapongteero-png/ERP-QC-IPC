@@ -12,8 +12,6 @@ import { useQuery } from '@tanstack/react-query';
 import DataGrid, {
   Column,
   SearchPanel,
-  HeaderFilter,
-  FilterRow,
   Paging,
   Pager,
   Scrolling,
@@ -643,8 +641,6 @@ export default function TrainingDashboardPage() {
             hoverStateEnabled
           >
             <SearchPanel visible placeholder="ค้นหารอบอบรม..." />
-            <HeaderFilter visible />
-            <FilterRow visible />
             <Grouping autoExpandAll={false} />
             <GroupPanel visible />
             <ColumnChooser enabled mode="select" />

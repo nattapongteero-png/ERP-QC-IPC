@@ -611,100 +611,83 @@ export default function LotDetailPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-500 rounded-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                </div>
+                <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
                 <div>
-                  <p className="text-sm text-emerald-600">Total Quantity</p>
-                  <p className="text-2xl font-bold text-emerald-800">{lot.quantity.toLocaleString()} {lot.unit}</p>
+                  <p className="text-sm text-gray-500">Total Quantity</p>
+                  <p className="text-2xl font-bold text-gray-900">{lot.quantity.toLocaleString()} {lot.unit}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500 rounded-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
+                <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <div>
-                  <p className="text-sm text-green-600">Available</p>
-                  <p className="text-2xl font-bold text-green-800">{lot.availableQuantity.toLocaleString()} {lot.unit}</p>
+                  <p className="text-sm text-gray-500">Available</p>
+                  <p className="text-2xl font-bold text-gray-900">{lot.availableQuantity.toLocaleString()} {lot.unit}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-500 rounded-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
+                <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <div>
-                  <p className="text-sm text-yellow-600">Reserved</p>
-                  <p className="text-2xl font-bold text-yellow-800">{lot.reservedQuantity.toLocaleString()} {lot.unit}</p>
+                  <p className="text-sm text-gray-500">Reserved</p>
+                  <p className="text-2xl font-bold text-gray-900">{lot.reservedQuantity.toLocaleString()} {lot.unit}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-white border border-gray-200 border-l-4 border-l-violet-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500 rounded-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
+                <svg className="w-6 h-6 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <div>
-                  <p className="text-sm text-purple-600">Total Cost</p>
-                  <p className="text-2xl font-bold text-purple-800">
+                  <p className="text-sm text-gray-500">Total Cost</p>
+                  <p className="text-2xl font-bold text-gray-900">
                     ฿{((lot.quantity || 0) * (lot.cost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                   {lot.cost && lot.cost > 0 && (
-                    <p className="text-xs text-purple-500">@฿{lot.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}/{lot.unit}</p>
+                    <p className="text-xs text-gray-500">@฿{lot.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}/{lot.unit}</p>
                   )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className={`bg-gradient-to-br ${
-            lot.expiryStatus === 'expired' ? 'from-red-50 to-red-100 border-red-200' :
-            lot.expiryStatus === 'critical' ? 'from-red-50 to-red-100 border-red-200' :
-            lot.expiryStatus === 'warning' ? 'from-orange-50 to-orange-100 border-orange-200' :
-            'from-gray-50 to-gray-100 border-gray-200'
+          <Card className={`bg-white border border-gray-200 border-l-4 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] ${
+            lot.expiryStatus === 'expired' || lot.expiryStatus === 'critical' ? 'border-l-rose-500' :
+            lot.expiryStatus === 'warning' ? 'border-l-amber-500' :
+            'border-l-gray-500'
           }`}>
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${
-                  lot.expiryStatus === 'expired' || lot.expiryStatus === 'critical' ? 'bg-red-500' :
-                  lot.expiryStatus === 'warning' ? 'bg-orange-500' : 'bg-gray-500'
-                }`}>
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
+                <svg className={`w-6 h-6 ${
+                  lot.expiryStatus === 'expired' || lot.expiryStatus === 'critical' ? 'text-rose-500' :
+                  lot.expiryStatus === 'warning' ? 'text-amber-500' : 'text-gray-500'
+                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
                 <div>
-                  <p className={`text-sm ${
-                    lot.expiryStatus === 'expired' || lot.expiryStatus === 'critical' ? 'text-red-600' :
-                    lot.expiryStatus === 'warning' ? 'text-orange-600' : 'text-gray-600'
-                  }`}>Days Until Expiry</p>
-                  <p className={`text-2xl font-bold ${
-                    lot.expiryStatus === 'expired' || lot.expiryStatus === 'critical' ? 'text-red-800' :
-                    lot.expiryStatus === 'warning' ? 'text-orange-800' : 'text-gray-800'
-                  }`}>
+                  <p className="text-sm text-gray-500">Days Until Expiry</p>
+                  <p className="text-2xl font-bold text-gray-900">
                     {lot.daysUntilExpiry !== null ? (
                       lot.daysUntilExpiry < 0 ? `Expired ${Math.abs(lot.daysUntilExpiry)} days ago` : `${lot.daysUntilExpiry} days`
                     ) : 'N/A'}

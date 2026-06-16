@@ -53,30 +53,36 @@ export default function GoodsReceiptListPage() {
     },
   });
 
+  // White card + left accent bar + coloured icon (matches the shared StatCard
+  // style used system-wide). `accent` = left bar colour, `iconCls` = icon tint.
   const tiles = [
     {
       label: t('tiles.pendingChecklist'),
       value: counts?.pendingChecklistCount ?? 0,
       icon: <Hourglass className="w-5 h-5" />,
-      cls: 'bg-amber-50 border-amber-200 text-amber-900',
+      accent: 'border-l-amber-500',
+      iconCls: 'text-amber-500',
     },
     {
       label: t('tiles.pendingQa'),
       value: counts?.pendingQaCount ?? 0,
       icon: <FlaskConical className="w-5 h-5" />,
-      cls: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+      accent: 'border-l-blue-500',
+      iconCls: 'text-blue-500',
     },
     {
       label: t('tiles.releasedToday'),
       value: counts?.releasedTodayCount ?? 0,
       icon: <CheckCircle2 className="w-5 h-5" />,
-      cls: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+      accent: 'border-l-emerald-500',
+      iconCls: 'text-emerald-500',
     },
     {
       label: t('tiles.quarantineAging'),
       value: counts?.quarantineAgingCount ?? 0,
       icon: <AlertTriangle className="w-5 h-5" />,
-      cls: 'bg-rose-50 border-rose-200 text-rose-900',
+      accent: 'border-l-rose-500',
+      iconCls: 'text-rose-500',
     },
   ];
 
@@ -112,13 +118,13 @@ export default function GoodsReceiptListPage() {
         {tiles.map((tile) => (
           <div
             key={tile.label}
-            className={`border rounded-lg p-4 flex items-center justify-between ${tile.cls}`}
+            className={`bg-white border border-gray-200 border-l-4 ${tile.accent} rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]`}
           >
             <div>
-              <div className="text-xs uppercase tracking-wide opacity-70">{tile.label}</div>
-              <div className="text-3xl font-bold mt-1">{tile.value}</div>
+              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{tile.label}</div>
+              <div className="text-3xl font-bold mt-1 text-gray-900">{tile.value}</div>
             </div>
-            <div className="opacity-60">{tile.icon}</div>
+            <div className={tile.iconCls}>{tile.icon}</div>
           </div>
         ))}
       </div>

@@ -157,6 +157,6 @@
   "tolerances": {
     "title": "Packaging Tolerances",
     "columns": { "category": "Category", "tolerancePercent": "Tolerance (%)", "isActive": "Active", "notes": "Notes" },
-    "categories": { "capsule": "Capsule", "bottle": "Bottle", "cap": "Cap", "label": "Label", "other": "Other" }
+    "categories": { "capsule": "Capsule", "bottle": "Bottle", "cap": "Cap", "label": "Label", "blister": "Blister", "box": "Box", "other": "Other" }
   }
 }

@@ -1210,8 +1210,6 @@ export default function VmiOrdersPage() {
           columns={columns}
           loading={isLoading}
           sorting
-          filterRow
-          headerFilter
           export
           exportFileName="vmi-orders"
           columnChooser

@@ -1197,100 +1197,55 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-blue-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.detail.summary.total')}</p>
-                      <p className="text-lg font-bold text-blue-600">{formatCurrency(summary.totalAmount, so.currency)}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orders.detail.summary.total')}</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(summary.totalAmount, so.currency)}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-indigo-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <ClipboardList className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.detail.summary.totalOrdered')}</p>
-                      <p className="text-lg font-bold text-gray-900">{formatNumber(summary.totalOrdered)}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-cyan-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-cyan-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orders.detail.summary.totalOrdered')}</p>
+                <p className="text-lg font-bold text-gray-900">{formatNumber(summary.totalOrdered)}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-green-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-green-100 rounded-lg flex items-center justify-center">
-                      <Truck className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.detail.summary.shipped')}</p>
-                      <p className="text-lg font-bold text-green-600">{formatNumber(summary.totalShipped)}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-emerald-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orders.detail.summary.shipped')}</p>
+                <p className="text-lg font-bold text-gray-900">{formatNumber(summary.totalShipped)}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-amber-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-amber-100 rounded-lg flex items-center justify-center">
-                      <Package className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.detail.summary.pending')}</p>
-                      <p className="text-lg font-bold text-amber-600">{formatNumber(summary.totalPending)}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-amber-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orders.detail.summary.pending')}</p>
+                <p className="text-lg font-bold text-gray-900">{formatNumber(summary.totalPending)}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card elevation="raised" className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-stretch">
-                <div className="w-1 bg-purple-500" />
-                <div className="flex-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <BarChart3 className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{t('orders.detail.summary.progress')}</p>
-                      <p className="text-lg font-bold text-purple-600">{summary.fulfillmentProgress}%</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white border border-gray-200 border-l-4 border-l-violet-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-violet-500" />
+              <div>
+                <p className="text-xs text-gray-500">{t('orders.detail.summary.progress')}</p>
+                <p className="text-lg font-bold text-gray-900">{summary.fulfillmentProgress}%</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Stock Alert */}

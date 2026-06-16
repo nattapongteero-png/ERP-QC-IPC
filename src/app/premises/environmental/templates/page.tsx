@@ -209,17 +209,17 @@ export default function TemplatesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="bg-gray-50 border rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70">ทั้งหมด</div>
-          <div className="text-3xl font-bold mt-1">{stats.total}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">ทั้งหมด</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{stats.total}</div>
         </div>
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70 text-emerald-900">ใช้งานอยู่</div>
-          <div className="text-3xl font-bold text-emerald-900 mt-1">{stats.active}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">ใช้งานอยู่</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{stats.active}</div>
         </div>
-        <div className="bg-gray-100 border rounded-lg p-4">
-          <div className="text-xs uppercase opacity-70">ปิดการใช้งาน</div>
-          <div className="text-3xl font-bold text-gray-600 mt-1">{stats.inactive}</div>
+        <div className="bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
+          <div className="text-xs uppercase text-gray-500">ปิดการใช้งาน</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{stats.inactive}</div>
         </div>
       </div>
 

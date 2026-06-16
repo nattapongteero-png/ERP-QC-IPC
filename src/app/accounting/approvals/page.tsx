@@ -11,7 +11,6 @@ import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
-  FilterRow,
   Toolbar,
   Item,
 } from 'devextreme-react/data-grid';
@@ -238,7 +237,6 @@ export default function ApprovalDashboardPage() {
             loadPanel={{ enabled: loading }}
             data-testid="pending-approvals-grid"
           >
-            <FilterRow visible={true} />
             <Paging defaultPageSize={10} />
             <Toolbar>
               <Item location="before">

@@ -8,8 +8,6 @@ import { useState, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import DataGrid, {
   Column,
-  HeaderFilter,
-  FilterRow,
   Paging,
   Pager,
   Sorting,
@@ -294,8 +292,6 @@ export default function AuditLogPage() {
                 }
               }}
             >
-              <FilterRow visible />
-              <HeaderFilter visible />
               <Sorting mode="multiple" />
               <Paging defaultPageSize={20} />
               <Pager
@@ -405,8 +401,6 @@ export default function AuditLogPage() {
               columnAutoWidth
               className="min-h-[400px]"
             >
-              <FilterRow visible />
-              <HeaderFilter visible />
               <Sorting mode="multiple" />
               <Paging defaultPageSize={20} />
               <Pager

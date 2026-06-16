@@ -522,8 +522,6 @@ export default function VendorsPage() {
                 keyExpr="id"
                 columns={columns}
                 sorting
-                filterRow
-                headerFilter
                 export
                 exportFileName="vendors"
                 columnChooser

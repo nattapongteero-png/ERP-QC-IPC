@@ -856,8 +856,6 @@ export default function RecallsDashboardPage() {
             keyExpr="id"
             columns={columns}
             sorting
-            filterRow
-            headerFilter
             export
             exportFileName="recalls"
             columnChooser

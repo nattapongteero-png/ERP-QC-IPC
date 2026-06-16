@@ -496,29 +496,29 @@ export default function ProductionOutputPage() {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="p-3 bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
                     <p className="text-sm text-gray-500">{tw('yield.theoretical')}</p>
-                    <p className="text-lg font-semibold">{formatNumber(yieldData.theoretical)}</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatNumber(yieldData.theoretical)}</p>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-lg">
+                  <div className="p-3 bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
                     <p className="text-sm text-gray-500">{tw('yield.actualGood')}</p>
-                    <p className="text-lg font-semibold text-green-700">{formatNumber(yieldData.actualGood)}</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatNumber(yieldData.actualGood)}</p>
                   </div>
-                  <div className="p-3 bg-red-50 rounded-lg">
+                  <div className="p-3 bg-white border border-gray-200 border-l-4 border-l-rose-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
                     <p className="text-sm text-gray-500">{tw('yield.actualReject')}</p>
-                    <p className="text-lg font-semibold text-red-600">{formatNumber(yieldData.actualReject)}</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatNumber(yieldData.actualReject)}</p>
                   </div>
-                  <div className="p-3 bg-emerald-50 rounded-lg">
+                  <div className="p-3 bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
                     <p className="text-sm text-gray-500">{tw('yield.yieldPercent')}</p>
-                    <p className="text-lg font-bold text-emerald-700">{yieldData.yieldPercent.toFixed(2)}%</p>
+                    <p className="text-lg font-bold text-gray-900">{yieldData.yieldPercent.toFixed(2)}%</p>
                   </div>
-                  <div className="p-3 bg-orange-50 rounded-lg">
+                  <div className="p-3 bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
                     <p className="text-sm text-gray-500">{tw('yield.rejectPercent')}</p>
-                    <p className="text-lg font-semibold text-orange-600">{yieldData.rejectPercent.toFixed(2)}%</p>
+                    <p className="text-lg font-semibold text-gray-900">{yieldData.rejectPercent.toFixed(2)}%</p>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="p-3 bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
                     <p className="text-sm text-gray-500">{tw('yield.lossPercent')}</p>
-                    <p className="text-lg font-semibold text-gray-700">{yieldData.lossPercent.toFixed(2)}%</p>
+                    <p className="text-lg font-semibold text-gray-900">{yieldData.lossPercent.toFixed(2)}%</p>
                   </div>
                 </div>
 

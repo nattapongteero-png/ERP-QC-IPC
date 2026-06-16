@@ -4,16 +4,17 @@
  * Standard Weights admin (master data)
  * Feature: 021-scale-verification
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DataGrid, Column, Paging, FilterRow, Editing } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Paging, Editing } from 'devextreme-react/data-grid';
+import type { DataGridRef } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { DateBox } from 'devextreme-react/date-box';
-import { Scale, Plus, AlertTriangle } from 'lucide-react';
+import { Scale, Plus, AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
 import {
   ACCURACY_CLASSES,
@@ -46,8 +47,24 @@ const EMPTY_FORM: NewWeightForm = {
 export default function StandardWeightsPage() {
   const t = useTranslations('scaleVerification');
   const qc = useQueryClient();
+  const gridRef = useRef<DataGridRef>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<NewWeightForm>(EMPTY_FORM);
+
+  const handleDelete = async (row: StandardWeight) => {
+    if (!confirm(`${t('table.columns.actions')}: ${row.code}?`)) return;
+    const res = await fetch(`/api/master-data/standard-weights/${row.id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      alert(body?.error ?? 'Failed to delete');
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ['standard-weights-admin'] });
+    qc.invalidateQueries({ queryKey: ['standard-weights'] });
+    await refetch();
+  };
 
   const { data, refetch } = useQuery<StandardWeight[]>({
     queryKey: ['standard-weights-admin'],
@@ -106,6 +123,7 @@ export default function StandardWeightsPage() {
       </header>
 
       <DataGrid
+        ref={gridRef}
         dataSource={data ?? []}
         keyExpr="id"
         showBorders
@@ -133,19 +151,9 @@ export default function StandardWeightsPage() {
           }
           await refetch();
         }}
-        onRowRemoving={async (e) => {
-          const r = e.data as StandardWeight;
-          const res = await fetch(`/api/master-data/standard-weights/${r.id}`, { method: 'DELETE' });
-          if (!res.ok) {
-            e.cancel = true;
-            return;
-          }
-          await refetch();
-        }}
       >
-        <FilterRow visible={false} />
         <Paging pageSize={20} />
-        <Editing mode="row" allowUpdating allowDeleting useIcons />
+        <Editing mode="row" allowUpdating useIcons />
         <Column dataField="code" caption={t('table.columns.code')} width={120} allowEditing={false} />
         <Column
           caption={t('table.columns.denomination')}
@@ -175,6 +183,36 @@ export default function StandardWeightsPage() {
         />
         <Column dataField="ownerDepartment" caption="Owner" />
         <Column dataField="isActive" caption="Active" dataType="boolean" width={80} />
+        <Column
+          caption={t('table.columns.actions')}
+          width={110}
+          alignment="center"
+          allowEditing={false}
+          allowSorting={false}
+          cellRender={(c) => {
+            const r = c.data as StandardWeight;
+            return (
+              <div className="flex items-center justify-center gap-1">
+                <button
+                  type="button"
+                  title={t('table.columns.actions')}
+                  className="p-1.5 rounded text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                  onClick={() => gridRef.current?.instance()?.editRow(c.rowIndex)}
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  title={t('table.columns.actions')}
+                  className="p-1.5 rounded text-slate-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                  onClick={() => handleDelete(r)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          }}
+        />
       </DataGrid>
 
       <Popup
