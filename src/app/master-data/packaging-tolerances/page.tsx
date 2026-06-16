@@ -116,7 +116,7 @@ export default function PackagingTolerancesPage() {
           await updateMut.mutateAsync({ id: e.key as number, patch: newValue });
         }}
       >
-        <FilterRow visible />
+        <FilterRow visible={false} />
         <Paging pageSize={20} />
         <Editing mode="row" allowUpdating />
         <Column

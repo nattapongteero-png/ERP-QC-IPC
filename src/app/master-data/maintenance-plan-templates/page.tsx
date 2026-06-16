@@ -122,7 +122,7 @@ export default function MaintenancePlanTemplatesPage() {
           qc.invalidateQueries({ queryKey: ['mp-templates'] });
         }}
       >
-        <FilterRow visible />
+        <FilterRow visible={false} />
         <Paging pageSize={20} />
         <Editing mode="row" allowUpdating allowDeleting useIcons />
         <Column dataField="name" caption="Name" />

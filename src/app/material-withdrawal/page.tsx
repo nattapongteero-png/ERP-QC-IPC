@@ -128,8 +128,8 @@ export default function MaterialWithdrawalListPage() {
         }}
       >
         <SearchPanel visible width={240} />
-        <FilterRow visible />
-        <HeaderFilter visible />
+        <FilterRow visible={false} />
+        <HeaderFilter visible={false} />
         <Paging pageSize={20} />
         <Column dataField="id" caption={t('table.columns.id')} width={100} />
         <Column dataField="workOrderId" caption={t('table.columns.workOrder')} width={130} />

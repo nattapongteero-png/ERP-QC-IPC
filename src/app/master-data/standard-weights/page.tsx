@@ -143,7 +143,7 @@ export default function StandardWeightsPage() {
           await refetch();
         }}
       >
-        <FilterRow visible />
+        <FilterRow visible={false} />
         <Paging pageSize={20} />
         <Editing mode="row" allowUpdating allowDeleting useIcons />
         <Column dataField="code" caption={t('table.columns.code')} width={120} allowEditing={false} />
