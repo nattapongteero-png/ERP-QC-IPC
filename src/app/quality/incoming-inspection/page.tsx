@@ -10,7 +10,6 @@ import { useTranslations } from 'next-intl';
 import {
   DataGrid,
   Column,
-  FilterRow,
   Paging,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -156,7 +155,6 @@ export default function IncomingInspectionPage() {
           columnAutoWidth
           data-testid="pending-qa-grid"
         >
-          <FilterRow visible />
           <Paging pageSize={20} />
           <Column
             dataField="grnNumber"
@@ -215,7 +213,6 @@ export default function IncomingInspectionPage() {
             rowAlternationEnabled
             columnAutoWidth
           >
-            <FilterRow visible />
             <Paging pageSize={20} />
             <Column dataField="lotNumber" caption="Lot" />
             <Column dataField="itemCode" caption="Item Code" />

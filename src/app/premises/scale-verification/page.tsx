@@ -14,7 +14,6 @@ import { useTranslations } from 'next-intl';
 import {
   DataGrid,
   Column,
-  FilterRow,
   Paging,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -171,7 +170,6 @@ export default function ScaleVerificationPage() {
         columnAutoWidth
         data-testid="scales-grid"
       >
-        <FilterRow visible />
         <Paging pageSize={20} />
         <Column dataField="scaleCode" caption={t('table.columns.scaleCode')} width={120} />
         <Column dataField="scaleName" caption={t('table.columns.scaleName')} />

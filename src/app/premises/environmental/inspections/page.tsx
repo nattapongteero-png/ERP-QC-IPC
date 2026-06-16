@@ -8,7 +8,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { DataGrid, Column, FilterRow, Paging } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Paging } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { NumberBox } from 'devextreme-react/number-box';
@@ -212,7 +212,6 @@ export default function InspectionsPage() {
         rowAlternationEnabled
         columnAutoWidth
       >
-        <FilterRow visible />
         <Paging pageSize={20} />
         <Column
           dataField="targetType"

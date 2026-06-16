@@ -14,7 +14,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { DataGrid, Column, FilterRow, HeaderFilter, Paging, Pager } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Paging, Pager } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -263,8 +263,6 @@ export default function WaterQualityRecordsPage() {
         noDataText={isLoading ? 'กำลังโหลด…' : 'ยังไม่มีผลตรวจที่บันทึก'}
         data-testid="wq-records-grid"
       >
-        <FilterRow visible />
-        <HeaderFilter visible />
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
         <Column dataField="id" caption="#" width={60} />

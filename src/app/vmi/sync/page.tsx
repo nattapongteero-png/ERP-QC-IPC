@@ -18,8 +18,6 @@ import DataGrid, {
   Paging,
   Pager,
   Sorting,
-  FilterRow,
-  HeaderFilter,
   SearchPanel,
   Toolbar,
   Item,
@@ -1073,8 +1071,6 @@ export default function VmiSyncPage() {
           >
             <LoadPanel enabled={isLoading} />
             <SearchPanel visible={true} placeholder={t('sync.history.searchPlaceholder')} width={250} />
-            <FilterRow visible={true} />
-            <HeaderFilter visible={true} />
             <Sorting mode="multiple" />
             <Export enabled={true} allowExportSelectedData={false} />
 
@@ -1114,43 +1110,21 @@ export default function VmiSyncPage() {
               caption={t('sync.history.columns.syncType')}
               width={160}
               cellRender={renderSyncTypeCell}
-              allowHeaderFiltering={true}
-            >
-              <HeaderFilter dataSource={[
-                { text: t('sync.history.headerFilter.inventory'), value: 'inventory' },
-                { text: t('sync.history.headerFilter.items'), value: 'items' },
-                { text: t('sync.history.headerFilter.prices'), value: 'prices' },
-              ]} />
-            </Column>
+            />
 
             <Column
               dataField="status"
               caption={t('sync.history.columns.status')}
               width={130}
               cellRender={renderStatusCell}
-              allowHeaderFiltering={true}
-            >
-              <HeaderFilter dataSource={[
-                { text: t('sync.history.headerFilter.completed'), value: 'completed' },
-                { text: t('sync.history.headerFilter.failed'), value: 'failed' },
-                { text: t('sync.history.headerFilter.partial'), value: 'partial' },
-                { text: t('sync.history.headerFilter.running'), value: 'running' },
-              ]} />
-            </Column>
+            />
 
             <Column
               dataField="triggerType"
               caption={t('sync.history.columns.trigger')}
               width={100}
               cellRender={renderTriggerCell}
-              allowHeaderFiltering={true}
-            >
-              <HeaderFilter dataSource={[
-                { text: t('sync.history.headerFilter.manual'), value: 'manual' },
-                { text: t('sync.history.headerFilter.scheduled'), value: 'scheduled' },
-                { text: t('sync.history.headerFilter.auto'), value: 'auto' },
-              ]} />
-            </Column>
+            />
 
             <Column
               dataField="itemsProcessed"

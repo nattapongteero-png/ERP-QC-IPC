@@ -11,7 +11,6 @@ import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
   Paging,
-  FilterRow,
   Toolbar,
   Item,
 } from 'devextreme-react/data-grid';
@@ -195,7 +194,6 @@ export default function WorkflowHistoryPage({
             loadPanel={{ enabled: loading }}
             data-testid="history-grid"
           >
-            <FilterRow visible={true} />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">

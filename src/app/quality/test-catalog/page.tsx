@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
-  Column, Paging, Pager, FilterRow, Sorting, HeaderFilter, LoadPanel, SearchPanel,
+  Column, Paging, Pager, Sorting, LoadPanel, SearchPanel,
 } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent } from '@/components/ui/card';
@@ -176,8 +176,6 @@ export default function QcTestCatalogPage() {
             noDataText={loading ? 'กำลังโหลด...' : 'ไม่มีข้อมูล'}
           >
             <LoadPanel enabled={loading} />
-            <FilterRow visible />
-            <HeaderFilter visible />
             <SearchPanel visible placeholder="ค้นหา..." width={240} />
             <Sorting mode="multiple" />
             <Paging defaultPageSize={25} />

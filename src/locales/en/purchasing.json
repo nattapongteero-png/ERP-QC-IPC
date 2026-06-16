@@ -32,6 +32,12 @@
       "pending": "pending",
       "awaiting": "awaiting"
     },
+    "kpi": {
+      "total": "Total",
+      "open": "Open",
+      "received": "Received",
+      "closed": "Closed"
+    },
     "grid": {
       "columns": {
         "poNumber": "PO Number",

@@ -32,6 +32,12 @@
       "pending": "รอดำเนินการ",
       "awaiting": "รอรับ"
     },
+    "kpi": {
+      "total": "ทั้งหมด",
+      "open": "ค้างอยู่",
+      "received": "รับแล้ว",
+      "closed": "ปิดแล้ว"
+    },
     "grid": {
       "columns": {
         "poNumber": "เลขที่ PO",

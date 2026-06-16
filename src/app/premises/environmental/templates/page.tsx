@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DataGrid, Column, FilterRow, HeaderFilter, Paging, Pager } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Paging, Pager } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -240,8 +240,6 @@ export default function TemplatesPage() {
         columnAutoWidth
         noDataText={isLoading ? 'กำลังโหลด…' : 'ยังไม่มี Template'}
       >
-        <FilterRow visible />
-        <HeaderFilter visible />
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
         <Column dataField="id" caption="#" width={60} />

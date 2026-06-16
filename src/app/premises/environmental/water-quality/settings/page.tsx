@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DataGrid, Column, FilterRow, HeaderFilter, Paging } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Paging } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -262,8 +262,6 @@ export default function WaterQualitySettingsPage() {
           </Button>
         </div>
         <DataGrid dataSource={systems} keyExpr="id" showBorders showRowLines columnAutoWidth data-testid="wq-systems-grid">
-          <FilterRow visible />
-          <HeaderFilter visible />
           <Paging pageSize={10} />
           <Column dataField="code" caption="รหัส" width={110} />
           <Column dataField="name" caption="ชื่อ" />
@@ -295,8 +293,6 @@ export default function WaterQualitySettingsPage() {
           </Button>
         </div>
         <DataGrid dataSource={points} keyExpr="id" showBorders showRowLines columnAutoWidth data-testid="wq-points-grid">
-          <FilterRow visible />
-          <HeaderFilter visible />
           <Paging pageSize={10} />
           <Column dataField="code" caption="รหัส" width={120} />
           <Column dataField="name" caption="ชื่อ" />
@@ -328,8 +324,6 @@ export default function WaterQualitySettingsPage() {
           </Button>
         </div>
         <DataGrid dataSource={specs} keyExpr="id" showBorders showRowLines columnAutoWidth data-testid="wq-specs-grid">
-          <FilterRow visible />
-          <HeaderFilter visible />
           <Paging pageSize={10} />
           <Column dataField="waterSystemId" caption="ระบบน้ำ" calculateCellValue={(r: WaterQualitySpec) => systemName(r.waterSystemId)} />
           <Column dataField="parameter" caption="พารามิเตอร์" />

@@ -15,8 +15,6 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   DataGrid,
   Column,
-  FilterRow,
-  HeaderFilter,
   Paging,
   Pager,
 } from 'devextreme-react/data-grid';
@@ -135,8 +133,6 @@ export default function ScaleHistoryPage() {
         columnAutoWidth
         noDataText={isLoading ? 'กำลังโหลด…' : 'ยังไม่มีการตรวจสอบเครื่องชั่งนี้'}
       >
-        <FilterRow visible />
-        <HeaderFilter visible />
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
         <Column dataField="performedAt" caption="วันเวลาที่ตรวจ" dataType="datetime" width={170} />

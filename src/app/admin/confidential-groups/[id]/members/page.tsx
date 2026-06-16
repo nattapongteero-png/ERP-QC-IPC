@@ -22,9 +22,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   Sorting,
-  HeaderFilter,
   LoadPanel,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -419,8 +417,6 @@ export default function GroupMembersPage() {
             data-testid="members-grid"
           >
             <LoadPanel enabled={isLoading} />
-            <FilterRow visible />
-            <HeaderFilter visible />
             <Sorting mode="multiple" />
             <Paging defaultPageSize={20} />
             <Pager

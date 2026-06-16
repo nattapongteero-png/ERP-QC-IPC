@@ -17,9 +17,7 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   SearchPanel,
-  HeaderFilter,
   Scrolling,
   Export,
 } from 'devextreme-react/data-grid';
@@ -760,9 +758,7 @@ export default function QualityTestsPage() {
               showInfo={true}
               showNavigationButtons={true}
             />
-            <FilterRow visible={true} />
             <SearchPanel visible={true} placeholder={t('tests.grid.searchPlaceholder')} width={250} />
-            <HeaderFilter visible={true} />
             <Export enabled={true} formats={['xlsx']} />
 
             <Column
