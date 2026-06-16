@@ -993,8 +993,12 @@ export default function ItemsPage() {
           border: 1px solid #D9EFE4;
           border-radius: 11px;
         }
+        /* Remove the filled-variant underline. The animated focus underline is
+           the ::before pseudo (2px solid green that slides in on focus) and the
+           idle underline is ::after — hide BOTH so only our rounded border shows. */
+        .items-professional-grid .dx-datagrid-search-panel.dx-editor-filled::before,
         .items-professional-grid .dx-datagrid-search-panel.dx-editor-filled::after {
-          display: none; /* remove the filled-variant bottom underline */
+          display: none !important;
         }
         .items-professional-grid .dx-datagrid-search-panel .dx-texteditor-input {
           color: #0F2E22;
