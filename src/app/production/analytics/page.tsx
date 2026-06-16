@@ -35,6 +35,7 @@ import {
   Timer,
   Truck,
 } from 'lucide-react';
+import { formatNumber } from '@/lib/utils/number-format';
 
 // ============================================
 // Types
@@ -374,7 +375,7 @@ export default function ProductionAnalyticsPage() {
               <ChartTooltip
                 enabled={true}
                 customizeTooltip={(arg: { seriesName?: string; valueText?: string; argumentText?: string }) => ({
-                  text: `${arg.seriesName}: ${Number(arg.valueText || 0).toLocaleString()}`,
+                  text: `${arg.seriesName}: ${formatNumber(arg.valueText || 0)}`,
                 })}
               />
             </Chart>

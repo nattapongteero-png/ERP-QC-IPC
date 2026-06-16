@@ -11,6 +11,7 @@ import { ApiError } from '@/components/ui/api-error';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
 import { AlertTriangle, Clock, XCircle, CheckCircle } from 'lucide-react';
+import { formatNumber, formatMoney } from '@/lib/utils/number-format';
 
 interface ExpiryItem {
   lotNumber: string;
@@ -133,7 +134,7 @@ export default function ExpiryAlertsPage() {
       dataField: 'quantity',
       caption: t('expiryAlerts.columns.quantity'),
       width: 120,
-      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString(),
+      cellRender: (cellInfo) => formatNumber(cellInfo.data.quantity),
     },
     { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 120, hideOnMobile: true },
     {
@@ -157,7 +158,7 @@ export default function ExpiryAlertsPage() {
       dataField: 'quantity',
       caption: t('expiryAlerts.columns.quantity'),
       width: 120,
-      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString(),
+      cellRender: (cellInfo) => formatNumber(cellInfo.data.quantity),
     },
     { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 120, hideOnMobile: true },
     {
@@ -244,7 +245,7 @@ export default function ExpiryAlertsPage() {
             />
             <StatCard
               label={t('expiryAlerts.stats.expiredValue')}
-              value={`฿${expiredValue.toLocaleString()}`}
+              value={`฿${formatMoney(expiredValue)}`}
               icon={AlertTriangle}
               iconColor="text-red-500"
               accentColor="border-red-500"
@@ -260,7 +261,7 @@ export default function ExpiryAlertsPage() {
             />
             <StatCard
               label={t('expiryAlerts.stats.nearExpiryValue')}
-              value={`฿${nearExpiryValue.toLocaleString()}`}
+              value={`฿${formatMoney(nearExpiryValue)}`}
               icon={AlertTriangle}
               iconColor="text-amber-500"
               accentColor="border-amber-500"
@@ -374,7 +375,7 @@ function ExpiredLotsMobileList({ items, t }: { items: ExpiryItem[]; t: Translate
             <span className="inline-flex items-center gap-1">
               <span className="text-gray-400">{t('expiryAlerts.mobile.qty')}</span>
               <span className="font-medium text-gray-800">
-                {item.quantity.toLocaleString()}
+                {formatNumber(item.quantity)}
               </span>
             </span>
             <span className="inline-flex items-center gap-1">
@@ -428,7 +429,7 @@ function NearExpiryLotsMobileList({
               <span className="inline-flex items-center gap-1">
                 <span className="text-gray-400">{t('expiryAlerts.mobile.qty')}</span>
                 <span className="font-medium text-gray-800">
-                  {item.quantity.toLocaleString()}
+                  {formatNumber(item.quantity)}
                 </span>
               </span>
               <span className="inline-flex items-center gap-1">

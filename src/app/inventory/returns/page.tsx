@@ -23,6 +23,7 @@ import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { formatNumber } from '@/lib/utils/number-format';
 import {
   ArrowDownToLine,
   Inbox,
@@ -218,9 +219,7 @@ export default function MaterialReturnsInboxPage() {
       alignment: 'right',
       cellRender: (cell) => (
         <span className="font-medium">
-          {Number(cell.data.totalReturnQty || 0).toLocaleString(undefined, {
-            maximumFractionDigits: 4,
-          })}
+          {formatNumber(cell.data.totalReturnQty || 0)}
         </span>
       ),
     },
@@ -317,7 +316,7 @@ export default function MaterialReturnsInboxPage() {
           />
           <StatCard
             label="รวมจำนวน"
-            value={stats.totalQty.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            value={formatNumber(stats.totalQty, 2)}
             icon={Inbox}
             iconColor="text-blue-500"
             accentColor="border-blue-500"

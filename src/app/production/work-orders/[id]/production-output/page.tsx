@@ -27,6 +27,7 @@ import {
   BarChart3,
   Edit3,
 } from 'lucide-react';
+import { formatNumber } from '@/lib/utils/number-format';
 
 interface WorkOrderInfo {
   id: number;
@@ -390,14 +391,14 @@ export default function ProductionOutputPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">{tw('info.plannedQty')}</p>
-              <p className="font-medium text-lg">{Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit}</p>
+              <p className="font-medium text-lg">{formatNumber(workOrder.plannedQuantity)} {workOrder.unit}</p>
               {/* Bulk stage: show the same planned value in the sub-units the
                   operator will actually work with on the line (capsules, grams). */}
               {isBulkStage && canConvertToCapsule && (
                 <p className="text-xs text-gray-500 mt-0.5">
-                  = {boxToCap(Number(workOrder.plannedQuantity)).toLocaleString()} {secondaryUnit}
+                  = {formatNumber(boxToCap(Number(workOrder.plannedQuantity)))} {secondaryUnit}
                   {canConvertToWeight && (
-                    <> · {boxToGram(Number(workOrder.plannedQuantity)).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</>
+                    <> · {formatNumber(boxToGram(Number(workOrder.plannedQuantity)), 2)} g</>
                   )}
                 </p>
               )}
@@ -445,16 +446,16 @@ export default function ProductionOutputPage() {
                 <div>
                   <p className="text-sm text-gray-600">{isBulkStage ? 'Bulk Output Qty' : tw('form.actualQuantity')}</p>
                   <p className="text-2xl font-bold text-green-700">
-                    {Number(isBulkStage
+                    {formatNumber(isBulkStage
                       ? workOrder.bulkOutputQty ?? 0
                       : workOrder.finishedOutputQty ?? workOrder.actualQuantity ?? 0
-                    ).toLocaleString()} {workOrder.unit}
+                    )} {workOrder.unit}
                   </p>
                   {isBulkStage && canConvertToCapsule && (workOrder.bulkOutputQty ?? 0) > 0 && (
                     <p className="text-xs text-gray-600 mt-0.5">
-                      = {boxToCap(Number(workOrder.bulkOutputQty)).toLocaleString()} {secondaryUnit}
+                      = {formatNumber(boxToCap(Number(workOrder.bulkOutputQty)))} {secondaryUnit}
                       {canConvertToWeight && (
-                        <> · {boxToGram(Number(workOrder.bulkOutputQty)).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</>
+                        <> · {formatNumber(boxToGram(Number(workOrder.bulkOutputQty)), 2)} g</>
                       )}
                     </p>
                   )}
@@ -463,7 +464,7 @@ export default function ProductionOutputPage() {
                   <div>
                     <p className="text-sm text-gray-600">{tw('form.rejectQuantity')}</p>
                     <p className="text-xl font-semibold text-red-600">
-                      {Number(workOrder.rejectQuantity || 0).toLocaleString()} {workOrder.unit}
+                      {formatNumber(workOrder.rejectQuantity || 0)} {workOrder.unit}
                     </p>
                   </div>
                 )}
@@ -497,15 +498,15 @@ export default function ProductionOutputPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-500">{tw('yield.theoretical')}</p>
-                    <p className="text-lg font-semibold">{yieldData.theoretical.toLocaleString()}</p>
+                    <p className="text-lg font-semibold">{formatNumber(yieldData.theoretical)}</p>
                   </div>
                   <div className="p-3 bg-green-50 rounded-lg">
                     <p className="text-sm text-gray-500">{tw('yield.actualGood')}</p>
-                    <p className="text-lg font-semibold text-green-700">{yieldData.actualGood.toLocaleString()}</p>
+                    <p className="text-lg font-semibold text-green-700">{formatNumber(yieldData.actualGood)}</p>
                   </div>
                   <div className="p-3 bg-red-50 rounded-lg">
                     <p className="text-sm text-gray-500">{tw('yield.actualReject')}</p>
-                    <p className="text-lg font-semibold text-red-600">{yieldData.actualReject.toLocaleString()}</p>
+                    <p className="text-lg font-semibold text-red-600">{formatNumber(yieldData.actualReject)}</p>
                   </div>
                   <div className="p-3 bg-blue-50 rounded-lg">
                     <p className="text-sm text-gray-500">{tw('yield.yieldPercent')}</p>
@@ -570,12 +571,12 @@ export default function ProductionOutputPage() {
                   <div className="border-t border-blue-200 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                     <div>
                       <div className="text-blue-700 uppercase tracking-wide text-[11px]">จำนวนแผน</div>
-                      <div className="font-semibold text-base">{Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit}</div>
+                      <div className="font-semibold text-base">{formatNumber(workOrder.plannedQuantity)} {workOrder.unit}</div>
                       {isBulkStage && canConvertToCapsule && (
                         <div className="text-blue-700">
-                          = {boxToCap(Number(workOrder.plannedQuantity)).toLocaleString()} {secondaryUnit}
+                          = {formatNumber(boxToCap(Number(workOrder.plannedQuantity)))} {secondaryUnit}
                           {canConvertToWeight && (
-                            <> · {boxToGram(Number(workOrder.plannedQuantity)).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</>
+                            <> · {formatNumber(boxToGram(Number(workOrder.plannedQuantity)), 2)} g</>
                           )}
                         </div>
                       )}
@@ -584,13 +585,13 @@ export default function ProductionOutputPage() {
                       <div>
                         <div className="text-blue-700 uppercase tracking-wide text-[11px]">ต่ำสุดที่ผ่าน (Yield)</div>
                         <div className="font-semibold text-base">
-                          {(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {workOrder.unit}
+                          {formatNumber(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100, 2)} {workOrder.unit}
                         </div>
                         {isBulkStage && canConvertToCapsule && (
                           <div className="text-blue-700">
-                            = {boxToCap(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} {secondaryUnit}
+                            = {formatNumber(boxToCap(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100), 0)} {secondaryUnit}
                             {canConvertToWeight && (
-                              <> · {boxToGram(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} g</>
+                              <> · {formatNumber(boxToGram(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100), 2)} g</>
                             )}
                           </div>
                         )}
@@ -600,7 +601,7 @@ export default function ProductionOutputPage() {
                       <div>
                         <div className="text-blue-700 uppercase tracking-wide text-[11px]">สูญเสียสูงสุด</div>
                         <div className="font-semibold text-base">
-                          {(Number(workOrder.plannedQuantity) * Number(workOrder.bomLossAllowance) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {workOrder.unit}
+                          {formatNumber(Number(workOrder.plannedQuantity) * Number(workOrder.bomLossAllowance) / 100, 2)} {workOrder.unit}
                         </div>
                       </div>
                     )}
@@ -727,7 +728,7 @@ export default function ProductionOutputPage() {
                         <div className={`p-3 rounded-lg border ${inputMode === 'count_box' ? 'bg-emerald-50 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
                           <div className="text-xs text-gray-600 flex items-center gap-1">📦 หน่วยหลัก</div>
                           <div className="text-xl font-bold text-gray-900">
-                            {formData.actualQuantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                            {formatNumber(formData.actualQuantity)}
                           </div>
                           <div className="text-xs text-gray-500">{workOrder.unit}</div>
                         </div>
@@ -735,7 +736,7 @@ export default function ProductionOutputPage() {
                           <div className={`p-3 rounded-lg border ${inputMode === 'count_cap' ? 'bg-emerald-50 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
                             <div className="text-xs text-gray-600 flex items-center gap-1">🔢 หน่วยย่อย</div>
                             <div className="text-xl font-bold text-gray-900">
-                              {boxToCap(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                              {formatNumber(boxToCap(formData.actualQuantity), 2)}
                             </div>
                             <div className="text-xs text-gray-500">{secondaryUnit}</div>
                           </div>
@@ -744,7 +745,7 @@ export default function ProductionOutputPage() {
                           <div className={`p-3 rounded-lg border ${inputMode === 'weight' ? 'bg-emerald-50 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
                             <div className="text-xs text-gray-600 flex items-center gap-1">⚖ น้ำหนัก</div>
                             <div className="text-xl font-bold text-gray-900">
-                              {boxToGram(formData.actualQuantity).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                              {formatNumber(boxToGram(formData.actualQuantity), 2)}
                             </div>
                             <div className="text-xs text-gray-500">g</div>
                           </div>
@@ -764,25 +765,25 @@ export default function ProductionOutputPage() {
                         return (
                           <div className="mb-3 p-3 rounded-lg border border-purple-200 bg-purple-50 text-sm">
                             <div className="font-semibold text-purple-900 mb-1">
-                              องค์ประกอบน้ำหนัก ({caps.toLocaleString(undefined, { maximumFractionDigits: 0 })} {secondaryUnit})
+                              องค์ประกอบน้ำหนัก ({formatNumber(caps, 0)} {secondaryUnit})
                             </div>
                             <div className="space-y-1 text-purple-800">
                               <div className="flex justify-between">
-                                <span>ผงยา ({fillWeightMg.toLocaleString()} mg/{secondaryUnit})</span>
-                                <strong>{powderG.toLocaleString(undefined, { maximumFractionDigits: 2 })} g</strong>
+                                <span>ผงยา ({formatNumber(fillWeightMg)} mg/{secondaryUnit})</span>
+                                <strong>{formatNumber(powderG, 2)} g</strong>
                               </div>
                               {hasEmptyCapWeight ? (
                                 <>
                                   <div className="flex justify-between">
                                     <span>
-                                      แคปซูลเปล่า ({emptyCapWeightMg.toLocaleString()} mg/{secondaryUnit})
+                                      แคปซูลเปล่า ({formatNumber(emptyCapWeightMg)} mg/{secondaryUnit})
                                       {workOrder.emptyCapsuleItemName ? ` · ${workOrder.emptyCapsuleItemName}` : ''}
                                     </span>
-                                    <strong>+ {capsG.toLocaleString(undefined, { maximumFractionDigits: 2 })} g</strong>
+                                    <strong>+ {formatNumber(capsG, 2)} g</strong>
                                   </div>
                                   <div className="flex justify-between pt-1 border-t border-purple-200 text-purple-900">
                                     <span className="font-semibold">น้ำหนักรวมสุดท้าย (ผงยา + แคปซูล)</span>
-                                    <strong>{filledG.toLocaleString(undefined, { maximumFractionDigits: 2 })} g</strong>
+                                    <strong>{formatNumber(filledG, 2)} g</strong>
                                   </div>
                                 </>
                               ) : (
@@ -821,7 +822,7 @@ export default function ProductionOutputPage() {
                           />
                         </div>
                         <div className="text-xs text-gray-600 mt-1">
-                          เทียบแผน {Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit}
+                          เทียบแผน {formatNumber(workOrder.plannedQuantity)} {workOrder.unit}
                           {workOrder.bomYieldTarget != null && (
                             <> · เป้า ≥ {Number(workOrder.bomYieldTarget).toFixed(2)}%</>
                           )}
@@ -852,12 +853,12 @@ export default function ProductionOutputPage() {
                       liveYieldPercent >= 80 ? 'text-amber-600' :
                       'text-red-600'
                     }`}>
-                      Yield: {liveYieldPercent.toFixed(2)}% ({formData.actualQuantity.toLocaleString()} / {Number(workOrder.plannedQuantity).toLocaleString()})
+                      Yield: {liveYieldPercent.toFixed(2)}% ({formatNumber(formData.actualQuantity)} / {formatNumber(workOrder.plannedQuantity)})
                     </p>
                   )}
                   {workOrder.bomYieldTarget && (
                     <p className="text-xs text-gray-500 mt-0.5">
-                      คำนวณจาก BOM Yield Target {Number(workOrder.bomYieldTarget).toFixed(2)}% = {(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString()} {workOrder.unit}
+                      คำนวณจาก BOM Yield Target {Number(workOrder.bomYieldTarget).toFixed(2)}% = {formatNumber(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100)} {workOrder.unit}
                     </p>
                   )}
                 </div>
@@ -878,7 +879,7 @@ export default function ProductionOutputPage() {
                     width="100%"
                   />
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {Number(workOrder.plannedQuantity).toLocaleString()} - {formData.actualQuantity.toLocaleString()} = {formData.rejectQuantity.toLocaleString()} {workOrder.unit}
+                    {formatNumber(workOrder.plannedQuantity)} - {formatNumber(formData.actualQuantity)} = {formatNumber(formData.rejectQuantity)} {workOrder.unit}
                   </p>
                 </div>
               )}

@@ -31,6 +31,7 @@ import {
   SearchX,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { formatNumber } from '@/lib/utils/number-format';
 
 interface Transaction {
   id: number;
@@ -436,7 +437,7 @@ export default function TransactionsPage() {
             {isOutgoing && <TrendingDown className="h-3.5 w-3.5" />}
             <span>
               {isIncoming ? '+' : isOutgoing ? '-' : ''}
-              {Math.abs(Number(cellInfo.data.quantity)).toLocaleString()} {cellInfo.data.unit}
+              {formatNumber(Math.abs(Number(cellInfo.data.quantity)))} {cellInfo.data.unit}
             </span>
           </div>
         );
@@ -578,14 +579,14 @@ export default function TransactionsPage() {
           />
           <StatCard
             label={t('transactions.stats.incoming')}
-            value={`+${totalIncoming.toLocaleString()}`}
+            value={`+${formatNumber(totalIncoming)}`}
             icon={TrendingUp}
             iconColor="text-emerald-500"
             accentColor="border-emerald-500"
           />
           <StatCard
             label={t('transactions.stats.outgoing')}
-            value={`-${totalOutgoing.toLocaleString()}`}
+            value={`-${formatNumber(totalOutgoing)}`}
             icon={TrendingDown}
             iconColor="text-red-500"
             accentColor="border-red-500"
@@ -975,7 +976,7 @@ function TransactionMobileList({
                   {isOutgoing && <TrendingDown className="h-3.5 w-3.5" />}
                   <span>
                     {isIncoming ? '+' : isOutgoing ? '-' : ''}
-                    {Math.abs(Number(txn.quantity)).toLocaleString()} {txn.unit}
+                    {formatNumber(Math.abs(Number(txn.quantity)))} {txn.unit}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-gray-500">

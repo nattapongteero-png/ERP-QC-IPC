@@ -11,6 +11,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { Package, AlertTriangle, CheckCircle, Loader2, Users, Trash2 } from 'lucide-react';
+import { formatNumber } from '@/lib/utils/number-format';
 
 interface BOM {
   id: number;
@@ -337,8 +338,7 @@ function NewWorkOrderContent() {
   // Number formatter — comma thousands + up to 4 fraction digits. Small WIP
   // recipes produce values like 1.1084 kg; default toLocaleString trims
   // those and the operator loses precision.
-  const fmtQty = (n: number) =>
-    Number(n).toLocaleString('th-TH', { maximumFractionDigits: 4, minimumFractionDigits: 0 });
+  const fmtQty = (n: number) => formatNumber(n);
 
   const materialColumns: DxDataGridColumn[] = [
     { dataField: 'itemCode', caption: 'รหัสสินค้า', width: 130 },
@@ -462,7 +462,7 @@ function NewWorkOrderContent() {
                           <div>
                             <span className="text-gray-600">Standard Batch:</span>{' '}
                             <span className="font-medium">
-                              {selectedBom.standardBatchSize?.toLocaleString() || '-'} {selectedBom.batchUnit}
+                              {formatNumber(selectedBom.standardBatchSize) || '-'} {selectedBom.batchUnit}
                             </span>
                           </div>
                         </div>
@@ -716,7 +716,7 @@ function NewWorkOrderContent() {
                           <div>
                             <p className="text-sm text-gray-500">Total Required</p>
                             <p className="text-xl font-bold">
-                              {bomExplosion.summary.totalRequired.toLocaleString()}
+                              {formatNumber(bomExplosion.summary.totalRequired)}
                             </p>
                           </div>
                           <div>
@@ -726,7 +726,7 @@ function NewWorkOrderContent() {
                                 bomExplosion.summary.hasShortage ? 'text-red-600' : 'text-green-600'
                               }`}
                             >
-                              {bomExplosion.summary.totalShortage.toLocaleString()}
+                              {formatNumber(bomExplosion.summary.totalShortage)}
                             </p>
                           </div>
                           <div>
@@ -809,7 +809,7 @@ function NewWorkOrderContent() {
                     <span className="text-gray-600">Quantity:</span>
                     <span className="font-medium">
                       {formData.plannedQuantity
-                        ? `${parseFloat(formData.plannedQuantity).toLocaleString()} ${
+                        ? `${formatNumber(parseFloat(formData.plannedQuantity))} ${
                             selectedBom?.productUnit || selectedBom?.batchUnit || 'unit'
                           }`
                         : '-'}

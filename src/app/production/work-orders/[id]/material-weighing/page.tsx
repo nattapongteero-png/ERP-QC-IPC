@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toLocalDateStr } from '@/lib/utils/date-format';
+import { formatNumber } from '@/lib/utils/number-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
@@ -938,11 +939,11 @@ export default function MaterialWeighingPage() {
                   return (
                     <>
                       <p className="text-xl font-bold text-amber-900">
-                        {plannedInWeighUnit.toLocaleString('th-TH', { maximumFractionDigits: 4 })} {weighUnit}
+                        {formatNumber(plannedInWeighUnit)} {weighUnit}
                       </p>
                       {weighUnit !== bomUnit && (
                         <p className="text-[11px] text-amber-700/80">
-                          (BOM: {planned.toLocaleString('th-TH', { maximumFractionDigits: 4 })} {bomUnit})
+                          (BOM: {formatNumber(planned)} {bomUnit})
                         </p>
                       )}
                     </>

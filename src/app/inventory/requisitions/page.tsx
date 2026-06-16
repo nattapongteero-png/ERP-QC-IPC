@@ -35,6 +35,7 @@ import {
   calculateIssuance,
   type UnitConfig,
 } from '@/lib/utils/unit-conversion';
+import { formatNumber } from '@/lib/utils/number-format';
 
 interface MaterialRow {
   materialId: number;
@@ -328,7 +329,7 @@ export default function MaterialRequisitionsInboxPage() {
         const issued = (data.data?.issued ?? []) as { itemCode: string; puToIssue: number; pu: string; suIssued: number; su: string }[];
         if (issued.length > 0) {
           const lines = issued
-            .map((i) => `• ${i.itemCode}: ปล่อย ${i.puToIssue.toLocaleString()} ${i.pu} (= ${i.suIssued.toLocaleString()} ${i.su})`)
+            .map((i) => `• ${i.itemCode}: ปล่อย ${formatNumber(i.puToIssue)} ${i.pu} (= ${formatNumber(i.suIssued)} ${i.su})`)
             .join('\n');
           toast.success('อนุมัติและปล่อยของแล้ว', lines);
         } else {
@@ -612,7 +613,7 @@ export default function MaterialRequisitionsInboxPage() {
                                   <td className="py-2 px-3 text-gray-700">{mat.itemName}</td>
                                   <td className="py-2 px-3 text-right">
                                     <span className="font-medium">
-                                      {need.toLocaleString()}
+                                      {formatNumber(need)}
                                     </span>{' '}
                                     <span className="text-gray-500">{mat.unit}</span>
                                   </td>
@@ -620,18 +621,18 @@ export default function MaterialRequisitionsInboxPage() {
                                     {plan ? (
                                       <div>
                                         <span className="font-semibold text-emerald-700">
-                                          {plan.puToIssue.toLocaleString()} {plan.pu}
+                                          {formatNumber(plan.puToIssue)} {plan.pu}
                                         </span>
                                         {plan.remainderSU > 0 && (
                                           <div className="text-xs text-amber-700">
                                             เหลือหน้างาน{' '}
-                                            {plan.remainderSU.toLocaleString()} {plan.su}
+                                            {formatNumber(plan.remainderSU)} {plan.su}
                                           </div>
                                         )}
                                       </div>
                                     ) : (
                                       <span className="font-semibold text-emerald-700">
-                                        {need.toLocaleString()} {mat.unit}
+                                        {formatNumber(need)} {mat.unit}
                                       </span>
                                     )}
                                   </td>
@@ -641,14 +642,14 @@ export default function MaterialRequisitionsInboxPage() {
                                     }`}
                                   >
                                     <div>
-                                      {have.toLocaleString()}{' '}
+                                      {formatNumber(have)}{' '}
                                       <span className="text-gray-500 text-xs">
                                         {mat.itemUnit}
                                       </span>
                                     </div>
                                     {haveSU != null && plan && (
                                       <div className="text-xs text-gray-500">
-                                        = {haveSU.toLocaleString()} {plan.su}
+                                        = {formatNumber(haveSU)} {plan.su}
                                       </div>
                                     )}
                                   </td>
