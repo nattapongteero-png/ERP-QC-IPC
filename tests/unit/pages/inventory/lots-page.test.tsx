@@ -50,7 +50,9 @@ describe('LotsPage', () => {
       renderWithProviders(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Inventory Lots')).toBeInTheDocument();
+        // "Inventory Lots" appears in both the h1 and the summary-card label,
+        // so scope to the page heading to avoid a duplicate-text match.
+        expect(screen.getByRole('heading', { name: 'Inventory Lots' })).toBeInTheDocument();
       });
     });
 
@@ -141,7 +143,7 @@ describe('LotsPage', () => {
       renderWithProviders(<LotsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Inventory Lots')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Inventory Lots' })).toBeInTheDocument();
       });
     });
 
@@ -160,7 +162,7 @@ describe('LotsPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('Inventory Lots')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Inventory Lots' })).toBeInTheDocument();
       });
     });
 
