@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -148,88 +149,133 @@ export default function DashboardPage() {
           <>
             {/* Primary KPIs - Most Important Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KPICard
-                label={t('kpis.totalItems.label')}
-                value={data?.summary.totalItems || 0}
-                subtitle={t('kpis.totalItems.subtitle')}
-                icon={<Package className="h-6 w-6" />}
-                iconBgColor="bg-blue-100"
-                iconColor="text-blue-600"
-                trend="up"
-                trendValue="+12%"
-                className="motion-safe:animate-fade-in motion-reduce:animate-none"
-                style={{ animationDelay: '0ms' }}
-              />
+              <Link
+                href="/inventory/items"
+                data-testid="kpi-link-total-items"
+                className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              >
+                <KPICard
+                  label={t('kpis.totalItems.label')}
+                  value={data?.summary.totalItems || 0}
+                  subtitle={t('kpis.totalItems.subtitle')}
+                  icon={<Package className="h-6 w-6" />}
+                  iconBgColor="bg-emerald-100"
+                  iconColor="text-emerald-600"
+                  trend="up"
+                  trendValue="+12%"
+                  className="h-full cursor-pointer motion-safe:animate-fade-in motion-reduce:animate-none"
+                  style={{ animationDelay: '0ms' }}
+                />
+              </Link>
 
-              <KPICard
-                label={t('kpis.activeWorkOrders.label')}
-                value={data?.summary.activeWorkOrders || 0}
-                subtitle={t('kpis.activeWorkOrders.subtitle')}
-                icon={<Factory className="h-6 w-6" />}
-                iconBgColor="bg-emerald-100"
-                iconColor="text-emerald-600"
-                className="motion-safe:animate-fade-in motion-reduce:animate-none"
-                style={{ animationDelay: '50ms' }}
-              />
+              <Link
+                href="/production/work-orders"
+                data-testid="kpi-link-active-work-orders"
+                className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              >
+                <KPICard
+                  label={t('kpis.activeWorkOrders.label')}
+                  value={data?.summary.activeWorkOrders || 0}
+                  subtitle={t('kpis.activeWorkOrders.subtitle')}
+                  icon={<Factory className="h-6 w-6" />}
+                  iconBgColor="bg-emerald-100"
+                  iconColor="text-emerald-600"
+                  className="h-full cursor-pointer motion-safe:animate-fade-in motion-reduce:animate-none"
+                  style={{ animationDelay: '50ms' }}
+                />
+              </Link>
 
-              <KPICard
-                label={t('kpis.openDeviations.label')}
-                value={data?.summary.openDeviations || 0}
-                subtitle={t('kpis.openDeviations.subtitle')}
-                icon={<AlertTriangle className="h-6 w-6" />}
-                iconBgColor="bg-red-100"
-                iconColor="text-red-600"
-                trend={data?.summary.openDeviations && data.summary.openDeviations > 0 ? 'up' : 'neutral'}
-                trendValue={data?.summary.openDeviations && data.summary.openDeviations > 0 ? t('kpis.openDeviations.actionNeeded') : t('kpis.openDeviations.allClear')}
-                className="motion-safe:animate-fade-in motion-reduce:animate-none"
-                style={{ animationDelay: '100ms' }}
-              />
+              <Link
+                href="/quality/deviations"
+                data-testid="kpi-link-open-deviations"
+                className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              >
+                <KPICard
+                  label={t('kpis.openDeviations.label')}
+                  value={data?.summary.openDeviations || 0}
+                  subtitle={t('kpis.openDeviations.subtitle')}
+                  icon={<AlertTriangle className="h-6 w-6" />}
+                  iconBgColor="bg-red-100"
+                  iconColor="text-red-600"
+                  trend={data?.summary.openDeviations && data.summary.openDeviations > 0 ? 'up' : 'neutral'}
+                  trendValue={data?.summary.openDeviations && data.summary.openDeviations > 0 ? t('kpis.openDeviations.actionNeeded') : t('kpis.openDeviations.allClear')}
+                  className="h-full cursor-pointer motion-safe:animate-fade-in motion-reduce:animate-none"
+                  style={{ animationDelay: '100ms' }}
+                />
+              </Link>
 
-              <KPICard
-                label={t('kpis.expiringSoon.label')}
-                value={data?.summary.lotsExpiringSoon || 0}
-                subtitle={t('kpis.expiringSoon.subtitle')}
-                icon={<Calendar className="h-6 w-6" />}
-                iconBgColor="bg-orange-100"
-                iconColor="text-orange-600"
-                trend={data?.summary.lotsExpiringSoon && data.summary.lotsExpiringSoon > 5 ? 'up' : 'down'}
-                trendValue={data?.summary.lotsExpiringSoon && data.summary.lotsExpiringSoon > 5 ? t('kpis.expiringSoon.monitorClosely') : t('kpis.expiringSoon.lowRisk')}
-                className="motion-safe:animate-fade-in motion-reduce:animate-none"
-                style={{ animationDelay: '150ms' }}
-              />
+              <Link
+                href="/inventory/expiry-alerts"
+                data-testid="kpi-link-expiring-soon"
+                className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              >
+                <KPICard
+                  label={t('kpis.expiringSoon.label')}
+                  value={data?.summary.lotsExpiringSoon || 0}
+                  subtitle={t('kpis.expiringSoon.subtitle')}
+                  icon={<Calendar className="h-6 w-6" />}
+                  iconBgColor="bg-orange-100"
+                  iconColor="text-orange-600"
+                  trend={data?.summary.lotsExpiringSoon && data.summary.lotsExpiringSoon > 5 ? 'up' : 'down'}
+                  trendValue={data?.summary.lotsExpiringSoon && data.summary.lotsExpiringSoon > 5 ? t('kpis.expiringSoon.monitorClosely') : t('kpis.expiringSoon.lowRisk')}
+                  className="h-full cursor-pointer motion-safe:animate-fade-in motion-reduce:animate-none"
+                  style={{ animationDelay: '150ms' }}
+                />
+              </Link>
             </div>
 
             {/* Secondary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard
-                label={t('kpis.lotsInQuarantine.label')}
-                value={data?.summary.lotsInQuarantine || 0}
-                icon={<Clock className="h-5 w-5" />}
-                variant="warning"
-                size="md"
-                className="motion-safe:animate-fade-in motion-reduce:animate-none"
-                style={{ animationDelay: '200ms' }}
-              />
+              <Link
+                href="/inventory/lots?status=quarantine"
+                data-testid="stat-link-lots-in-quarantine"
+                className="block rounded-xl"
+              >
+                <StatCard
+                  label={t('kpis.lotsInQuarantine.label')}
+                  value={data?.summary.lotsInQuarantine || 0}
+                  icon={<Clock className="h-5 w-5" />}
+                  variant="warning"
+                  size="md"
+                  clickable
+                  className="h-full motion-safe:animate-fade-in motion-reduce:animate-none"
+                  style={{ animationDelay: '200ms' }}
+                />
+              </Link>
 
-              <StatCard
-                label={t('kpis.pendingPOs.label')}
-                value={data?.summary.pendingPOs || 0}
-                icon={<ShoppingCart className="h-5 w-5" />}
-                variant="info"
-                size="md"
-                className="motion-safe:animate-fade-in motion-reduce:animate-none"
-                style={{ animationDelay: '250ms' }}
-              />
+              <Link
+                href="/purchasing/orders"
+                data-testid="stat-link-pending-pos"
+                className="block rounded-xl"
+              >
+                <StatCard
+                  label={t('kpis.pendingPOs.label')}
+                  value={data?.summary.pendingPOs || 0}
+                  icon={<ShoppingCart className="h-5 w-5" />}
+                  variant="info"
+                  size="md"
+                  clickable
+                  className="h-full motion-safe:animate-fade-in motion-reduce:animate-none"
+                  style={{ animationDelay: '250ms' }}
+                />
+              </Link>
 
-              <StatCard
-                label={t('kpis.pendingSOs.label')}
-                value={data?.summary.pendingSOs || 0}
-                icon={<Truck className="h-5 w-5" />}
-                variant="primary"
-                size="md"
-                className="motion-safe:animate-fade-in motion-reduce:animate-none"
-                style={{ animationDelay: '300ms' }}
-              />
+              <Link
+                href="/sales/orders"
+                data-testid="stat-link-pending-sos"
+                className="block rounded-xl"
+              >
+                <StatCard
+                  label={t('kpis.pendingSOs.label')}
+                  value={data?.summary.pendingSOs || 0}
+                  icon={<Truck className="h-5 w-5" />}
+                  variant="primary"
+                  size="md"
+                  clickable
+                  className="h-full motion-safe:animate-fade-in motion-reduce:animate-none"
+                  style={{ animationDelay: '300ms' }}
+                />
+              </Link>
 
               <StatCard
                 label={t('kpis.monthlyGrowth.label')}
@@ -261,15 +307,18 @@ export default function DashboardPage() {
                   {data?.recentWorkOrders && data.recentWorkOrders.length > 0 ? (
                     <div className="space-y-3">
                       {data.recentWorkOrders.map((wo, index) => (
-                        <div
+                        <Link
                           key={wo.id}
+                          href={`/production/work-orders/${wo.id}`}
+                          data-testid={`work-order-link-${wo.id}`}
                           className={cn(
                             'flex items-center justify-between',
-                            'p-3 bg-gray-50 rounded-lg',
-                            'hover:bg-gray-100 hover:shadow-sm',
+                            'p-3 bg-emerald-50/60 rounded-lg',
+                            'hover:bg-emerald-100/70 hover:shadow-sm',
                             'transition-all duration-150',
                             'motion-reduce:transition-none',
-                            'cursor-pointer'
+                            'cursor-pointer',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1'
                           )}
                         >
                           <div className="flex items-center gap-3">
@@ -289,7 +338,7 @@ export default function DashboardPage() {
                               {wo.plannedQuantity.toLocaleString()} {wo.unit}
                             </p>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   ) : (
@@ -315,19 +364,23 @@ export default function DashboardPage() {
                   {data?.inventoryByStatus && data.inventoryByStatus.length > 0 ? (
                     <div className="space-y-3">
                       {data.inventoryByStatus.map((item) => (
-                        <div
+                        <Link
                           key={item.status}
+                          href={`/inventory/lots?status=${encodeURIComponent(item.status)}`}
+                          data-testid={`inventory-status-link-${item.status}`}
                           className={cn(
                             'flex items-center justify-between',
-                            'p-3 bg-gray-50 rounded-lg',
-                            'hover:bg-gray-100 hover:shadow-sm',
+                            'p-3 bg-emerald-50/60 rounded-lg',
+                            'hover:bg-emerald-100/70 hover:shadow-sm',
                             'transition-all duration-150',
-                            'motion-reduce:transition-none'
+                            'motion-reduce:transition-none',
+                            'cursor-pointer',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1'
                           )}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                              <Package className="h-4 w-4 text-blue-600" />
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                              <Package className="h-4 w-4 text-emerald-600" />
                             </div>
                             <Badge variant={getStatusVariant(item.status)} dot>
                               {item.status}
@@ -339,7 +392,7 @@ export default function DashboardPage() {
                               {t('sections.inventoryByStatus.totalPrefix')}: {Number(item.totalQuantity || 0).toLocaleString()}
                             </p>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   ) : (
@@ -369,14 +422,18 @@ export default function DashboardPage() {
                       const config = getWarehouseTypeConfig(item.warehouseType);
                       const Icon = config.icon;
                       return (
-                        <div
+                        <Link
                           key={`${item.warehouseType}-${item.warehouseName}-${index}`}
+                          href={`/inventory/warehouses?type=${encodeURIComponent(item.warehouseType)}`}
+                          data-testid={`warehouse-link-${item.warehouseType}-${index}`}
                           className={cn(
-                            'p-4 rounded-xl border border-gray-100',
-                            'bg-gradient-to-br from-white to-gray-50',
-                            'hover:shadow-md hover:border-gray-200',
+                            'block p-4 rounded-xl border border-emerald-100',
+                            'bg-gradient-to-br from-white to-emerald-50/50',
+                            'hover:shadow-md hover:border-emerald-200',
                             'transition-all duration-200',
-                            'motion-reduce:transition-none'
+                            'motion-reduce:transition-none',
+                            'cursor-pointer',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2'
                           )}
                         >
                           <div className="flex items-start gap-3">
@@ -409,7 +466,7 @@ export default function DashboardPage() {
                               </p>
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>
