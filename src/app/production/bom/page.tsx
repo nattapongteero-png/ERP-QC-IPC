@@ -197,12 +197,16 @@ export default function BOMDashboardPage() {
   // Tab configuration (scrollable on mobile)
   const totalCount = bomData?.length || 0;
   const approvedCount = bomData?.filter((b) => b.status === 'approved').length || 0;
+  const activeCount = bomData?.filter((b) => b.status === 'active').length || 0;
   const draftCount = bomData?.filter((b) => b.status === 'draft').length || 0;
   const obsoleteCount = bomData?.filter((b) => b.status === 'obsolete').length || 0;
 
+  // One tab per status the registry can display (statusConfig), so the filter
+  // surface never has fewer options than the badges shown in the grid.
   const tabs: Array<{ key: string; label: string; count: number }> = [
     { key: 'all', label: t('bom.tabs.all'), count: totalCount },
     { key: 'approved', label: t('bom.tabs.approved'), count: approvedCount },
+    { key: 'active', label: t('bom.tabs.active'), count: activeCount },
     { key: 'draft', label: t('bom.tabs.draft'), count: draftCount },
     { key: 'obsolete', label: t('bom.tabs.obsolete'), count: obsoleteCount },
   ];

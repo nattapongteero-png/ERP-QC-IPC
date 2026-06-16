@@ -1286,9 +1286,9 @@ export default function BOMDetailPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Material *</label>
             {newLine.itemId ? (
               <div className="flex items-center gap-2">
-                <div className="flex-1 p-2 border rounded bg-gray-50">
-                  <p className="font-medium">{newLine.itemCode}</p>
-                  <p className="text-sm text-gray-500">{newLine.itemName}</p>
+                <div className="flex-1 p-2 border border-emerald-100 rounded-lg bg-emerald-50/60">
+                  <p className="font-medium text-[#064E3B]">{newLine.itemCode}</p>
+                  <p className="text-sm text-[#4B7163]">{newLine.itemName}</p>
                 </div>
                 <DxButton
                   text="Change"
@@ -1330,7 +1330,6 @@ export default function BOMDetailPage() {
                 <DxTextBox
                   value={newLine.itemUnit}
                   readOnly
-                  className="bg-gray-50"
                 />
               )}
             </div>

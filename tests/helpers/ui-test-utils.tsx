@@ -10,6 +10,7 @@ import React, { ReactElement } from 'react';
 import { render, RenderOptions, RenderResult } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
+import { ToastProvider } from '@/components/ui/toast';
 
 // ============================================
 // QueryClient Factory
@@ -46,6 +47,7 @@ interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
 /**
  * Render a component with all necessary providers
  * - QueryClientProvider for data fetching
+ * - ToastProvider so components calling useToast() (e.g. BOM pages) render
  */
 export function renderWithProviders(
   ui: ReactElement,
@@ -56,7 +58,9 @@ export function renderWithProviders(
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </QueryClientProvider>
     );
   }

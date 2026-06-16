@@ -199,6 +199,7 @@
     "tabs": {
       "all": "All",
       "approved": "Approved",
+      "active": "Active",
       "draft": "Draft",
       "obsolete": "Obsolete"
     },

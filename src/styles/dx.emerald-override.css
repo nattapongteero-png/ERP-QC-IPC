@@ -21,9 +21,22 @@
 }
 
 .dx-button-mode-outlined.dx-button-success,
-.dx-button-mode-text.dx-button-success {
+.dx-button-mode-text.dx-button-success,
+.dx-button-mode-outlined.dx-button-default,
+.dx-button-mode-text.dx-button-default {
   color: #059669 !important;
   border-color: #059669 !important;
+}
+
+/* Outlined/text default buttons: tint icon + hover surface emerald (DevExtreme
+ * ships these blue). Keeps every primary-ish action on-theme. */
+.dx-button-mode-outlined.dx-button-default .dx-icon,
+.dx-button-mode-text.dx-button-default .dx-icon {
+  color: #059669 !important;
+}
+.dx-button-mode-outlined.dx-button-default.dx-state-hover,
+.dx-button-mode-text.dx-button-default.dx-state-hover {
+  background-color: rgba(5, 150, 105, 0.08) !important;
 }
 
 /* DataGrid selection and focus */
@@ -68,6 +81,45 @@ a:hover {
 .dx-checkbox-checked .dx-checkbox-icon,
 .dx-switch-on-value .dx-switch-handle::before {
   background-color: #059669 !important;
+}
+
+/* ── Organic filled inputs (GLOBAL) ──
+ * Modules scope this per-layout (.production-organic / .organic-form), but
+ * DevExtreme Popups/dropdowns portal to <body>, OUTSIDE those wrappers — so
+ * dialog fields stayed gray/un-themed. Apply the organic restyle globally so
+ * every filled editor (grids, forms, AND popup dialogs) matches the theme. */
+.dx-texteditor.dx-editor-filled {
+  border: 1px solid #D9EFE4;
+  border-radius: 11px;
+  background-color: #FBFEFC;
+  box-shadow: 0 1px 2px rgba(6, 78, 59, 0.04);
+}
+.dx-texteditor.dx-editor-filled::before,
+.dx-texteditor.dx-editor-filled::after {
+  display: none !important;
+}
+.dx-texteditor.dx-editor-filled.dx-state-hover {
+  border-color: #A7F3D0;
+  background-color: #F4FBF7;
+}
+.dx-texteditor.dx-editor-filled.dx-state-focused {
+  border-color: #10B981;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+.dx-texteditor.dx-editor-filled.dx-state-disabled {
+  background-color: #F1F5F4;
+  border-color: #E5EFEA;
+}
+.dx-editor-filled .dx-texteditor-input {
+  color: #0F2E22;
+}
+.dx-editor-filled .dx-placeholder::before {
+  color: #8AA79B;
+}
+.dx-editor-filled .dx-dropdowneditor-icon,
+.dx-editor-filled .dx-numberbox-spin-icon {
+  color: #4B7163;
 }
 
 /* TextBox, SelectBox, DateBox focus state */

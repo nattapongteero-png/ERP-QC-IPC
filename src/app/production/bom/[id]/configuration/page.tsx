@@ -1772,21 +1772,21 @@ export default function BOMConfigurationPage() {
                       {cell.value ? 'Required' : 'Not Required'}
                     </span>
                   )} />
-                  <DxColumn caption="IPC" width={140} cellRender={(cell) => {
+                  <DxColumn caption="IPC" width={170} cellRender={(cell) => {
                     // Count IPC links attached to this BOM SOP step. Click
                     // "Manage" to open the per-step IPC linker dialog.
                     const stepId = cell.data.id as number;
                     const count = bomStepIpcLinks.filter((l: any) => l.bomStepId === stepId).length;
                     return (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-nowrap">
                         <span className={`inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded text-xs font-medium ${count > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'}`}>
                           {count}
                         </span>
                         <button
                           onClick={() => openIpcManageDialog(cell.data as BOMSOPStep)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 whitespace-nowrap shrink-0"
                         >
-                          <FlaskConical className="h-3 w-3" /> Manage
+                          <FlaskConical className="h-3 w-3 shrink-0" /> Manage
                         </button>
                       </div>
                     );
