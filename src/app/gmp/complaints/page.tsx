@@ -570,7 +570,7 @@ export default function ComplaintsListPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={severityChartData.map((d) => d.color)}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="label" valueField="value">
                 <Label visible={false} />
@@ -616,7 +616,7 @@ export default function ComplaintsListPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={statusChartData.map((d) => d.color)}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="label" valueField="value">
                 <Label visible={false} />
@@ -662,7 +662,7 @@ export default function ComplaintsListPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={categoryChartData.map((d) => d.color)}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="label" valueField="value">
                 <Label visible={false} />

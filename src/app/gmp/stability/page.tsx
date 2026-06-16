@@ -627,7 +627,7 @@ export default function StabilityDashboardPage() {
                 type="doughnut"
                 innerRadius={0.65}
                 palette={statusChartData.map((d) => d.color)}
-                size={{ height: 220 }}
+                size={{ height: 280 }}
               >
                 <Series argumentField="label" valueField="value">
                   <Label visible={false} />
@@ -747,7 +747,7 @@ export default function StabilityDashboardPage() {
           </div>
         </div>
         {activityChartData.length > 0 ? (
-          <Chart key={locale} id="activity-chart" dataSource={activityChartData} size={{ height: 200 }}>
+          <Chart key={locale} id="activity-chart" dataSource={activityChartData} size={{ height: 260 }}>
             <CommonSeriesSettings argumentField="period" type="bar" barPadding={0.3} />
             <ChartSeries valueField="count" name={t('stability.chart.testsCompletedLegend')} color="#6366f1" />
             <ArgumentAxis>

@@ -588,7 +588,7 @@ export default function DeviationsPage() {
               type="doughnut"
               palette={statusChartData.map(d => d.color)}
               innerRadius={0.6}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="status" valueField="count">
                 <Label visible={false} />
@@ -625,7 +625,7 @@ export default function DeviationsPage() {
               type="doughnut"
               palette={severityChartData.map(d => d.color)}
               innerRadius={0.6}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="severity" valueField="count">
                 <Label visible={false} />
@@ -662,7 +662,7 @@ export default function DeviationsPage() {
               type="doughnut"
               palette={sourceChartData.map(d => d.color)}
               innerRadius={0.6}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="source" valueField="count">
                 <Label visible={false} />

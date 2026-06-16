@@ -535,7 +535,7 @@ export default function QualityTestsPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={statusChartData.map(d => d.color)}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="status" valueField="count">
                 <Label visible={false} />
@@ -574,7 +574,7 @@ export default function QualityTestsPage() {
             </h3>
           </div>
           {typeChartData.some(d => d.count > 0) ? (
-            <Chart id="type-chart" dataSource={typeChartData} size={{ height: 200 }}>
+            <Chart id="type-chart" dataSource={typeChartData} size={{ height: 260 }}>
               <CommonSeriesSettings argumentField="type" type="bar" color="#6366f1" />
               <ChartSeries valueField="count" name="Tests" color="#6366f1" />
               <ArgumentAxis>

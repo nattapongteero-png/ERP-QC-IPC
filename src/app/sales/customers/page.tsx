@@ -602,7 +602,7 @@ export default function CustomersPage() {
                   type="doughnut"
                   palette={typeChartData.map(d => d.color)}
                   innerRadius={0.6}
-                  size={{ height: 220 }}
+                  size={{ height: 280 }}
                 >
                   <Series argumentField="type" valueField="count">
                     <Label visible={false} />
@@ -613,7 +613,7 @@ export default function CustomersPage() {
                   })} />
                 </PieChart>
               ) : (
-                <div className="h-[220px] flex items-center justify-center text-gray-400">
+                <div className="h-[280px] flex items-center justify-center text-gray-400">
                   {t('customers.charts.noData')}
                 </div>
               )}
@@ -637,7 +637,7 @@ export default function CustomersPage() {
                   type="doughnut"
                   palette={creditChartData.map(d => d.color)}
                   innerRadius={0.6}
-                  size={{ height: 220 }}
+                  size={{ height: 280 }}
                 >
                   <Series argumentField="type" valueField="credit">
                     <Label visible={false} />
@@ -648,7 +648,7 @@ export default function CustomersPage() {
                   })} />
                 </PieChart>
               ) : (
-                <div className="h-[220px] flex items-center justify-center text-gray-400">
+                <div className="h-[280px] flex items-center justify-center text-gray-400">
                   {t('customers.charts.noData')}
                 </div>
               )}

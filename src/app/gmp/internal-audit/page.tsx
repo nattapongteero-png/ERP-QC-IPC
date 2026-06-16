@@ -863,7 +863,7 @@ export default function InternalAuditDashboardPage() {
                   type="doughnut"
                   palette={statusChartData.map((d) => d.color)}
                   innerRadius={0.6}
-                  size={{ height: 220 }}
+                  size={{ height: 280 }}
                 >
                   <PieSeries argumentField="status" valueField="count">
                     <PieLabel visible={true} position="outside" format="fixedPoint">
@@ -897,7 +897,7 @@ export default function InternalAuditDashboardPage() {
                   key={locale}
                   dataSource={findingsChartData}
                   rotated={true}
-                  size={{ height: 220 }}
+                  size={{ height: 280 }}
                   customizePoint={(pointInfo: { argument: string }) => {
                     const item = findingsChartData.find((d) => d.category === pointInfo.argument);
                     return { color: item?.color || '#64748b' };

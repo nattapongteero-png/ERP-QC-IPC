@@ -420,7 +420,7 @@ export default function SanitationDashboardPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={areaComplianceData.map((d) => d.color)}
-              size={{ height: 220 }}
+              size={{ height: 280 }}
             >
               <Series argumentField="label" valueField="completed">
                 <Label visible={false} />
@@ -464,7 +464,7 @@ export default function SanitationDashboardPage() {
             <Chart
               id="pest-trend-chart"
               dataSource={pestTrendData}
-              size={{ height: 220 }}
+              size={{ height: 280 }}
             >
               <CommonSeriesSettings argumentField="period" type="bar" color="#f59e0b" />
               <ChartSeries valueField="findings" name="Findings" color="#f59e0b" />

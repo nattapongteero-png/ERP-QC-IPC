@@ -644,7 +644,7 @@ export default function SalesOrdersPage() {
                 palette={statusChartData.map(d => d.color)}
                 type="doughnut"
                 innerRadius={0.65}
-                size={{ height: 200 }}
+                size={{ height: 260 }}
               >
                 <Series argumentField="status" valueField="count">
                   <Label visible={false} />
@@ -679,7 +679,7 @@ export default function SalesOrdersPage() {
                 palette={valueChartData.map(d => d.color)}
                 type="doughnut"
                 innerRadius={0.65}
-                size={{ height: 200 }}
+                size={{ height: 260 }}
               >
                 <Series argumentField="status" valueField="value">
                   <Label visible={false} />

@@ -591,7 +591,7 @@ export default function PqrDashboardPage() {
                       type="doughnut"
                       innerRadius={0.65}
                       palette={statusChartData.map(d => d.color)}
-                      size={{ height: 220 }}
+                      size={{ height: 280 }}
                     >
                       <PieSeries argumentField="status" valueField="count">
                         <PieLabel visible format="fixedPoint" customizeText={(arg) => `${arg.percentText}`}>
@@ -620,7 +620,7 @@ export default function PqrDashboardPage() {
                     <h3 className="font-semibold text-gray-900">Reports by Year</h3>
                   </div>
                   {yearChartData.length > 0 ? (
-                    <Chart dataSource={yearChartData} size={{ height: 220 }}>
+                    <Chart dataSource={yearChartData} size={{ height: 280 }}>
                       <CommonSeriesSettings
                         argumentField="year"
                         valueField="count"

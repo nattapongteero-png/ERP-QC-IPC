@@ -546,7 +546,7 @@ export default function ContractsDashboardPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={statusChartData.map((d) => d.color)}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="label" valueField="value">
                 <Label visible={false} />
@@ -591,7 +591,7 @@ export default function ContractsDashboardPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={typeChartData.map((d) => d.color)}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="label" valueField="value">
                 <Label visible={false} />

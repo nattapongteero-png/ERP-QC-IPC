@@ -1063,7 +1063,7 @@ export default function VmiOrdersPage() {
               type="doughnut"
               palette={statusChartData.map((d) => d.color)}
               innerRadius={0.6}
-              size={{ height: 220 }}
+              size={{ height: 280 }}
             >
               <Series argumentField="status" valueField="count">
                 <Label visible={false} />
@@ -1106,7 +1106,7 @@ export default function VmiOrdersPage() {
               type="doughnut"
               palette={priorityChartData.map((d) => d.color)}
               innerRadius={0.6}
-              size={{ height: 220 }}
+              size={{ height: 280 }}
             >
               <Series argumentField="priority" valueField="count">
                 <Label visible={false} />

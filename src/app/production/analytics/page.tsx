@@ -399,7 +399,7 @@ export default function ProductionAnalyticsPage() {
                 type="doughnut"
                 innerRadius={0.6}
                 palette={statusData.map(d => d.color)}
-                size={{ height: 200 }}
+                size={{ height: 260 }}
               >
                 <Series argumentField="status" valueField="count">
                   <Label visible={false} />
@@ -536,7 +536,7 @@ export default function ProductionAnalyticsPage() {
                 type="doughnut"
                 innerRadius={0.6}
                 palette={onTimeData.map(d => d.color)}
-                size={{ height: 200 }}
+                size={{ height: 260 }}
               >
                 <Series argumentField="label" valueField="count">
                   <Label visible={false} />

@@ -739,7 +739,7 @@ export default function RecallsDashboardPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={classChartData.map(d => d.color)}
-              size={{ height: 200 }}
+              size={{ height: 260 }}
             >
               <Series argumentField="class" valueField="count">
                 <Label visible={true} position="inside" />
