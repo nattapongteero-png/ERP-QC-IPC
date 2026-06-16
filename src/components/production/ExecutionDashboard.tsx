@@ -52,7 +52,7 @@ function lineClearanceBadgeStyle(status: string | null): {
       };
     case 'performed':
       return {
-        className: 'border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800',
+        className: 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800',
         label: 'รออนุมัติ Line Clearance',
         title: 'บันทึกแล้ว — รอผู้มีสิทธิ์อนุมัติ',
         Icon: Clock,
@@ -124,10 +124,10 @@ interface ExecutionSection {
 
 const phaseColors = {
   pre_production: 'bg-amber-100 text-amber-800 border-amber-200',
-  production: 'bg-blue-100 text-blue-800 border-blue-200',
+  production: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   post_production: 'bg-green-100 text-green-800 border-green-200',
   pre_packaging: 'bg-purple-100 text-purple-800 border-purple-200',
-  packaging: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  packaging: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   inspection: 'bg-teal-100 text-teal-800 border-teal-200',
 };
 
@@ -582,7 +582,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       pending: 'bg-gray-100 text-gray-600',
       in_progress: 'bg-amber-100 text-amber-700',
       completed: 'bg-green-100 text-green-700',
-      verified: 'bg-blue-100 text-blue-700',
+      verified: 'bg-emerald-100 text-emerald-700',
     };
     const labels = {
       pending: 'Pending',
@@ -622,7 +622,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
             style={{ width: `${completedPct}%` }}
           />
           <div
-            className="absolute inset-y-0 left-0 bg-blue-500 transition-all duration-300"
+            className="absolute inset-y-0 left-0 bg-emerald-500 transition-all duration-300"
             style={{ width: `${verifiedPct}%` }}
           />
         </div>

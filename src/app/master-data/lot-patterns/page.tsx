@@ -227,10 +227,10 @@ export default function LotPatternsPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard label="รูปแบบทั้งหมด" value={rows.length} icon={Tag} />
         <StatCard label="ใช้งาน" value={rows.filter((r) => r.isActive).length} icon={Sparkles} iconColor="text-emerald-500" />
-        <StatCard label="มีการตรวจ Vendor" value={vendor?.regexPattern ? 1 : 0} icon={Shield} iconColor="text-blue-500" />
+        <StatCard label="มีการตรวจ Vendor" value={vendor?.regexPattern ? 1 : 0} icon={Shield} iconColor="text-emerald-500" />
       </div>
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
         <strong>การใช้งาน:</strong> ตั้งค่า "เลข Lot ระบบ" จะมีผลกับปุ่ม <em>สร้าง</em> ในหน้า "รับ Lot ใหม่"
         — ตั้งค่า "เลข Lot ผู้ขาย" จะแสดงเป็น hint และตรวจรูปแบบเมื่อกรอก
       </div>
@@ -428,8 +428,8 @@ export default function LotPatternsPage() {
               </div>
 
               {form.regexPattern.trim() && (
-                <div className="rounded-md bg-blue-50 border border-blue-200 p-3">
-                  <div className="text-xs text-blue-700 font-medium mb-2">ทดสอบ Regex</div>
+                <div className="rounded-md bg-emerald-50 border border-emerald-200 p-3">
+                  <div className="text-xs text-emerald-700 font-medium mb-2">ทดสอบ Regex</div>
                   <DxTextBox
                     placeholder="ลองพิมพ์เลข Lot ผู้ขาย"
                     value={vendorTestInput}

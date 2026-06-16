@@ -61,9 +61,9 @@ const TYPE_CONFIG: Record<WarehouseTypeFilter, {
   },
   raw_material: {
     translationKey: 'rawMaterial',
-    bgColor: 'bg-blue-600',
+    bgColor: 'bg-emerald-600',
     textColor: 'text-white',
-    hoverBg: 'hover:bg-blue-700',
+    hoverBg: 'hover:bg-emerald-700',
     icon: <Package className="h-4 w-4" />,
     badgeVariant: 'info',
   },
@@ -277,7 +277,7 @@ export default function WarehousesPage() {
         <div className="flex items-center gap-2">
           <div className={cn(
             'h-8 w-8 rounded-lg flex items-center justify-center',
-            cellInfo.data.type === 'raw_material' ? 'bg-blue-100' :
+            cellInfo.data.type === 'raw_material' ? 'bg-emerald-100' :
             cellInfo.data.type === 'finished_goods' ? 'bg-emerald-100' :
             cellInfo.data.type === 'quarantine' ? 'bg-yellow-100' :
             cellInfo.data.type === 'rejected' ? 'bg-red-100' :
@@ -286,7 +286,7 @@ export default function WarehousesPage() {
           )}>
             <Warehouse className={cn(
               'h-4 w-4',
-              cellInfo.data.type === 'raw_material' ? 'text-blue-600' :
+              cellInfo.data.type === 'raw_material' ? 'text-emerald-600' :
               cellInfo.data.type === 'finished_goods' ? 'text-emerald-600' :
               cellInfo.data.type === 'quarantine' ? 'text-yellow-600' :
               cellInfo.data.type === 'rejected' ? 'text-red-600' :
@@ -720,7 +720,7 @@ function WarehouseCardList({
               <div
                 className={cn(
                   'h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0',
-                  w.type === 'raw_material' ? 'bg-blue-100' :
+                  w.type === 'raw_material' ? 'bg-emerald-100' :
                   w.type === 'finished_goods' ? 'bg-emerald-100' :
                   w.type === 'wip' ? 'bg-amber-100' :
                   w.type === 'quarantine' ? 'bg-yellow-100' :
@@ -732,7 +732,7 @@ function WarehouseCardList({
                 <Warehouse
                   className={cn(
                     'h-5 w-5',
-                    w.type === 'raw_material' ? 'text-blue-600' :
+                    w.type === 'raw_material' ? 'text-emerald-600' :
                     w.type === 'finished_goods' ? 'text-emerald-600' :
                     w.type === 'wip' ? 'text-amber-600' :
                     w.type === 'quarantine' ? 'text-yellow-600' :

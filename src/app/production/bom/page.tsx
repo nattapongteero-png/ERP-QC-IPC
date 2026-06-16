@@ -53,7 +53,7 @@ import type { BOMDashboard } from '@/app/api/bom/dashboard/route';
 // obsolete=gray. Solid-ish fills + bold text so they're easy to tell apart.
 const statusConfig = {
   draft: { translationKey: 'draft', color: 'bg-amber-100 text-amber-800 font-semibold', borderColor: 'border-amber-500' },
-  active: { translationKey: 'active', color: 'bg-blue-100 text-blue-800 font-semibold', borderColor: 'border-blue-500' },
+  active: { translationKey: 'active', color: 'bg-teal-100 text-teal-800 font-semibold', borderColor: 'border-teal-500' },
   approved: { translationKey: 'approved', color: 'bg-emerald-100 text-emerald-800 font-semibold', borderColor: 'border-emerald-500' },
   obsolete: { translationKey: 'obsolete', color: 'bg-gray-200 text-gray-700 font-semibold', borderColor: 'border-gray-400' },
 };

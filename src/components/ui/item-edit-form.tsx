@@ -173,7 +173,7 @@ export function carriesUnitWeight(type: string, category: string | undefined): b
 
 export const itemTypes = [
   { value: 'raw_material', label: 'Raw Material', translationKey: 'itemForm.types.raw_material', icon: Leaf, color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-200' },
-  { value: 'packaging', label: 'Packaging', translationKey: 'itemForm.types.packaging', icon: Box, color: 'text-blue-600', bgColor: 'bg-blue-100', borderColor: 'border-blue-200' },
+  { value: 'packaging', label: 'Packaging', translationKey: 'itemForm.types.packaging', icon: Box, color: 'text-emerald-600', bgColor: 'bg-emerald-100', borderColor: 'border-emerald-200' },
   { value: 'wip', label: 'Work in Progress', translationKey: 'itemForm.types.wip', icon: FlaskConical, color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-200' },
   { value: 'finished_goods', label: 'Finished Goods', translationKey: 'itemForm.types.finished_goods', icon: Pill, color: 'text-purple-600', bgColor: 'bg-purple-100', borderColor: 'border-purple-200' },
   { value: 'consumable', label: 'Consumable', translationKey: 'itemForm.types.consumable', icon: Package, color: 'text-gray-600', bgColor: 'bg-gray-100', borderColor: 'border-gray-200' },
@@ -417,7 +417,7 @@ export function StockStatus({ item }: StockStatusProps) {
                 'h-full rounded-full transition-all duration-500',
                 isLow ? 'bg-gradient-to-r from-red-400 to-red-500' :
                 isNearReorder ? 'bg-gradient-to-r from-amber-400 to-amber-500' :
-                isOverstock ? 'bg-gradient-to-r from-blue-400 to-blue-500' :
+                isOverstock ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' :
                 'bg-gradient-to-r from-emerald-400 to-emerald-500'
               )}
               style={{ width: `${Math.min((onHand / maxStock) * 100, 100)}%` }}

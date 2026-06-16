@@ -268,10 +268,10 @@ export default function CleaningPage() {
       return { status: 'verify_failed', label: 'Verify Failed — ต้องทำความสะอาดใหม่', color: 'bg-red-100 text-red-700' };
     }
     if (item.cleaningLog.verifiedAt && item.cleaningLog.verifyResult === 'pass') {
-      return { status: 'verified', label: 'Verified ✓', color: 'bg-blue-100 text-blue-700' };
+      return { status: 'verified', label: 'Verified ✓', color: 'bg-emerald-100 text-emerald-700' };
     }
     if (item.cleaningLog.verifiedAt) {
-      return { status: 'verified', label: 'Verified ✓', color: 'bg-blue-100 text-blue-700' };
+      return { status: 'verified', label: 'Verified ✓', color: 'bg-emerald-100 text-emerald-700' };
     }
     if (item.cleaningLog.isClean) {
       return { status: 'completed', label: 'Cleaned — รอตรวจสอบ', color: 'bg-green-100 text-green-700' };
@@ -395,9 +395,9 @@ export default function CleaningPage() {
                       className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border border-emerald-100 rounded-lg hover:shadow-[0_6px_20px_rgba(6,78,59,0.07)] transition-shadow"
                     >
                       <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                        <div className={`p-2 rounded-lg flex-shrink-0 ${item.type === 'room' ? 'bg-blue-100' : 'bg-purple-100'}`}>
+                        <div className={`p-2 rounded-lg flex-shrink-0 ${item.type === 'room' ? 'bg-emerald-100' : 'bg-purple-100'}`}>
                           {item.type === 'room' ? (
-                            <Building2 className="h-5 w-5 text-blue-600" />
+                            <Building2 className="h-5 w-5 text-emerald-600" />
                           ) : (
                             <Wrench className="h-5 w-5 text-purple-600" />
                           )}

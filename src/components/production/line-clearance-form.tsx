@@ -195,7 +195,7 @@ export function LineClearanceForm({
         );
       case 'performed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-700">
             <UserCheck className="h-4 w-4" />
             Awaiting Verification
           </span>

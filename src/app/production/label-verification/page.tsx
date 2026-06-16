@@ -238,7 +238,7 @@ function LabelVerificationContent() {
       case 'pending':
         return <Clock className="h-4 w-4 text-gray-500" />;
       case 'verified':
-        return <CheckCircle2 className="h-4 w-4 text-blue-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
       case 'witnessed':
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       case 'rejected':
@@ -351,7 +351,7 @@ function LabelVerificationContent() {
                           item.label.status === 'witnessed'
                             ? 'bg-green-100 text-green-700'
                             : item.label.status === 'verified'
-                            ? 'bg-blue-100 text-blue-700'
+                            ? 'bg-emerald-100 text-emerald-700'
                             : item.label.status === 'rejected'
                             ? 'bg-red-100 text-red-700'
                             : 'bg-gray-100 text-gray-700'

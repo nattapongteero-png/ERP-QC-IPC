@@ -246,7 +246,7 @@ export default function SamplingPlansPage() {
       cellRender: (c: any) => (
         <div className="flex gap-1">
           <button
-            className="text-xs text-blue-700 hover:underline"
+            className="text-xs text-emerald-700 hover:underline"
             onClick={() => openEdit(c.data as PlanRow)}
             data-testid={`edit-${c.data.id}`}
           >

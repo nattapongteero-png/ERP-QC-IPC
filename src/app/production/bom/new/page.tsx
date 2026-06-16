@@ -30,9 +30,9 @@ import {
 // Item-type → colored badge config for the material picker grid.
 const materialTypeBadge: Record<string, { label: string; cls: string }> = {
   raw_material: { label: 'วัตถุดิบ', cls: 'bg-emerald-100 text-emerald-700' },
-  packaging: { label: 'บรรจุภัณฑ์', cls: 'bg-blue-100 text-blue-700' },
+  packaging: { label: 'บรรจุภัณฑ์', cls: 'bg-emerald-100 text-emerald-700' },
   wip: { label: 'งานระหว่างทำ', cls: 'bg-orange-100 text-orange-700' },
-  extract: { label: 'สารสกัด', cls: 'bg-indigo-100 text-indigo-700' },
+  extract: { label: 'สารสกัด', cls: 'bg-emerald-100 text-emerald-700' },
   consumable: { label: 'วัสดุสิ้นเปลือง', cls: 'bg-slate-100 text-slate-600' },
 };
 

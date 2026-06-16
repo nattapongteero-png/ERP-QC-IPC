@@ -146,7 +146,7 @@ export default function GoodsReceiptListPage() {
             const v = c.value as 'po' | 'wo';
             const cls =
               v === 'po'
-                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : 'bg-emerald-50 text-emerald-700 border-emerald-200';
             return (
               <span

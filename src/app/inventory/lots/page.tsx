@@ -1171,7 +1171,7 @@ export default function LotsPage() {
                   </button>
                   <button
                     onClick={() => { setShowImportDialog(true); setImportLog([]); }}
-                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors min-h-[40px]"
+                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors min-h-[40px]"
                   >
                     <Upload className="h-4 w-4" /> {t('common.importExcel')}
                   </button>
@@ -1405,7 +1405,7 @@ export default function LotsPage() {
                     {([
                       { key: 'near_expiry' as QuickFilter, label: 'ใกล้หมดอายุ ≤30 วัน', color: 'text-amber-700 bg-amber-50 border-amber-300 ring-amber-400/30', icon: <CalendarClock className="h-3.5 w-3.5" /> },
                       { key: 'expired' as QuickFilter, label: 'หมดอายุแล้ว', color: 'text-red-700 bg-red-50 border-red-300 ring-red-400/30', icon: <XCircle className="h-3.5 w-3.5" /> },
-                      { key: 'raw_material' as QuickFilter, label: 'วัตถุดิบ', color: 'text-blue-700 bg-blue-50 border-blue-300 ring-blue-400/30', icon: <Package className="h-3.5 w-3.5" /> },
+                      { key: 'raw_material' as QuickFilter, label: 'วัตถุดิบ', color: 'text-emerald-700 bg-emerald-50 border-emerald-300 ring-emerald-400/30', icon: <Package className="h-3.5 w-3.5" /> },
                       { key: 'finished_goods' as QuickFilter, label: 'สินค้าสำเร็จรูป', color: 'text-purple-700 bg-purple-50 border-purple-300 ring-purple-400/30', icon: <Boxes className="h-3.5 w-3.5" /> },
                     ]).map((tag) => {
                       const isActive = quickFilter === tag.key;

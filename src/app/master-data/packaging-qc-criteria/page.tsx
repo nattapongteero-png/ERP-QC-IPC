@@ -71,7 +71,7 @@ export default function PackagingQCCriteriaPage() {
 
   const renderWeightRange = (data: PackagingQCCriteria) => {
     return (
-      <span className="dx-cell-tag inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+      <span className="dx-cell-tag inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
         <Scale className="h-3 w-3 flex-shrink-0" />
         {data.weightMin}-{data.weightMax}g
       </span>
@@ -102,8 +102,8 @@ export default function PackagingQCCriteriaPage() {
         title="Packaging QC Criteria"
         subtitle="Manage packaging quality control criteria for weight and integrity checks"
         icon={Scale}
-        iconBgColor="bg-indigo-100"
-        iconColor="text-indigo-600"
+        iconBgColor="bg-emerald-100"
+        iconColor="text-emerald-600"
         onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
@@ -138,7 +138,7 @@ export default function PackagingQCCriteriaPage() {
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
           <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
-            <span className="font-mono font-medium text-indigo-700">{cell.value}</span>
+            <span className="font-mono font-medium text-emerald-700">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Criteria Name" minWidth={200} />
           <DxColumn caption="Weight Range" minWidth={160} cellRender={(cell) => renderWeightRange(cell.data)} />
@@ -156,7 +156,7 @@ export default function PackagingQCCriteriaPage() {
             <div className="flex gap-1">
               <button
                 onClick={() => handleEdit((cell.data as PackagingQCCriteria).id)}
-                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                 title="View"
               >
                 <Eye className="h-4 w-4" />

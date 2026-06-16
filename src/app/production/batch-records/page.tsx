@@ -58,7 +58,7 @@ import type { BatchRecordsDashboard } from '@/app/api/production/batch-records/d
 // via t(`batchRecords.status.${key}`) so locale switches update them.
 const statusConfig = {
   pending: { color: 'bg-gray-100 text-gray-700', borderColor: 'border-gray-400' },
-  in_progress: { color: 'bg-blue-100 text-blue-800', borderColor: 'border-blue-500' },
+  in_progress: { color: 'bg-emerald-100 text-emerald-800', borderColor: 'border-emerald-500' },
   completed: { color: 'bg-green-100 text-green-800', borderColor: 'border-green-500' },
   deviation: { color: 'bg-red-100 text-red-800', borderColor: 'border-red-500' },
 } as const;

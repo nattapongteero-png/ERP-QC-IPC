@@ -66,7 +66,7 @@ export default function ProductionRoomsPage() {
   const renderRoomTypeBadge = (roomType: string) => {
     const type = roomTypes.find((t) => t.value === roomType);
     return (
-      <span className="dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+      <span className="dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
         <Building2 className="h-3 w-3 flex-shrink-0" />
         {type?.label || roomType}
       </span>
@@ -79,8 +79,8 @@ export default function ProductionRoomsPage() {
         title="Production Rooms"
         subtitle="Manage production rooms and areas for GMP compliance"
         icon={Building2}
-        iconBgColor="bg-blue-100"
-        iconColor="text-blue-600"
+        iconBgColor="bg-emerald-100"
+        iconColor="text-emerald-600"
         onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
@@ -114,7 +114,7 @@ export default function ProductionRoomsPage() {
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
           <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
-            <span className="font-mono font-medium text-blue-700">{cell.value}</span>
+            <span className="font-mono font-medium text-emerald-700">{cell.value}</span>
           )} />
           <DxColumn dataField="name" caption="Name (EN)" minWidth={150} />
           <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />
@@ -129,7 +129,7 @@ export default function ProductionRoomsPage() {
             <div className="flex gap-1">
               <button
                 onClick={() => router.push(`/master-data/production-rooms/${(cell.data as ProductionRoom).id}`)}
-                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                 title="View"
               >
                 <Eye className="h-4 w-4" />

@@ -1163,7 +1163,7 @@ export default function SOPExecutionPage() {
       pending: { label: 'Pending', color: 'bg-gray-100 text-gray-600', icon: Clock },
       in_progress: { label: 'In Progress', color: 'bg-amber-100 text-amber-700', icon: Play },
       completed: { label: 'Completed', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
-      verified: { label: 'Verified', color: 'bg-blue-100 text-blue-700', icon: UserCheck },
+      verified: { label: 'Verified', color: 'bg-emerald-100 text-emerald-700', icon: UserCheck },
       deviation: { label: 'Deviation', color: 'bg-red-100 text-red-700', icon: AlertCircle },
     };
     return statusMap[status];
@@ -1455,7 +1455,7 @@ export default function SOPExecutionPage() {
                     : step.status === 'completed'
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm shadow-emerald-200'
                       : step.status === 'verified'
-                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm shadow-blue-200'
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-500 text-white shadow-sm shadow-emerald-200'
                         : step.status === 'deviation'
                           ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm shadow-rose-200'
                           : 'bg-slate-200 text-slate-700';
@@ -1466,7 +1466,7 @@ export default function SOPExecutionPage() {
                       step.status === 'in_progress'
                         ? 'border-amber-300 ring-2 ring-amber-100 bg-gradient-to-br from-amber-50/40 to-white'
                         : step.status === 'verified'
-                          ? 'border-blue-200/70'
+                          ? 'border-emerald-200/70'
                           : step.status === 'deviation'
                             ? 'border-rose-200 ring-1 ring-rose-100'
                             : 'border-slate-200/70'

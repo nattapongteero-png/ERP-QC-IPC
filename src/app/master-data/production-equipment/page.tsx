@@ -156,7 +156,7 @@ export default function ProductionEquipmentPage() {
             <div className="flex gap-1">
               <button
                 onClick={() => handleEdit((cell.data as ProductionEquipment).id)}
-                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                 title="View"
               >
                 <Eye className="h-4 w-4" />

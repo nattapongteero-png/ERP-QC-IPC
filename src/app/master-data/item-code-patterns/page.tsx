@@ -257,7 +257,7 @@ export default function ItemCodePatternsPage() {
       width: 120,
       cellRender: (c: any) =>
         c.data.includeYear ? (
-          <Badge className="bg-blue-100 text-blue-700">{c.data.yearFormat}</Badge>
+          <Badge className="bg-emerald-100 text-emerald-700">{c.data.yearFormat}</Badge>
         ) : (
           <span className="text-gray-400 text-xs">—</span>
         ),
@@ -324,10 +324,10 @@ export default function ItemCodePatternsPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatCard label="ทั้งหมด" value={stats.total} icon={Hash} />
           <StatCard label="ใช้งาน" value={stats.active} icon={Sparkles} iconColor="text-emerald-500" />
-          <StatCard label="แทรกปี" value={stats.withYear} icon={Hash} iconColor="text-blue-500" />
+          <StatCard label="แทรกปี" value={stats.withYear} icon={Hash} iconColor="text-emerald-500" />
         </div>
 
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
           <strong>วิธีอ่าน:</strong> ตัวอย่างรหัสคือสิ่งที่ระบบจะสร้างเมื่อกดปุ่ม "สร้างรหัส" ในหน้าเพิ่มสินค้า
           ระบบจะหาเลข sequence ที่ว่างถัดไปอัตโนมัติเสมอ (เติมช่องว่างที่ลบไปแล้ว)
         </div>

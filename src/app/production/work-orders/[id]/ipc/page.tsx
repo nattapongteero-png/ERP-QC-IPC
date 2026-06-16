@@ -744,7 +744,7 @@ export default function IPCPage() {
                               );
                             }
                             return (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                                 BOM IPC
                               </span>
                             );

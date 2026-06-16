@@ -77,11 +77,11 @@ interface ItemSearchDialogProps {
 // Item type configuration with icons and colors
 const itemTypeConfig: Record<string, { icon: typeof Package; color: string; bgColor: string; label: string }> = {
   raw_material: { icon: Leaf, color: 'text-emerald-600', bgColor: 'bg-emerald-50', label: 'Raw Material' },
-  packaging: { icon: Box, color: 'text-blue-600', bgColor: 'bg-blue-50', label: 'Packaging' },
+  packaging: { icon: Box, color: 'text-emerald-600', bgColor: 'bg-emerald-50', label: 'Packaging' },
   wip: { icon: Wrench, color: 'text-orange-600', bgColor: 'bg-orange-50', label: 'Work in Progress' },
   finished_goods: { icon: PackageCheck, color: 'text-purple-600', bgColor: 'bg-purple-50', label: 'Finished Goods' },
   consumable: { icon: Package, color: 'text-gray-600', bgColor: 'bg-gray-50', label: 'Consumable' },
-  extract: { icon: Beaker, color: 'text-indigo-600', bgColor: 'bg-indigo-50', label: 'Extract' },
+  extract: { icon: Beaker, color: 'text-emerald-600', bgColor: 'bg-emerald-50', label: 'Extract' },
 };
 
 // Stock status helper

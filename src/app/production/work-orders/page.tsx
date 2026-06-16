@@ -150,7 +150,7 @@ const STATUS_CONFIG = {
   planned: {
     translationKey: 'planned',
     color: '#3b82f6',
-    bgClass: 'bg-blue-100 text-blue-700 border-blue-200',
+    bgClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     icon: ClipboardList,
   },
   released: {
@@ -749,8 +749,8 @@ export default function WorkOrdersPage() {
           label={t('workOrders.stats.planned')}
           value={stats.planned}
           icon={Clock}
-          iconColor="text-blue-500"
-          accentColor="border-blue-500"
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
           isLoading={isLoading}
         />
         <StatCard

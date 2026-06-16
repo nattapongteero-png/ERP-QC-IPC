@@ -44,7 +44,7 @@ function renderSpecCell(d: IPCCriteria) {
     : lines;
   return (
     <div className="text-sm space-y-0.5">
-      <span className="inline-flex text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded">
+      <span className="inline-flex text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded">
         {getCriteriaTypeLabel(type)}
       </span>
       {visibleLines.slice(0, 3).map((ln: { icon: string; text: string; tone?: string }, i: number) => (
@@ -166,7 +166,7 @@ export default function IPCCriteriaPage() {
           }} />
           <DxColumn caption="Actions" width={100} alignment="center" fixed={true} fixedPosition="right" cellRender={(cell) => (
             <div className="flex gap-1 justify-center">
-              <button onClick={() => router.push(`/master-data/ipc-criteria/${(cell.data as IPCCriteria).id}`)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Edit">
+              <button onClick={() => router.push(`/master-data/ipc-criteria/${(cell.data as IPCCriteria).id}`)} className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title="Edit">
                 <Edit className="h-4 w-4" />
               </button>
               <button
@@ -206,7 +206,7 @@ export default function IPCCriteriaPage() {
                   )}
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => router.push(`/master-data/ipc-criteria/${d.id}`)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Edit">
+                  <button onClick={() => router.push(`/master-data/ipc-criteria/${d.id}`)} className="p-2 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title="Edit">
                     <Edit className="h-4 w-4" />
                   </button>
                   <button

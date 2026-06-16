@@ -1309,7 +1309,7 @@ export default function BOMDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
+              <label className="block text-sm font-medium text-[#065F46] mb-1">Quantity *</label>
               <DxNumberBox
                 value={newLine.quantity}
                 onValueChange={(value) => setNewLine({ ...newLine, quantity: value || 0 })}
@@ -1397,7 +1397,7 @@ export default function BOMDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
+              <label className="block text-sm font-medium text-[#065F46] mb-1">Quantity *</label>
               <DxNumberBox
                 value={editLineForm.quantity}
                 onValueChange={(value) => setEditLineForm({ ...editLineForm, quantity: value || 0 })}

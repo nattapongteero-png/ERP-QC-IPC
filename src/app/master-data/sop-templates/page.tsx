@@ -47,7 +47,7 @@ const categories = [
 
 const categoryColors: Record<string, { bg: string; text: string }> = {
   line_clearance: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  dispensing: { bg: 'bg-blue-100', text: 'text-blue-800' },
+  dispensing: { bg: 'bg-emerald-100', text: 'text-emerald-800' },
   preparation: { bg: 'bg-amber-100', text: 'text-amber-800' },
   milling: { bg: 'bg-stone-100', text: 'text-stone-800' },
   sieving: { bg: 'bg-lime-100', text: 'text-lime-800' },
@@ -61,7 +61,7 @@ const categoryColors: Record<string, { bg: string; text: string }> = {
   ipc: { bg: 'bg-rose-100', text: 'text-rose-800' },
   weighing: { bg: 'bg-sky-100', text: 'text-sky-800' },
   cleaning: { bg: 'bg-teal-100', text: 'text-teal-800' },
-  inspection: { bg: 'bg-indigo-100', text: 'text-indigo-800' },
+  inspection: { bg: 'bg-emerald-100', text: 'text-emerald-800' },
   other: { bg: 'bg-gray-100', text: 'text-gray-800' },
 };
 
@@ -176,7 +176,7 @@ export default function SOPTemplatesPage() {
             <div className="flex gap-1">
               <button
                 onClick={() => handleEdit((cell.data as SOPTemplate).id)}
-                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                 title="View"
               >
                 <Eye className="h-4 w-4" />

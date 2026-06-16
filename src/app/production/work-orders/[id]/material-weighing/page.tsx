@@ -534,7 +534,7 @@ export default function MaterialWeighingPage() {
 
   const getStatusInfo = (material: MaterialLine) => {
     if (material.verifiedAt) {
-      return { status: 'verified', label: tw('progress.verified'), color: 'bg-blue-100 text-blue-700' };
+      return { status: 'verified', label: tw('progress.verified'), color: 'bg-emerald-100 text-emerald-700' };
     }
     if (material.weighedAt) {
       return { status: 'weighed', label: tw('progress.weighed'), color: 'bg-green-100 text-green-700' };
@@ -633,7 +633,7 @@ export default function MaterialWeighingPage() {
                 <span className="text-2xl font-bold">{progress.weighed}</span>
                 <span className="text-sm">/{progress.total} {tw('progress.weighed')}</span>
               </div>
-              <div className="text-blue-800">
+              <div className="text-emerald-800">
                 <span className="text-2xl font-bold">{progress.verified}</span>
                 <span className="text-sm">/{progress.total} {tw('progress.verified')}</span>
               </div>
@@ -683,9 +683,9 @@ export default function MaterialWeighingPage() {
                     className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border border-emerald-100 rounded-lg hover:shadow-[0_6px_20px_rgba(6,78,59,0.07)] transition-shadow"
                   >
                     <div className="flex items-start gap-4 min-w-0 flex-1">
-                      <div className={`p-2 rounded-lg ${material.isWater ? 'bg-blue-100' : 'bg-amber-100'}`}>
+                      <div className={`p-2 rounded-lg ${material.isWater ? 'bg-emerald-100' : 'bg-amber-100'}`}>
                         {material.isWater ? (
-                          <Droplets className="h-5 w-5 text-blue-600" />
+                          <Droplets className="h-5 w-5 text-emerald-600" />
                         ) : (
                           <Beaker className="h-5 w-5 text-amber-600" />
                         )}
@@ -697,7 +697,7 @@ export default function MaterialWeighingPage() {
                             {statusInfo.label}
                           </span>
                           {material.isWater && (
-                            <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">Water</span>
+                            <span className="px-2 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700">Water</span>
                           )}
                         </div>
                         <p className="font-medium text-[#064E3B]">{getDisplayName(material)}</p>
@@ -727,7 +727,7 @@ export default function MaterialWeighingPage() {
                             </span>
                             <span>by {material.weighedByName}</span>
                             {material.verifiedByName && (
-                              <span className="flex items-center gap-1 text-blue-600">
+                              <span className="flex items-center gap-1 text-emerald-600">
                                 <UserCheck className="h-3 w-3" />
                                 Verified by {material.verifiedByName}
                               </span>
@@ -780,7 +780,7 @@ export default function MaterialWeighingPage() {
                         })()}
                         {/* Water quality info */}
                         {material.isWater && material.waterConductivity && (
-                          <div className="mt-1 text-xs text-blue-600">
+                          <div className="mt-1 text-xs text-emerald-600">
                             Conductivity: {material.waterConductivity} µS·cm⁻¹ |
                             Temperature: {material.waterTemperature}°C |
                             Date: {material.waterDate}
@@ -1091,21 +1091,21 @@ export default function MaterialWeighingPage() {
 
           {/* Water-specific fields */}
           {selectedMaterial?.isWater && (
-            <div className="bg-blue-50 rounded-lg p-4 space-y-3">
-              <h5 className="font-medium text-blue-800 flex items-center gap-2">
+            <div className="bg-emerald-50 rounded-lg p-4 space-y-3">
+              <h5 className="font-medium text-emerald-800 flex items-center gap-2">
                 <Droplets className="h-4 w-4" />
                 Water Quality Parameters
               </h5>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs text-blue-700 mb-1">Date</label>
+                  <label className="block text-xs text-emerald-700 mb-1">Date</label>
                   <DxTextBox
                     value={formData.waterDate}
                     onValueChanged={(e) => setFormData({ ...formData, waterDate: e.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-blue-700 mb-1">Conductivity (µS·cm⁻¹)</label>
+                  <label className="block text-xs text-emerald-700 mb-1">Conductivity (µS·cm⁻¹)</label>
                   <DxNumberBox
                     value={formData.waterConductivity}
                     onValueChanged={(e) => setFormData({ ...formData, waterConductivity: e.value })}
@@ -1114,7 +1114,7 @@ export default function MaterialWeighingPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-blue-700 mb-1">Temperature (°C)</label>
+                  <label className="block text-xs text-emerald-700 mb-1">Temperature (°C)</label>
                   <DxNumberBox
                     value={formData.waterTemperature}
                     onValueChanged={(e) => setFormData({ ...formData, waterTemperature: e.value })}

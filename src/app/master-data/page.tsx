@@ -29,11 +29,11 @@ import {
 
 // ─── Master data module cards ─────────────────────────────────────────
 const masterDataModules = [
-  { key: 'productionRooms', href: '/master-data/production-rooms', icon: Building2, iconBgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
+  { key: 'productionRooms', href: '/master-data/production-rooms', icon: Building2, iconBgColor: 'bg-emerald-100', iconColor: 'text-emerald-600' },
   { key: 'productionEquipment', href: '/master-data/production-equipment', icon: Wrench, iconBgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
   { key: 'environmentalConditions', href: '/master-data/environmental-conditions', icon: Thermometer, iconBgColor: 'bg-teal-100', iconColor: 'text-teal-600' },
   { key: 'sopTemplates', href: '/master-data/sop-templates', icon: FileText, iconBgColor: 'bg-amber-100', iconColor: 'text-amber-600' },
-  { key: 'packagingQCCriteria', href: '/master-data/packaging-qc-criteria', icon: Scale, iconBgColor: 'bg-indigo-100', iconColor: 'text-indigo-600' },
+  { key: 'packagingQCCriteria', href: '/master-data/packaging-qc-criteria', icon: Scale, iconBgColor: 'bg-emerald-100', iconColor: 'text-emerald-600' },
   { key: 'ipcCriteria', href: '/master-data/ipc-criteria', icon: FlaskConical, iconBgColor: 'bg-emerald-100', iconColor: 'text-emerald-600' },
   // Feature 019
   { key: 'packagingTolerances', href: '/master-data/packaging-tolerances', icon: Sliders, iconBgColor: 'bg-rose-100', iconColor: 'text-rose-600' },
@@ -311,7 +311,7 @@ export default function MasterDataPage() {
                   <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </h3>
                 <p className="text-sm text-[#4B7163] mt-1">{t(`modules.${module.key}.description`)}</p>
-                <p className="text-xs text-blue-600 mt-2">
+                <p className="text-xs text-emerald-600 mt-2">
                   <span className="font-medium">{t('about.usedInLabel')}:</span> {t(`modules.${module.key}.usedIn`)}
                 </p>
               </div>
@@ -321,15 +321,15 @@ export default function MasterDataPage() {
       </div>
 
       {/* Info Card — loop through ALL modules so the about section stays in sync with the cards above */}
-      <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
-        <h3 className="text-sm font-semibold text-blue-800 mb-2">{t('about.title')}</h3>
-        <p className="text-sm text-blue-700">{t('about.description')}</p>
-        <ul className="mt-3 text-sm text-blue-700 space-y-2">
+      <div className="bg-emerald-50 rounded-xl p-5 border border-emerald-100">
+        <h3 className="text-sm font-semibold text-emerald-800 mb-2">{t('about.title')}</h3>
+        <p className="text-sm text-emerald-700">{t('about.description')}</p>
+        <ul className="mt-3 text-sm text-emerald-700 space-y-2">
           {masterDataModules.map((module) => (
             <li key={module.key}>
               • <strong>{t(`modules.${module.key}.title`)}</strong>
               {' '}— {t(`about.items.${module.key}`)}
-              <span className="ml-1 text-xs text-blue-600">
+              <span className="ml-1 text-xs text-emerald-600">
                 ({t('about.usedInLabel')}: {t(`modules.${module.key}.usedIn`)})
               </span>
             </li>

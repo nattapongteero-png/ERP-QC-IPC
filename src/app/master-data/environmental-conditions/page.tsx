@@ -70,7 +70,7 @@ export default function EnvironmentalConditionsPage() {
 
   const renderTempRange = (data: EnvironmentalCondition) => {
     return (
-      <span className="dx-cell-tag inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+      <span className="dx-cell-tag inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
         <Thermometer className="h-3 w-3 flex-shrink-0" />
         {data.temperatureMin}-{data.temperatureMax}°C
       </span>
@@ -152,7 +152,7 @@ export default function EnvironmentalConditionsPage() {
             <div className="flex gap-1">
               <button
                 onClick={() => handleEdit((cell.data as EnvironmentalCondition).id)}
-                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                 title="View"
               >
                 <Eye className="h-4 w-4" />

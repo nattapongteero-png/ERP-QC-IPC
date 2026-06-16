@@ -101,9 +101,9 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
   },
   packaging: {
     translationKey: 'packaging',
-    bgColor: 'bg-blue-50',
-    textColor: 'text-blue-700',
-    borderColor: 'border-blue-200',
+    bgColor: 'bg-emerald-50',
+    textColor: 'text-emerald-700',
+    borderColor: 'border-emerald-200',
     icon: <Box className="h-4 w-4" />,
   },
   wip: {
@@ -652,7 +652,7 @@ export default function ItemsPage() {
                   <button onClick={handleDownloadTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-amber-300 hover:shadow transition-all">
                     <Download className="h-4 w-4" /> {t('common.downloadTemplate')}
                   </button>
-                  <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-blue-300 hover:shadow transition-all">
+                  <button onClick={() => { setShowImportDialog(true); setImportLog([]); }} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow transition-all">
                     <Upload className="h-4 w-4" /> {t('common.importExcel')}
                   </button>
                 </>

@@ -119,7 +119,7 @@ const TYPE_CONFIG: Record<TransactionTypeFilter, {
   },
   TRANSFER: {
     translationKey: 'transfer',
-    bgColor: 'bg-blue-600',
+    bgColor: 'bg-emerald-600',
     textColor: 'text-white',
     icon: <ArrowLeftRight className="h-4 w-4" />,
     badgeVariant: 'info',
@@ -368,7 +368,7 @@ export default function TransactionsPage() {
               'h-8 w-8 rounded-lg flex items-center justify-center',
               txnType === 'RECEIVE' ? 'bg-emerald-100' :
               txnType === 'ISSUE' ? 'bg-red-100' :
-              txnType === 'TRANSFER' ? 'bg-blue-100' :
+              txnType === 'TRANSFER' ? 'bg-emerald-100' :
               txnType === 'ADJUST' ? 'bg-amber-100' :
               txnType === 'SCRAP' ? 'bg-gray-100' :
               txnType === 'RETURN' ? 'bg-purple-100' :
@@ -377,7 +377,7 @@ export default function TransactionsPage() {
               <span className={cn(
                 txnType === 'RECEIVE' ? 'text-emerald-600' :
                 txnType === 'ISSUE' ? 'text-red-600' :
-                txnType === 'TRANSFER' ? 'text-blue-600' :
+                txnType === 'TRANSFER' ? 'text-emerald-600' :
                 txnType === 'ADJUST' ? 'text-amber-600' :
                 txnType === 'SCRAP' ? 'text-gray-600' :
                 txnType === 'RETURN' ? 'text-purple-600' :
@@ -458,7 +458,7 @@ export default function TransactionsPage() {
             {isTransfer ? (
               <span className="text-gray-600">
                 {cellInfo.data.fromWarehouseName || '-'}
-                <span className="mx-1 text-blue-500">&rarr;</span>
+                <span className="mx-1 text-emerald-500">&rarr;</span>
                 {cellInfo.data.toWarehouseName || '-'}
               </span>
             ) : isIncoming ? (
@@ -926,7 +926,7 @@ function TransactionMobileList({
                     'h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0',
                     txnType === 'RECEIVE' ? 'bg-emerald-100' :
                     txnType === 'ISSUE' ? 'bg-red-100' :
-                    txnType === 'TRANSFER' ? 'bg-blue-100' :
+                    txnType === 'TRANSFER' ? 'bg-emerald-100' :
                     txnType === 'ADJUST' ? 'bg-amber-100' :
                     txnType === 'SCRAP' ? 'bg-gray-100' :
                     txnType === 'RETURN' ? 'bg-purple-100' :
@@ -935,7 +935,7 @@ function TransactionMobileList({
                     <span className={cn(
                       txnType === 'RECEIVE' ? 'text-emerald-600' :
                       txnType === 'ISSUE' ? 'text-red-600' :
-                      txnType === 'TRANSFER' ? 'text-blue-600' :
+                      txnType === 'TRANSFER' ? 'text-emerald-600' :
                       txnType === 'ADJUST' ? 'text-amber-600' :
                       txnType === 'SCRAP' ? 'text-gray-600' :
                       txnType === 'RETURN' ? 'text-purple-600' :
@@ -984,7 +984,7 @@ function TransactionMobileList({
                   {isTransfer ? (
                     <span>
                       {txn.fromWarehouseName || '-'}
-                      <span className="mx-0.5 text-blue-500">&rarr;</span>
+                      <span className="mx-0.5 text-emerald-500">&rarr;</span>
                       {txn.toWarehouseName || '-'}
                     </span>
                   ) : isIncoming ? (

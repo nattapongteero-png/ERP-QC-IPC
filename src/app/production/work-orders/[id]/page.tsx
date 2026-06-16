@@ -32,7 +32,7 @@ interface WOAssignee {
 }
 
 const ROLE_LABEL: Record<string, { label: string; color: string }> = {
-  operator: { label: 'Operator', color: 'bg-blue-100 text-blue-700' },
+  operator: { label: 'Operator', color: 'bg-emerald-100 text-emerald-700' },
   supervisor: { label: 'Supervisor', color: 'bg-purple-100 text-purple-700' },
   qa_verifier: { label: 'QA Verifier', color: 'bg-emerald-100 text-emerald-700' },
   ipc_checker: { label: 'IPC Checker', color: 'bg-amber-100 text-amber-700' },
@@ -597,9 +597,9 @@ export default function WorkOrderDetailPage() {
   // classification done in /api/.../detail (sample_number prefix).
   const sourceConfig: Record<string, { label: string; bg: string; text: string }> = {
     'sop': { label: 'SOP Step', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-    'bom-ipc': { label: 'BOM IPC', bg: 'bg-indigo-50', text: 'text-indigo-700' },
+    'bom-ipc': { label: 'BOM IPC', bg: 'bg-emerald-50', text: 'text-emerald-700' },
     'incoming': { label: 'Incoming', bg: 'bg-amber-50', text: 'text-amber-700' },
-    'final': { label: 'Final', bg: 'bg-blue-50', text: 'text-blue-700' },
+    'final': { label: 'Final', bg: 'bg-emerald-50', text: 'text-emerald-700' },
     'other': { label: 'Other', bg: 'bg-gray-50', text: 'text-gray-700' },
   };
 
@@ -1165,7 +1165,7 @@ export default function WorkOrderDetailPage() {
                       : sev === 'major' ? 'bg-orange-100 text-orange-800'
                       : 'bg-amber-100 text-amber-800';
                     const statusColor = d.status === 'closed' ? 'bg-emerald-100 text-emerald-700'
-                      : d.status === 'resolved' ? 'bg-blue-100 text-blue-700'
+                      : d.status === 'resolved' ? 'bg-emerald-100 text-emerald-700'
                       : d.status === 'investigating' ? 'bg-yellow-100 text-yellow-700'
                       : 'bg-rose-100 text-rose-700';
                     return (
