@@ -248,7 +248,7 @@ const STATUS_CONFIG: Record<string, {
     bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
     icon: CheckCircle,
-    gradient: 'from-blue-500 to-blue-600',
+    gradient: 'from-emerald-600 to-teal-700',
   },
   processing: {
     translationKey: 'processing',

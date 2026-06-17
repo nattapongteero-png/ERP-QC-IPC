@@ -65,17 +65,16 @@ export function OrganicGridTheme() {
       }
       .organic-grid .dx-datagrid .dx-row-alt > td { background-color: #FAFDFB; }
       .organic-grid .dx-datagrid .dx-data-row:hover > td { background-color: #FFFBEB !important; }
-      /* Data cells on a SINGLE line, shown IN FULL — never truncate with an
-         ellipsis (policy: data must always be fully visible). Cells size to
-         their content via columnAutoWidth on the grid. */
+      /* Data cells on a SINGLE line. Keep overflow HIDDEN so a long value can
+         never spill over and overlap the next column; columnAutoWidth on the
+         grid sizes columns to fit their content so data still shows in full. */
       .organic-grid .dx-datagrid .dx-data-row > td {
         white-space: nowrap !important;
-        overflow: visible;
-        text-overflow: clip;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .organic-grid .dx-datagrid .dx-data-row > td .dx-datagrid-text-content {
         white-space: nowrap !important;
-        text-overflow: clip !important;
       }
       /* Smooth, theme-aligned DxTabs: animated emerald indicator + hover */
       .organic-grid .dx-tabs { background: transparent; border-bottom: 1px solid #DCEFE6; }

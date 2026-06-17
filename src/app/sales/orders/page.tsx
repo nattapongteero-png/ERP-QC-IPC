@@ -396,8 +396,8 @@ export default function SalesOrdersPage() {
     {
       dataField: 'soNumber',
       caption: t('orders.grid.columns.soNumber'),
-      minWidth: 160,
-      width: 170,
+      minWidth: 210,
+      width: 220,
       cellRender: (data: { data?: SalesOrder }) => {
         if (!data.data) return null;
         const order = data.data;
@@ -406,12 +406,12 @@ export default function SalesOrdersPage() {
           <div className="flex items-center gap-2">
             <div className={cn(
               'h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0',
-              overdue ? 'bg-red-100' : 'bg-indigo-100'
+              overdue ? 'bg-red-100' : 'bg-emerald-100'
             )}>
-              <FileText className={cn('h-4 w-4', overdue ? 'text-red-600' : 'text-indigo-600')} />
+              <FileText className={cn('h-4 w-4', overdue ? 'text-red-600' : 'text-emerald-600')} />
             </div>
             <div className="min-w-0">
-              <span className="font-mono font-semibold text-indigo-600">{order.soNumber}</span>
+              <span className="font-mono font-semibold text-emerald-700 whitespace-nowrap">{order.soNumber}</span>
               {overdue && (
                 <div className="flex items-center gap-1 text-red-600 text-xs">
                   <AlertTriangle className="h-3 w-3" />
