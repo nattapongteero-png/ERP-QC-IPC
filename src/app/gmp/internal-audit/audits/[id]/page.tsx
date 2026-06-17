@@ -11,7 +11,7 @@ import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import { AuditFindingList } from '@/components/internal-audit';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { DxButton } from '@/components/ui/dx-button';
@@ -275,6 +275,19 @@ export default function AuditDetailPage({ params }: PageProps) {
           </div>
         }
       />
+
+      {/* Status Stepper */}
+      <div className="mb-6">
+        <StatusStepper
+          title="สถานะการดำเนินงาน"
+          steps={[
+            { key: 'scheduled', label: 'กำหนดการ' },
+            { key: 'in_progress', label: 'กำลังตรวจ' },
+            { key: 'completed', label: 'เสร็จสิ้น' },
+          ]}
+          current={audit.status}
+        />
+      </div>
 
       {/* Audit Details Card */}
       <div className="bg-card border rounded-lg p-6">

@@ -12,6 +12,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
+import { StatusStepper } from '@/components/shared';
 import {
   ArrowLeft,
   Play,
@@ -359,6 +360,18 @@ export default function BatchRecordDetailPage() {
             </div>
           }
         />
+
+        <div className="mb-6">
+          <StatusStepper
+            title="สถานะการดำเนินงาน"
+            steps={[
+              { key: 'pending', label: 'รอเริ่ม' },
+              { key: 'in_progress', label: 'กำลังผลิต' },
+              { key: 'completed', label: 'เสร็จสิ้น' },
+            ]}
+            current={String(record.status).toLowerCase()}
+          />
+        </div>
 
         {/* Step Navigation */}
         <div className="flex items-center justify-between">

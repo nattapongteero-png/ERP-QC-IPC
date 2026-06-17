@@ -31,6 +31,7 @@ import {
   IssueTimeline,
   CommentEditor,
 } from '@/components/issues';
+import { StatusStepper } from '@/components/shared';
 import type { Issue } from '@/types/issues';
 
 // ============================================
@@ -412,6 +413,22 @@ export default function IssueDetailPage({ params }: PageProps) {
   return (
     <div className="p-6" data-testid="issue-detail-page">
       <IssueDetailPageHeader issue={issue} />
+
+      <div className="mb-6">
+        <StatusStepper
+          title="สถานะการดำเนินงาน"
+          steps={[
+            { key: 'draft', label: 'ร่าง' },
+            { key: 'submitted', label: 'ส่งเรื่อง' },
+            { key: 'triaged', label: 'คัดกรอง' },
+            { key: 'in_progress', label: 'กำลังแก้ไข' },
+            { key: 'resolved', label: 'แก้ไขแล้ว' },
+            { key: 'verified', label: 'ตรวจสอบแล้ว' },
+            { key: 'closed', label: 'ปิดเรื่อง' },
+          ]}
+          current={String(issue.status).toLowerCase()}
+        />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}

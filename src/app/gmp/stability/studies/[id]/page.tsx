@@ -16,7 +16,7 @@ import {
   StabilityTrendChart,
 } from '@/components/stability';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTabs } from '@/components/ui/dx-tabs';
 import type { DxTabItem } from '@/components/ui/dx-tabs';
@@ -165,6 +165,20 @@ export default function StabilityStudyDetailPage() {
           </div>
         }
       />
+
+      {/* Status Stepper */}
+      <div className="mb-6">
+        <StatusStepper
+          title="สถานะการดำเนินงาน"
+          steps={[
+            { key: 'pending', label: 'รอเริ่ม' },
+            { key: 'active', label: 'กำลังศึกษา' },
+            { key: 'on_hold', label: 'พักการศึกษา' },
+            { key: 'completed', label: 'เสร็จสิ้น' },
+          ]}
+          current={study.status}
+        />
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

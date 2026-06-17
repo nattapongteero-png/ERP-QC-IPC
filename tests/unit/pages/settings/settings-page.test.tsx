@@ -111,7 +111,9 @@ describe('SettingsPage', () => {
       renderWithProviders(<SettingsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('page-header')).toBeInTheDocument();
+        // Page uses ResponsivePageHeader (from @/components/shared) which renders
+        // the title inside an <h1> heading element.
+        expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeInTheDocument();
       });
     });
 

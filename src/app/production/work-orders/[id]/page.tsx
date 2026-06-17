@@ -45,6 +45,7 @@ import { computeIPCStats, computePercentDeviation, groupIPCByPhase } from '@/lib
 // Feature 018: material withdrawal approval
 import { WithdrawalPanel } from '@/components/production/withdrawal-panel';
 import { SectionErrorBoundary } from '@/components/shared/SectionErrorBoundary';
+import { StatusStepper } from '@/components/shared';
 
 interface LineClearanceStatus {
   required: boolean;
@@ -822,6 +823,21 @@ export default function WorkOrderDetailPage() {
               onClick={() => window.print()}
             />
           </div>
+        </div>
+
+        {/* Status Stepper */}
+        <div className="mb-6 no-print">
+          <StatusStepper
+            title="สถานะการดำเนินงาน"
+            steps={[
+              { key: 'draft', label: 'ร่าง' },
+              { key: 'released', label: 'ปล่อยงาน' },
+              { key: 'in_progress', label: 'กำลังผลิต' },
+              { key: 'completed', label: 'ผลิตเสร็จ' },
+              { key: 'closed', label: 'ปิดงาน' },
+            ]}
+            current={String(workOrder.status).toLowerCase()}
+          />
         </div>
 
         {/* Summary Cards */}

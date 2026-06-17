@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/kook_/zoom-summary/**)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\kook_\\zoom-summary"
+    ]
+  }
+}

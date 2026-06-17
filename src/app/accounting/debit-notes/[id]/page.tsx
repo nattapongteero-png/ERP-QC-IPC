@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
+import { StatusStepper } from '@/components/shared';
 import type { CreditDebitNoteWithLines, NoteStatus } from '@/types/credit-debit-notes';
 
 const statusColors: Record<NoteStatus, string> = {
@@ -135,6 +136,19 @@ export default function DebitNoteDetailPage({
               onClick={() => router.push('/accounting/debit-notes')}
             />
           </div>
+        </div>
+
+        {/* Status Stepper */}
+        <div className="mb-6">
+          <StatusStepper
+            title="สถานะการดำเนินงาน"
+            steps={[
+              { key: 'draft', label: 'ร่าง' },
+              { key: 'submitted', label: 'ส่งอนุมัติ' },
+              { key: 'approved', label: 'อนุมัติแล้ว' },
+            ]}
+            current={String(note.status).toLowerCase()}
+          />
         </div>
 
         {/* Note Details */}

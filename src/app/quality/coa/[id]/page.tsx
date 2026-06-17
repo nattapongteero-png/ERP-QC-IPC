@@ -11,7 +11,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -271,6 +271,19 @@ export default function CoaDetailPage() {
             </div>
           }
         />
+
+        <div className="mb-6">
+          <StatusStepper
+            title="สถานะการดำเนินงาน"
+            steps={[
+              { key: 'draft', label: 'ร่าง' },
+              { key: 'approved', label: 'อนุมัติแล้ว' },
+              { key: 'issued', label: 'ออกใบรับรอง' },
+              { key: 'superseded', label: 'ถูกแทนที่' },
+            ]}
+            current={String(coa.status).toLowerCase()}
+          />
+        </div>
 
         {/* Header info card */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">

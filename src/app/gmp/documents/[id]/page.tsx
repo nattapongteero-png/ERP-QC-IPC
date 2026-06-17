@@ -14,6 +14,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ApprovalChain } from '@/components/shared/ApprovalChain';
+import { StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -656,6 +657,20 @@ export default function DocumentDetailPage() {
           </div>
         )}
       </header>
+
+      <div className="mb-6 flex-none px-4 pt-4">
+        <StatusStepper
+          title="สถานะการดำเนินงาน"
+          steps={[
+            { key: 'draft', label: 'ร่าง' },
+            { key: 'approved', label: 'อนุมัติแล้ว' },
+            { key: 'active', label: 'ใช้งาน' },
+            { key: 'archived', label: 'จัดเก็บ' },
+            { key: 'obsolete', label: 'ยกเลิกใช้' },
+          ]}
+          current={String(document.status).toLowerCase()}
+        />
+      </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">

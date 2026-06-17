@@ -11,6 +11,7 @@ import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Popup } from 'devextreme-react/popup';
 import { TextArea } from 'devextreme-react/text-area';
+import { StatusStepper } from '@/components/shared';
 import type {
   CreditDebitNoteWithLines,
   NoteStatus,
@@ -320,6 +321,19 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
               />
             )}
           </div>
+        </div>
+
+        {/* Status Stepper */}
+        <div className="mb-6">
+          <StatusStepper
+            title="สถานะการดำเนินงาน"
+            steps={[
+              { key: 'draft', label: 'ร่าง' },
+              { key: 'submitted', label: 'ส่งอนุมัติ' },
+              { key: 'approved', label: 'อนุมัติแล้ว' },
+            ]}
+            current={String(note.status).toLowerCase()}
+          />
         </div>
 
         {/* Note Details */}

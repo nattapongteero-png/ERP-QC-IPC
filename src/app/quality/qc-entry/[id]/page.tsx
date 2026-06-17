@@ -21,7 +21,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -1025,6 +1025,19 @@ export default function QcSampleDetailPage() {
                 />
               </div>
             }
+          />
+        </div>
+
+        <div className="mb-6 print:hidden">
+          <StatusStepper
+            title="สถานะการดำเนินงาน"
+            steps={[
+              { key: 'registered', label: 'ลงทะเบียน' },
+              { key: 'testing', label: 'กำลังทดสอบ' },
+              { key: 'reviewed', label: 'ตรวจทาน' },
+              { key: 'approved', label: 'อนุมัติแล้ว' },
+            ]}
+            current={String(detail.status).toLowerCase()}
           />
         </div>
 

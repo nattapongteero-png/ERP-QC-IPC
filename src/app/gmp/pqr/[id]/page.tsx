@@ -18,6 +18,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { PageHeader } from '@/components/ui/page-header';
+import { StatusStepper } from '@/components/shared';
 import {
   FileBarChart,
   Package,
@@ -298,6 +299,18 @@ export default function PqrDetailPage() {
           </div>
         }
       />
+
+      {/* Status Stepper */}
+      <div className="mb-6">
+        <StatusStepper
+          title="สถานะการดำเนินงาน"
+          steps={[
+            { key: 'draft', label: 'ร่าง' },
+            { key: 'approved', label: 'อนุมัติแล้ว' },
+          ]}
+          current={String(report.status).toLowerCase()}
+        />
+      </div>
 
       {/* Status Badge */}
       <div className="flex items-center gap-3">

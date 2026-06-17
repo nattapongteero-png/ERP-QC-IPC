@@ -17,7 +17,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup, DxConfirmDialog } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -477,6 +477,19 @@ export default function MaterialReturnDetailPage() {
                 )}
               </div>
             }
+          />
+        </div>
+
+        {/* Status Stepper */}
+        <div className="mb-6 print:hidden">
+          <StatusStepper
+            title="สถานะการดำเนินงาน"
+            steps={[
+              { key: 'submitted', label: 'ส่งคำขอ' },
+              { key: 'received', label: 'รับคืนแล้ว' },
+              { key: 'rejected', label: 'ปฏิเสธ' },
+            ]}
+            current={String(detail.status).toLowerCase()}
           />
         </div>
 
