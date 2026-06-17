@@ -1,49 +1,49 @@
 'use client';
 
 /**
- * Maintenance Plan Templates admin
+ * Maintenance Plan Templates — List page (split-page pattern)
  */
-import { useState } from 'react';
+
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { DataGrid, Column, Paging, Editing } from 'devextreme-react/data-grid';
-import { Button } from 'devextreme-react/button';
-import { Popup } from 'devextreme-react/popup';
-import { SelectBox } from 'devextreme-react/select-box';
-import { NumberBox } from 'devextreme-react/number-box';
-import { Wrench, Plus, Trash2 } from 'lucide-react';
-import { BackButton } from '@/components/shared/BackButton';
+import { ResponsivePageHeader } from '@/components/shared';
+import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
 import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
+import { useToast } from '@/hooks/use-toast';
+import { Wrench, Edit, Trash2 } from 'lucide-react';
 import type { MaintenancePlanTemplate } from '@/types/equipment-notifications';
 
-const MAINTENANCE_TYPES = ['preventive', 'calibration', 'inspection', 'corrective'];
-const INTERVAL_TYPES = ['days', 'weeks', 'months', 'hours', 'units'];
+const MAINTENANCE_TYPE_LABELS: Record<string, string> = {
+  preventive: 'เชิงป้องกัน',
+  calibration: 'การสอบเทียบ',
+  inspection: 'การตรวจสอบ',
+  corrective: 'แก้ไข',
+};
 
-interface NewForm {
-  name: string;
-  description: string;
-  maintenanceType: string;
-  intervalType: string;
-  intervalValue: number;
-  alertDaysBefore: number;
-}
+const MAINTENANCE_TYPE_BADGES: Record<string, string> = {
+  preventive: 'bg-emerald-100 text-emerald-800',
+  calibration: 'bg-blue-100 text-blue-800',
+  inspection: 'bg-amber-100 text-amber-800',
+  corrective: 'bg-rose-100 text-rose-800',
+};
 
-const EMPTY: NewForm = {
-  name: '',
-  description: '',
-  maintenanceType: 'preventive',
-  intervalType: 'months',
-  intervalValue: 6,
-  alertDaysBefore: 14,
+const INTERVAL_TYPE_LABELS: Record<string, string> = {
+  days: 'วัน',
+  weeks: 'สัปดาห์',
+  months: 'เดือน',
+  hours: 'ชั่วโมง',
+  units: 'หน่วย',
 };
 
 export default function MaintenancePlanTemplatesPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const toast = useToast();
   const t = useTranslations('equipmentNotifications');
-  const qc = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState<NewForm>(EMPTY);
 
-  const { data } = useQuery<MaintenancePlanTemplate[]>({
+  const { data, isLoading } = useQuery<MaintenancePlanTemplate[]>({
     queryKey: ['mp-templates'],
     queryFn: async () => {
       const res = await fetch('/api/master-data/maintenance-plan-templates?includeInactive=true');
@@ -52,213 +52,195 @@ export default function MaintenancePlanTemplatesPage() {
     },
   });
 
-  const deleteMut = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/master-data/maintenance-plan-templates/${id}`, {
         method: 'DELETE',
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? 'Failed to delete');
+        throw new Error((body as { error?: string } | null)?.error ?? 'Failed to delete');
       }
-      return res.json().catch(() => null) as Promise<{ mode?: 'deleted' | 'disabled' } | null>;
+      return res.json() as Promise<{ mode: 'deleted' | 'disabled' }>;
     },
     onSuccess: (result) => {
-      qc.invalidateQueries({ queryKey: ['mp-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['mp-templates'] });
       if (result?.mode === 'disabled') {
-        alert('รายการนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+        toast.info('ปิดการใช้งานแทนการลบ', 'รายการนี้ถูกใช้งานอยู่ — ปิดการใช้งานแทนการลบ');
+      } else {
+        toast.success('ลบสำเร็จ', 'ลบแม่แบบเรียบร้อย');
       }
     },
+    onError: (error: Error) => {
+      toast.error('ผิดพลาด', error.message);
+    },
   });
 
-  const handleDelete = (r: MaintenancePlanTemplate) => {
-    if (!confirm('ต้องการลบรายการนี้หรือไม่?')) return;
-    deleteMut.mutate(r.id);
+  const handleDelete = (row: MaintenancePlanTemplate) => {
+    if (!confirm(`ต้องการลบ "${row.name}" หรือไม่?`)) return;
+    deleteMutation.mutate(row.id);
   };
 
-  const createMut = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/master-data/maintenance-plan-templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? 'Failed');
-      return body;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['mp-templates'] });
-      setCreateOpen(false);
-      setForm(EMPTY);
-    },
-  });
+  const renderTypeBadge = (value: string) => {
+    const label = MAINTENANCE_TYPE_LABELS[value] ?? value;
+    const badge = MAINTENANCE_TYPE_BADGES[value] ?? 'bg-gray-100 text-gray-700';
+    return (
+      <span
+        className={`dx-cell-tag inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${badge}`}
+      >
+        <Wrench className="h-3 w-3 flex-shrink-0" />
+        {label}
+      </span>
+    );
+  };
 
   return (
-    <div className="organic-grid p-6 space-y-4">
+    <div className="organic-grid flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       <OrganicGridTheme />
-      <BackButton href="/master-data" label="ข้อมูลหลัก" />
-      <header className="flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Wrench className="w-6 h-6" />
-          {t('page.templates')}
-        </h1>
-        <Button
-          type="default"
-          stylingMode="contained"
-          onClick={() => setCreateOpen(true)}
-          render={() => (
-            <span className="inline-flex items-center gap-1">
-              <Plus className="w-4 h-4" />
-              เพิ่มแม่แบบ
-            </span>
-          )}
-        />
-      </header>
 
-      <DataGrid
-        dataSource={data ?? []}
-        keyExpr="id"
-        showBorders
-        showRowLines
-        rowAlternationEnabled
-        columnAutoWidth
-        onRowUpdating={async (e) => {
-          const merged = { ...e.oldData, ...e.newData } as MaintenancePlanTemplate;
-          const res = await fetch(`/api/master-data/maintenance-plan-templates/${merged.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(merged),
-          });
-          if (!res.ok) {
-            e.cancel = true;
-            return;
-          }
-          qc.invalidateQueries({ queryKey: ['mp-templates'] });
-        }}
-      >
-        <Paging pageSize={20} />
-        <Editing mode="row" allowUpdating useIcons />
-        <Column dataField="name" caption="ชื่อ" />
-        <Column dataField="description" caption="รายละเอียด" />
-        <Column dataField="maintenanceType" caption="ประเภท" width={140} />
-        <Column
-          caption="รอบ"
-          cellRender={(c) => {
-            const r = c.data as MaintenancePlanTemplate;
-            return `${r.intervalValue} ${r.intervalType}`;
-          }}
-        />
-        <Column dataField="alertDaysBefore" caption="แจ้งเตือนล่วงหน้า (วัน)" width={150} />
-        <Column dataField="isActive" caption="ใช้งาน" dataType="boolean" width={80} />
-        <Column
-          caption="การดำเนินการ"
-          width={110}
-          alignment="center"
-          allowSorting={false}
-          allowFiltering={false}
-          cellRender={(c) => {
-            const r = c.data as MaintenancePlanTemplate;
-            return (
-              <button
-                type="button"
-                title="ลบ"
-                aria-label="ลบ"
-                onClick={() => handleDelete(r)}
-                disabled={deleteMut.isPending}
-                className="p-1.5 rounded text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors disabled:opacity-50"
+      <ResponsivePageHeader
+        title={t('page.templates')}
+        subtitle="จัดการแม่แบบแผนบำรุงรักษาเครื่องจักรและอุปกรณ์"
+        icon={Wrench}
+        iconBgColor="bg-amber-100"
+        iconColor="text-amber-600"
+        onBack={() => router.push('/master-data')}
+        breadcrumbs={[
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'แม่แบบแผนบำรุงรักษา' },
+        ]}
+        actions={
+          <DxButton
+            text="เพิ่มแม่แบบ"
+            icon="plus"
+            type="success"
+            onClick={() => router.push('/master-data/maintenance-plan-templates/new')}
+            elementAttr={{ 'data-testid': 'mpt-add-btn' }}
+          />
+        }
+      />
+
+      <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-4">
+        <DxDataGrid
+          dataSource={(data ?? []).map((r, i) => ({ ...r, _rowNumber: i + 1 }))}
+          keyExpr="id"
+          showBorders={false}
+          rowAlternationEnabled
+          loading={isLoading}
+          height="auto"
+          width="100%"
+          columnAutoWidth
+        >
+          <DxSearchPanel visible placeholder="ค้นหาแม่แบบ..." width={200} />
+          <DxPaging defaultPageSize={20} />
+
+          <DxColumn
+            dataField="_rowNumber"
+            caption="#"
+            width={60}
+            alignment="center"
+            allowFiltering={false}
+            allowSorting={false}
+            cellRender={(cell) => (
+              <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
+            )}
+          />
+
+          <DxColumn
+            dataField="name"
+            caption="ชื่อแม่แบบ"
+            minWidth={200}
+            cellRender={(cell) => (
+              <span className="font-medium text-gray-800 whitespace-nowrap">{cell.value}</span>
+            )}
+          />
+
+          <DxColumn dataField="description" caption="รายละเอียด" minWidth={200} />
+
+          <DxColumn
+            dataField="maintenanceType"
+            caption="ประเภท"
+            minWidth={160}
+            cellRender={(cell) => renderTypeBadge(cell.value as string)}
+          />
+
+          <DxColumn
+            caption="รอบการบำรุงรักษา"
+            minWidth={160}
+            allowFiltering={false}
+            allowSorting={false}
+            cellRender={(cell) => {
+              const r = cell.data as MaintenancePlanTemplate;
+              const unit = INTERVAL_TYPE_LABELS[r.intervalType] ?? r.intervalType;
+              return (
+                <span className="whitespace-nowrap text-gray-700">
+                  {r.intervalValue} {unit}
+                </span>
+              );
+            }}
+          />
+
+          <DxColumn
+            dataField="alertDaysBefore"
+            caption="แจ้งเตือนล่วงหน้า (วัน)"
+            width={170}
+            alignment="center"
+            cellRender={(cell) => (
+              <span className="text-gray-700 whitespace-nowrap">{cell.value} วัน</span>
+            )}
+          />
+
+          <DxColumn
+            dataField="isActive"
+            caption="สถานะ"
+            width={100}
+            cellRender={(cell) => (
+              <span
+                className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                  cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                }`}
               >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            );
-          }}
-        />
-      </DataGrid>
+                {cell.value ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+              </span>
+            )}
+          />
 
-      <Popup
-        visible={createOpen}
-        onHiding={() => setCreateOpen(false)}
-        showCloseButton
-        title="เพิ่มแม่แบบแผนบำรุงรักษา"
-        width={580}
-        height="auto"
-      >
-        <div className="p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">ชื่อ *</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full border rounded px-3 py-2"
-              placeholder="เช่น บำรุงรักษาเชิงป้องกันทุก 6 เดือน"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">รายละเอียด</label>
-            <input
-              type="text"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">ประเภทการบำรุงรักษา *</label>
-              <SelectBox
-                dataSource={MAINTENANCE_TYPES}
-                value={form.maintenanceType}
-                onValueChanged={(e) => setForm({ ...form, maintenanceType: String(e.value) })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">หน่วยรอบ *</label>
-              <SelectBox
-                dataSource={INTERVAL_TYPES}
-                value={form.intervalType}
-                onValueChanged={(e) => setForm({ ...form, intervalType: String(e.value) })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">ค่ารอบ *</label>
-              <NumberBox
-                value={form.intervalValue}
-                min={1}
-                step={1}
-                showSpinButtons
-                onValueChanged={(e) => setForm({ ...form, intervalValue: Number(e.value ?? 0) })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">แจ้งเตือนล่วงหน้า (วัน)</label>
-              <NumberBox
-                value={form.alertDaysBefore}
-                min={0}
-                max={365}
-                step={1}
-                showSpinButtons
-                onValueChanged={(e) => setForm({ ...form, alertDaysBefore: Number(e.value ?? 0) })}
-              />
-            </div>
-          </div>
-          {createMut.error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm">
-              {String((createMut.error as Error).message)}
-            </div>
-          )}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button text="ยกเลิก" stylingMode="text" onClick={() => setCreateOpen(false)} />
-            <Button
-              type="default"
-              stylingMode="contained"
-              text="บันทึก"
-              disabled={!form.name || createMut.isPending}
-              onClick={() => createMut.mutate()}
-            />
-          </div>
-        </div>
-      </Popup>
+          <DxColumn
+            caption="การดำเนินการ"
+            width={110}
+            allowSorting={false}
+            allowFiltering={false}
+            cellRender={(cell) => {
+              const row = cell.data as MaintenancePlanTemplate;
+              return (
+                <div className="flex gap-1" data-testid={`mpt-actions-${row.id}`}>
+                  <button
+                    type="button"
+                    data-testid={`mpt-edit-${row.id}`}
+                    onClick={() =>
+                      router.push(`/master-data/maintenance-plan-templates/${row.id}`)
+                    }
+                    className="p-1.5 text-gray-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors"
+                    title="แก้ไข"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    data-testid={`mpt-delete-${row.id}`}
+                    onClick={() => handleDelete(row)}
+                    disabled={deleteMutation.isPending}
+                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                    title="ลบ"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            }}
+          />
+        </DxDataGrid>
+      </div>
     </div>
   );
 }

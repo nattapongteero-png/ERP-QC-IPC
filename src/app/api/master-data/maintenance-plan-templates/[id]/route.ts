@@ -1,5 +1,5 @@
 /**
- * Maintenance Plan Template — PUT + DELETE
+ * Maintenance Plan Template — GET + PUT + DELETE
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
@@ -12,6 +12,24 @@ const PERMISSION = 'equipment:notifications:configure';
 
 interface Params {
   params: Promise<{ id: string }>;
+}
+
+export async function GET(_request: NextRequest, { params }: Params) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { id } = await params;
+  const tid = Number.parseInt(id, 10);
+  if (Number.isNaN(tid)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+
+  const row = await executeDbOperation(async (db) => {
+    const t = getTableRef('maintenancePlanTemplates');
+    const rows = await db.select().from(t).where(eq(t.id, tid)).limit(1);
+    return rows[0] ?? null;
+  });
+
+  if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json(row);
 }
 
 async function checkPerm(session: { role?: string }) {

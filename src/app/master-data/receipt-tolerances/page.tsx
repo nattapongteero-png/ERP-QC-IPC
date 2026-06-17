@@ -1,149 +1,179 @@
 'use client';
 
 /**
- * Receipt Tolerances admin
+ * Receipt Tolerances — List Page (split-page pattern)
  * Feature: 020-goods-receipt
  */
-import { useTranslations } from 'next-intl';
+
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DataGrid, Column, Editing, Paging } from 'devextreme-react/data-grid';
-import { Button } from 'devextreme-react/button';
-import { Sliders, Plus, Trash2 } from 'lucide-react';
-import { BackButton } from '@/components/shared/BackButton';
-import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
-import { CHECKLIST_CATEGORIES } from '@/types/goods-receipt';
+import { ResponsivePageHeader } from '@/components/shared';
+import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { useToast } from '@/hooks/use-toast';
+import { Sliders, Edit, Trash2 } from 'lucide-react';
 import type { ReceiptTolerance, ChecklistCategory } from '@/types/goods-receipt';
 
-export default function ReceiptTolerancesPage() {
-  const t = useTranslations('goodsReceipt');
-  const qc = useQueryClient();
+const CATEGORY_LABELS: Record<ChecklistCategory, string> = {
+  raw_material: 'วัตถุดิบ',
+  finished_goods: 'สินค้าสำเร็จรูป',
+};
 
-  const { data, refetch } = useQuery<ReceiptTolerance[]>({
+export default function ReceiptTolerancesPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const { data: tolerances, isLoading } = useQuery<ReceiptTolerance[]>({
     queryKey: ['receipt-tolerances'],
     queryFn: async () => {
       const res = await fetch('/api/master-data/receipt-tolerances?includeInactive=true');
-      if (!res.ok) throw new Error('Failed');
+      if (!res.ok) throw new Error('Failed to load');
       return res.json();
     },
   });
 
-  const upsertMut = useMutation({
-    mutationFn: async (patch: Partial<ReceiptTolerance> & { category: ChecklistCategory }) => {
-      const res = await fetch('/api/master-data/receipt-tolerances', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
-      });
-      if (!res.ok) throw new Error('Update failed');
-      return res.json();
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/master-data/receipt-tolerances/${id}`, { method: 'DELETE' });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error ?? 'Delete failed');
+      return result;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['receipt-tolerances'] }),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['receipt-tolerances'] });
+      if (result.mode === 'disabled') {
+        toast.success('ปิดการใช้งาน', 'รายการถูกใช้งานอยู่ — ปิดการใช้งานแล้ว (ไม่ลบข้อมูล)');
+      } else {
+        toast.success('ลบสำเร็จ', 'ลบเกณฑ์ Tolerance เรียบร้อย');
+      }
+    },
+    onError: (error: Error) => {
+      toast.error('ผิดพลาด', error.message);
+    },
   });
 
-  // Categories that do not yet have a tolerance row — the genuine "create" targets.
-  const existingCategories = new Set((data ?? []).map((r) => r.category));
-  const missingCategories = CHECKLIST_CATEGORIES.filter((c) => !existingCategories.has(c));
-
-  const handleAdd = async () => {
-    const category = missingCategories[0];
-    if (!category) return;
-    await upsertMut.mutateAsync({ category, tolerancePercent: 0, isActive: true });
-  };
-
-  const handleDelete = async (row: ReceiptTolerance) => {
-    if (!row?.id) return;
-    if (!confirm('ยืนยันการปิดใช้งานรายการนี้?')) return;
-    // No hard-delete endpoint exists for this resource; deactivate via the upsert API.
-    await upsertMut.mutateAsync({ category: row.category, isActive: false });
+  const handleDelete = (row: ReceiptTolerance) => {
+    const label = CATEGORY_LABELS[row.category] ?? row.category;
+    if (!confirm(`ต้องการลบเกณฑ์ "${label}" หรือไม่?`)) return;
+    deleteMutation.mutate(row.id);
   };
 
   return (
-    <div className="organic-grid p-6 space-y-4">
-      <OrganicGridTheme />
-      <BackButton href="/master-data" label="ข้อมูลหลัก" />
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Sliders className="w-6 h-6" />
-            {t('tolerances.title')}
-          </h1>
-          <p className="text-[#4B7163] text-sm mt-1">{t('tolerances.subtitle')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={missingCategories.length === 0 || upsertMut.isPending}
-            className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-            เพิ่ม
-          </button>
-          <Button text={t('actions.refresh')} onClick={() => refetch()} />
-        </div>
-      </header>
+    <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
+      <ResponsivePageHeader
+        title="เกณฑ์ Tolerance ตรวจรับ"
+        subtitle="ตั้งค่าความคลาดเคลื่อนที่ยอมรับได้สำหรับการตรวจรับ"
+        icon={Sliders}
+        iconBgColor="bg-emerald-100"
+        iconColor="text-emerald-600"
+        onBack={() => router.push('/master-data')}
+        breadcrumbs={[
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'เกณฑ์ Tolerance ตรวจรับ' },
+        ]}
+        actions={
+          <DxButton
+            text="เพิ่ม"
+            icon="plus"
+            type="success"
+            onClick={() => router.push('/master-data/receipt-tolerances/new')}
+            data-testid="btn-add-tolerance"
+          />
+        }
+      />
 
-      <DataGrid
-        dataSource={data ?? []}
-        keyExpr="id"
-        showBorders
-        showRowLines
-        rowAlternationEnabled
-        columnAutoWidth
-        onRowUpdating={async (e) => {
-          const old = e.oldData as ReceiptTolerance;
-          const merged = { ...old, ...e.newData };
-          await upsertMut.mutateAsync({
-            category: merged.category,
-            tolerancePercent: merged.tolerancePercent,
-            isActive: merged.isActive,
-            notes: merged.notes,
-          });
-        }}
-      >
-        <Paging pageSize={20} />
-        <Editing mode="row" allowUpdating />
-        <Column
-          dataField="category"
-          caption={t('tolerances.columns.category')}
-          allowEditing={false}
-          width={180}
-          cellRender={(c) => (
-            <span className="font-medium">{t(`category.${c.value as ChecklistCategory}`)}</span>
-          )}
-        />
-        <Column
-          dataField="tolerancePercent"
-          caption={t('tolerances.columns.tolerancePercent')}
-          dataType="number"
-          format="#0.00 %"
-          width={180}
-        />
-        <Column dataField="isActive" caption={t('tolerances.columns.isActive')} dataType="boolean" width={100} />
-        <Column dataField="notes" caption={t('tolerances.columns.notes')} />
-        <Column
-          caption="จัดการ"
-          width={110}
-          alignment="center"
-          allowEditing={false}
-          allowSorting={false}
-          allowFiltering={false}
-          cellRender={(c) => {
-            const row = c.data as ReceiptTolerance;
-            return (
-              <button
-                type="button"
-                title="ปิดใช้งาน"
-                onClick={() => handleDelete(row)}
-                disabled={!row.isActive || upsertMut.isPending}
-                className="rounded p-1.5 text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
+      <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-4">
+        <DxDataGrid
+          dataSource={(tolerances ?? []).map((r, i) => ({ ...r, _rowNumber: i + 1 }))}
+          keyExpr="id"
+          showBorders={false}
+          rowAlternationEnabled
+          loading={isLoading}
+          height="auto"
+          width="100%"
+          columnAutoWidth
+          data-testid="tolerance-grid"
+        >
+          <DxSearchPanel visible placeholder="ค้นหา..." width={200} />
+          <DxPaging defaultPageSize={20} />
+
+          <DxColumn
+            dataField="_rowNumber"
+            caption="#"
+            width={60}
+            alignment="center"
+            allowFiltering={false}
+            allowSorting={false}
+            cellRender={(cell) => (
+              <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
+            )}
+          />
+          <DxColumn
+            dataField="category"
+            caption="หมวดสินค้า"
+            minWidth={160}
+            cellRender={(cell) => (
+              <span className="font-medium text-emerald-700 whitespace-nowrap">
+                {CATEGORY_LABELS[cell.value as ChecklistCategory] ?? cell.value}
+              </span>
+            )}
+          />
+          <DxColumn
+            dataField="tolerancePercent"
+            caption="เกณฑ์ (%)"
+            width={140}
+            alignment="right"
+            cellRender={(cell) => (
+              <span className="font-mono whitespace-nowrap">{Number(cell.value).toFixed(2)}%</span>
+            )}
+          />
+          <DxColumn
+            dataField="isActive"
+            caption="สถานะ"
+            width={110}
+            cellRender={(cell) => (
+              <span
+                className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                  cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                }`}
               >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            );
-          }}
-        />
-      </DataGrid>
+                {cell.value ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+              </span>
+            )}
+          />
+          <DxColumn dataField="notes" caption="หมายเหตุ" minWidth={200} />
+          <DxColumn
+            caption="การดำเนินการ"
+            width={110}
+            allowFiltering={false}
+            allowSorting={false}
+            cellRender={(cell) => {
+              const row = cell.data as ReceiptTolerance;
+              return (
+                <div className="flex gap-1">
+                  <button
+                    data-testid={`btn-edit-tolerance-${row.id}`}
+                    onClick={() => router.push(`/master-data/receipt-tolerances/${row.id}`)}
+                    className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                    title="แก้ไข"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    data-testid={`btn-delete-tolerance-${row.id}`}
+                    onClick={() => handleDelete(row)}
+                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="ลบ"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            }}
+          />
+        </DxDataGrid>
+      </div>
     </div>
   );
 }

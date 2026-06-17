@@ -23,6 +23,14 @@ export async function listTolerances(includeInactive = false): Promise<ReceiptTo
   });
 }
 
+export async function getToleranceById(id: number): Promise<ReceiptTolerance | null> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const rows = await db.select().from(t.tolerances).where(eq(t.tolerances.id, id)).limit(1);
+    return rows.length > 0 ? normalize(rows[0]) : null;
+  });
+}
+
 export async function upsertTolerance(
   input: {
     category: ChecklistCategory;
@@ -59,6 +67,27 @@ export async function upsertTolerance(
     });
     const id = getInsertId(ins);
     const fresh = await db.select().from(t.tolerances).where(eq(t.tolerances.id, id)).limit(1);
+    return normalize(fresh[0]);
+  });
+}
+
+export async function updateToleranceById(
+  id: number,
+  input: {
+    tolerancePercent?: number;
+    isActive?: boolean;
+    notes?: string | null;
+  },
+): Promise<ReceiptTolerance> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const updates: any = { updatedAt: getNow() };
+    if (input.tolerancePercent != null) updates.tolerancePercent = input.tolerancePercent;
+    if (input.isActive != null) updates.isActive = input.isActive;
+    if (input.notes !== undefined) updates.notes = input.notes;
+    await db.update(t.tolerances).set(updates).where(eq(t.tolerances.id, id));
+    const fresh = await db.select().from(t.tolerances).where(eq(t.tolerances.id, id)).limit(1);
+    if (!fresh.length) throw new Error('Not found');
     return normalize(fresh[0]);
   });
 }
