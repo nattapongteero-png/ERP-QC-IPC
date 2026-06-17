@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
@@ -48,18 +49,16 @@ interface FormData {
   examinerNotes: string;
 }
 
-const EXAMINATION_TYPE_OPTIONS = [
-  { value: 'pre_employment', label: 'ก่อนเข้างาน (Pre-employment)' },
-  { value: 'periodic', label: 'ตรวจประจำปี (Periodic)' },
-  { value: 'special', label: 'ตรวจพิเศษ (Special)' },
-];
+// Option values — labels resolved via i18n inside the component.
+const EXAMINATION_TYPE_VALUES = ['pre_employment', 'periodic', 'special'] as const;
+const FITNESS_STATUS_VALUES = [
+  { value: 'fit', variant: 'success' },
+  { value: 'unfit', variant: 'danger' },
+  { value: 'restricted', variant: 'warning' },
+] as const;
 
-const FITNESS_STATUS_OPTIONS = [
-  { value: 'fit', label: 'พร้อมปฏิบัติงาน (Fit)', variant: 'success' },
-  { value: 'unfit', label: 'ไม่พร้อมปฏิบัติงาน (Unfit)', variant: 'danger' },
-  { value: 'restricted', label: 'มีข้อจำกัด (Restricted)', variant: 'warning' },
-];
-
+// Affected-area options are stored verbatim as the selected string values, so
+// these remain canonical Thai data values (not translated UI labels).
 const AFFECTED_AREAS_OPTIONS = [
   'ฝ่ายผลิต',
   'ฝ่ายควบคุมคุณภาพ',
@@ -157,11 +156,29 @@ export function HealthRecordForm({
   onCancel,
 }: HealthRecordFormProps) {
   const router = useRouter();
+  const t = useTranslations('hr');
   const queryClient = useQueryClient();
   const formRef = React.useRef<FormRef>(null);
   const [formData, setFormData] = React.useState<FormData>(defaultFormData);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [showAuditLog, setShowAuditLog] = React.useState(false);
+
+  // Translated select options
+  const EXAMINATION_TYPE_OPTIONS = React.useMemo(
+    () => EXAMINATION_TYPE_VALUES.map((value) => ({
+      value,
+      label: t(`healthRecords.healthForm.examTypeOptions.${value}`),
+    })),
+    [t],
+  );
+  const FITNESS_STATUS_OPTIONS = React.useMemo(
+    () => FITNESS_STATUS_VALUES.map((s) => ({
+      value: s.value,
+      variant: s.variant,
+      label: t(`healthRecords.healthForm.fitnessOptions.${s.value}`),
+    })),
+    [t],
+  );
 
   // Fetch employees for dropdown
   const { data: employees = [] } = useQuery({
@@ -205,7 +222,7 @@ export function HealthRecordForm({
     mutationFn: createRecord,
     onSuccess: (record) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'health-records'] });
-      notify('บันทึกผลตรวจสุขภาพสำเร็จ', 'success', 3000);
+      notify(t('healthRecords.healthForm.toast.createSuccess'), 'success', 3000);
       if (onSuccess) {
         onSuccess(record);
       } else {
@@ -223,7 +240,7 @@ export function HealthRecordForm({
     onSuccess: (record) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'health-records'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'health-record', recordId] });
-      notify('อัปเดตผลตรวจสุขภาพสำเร็จ', 'success', 3000);
+      notify(t('healthRecords.healthForm.toast.updateSuccess'), 'success', 3000);
       if (onSuccess) {
         onSuccess(record);
       } else {
@@ -240,7 +257,7 @@ export function HealthRecordForm({
     mutationFn: () => deleteRecord(recordId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'health-records'] });
-      notify('ลบบันทึกสุขภาพสำเร็จ', 'success', 3000);
+      notify(t('healthRecords.toast.deleteSuccess'), 'success', 3000);
       router.push('/hr/health-records');
     },
     onError: (error: Error) => {
@@ -251,12 +268,12 @@ export function HealthRecordForm({
   const handleSubmit = () => {
     const validationResult = formRef.current?.instance()?.validate();
     if (!validationResult?.isValid) {
-      notify('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 'warning', 3000);
+      notify(t('formCommon.fillRequired'), 'warning', 3000);
       return;
     }
 
     if (!formData.employeeId || !formData.examinationType || !formData.fitnessStatus) {
-      notify('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 'warning', 3000);
+      notify(t('formCommon.fillRequired'), 'warning', 3000);
       return;
     }
 
@@ -316,7 +333,7 @@ export function HealthRecordForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3 text-gray-500">
             <LoadIndicator height={24} width={24} />
-            <span>กำลังโหลดข้อมูล...</span>
+            <span>{t('formCommon.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -329,20 +346,22 @@ export function HealthRecordForm({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
-            text="กลับ"
+            text={t('formCommon.back')}
             icon="back"
             stylingMode="text"
             onClick={handleCancel}
           />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900">
-            {mode === 'create' ? 'บันทึกผลตรวจสุขภาพใหม่' : `แก้ไข: ${employeeName}`}
+            {mode === 'create'
+              ? t('healthRecords.healthForm.createTitle')
+              : t('healthRecords.healthForm.editTitle', { name: employeeName })}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           {mode === 'edit' && (
             <Button
-              text="ลบ"
+              text={t('formCommon.delete')}
               icon={isDeleting ? 'spindown' : 'trash'}
               type="danger"
               stylingMode="outlined"
@@ -351,14 +370,14 @@ export function HealthRecordForm({
             />
           )}
           <Button
-            text="ยกเลิก"
+            text={t('formCommon.cancel')}
             icon="close"
             stylingMode="outlined"
             onClick={handleCancel}
             disabled={isSubmitting}
           />
           <Button
-            text={mode === 'create' ? 'บันทึก' : 'บันทึกการเปลี่ยนแปลง'}
+            text={mode === 'create' ? t('formCommon.save') : t('formCommon.saveChanges')}
             icon={isSubmitting ? 'spindown' : 'save'}
             type="success"
             onClick={handleSubmit}
@@ -373,19 +392,19 @@ export function HealthRecordForm({
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                <p className="font-medium text-red-800">{t('healthRecords.healthForm.deleteConfirm.title')}</p>
                 <p className="text-sm text-red-600">
-                  คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกสุขภาพนี้? การดำเนินการนี้ไม่สามารถยกเลิกได้
+                  {t('healthRecords.healthForm.deleteConfirm.message')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="ยกเลิก"
+                  text={t('formCommon.cancel')}
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text="ลบ"
+                  text={t('formCommon.delete')}
                   icon="trash"
                   type="danger"
                   onClick={handleDelete}
@@ -402,7 +421,7 @@ export function HealthRecordForm({
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">ข้อมูลการตรวจสุขภาพ</CardTitle>
+              <CardTitle className="text-base">{t('healthRecords.healthForm.sections.examInfo')}</CardTitle>
             </CardHeader>
             <CardContent>
               <Form
@@ -418,7 +437,7 @@ export function HealthRecordForm({
                 colCount={2}
               >
                 <Item colSpan={1}>
-                  <Label text="พนักงาน" />
+                  <Label text={t('healthRecords.healthForm.fields.employee')} />
                   <SelectBox
                     dataSource={employees}
                     displayExpr="fullName"
@@ -426,37 +445,37 @@ export function HealthRecordForm({
                     value={formData.employeeId}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, employeeId: e.value }))}
                     searchEnabled
-                    placeholder="เลือกพนักงาน..."
+                    placeholder={t('healthRecords.healthForm.fields.employeePlaceholder')}
                     disabled={mode === 'edit'}
                   />
-                  <RequiredRule message="กรุณาเลือกพนักงาน" />
+                  <RequiredRule message={t('healthRecords.healthForm.validation.employeeRequired')} />
                 </Item>
                 <Item colSpan={1}>
-                  <Label text="ประเภทการตรวจ" />
+                  <Label text={t('healthRecords.healthForm.fields.examType')} />
                   <SelectBox
                     dataSource={EXAMINATION_TYPE_OPTIONS}
                     displayExpr="label"
                     valueExpr="value"
                     value={formData.examinationType}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, examinationType: e.value }))}
-                    placeholder="เลือกประเภท..."
+                    placeholder={t('healthRecords.healthForm.fields.examTypePlaceholder')}
                   />
-                  <RequiredRule message="กรุณาเลือกประเภทการตรวจ" />
+                  <RequiredRule message={t('healthRecords.healthForm.validation.examTypeRequired')} />
                 </Item>
               </Form>
 
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <DxDateBox
-                  label="วันที่ตรวจ"
+                  label={t('healthRecords.healthForm.fields.examDate')}
                   value={formData.examinationDate}
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, examinationDate: value }))
                   }
                   required
-                  requiredMessage="กรุณาระบุวันที่ตรวจ"
+                  requiredMessage={t('healthRecords.healthForm.validation.examDateRequired')}
                 />
                 <DxDateBox
-                  label="ครบกำหนดตรวจครั้งถัดไป"
+                  label={t('healthRecords.healthForm.fields.nextExamDue')}
                   value={formData.nextExamDue}
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, nextExamDue: value || '' }))
@@ -469,12 +488,12 @@ export function HealthRecordForm({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">ผลการตรวจ</CardTitle>
+              <CardTitle className="text-base">{t('healthRecords.healthForm.sections.result')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  สถานะความพร้อม <span className="text-red-500">*</span>
+                  {t('healthRecords.healthForm.fields.fitnessStatus')} <span className="text-red-500">*</span>
                 </label>
                 <SelectBox
                   dataSource={FITNESS_STATUS_OPTIONS}
@@ -482,7 +501,7 @@ export function HealthRecordForm({
                   valueExpr="value"
                   value={formData.fitnessStatus}
                   onValueChanged={(e) => setFormData((prev) => ({ ...prev, fitnessStatus: e.value }))}
-                  placeholder="เลือกสถานะ..."
+                  placeholder={t('healthRecords.healthForm.fields.fitnessStatusPlaceholder')}
                 />
               </div>
 
@@ -490,21 +509,21 @@ export function HealthRecordForm({
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ข้อจำกัดการปฏิบัติงาน
+                      {t('healthRecords.healthForm.fields.restrictions')}
                     </label>
                     <TextArea
                       value={formData.restrictions}
                       onValueChanged={(e) =>
                         setFormData((prev) => ({ ...prev, restrictions: e.value || '' }))
                       }
-                      placeholder="ระบุข้อจำกัด..."
+                      placeholder={t('healthRecords.healthForm.fields.restrictionsPlaceholder')}
                       height={80}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      พื้นที่ที่ได้รับผลกระทบ
+                      {t('healthRecords.healthForm.fields.affectedAreas')}
                     </label>
                     <TagBox
                       items={AFFECTED_AREAS_OPTIONS}
@@ -513,7 +532,7 @@ export function HealthRecordForm({
                         setFormData((prev) => ({ ...prev, affectedAreas: e.value || [] }))
                       }
                       showSelectionControls
-                      placeholder="เลือกพื้นที่..."
+                      placeholder={t('healthRecords.healthForm.fields.affectedAreasPlaceholder')}
                     />
                   </div>
                 </>
@@ -521,14 +540,14 @@ export function HealthRecordForm({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ชื่อผู้ตรวจ
+                  {t('healthRecords.healthForm.fields.examinerName')}
                 </label>
                 <TextBox
                   value={formData.examinerName}
                   onValueChanged={(e) =>
                     setFormData((prev) => ({ ...prev, examinerName: e.value || '' }))
                   }
-                  placeholder="ระบุชื่อแพทย์/พยาบาล..."
+                  placeholder={t('healthRecords.healthForm.fields.examinerNamePlaceholder')}
                 />
               </div>
             </CardContent>
@@ -536,33 +555,33 @@ export function HealthRecordForm({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">รายละเอียดทางการแพทย์ (เฉพาะเจ้าหน้าที่สุขภาพ)</CardTitle>
+              <CardTitle className="text-base">{t('healthRecords.healthForm.sections.medical')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  รายละเอียดทางการแพทย์
+                  {t('healthRecords.healthForm.fields.medicalDetails')}
                 </label>
                 <TextArea
                   value={formData.medicalDetails}
                   onValueChanged={(e) =>
                     setFormData((prev) => ({ ...prev, medicalDetails: e.value || '' }))
                   }
-                  placeholder="ระบุรายละเอียด..."
+                  placeholder={t('healthRecords.healthForm.fields.medicalDetailsPlaceholder')}
                   height={100}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  หมายเหตุผู้ตรวจ
+                  {t('healthRecords.healthForm.fields.examinerNotes')}
                 </label>
                 <TextArea
                   value={formData.examinerNotes}
                   onValueChanged={(e) =>
                     setFormData((prev) => ({ ...prev, examinerNotes: e.value || '' }))
                   }
-                  placeholder="ระบุหมายเหตุ..."
+                  placeholder={t('healthRecords.healthForm.fields.examinerNotesPlaceholder')}
                   height={80}
                 />
               </div>
@@ -574,12 +593,12 @@ export function HealthRecordForm({
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">สถานะ</CardTitle>
+              <CardTitle className="text-base">{t('healthRecords.healthForm.sidebar.status')}</CardTitle>
             </CardHeader>
             <CardContent>
               {formData.fitnessStatus && (
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500">สถานะปัจจุบัน:</span>
+                  <span className="text-gray-500">{t('healthRecords.healthForm.sidebar.currentStatus')}</span>
                   <Badge
                     variant={
                       formData.fitnessStatus === 'fit'
@@ -599,7 +618,7 @@ export function HealthRecordForm({
           {mode === 'edit' && existingRecord && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">ข้อมูลบันทึก</CardTitle>
+                <CardTitle className="text-base">{t('healthRecords.healthForm.sidebar.recordInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -607,24 +626,24 @@ export function HealthRecordForm({
                   <span className="font-mono text-gray-900">{existingRecord.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">พนักงาน</span>
+                  <span className="text-gray-500">{t('healthRecords.healthForm.sidebar.employee')}</span>
                   <span className="text-gray-900">{employeeName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">บันทึกเมื่อ</span>
+                  <span className="text-gray-500">{t('healthRecords.healthForm.sidebar.createdAt')}</span>
                   <span className="text-gray-900">
                     {new Date(existingRecord.createdAt).toLocaleDateString('th-TH')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">อัปเดตล่าสุด</span>
+                  <span className="text-gray-500">{t('healthRecords.healthForm.sidebar.updatedAt')}</span>
                   <span className="text-gray-900">
                     {new Date(existingRecord.updatedAt).toLocaleDateString('th-TH')}
                   </span>
                 </div>
                 <div className="pt-2 border-t">
                   <Button
-                    text="ประวัติการเปลี่ยนแปลง"
+                    text={t('healthRecords.healthForm.sidebar.changeHistory')}
                     icon="clock"
                     stylingMode="outlined"
                     type="default"
@@ -645,17 +664,17 @@ export function HealthRecordForm({
           entityId={recordId}
           visible={showAuditLog}
           onClose={() => setShowAuditLog(false)}
-          title={`ประวัติการเปลี่ยนแปลง: ${employeeName}`}
+          title={t('healthRecords.healthForm.auditTitle', { name: employeeName })}
           fieldLabels={{
-            examinationType: 'ประเภทการตรวจ',
-            examinationDate: 'วันที่ตรวจ',
-            nextExamDue: 'ครบกำหนดถัดไป',
-            fitnessStatus: 'สถานะความพร้อม',
-            restrictions: 'ข้อจำกัด',
-            affectedAreas: 'พื้นที่ได้รับผลกระทบ',
-            medicalDetails: 'รายละเอียดทางการแพทย์',
-            examinerName: 'ผู้ตรวจ',
-            examinerNotes: 'หมายเหตุผู้ตรวจ',
+            examinationType: t('healthRecords.healthForm.auditFields.examinationType'),
+            examinationDate: t('healthRecords.healthForm.auditFields.examinationDate'),
+            nextExamDue: t('healthRecords.healthForm.auditFields.nextExamDue'),
+            fitnessStatus: t('healthRecords.healthForm.auditFields.fitnessStatus'),
+            restrictions: t('healthRecords.healthForm.auditFields.restrictions'),
+            affectedAreas: t('healthRecords.healthForm.auditFields.affectedAreas'),
+            medicalDetails: t('healthRecords.healthForm.auditFields.medicalDetails'),
+            examinerName: t('healthRecords.healthForm.auditFields.examinerName'),
+            examinerNotes: t('healthRecords.healthForm.auditFields.examinerNotes'),
           }}
         />
       )}

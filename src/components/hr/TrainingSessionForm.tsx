@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import Form, { SimpleItem, GroupItem, RequiredRule, FormRef } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
@@ -105,6 +106,7 @@ export function TrainingSessionForm({
   onCancel,
 }: TrainingSessionFormProps) {
   const router = useRouter();
+  const t = useTranslations('hr');
   const queryClient = useQueryClient();
   const navigate = createHrNavigator(router, 'training-sessions');
   const formRef = useRef<FormRef>(null);
@@ -151,7 +153,7 @@ export function TrainingSessionForm({
     mutationFn: createSession,
     onSuccess: (session) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'sessions'] });
-      showSuccess('สร้างการจัดอบรมสำเร็จ');
+      showSuccess(t('training.sessionForm.toast.createSuccess'));
       if (onSuccess) {
         onSuccess(session);
       } else {
@@ -159,7 +161,7 @@ export function TrainingSessionForm({
       }
     },
     onError: (error: Error) => {
-      handleApiError(error, 'เกิดข้อผิดพลาดในการสร้างการจัดอบรม');
+      handleApiError(error, t('training.sessionForm.toast.createError'));
     },
   });
 
@@ -168,7 +170,7 @@ export function TrainingSessionForm({
     onSuccess: (session) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'sessions'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'session', sessionId] });
-      showSuccess('อัปเดตการจัดอบรมสำเร็จ');
+      showSuccess(t('training.sessionForm.toast.updateSuccess'));
       if (onSuccess) {
         onSuccess(session);
       } else {
@@ -176,7 +178,7 @@ export function TrainingSessionForm({
       }
     },
     onError: (error: Error) => {
-      handleApiError(error, 'เกิดข้อผิดพลาดในการอัปเดตการจัดอบรม');
+      handleApiError(error, t('training.sessionForm.toast.updateError'));
     },
   });
 
@@ -192,26 +194,26 @@ export function TrainingSessionForm({
     // Validate using DevExtreme form
     const validationResult = formRef.current?.instance()?.validate();
     if (!validationResult?.isValid) {
-      showWarning('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+      showWarning(t('formCommon.fillRequired'));
       return;
     }
 
     if (!formData.courseId) {
-      showWarning('กรุณาเลือกหลักสูตร');
+      showWarning(t('training.sessionForm.validation.courseRequired'));
       return;
     }
     if (!formData.sessionDate) {
-      showWarning('กรุณาระบุวันที่อบรม');
+      showWarning(t('training.sessionForm.validation.dateRequired'));
       return;
     }
 
     // Validate time format if provided
     if (formData.startTime && !TIME_REGEX.test(formData.startTime)) {
-      showWarning('เวลาเริ่มต้องอยู่ในรูปแบบ HH:MM');
+      showWarning(t('training.sessionForm.validation.startTimeFormat'));
       return;
     }
     if (formData.endTime && !TIME_REGEX.test(formData.endTime)) {
-      showWarning('เวลาสิ้นสุดต้องอยู่ในรูปแบบ HH:MM');
+      showWarning(t('training.sessionForm.validation.endTimeFormat'));
       return;
     }
 
@@ -256,7 +258,7 @@ export function TrainingSessionForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3">
             <LoadIndicator height={24} width={24} />
-            <span>กำลังโหลดข้อมูล...</span>
+            <span>{t('formCommon.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -286,11 +288,11 @@ export function TrainingSessionForm({
             </div>
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                {isCreate ? 'จัดอบรมใหม่' : 'แก้ไขการจัดอบรม'}
+                {isCreate ? t('training.sessionForm.createTitle') : t('training.sessionForm.editTitle')}
               </h1>
               {!isCreate && existingSession && (
                 <p className="text-sm text-gray-500">
-                  รหัส: {existingSession.id}
+                  {t('training.sessionForm.codeLabel', { code: existingSession.id })}
                 </p>
               )}
             </div>
@@ -299,12 +301,12 @@ export function TrainingSessionForm({
 
         <div className="flex items-center gap-3">
           <Button
-            text="ยกเลิก"
+            text={t('formCommon.cancel')}
             stylingMode="outlined"
             onClick={handleBack}
           />
           <Button
-            text={isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+            text={isPending ? t('formCommon.saving') : t('formCommon.save')}
             type="default"
             icon="save"
             disabled={isPending}
@@ -317,7 +319,7 @@ export function TrainingSessionForm({
       {/* Form */}
       <Card>
         <CardHeader>
-          <CardTitle>ข้อมูลการจัดอบรม</CardTitle>
+          <CardTitle>{t('training.sessionForm.cardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form
@@ -341,63 +343,63 @@ export function TrainingSessionForm({
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="courseId"
-                label={{ text: 'หลักสูตร' }}
+                label={{ text: t('training.sessionForm.course') }}
                 editorType="dxSelectBox"
                 editorOptions={{
                   items: courseOptions,
                   valueExpr: 'id',
                   displayExpr: 'displayName',
-                  placeholder: 'เลือกหลักสูตร',
+                  placeholder: t('training.sessionForm.coursePlaceholder'),
                   searchEnabled: true,
                   showClearButton: true,
                   elementAttr: { 'data-testid': 'session-course-field' },
                 }}
               >
-                <RequiredRule message="กรุณาเลือกหลักสูตร" />
+                <RequiredRule message={t('training.sessionForm.validation.courseRequired')} />
               </SimpleItem>
 
               <SimpleItem
                 dataField="sessionDate"
-                label={{ text: 'วันที่อบรม' }}
+                label={{ text: t('training.sessionForm.sessionDate') }}
                 editorType="dxDateBox"
                 editorOptions={{
                   displayFormat: 'dd/MM/yyyy',
                   type: 'date',
-                  placeholder: 'เลือกวันที่',
+                  placeholder: t('training.sessionForm.sessionDatePlaceholder'),
                   elementAttr: { 'data-testid': 'session-date-field' },
                 }}
               >
-                <RequiredRule message="กรุณาระบุวันที่อบรม" />
+                <RequiredRule message={t('training.sessionForm.validation.dateRequired')} />
               </SimpleItem>
             </GroupItem>
 
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="startTime"
-                label={{ text: 'เวลาเริ่ม' }}
+                label={{ text: t('training.sessionForm.startTime') }}
                 editorOptions={{
-                  placeholder: 'HH:MM เช่น 09:00',
+                  placeholder: t('training.sessionForm.startTimePlaceholder'),
                   elementAttr: { 'data-testid': 'session-start-time-field' },
                 }}
-                helpText="รูปแบบ HH:MM"
+                helpText={t('training.sessionForm.timeHelp')}
               />
 
               <SimpleItem
                 dataField="endTime"
-                label={{ text: 'เวลาสิ้นสุด' }}
+                label={{ text: t('training.sessionForm.endTime') }}
                 editorOptions={{
-                  placeholder: 'HH:MM เช่น 17:00',
+                  placeholder: t('training.sessionForm.endTimePlaceholder'),
                   elementAttr: { 'data-testid': 'session-end-time-field' },
                 }}
-                helpText="รูปแบบ HH:MM"
+                helpText={t('training.sessionForm.timeHelp')}
               />
             </GroupItem>
 
             <SimpleItem
               dataField="location"
-              label={{ text: 'สถานที่' }}
+              label={{ text: t('training.sessionForm.location') }}
               editorOptions={{
-                placeholder: 'เช่น ห้องประชุม A',
+                placeholder: t('training.sessionForm.locationPlaceholder'),
                 maxLength: 100,
                 elementAttr: { 'data-testid': 'session-location-field' },
               }}
@@ -406,13 +408,13 @@ export function TrainingSessionForm({
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="instructorId"
-                label={{ text: 'วิทยากรภายใน' }}
+                label={{ text: t('training.sessionForm.instructorInternal') }}
                 editorType="dxSelectBox"
                 editorOptions={{
                   items: employeeOptions,
                   valueExpr: 'id',
                   displayExpr: 'displayName',
-                  placeholder: 'เลือกพนักงาน',
+                  placeholder: t('training.sessionForm.instructorInternalPlaceholder'),
                   searchEnabled: true,
                   showClearButton: true,
                 }}
@@ -420,9 +422,9 @@ export function TrainingSessionForm({
 
               <SimpleItem
                 dataField="instructorExternal"
-                label={{ text: 'วิทยากรภายนอก' }}
+                label={{ text: t('training.sessionForm.instructorExternal') }}
                 editorOptions={{
-                  placeholder: 'ชื่อวิทยากรภายนอก',
+                  placeholder: t('training.sessionForm.instructorExternalPlaceholder'),
                   maxLength: 100,
                 }}
               />
@@ -430,21 +432,21 @@ export function TrainingSessionForm({
 
             <SimpleItem
               dataField="maxParticipants"
-              label={{ text: 'จำนวนผู้เข้าร่วมสูงสุด' }}
+              label={{ text: t('training.sessionForm.maxParticipants') }}
               editorType="dxNumberBox"
               editorOptions={{
                 min: 1,
                 showSpinButtons: true,
-                placeholder: 'เช่น 20',
+                placeholder: t('training.sessionForm.maxParticipantsPlaceholder'),
               }}
             />
 
             <SimpleItem
               dataField="notes"
-              label={{ text: 'หมายเหตุ' }}
+              label={{ text: t('training.sessionForm.notes') }}
               editorType="dxTextArea"
               editorOptions={{
-                placeholder: 'ระบุหมายเหตุ...',
+                placeholder: t('training.sessionForm.notesPlaceholder'),
                 height: 100,
               }}
             />

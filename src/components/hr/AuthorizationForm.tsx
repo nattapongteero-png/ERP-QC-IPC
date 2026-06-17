@@ -4,8 +4,9 @@
 // Feature: 007-hr-personnel-management - Authorizations
 // Follows template module patterns for consistent form handling
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import Form, { SimpleItem, GroupItem, RequiredRule, FormRef } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
@@ -18,22 +19,23 @@ import { handleApiError, showSuccess, showWarning } from '@/lib/hr/error-handler
 import type { AuthorizationWithDetails, AuthorizationType, EmployeeWithDetails } from '@/types/hr';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 
-// Authorization type configuration
-const AUTH_TYPE_CONFIG: Record<
-  AuthorizationType,
-  { label: string; labelEn: string }
-> = {
-  batch_release: { label: 'ปล่อยผ่านชุด', labelEn: 'Batch Release' },
-  sop_approval: { label: 'อนุมัติ SOP', labelEn: 'SOP Approval' },
-  deviation_approval: { label: 'อนุมัติ Deviation', labelEn: 'Deviation Approval' },
-  change_control_approval: { label: 'อนุมัติ Change Control', labelEn: 'Change Control' },
-  capa_approval: { label: 'อนุมัติ CAPA', labelEn: 'CAPA Approval' },
-};
+// Authorization type values — labels are resolved via i18n inside the component.
+const AUTH_TYPE_VALUES: AuthorizationType[] = [
+  'batch_release',
+  'sop_approval',
+  'deviation_approval',
+  'change_control_approval',
+  'capa_approval',
+];
 
-const AUTH_TYPE_OPTIONS = Object.entries(AUTH_TYPE_CONFIG).map(([value, config]) => ({
-  value,
-  text: config.label,
-}));
+// Maps API enum value to its i18n key suffix under authorizations.types.*
+const AUTH_TYPE_I18N_KEY: Record<AuthorizationType, string> = {
+  batch_release: 'batchRelease',
+  sop_approval: 'sopApproval',
+  deviation_approval: 'deviationApproval',
+  change_control_approval: 'changeControlApproval',
+  capa_approval: 'capaApproval',
+};
 
 const PRODUCT_LINE_OPTIONS = ['Herbal', 'Supplement', 'Cosmetic', 'Food'];
 
@@ -124,12 +126,23 @@ export function AuthorizationForm({
   onSuccess,
   onCancel,
 }: AuthorizationFormProps) {
+  const t = useTranslations('hr');
   const router = useRouter();
   const queryClient = useQueryClient();
   const navigate = createHrNavigator(router, 'authorizations');
   const formRef = useRef<FormRef>(null);
 
   const [formData, setFormData] = useState<AuthorizationFormData>(defaultFormData);
+
+  // Build auth type options with translated labels
+  const authTypeOptions = useMemo(
+    () =>
+      AUTH_TYPE_VALUES.map((value) => ({
+        value,
+        text: t(`authorizations.types.${AUTH_TYPE_I18N_KEY[value]}`),
+      })),
+    [t]
+  );
 
   // Fetch existing authorization in edit mode
   const { data: existingAuthorization, isLoading: isLoadingAuthorization } = useQuery({
@@ -180,7 +193,7 @@ export function AuthorizationForm({
     mutationFn: createAuthorization,
     onSuccess: (authorization) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'authorizations'] });
-      showSuccess('มอบสิทธิ์สำเร็จ');
+      showSuccess(t('authorizations.form.toast.createSuccess'));
       if (onSuccess) {
         onSuccess(authorization);
       } else {
@@ -188,7 +201,7 @@ export function AuthorizationForm({
       }
     },
     onError: (error: Error) => {
-      handleApiError(error, 'เกิดข้อผิดพลาดในการมอบสิทธิ์');
+      handleApiError(error, t('authorizations.form.toast.createError'));
     },
   });
 
@@ -198,7 +211,7 @@ export function AuthorizationForm({
     onSuccess: (authorization) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'authorizations'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'authorization', authorizationId] });
-      showSuccess('อัปเดตสิทธิ์สำเร็จ');
+      showSuccess(t('authorizations.form.toast.updateSuccess'));
       if (onSuccess) {
         onSuccess(authorization);
       } else {
@@ -206,7 +219,7 @@ export function AuthorizationForm({
       }
     },
     onError: (error: Error) => {
-      handleApiError(error, 'เกิดข้อผิดพลาดในการอัปเดตสิทธิ์');
+      handleApiError(error, t('authorizations.form.toast.updateError'));
     },
   });
 
@@ -222,20 +235,20 @@ export function AuthorizationForm({
     // Validate using DevExtreme form
     const validationResult = formRef.current?.instance()?.validate();
     if (!validationResult?.isValid) {
-      showWarning('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+      showWarning(t('authorizations.form.validation.incomplete'));
       return;
     }
 
     if (!formData.employeeId) {
-      showWarning('กรุณาเลือกพนักงาน');
+      showWarning(t('authorizations.form.employee.required'));
       return;
     }
     if (!formData.authType) {
-      showWarning('กรุณาเลือกประเภทสิทธิ์');
+      showWarning(t('authorizations.form.authType.required'));
       return;
     }
     if (!formData.effectiveFrom) {
-      showWarning('กรุณาระบุวันที่เริ่มต้น');
+      showWarning(t('authorizations.form.effectiveFrom.required'));
       return;
     }
 
@@ -258,7 +271,7 @@ export function AuthorizationForm({
     } else {
       updateMutation.mutate(submitData);
     }
-  }, [formData, mode, createMutation, updateMutation]);
+  }, [formData, mode, createMutation, updateMutation, t]);
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isCreate = mode === 'create';
@@ -271,7 +284,7 @@ export function AuthorizationForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3">
             <LoadIndicator height={24} width={24} />
-            <span>กำลังโหลดข้อมูล...</span>
+            <span>{t('authorizations.form.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -301,11 +314,11 @@ export function AuthorizationForm({
             </div>
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                {isCreate ? 'มอบสิทธิ์ใหม่' : 'แก้ไขสิทธิ์อนุมัติ'}
+                {isCreate ? t('authorizations.form.createTitle') : t('authorizations.form.editTitle')}
               </h1>
               {!isCreate && existingAuthorization && (
                 <p className="text-sm text-gray-500">
-                  {existingAuthorization.employeeName} - {AUTH_TYPE_CONFIG[existingAuthorization.authType]?.label}
+                  {existingAuthorization.employeeName} - {existingAuthorization.authType ? t(`authorizations.types.${AUTH_TYPE_I18N_KEY[existingAuthorization.authType]}`) : ''}
                 </p>
               )}
             </div>
@@ -314,12 +327,12 @@ export function AuthorizationForm({
 
         <div className="flex items-center gap-3">
           <Button
-            text="ยกเลิก"
+            text={t('authorizations.form.cancel')}
             stylingMode="outlined"
             onClick={handleBack}
           />
           <Button
-            text={isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+            text={isPending ? t('authorizations.form.saving') : t('authorizations.form.save')}
             type="default"
             icon="save"
             disabled={isPending}
@@ -332,7 +345,7 @@ export function AuthorizationForm({
       {/* Form */}
       <Card data-testid="auth-form-card">
         <CardHeader>
-          <CardTitle>ข้อมูลสิทธิ์อนุมัติ</CardTitle>
+          <CardTitle>{t('authorizations.form.cardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form
@@ -355,47 +368,47 @@ export function AuthorizationForm({
           >
             <SimpleItem
               dataField="employeeId"
-              label={{ text: 'พนักงาน' }}
+              label={{ text: t('authorizations.form.employee.label') }}
               editorType="dxSelectBox"
               editorOptions={{
                 items: employeeOptions,
                 valueExpr: 'id',
                 displayExpr: 'displayName',
-                placeholder: 'เลือกพนักงาน',
+                placeholder: t('authorizations.form.employee.placeholder'),
                 searchEnabled: true,
                 showClearButton: true,
                 readOnly: mode === 'edit',
                 elementAttr: { 'data-testid': 'auth-employee-field' },
               }}
             >
-              <RequiredRule message="กรุณาเลือกพนักงาน" />
+              <RequiredRule message={t('authorizations.form.employee.required')} />
             </SimpleItem>
 
             <SimpleItem
               dataField="authType"
-              label={{ text: 'ประเภทสิทธิ์' }}
+              label={{ text: t('authorizations.form.authType.label') }}
               editorType="dxSelectBox"
               editorOptions={{
-                items: AUTH_TYPE_OPTIONS,
+                items: authTypeOptions,
                 valueExpr: 'value',
                 displayExpr: 'text',
-                placeholder: 'เลือกประเภทสิทธิ์',
+                placeholder: t('authorizations.form.authType.placeholder'),
                 readOnly: mode === 'edit',
                 elementAttr: { 'data-testid': 'auth-type-field' },
               }}
             >
-              <RequiredRule message="กรุณาเลือกประเภทสิทธิ์" />
+              <RequiredRule message={t('authorizations.form.authType.required')} />
             </SimpleItem>
 
             <SimpleItem
               dataField="scopeProductLines"
-              label={{ text: 'สายผลิตภัณฑ์ (ไม่บังคับ)' }}
+              label={{ text: t('authorizations.form.scopeProductLines.label') }}
               render={() => (
                 <TagBox
                   items={PRODUCT_LINE_OPTIONS}
                   value={formData.scopeProductLines}
                   onValueChanged={(e) => setFormData(prev => ({ ...prev, scopeProductLines: e.value || [] }))}
-                  placeholder="เลือกสายผลิตภัณฑ์..."
+                  placeholder={t('authorizations.form.scopeProductLines.placeholder')}
                   showSelectionControls
                   data-testid="auth-product-lines-field"
                 />
@@ -405,26 +418,26 @@ export function AuthorizationForm({
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="effectiveFrom"
-                label={{ text: 'วันที่เริ่มต้น' }}
+                label={{ text: t('authorizations.form.effectiveFrom.label') }}
                 editorType="dxDateBox"
                 editorOptions={{
                   displayFormat: 'dd/MM/yyyy',
                   type: 'date',
-                  placeholder: 'เลือกวันที่',
+                  placeholder: t('authorizations.form.effectiveFrom.placeholder'),
                   elementAttr: { 'data-testid': 'auth-effective-from-field' },
                 }}
               >
-                <RequiredRule message="กรุณาระบุวันที่เริ่มต้น" />
+                <RequiredRule message={t('authorizations.form.effectiveFrom.required')} />
               </SimpleItem>
 
               <SimpleItem
                 dataField="effectiveTo"
-                label={{ text: 'วันที่สิ้นสุด (ถ้ามี)' }}
+                label={{ text: t('authorizations.form.effectiveTo.label') }}
                 editorType="dxDateBox"
                 editorOptions={{
                   displayFormat: 'dd/MM/yyyy',
                   type: 'date',
-                  placeholder: 'เลือกวันที่',
+                  placeholder: t('authorizations.form.effectiveTo.placeholder'),
                   showClearButton: true,
                   elementAttr: { 'data-testid': 'auth-effective-to-field' },
                 }}

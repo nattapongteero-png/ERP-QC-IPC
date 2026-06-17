@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
@@ -34,12 +35,14 @@ const ModulePermissionSelector = React.memo(function ModulePermissionSelector({
   selectedIds,
   onChange,
   disabled,
+  placeholder,
 }: {
   module: string;
   modulePermissions: AppPermission[];
   selectedIds: number[];
   onChange: (module: string, ids: number[]) => void;
   disabled: boolean;
+  placeholder: string;
 }) {
   const handleChange = React.useCallback(
     (e: { value?: number[] }) => onChange(module, e.value || []),
@@ -62,7 +65,7 @@ const ModulePermissionSelector = React.memo(function ModulePermissionSelector({
         value={selectedIds}
         onValueChanged={handleChange}
         showSelectionControls
-        placeholder="เลือกสิทธิ์..."
+        placeholder={placeholder}
         disabled={disabled}
       />
     </div>
@@ -70,6 +73,7 @@ const ModulePermissionSelector = React.memo(function ModulePermissionSelector({
 }, (prev, next) => {
   if (prev.module !== next.module) return false;
   if (prev.disabled !== next.disabled) return false;
+  if (prev.placeholder !== next.placeholder) return false;
   if (prev.modulePermissions !== next.modulePermissions) return false;
   if (prev.onChange !== next.onChange) return false;
   // Deep compare selectedIds to avoid re-render on same content
@@ -179,6 +183,7 @@ async function activateRole(id: number): Promise<AppRoleWithPermissions> {
 }
 
 export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
+  const t = useTranslations('hr');
   const router = useRouter();
   const queryClient = useQueryClient();
   const isEditMode = mode === 'edit';
@@ -253,12 +258,12 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
         await updateRolePermissions(data.id, selectedPermissionIds);
       }
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
-      notify('สร้างบทบาทสำเร็จ', 'success', 3000);
+      notify(t('roles.form.toast.createSuccess'), 'success', 3000);
       onSuccess?.(data);
       router.push('/hr/roles');
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถสร้างบทบาทได้', 'error', 5000);
+      notify(error.message || t('roles.form.toast.createError'), 'error', 5000);
     },
   });
 
@@ -270,12 +275,12 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
       await updateRolePermissions(data.id, selectedPermissionIds);
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'role', roleId] });
-      notify('แก้ไขบทบาทสำเร็จ', 'success', 3000);
+      notify(t('roles.form.toast.updateSuccess'), 'success', 3000);
       onSuccess?.(data);
       router.push('/hr/roles');
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถแก้ไขบทบาทได้', 'error', 5000);
+      notify(error.message || t('roles.form.toast.updateError'), 'error', 5000);
     },
   });
 
@@ -283,11 +288,11 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
     mutationFn: deleteRole,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
-      notify('ปิดใช้งานบทบาทสำเร็จ', 'success', 3000);
+      notify(t('roles.form.toast.deactivateSuccess'), 'success', 3000);
       router.push('/hr/roles');
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถปิดใช้งานบทบาทได้', 'error', 5000);
+      notify(error.message || t('roles.form.toast.deactivateError'), 'error', 5000);
     },
   });
 
@@ -296,16 +301,16 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'role', roleId] });
-      notify('เปิดใช้งานบทบาทสำเร็จ', 'success', 3000);
+      notify(t('roles.form.toast.activateSuccess'), 'success', 3000);
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถเปิดใช้งานบทบาทได้', 'error', 5000);
+      notify(error.message || t('roles.form.toast.activateError'), 'error', 5000);
     },
   });
 
   const handleSubmit = () => {
     if (!formData.code || !formData.name) {
-      notify('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning', 3000);
+      notify(t('roles.form.validation.incomplete'), 'warning', 3000);
       return;
     }
 
@@ -391,10 +396,10 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">
-                  {isEditMode ? `แก้ไขบทบาท: ${role?.code || ''}` : 'สร้างบทบาทใหม่'}
+                  {isEditMode ? t('roles.form.editTitle', { code: role?.code || '' }) : t('roles.form.createTitle')}
                 </h1>
                 <p className="text-sm text-gray-500">
-                  {isEditMode ? 'แก้ไขข้อมูลและสิทธิ์ของบทบาท' : 'กรอกข้อมูลบทบาทและกำหนดสิทธิ์'}
+                  {isEditMode ? t('roles.form.editSubtitle') : t('roles.form.createSubtitle')}
                 </p>
               </div>
             </div>
@@ -402,7 +407,7 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
           <div className="flex items-center gap-2">
             {isEditMode && !isSystemRole && role?.isActive === false && (
               <Button
-                text="เปิดใช้งาน"
+                text={t('roles.form.activate')}
                 icon="check"
                 type="success"
                 stylingMode="outlined"
@@ -413,7 +418,7 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
             )}
             {isEditMode && !isSystemRole && role?.isActive !== false && (
               <Button
-                text="ปิดใช้งาน"
+                text={t('roles.form.deactivate')}
                 icon="trash"
                 type="danger"
                 stylingMode="outlined"
@@ -422,13 +427,13 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
               />
             )}
             <Button
-              text="ยกเลิก"
+              text={t('roles.form.cancel')}
               stylingMode="outlined"
               onClick={handleCancel}
               disabled={isPending}
             />
             <Button
-              text={isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+              text={isPending ? t('roles.form.saving') : t('roles.form.save')}
               icon={isPending ? 'spindown' : 'save'}
               type="success"
               onClick={handleSubmit}
@@ -445,7 +450,7 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
               <div className="flex items-center gap-2 text-amber-800">
                 <Shield className="h-5 w-5" />
                 <span className="font-medium">
-                  บทบาทระบบไม่สามารถแก้ไขได้
+                  {t('roles.form.systemRoleWarning')}
                 </span>
               </div>
             </CardContent>
@@ -458,19 +463,19 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-red-800">ยืนยันการปิดใช้งาน</p>
+                  <p className="font-medium text-red-800">{t('roles.form.deleteConfirm.title')}</p>
                   <p className="text-sm text-red-600">
-                    คุณต้องการปิดใช้งานบทบาท &quot;{role?.name}&quot; หรือไม่?
+                    {t('roles.form.deleteConfirm.message', { name: role?.name || '' })}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    text="ยกเลิก"
+                    text={t('roles.form.cancel')}
                     stylingMode="outlined"
                     onClick={() => setShowDeleteConfirm(false)}
                   />
                   <Button
-                    text={deleteMutation.isPending ? 'กำลังลบ...' : 'ปิดใช้งาน'}
+                    text={deleteMutation.isPending ? t('roles.form.deleting') : t('roles.form.deactivate')}
                     icon="trash"
                     type="danger"
                     onClick={handleDelete}
@@ -491,45 +496,45 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Shield className="h-5 w-5 text-blue-500" />
-                  ข้อมูลบทบาท
+                  {t('roles.form.infoTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div data-testid="role-code-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    รหัสบทบาท <span className="text-red-500">*</span>
+                    {t('roles.form.code.label')} <span className="text-red-500">*</span>
                   </label>
                   <TextBox
                     value={formData.code}
                     onValueChanged={(e) => setFormData(prev => ({ ...prev, code: e.value || '' }))}
-                    placeholder="เช่น quality_manager"
+                    placeholder={t('roles.form.code.placeholder')}
                     disabled={isEditMode || isSystemRole}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    ตัวพิมพ์เล็กและขีดล่างเท่านั้น (ไม่สามารถแก้ไขได้หลังสร้าง)
+                    {t('roles.form.code.hint')}
                   </p>
                 </div>
 
                 <div data-testid="role-name-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ชื่อบทบาท <span className="text-red-500">*</span>
+                    {t('roles.form.name.label')} <span className="text-red-500">*</span>
                   </label>
                   <TextBox
                     value={formData.name}
                     onValueChanged={(e) => setFormData(prev => ({ ...prev, name: e.value || '' }))}
-                    placeholder="เช่น ผู้จัดการคุณภาพ"
+                    placeholder={t('roles.form.name.placeholder')}
                     disabled={isSystemRole}
                   />
                 </div>
 
                 <div data-testid="role-description-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    คำอธิบาย
+                    {t('roles.form.description.label')}
                   </label>
                   <TextArea
                     value={formData.description}
                     onValueChanged={(e) => setFormData(prev => ({ ...prev, description: e.value || '' }))}
-                    placeholder="ระบุคำอธิบายบทบาท..."
+                    placeholder={t('roles.form.description.placeholder')}
                     height={100}
                     disabled={isSystemRole}
                   />
@@ -542,9 +547,9 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Key className="h-5 w-5 text-amber-500" />
-                  สิทธิ์การเข้าถึง
+                  {t('roles.form.permissionsTitle')}
                   <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full">
-                    {selectedPermissionIds.length} สิทธิ์
+                    {t('roles.form.permissionCount', { count: selectedPermissionIds.length })}
                   </span>
                 </CardTitle>
               </CardHeader>
@@ -561,13 +566,14 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
                       selectedIds={selectedForModule}
                       onChange={handleModulePermissionChange}
                       disabled={isSystemRole}
+                      placeholder={t('roles.form.permissionPlaceholder')}
                     />
                   );
                 })}
                 {Object.keys(permissionsByModule).length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Key className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p>ไม่พบสิทธิ์ในระบบ</p>
+                    <p>{t('roles.form.noPermissions')}</p>
                   </div>
                 )}
               </CardContent>
@@ -579,37 +585,37 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
             {/* Summary */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">สรุป</CardTitle>
+                <CardTitle className="text-base">{t('roles.form.summaryTitle')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">รหัส</span>
+                  <span className="text-gray-500">{t('roles.form.summaryCode')}</span>
                   <span className="font-medium text-gray-900">{formData.code || '-'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">ชื่อ</span>
+                  <span className="text-gray-500">{t('roles.form.summaryName')}</span>
                   <span className="font-medium text-gray-900 truncate max-w-[150px]">
                     {formData.name || '-'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">จำนวนสิทธิ์</span>
-                  <span className="font-medium text-amber-600">{selectedPermissionIds.length} สิทธิ์</span>
+                  <span className="text-gray-500">{t('roles.form.summaryPermissionCount')}</span>
+                  <span className="font-medium text-amber-600">{t('roles.form.permissionCount', { count: selectedPermissionIds.length })}</span>
                 </div>
                 {isEditMode && role && (
                   <>
                     <div className="pt-3 border-t">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">สถานะ</span>
+                        <span className="text-gray-500">{t('roles.form.summaryStatus')}</span>
                         <span className={`font-medium ${role.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                          {role.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                          {role.isActive ? t('roles.form.statusActive') : t('roles.form.statusInactive')}
                         </span>
                       </div>
                     </div>
                     {role.isSystemRole && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">ประเภท</span>
-                        <span className="font-medium text-purple-600">บทบาทระบบ</span>
+                        <span className="text-gray-500">{t('roles.form.summaryType')}</span>
+                        <span className="font-medium text-purple-600">{t('roles.form.systemRoleLabel')}</span>
                       </div>
                     )}
                   </>
@@ -621,11 +627,11 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
             {isEditMode && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">การดำเนินการ</CardTitle>
+                  <CardTitle className="text-base">{t('roles.form.quickActionsTitle')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <Button
-                    text="กลับไปรายการ"
+                    text={t('roles.form.backToList')}
                     icon="back"
                     stylingMode="outlined"
                     width="100%"

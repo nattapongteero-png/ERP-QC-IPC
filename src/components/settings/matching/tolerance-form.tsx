@@ -8,6 +8,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
@@ -107,6 +108,7 @@ export function ToleranceForm({
   onSuccess,
   onCancel,
 }: ToleranceFormProps) {
+  const t = useTranslations('settings');
   const router = useRouter();
   const queryClient = useQueryClient();
   const formRef = React.useRef<FormRef>(null);
@@ -140,7 +142,7 @@ export function ToleranceForm({
     mutationFn: createTolerance,
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['matching-tolerances'] });
-      notify('Tolerance created successfully', 'success', 3000);
+      notify(t('matchingTolerances.form.toast.createSuccess'), 'success', 3000);
       if (onSuccess) {
         onSuccess(result);
       } else {
@@ -158,7 +160,7 @@ export function ToleranceForm({
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['matching-tolerances'] });
       queryClient.invalidateQueries({ queryKey: ['matching-tolerance', toleranceId] });
-      notify('Tolerance updated successfully', 'success', 3000);
+      notify(t('matchingTolerances.form.toast.updateSuccess'), 'success', 3000);
       if (onSuccess) {
         onSuccess(result);
       } else {
@@ -175,7 +177,7 @@ export function ToleranceForm({
     mutationFn: () => deleteTolerance(toleranceId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['matching-tolerances'] });
-      notify('Tolerance deleted successfully', 'success', 3000);
+      notify(t('matchingTolerances.form.toast.deleteSuccess'), 'success', 3000);
       router.push('/settings/matching-tolerances');
     },
     onError: (error: Error) => {
@@ -186,7 +188,7 @@ export function ToleranceForm({
   const handleSubmit = () => {
     const validationResult = formRef.current?.instance()?.validate();
     if (!validationResult?.isValid) {
-      notify('Please fill in all required fields', 'warning', 3000);
+      notify(t('matchingTolerances.form.validation.incomplete'), 'warning', 3000);
       return;
     }
 
@@ -235,7 +237,7 @@ export function ToleranceForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3 text-gray-500">
             <LoadIndicator height={24} width={24} />
-            <span>กำลังโหลดค่าความคลาดเคลื่อน...</span>
+            <span>{t('matchingTolerances.form.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -248,20 +250,20 @@ export function ToleranceForm({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
-            text="ย้อนกลับ"
+            text={t('matchingTolerances.form.back')}
             icon="back"
             stylingMode="text"
             onClick={handleCancel}
           />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900">
-            {mode === 'create' ? 'สร้างค่าความคลาดเคลื่อนใหม่' : `แก้ไข: ${existingTolerance?.name}`}
+            {mode === 'create' ? t('matchingTolerances.form.createTitle') : t('matchingTolerances.form.editTitle', { name: existingTolerance?.name || '' })}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           {mode === 'edit' && (
             <Button
-              text="ลบ"
+              text={t('matchingTolerances.form.delete')}
               icon={isDeleting ? 'spindown' : 'trash'}
               type="danger"
               stylingMode="outlined"
@@ -271,14 +273,14 @@ export function ToleranceForm({
             />
           )}
           <Button
-            text="ยกเลิก"
+            text={t('matchingTolerances.form.cancel')}
             icon="close"
             stylingMode="outlined"
             onClick={handleCancel}
             disabled={isSubmitting}
           />
           <Button
-            text={mode === 'create' ? 'สร้าง' : 'บันทึกการเปลี่ยนแปลง'}
+            text={mode === 'create' ? t('matchingTolerances.form.create') : t('matchingTolerances.form.saveChanges')}
             icon={isSubmitting ? 'spindown' : 'save'}
             type="success"
             onClick={handleSubmit}
@@ -294,19 +296,19 @@ export function ToleranceForm({
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                <p className="font-medium text-red-800">{t('matchingTolerances.form.deleteConfirm.title')}</p>
                 <p className="text-sm text-red-600">
-                  คุณแน่ใจหรือไม่ว่าต้องการลบค่าความคลาดเคลื่อนนี้? การกระทำนี้ไม่สามารถยกเลิกได้
+                  {t('matchingTolerances.form.deleteConfirm.message')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="ยกเลิก"
+                  text={t('matchingTolerances.form.cancel')}
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text="ลบ"
+                  text={t('matchingTolerances.form.delete')}
                   icon="trash"
                   type="danger"
                   onClick={handleDelete}
@@ -324,7 +326,7 @@ export function ToleranceForm({
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">การตั้งค่าความคลาดเคลื่อน</CardTitle>
+              <CardTitle className="text-base">{t('matchingTolerances.form.cardTitle')}</CardTitle>
             </CardHeader>
             <CardContent>
               <Form
@@ -340,17 +342,17 @@ export function ToleranceForm({
                 colCount={2}
               >
                 <Item dataField="name" colSpan={2}>
-                  <Label text="ชื่อ" />
+                  <Label text={t('matchingTolerances.form.name.label')} />
                   <TextBox
                     value={formData.name}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, name: e.value || '' }))}
-                    placeholder="ระบุชื่อค่าความคลาดเคลื่อน (เช่น ค่าเริ่มต้น)"
+                    placeholder={t('matchingTolerances.form.name.placeholder')}
                     data-testid="tolerance-name-input"
                   />
-                  <RequiredRule message="กรุณาระบุชื่อ" />
+                  <RequiredRule message={t('matchingTolerances.form.name.required')} />
                 </Item>
                 <Item dataField="toleranceType" colSpan={1}>
-                  <Label text="ประเภทค่าความคลาดเคลื่อน" />
+                  <Label text={t('matchingTolerances.form.toleranceType.label')} />
                   <SelectBox
                     dataSource={TOLERANCE_TYPE_OPTIONS}
                     displayExpr="label"
@@ -362,7 +364,7 @@ export function ToleranceForm({
                   />
                 </Item>
                 <Item dataField="toleranceMethod" colSpan={1}>
-                  <Label text="วิธีการ" />
+                  <Label text={t('matchingTolerances.form.toleranceMethod.label')} />
                   <SelectBox
                     dataSource={TOLERANCE_METHOD_OPTIONS}
                     displayExpr="label"
@@ -374,7 +376,7 @@ export function ToleranceForm({
                   />
                 </Item>
                 <Item dataField="toleranceValue" colSpan={1}>
-                  <Label text="ค่าความคลาดเคลื่อน" />
+                  <Label text={t('matchingTolerances.form.toleranceValue.label')} />
                   <NumberBox
                     value={formData.toleranceValue}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, toleranceValue: e.value || 0 }))}
@@ -386,7 +388,7 @@ export function ToleranceForm({
                   />
                 </Item>
                 <Item dataField="priority" colSpan={1}>
-                  <Label text="ลำดับความสำคัญ (ค่าน้อย = สำคัญกว่า)" />
+                  <Label text={t('matchingTolerances.form.priority.label')} />
                   <NumberBox
                     value={formData.priority}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, priority: e.value || 10 }))}
@@ -397,12 +399,12 @@ export function ToleranceForm({
                   />
                 </Item>
                 <Item dataField="description" colSpan={2}>
-                  <Label text="รายละเอียด" />
+                  <Label text={t('matchingTolerances.form.description.label')} />
                   <TextArea
                     value={formData.description}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, description: e.value || '' }))}
                     height={100}
-                    placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)..."
+                    placeholder={t('matchingTolerances.form.description.placeholder')}
                     data-testid="tolerance-description-input"
                   />
                 </Item>
@@ -413,16 +415,14 @@ export function ToleranceForm({
           {/* Info Box */}
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="py-4">
-              <h3 className="text-blue-800 font-medium mb-2">เกี่ยวกับค่าความคลาดเคลื่อนการจับคู่ 3 ทาง</h3>
+              <h3 className="text-blue-800 font-medium mb-2">{t('matchingTolerances.form.infoBox.title')}</h3>
               <p className="text-blue-700 text-sm">
-                ค่าความคลาดเคลื่อนกำหนดเกณฑ์ความแตกต่างที่ยอมรับได้เมื่อเปรียบเทียบใบสั่งซื้อ
-                ใบรับสินค้า และใบแจ้งหนี้ ความแตกต่างที่เกินค่าความคลาดเคลื่อนจะสร้าง
-                ข้อยกเว้นที่ต้องได้รับการอนุมัติด้วยตนเอง
+                {t('matchingTolerances.form.infoBox.description')}
               </p>
               <ul className="mt-2 text-sm text-blue-700 list-disc list-inside">
-                <li><strong>ปริมาณ:</strong> ความแตกต่างของปริมาณที่สั่ง/รับ/แจ้งหนี้</li>
-                <li><strong>ราคา:</strong> ความแตกต่างของราคาต่อหน่วยระหว่างใบสั่งซื้อและใบแจ้งหนี้</li>
-                <li><strong>จำนวนเงิน:</strong> ความแตกต่างของจำนวนเงินรวม</li>
+                <li><strong>{t('matchingTolerances.form.infoBox.quantity')}</strong> {t('matchingTolerances.form.infoBox.quantityDesc')}</li>
+                <li><strong>{t('matchingTolerances.form.infoBox.price')}</strong> {t('matchingTolerances.form.infoBox.priceDesc')}</li>
+                <li><strong>{t('matchingTolerances.form.infoBox.amount')}</strong> {t('matchingTolerances.form.infoBox.amountDesc')}</li>
               </ul>
             </CardContent>
           </Card>
@@ -432,11 +432,11 @@ export function ToleranceForm({
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">สถานะ</CardTitle>
+              <CardTitle className="text-base">{t('matchingTolerances.form.statusTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">เปิดใช้งาน</span>
+                <span className="text-sm text-gray-700">{t('matchingTolerances.form.enabled')}</span>
                 <Switch
                   value={formData.isActive}
                   onValueChanged={(e) => setFormData((prev) => ({ ...prev, isActive: e.value }))}
@@ -445,8 +445,8 @@ export function ToleranceForm({
               </div>
               <p className="text-xs text-gray-500">
                 {formData.isActive
-                  ? 'ค่าความคลาดเคลื่อนนี้เปิดใช้งานและจะถูกใช้ในการตรวจสอบการจับคู่'
-                  : 'ค่าความคลาดเคลื่อนนี้ปิดใช้งานและจะไม่ถูกใช้ในการจับคู่'}
+                  ? t('matchingTolerances.form.activeHint')
+                  : t('matchingTolerances.form.inactiveHint')}
               </p>
             </CardContent>
           </Card>
@@ -454,29 +454,29 @@ export function ToleranceForm({
           {mode === 'edit' && existingTolerance && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">ข้อมูลค่าความคลาดเคลื่อน</CardTitle>
+                <CardTitle className="text-base">{t('matchingTolerances.form.detailsTitle')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">รหัส</span>
+                  <span className="text-gray-500">{t('matchingTolerances.form.detailId')}</span>
                   <span className="font-mono text-gray-900">{existingTolerance.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">ประเภท</span>
+                  <span className="text-gray-500">{t('matchingTolerances.form.detailType')}</span>
                   <span className="text-gray-900 capitalize">{existingTolerance.toleranceType}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">วิธีการ</span>
+                  <span className="text-gray-500">{t('matchingTolerances.form.detailMethod')}</span>
                   <span className="text-gray-900 capitalize">{existingTolerance.toleranceMethod}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">สร้างเมื่อ</span>
+                  <span className="text-gray-500">{t('matchingTolerances.form.detailCreatedAt')}</span>
                   <span className="text-gray-900">
                     {new Date(existingTolerance.createdAt).toLocaleDateString('th-TH')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">แก้ไขเมื่อ</span>
+                  <span className="text-gray-500">{t('matchingTolerances.form.detailUpdatedAt')}</span>
                   <span className="text-gray-900">
                     {new Date(existingTolerance.updatedAt).toLocaleDateString('th-TH')}
                   </span>

@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import Form, { SimpleItem, GroupItem, RequiredRule, FormRef } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
@@ -87,6 +88,7 @@ export function TrainingCourseForm({
   onCancel,
 }: TrainingCourseFormProps) {
   const router = useRouter();
+  const t = useTranslations('hr');
   const queryClient = useQueryClient();
   const navigate = createHrNavigator(router, 'training-courses');
   const formRef = useRef<FormRef>(null);
@@ -121,7 +123,7 @@ export function TrainingCourseForm({
     mutationFn: createCourse,
     onSuccess: (course) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'courses'] });
-      showSuccess('สร้างหลักสูตรสำเร็จ');
+      showSuccess(t('training.courseForm.toast.createSuccess'));
       if (onSuccess) {
         onSuccess(course);
       } else {
@@ -129,7 +131,7 @@ export function TrainingCourseForm({
       }
     },
     onError: (error: Error) => {
-      handleApiError(error, 'เกิดข้อผิดพลาดในการสร้างหลักสูตร');
+      handleApiError(error, t('training.courseForm.toast.createError'));
     },
   });
 
@@ -138,7 +140,7 @@ export function TrainingCourseForm({
     onSuccess: (course) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'courses'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'course', courseId] });
-      showSuccess('อัปเดตหลักสูตรสำเร็จ');
+      showSuccess(t('training.courseForm.toast.updateSuccess'));
       if (onSuccess) {
         onSuccess(course);
       } else {
@@ -146,7 +148,7 @@ export function TrainingCourseForm({
       }
     },
     onError: (error: Error) => {
-      handleApiError(error, 'เกิดข้อผิดพลาดในการอัปเดตหลักสูตร');
+      handleApiError(error, t('training.courseForm.toast.updateError'));
     },
   });
 
@@ -162,16 +164,16 @@ export function TrainingCourseForm({
     // Validate using DevExtreme form
     const validationResult = formRef.current?.instance()?.validate();
     if (!validationResult?.isValid) {
-      showWarning('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+      showWarning(t('formCommon.fillRequired'));
       return;
     }
 
     if (!formData.code?.trim()) {
-      showWarning('กรุณาระบุรหัสหลักสูตร');
+      showWarning(t('training.courseForm.validation.codeRequired'));
       return;
     }
     if (!formData.name?.trim()) {
-      showWarning('กรุณาระบุชื่อหลักสูตร');
+      showWarning(t('training.courseForm.validation.nameRequired'));
       return;
     }
 
@@ -204,7 +206,7 @@ export function TrainingCourseForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3">
             <LoadIndicator height={24} width={24} />
-            <span>กำลังโหลดข้อมูล...</span>
+            <span>{t('formCommon.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -234,10 +236,10 @@ export function TrainingCourseForm({
             </div>
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                {isCreate ? 'เพิ่มหลักสูตรใหม่' : 'แก้ไขหลักสูตร'}
+                {isCreate ? t('training.courseForm.createTitle') : t('training.courseForm.editTitle')}
               </h1>
               {!isCreate && existingCourse && (
-                <p className="text-sm text-gray-500">รหัส: {existingCourse.code}</p>
+                <p className="text-sm text-gray-500">{t('training.courseForm.codeLabel', { code: existingCourse.code })}</p>
               )}
             </div>
           </div>
@@ -245,12 +247,12 @@ export function TrainingCourseForm({
 
         <div className="flex items-center gap-3">
           <Button
-            text="ยกเลิก"
+            text={t('formCommon.cancel')}
             stylingMode="outlined"
             onClick={handleBack}
           />
           <Button
-            text={isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+            text={isPending ? t('formCommon.saving') : t('formCommon.save')}
             type="default"
             icon="save"
             disabled={isPending}
@@ -263,7 +265,7 @@ export function TrainingCourseForm({
       {/* Form */}
       <Card>
         <CardHeader>
-          <CardTitle>ข้อมูลหลักสูตร</CardTitle>
+          <CardTitle>{t('training.courseForm.cardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form
@@ -287,50 +289,50 @@ export function TrainingCourseForm({
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="code"
-                label={{ text: 'รหัสหลักสูตร' }}
+                label={{ text: t('training.courseForm.code') }}
                 editorOptions={{
-                  placeholder: 'เช่น GMP-001',
+                  placeholder: t('training.courseForm.codePlaceholder'),
                   readOnly: mode === 'edit',
                   elementAttr: { 'data-testid': 'course-code-field' },
                 }}
               >
-                <RequiredRule message="กรุณาระบุรหัสหลักสูตร" />
+                <RequiredRule message={t('training.courseForm.validation.codeRequired')} />
               </SimpleItem>
 
               <SimpleItem
                 dataField="category"
-                label={{ text: 'หมวดหมู่' }}
+                label={{ text: t('training.courseForm.category') }}
                 editorOptions={{
-                  placeholder: 'เช่น GMP, Safety',
+                  placeholder: t('training.courseForm.categoryPlaceholder'),
                 }}
               />
             </GroupItem>
 
             <SimpleItem
               dataField="name"
-              label={{ text: 'ชื่อหลักสูตร (ไทย)' }}
+              label={{ text: t('training.courseForm.nameTh') }}
               editorOptions={{
-                placeholder: 'ชื่อหลักสูตรภาษาไทย',
+                placeholder: t('training.courseForm.nameThPlaceholder'),
                 elementAttr: { 'data-testid': 'course-name-field' },
               }}
             >
-              <RequiredRule message="กรุณาระบุชื่อหลักสูตร" />
+              <RequiredRule message={t('training.courseForm.validation.nameRequired')} />
             </SimpleItem>
 
             <SimpleItem
               dataField="nameEn"
-              label={{ text: 'ชื่อหลักสูตร (อังกฤษ)' }}
+              label={{ text: t('training.courseForm.nameEn') }}
               editorOptions={{
-                placeholder: 'Course name in English',
+                placeholder: t('training.courseForm.nameEnPlaceholder'),
               }}
             />
 
             <SimpleItem
               dataField="description"
-              label={{ text: 'รายละเอียด' }}
+              label={{ text: t('training.courseForm.description') }}
               editorType="dxTextArea"
               editorOptions={{
-                placeholder: 'ระบุรายละเอียดหลักสูตร...',
+                placeholder: t('training.courseForm.descriptionPlaceholder'),
                 height: 100,
               }}
             />
@@ -338,24 +340,24 @@ export function TrainingCourseForm({
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="validityDays"
-                label={{ text: 'อายุการรับรอง (วัน)' }}
+                label={{ text: t('training.courseForm.validityDays') }}
                 editorType="dxNumberBox"
                 editorOptions={{
                   min: 0,
                   showSpinButtons: true,
-                  placeholder: 'เช่น 365',
+                  placeholder: t('training.courseForm.validityDaysPlaceholder'),
                 }}
-                helpText="ว่างเปล่า = ไม่มีหมดอายุ"
+                helpText={t('training.courseForm.validityDaysHelp')}
               />
 
               <SimpleItem
                 dataField="durationHours"
-                label={{ text: 'ระยะเวลาอบรม (ชั่วโมง)' }}
+                label={{ text: t('training.courseForm.durationHours') }}
                 editorType="dxNumberBox"
                 editorOptions={{
                   min: 0,
                   showSpinButtons: true,
-                  placeholder: 'เช่น 8',
+                  placeholder: t('training.courseForm.durationHoursPlaceholder'),
                 }}
               />
             </GroupItem>
@@ -363,13 +365,13 @@ export function TrainingCourseForm({
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="isMandatory"
-                label={{ text: 'หลักสูตรบังคับ' }}
+                label={{ text: t('training.courseForm.isMandatory') }}
                 editorType="dxCheckBox"
               />
 
               <SimpleItem
                 dataField="isActive"
-                label={{ text: 'ใช้งาน' }}
+                label={{ text: t('training.courseForm.isActive') }}
                 editorType="dxCheckBox"
               />
             </GroupItem>

@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import Form, { SimpleItem, GroupItem, RequiredRule, FormRef } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
@@ -84,6 +85,7 @@ export function PositionForm({
   onCancel,
 }: PositionFormProps) {
   const router = useRouter();
+  const t = useTranslations('hr');
   const queryClient = useQueryClient();
   const navigate = createHrNavigator(router, 'positions');
   const formRef = useRef<FormRef>(null);
@@ -116,7 +118,7 @@ export function PositionForm({
     mutationFn: createPosition,
     onSuccess: (position) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'positions'] });
-      showSuccess('สร้างตำแหน่งสำเร็จ');
+      showSuccess(t('positions.toast.createSuccess'));
       if (onSuccess) {
         onSuccess(position);
       } else {
@@ -124,7 +126,7 @@ export function PositionForm({
       }
     },
     onError: (error: Error) => {
-      handleApiError(error, 'เกิดข้อผิดพลาดในการสร้างตำแหน่ง');
+      handleApiError(error, t('positions.toast.createError'));
     },
   });
 
@@ -133,7 +135,7 @@ export function PositionForm({
     onSuccess: (position) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'positions'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'position', positionId] });
-      showSuccess('อัปเดตตำแหน่งสำเร็จ');
+      showSuccess(t('positions.toast.updateSuccess'));
       if (onSuccess) {
         onSuccess(position);
       } else {
@@ -141,7 +143,7 @@ export function PositionForm({
       }
     },
     onError: (error: Error) => {
-      handleApiError(error, 'เกิดข้อผิดพลาดในการอัปเดตตำแหน่ง');
+      handleApiError(error, t('positions.toast.updateError'));
     },
   });
 
@@ -157,16 +159,16 @@ export function PositionForm({
     // Validate using DevExtreme form
     const validationResult = formRef.current?.instance()?.validate();
     if (!validationResult?.isValid) {
-      showWarning('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+      showWarning(t('formCommon.fillRequired'));
       return;
     }
 
     if (!formData.code?.trim()) {
-      showWarning('กรุณาระบุรหัสตำแหน่ง');
+      showWarning(t('positions.form.validation.codeRequired'));
       return;
     }
     if (!formData.title?.trim()) {
-      showWarning('กรุณาระบุชื่อตำแหน่ง');
+      showWarning(t('positions.form.validation.titleRequired'));
       return;
     }
 
@@ -197,7 +199,7 @@ export function PositionForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3">
             <LoadIndicator height={24} width={24} />
-            <span>กำลังโหลดข้อมูล...</span>
+            <span>{t('formCommon.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -227,10 +229,10 @@ export function PositionForm({
             </div>
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                {isCreate ? 'เพิ่มตำแหน่งใหม่' : 'แก้ไขตำแหน่ง'}
+                {isCreate ? t('positions.form.createTitle') : t('positions.form.editTitle')}
               </h1>
               {!isCreate && existingPosition && (
-                <p className="text-sm text-gray-500">รหัส: {existingPosition.code}</p>
+                <p className="text-sm text-gray-500">{t('positions.form.codeLabel', { code: existingPosition.code })}</p>
               )}
             </div>
           </div>
@@ -238,12 +240,12 @@ export function PositionForm({
 
         <div className="flex items-center gap-3">
           <Button
-            text="ยกเลิก"
+            text={t('formCommon.cancel')}
             stylingMode="outlined"
             onClick={handleBack}
           />
           <Button
-            text={isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+            text={isPending ? t('formCommon.saving') : t('formCommon.save')}
             type="default"
             icon="save"
             disabled={isPending}
@@ -256,7 +258,7 @@ export function PositionForm({
       {/* Form */}
       <Card data-testid="pos-form-card">
         <CardHeader>
-          <CardTitle>ข้อมูลตำแหน่ง</CardTitle>
+          <CardTitle>{t('positions.form.cardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form
@@ -273,54 +275,54 @@ export function PositionForm({
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="code"
-                label={{ text: 'รหัสตำแหน่ง' }}
+                label={{ text: t('positions.form.code') }}
                 editorOptions={{
-                  placeholder: 'เช่น QC-001',
+                  placeholder: t('positions.form.codePlaceholder'),
                   readOnly: mode === 'edit',
                   elementAttr: { 'data-testid': 'pos-code-field' },
                 }}
               >
-                <RequiredRule message="กรุณาระบุรหัสตำแหน่ง" />
+                <RequiredRule message={t('positions.form.validation.codeRequired')} />
               </SimpleItem>
 
               <SimpleItem
                 dataField="jobGrade"
-                label={{ text: 'ระดับตำแหน่ง' }}
+                label={{ text: t('positions.form.grade') }}
                 editorOptions={{
-                  placeholder: 'เช่น Manager, Supervisor',
+                  placeholder: t('positions.form.gradePlaceholder'),
                 }}
               />
             </GroupItem>
 
             <SimpleItem
               dataField="title"
-              label={{ text: 'ชื่อตำแหน่ง (ไทย)' }}
+              label={{ text: t('positions.form.titleTh') }}
               editorOptions={{
-                placeholder: 'ชื่อตำแหน่งภาษาไทย',
+                placeholder: t('positions.form.titleThPlaceholder'),
                 elementAttr: { 'data-testid': 'pos-title-field' },
               }}
             >
-              <RequiredRule message="กรุณาระบุชื่อตำแหน่ง" />
+              <RequiredRule message={t('positions.form.validation.titleRequired')} />
             </SimpleItem>
 
             <SimpleItem
               dataField="titleEn"
-              label={{ text: 'ชื่อตำแหน่ง (อังกฤษ)' }}
+              label={{ text: t('positions.form.titleEn') }}
               editorOptions={{
-                placeholder: 'Position title in English',
+                placeholder: t('positions.form.titleEnPlaceholder'),
                 elementAttr: { 'data-testid': 'pos-title-en-field' },
               }}
             />
 
             <SimpleItem
               dataField="orgUnitId"
-              label={{ text: 'หน่วยงาน' }}
+              label={{ text: t('positions.form.orgUnit') }}
               render={() => (
                 <div data-testid="pos-orgunit-field">
                   <OrgUnitPicker
                     value={formData.orgUnitId}
                     onValueChange={(val) => setFormData(prev => ({ ...prev, orgUnitId: val }))}
-                    placeholder="เลือกหน่วยงาน"
+                    placeholder={t('positions.form.orgUnitPlaceholder')}
                     showClearButton
                   />
                 </div>
@@ -330,13 +332,13 @@ export function PositionForm({
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="isGmpCritical"
-                label={{ text: 'ตำแหน่ง GMP Critical' }}
+                label={{ text: t('positions.form.isGmpCritical') }}
                 editorType="dxCheckBox"
               />
 
               <SimpleItem
                 dataField="isActive"
-                label={{ text: 'ใช้งาน' }}
+                label={{ text: t('positions.form.isActive') }}
                 editorType="dxCheckBox"
               />
             </GroupItem>

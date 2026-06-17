@@ -59,6 +59,16 @@
     "yearsMonths": "{years} year(s) {months} month(s)",
     "selectBox": "Select..."
   },
+  "formCommon": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "fillRequired": "Please fill in all required fields"
+  },
   "dashboard": {
     "statCards": {
       "pendingNotifications": "Pending",
@@ -299,8 +309,17 @@
         "hireDate": "Hire Date"
       },
       "options": {
-        "gender": { "male": "Male", "female": "Female", "other": "Other" },
-        "maritalStatus": { "single": "Single", "married": "Married", "divorced": "Divorced", "widowed": "Widowed" },
+        "gender": {
+          "male": "Male",
+          "female": "Female",
+          "other": "Other"
+        },
+        "maritalStatus": {
+          "single": "Single",
+          "married": "Married",
+          "divorced": "Divorced",
+          "widowed": "Widowed"
+        },
         "educationLevel": {
           "primary": "Primary",
           "secondary": "Secondary",
@@ -392,7 +411,16 @@
       "titleEnPlaceholder": "Position title in English",
       "orgUnit": "Org unit",
       "orgUnitPlaceholder": "Select org unit...",
-      "isGmpCritical": "GMP Critical position"
+      "isGmpCritical": "GMP Critical position",
+      "isActive": "Active",
+      "createTitle": "Add New Position",
+      "editTitle": "Edit Position",
+      "codeLabel": "Code: {code}",
+      "cardTitle": "Position Information",
+      "validation": {
+        "codeRequired": "Please enter a position code",
+        "titleRequired": "Please enter a position title"
+      }
     },
     "popups": {
       "createTitle": "Add new position",
@@ -494,6 +522,65 @@
     "actions": {
       "addRole": "Add Role",
       "viewRole": "View Role"
+    },
+    "form": {
+      "createTitle": "Create New Role",
+      "editTitle": "Edit Role: {code}",
+      "createSubtitle": "Enter role details and assign permissions",
+      "editSubtitle": "Edit role details and permissions",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "deleting": "Deleting...",
+      "backToList": "Back to List",
+      "systemRoleWarning": "System roles cannot be edited",
+      "deleteConfirm": {
+        "title": "Confirm Deactivation",
+        "message": "Do you want to deactivate the role \"{name}\"?"
+      },
+      "infoTitle": "Role Information",
+      "code": {
+        "label": "Role Code",
+        "placeholder": "e.g. quality_manager",
+        "hint": "Lowercase and underscores only (cannot be changed after creation)"
+      },
+      "name": {
+        "label": "Role Name",
+        "placeholder": "e.g. Quality Manager"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Enter role description..."
+      },
+      "permissionsTitle": "Access Permissions",
+      "permissionCount": "{count} permissions",
+      "permissionPlaceholder": "Select permissions...",
+      "noPermissions": "No permissions found in the system",
+      "summaryTitle": "Summary",
+      "summaryCode": "Code",
+      "summaryName": "Name",
+      "summaryPermissionCount": "Permission Count",
+      "summaryStatus": "Status",
+      "summaryType": "Type",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "systemRoleLabel": "System Role",
+      "quickActionsTitle": "Actions",
+      "validation": {
+        "incomplete": "Please fill in all required fields"
+      },
+      "toast": {
+        "createSuccess": "Role created successfully",
+        "createError": "Failed to create role",
+        "updateSuccess": "Role updated successfully",
+        "updateError": "Failed to update role",
+        "deactivateSuccess": "Role deactivated successfully",
+        "deactivateError": "Failed to deactivate role",
+        "activateSuccess": "Role activated successfully",
+        "activateError": "Failed to activate role"
+      }
     }
   },
   "authorizations": {
@@ -604,6 +691,47 @@
     "actions": {
       "addAuthorization": "Add Authorization",
       "viewAuthorization": "View Authorization"
+    },
+    "form": {
+      "loading": "Loading...",
+      "createTitle": "Grant New Authorization",
+      "editTitle": "Edit Authorization",
+      "cardTitle": "Authorization Details",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "employee": {
+        "label": "Employee",
+        "placeholder": "Select employee",
+        "required": "Please select an employee"
+      },
+      "authType": {
+        "label": "Authorization Type",
+        "placeholder": "Select authorization type",
+        "required": "Please select an authorization type"
+      },
+      "scopeProductLines": {
+        "label": "Product Lines (optional)",
+        "placeholder": "Select product lines..."
+      },
+      "effectiveFrom": {
+        "label": "Effective From",
+        "placeholder": "Select date",
+        "required": "Please specify the start date"
+      },
+      "effectiveTo": {
+        "label": "Effective To (if any)",
+        "placeholder": "Select date"
+      },
+      "validation": {
+        "incomplete": "Please fill in all required fields"
+      },
+      "toast": {
+        "createSuccess": "Authorization granted successfully",
+        "createError": "Error granting authorization",
+        "updateSuccess": "Authorization updated successfully",
+        "updateError": "Error updating authorization"
+      }
     }
   },
   "healthRecords": {
@@ -663,6 +791,79 @@
     },
     "toast": {
       "deleteSuccess": "Health record deleted successfully"
+    },
+    "healthForm": {
+      "createTitle": "New Health Check Record",
+      "editTitle": "Edit: {name}",
+      "sections": {
+        "examInfo": "Health Check Information",
+        "result": "Examination Result",
+        "medical": "Medical Details (Health Staff Only)"
+      },
+      "fields": {
+        "employee": "Employee",
+        "employeePlaceholder": "Select an employee...",
+        "examType": "Examination Type",
+        "examTypePlaceholder": "Select a type...",
+        "examDate": "Examination Date",
+        "nextExamDue": "Next Examination Due",
+        "fitnessStatus": "Fitness Status",
+        "fitnessStatusPlaceholder": "Select a status...",
+        "restrictions": "Work Restrictions",
+        "restrictionsPlaceholder": "Specify restrictions...",
+        "affectedAreas": "Affected Areas",
+        "affectedAreasPlaceholder": "Select areas...",
+        "examinerName": "Examiner Name",
+        "examinerNamePlaceholder": "Specify doctor/nurse name...",
+        "medicalDetails": "Medical Details",
+        "medicalDetailsPlaceholder": "Specify details...",
+        "examinerNotes": "Examiner Notes",
+        "examinerNotesPlaceholder": "Specify notes..."
+      },
+      "examTypeOptions": {
+        "pre_employment": "Pre-employment",
+        "periodic": "Periodic",
+        "special": "Special"
+      },
+      "fitnessOptions": {
+        "fit": "Fit for work",
+        "unfit": "Unfit for work",
+        "restricted": "Restricted"
+      },
+      "validation": {
+        "employeeRequired": "Please select an employee",
+        "examTypeRequired": "Please select an examination type",
+        "examDateRequired": "Please enter an examination date"
+      },
+      "deleteConfirm": {
+        "title": "Confirm deletion",
+        "message": "Are you sure you want to delete this health record? This action cannot be undone."
+      },
+      "sidebar": {
+        "status": "Status",
+        "currentStatus": "Current status:",
+        "recordInfo": "Record Information",
+        "employee": "Employee",
+        "createdAt": "Recorded at",
+        "updatedAt": "Last updated",
+        "changeHistory": "Change History"
+      },
+      "auditTitle": "Change History: {name}",
+      "auditFields": {
+        "examinationType": "Examination type",
+        "examinationDate": "Examination date",
+        "nextExamDue": "Next due",
+        "fitnessStatus": "Fitness status",
+        "restrictions": "Restrictions",
+        "affectedAreas": "Affected areas",
+        "medicalDetails": "Medical details",
+        "examinerName": "Examiner",
+        "examinerNotes": "Examiner notes"
+      },
+      "toast": {
+        "createSuccess": "Health check recorded successfully",
+        "updateSuccess": "Health check updated successfully"
+      }
     },
     "actionsHint": {
       "view": "View details",
@@ -902,6 +1103,76 @@
         "categories": "Categories"
       }
     },
+    "courseForm": {
+      "createTitle": "Add New Course",
+      "editTitle": "Edit Course",
+      "codeLabel": "Code: {code}",
+      "cardTitle": "Course Information",
+      "code": "Course Code",
+      "codePlaceholder": "e.g. GMP-001",
+      "category": "Category",
+      "categoryPlaceholder": "e.g. GMP, Safety",
+      "nameTh": "Course Name (Thai)",
+      "nameThPlaceholder": "Course name in Thai",
+      "nameEn": "Course Name (English)",
+      "nameEnPlaceholder": "Course name in English",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter course description...",
+      "validityDays": "Validity (days)",
+      "validityDaysPlaceholder": "e.g. 365",
+      "validityDaysHelp": "Empty = never expires",
+      "durationHours": "Duration (hours)",
+      "durationHoursPlaceholder": "e.g. 8",
+      "isMandatory": "Mandatory course",
+      "isActive": "Active",
+      "validation": {
+        "codeRequired": "Please enter a course code",
+        "nameRequired": "Please enter a course name"
+      },
+      "toast": {
+        "createSuccess": "Course created successfully",
+        "createError": "An error occurred while creating the course",
+        "updateSuccess": "Course updated successfully",
+        "updateError": "An error occurred while updating the course"
+      }
+    },
+    "sessionForm": {
+      "createTitle": "New Training Session",
+      "editTitle": "Edit Training Session",
+      "codeLabel": "Code: {code}",
+      "cardTitle": "Training Session Information",
+      "course": "Course",
+      "coursePlaceholder": "Select a course",
+      "sessionDate": "Session Date",
+      "sessionDatePlaceholder": "Select a date",
+      "startTime": "Start Time",
+      "startTimePlaceholder": "HH:MM e.g. 09:00",
+      "endTime": "End Time",
+      "endTimePlaceholder": "HH:MM e.g. 17:00",
+      "timeHelp": "Format HH:MM",
+      "location": "Location",
+      "locationPlaceholder": "e.g. Meeting Room A",
+      "instructorInternal": "Internal Instructor",
+      "instructorInternalPlaceholder": "Select an employee",
+      "instructorExternal": "External Instructor",
+      "instructorExternalPlaceholder": "External instructor name",
+      "maxParticipants": "Max Participants",
+      "maxParticipantsPlaceholder": "e.g. 20",
+      "notes": "Notes",
+      "notesPlaceholder": "Enter notes...",
+      "validation": {
+        "courseRequired": "Please select a course",
+        "dateRequired": "Please enter a session date",
+        "startTimeFormat": "Start time must be in HH:MM format",
+        "endTimeFormat": "End time must be in HH:MM format"
+      },
+      "toast": {
+        "createSuccess": "Training session created successfully",
+        "createError": "An error occurred while creating the training session",
+        "updateSuccess": "Training session updated successfully",
+        "updateError": "An error occurred while updating the training session"
+      }
+    },
     "matrix": {
       "title": "Training Matrix",
       "description": "View employee training matrix"
@@ -938,6 +1209,32 @@
       "columns": {
         "rowNum": "#"
       }
+    }
+  },
+  "roleDialog": {
+    "createTitle": "Create New Role",
+    "editTitle": "Edit Role: {code}",
+    "code": {
+      "label": "Role Code",
+      "placeholder": "e.g. quality_manager",
+      "hint": "Lowercase and underscores only"
+    },
+    "name": {
+      "label": "Role Name",
+      "placeholder": "e.g. Quality Manager"
+    },
+    "description": {
+      "label": "Description",
+      "placeholder": "Enter role description..."
+    },
+    "save": "Save",
+    "create": "Create",
+    "cancel": "Cancel",
+    "toast": {
+      "createSuccess": "Role created successfully",
+      "createError": "Failed to create role",
+      "updateSuccess": "Role updated successfully",
+      "updateError": "Failed to update role"
     }
   }
 }

@@ -59,6 +59,16 @@
     "yearsMonths": "{years} ปี {months} เดือน",
     "selectBox": "เลือก..."
   },
+  "formCommon": {
+    "back": "กลับ",
+    "cancel": "ยกเลิก",
+    "save": "บันทึก",
+    "saveChanges": "บันทึกการเปลี่ยนแปลง",
+    "saving": "กำลังบันทึก...",
+    "delete": "ลบ",
+    "loading": "กำลังโหลดข้อมูล...",
+    "fillRequired": "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน"
+  },
   "dashboard": {
     "statCards": {
       "pendingNotifications": "รอดำเนินการ",
@@ -299,8 +309,17 @@
         "hireDate": "วันที่เริ่มงาน"
       },
       "options": {
-        "gender": { "male": "ชาย", "female": "หญิง", "other": "อื่นๆ" },
-        "maritalStatus": { "single": "โสด", "married": "สมรส", "divorced": "หย่าร้าง", "widowed": "หม้าย" },
+        "gender": {
+          "male": "ชาย",
+          "female": "หญิง",
+          "other": "อื่นๆ"
+        },
+        "maritalStatus": {
+          "single": "โสด",
+          "married": "สมรส",
+          "divorced": "หย่าร้าง",
+          "widowed": "หม้าย"
+        },
         "educationLevel": {
           "primary": "ประถมศึกษา",
           "secondary": "มัธยมศึกษา",
@@ -392,7 +411,16 @@
       "titleEnPlaceholder": "Position title in English",
       "orgUnit": "หน่วยงาน",
       "orgUnitPlaceholder": "เลือกหน่วยงาน...",
-      "isGmpCritical": "ตำแหน่ง GMP Critical"
+      "isGmpCritical": "ตำแหน่ง GMP Critical",
+      "isActive": "ใช้งาน",
+      "createTitle": "เพิ่มตำแหน่งใหม่",
+      "editTitle": "แก้ไขตำแหน่ง",
+      "codeLabel": "รหัส: {code}",
+      "cardTitle": "ข้อมูลตำแหน่ง",
+      "validation": {
+        "codeRequired": "กรุณาระบุรหัสตำแหน่ง",
+        "titleRequired": "กรุณาระบุชื่อตำแหน่ง"
+      }
     },
     "popups": {
       "createTitle": "เพิ่มตำแหน่งงานใหม่",
@@ -494,6 +522,65 @@
     "actions": {
       "addRole": "เพิ่มบทบาท",
       "viewRole": "ดูบทบาท"
+    },
+    "form": {
+      "createTitle": "สร้างบทบาทใหม่",
+      "editTitle": "แก้ไขบทบาท: {code}",
+      "createSubtitle": "กรอกข้อมูลบทบาทและกำหนดสิทธิ์",
+      "editSubtitle": "แก้ไขข้อมูลและสิทธิ์ของบทบาท",
+      "save": "บันทึก",
+      "saving": "กำลังบันทึก...",
+      "cancel": "ยกเลิก",
+      "activate": "เปิดใช้งาน",
+      "deactivate": "ปิดใช้งาน",
+      "deleting": "กำลังลบ...",
+      "backToList": "กลับไปรายการ",
+      "systemRoleWarning": "บทบาทระบบไม่สามารถแก้ไขได้",
+      "deleteConfirm": {
+        "title": "ยืนยันการปิดใช้งาน",
+        "message": "คุณต้องการปิดใช้งานบทบาท \"{name}\" หรือไม่?"
+      },
+      "infoTitle": "ข้อมูลบทบาท",
+      "code": {
+        "label": "รหัสบทบาท",
+        "placeholder": "เช่น quality_manager",
+        "hint": "ตัวพิมพ์เล็กและขีดล่างเท่านั้น (ไม่สามารถแก้ไขได้หลังสร้าง)"
+      },
+      "name": {
+        "label": "ชื่อบทบาท",
+        "placeholder": "เช่น ผู้จัดการคุณภาพ"
+      },
+      "description": {
+        "label": "คำอธิบาย",
+        "placeholder": "ระบุคำอธิบายบทบาท..."
+      },
+      "permissionsTitle": "สิทธิ์การเข้าถึง",
+      "permissionCount": "{count} สิทธิ์",
+      "permissionPlaceholder": "เลือกสิทธิ์...",
+      "noPermissions": "ไม่พบสิทธิ์ในระบบ",
+      "summaryTitle": "สรุป",
+      "summaryCode": "รหัส",
+      "summaryName": "ชื่อ",
+      "summaryPermissionCount": "จำนวนสิทธิ์",
+      "summaryStatus": "สถานะ",
+      "summaryType": "ประเภท",
+      "statusActive": "ใช้งาน",
+      "statusInactive": "ปิดใช้งาน",
+      "systemRoleLabel": "บทบาทระบบ",
+      "quickActionsTitle": "การดำเนินการ",
+      "validation": {
+        "incomplete": "กรุณากรอกข้อมูลให้ครบถ้วน"
+      },
+      "toast": {
+        "createSuccess": "สร้างบทบาทสำเร็จ",
+        "createError": "ไม่สามารถสร้างบทบาทได้",
+        "updateSuccess": "แก้ไขบทบาทสำเร็จ",
+        "updateError": "ไม่สามารถแก้ไขบทบาทได้",
+        "deactivateSuccess": "ปิดใช้งานบทบาทสำเร็จ",
+        "deactivateError": "ไม่สามารถปิดใช้งานบทบาทได้",
+        "activateSuccess": "เปิดใช้งานบทบาทสำเร็จ",
+        "activateError": "ไม่สามารถเปิดใช้งานบทบาทได้"
+      }
     }
   },
   "authorizations": {
@@ -604,6 +691,47 @@
     "actions": {
       "addAuthorization": "เพิ่มการอนุมัติ",
       "viewAuthorization": "ดูการอนุมัติ"
+    },
+    "form": {
+      "loading": "กำลังโหลดข้อมูล...",
+      "createTitle": "มอบสิทธิ์ใหม่",
+      "editTitle": "แก้ไขสิทธิ์อนุมัติ",
+      "cardTitle": "ข้อมูลสิทธิ์อนุมัติ",
+      "save": "บันทึก",
+      "saving": "กำลังบันทึก...",
+      "cancel": "ยกเลิก",
+      "employee": {
+        "label": "พนักงาน",
+        "placeholder": "เลือกพนักงาน",
+        "required": "กรุณาเลือกพนักงาน"
+      },
+      "authType": {
+        "label": "ประเภทสิทธิ์",
+        "placeholder": "เลือกประเภทสิทธิ์",
+        "required": "กรุณาเลือกประเภทสิทธิ์"
+      },
+      "scopeProductLines": {
+        "label": "สายผลิตภัณฑ์ (ไม่บังคับ)",
+        "placeholder": "เลือกสายผลิตภัณฑ์..."
+      },
+      "effectiveFrom": {
+        "label": "วันที่เริ่มต้น",
+        "placeholder": "เลือกวันที่",
+        "required": "กรุณาระบุวันที่เริ่มต้น"
+      },
+      "effectiveTo": {
+        "label": "วันที่สิ้นสุด (ถ้ามี)",
+        "placeholder": "เลือกวันที่"
+      },
+      "validation": {
+        "incomplete": "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน"
+      },
+      "toast": {
+        "createSuccess": "มอบสิทธิ์สำเร็จ",
+        "createError": "เกิดข้อผิดพลาดในการมอบสิทธิ์",
+        "updateSuccess": "อัปเดตสิทธิ์สำเร็จ",
+        "updateError": "เกิดข้อผิดพลาดในการอัปเดตสิทธิ์"
+      }
     }
   },
   "healthRecords": {
@@ -663,6 +791,79 @@
     },
     "toast": {
       "deleteSuccess": "ลบบันทึกสุขภาพสำเร็จ"
+    },
+    "healthForm": {
+      "createTitle": "บันทึกผลตรวจสุขภาพใหม่",
+      "editTitle": "แก้ไข: {name}",
+      "sections": {
+        "examInfo": "ข้อมูลการตรวจสุขภาพ",
+        "result": "ผลการตรวจ",
+        "medical": "รายละเอียดทางการแพทย์ (เฉพาะเจ้าหน้าที่สุขภาพ)"
+      },
+      "fields": {
+        "employee": "พนักงาน",
+        "employeePlaceholder": "เลือกพนักงาน...",
+        "examType": "ประเภทการตรวจ",
+        "examTypePlaceholder": "เลือกประเภท...",
+        "examDate": "วันที่ตรวจ",
+        "nextExamDue": "ครบกำหนดตรวจครั้งถัดไป",
+        "fitnessStatus": "สถานะความพร้อม",
+        "fitnessStatusPlaceholder": "เลือกสถานะ...",
+        "restrictions": "ข้อจำกัดการปฏิบัติงาน",
+        "restrictionsPlaceholder": "ระบุข้อจำกัด...",
+        "affectedAreas": "พื้นที่ที่ได้รับผลกระทบ",
+        "affectedAreasPlaceholder": "เลือกพื้นที่...",
+        "examinerName": "ชื่อผู้ตรวจ",
+        "examinerNamePlaceholder": "ระบุชื่อแพทย์/พยาบาล...",
+        "medicalDetails": "รายละเอียดทางการแพทย์",
+        "medicalDetailsPlaceholder": "ระบุรายละเอียด...",
+        "examinerNotes": "หมายเหตุผู้ตรวจ",
+        "examinerNotesPlaceholder": "ระบุหมายเหตุ..."
+      },
+      "examTypeOptions": {
+        "pre_employment": "ก่อนเข้างาน (Pre-employment)",
+        "periodic": "ตรวจประจำปี (Periodic)",
+        "special": "ตรวจพิเศษ (Special)"
+      },
+      "fitnessOptions": {
+        "fit": "พร้อมปฏิบัติงาน (Fit)",
+        "unfit": "ไม่พร้อมปฏิบัติงาน (Unfit)",
+        "restricted": "มีข้อจำกัด (Restricted)"
+      },
+      "validation": {
+        "employeeRequired": "กรุณาเลือกพนักงาน",
+        "examTypeRequired": "กรุณาเลือกประเภทการตรวจ",
+        "examDateRequired": "กรุณาระบุวันที่ตรวจ"
+      },
+      "deleteConfirm": {
+        "title": "ยืนยันการลบ",
+        "message": "คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกสุขภาพนี้? การดำเนินการนี้ไม่สามารถยกเลิกได้"
+      },
+      "sidebar": {
+        "status": "สถานะ",
+        "currentStatus": "สถานะปัจจุบัน:",
+        "recordInfo": "ข้อมูลบันทึก",
+        "employee": "พนักงาน",
+        "createdAt": "บันทึกเมื่อ",
+        "updatedAt": "อัปเดตล่าสุด",
+        "changeHistory": "ประวัติการเปลี่ยนแปลง"
+      },
+      "auditTitle": "ประวัติการเปลี่ยนแปลง: {name}",
+      "auditFields": {
+        "examinationType": "ประเภทการตรวจ",
+        "examinationDate": "วันที่ตรวจ",
+        "nextExamDue": "ครบกำหนดถัดไป",
+        "fitnessStatus": "สถานะความพร้อม",
+        "restrictions": "ข้อจำกัด",
+        "affectedAreas": "พื้นที่ได้รับผลกระทบ",
+        "medicalDetails": "รายละเอียดทางการแพทย์",
+        "examinerName": "ผู้ตรวจ",
+        "examinerNotes": "หมายเหตุผู้ตรวจ"
+      },
+      "toast": {
+        "createSuccess": "บันทึกผลตรวจสุขภาพสำเร็จ",
+        "updateSuccess": "อัปเดตผลตรวจสุขภาพสำเร็จ"
+      }
     },
     "actionsHint": {
       "view": "ดูรายละเอียด",
@@ -902,6 +1103,76 @@
         "categories": "หมวดหมู่"
       }
     },
+    "courseForm": {
+      "createTitle": "เพิ่มหลักสูตรใหม่",
+      "editTitle": "แก้ไขหลักสูตร",
+      "codeLabel": "รหัส: {code}",
+      "cardTitle": "ข้อมูลหลักสูตร",
+      "code": "รหัสหลักสูตร",
+      "codePlaceholder": "เช่น GMP-001",
+      "category": "หมวดหมู่",
+      "categoryPlaceholder": "เช่น GMP, Safety",
+      "nameTh": "ชื่อหลักสูตร (ไทย)",
+      "nameThPlaceholder": "ชื่อหลักสูตรภาษาไทย",
+      "nameEn": "ชื่อหลักสูตร (อังกฤษ)",
+      "nameEnPlaceholder": "Course name in English",
+      "description": "รายละเอียด",
+      "descriptionPlaceholder": "ระบุรายละเอียดหลักสูตร...",
+      "validityDays": "อายุการรับรอง (วัน)",
+      "validityDaysPlaceholder": "เช่น 365",
+      "validityDaysHelp": "ว่างเปล่า = ไม่มีหมดอายุ",
+      "durationHours": "ระยะเวลาอบรม (ชั่วโมง)",
+      "durationHoursPlaceholder": "เช่น 8",
+      "isMandatory": "หลักสูตรบังคับ",
+      "isActive": "ใช้งาน",
+      "validation": {
+        "codeRequired": "กรุณาระบุรหัสหลักสูตร",
+        "nameRequired": "กรุณาระบุชื่อหลักสูตร"
+      },
+      "toast": {
+        "createSuccess": "สร้างหลักสูตรสำเร็จ",
+        "createError": "เกิดข้อผิดพลาดในการสร้างหลักสูตร",
+        "updateSuccess": "อัปเดตหลักสูตรสำเร็จ",
+        "updateError": "เกิดข้อผิดพลาดในการอัปเดตหลักสูตร"
+      }
+    },
+    "sessionForm": {
+      "createTitle": "จัดอบรมใหม่",
+      "editTitle": "แก้ไขการจัดอบรม",
+      "codeLabel": "รหัส: {code}",
+      "cardTitle": "ข้อมูลการจัดอบรม",
+      "course": "หลักสูตร",
+      "coursePlaceholder": "เลือกหลักสูตร",
+      "sessionDate": "วันที่อบรม",
+      "sessionDatePlaceholder": "เลือกวันที่",
+      "startTime": "เวลาเริ่ม",
+      "startTimePlaceholder": "HH:MM เช่น 09:00",
+      "endTime": "เวลาสิ้นสุด",
+      "endTimePlaceholder": "HH:MM เช่น 17:00",
+      "timeHelp": "รูปแบบ HH:MM",
+      "location": "สถานที่",
+      "locationPlaceholder": "เช่น ห้องประชุม A",
+      "instructorInternal": "วิทยากรภายใน",
+      "instructorInternalPlaceholder": "เลือกพนักงาน",
+      "instructorExternal": "วิทยากรภายนอก",
+      "instructorExternalPlaceholder": "ชื่อวิทยากรภายนอก",
+      "maxParticipants": "จำนวนผู้เข้าร่วมสูงสุด",
+      "maxParticipantsPlaceholder": "เช่น 20",
+      "notes": "หมายเหตุ",
+      "notesPlaceholder": "ระบุหมายเหตุ...",
+      "validation": {
+        "courseRequired": "กรุณาเลือกหลักสูตร",
+        "dateRequired": "กรุณาระบุวันที่อบรม",
+        "startTimeFormat": "เวลาเริ่มต้องอยู่ในรูปแบบ HH:MM",
+        "endTimeFormat": "เวลาสิ้นสุดต้องอยู่ในรูปแบบ HH:MM"
+      },
+      "toast": {
+        "createSuccess": "สร้างการจัดอบรมสำเร็จ",
+        "createError": "เกิดข้อผิดพลาดในการสร้างการจัดอบรม",
+        "updateSuccess": "อัปเดตการจัดอบรมสำเร็จ",
+        "updateError": "เกิดข้อผิดพลาดในการอัปเดตการจัดอบรม"
+      }
+    },
     "matrix": {
       "title": "ตารางการฝึกอบรม",
       "description": "ดูตารางการฝึกอบรมของพนักงาน"
@@ -938,6 +1209,32 @@
       "columns": {
         "rowNum": "#"
       }
+    }
+  },
+  "roleDialog": {
+    "createTitle": "สร้างบทบาทใหม่",
+    "editTitle": "แก้ไขบทบาท: {code}",
+    "code": {
+      "label": "รหัสบทบาท",
+      "placeholder": "เช่น quality_manager",
+      "hint": "ตัวพิมพ์เล็กและขีดล่างเท่านั้น"
+    },
+    "name": {
+      "label": "ชื่อบทบาท",
+      "placeholder": "เช่น ผู้จัดการคุณภาพ"
+    },
+    "description": {
+      "label": "คำอธิบาย",
+      "placeholder": "ระบุคำอธิบายบทบาท..."
+    },
+    "save": "บันทึก",
+    "create": "สร้าง",
+    "cancel": "ยกเลิก",
+    "toast": {
+      "createSuccess": "สร้างบทบาทสำเร็จ",
+      "createError": "ไม่สามารถสร้างบทบาทได้",
+      "updateSuccess": "แก้ไขบทบาทสำเร็จ",
+      "updateError": "ไม่สามารถแก้ไขบทบาทได้"
     }
   }
 }

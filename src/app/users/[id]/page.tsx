@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -166,6 +167,7 @@ const getAvatarColor = (name: string): string => {
 export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('users');
   const userId = params.id as string;
 
   const [user, setUser] = useState<UserData | null>(null);
@@ -218,15 +220,15 @@ export default function UserDetailPage() {
           department: data.data.department || '',
         });
       } else {
-        setError(data.error || 'ไม่พบข้อมูลผู้ใช้');
+        setError(data.error || t('detail.toast.notFound'));
       }
     } catch (err) {
       console.error('Failed to fetch user:', err);
-      setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      setError(t('detail.toast.loadError'));
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, t]);
 
   useEffect(() => {
     if (userId) {
@@ -279,16 +281,16 @@ export default function UserDetailPage() {
       const data = await res.json();
 
       if (data.success) {
-        setSuccessMessage('บันทึกข้อมูลสำเร็จ');
+        setSuccessMessage(t('detail.toast.saveSuccess'));
         setIsEditing(false);
         fetchUser();
         setTimeout(() => setSuccessMessage(null), 3000);
       } else {
-        setError(data.error || 'ไม่สามารถบันทึกข้อมูลได้');
+        setError(data.error || t('detail.toast.saveError'));
       }
     } catch (err) {
       console.error('Failed to save user:', err);
-      setError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      setError(t('detail.toast.saveException'));
     } finally {
       setIsSaving(false);
     }
@@ -298,12 +300,12 @@ export default function UserDetailPage() {
     setPasswordError(null);
 
     if (passwordForm.newPassword.length < 6) {
-      setPasswordError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      setPasswordError(t('detail.password.minError'));
       return;
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordError('รหัสผ่านไม่ตรงกัน');
+      setPasswordError(t('detail.password.mismatchError'));
       return;
     }
 
@@ -319,16 +321,16 @@ export default function UserDetailPage() {
       const data = await res.json();
 
       if (data.success) {
-        setSuccessMessage('เปลี่ยนรหัสผ่านสำเร็จ');
+        setSuccessMessage(t('detail.password.changeSuccess'));
         setShowPasswordSection(false);
         setPasswordForm({ newPassword: '', confirmPassword: '' });
         setTimeout(() => setSuccessMessage(null), 3000);
       } else {
-        setPasswordError(data.error || 'ไม่สามารถเปลี่ยนรหัสผ่านได้');
+        setPasswordError(data.error || t('detail.password.changeError'));
       }
     } catch (err) {
       console.error('Failed to change password:', err);
-      setPasswordError('เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน');
+      setPasswordError(t('detail.password.changeException'));
     } finally {
       setIsSaving(false);
     }
@@ -350,15 +352,15 @@ export default function UserDetailPage() {
       const data = await res.json();
 
       if (data.success) {
-        setSuccessMessage(user.isActive ? 'ปิดใช้งานผู้ใช้สำเร็จ' : 'เปิดใช้งานผู้ใช้สำเร็จ');
+        setSuccessMessage(user.isActive ? t('detail.toast.deactivateSuccess') : t('detail.toast.activateSuccess'));
         fetchUser();
         setTimeout(() => setSuccessMessage(null), 3000);
       } else {
-        setError(data.error || 'ไม่สามารถเปลี่ยนสถานะได้');
+        setError(data.error || t('detail.toast.statusError'));
       }
     } catch (err) {
       console.error('Failed to toggle status:', err);
-      setError('เกิดข้อผิดพลาดในการเปลี่ยนสถานะ');
+      setError(t('detail.toast.statusException'));
     } finally {
       setIsSaving(false);
     }
@@ -378,12 +380,12 @@ export default function UserDetailPage() {
       if (data.success) {
         router.push('/users');
       } else {
-        setError(data.error || 'ไม่สามารถลบผู้ใช้ได้');
+        setError(data.error || t('detail.toast.deleteError'));
         setShowDeleteConfirm(false);
       }
     } catch (err) {
       console.error('Failed to delete user:', err);
-      setError('เกิดข้อผิดพลาดในการลบผู้ใช้');
+      setError(t('detail.toast.deleteException'));
       setShowDeleteConfirm(false);
     } finally {
       setIsDeleting(false);
@@ -417,9 +419,9 @@ export default function UserDetailPage() {
       <MainLayout>
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <AlertTriangle className="h-12 w-12 text-gray-400" />
-          <p className="text-gray-500">{error || 'ไม่พบข้อมูลผู้ใช้'}</p>
+          <p className="text-gray-500">{error || t('detail.toast.notFound')}</p>
           <DxButton
-            text="กลับไปหน้ารายการ"
+            text={t('detail.backToList')}
             icon="back"
             type="default"
             onClick={() => router.push('/users')}
@@ -441,7 +443,7 @@ export default function UserDetailPage() {
               icon="back"
               type="normal"
               stylingMode="outlined"
-              hint="กลับ"
+              hint={t('detail.backHint')}
               data-testid="user-detail-back-btn"
               onClick={() => router.push('/users')}
             />
@@ -453,7 +455,7 @@ export default function UserDetailPage() {
                 <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant={user.isActive ? 'success' : 'danger'} dot>
-                    {user.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                    {user.isActive ? t('detail.statusActive') : t('detail.statusInactive')}
                   </Badge>
                   <Badge variant={roleConfig.variant}>
                     {formatRole(user.role)}
@@ -465,7 +467,7 @@ export default function UserDetailPage() {
           <div className="flex gap-2">
             {!isEditing ? (
               <DxButton
-                text="แก้ไข"
+                text={t('detail.edit')}
                 icon="edit"
                 type="default"
                 data-testid="user-detail-edit-btn"
@@ -474,7 +476,7 @@ export default function UserDetailPage() {
             ) : (
               <>
                 <DxButton
-                  text="ยกเลิก"
+                  text={t('detail.cancel')}
                   icon="close"
                   type="normal"
                   stylingMode="outlined"
@@ -482,7 +484,7 @@ export default function UserDetailPage() {
                   onClick={handleCancelEdit}
                 />
                 <DxButton
-                  text="บันทึก"
+                  text={t('detail.save')}
                   icon="save"
                   type="success"
                   data-testid="user-detail-save-btn"
@@ -521,7 +523,7 @@ export default function UserDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5 text-gray-400" />
-                  ข้อมูลผู้ใช้
+                  {t('detail.userInfo')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -530,13 +532,13 @@ export default function UserDetailPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      ชื่อ-นามสกุล
+                      {t('detail.nameLabel')}
                     </label>
                     {isEditing ? (
                       <DxTextBox
                         value={editForm.name}
                         onValueChange={(value) => setEditForm({ ...editForm, name: value })}
-                        placeholder="กรอกชื่อ-นามสกุล"
+                        placeholder={t('detail.namePlaceholder')}
                         data-testid="user-edit-name-input"
                       />
                     ) : (
@@ -548,13 +550,13 @@ export default function UserDetailPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
                       <Mail className="h-4 w-4" />
-                      อีเมล
+                      {t('detail.emailLabel')}
                     </label>
                     {isEditing ? (
                       <DxTextBox
                         value={editForm.email}
                         onValueChange={(value) => setEditForm({ ...editForm, email: value })}
-                        placeholder="กรอกอีเมล"
+                        placeholder={t('detail.emailPlaceholder')}
                         mode="email"
                         data-testid="user-edit-email-input"
                       />
@@ -571,7 +573,7 @@ export default function UserDetailPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
                       <Shield className="h-4 w-4" />
-                      บทบาท
+                      {t('detail.roleLabel')}
                       {isEditing && (
                         <a
                           href="/hr/roles"
@@ -579,7 +581,7 @@ export default function UserDetailPage() {
                           rel="noopener noreferrer"
                           className="ml-auto text-xs text-blue-600 hover:text-blue-800 hover:underline font-normal"
                         >
-                          จัดการ Role ใน HR →
+                          {t('detail.manageRoles')}
                         </a>
                       )}
                     </label>
@@ -613,7 +615,7 @@ export default function UserDetailPage() {
                         />
                         {isLoadingOptions && (
                           <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-                            <Clock className="h-3 w-3" /> กำลังโหลดรายการ Role จาก HR...
+                            <Clock className="h-3 w-3" /> {t('detail.loadingRoles')}
                           </p>
                         )}
                         {/* Show description of currently selected HR role, if any */}
@@ -623,10 +625,10 @@ export default function UserDetailPage() {
                             return (
                               <div className="mt-1 text-xs text-gray-500 bg-blue-50 border-l-2 border-blue-300 px-2 py-1 rounded">
                                 <Shield className="h-3 w-3 inline mr-1 text-blue-600" />
-                                {selected.description || 'Role จาก HR'}
+                                {selected.description || t('detail.roleFromHr')}
                                 {typeof selected.permissionCount === 'number' && (
                                   <span className="ml-2 text-blue-700 font-semibold">
-                                    · {selected.permissionCount} permissions
+                                    · {t('detail.permissionsCount', { count: selected.permissionCount })}
                                   </span>
                                 )}
                               </div>
@@ -635,8 +637,7 @@ export default function UserDetailPage() {
                           if (editForm.role && LEGACY_ROLE_LABELS[editForm.role]) {
                             return (
                               <div className="mt-1 text-xs text-amber-700 bg-amber-50 border-l-2 border-amber-300 px-2 py-1 rounded">
-                                ⚠️ Legacy role code — แนะนำให้สร้าง Role ใน HR
-                                แล้วเปลี่ยนเป็น Role ใหม่
+                                ⚠️ {t('detail.legacyRoleWarning')}
                               </div>
                             );
                           }
@@ -660,12 +661,12 @@ export default function UserDetailPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
-                      แผนก
+                      {t('detail.departmentLabel')}
                     </label>
                     {isEditing ? (
                       <DxSelectBox
                         items={[
-                          { value: '', label: 'ไม่ระบุ' },
+                          { value: '', label: t('detail.departmentNone') },
                           ...orgUnits.map((u) => ({ value: u.name, label: u.name })),
                         ]}
                         value={editForm.department}
@@ -690,11 +691,11 @@ export default function UserDetailPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Key className="h-5 w-5 text-gray-400" />
-                    เปลี่ยนรหัสผ่าน
+                    {t('detail.changePassword')}
                   </CardTitle>
                   {!showPasswordSection && (
               <DxButton
-                  text="เปลี่ยนรหัสผ่าน"
+                  text={t('detail.changePassword')}
                   icon="key"
                   type="normal"
                   stylingMode="outlined"
@@ -715,12 +716,12 @@ export default function UserDetailPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-500">รหัสผ่านใหม่</label>
+                        <label className="text-sm font-medium text-gray-500">{t('detail.password.newLabel')}</label>
                         <div className="relative">
                           <DxTextBox
                             value={passwordForm.newPassword}
                             onValueChange={(value) => setPasswordForm({ ...passwordForm, newPassword: value })}
-                            placeholder="กรอกรหัสผ่านใหม่"
+                            placeholder={t('detail.password.newPlaceholder')}
                             mode={showPassword ? 'text' : 'password'}
                             data-testid="user-detail-new-password-input"
                           />
@@ -735,11 +736,11 @@ export default function UserDetailPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-500">ยืนยันรหัสผ่าน</label>
+                        <label className="text-sm font-medium text-gray-500">{t('detail.password.confirmLabel')}</label>
                         <DxTextBox
                           value={passwordForm.confirmPassword}
                           onValueChange={(value) => setPasswordForm({ ...passwordForm, confirmPassword: value })}
-                          placeholder="กรอกรหัสผ่านอีกครั้ง"
+                          placeholder={t('detail.password.confirmPlaceholder')}
                           mode={showPassword ? 'text' : 'password'}
                           data-testid="user-detail-confirm-password-input"
                         />
@@ -748,7 +749,7 @@ export default function UserDetailPage() {
 
                     <div className="flex justify-end gap-2">
                       <DxButton
-                        text="ยกเลิก"
+                        text={t('detail.cancel')}
                         type="normal"
                         stylingMode="outlined"
                         data-testid="user-detail-password-cancel-btn"
@@ -759,7 +760,7 @@ export default function UserDetailPage() {
                         }}
                       />
                       <DxButton
-                        text="เปลี่ยนรหัสผ่าน"
+                        text={t('detail.changePassword')}
                         type="success"
                         icon="save"
                         data-testid="user-detail-password-save-btn"
@@ -784,23 +785,23 @@ export default function UserDetailPage() {
                   ) : (
                     <UserX className="h-5 w-5 text-red-500" />
                   )}
-                  สถานะการใช้งาน
+                  {t('detail.statusCardTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
                     <Badge variant={user.isActive ? 'success' : 'danger'} dot className="text-base">
-                      {user.isActive ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                      {user.isActive ? t('detail.statusActiveNow') : t('detail.statusInactive')}
                     </Badge>
                     <p className="text-sm text-gray-500 mt-2">
                       {user.isActive
-                        ? 'ผู้ใช้สามารถเข้าสู่ระบบได้'
-                        : 'ผู้ใช้ไม่สามารถเข้าสู่ระบบได้'}
+                        ? t('detail.canLogin')
+                        : t('detail.cannotLogin')}
                     </p>
                   </div>
                   <DxButton
-                    text={user.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
+                    text={user.isActive ? t('detail.deactivate') : t('detail.activate')}
                     type={user.isActive ? 'danger' : 'success'}
                     stylingMode="outlined"
                     data-testid="user-detail-toggle-status-btn"
@@ -816,28 +817,28 @@ export default function UserDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-gray-400" />
-                  ข้อมูลระบบ
+                  {t('detail.systemInfo')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-start gap-3">
                   <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-gray-500">สร้างเมื่อ</p>
+                    <p className="text-sm text-gray-500">{t('detail.createdAt')}</p>
                     <p className="text-gray-900">{formatDate(user.createdAt)}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Edit3 className="h-5 w-5 text-gray-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-gray-500">แก้ไขล่าสุด</p>
+                    <p className="text-sm text-gray-500">{t('detail.updatedAt')}</p>
                     <p className="text-gray-900">{formatDate(user.updatedAt)}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Key className="h-5 w-5 text-gray-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-gray-500">รหัสผู้ใช้</p>
+                    <p className="text-sm text-gray-500">{t('detail.userId')}</p>
                     <p className="text-gray-900 font-mono">#{user.id}</p>
                   </div>
                 </div>
@@ -849,16 +850,15 @@ export default function UserDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-red-600">
                   <AlertTriangle className="h-5 w-5" />
-                  โซนอันตราย
+                  {t('detail.dangerZone')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500 mb-4">
-                  การลบผู้ใช้จะเป็นการปิดใช้งานบัญชี (Soft Delete)
-                  ข้อมูลจะยังคงอยู่ในระบบ
+                  {t('detail.deleteNote')}
                 </p>
                 <DxButton
-                  text="ลบผู้ใช้"
+                  text={t('detail.deleteUser')}
                   icon="trash"
                   type="danger"
                   stylingMode="outlined"
@@ -876,7 +876,7 @@ export default function UserDetailPage() {
       <DxPopup
         visible={showDeleteConfirm}
         onHiding={() => setShowDeleteConfirm(false)}
-        title="ยืนยันการลบผู้ใช้"
+        title={t('detail.deletePopup.title')}
         width={400}
         height="auto"
         showCloseButton
@@ -887,23 +887,22 @@ export default function UserDetailPage() {
               <Trash2 className="h-6 w-6 text-red-600" />
             </div>
             <div>
-              <p className="font-medium text-gray-900">ลบผู้ใช้ {user.name}?</p>
+              <p className="font-medium text-gray-900">{t('detail.deletePopup.confirmName', { name: user.name })}</p>
               <p className="text-sm text-gray-500">{user.email}</p>
             </div>
           </div>
           <p className="text-gray-600 mb-6">
-            การลบผู้ใช้จะเป็นการปิดใช้งานบัญชี ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้
-            แต่ข้อมูลจะยังคงอยู่ในระบบ
+            {t('detail.deletePopup.message')}
           </p>
           <div className="flex justify-end gap-2">
             <DxButton
-              text="ยกเลิก"
+              text={t('detail.cancel')}
               type="normal"
               stylingMode="outlined"
               onClick={() => setShowDeleteConfirm(false)}
             />
             <DxButton
-              text="ลบผู้ใช้"
+              text={t('detail.deleteUser')}
               type="danger"
               icon="trash"
               onClick={handleDelete}

@@ -4,6 +4,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
@@ -54,6 +55,7 @@ interface RoleDialogProps {
 }
 
 export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps) {
+  const t = useTranslations('hr');
   const queryClient = useQueryClient();
   const toast = useToast();
   const isEditMode = !!role;
@@ -67,12 +69,12 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
     mutationFn: createRole,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
-      toast.success('สร้างบทบาทสำเร็จ');
+      toast.success(t('roleDialog.toast.createSuccess'));
       onSuccess?.(data);
       onHide();
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถสร้างบทบาทได้');
+      toast.error(error.message || t('roleDialog.toast.createError'));
     },
   });
 
@@ -81,12 +83,12 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
       updateRole(id, data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
-      toast.success('แก้ไขบทบาทสำเร็จ');
+      toast.success(t('roleDialog.toast.updateSuccess'));
       onSuccess?.(data);
       onHide();
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถแก้ไขบทบาทได้');
+      toast.error(error.message || t('roleDialog.toast.updateError'));
     },
   });
 
@@ -124,7 +126,7 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
         setDescription('');
         onHide();
       }}
-      title={isEditMode ? `แก้ไขบทบาท: ${role?.code || ''}` : 'สร้างบทบาทใหม่'}
+      title={isEditMode ? t('roleDialog.editTitle', { code: role?.code || '' }) : t('roleDialog.createTitle')}
       width={500}
       height="auto"
       showCloseButton
@@ -133,38 +135,38 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
         {!isEditMode && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              รหัสบทบาท <span className="text-red-500">*</span>
+              {t('roleDialog.code.label')} <span className="text-red-500">*</span>
             </label>
             <TextBox
               value={code}
               onValueChanged={(e) => setCode(e.value || '')}
-              placeholder="เช่น quality_manager"
+              placeholder={t('roleDialog.code.placeholder')}
             />
             <p className="text-xs text-gray-500 mt-1">
-              ตัวพิมพ์เล็กและขีดล่างเท่านั้น
+              {t('roleDialog.code.hint')}
             </p>
           </div>
         )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            ชื่อบทบาท <span className="text-red-500">*</span>
+            {t('roleDialog.name.label')} <span className="text-red-500">*</span>
           </label>
           <TextBox
             value={isEditMode ? (name || role?.name || '') : name}
             onValueChanged={(e) => setName(e.value || '')}
-            placeholder="เช่น ผู้จัดการคุณภาพ"
+            placeholder={t('roleDialog.name.placeholder')}
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            คำอธิบาย
+            {t('roleDialog.description.label')}
           </label>
           <TextArea
             value={isEditMode ? (description || role?.description || '') : description}
             onValueChanged={(e) => setDescription(e.value || '')}
-            placeholder="ระบุคำอธิบายบทบาท..."
+            placeholder={t('roleDialog.description.placeholder')}
             height={80}
           />
         </div>
@@ -174,7 +176,7 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
         widget="dxButton"
         location="after"
         options={{
-          text: 'ยกเลิก',
+          text: t('roleDialog.cancel'),
           onClick: () => {
             setCode('');
             setName('');
@@ -187,7 +189,7 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
         widget="dxButton"
         location="after"
         options={{
-          text: isEditMode ? 'บันทึก' : 'สร้าง',
+          text: isEditMode ? t('roleDialog.save') : t('roleDialog.create'),
           type: 'default',
           disabled: !isValid || isPending,
           onClick: handleSubmit,
