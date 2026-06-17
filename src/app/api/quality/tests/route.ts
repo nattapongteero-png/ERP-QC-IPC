@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           lotId,
           specId,
           testType,
-          sampleNumber,
+          sampleNumber: sampleNumber ?? null, // nullable column — coerce undefined to null
           status: 'pending',
         });
       });

@@ -63,17 +63,21 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
       }
 
-      // Update test with spec snapshot (immutable record of spec at test time)
+      // Update test with spec snapshot (immutable record of spec at test time).
+      // Coerce every nullable column to explicit null (never undefined) — a mix
+      // desynchronises the MySQL prepared-statement bind count ("Bind parameters
+      // count mismatch"). result/numericResult/notes are optional in the request
+      // body and can arrive as undefined when the caller only sends one of them.
       await executeDbOperation(async (db) => {
         return db
           .update(testsTable)
           .set({
-            result,
-            numericResult,
+            result: result ?? null,
+            numericResult: numericResult ?? null,
             status,
             testDate: dbDate(),
             testedBy: session.userId,
-            notes,
+            notes: notes ?? null,
             // Snapshot spec values at recording time
             specMinValue: spec?.minValue ?? null,
             specMaxValue: spec?.maxValue ?? null,

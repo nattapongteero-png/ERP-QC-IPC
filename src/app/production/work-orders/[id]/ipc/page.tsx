@@ -11,6 +11,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
+import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -529,7 +530,8 @@ export default function IPCPage() {
   const hasBOMConfig = (bomConfig?.length || 0) > 0;
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="organic-grid flex flex-col gap-4 p-4">
+      <OrganicGridTheme />
       {/* Header */}
       <ResponsivePageHeader
         title={phaseFilter

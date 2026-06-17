@@ -24,6 +24,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxCheckBox } from '@/components/ui/dx-checkbox';
+import { formatSpecInline } from '@/lib/master-data/ipc-spec-payload';
 
 interface IPCCriteria {
   id: number;
@@ -64,12 +65,20 @@ interface Props {
 }
 
 const formatSpec = (row: LinkRow | IPCCriteria): string => {
+  // Always route specification through formatSpecInline so operators never see
+  // raw JSON envelopes ({"type":"visual",...}). Numeric-only rows (no
+  // specification) fall through to the min/max/unit summary.
+  const inline = formatSpecInline({
+    criteriaType: row.criteriaType,
+    specification: 'specification' in row ? row.specification ?? null : null,
+    minValue: row.minValue ?? null,
+    maxValue: row.maxValue ?? null,
+    unit: row.unit ?? null,
+  });
+  if (inline) return inline;
+  // Fallback for rows where all spec fields are empty
   const parts: string[] = [];
-  if ('specification' in row && row.specification) return row.specification;
   if (row.specTarget != null) parts.push(`target ${row.specTarget}`);
-  if (row.minValue != null) parts.push(`min ${row.minValue}`);
-  if (row.maxValue != null) parts.push(`max ${row.maxValue}`);
-  if (row.unit) parts.push(row.unit);
   return parts.join(' / ') || '-';
 };
 

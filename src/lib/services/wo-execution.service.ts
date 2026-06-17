@@ -3085,15 +3085,18 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
         status: 'pending',
         requestedBy: operatorId,
         requestedAt: getNow(),
-        // Snapshot criteria values
-        specMinValue: effectiveMin,
-        specMaxValue: effectiveMax,
-        specSpecification: config.specification || config.testName,
-        specUnit: config.unit,
+        // Snapshot criteria values. Coerce every nullable column to explicit
+        // null (never undefined) — a mix desynchronises the MySQL prepared-
+        // statement bind count ("Bind parameters count mismatch"). See the
+        // matching note in recordSOPIPCTests.
+        specMinValue: effectiveMin ?? null,
+        specMaxValue: effectiveMax ?? null,
+        specSpecification: config.specification ?? config.testName ?? null,
+        specUnit: config.unit ?? null,
         criteriaType: config.criteriaType || 'numeric',
         tolerancePercent: Number(config.tolerancePercent) || 0,
-        specTarget: specTargetNum,
-        specTolerancePercent: specTolPctNum,
+        specTarget: specTargetNum ?? null,
+        specTolerancePercent: specTolPctNum ?? null,
         // Phase 3: snapshot multi-stage plan so subsequent edits to the criteria
         // can't change the plan that's already in flight on this work order.
         acceptanceStages: typeof config.acceptanceStages === 'string'
@@ -3101,8 +3104,8 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
           : (config.acceptanceStages ? JSON.stringify(config.acceptanceStages) : null),
         // Snapshot phase from BOM IPC config — frozen at init so subsequent
         // BOM edits don't reshuffle which dashboard card hosts this test.
-        ipcPhase: phaseFromConfig,
-        notes: config.testNameTh || config.testName,
+        ipcPhase: phaseFromConfig ?? null,
+        notes: (config.testNameTh || config.testName) ?? null,
         createdAt: getNow(),
         updatedAt: getNow(),
       });
@@ -3320,27 +3323,33 @@ export async function recordSOPLinkedIPCResults(
         .limit(1);
 
       let qualityTestId: number;
+      // Every nullable column is coerced to an explicit `null` (never left as
+      // `undefined`). A mix of `undefined` and present values makes Drizzle emit
+      // a column list where some columns become DEFAULT and others a bound `?`,
+      // which desynchronises the MySQL prepared-statement bind count and throws
+      // "Bind parameters count mismatch" on INSERT. Coercing to null keeps one
+      // placeholder per column. This was the root cause of the IPC save failure.
       const sharedFields = {
         sampleSize: total || 1,
         status: testStatus,
         result: testStatus === 'pending' ? null : testStatus,
         testedBy: testStatus === 'pending' ? null : operatorId,
         testDate: testStatus === 'pending' ? null : getNow(),
-        specMinValue: effectiveMin,
-        specMaxValue: effectiveMax,
-        specSpecification: criteria.specification || criteria.name,
-        specUnit: criteria.unit,
-        criteriaType,
-        tolerancePercent: tolPct,
-        specTarget: specTargetNum,
-        specTolerancePercent: specTolPctNum,
+        specMinValue: effectiveMin ?? null,
+        specMaxValue: effectiveMax ?? null,
+        specSpecification: criteria.specification ?? criteria.name ?? null,
+        specUnit: criteria.unit ?? null,
+        criteriaType: criteriaType ?? 'numeric',
+        tolerancePercent: tolPct ?? null,
+        specTarget: specTargetNum ?? null,
+        specTolerancePercent: specTolPctNum ?? null,
         acceptanceStages: typeof criteria.acceptanceStages === 'string'
           ? criteria.acceptanceStages
           : (criteria.acceptanceStages ? JSON.stringify(criteria.acceptanceStages) : null),
-        ipcPhase: input.ipcPhase,
+        ipcPhase: input.ipcPhase ?? null,
         retestRound: 1, // Round 1 (this function only handles initial recording)
         retestReason: null, // No reason on round 1
-        notes: input.notes ?? (criteria.nameTh || criteria.name),
+        notes: input.notes ?? (criteria.nameTh || criteria.name) ?? null,
         updatedAt: getNow(),
       };
 

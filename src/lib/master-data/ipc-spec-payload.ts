@@ -685,3 +685,50 @@ export function formatSpecSummary(args: {
 export function getCriteriaTypeLabel(criteriaType: string): string {
   return TYPE_LABEL_TH[criteriaType] || criteriaType;
 }
+
+/**
+ * One-line, human-readable spec summary for INLINE labels (dropdown options,
+ * chips, single-line cells) where the multi-line `formatSpecSummary` doesn't
+ * fit. NEVER returns raw JSON: if `specification` is a JSON envelope it is
+ * parsed and condensed; an unparned blob is suppressed entirely so operators
+ * never see `{"type":"visual",...}`.
+ *
+ * @returns a short plain string (no leading separator), or '' when there is
+ *          nothing meaningful to show.
+ */
+export function formatSpecInline(args: {
+  criteriaType?: string | null;
+  specification: string | null | undefined;
+  minValue?: number | null;
+  maxValue?: number | null;
+  unit?: string | null;
+  maxLen?: number;
+}): string {
+  const { criteriaType, specification, minValue, maxValue, unit, maxLen = 80 } = args;
+
+  // Guard: a raw JSON blob must never reach the UI as-is.
+  const rawIsJson =
+    typeof specification === 'string' && specification.trim().startsWith('{');
+
+  const lines = formatSpecSummary({
+    criteriaType: criteriaType || 'numeric',
+    specification,
+    minValue,
+    maxValue,
+    unit,
+  });
+
+  // Keep only the substantive lines (drop pure meta like "5 ตัวอย่าง" / type label).
+  const primary = lines.filter((l) => l.tone !== 'meta').map((l) => l.text);
+  let text = primary.join(' • ').trim();
+
+  // If summary produced nothing useful and the source was raw JSON, show the
+  // readable type label instead of the JSON — better an honest "Visual" than a blob.
+  if (!text) {
+    if (rawIsJson) return getCriteriaTypeLabel(criteriaType || 'numeric');
+    text = lines.map((l) => l.text).join(' • ').trim();
+  }
+
+  if (text.length > maxLen) text = text.slice(0, maxLen - 1).trimEnd() + '…';
+  return text;
+}

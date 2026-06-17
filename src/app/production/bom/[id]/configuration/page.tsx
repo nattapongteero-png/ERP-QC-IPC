@@ -24,7 +24,7 @@ import { DxTabs } from '@/components/ui/dx-tabs';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import { SwitchTypes } from 'devextreme-react/switch';
-import { formatSpecSummary, getCriteriaTypeLabel } from '@/lib/master-data/ipc-spec-payload';
+import { formatSpecSummary, formatSpecInline, getCriteriaTypeLabel } from '@/lib/master-data/ipc-spec-payload';
 import {
   Settings,
   Building2,
@@ -2471,7 +2471,16 @@ export default function BOMConfigurationPage() {
                               <DxSelectBox
                                 dataSource={availablePendingCriteria.map((c: any) => ({
                                   id: c.id,
-                                  display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
+                                  display: (() => {
+                                    const inline = formatSpecInline({
+                                      criteriaType: c.criteriaType,
+                                      specification: c.specification,
+                                      minValue: c.minValue,
+                                      maxValue: c.maxValue,
+                                      unit: c.unit,
+                                    });
+                                    return `${c.code} — ${c.nameTh || c.name}${inline ? ` (${inline})` : ''}`;
+                                  })(),
                                 }))}
                                 displayExpr="display"
                                 valueExpr="id"
@@ -2995,7 +3004,16 @@ export default function BOMConfigurationPage() {
                         <DxSelectBox
                           dataSource={availableCriteria.map((c: any) => ({
                             id: c.id,
-                            display: `${c.code} — ${c.nameTh || c.name}${c.specification ? ` (${c.specification})` : ''}`,
+                            display: (() => {
+                              const inline = formatSpecInline({
+                                criteriaType: c.criteriaType,
+                                specification: c.specification,
+                                minValue: c.minValue,
+                                maxValue: c.maxValue,
+                                unit: c.unit,
+                              });
+                              return `${c.code} — ${c.nameTh || c.name}${inline ? ` (${inline})` : ''}`;
+                            })(),
                           }))}
                           displayExpr="display"
                           valueExpr="id"

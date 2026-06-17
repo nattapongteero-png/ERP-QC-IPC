@@ -260,7 +260,9 @@ export async function createQCTestRequest(
         )
       );
 
-    // Create test record
+    // Create test record.
+    // specId: spec?.id can be undefined when no matching spec row exists — coerce
+    // to null so MySQL's prepared-statement bind count stays in sync.
     let newTestId: number;
     if (isSqlite()) {
       const [newTest] = await database
@@ -268,7 +270,7 @@ export async function createQCTestRequest(
         .values({
           lotId,
           testType,
-          specId: spec?.id,
+          specId: spec?.id ?? null,
           sampleSize: samplingPlan.sampleSize,
           status: 'pending',
           requestedBy: userId,
@@ -282,7 +284,7 @@ export async function createQCTestRequest(
         .values({
           lotId,
           testType,
-          specId: spec?.id,
+          specId: spec?.id ?? null,
           sampleSize: samplingPlan.sampleSize,
           status: 'pending',
           requestedBy: userId,
