@@ -63,6 +63,8 @@ export interface StatCardProps {
   isLoading?: boolean;
   /** Additional CSS classes */
   className?: string;
+  /** Test id passed through to the card element. */
+  'data-testid'?: string;
 }
 
 export function StatCard({
@@ -77,6 +79,7 @@ export function StatCard({
   href,
   isLoading = false,
   className = '',
+  'data-testid': dataTestId,
 }: StatCardProps) {
   const isClickable = onClick || href;
   const toneStyle = TONE_STYLES[tone] ?? TONE_STYLES.emerald;
@@ -107,6 +110,7 @@ export function StatCard({
 
   const content = (
     <div
+      data-testid={dataTestId}
       className={`rounded-[14px] border border-l-4 p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] ${toneStyle.bg} ${toneStyle.border} ${toneStyle.accent} ${
         isClickable ? 'hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer' : ''
       } ${className}`}

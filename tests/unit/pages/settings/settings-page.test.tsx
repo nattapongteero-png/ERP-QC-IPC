@@ -22,12 +22,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  Check: () => <span data-testid="icon-check" />,
-  AlertCircle: () => <span data-testid="icon-alert" />,
-  Wifi: () => <span data-testid="icon-wifi" />,
-  Shield: () => <span data-testid="icon-shield" />,
-  ChevronRight: () => <span data-testid="icon-chevron-right" />,
+// Auto-stub EVERY lucide-react icon so the test never breaks when the page
+// imports an icon the mock didn't list (the cause of widespread suite failures).
+vi.mock('lucide-react', () => new Proxy({}, {
+  get: () => () => null,
 }));
 
 // Mock MainLayout

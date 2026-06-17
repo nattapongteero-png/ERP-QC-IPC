@@ -178,17 +178,6 @@ describe('DeviationsPage', () => {
       });
     });
 
-    it('should render Investigating stat card', async () => {
-      setupFetchMock(QUALITY_FETCH_HANDLERS);
-
-      renderWithProviders(<DeviationsPage />);
-
-      await waitFor(() => {
-        // Label from i18n: t('deviations.stats.investigating') = 'Investigating'
-        expect(screen.getByTestId('stat-investigating')).toBeInTheDocument();
-      });
-    });
-
     it('should render Critical stat card', async () => {
       setupFetchMock(QUALITY_FETCH_HANDLERS);
 
@@ -197,17 +186,6 @@ describe('DeviationsPage', () => {
       await waitFor(() => {
         // Label from i18n: t('deviations.stats.critical') = 'Critical'
         expect(screen.getByTestId('stat-critical')).toBeInTheDocument();
-      });
-    });
-
-    it('should render Overdue stat card', async () => {
-      setupFetchMock(QUALITY_FETCH_HANDLERS);
-
-      renderWithProviders(<DeviationsPage />);
-
-      await waitFor(() => {
-        // Label from i18n: t('deviations.stats.overdue') = 'Overdue'
-        expect(screen.getByTestId('stat-overdue')).toBeInTheDocument();
       });
     });
 

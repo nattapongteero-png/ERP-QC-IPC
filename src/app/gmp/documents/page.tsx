@@ -638,6 +638,7 @@ export default function GmpDocumentsDashboardPage() {
             onRowClick={handleRowClick}
             wordWrapEnabled={false}
             columnAutoWidth={true}
+            columnHidingEnabled={true}
             height={600}
             className="dx-card-grid"
           >

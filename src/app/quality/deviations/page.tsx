@@ -503,37 +503,37 @@ export default function DeviationsPage() {
   const renderStatCards = () => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       <StatCard
+        data-testid="stat-total-deviations"
         label={t('deviations.stats.total')}
         value={stats.total}
         icon={FileWarning}
-        iconColor="text-indigo-500"
-        accentColor="border-indigo-500"
+        tone="blue"
         isLoading={isLoading}
       />
       <StatCard
+        data-testid="stat-in-progress"
         label={t('deviations.stats.active')}
         value={stats.activeTotal}
         icon={Clock}
-        iconColor="text-amber-500"
-        accentColor="border-amber-500"
+        tone="amber"
         trend={stats.activeTotal > 0 ? { value: String(stats.activeTotal), direction: 'neutral' } : undefined}
         isLoading={isLoading}
       />
       <StatCard
+        data-testid="stat-critical"
         label={t('deviations.stats.critical')}
         value={stats.critical}
         icon={AlertOctagon}
-        iconColor="text-red-500"
-        accentColor="border-red-500"
+        tone="rose"
         trend={stats.critical > 0 ? { value: String(stats.critical), direction: 'down' } : undefined}
         isLoading={isLoading}
       />
       <StatCard
+        data-testid="stat-resolution-rate"
         label={t('deviations.stats.resolutionRate')}
         value={`${stats.resolutionRate}%`}
         icon={TrendingUp}
-        iconColor="text-emerald-500"
-        accentColor="border-emerald-500"
+        tone="emerald"
         trend={stats.resolutionRate >= 80 ? { value: String(stats.resolutionRate), direction: 'up' } : undefined}
         isLoading={isLoading}
       />
