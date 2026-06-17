@@ -19,6 +19,8 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { BackButton } from '@/components/shared/BackButton';
+import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import { useToast } from '@/hooks/use-toast';
 import { Hash, Sparkles, RotateCcw } from 'lucide-react';
 
@@ -310,7 +312,9 @@ export default function ItemCodePatternsPage() {
   ];
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="organic-grid space-y-4 p-4">
+      <OrganicGridTheme />
+      <BackButton href="/master-data" label="ข้อมูลหลัก" />
         <ResponsivePageHeader
           title="รูปแบบรหัสสินค้า (Item Code Pattern)"
           subtitle="กำหนดรูปแบบรหัสที่ใช้สร้างอัตโนมัติเมื่อกดปุ่ม 'สร้างรหัส' ในหน้าเพิ่ม/แก้ไขสินค้า"
@@ -471,3 +475,4 @@ export default function ItemCodePatternsPage() {
     </div>
   );
 }
+

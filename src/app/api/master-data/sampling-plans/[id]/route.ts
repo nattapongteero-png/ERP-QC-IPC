@@ -1,5 +1,8 @@
 /**
- * QC Sampling Plan — update / deactivate (Audit QC5)
+ * QC Sampling Plan — update / delete-or-disable (Audit QC5)
+ *
+ * DELETE: tries hard-delete; if the row is referenced (FK violation) it falls
+ * back to isActive=false and returns { mode: 'disabled' }.
  */
 import { NextRequest } from 'next/server';
 import {
@@ -9,11 +12,12 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import {
-  deactivateSamplingPlan,
   updateSamplingPlan,
   VALID_FREQUENCIES,
   type SamplingFrequency,
 } from '@/lib/services/qc-sampling-plan.service';
+import { dbOperations } from '@/lib/db/db-helper';
+import { getNow } from '@/lib/db/date-utils';
 
 export async function PUT(
   request: NextRequest,
@@ -41,8 +45,12 @@ export async function DELETE(
   return withAuth(_request, async () => {
     try {
       const { id } = await params;
-      const row = await deactivateSamplingPlan(Number(id));
-      return successResponse(row, 'Sampling plan deactivated');
+      const result = await dbOperations.deleteOrDisableById(
+        'qcSamplingPlans',
+        Number(id),
+        { updatedAt: getNow() },
+      );
+      return successResponse({ mode: result.mode }, result.mode === 'deleted' ? 'Sampling plan deleted' : 'Sampling plan disabled');
     } catch (err) {
       return serverErrorResponse(err);
     }

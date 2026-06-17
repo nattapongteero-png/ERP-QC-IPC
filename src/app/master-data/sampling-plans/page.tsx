@@ -14,6 +14,8 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { BackButton } from '@/components/shared/BackButton';
+import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import { useToast } from '@/hooks/use-toast';
 import { Layers, CheckCircle2, ListChecks, Edit, Trash2 } from 'lucide-react';
 
@@ -180,14 +182,18 @@ export default function SamplingPlansPage() {
   };
 
   const removePlan = async (row: PlanRow) => {
-    if (!confirm(`ลบแผน ${row.code}?`)) return;
+    if (!confirm(`ต้องการลบรายการนี้หรือไม่?\n\nแผน: ${row.code} — ${row.name}`)) return;
     const res = await fetch(`/api/master-data/sampling-plans/${row.id}`, { method: 'DELETE' });
+    const j = await res.json();
     if (!res.ok) {
-      const j = await res.json();
       toast.error('ลบไม่สำเร็จ', j?.error);
       return;
     }
-    toast.success('ลบแล้ว');
+    if (j?.data?.mode === 'disabled') {
+      toast.warning('รายการนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+    } else {
+      toast.success('ลบแล้ว');
+    }
     void load();
   };
 
@@ -268,7 +274,9 @@ export default function SamplingPlansPage() {
   ];
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="organic-grid space-y-4 p-4">
+      <OrganicGridTheme />
+      <BackButton href="/master-data" label="ข้อมูลหลัก" />
         <ResponsivePageHeader
           title="ทะเบียนแผนชักตัวอย่าง QC"
           subtitle="กำหนดแผนชักตัวอย่างตามรายการ/หมวดหมู่ — AQL, ขนาดตัวอย่าง, ความถี่"

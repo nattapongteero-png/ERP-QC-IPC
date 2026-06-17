@@ -13,6 +13,21 @@ import type { SQL } from 'drizzle-orm';
 export { isSqlite };
 
 /**
+ * Detect a foreign-key constraint violation across MySQL and SQLite.
+ * MySQL surfaces errno 1451 / code ER_ROW_IS_REFERENCED_2; SQLite throws a
+ * message containing "FOREIGN KEY constraint failed".
+ */
+export function isForeignKeyError(error: unknown): boolean {
+  if (!error) return false;
+  const e = error as { errno?: number; code?: string; message?: string };
+  if (e.errno === 1451 || e.errno === 1452) return true;
+  if (e.code === 'ER_ROW_IS_REFERENCED_2' || e.code === 'ER_NO_REFERENCED_ROW_2') return true;
+  if (e.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || e.code === 'SQLITE_CONSTRAINT') return true;
+  const msg = String(e.message ?? error).toLowerCase();
+  return msg.includes('foreign key constraint') || msg.includes('foreign key constraint failed');
+}
+
+/**
  * Get table reference based on database type
  */
 export function getTableRef(tableName: string): any {
@@ -239,6 +254,35 @@ export const dbOperations = {
       table,
       where: eq(tableRef.id, id),
     });
+  },
+
+  /**
+   * Delete a record, or soft-disable it if it is referenced elsewhere.
+   *
+   * Master-data policy: "ไม่เคยใช้ → ลบได้ / เคยใช้ → ปิดการใช้งานเท่านั้น".
+   * We try a real DELETE first; if the database rejects it with a foreign-key
+   * constraint violation (MySQL errno 1451 / SQLite "FOREIGN KEY constraint
+   * failed"), the row is in use, so we fall back to setting `isActive=false`.
+   *
+   * @returns `{ mode: 'deleted' }` when the row was removed, or
+   *          `{ mode: 'disabled' }` when it was in use and got soft-disabled.
+   * @throws  the original error for any non-FK failure (e.g. table has no
+   *          `isActive` column, or an unrelated DB error).
+   */
+  async deleteOrDisableById(
+    table: string,
+    id: number,
+    /** Extra columns to set on soft-disable (e.g. updatedAt, disabledBy). */
+    disablePatch: Record<string, any> = {}
+  ): Promise<{ mode: 'deleted' | 'disabled' }> {
+    try {
+      await dbOperations.deleteById(table, id);
+      return { mode: 'deleted' };
+    } catch (error) {
+      if (!isForeignKeyError(error)) throw error;
+      await dbOperations.updateById(table, id, { isActive: false, ...disablePatch });
+      return { mode: 'disabled' };
+    }
   },
 
   /**

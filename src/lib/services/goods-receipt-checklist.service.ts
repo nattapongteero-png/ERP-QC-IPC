@@ -6,7 +6,7 @@
  */
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { createHash } from 'crypto';
-import { executeDbOperation, getTableRef, getInsertId } from '../db/db-helper';
+import { executeDbOperation, getTableRef, getInsertId, dbOperations } from '../db/db-helper';
 import { getNow, toDbDate } from '../db/date-utils';
 import {
   GoodsReceiptError,
@@ -440,24 +440,33 @@ export async function listTemplates(
 // ============================================
 
 /**
- * Delete a checklist template version. If the deleted row was the current
- * version, the most recent remaining version for the same category is promoted
- * back to current so the category never loses its active template silently.
+ * Delete a checklist template version.
+ *
+ * Policy: "ไม่เคยใช้ → ลบจริง / เคยใช้ → ปิดการใช้งานเท่านั้น".
+ * Uses `dbOperations.deleteOrDisableById` — tries a real DELETE first; if a
+ * foreign-key constraint fires (template is referenced by a signed checklist)
+ * it falls back to setting `isActive = false`.
+ *
+ * On a real delete, the most recent surviving version of the same category is
+ * promoted back to `isCurrent` so the category never loses its active template.
  */
-export async function deleteTemplateVersion(id: number): Promise<{ deleted: boolean }> {
-  return executeDbOperation(async (db) => {
+export async function deleteTemplateVersion(id: number): Promise<{ mode: 'deleted' | 'disabled' }> {
+  // First, fetch the target so we know the category and isCurrent flag.
+  const target = await executeDbOperation(async (db) => {
     const t = getTables();
-
     const rows = await db.select().from(t.templates).where(eq(t.templates.id, id)).limit(1);
     if (rows.length === 0) {
       throw new GoodsReceiptError(GOODS_RECEIPT_ERROR_CODES.NOT_FOUND, 'Template not found');
     }
-    const target = rows[0];
+    return rows[0];
+  });
 
-    await db.delete(t.templates).where(eq(t.templates.id, id));
+  const result = await dbOperations.deleteOrDisableById('receiptChecklistTemplates', id);
 
+  if (result.mode === 'deleted' && target.isCurrent) {
     // Promote the newest surviving version of that category back to current.
-    if (target.isCurrent) {
+    await executeDbOperation(async (db) => {
+      const t = getTables();
       const remaining = await db
         .select()
         .from(t.templates)
@@ -470,10 +479,10 @@ export async function deleteTemplateVersion(id: number): Promise<{ deleted: bool
           .set({ isCurrent: true })
           .where(eq(t.templates.id, remaining[0].id));
       }
-    }
+    });
+  }
 
-    return { deleted: true };
-  });
+  return { mode: result.mode };
 }
 
 // ============================================

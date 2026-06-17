@@ -17,6 +17,8 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { BackButton } from '@/components/shared/BackButton';
+import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import { useToast } from '@/hooks/use-toast';
 import { Tag, Sparkles, Shield, Trash2 } from 'lucide-react';
 
@@ -265,7 +267,9 @@ export default function LotPatternsPage() {
   const vendor = rows.find((r) => r.patternType === 'vendor');
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="organic-grid space-y-4 p-4">
+      <OrganicGridTheme />
+      <BackButton href="/master-data" label="ข้อมูลหลัก" />
       <ResponsivePageHeader
         title="รูปแบบเลข Lot"
         subtitle="ตั้งค่ารูปแบบเลข Lot ของระบบ และกฎตรวจเลข Lot ของผู้ขาย"

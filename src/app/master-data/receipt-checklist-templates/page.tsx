@@ -14,6 +14,7 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { CheckBox } from 'devextreme-react/check-box';
 import { ListChecks, Plus, Edit, Trash2 } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
+import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import { CHECKLIST_CATEGORIES, type ChecklistCategory, type ChecklistTemplate } from '@/types/goods-receipt';
 
 interface NewItemRow {
@@ -96,20 +97,24 @@ export default function ReceiptChecklistTemplatesPage() {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Delete failed');
-      return res.json().catch(() => ({}));
+      return res.json().catch(() => ({})) as Promise<{ mode?: 'deleted' | 'disabled' }>;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ['receipt-templates'] });
+      if (result?.mode === 'disabled') {
+        alert('รายการนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+      }
     },
   });
 
   const handleDelete = (row: ChecklistTemplate) => {
-    if (typeof window !== 'undefined' && !window.confirm('ลบเทมเพลตเวอร์ชันนี้?')) return;
+    if (typeof window !== 'undefined' && !window.confirm('ต้องการลบรายการนี้หรือไม่?')) return;
     deleteMut.mutate(row.id);
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="organic-grid p-6 space-y-4">
+      <OrganicGridTheme />
       <BackButton href="/master-data" label="ข้อมูลหลัก" />
       <header className="flex items-start justify-between gap-4">
         <div>

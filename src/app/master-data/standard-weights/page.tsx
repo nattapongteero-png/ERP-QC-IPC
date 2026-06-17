@@ -16,6 +16,7 @@ import { NumberBox } from 'devextreme-react/number-box';
 import { DateBox } from 'devextreme-react/date-box';
 import { Scale, Plus, AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
+import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import {
   ACCURACY_CLASSES,
   type StandardWeight,
@@ -52,14 +53,17 @@ export default function StandardWeightsPage() {
   const [form, setForm] = useState<NewWeightForm>(EMPTY_FORM);
 
   const handleDelete = async (row: StandardWeight) => {
-    if (!confirm(`${t('table.columns.actions')}: ${row.code}?`)) return;
+    if (!confirm(`ต้องการลบรายการนี้หรือไม่? (${row.code})`)) return;
     const res = await fetch(`/api/master-data/standard-weights/${row.id}`, {
       method: 'DELETE',
     });
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
       alert(body?.error ?? 'Failed to delete');
       return;
+    }
+    if (body?.mode === 'disabled') {
+      alert('รายการนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
     }
     qc.invalidateQueries({ queryKey: ['standard-weights-admin'] });
     qc.invalidateQueries({ queryKey: ['standard-weights'] });
@@ -97,7 +101,8 @@ export default function StandardWeightsPage() {
   });
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="organic-grid p-6 space-y-4">
+      <OrganicGridTheme />
       <BackButton href="/master-data" label="ข้อมูลหลัก" />
       <header className="flex items-start justify-between gap-4">
         <div>

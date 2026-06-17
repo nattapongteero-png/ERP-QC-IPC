@@ -65,7 +65,7 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const result = await deleteTemplateVersion(id);
-    return NextResponse.json(result);
+    return NextResponse.json({ mode: result.mode });
   } catch (err) {
     if (err instanceof GoodsReceiptError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: 404 });

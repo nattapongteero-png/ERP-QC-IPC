@@ -8,6 +8,7 @@ import { getRolePermissionSet } from '@/lib/auth/permission-resolver';
 import { updateStandardWeightSchema } from '@/lib/validation/scale-verification';
 import { updateStandardWeight } from '@/lib/services/scale-verification.service';
 import { ScaleVerificationError } from '@/types/scale-verification';
+import { dbOperations } from '@/lib/db/db-helper';
 
 const CONFIG_PERMISSION = 'quality:scales:configure';
 
@@ -48,7 +49,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 /**
- * Soft delete — sets isActive=false
+ * Delete or soft-disable — real DELETE if never used, isActive=false if referenced.
  */
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const session = await getSession();
@@ -66,8 +67,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   if (Number.isNaN(wid)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   try {
-    await updateStandardWeight(wid, { isActive: false });
-    return NextResponse.json({ success: true });
+    const result = await dbOperations.deleteOrDisableById('standardWeights', wid);
+    return NextResponse.json({ mode: result.mode });
   } catch (error) {
     if (error instanceof ScaleVerificationError && error.code === 'NOT_FOUND') {
       return NextResponse.json({ error: error.message }, { status: 404 });

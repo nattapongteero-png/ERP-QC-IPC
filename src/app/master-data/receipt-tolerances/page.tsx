@@ -10,6 +10,7 @@ import { DataGrid, Column, Editing, Paging } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Sliders, Plus, Trash2 } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
+import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import { CHECKLIST_CATEGORIES } from '@/types/goods-receipt';
 import type { ReceiptTolerance, ChecklistCategory } from '@/types/goods-receipt';
 
@@ -57,8 +58,9 @@ export default function ReceiptTolerancesPage() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <BackButton href="/master-data" label="Master Data" />
+    <div className="organic-grid p-6 space-y-4">
+      <OrganicGridTheme />
+      <BackButton href="/master-data" label="ข้อมูลหลัก" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

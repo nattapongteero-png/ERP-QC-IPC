@@ -6,7 +6,6 @@
  */
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, Editing, Paging } from 'devextreme-react/data-grid';
@@ -16,6 +15,8 @@ import { NumberBox } from 'devextreme-react/number-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { Sliders, Plus, Trash2 } from 'lucide-react';
+import { BackButton } from '@/components/shared/BackButton';
+import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import type { PackagingTolerance, PackagingCategory } from '@/types/packaging';
 import { PACKAGING_CATEGORIES } from '@/types/packaging';
 
@@ -78,12 +79,9 @@ export default function PackagingTolerancesPage() {
   });
 
   return (
-    <div className="p-6 space-y-4">
-      <nav className="text-sm text-[#4B7163]">
-        <Link href="/master-data" className="hover:text-[#064E3B] hover:underline">Master Data</Link>
-        <span className="mx-1.5 text-emerald-300">/</span>
-        <span className="text-[#064E3B] font-medium">เกณฑ์ Tolerance ของ Packaging</span>
-      </nav>
+    <div className="organic-grid p-6 space-y-4">
+      <OrganicGridTheme />
+      <BackButton href="/master-data" label="ข้อมูลหลัก" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

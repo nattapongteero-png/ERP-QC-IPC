@@ -13,6 +13,7 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { Wrench, Plus, Trash2 } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
+import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import type { MaintenancePlanTemplate } from '@/types/equipment-notifications';
 
 const MAINTENANCE_TYPES = ['preventive', 'calibration', 'inspection', 'corrective'];
@@ -60,15 +61,18 @@ export default function MaintenancePlanTemplatesPage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? 'Failed to delete');
       }
-      return res.json().catch(() => null);
+      return res.json().catch(() => null) as Promise<{ mode?: 'deleted' | 'disabled' } | null>;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ['mp-templates'] });
+      if (result?.mode === 'disabled') {
+        alert('รายการนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+      }
     },
   });
 
   const handleDelete = (r: MaintenancePlanTemplate) => {
-    if (!confirm(`ลบแม่แบบ "${r.name}" ?`)) return;
+    if (!confirm('ต้องการลบรายการนี้หรือไม่?')) return;
     deleteMut.mutate(r.id);
   };
 
@@ -91,7 +95,8 @@ export default function MaintenancePlanTemplatesPage() {
   });
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="organic-grid p-6 space-y-4">
+      <OrganicGridTheme />
       <BackButton href="/master-data" label="ข้อมูลหลัก" />
       <header className="flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">

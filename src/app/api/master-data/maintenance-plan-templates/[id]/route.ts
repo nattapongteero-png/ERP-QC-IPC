@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { getSession, isAdminRole } from '@/lib/auth';
 import { getRolePermissionSet } from '@/lib/auth/permission-resolver';
-import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { executeDbOperation, getTableRef, dbOperations } from '@/lib/db/db-helper';
 import { getNow } from '@/lib/db/date-utils';
 
 const PERMISSION = 'equipment:notifications:configure';
@@ -56,9 +56,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   const tid = Number.parseInt(id, 10);
   if (Number.isNaN(tid)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
-  await executeDbOperation(async (db) => {
-    const t = getTableRef('maintenancePlanTemplates');
-    await db.update(t).set({ isActive: false, updatedAt: getNow() }).where(eq(t.id, tid));
+  const result = await dbOperations.deleteOrDisableById('maintenancePlanTemplates', tid, {
+    updatedAt: getNow(),
   });
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ mode: result.mode });
 }
