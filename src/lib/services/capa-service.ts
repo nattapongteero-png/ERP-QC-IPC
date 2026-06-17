@@ -805,6 +805,53 @@ export async function updateCapa(
 }
 
 /**
+ * Delete a CAPA that was entered by mistake (typo / test / not a real case).
+ *
+ * Guard: only a CAPA still in the initial `open` status may be deleted — once it
+ * has moved into investigation/action/verification/approval/closed it carries a
+ * GMP trail and must be preserved (the caller gets a clear error instead).
+ * Child rows (actions, effectiveness checks, attachments, approvals) are removed
+ * first so no orphans remain.
+ */
+export async function deleteCapa(
+  id: number,
+  userId: number,
+): Promise<{ deleted: true }> {
+  const existing = await getCapaById(id);
+  if (!existing) {
+    throw new Error('CAPA not found');
+  }
+  if (existing.status !== 'open') {
+    throw new Error(
+      'ลบได้เฉพาะ CAPA ที่ยังอยู่สถานะ "เปิด" เท่านั้น — รายการที่ดำเนินการแล้วต้องเก็บไว้ตามมาตรฐาน GMP',
+    );
+  }
+
+  const { capa: capaTable, actions, effectiveness, attachments, approvals } = getTables();
+  const db = await getDb();
+
+  // Remove children first to avoid FK orphans, then the CAPA row itself.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d = db as any;
+  await d.delete(actions).where(eq(actions.capaId, id));
+  await d.delete(effectiveness).where(eq(effectiveness.capaId, id));
+  await d.delete(attachments).where(eq(attachments.capaId, id));
+  await d.delete(approvals).where(eq(approvals.capaId, id));
+  await d.delete(capaTable).where(eq(capaTable.id, id));
+
+  await createAuditLog({
+    userId,
+    action: 'DELETE',
+    tableName: 'capa',
+    recordId: id,
+    oldValue: { capaNumber: existing.capaNumber, title: existing.title, status: existing.status },
+    newValue: undefined,
+  });
+
+  return { deleted: true };
+}
+
+/**
  * Close CAPA
  */
 export async function closeCapa(

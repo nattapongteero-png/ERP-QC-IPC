@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, hasPermission } from '@/lib/auth';
-import { getCapaDetails, updateCapa } from '@/lib/services/capa-service';
+import { getCapaDetails, updateCapa, deleteCapa } from '@/lib/services/capa-service';
 import { capaUpdateSchema } from '@/lib/validation/capa';
 
 interface RouteParams {
@@ -107,6 +107,47 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     console.error('Error updating CAPA:', error);
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Failed to update CAPA' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/capa/:id — remove a CAPA entered by mistake.
+ * Allowed only while the CAPA is still in status "open" (see service guard).
+ */
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (!hasPermission(session.role as Parameters<typeof hasPermission>[0], 'capa:write')) {
+      return NextResponse.json(
+        { success: false, error: 'Permission denied' },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+    const capaId = parseInt(id, 10);
+    if (isNaN(capaId)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid CAPA ID' },
+        { status: 400 }
+      );
+    }
+
+    await deleteCapa(capaId, session.userId);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting CAPA:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Failed to delete CAPA' },
       { status: 500 }
     );
   }

@@ -42,6 +42,21 @@ interface FormData {
   targetDate: string;
 }
 
+/**
+ * Coerce a DxDateBox value (Date object, ISO string, or '') to a bare
+ * `YYYY-MM-DD` string, or undefined when empty. The /api/changes endpoint
+ * validates targetDate strictly as YYYY-MM-DD and rejects ISO / localized forms.
+ */
+function toYmd(value: string | Date | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return undefined;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // ============================================
 // API Functions
 // ============================================
@@ -143,7 +158,9 @@ export default function NewChangeRequestPage() {
       riskAssessment: formData.riskAssessment || undefined,
       priority: formData.priority,
       ownerId: formData.ownerId,
-      targetDate: formData.targetDate || undefined,
+      // DxDateBox yields a Date / ISO string; the API requires a bare
+      // YYYY-MM-DD. Normalise so a picked date never fails validation.
+      targetDate: toYmd(formData.targetDate),
     };
 
     createMutation.mutate(submitData);

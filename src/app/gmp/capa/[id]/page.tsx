@@ -300,6 +300,26 @@ export default function CapaDetailPage() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [closureNotes, setClosureNotes] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Delete a mistaken / test CAPA (only allowed while status === 'open').
+  const handleDeleteCapa = useCallback(async () => {
+    if (!window.confirm('ต้องการลบ CAPA นี้หรือไม่?\nลบได้เฉพาะรายการที่ยังไม่ได้ดำเนินการ (สถานะ "เปิด")')) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/capa/${capaId}`, { method: 'DELETE' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || 'ลบไม่สำเร็จ');
+      }
+      router.push('/gmp/capa');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'ลบไม่สำเร็จ');
+      setDeleting(false);
+    }
+  }, [capaId, router]);
 
   // Fetch CAPA details
   const {
@@ -503,6 +523,19 @@ export default function CapaDetailPage() {
                   icon="check"
                   onClick={() => setShowCloseDialog(true)}
                   type="success"
+                />
+              )}
+              {/* Delete is only offered while the CAPA is still "open" (a typo /
+                  test entry that isn't a real case). The API enforces the same
+                  guard server-side. */}
+              {capa.status === 'open' && (
+                <DxButton
+                  text="ลบ"
+                  icon="trash"
+                  onClick={handleDeleteCapa}
+                  type="danger"
+                  stylingMode="outlined"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
                 />
               )}
             </div>
