@@ -604,9 +604,9 @@ export default function EmployeesPage() {
                 </PieSeries>
                 <PieLegend
                   visible
-                  orientation="vertical"
-                  horizontalAlignment="right"
-                  verticalAlignment="top"
+                  orientation="horizontal"
+                  horizontalAlignment="center"
+                  verticalAlignment="bottom"
                   itemTextPosition="right"
                   customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                     const d = analytics.statusDistribution[info.pointIndex ?? -1];

@@ -578,9 +578,10 @@ export default function ComplaintsListPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                orientation="horizontal"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+                itemTextPosition="right"
                 font={{ size: 11 }}
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                   const d = severityChartData[info.pointIndex ?? -1];
@@ -628,9 +629,10 @@ export default function ComplaintsListPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                orientation="horizontal"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+                itemTextPosition="right"
                 font={{ size: 11 }}
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                   const d = statusChartData[info.pointIndex ?? -1];
@@ -678,9 +680,10 @@ export default function ComplaintsListPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                orientation="horizontal"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+                itemTextPosition="right"
                 font={{ size: 11 }}
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                   const d = categoryChartData[info.pointIndex ?? -1];

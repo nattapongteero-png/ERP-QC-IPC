@@ -607,12 +607,11 @@ export default function CustomersPage() {
                   <Series argumentField="type" valueField="count">
                     <Label visible={false} />
                   </Series>
-                  {/* Legend on the RIGHT (vertical) so long Thai labels stack
-                      down the side and never get clipped. */}
                   <Legend
-                    orientation="vertical"
-                    horizontalAlignment="right"
-                    verticalAlignment="top"
+                    orientation="horizontal"
+                    horizontalAlignment="center"
+                    verticalAlignment="bottom"
+                    itemTextPosition="right"
                     customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                       const d = typeChartData[info.pointIndex ?? -1];
                       return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
@@ -653,9 +652,10 @@ export default function CustomersPage() {
                     <Label visible={false} />
                   </Series>
                   <Legend
-                    orientation="vertical"
-                    horizontalAlignment="right"
-                    verticalAlignment="top"
+                    orientation="horizontal"
+                    horizontalAlignment="center"
+                    verticalAlignment="bottom"
+                    itemTextPosition="right"
                     customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                       const d = creditChartData[info.pointIndex ?? -1];
                       return d ? `${info.pointName} (${formatCurrency(d.credit)})` : (info.pointName ?? '');

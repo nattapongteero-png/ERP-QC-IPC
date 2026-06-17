@@ -562,9 +562,9 @@ export default function PqrDashboardPage() {
                         </PieLabel>
                       </PieSeries>
                       <PieLegend
-                        orientation="vertical"
-                        horizontalAlignment="right"
-                        verticalAlignment="top"
+                        orientation="horizontal"
+                        horizontalAlignment="center"
+                        verticalAlignment="bottom"
                         itemTextPosition="right"
                         customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                           const d = statusChartData[info.pointIndex ?? -1];

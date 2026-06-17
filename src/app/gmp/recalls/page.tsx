@@ -746,9 +746,10 @@ export default function RecallsDashboardPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                orientation="horizontal"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+                itemTextPosition="right"
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                   const d = classChartData[info.pointIndex ?? -1];
                   return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');

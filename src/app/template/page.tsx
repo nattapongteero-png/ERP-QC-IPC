@@ -448,9 +448,10 @@ export default function TemplateDashboardPage() {
                 </Series>
                 <Legend
                   visible={true}
-                  verticalAlignment="top"
-                  horizontalAlignment="right"
-                  orientation="vertical"
+                  orientation="horizontal"
+                  horizontalAlignment="center"
+                  verticalAlignment="bottom"
+                  itemTextPosition="right"
                   customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                     const d = statusChartData[info.pointIndex ?? -1];
                     return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');

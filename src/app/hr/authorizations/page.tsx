@@ -888,9 +888,9 @@ export default function AuthorizationsPage() {
                   </Series>
                   <Legend
                     visible
-                    orientation="vertical"
-                    horizontalAlignment="right"
-                    verticalAlignment="top"
+                    orientation="horizontal"
+                    horizontalAlignment="center"
+                    verticalAlignment="bottom"
                     itemTextPosition="right"
                     customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                       const d = analytics.byTypeDistribution[info.pointIndex ?? -1];
@@ -933,9 +933,9 @@ export default function AuthorizationsPage() {
                   </Series>
                   <Legend
                     visible
-                    orientation="vertical"
-                    horizontalAlignment="right"
-                    verticalAlignment="top"
+                    orientation="horizontal"
+                    horizontalAlignment="center"
+                    verticalAlignment="bottom"
                     itemTextPosition="right"
                     customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                       const d = analytics.statusDistribution[info.pointIndex ?? -1];

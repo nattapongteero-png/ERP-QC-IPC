@@ -1069,9 +1069,10 @@ export default function VmiOrdersPage() {
                 <Label visible={false} />
               </Series>
               <Legend
-                orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                orientation="horizontal"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+                itemTextPosition="right"
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                   const d = statusChartData[info.pointIndex ?? -1];
                   return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
@@ -1116,9 +1117,10 @@ export default function VmiOrdersPage() {
                 <Label visible={false} />
               </Series>
               <Legend
-                orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                orientation="horizontal"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+                itemTextPosition="right"
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                   const d = priorityChartData[info.pointIndex ?? -1];
                   return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');

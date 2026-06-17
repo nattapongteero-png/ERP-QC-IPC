@@ -851,9 +851,9 @@ export default function TrainingDashboardPage() {
                   </Series>
                   <Legend
                     visible
-                    orientation="vertical"
-                    horizontalAlignment="right"
-                    verticalAlignment="top"
+                    orientation="horizontal"
+                    horizontalAlignment="center"
+                    verticalAlignment="bottom"
                     itemTextPosition="right"
                     customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                       const d = analytics.sessionStatusDistribution[info.pointIndex ?? -1];
@@ -895,9 +895,9 @@ export default function TrainingDashboardPage() {
                   </Series>
                   <Legend
                     visible
-                    orientation="vertical"
-                    horizontalAlignment="right"
-                    verticalAlignment="top"
+                    orientation="horizontal"
+                    horizontalAlignment="center"
+                    verticalAlignment="bottom"
                     itemTextPosition="right"
                     customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                       const d = analytics.categoryDistribution[info.pointIndex ?? -1];

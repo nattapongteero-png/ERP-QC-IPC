@@ -428,9 +428,10 @@ export default function SanitationDashboardPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                orientation="horizontal"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+                itemTextPosition="right"
                 font={{ size: 11 }}
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                   const d = areaComplianceData[info.pointIndex ?? -1];

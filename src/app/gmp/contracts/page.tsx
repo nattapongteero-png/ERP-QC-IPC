@@ -554,9 +554,10 @@ export default function ContractsDashboardPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                orientation="horizontal"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+                itemTextPosition="right"
                 font={{ size: 11 }}
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                   const d = statusChartData[info.pointIndex ?? -1];
@@ -603,9 +604,10 @@ export default function ContractsDashboardPage() {
               </Series>
               <Legend
                 visible={true}
-                orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                orientation="horizontal"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
+                itemTextPosition="right"
                 font={{ size: 11 }}
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                   const d = typeChartData[info.pointIndex ?? -1];

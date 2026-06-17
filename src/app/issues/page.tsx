@@ -225,9 +225,10 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
               </Label>
             </Series>
             <Legend
-              orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+              orientation="horizontal"
+              horizontalAlignment="center"
+              verticalAlignment="bottom"
+              itemTextPosition="right"
               font={{ size: 11 }}
               rowCount={1}
               customizeText={(info: { pointName?: string; pointIndex?: number }) => {
@@ -274,9 +275,10 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
               </Label>
             </Series>
             <Legend
-              orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+              orientation="horizontal"
+              horizontalAlignment="center"
+              verticalAlignment="bottom"
+              itemTextPosition="right"
               font={{ size: 11 }}
               rowCount={1}
               customizeText={(info: { pointName?: string; pointIndex?: number }) => {

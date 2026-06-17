@@ -733,9 +733,10 @@ export default function QualitySpecsPage() {
                   </Series>
                   <Legend
                     visible={true}
-                    orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                    orientation="horizontal"
+                    horizontalAlignment="center"
+                    verticalAlignment="bottom"
+                    itemTextPosition="right"
                     font={{ size: 12 }}
                     customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                       const d = statusChartData[info.pointIndex ?? -1];
@@ -781,9 +782,10 @@ export default function QualitySpecsPage() {
                   </Series>
                   <Legend
                     visible={true}
-                    orientation="vertical"
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                    orientation="horizontal"
+                    horizontalAlignment="center"
+                    verticalAlignment="bottom"
+                    itemTextPosition="right"
                     font={{ size: 12 }}
                     customizeText={(info: { pointName?: string; pointIndex?: number }) => {
                       const d = criticalChartData[info.pointIndex ?? -1];
