@@ -128,12 +128,19 @@ export function DocumentViewer({ fileUrl, fileName, className = '' }: DocumentVi
     }
   }, [fileType, loadWordDocument, loadExcelDocument]);
 
-  // PDF Viewer
+  // PDF Viewer.
+  // `fileUrl` may already carry a query string (callers commonly pass
+  // `.../download?inline=1`). Append `inline=1` with the correct separator so we
+  // never produce a broken `...?inline=1?inline=1` URL — that yields a blank
+  // iframe. Also force a real height: an iframe with no height collapses to 0,
+  // showing an empty dialog even when the PDF loaded fine.
   if (fileType === 'pdf') {
+    const sep = fileUrl.includes('?') ? '&' : '?';
+    const src = fileUrl.includes('inline=1') ? fileUrl : `${fileUrl}${sep}inline=1`;
     return (
       <iframe
-        src={`${fileUrl}?inline=1`}
-        className={`w-full bg-slate-100 dark:bg-slate-900 ${className}`}
+        src={src}
+        className={`w-full h-full min-h-[70vh] bg-slate-100 dark:bg-slate-900 ${className}`}
         title={`Preview: ${fileName}`}
       />
     );

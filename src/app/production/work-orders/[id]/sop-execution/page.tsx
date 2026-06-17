@@ -1671,12 +1671,12 @@ export default function SOPExecutionPage() {
                                                   e.stopPropagation();
                                                   handleOpenIPCDialog(step, sub.id);
                                                 }}
-                                                className="flex-none inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 shadow-sm hover:shadow transition-all"
+                                                className="flex-none inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all animate-pulse"
                                                 title={`บันทึก IPC ${unrecorded.length} รายการของขั้นตอนนี้`}
                                               >
-                                                <FlaskConical className="h-3.5 w-3.5" />
+                                                <FlaskConical className="h-5 w-5" />
                                                 บันทึก IPC
-                                                <span className="ml-0.5 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-white/30 text-[10px] font-bold">
+                                                <span className="ml-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-white text-amber-600 text-xs font-extrabold">
                                                   {unrecorded.length}
                                                 </span>
                                               </button>
