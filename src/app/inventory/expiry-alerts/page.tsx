@@ -210,14 +210,6 @@ export default function ExpiryAlertsPage() {
                 type="normal"
                 stylingMode="outlined"
                 onClick={fetchExpiryAlerts}
-                className="hidden sm:inline-flex"
-              />
-              {/* Mobile-only icon-only refresh */}
-              <DxButton
-                icon="refresh"
-                stylingMode="outlined"
-                onClick={fetchExpiryAlerts}
-                className="sm:hidden"
               />
             </div>
           }
