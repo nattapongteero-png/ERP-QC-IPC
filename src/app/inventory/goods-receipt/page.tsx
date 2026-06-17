@@ -8,12 +8,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  DataGrid,
-  Column,
-  FilterRow,
-  Paging,
-  HeaderFilter,
-} from 'devextreme-react/data-grid';
+  DxDataGrid,
+  DxColumn,
+  DxFilterRow,
+  DxPaging,
+  DxHeaderFilter,
+} from '@/components/ui/dx-data-grid';
 import { Button } from 'devextreme-react/button';
 import { ClipboardCheck, Plus, AlertTriangle, CheckCircle2, Hourglass, FlaskConical } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
@@ -130,7 +130,7 @@ export default function GoodsReceiptListPage() {
       </div>
 
       {/* List */}
-      <DataGrid
+      <DxDataGrid
         dataSource={data?.items ?? []}
         keyExpr="id"
         showBorders
@@ -138,13 +138,14 @@ export default function GoodsReceiptListPage() {
         rowAlternationEnabled
         columnAutoWidth
         onRowClick={(e) => router.push(`/inventory/goods-receipt/${e.key}`)}
-        data-testid="grn-list-grid"
+        elementAttr={{ 'data-testid': 'grn-list-grid' }}
+        paging={false}
       >
-        <FilterRow visible={false} />
-        <HeaderFilter visible={false} />
-        <Paging pageSize={20} />
-        <Column dataField="grnNumber" caption={t('table.columns.grnNumber')} width={150} />
-        <Column
+        <DxFilterRow visible={false} />
+        <DxHeaderFilter visible={false} />
+        <DxPaging defaultPageSize={20} />
+        <DxColumn dataField="grnNumber" caption={t('table.columns.grnNumber')} width={150} />
+        <DxColumn
           dataField="sourceType"
           caption={t('table.columns.sourceType')}
           width={160}
@@ -164,16 +165,16 @@ export default function GoodsReceiptListPage() {
             );
           }}
         />
-        <Column
+        <DxColumn
           dataField="vendorName"
           caption={t('table.columns.vendor')}
           calculateCellValue={(row: GrnListItem) =>
             row.sourceType === 'po' ? row.vendorName ?? '-' : 'WO'
           }
         />
-        <Column dataField="receivedDate" caption={t('table.columns.receivedDate')} width={140} dataType="date" />
-        <Column dataField="lineCount" caption={t('table.columns.lineCount')} width={100} />
-        <Column
+        <DxColumn dataField="receivedDate" caption={t('table.columns.receivedDate')} width={140} dataType="date" />
+        <DxColumn dataField="lineCount" caption={t('table.columns.lineCount')} width={100} />
+        <DxColumn
           dataField="status"
           caption={t('table.columns.status')}
           width={150}
@@ -183,7 +184,7 @@ export default function GoodsReceiptListPage() {
             </span>
           )}
         />
-      </DataGrid>
+      </DxDataGrid>
     </div>
   );
 }

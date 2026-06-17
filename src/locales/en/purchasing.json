@@ -91,7 +91,15 @@
       "cancelOrder": "Cancel Order",
       "approveOrder": "Approve Order",
       "receiveGoods": "Receive Goods"
-    }
+    },
+    "delete": {
+      "title": "Delete Purchase Order",
+      "message": "Do you want to delete purchase order {poNumber}?",
+      "deleting": "Deleting...",
+      "confirm": "Delete"
+    },
+    "emptyTitle": "No purchase orders yet",
+    "emptyDescription": "Get started by creating your first purchase order"
   },
   "suppliers": {
     "title": "Suppliers",
@@ -202,7 +210,11 @@
       "showing": "Showing {count} items",
       "noData": "No purchase requisitions found"
     },
-    "searchPlaceholder": "Search by PR number or description..."
+    "searchPlaceholder": "Search by PR number or description...",
+    "emptyTitle": "No purchase requisitions yet",
+    "emptyDescription": "Get started by creating your first purchase requisition",
+    "noResultsTitle": "No requisitions match your criteria",
+    "noResultsDescription": "Try changing your search or selecting different filters"
   },
   "receiving": {
     "title": "Receiving",

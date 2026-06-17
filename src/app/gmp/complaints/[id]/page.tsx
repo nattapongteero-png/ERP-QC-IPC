@@ -81,6 +81,14 @@ async function closeComplaint(id: number, closureNotes?: string): Promise<void> 
   }
 }
 
+async function deleteComplaint(id: number): Promise<void> {
+  const response = await fetch(`/api/complaints/${id}`, { method: 'DELETE' });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.success) {
+    throw new Error(result.error || 'Failed to delete complaint');
+  }
+}
+
 // ============================================
 // Configuration
 // ============================================
@@ -252,6 +260,29 @@ export default function ComplaintDetailPage() {
     },
   });
 
+  // Delete complaint mutation (only allowed while status === 'received')
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteComplaint(complaintId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['complaints-dashboard'] });
+      router.push('/gmp/complaints');
+    },
+    onError: (err) => {
+      alert(err instanceof Error ? err.message : 'ลบไม่สำเร็จ');
+    },
+  });
+
+  const handleDeleteComplaint = () => {
+    if (
+      !window.confirm(
+        'ต้องการลบข้อร้องเรียนนี้หรือไม่?\nลบได้เฉพาะรายการที่เพิ่งรับเข้า (สถานะ "received") และยังไม่ได้ดำเนินการ'
+      )
+    ) {
+      return;
+    }
+    deleteMutation.mutate();
+  };
+
   // Tabs configuration
   const tabs: DxTabItem[] = useMemo(() => [
     { id: TAB_IDS.overview, text: 'ภาพรวม', icon: 'home' },
@@ -265,6 +296,7 @@ export default function ComplaintDetailPage() {
   const categoryConfig = complaint ? CATEGORY_CONFIG[complaint.category] : null;
   const sourceConfig = complaint ? SOURCE_CONFIG[complaint.source] : null;
   const canClose = complaint?.status === 'resolved';
+  const canDelete = complaint?.status === 'received';
   const isOpen = complaint?.status !== 'closed';
   const hasInvestigation = !!complaint?.investigation;
 
@@ -341,6 +373,18 @@ export default function ComplaintDetailPage() {
                 stylingMode="text"
                 className="text-white"
               />
+              {canDelete && (
+                <DxButton
+                  icon="trash"
+                  text="ลบ"
+                  hint="ลบข้อร้องเรียน"
+                  onClick={handleDeleteComplaint}
+                  disabled={deleteMutation.isPending}
+                  stylingMode="text"
+                  className="text-white"
+                  elementAttr={{ 'data-testid': 'complaint-delete-btn' }}
+                />
+              )}
             </div>
           </div>
 

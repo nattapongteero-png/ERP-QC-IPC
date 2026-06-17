@@ -67,7 +67,14 @@
     "closed": "ปิด",
     "critical": "วิกฤต",
     "overdue": "เกินกำหนด",
-    "stillOpen": "ยังเปิด"
+    "stillOpen": "ยังเปิด",
+    "empty": {
+      "noRecords": "ยังไม่มีข้อมูลข้อกำหนด",
+      "noResults": "ไม่พบข้อกำหนดที่ตรงกัน"
+    },
+    "actions": {
+      "clear": "ล้างตัวกรอง"
+    }
   },
   "dashboard": {
     "hints": {

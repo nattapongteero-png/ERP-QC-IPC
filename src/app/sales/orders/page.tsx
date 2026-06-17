@@ -13,6 +13,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
+import { formatBaht } from '@/lib/utils/number-format';
 import { MainLayout } from '@/components/layout/main-layout';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -177,12 +178,15 @@ const formatDateShort = (dateStr: string) => {
 };
 
 const formatCurrency = (amount: number, currency: string = 'THB') => {
-  return new Intl.NumberFormat('th-TH', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount || 0);
+  if (currency && currency !== 'THB') {
+    return new Intl.NumberFormat('th-TH', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount || 0);
+  }
+  return formatBaht(amount);
 };
 
 const formatCurrencyShort = (amount: number | null | undefined) => {

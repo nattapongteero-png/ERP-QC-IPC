@@ -11,11 +11,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import {
-  DataGrid,
-  Column,
-  Paging,
-} from 'devextreme-react/data-grid';
+import { DxDataGrid, DxColumn, DxPaging } from '@/components/ui/dx-data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -93,6 +89,7 @@ export default function ScaleVerificationPage() {
   const verifyMut = useMutation({
     mutationFn: async () => {
       if (!activeScale || !weightId) throw new Error('Missing fields');
+      if (!password.trim()) throw new Error('กรุณากรอกรหัสผ่านเพื่อลงนาม');
       const res = await fetch('/api/quality/scale-verifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,7 +98,7 @@ export default function ScaleVerificationPage() {
           standardWeightId: weightId,
           actualReading: reading,
           notes: notes || null,
-          signature: { password: password || 'verify' },
+          signature: { password: password.trim() },
         }),
       });
       const body = await res.json();
@@ -162,19 +159,20 @@ export default function ScaleVerificationPage() {
         </div>
       </div>
 
-      <DataGrid
+      <DxDataGrid
         dataSource={scales}
         keyExpr="scaleId"
         showBorders
         showRowLines
         rowAlternationEnabled
         columnAutoWidth
-        data-testid="scales-grid"
+        elementAttr={{ 'data-testid': 'scales-grid' }}
+        paging={false}
       >
-        <Paging pageSize={20} />
-        <Column dataField="scaleCode" caption={t('table.columns.scaleCode')} width={120} />
-        <Column dataField="scaleName" caption={t('table.columns.scaleName')} />
-        <Column
+        <DxPaging defaultPageSize={20} />
+        <DxColumn dataField="scaleCode" caption={t('table.columns.scaleCode')} width={120} />
+        <DxColumn dataField="scaleName" caption={t('table.columns.scaleName')} />
+        <DxColumn
           dataField="status"
           caption={t('table.columns.status')}
           width={150}
@@ -189,8 +187,8 @@ export default function ScaleVerificationPage() {
             return <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${color}`}>{t(`status.${v}` as any)}</span>;
           }}
         />
-        <Column dataField="lastVerifiedAt" caption={t('table.columns.lastVerifiedAt')} dataType="datetime" width={160} />
-        <Column
+        <DxColumn dataField="lastVerifiedAt" caption={t('table.columns.lastVerifiedAt')} dataType="datetime" width={160} />
+        <DxColumn
           caption="ลูกตุ้มที่ใช้"
           width={140}
           cellRender={(c) => {
@@ -206,7 +204,7 @@ export default function ScaleVerificationPage() {
             );
           }}
         />
-        <Column
+        <DxColumn
           caption="ค่าที่อ่านได้"
           width={130}
           cellRender={(c) => {
@@ -224,7 +222,7 @@ export default function ScaleVerificationPage() {
             );
           }}
         />
-        <Column
+        <DxColumn
           caption="Δ %"
           width={90}
           cellRender={(c) => {
@@ -235,7 +233,7 @@ export default function ScaleVerificationPage() {
             return <span className={`font-mono text-xs ${cls}`}>{v.toFixed(4)}%</span>;
           }}
         />
-        <Column
+        <DxColumn
           dataField="lastResult"
           caption={t('table.columns.lastResult')}
           width={100}
@@ -249,7 +247,7 @@ export default function ScaleVerificationPage() {
             );
           }}
         />
-        <Column
+        <DxColumn
           caption={t('table.columns.actions')}
           width={250}
           cellRender={(c) => {
@@ -281,7 +279,7 @@ export default function ScaleVerificationPage() {
             );
           }}
         />
-      </DataGrid>
+      </DxDataGrid>
 
       {/* Verify Popup */}
       <Popup
@@ -357,7 +355,7 @@ export default function ScaleVerificationPage() {
               type="success"
               stylingMode="contained"
               text={t('actions.verify')}
-              disabled={!weightId || verifyMut.isPending}
+              disabled={!weightId || !password.trim() || verifyMut.isPending}
               onClick={() => verifyMut.mutate()}
             />
           </div>

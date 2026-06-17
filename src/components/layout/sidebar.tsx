@@ -76,7 +76,18 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   badge?: number;
   roles?: string[]; // Roles that can see this menu item (empty = all roles)
-  children?: { name: string; href: string; icon?: React.ComponentType<{ className?: string }>; badge?: number }[];
+  children?: NavChild[];
+}
+
+interface NavChild {
+  name: string;
+  href: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  badge?: number;
+  // Roles that can see this child link (undefined/empty = inherit parent visibility).
+  // Used to hide admin/hr_admin-only sub-pages from lower-privileged users so they
+  // don't click into a 403. Admin always bypasses.
+  roles?: string[];
 }
 
 // Define which roles can access which modules
@@ -248,11 +259,13 @@ const navigation: NavItem[] = [
       { name: 'Employees', href: '/hr/employees', icon: Users },
       { name: 'Positions', href: '/hr/positions', icon: ClipboardList },
       { name: 'Training', href: '/hr/training', icon: GraduationCap },
-      { name: 'Authorizations', href: '/hr/authorizations', icon: Shield },
+      // Authorizations / Roles / Audit are admin-style governance pages — keep
+      // them out of lower HR roles (hr_staff) to avoid 403 dead-ends.
+      { name: 'Authorizations', href: '/hr/authorizations', icon: Shield, roles: ['admin', 'manager', 'hr_admin'] },
       { name: 'Health Records', href: '/hr/health-records', icon: HeartPulse },
-      { name: 'Roles', href: '/hr/roles', icon: UserCheck },
+      { name: 'Roles', href: '/hr/roles', icon: UserCheck, roles: ['admin', 'manager', 'hr_admin'] },
       { name: 'Notifications', href: '/hr/notifications', icon: Bell },
-      { name: 'Audit Trail', href: '/hr/audit', icon: History },
+      { name: 'Audit Trail', href: '/hr/audit', icon: History, roles: ['admin', 'manager', 'hr_admin'] },
     ],
   },
   {
@@ -296,7 +309,7 @@ const navigation: NavItem[] = [
       { name: 'General', href: '/settings', icon: Sliders },
       { name: 'Approval Workflows', href: '/settings/approval-workflows', icon: ClipboardCheck },
       { name: 'Matching Tolerances', href: '/settings/matching-tolerances', icon: Target },
-      { name: 'Workflow Test', href: '/settings/workflow-test', icon: Play },
+      { name: 'Workflow Test', href: '/settings/workflow-test', icon: Play, roles: ['admin'] },
     ],
   },
 ];
@@ -321,16 +334,23 @@ interface SidebarProps {
 function getFilteredNavigation(role: string | undefined): NavItem[] {
   const expanded = expandRole(role);
   const isAdmin = expanded.includes('admin');
-  return navigation.filter((item) => {
-    // Administrator sees all menu items — bypass role filtering.
+
+  // Shared allow-list check: empty/undefined roles = visible to all.
+  const allowed = (roles: string[] | undefined): boolean => {
     if (isAdmin) return true;
-    // If no roles specified, item is visible to all authenticated users.
-    if (!item.roles || item.roles.length === 0) {
-      return true;
-    }
-    // User's role passes if ANY of its expanded aliases is in the allow-list.
-    return item.roles.some((allowed) => expanded.includes(allowed.toLowerCase()));
-  });
+    if (!roles || roles.length === 0) return true;
+    return roles.some((r) => expanded.includes(r.toLowerCase()));
+  };
+
+  return navigation
+    .filter((item) => allowed(item.roles))
+    .map((item) => {
+      if (!item.children) return item;
+      // Filter children too so users without permission don't see sub-links
+      // that 403 on click (e.g. Roles / Authorizations / Audit Trail).
+      const visibleChildren = item.children.filter((child) => allowed(child.roles));
+      return { ...item, children: visibleChildren };
+    });
 }
 
 // Helper to find parent item for current pathname

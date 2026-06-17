@@ -6,7 +6,7 @@
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Network,
   Users,
@@ -20,37 +20,41 @@ import {
   LayoutGrid,
   AlertTriangle,
   Clock,
-  TrendingUp,
 } from 'lucide-react';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 
 // Fetch quick stats
 async function fetchHRStats(): Promise<{
-  employeeCount: number;
-  activePositions: number;
+  activeEmployees: number;
   pendingNotifications: number;
   expiringTraining: number;
 }> {
   try {
-    // Fetch notifications count
-    const notifResponse = await fetch('/api/hr/notifications?limit=100');
+    // Fetch notifications + active employee count in parallel.
+    const [notifResponse, empResponse] = await Promise.all([
+      fetch('/api/hr/notifications?limit=100'),
+      fetch('/api/hr/employees?status=active'),
+    ]);
     const notifData = await notifResponse.json();
+    const empData = await empResponse.json();
+
     const pendingNotifications = notifData.data?.data?.length || 0;
     const expiringTraining = notifData.data?.data?.filter(
       (n: { type: string }) =>
         n.type === 'training_expiring' || n.type === 'training_expired'
     ).length || 0;
 
+    // successResponse(employees) returns the array under `data`.
+    const activeEmployees = Array.isArray(empData.data) ? empData.data.length : 0;
+
     return {
-      employeeCount: 0, // Would need separate endpoint
-      activePositions: 0, // Would need separate endpoint
+      activeEmployees,
       pendingNotifications,
       expiringTraining,
     };
   } catch {
     return {
-      employeeCount: 0,
-      activePositions: 0,
+      activeEmployees: 0,
       pendingNotifications: 0,
       expiringTraining: 0,
     };
@@ -115,14 +119,15 @@ const moduleConfig = [
 ];
 
 const quickActionsConfig = [
-  { translationKey: 'addEmployee', href: '/hr/employees?action=new', icon: Users },
-  { translationKey: 'createCourse', href: '/hr/training/courses?action=new', icon: GraduationCap },
+  { translationKey: 'addEmployee', href: '/hr/employees/new', icon: Users },
+  { translationKey: 'createCourse', href: '/hr/training/courses/new', icon: GraduationCap },
   { translationKey: 'viewMatrix', href: '/hr/training/matrix', icon: LayoutGrid },
   { translationKey: 'checkNotifications', href: '/hr/notifications', icon: Bell },
 ];
 
 export default function HRDashboardPage() {
   const t = useTranslations('hr');
+  const locale = useLocale();
   const { data: stats, isLoading } = useQuery({
     queryKey: ['hr-dashboard-stats'],
     queryFn: fetchHRStats,
@@ -186,11 +191,12 @@ export default function HRDashboardPage() {
         />
 
         <StatCard
-          label={t('dashboard.statCards.todayActivities')}
-          value="-"
-          icon={TrendingUp}
+          label={t('dashboard.statCards.activeEmployees')}
+          value={stats?.activeEmployees ?? 0}
+          icon={Users}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
+          href="/hr/employees"
           isLoading={isLoading}
         />
 
@@ -254,7 +260,10 @@ export default function HRDashboardPage() {
                   <h3 className="text-base md:text-lg font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">
                     {module.title}
                   </h3>
-                  <p className="text-xs md:text-sm text-gray-500 mb-0.5 md:mb-1">{module.titleEn}</p>
+                  {/* In EN mode title === titleEn, so the EN sub-label is redundant. */}
+                  {locale !== 'en' && (
+                    <p className="text-xs md:text-sm text-gray-500 mb-0.5 md:mb-1">{module.titleEn}</p>
+                  )}
                   <p className="text-xs md:text-sm text-gray-600 line-clamp-2">{module.description}</p>
                 </div>
               </div>

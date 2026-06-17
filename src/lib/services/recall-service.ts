@@ -283,6 +283,43 @@ export async function getRecallById(id: number): Promise<Recall | null> {
 }
 
 /**
+ * Delete a mistaken / test recall.
+ *
+ * GMP guard: only recalls still in the initial "initiated" status may be
+ * deleted (nothing notified, reconciled, or closed). Child notification and
+ * reconciliation rows are removed first to satisfy FK constraints.
+ */
+export async function deleteRecall(id: number, userId: number): Promise<void> {
+  const db = await getDb();
+  const { recalls, notifications, reconciliation } = getTables();
+
+  const existing = await getRecallById(id);
+  if (!existing) {
+    throw new Error('Recall not found');
+  }
+
+  if (existing.status !== 'initiated') {
+    throw new Error('Only recalls in "initiated" status can be deleted.');
+  }
+
+  // Remove child rows first (FK safety).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any).delete(notifications).where(eq(notifications.recallId, id));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any).delete(reconciliation).where(eq(reconciliation.recallId, id));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any).delete(recalls).where(eq(recalls.id, id));
+
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'recall',
+    recordId: id,
+    userId,
+    oldValue: { status: existing.status, recallNumber: existing.recallNumber },
+  });
+}
+
+/**
  * Get recall with full details including notifications and reconciliation
  */
 export async function getRecallDetails(id: number): Promise<RecallDetails | null> {

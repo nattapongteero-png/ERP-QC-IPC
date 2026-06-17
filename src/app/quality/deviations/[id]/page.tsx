@@ -87,6 +87,7 @@ export default function DeviationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [editForm, setEditForm] = useState({
     rootCause: '',
     correctiveAction: '',
@@ -144,6 +145,32 @@ export default function DeviationDetailPage() {
       }
     } catch (error) {
       console.error('Failed to save:', error);
+    }
+  };
+
+  // Delete a mistaken / test deviation — only allowed while status === 'open'.
+  // The API enforces the same guard server-side.
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        'ต้องการลบความเบี่ยงเบนนี้หรือไม่?\nลบได้เฉพาะรายการที่ยังไม่ได้ดำเนินการ (สถานะ "เปิด")'
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/quality/deviations/${params.id}`, {
+        method: 'DELETE',
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || 'ลบไม่สำเร็จ');
+      }
+      router.push('/quality/deviations');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'ลบไม่สำเร็จ');
+      setDeleting(false);
     }
   };
 
@@ -264,6 +291,18 @@ export default function DeviationDetailPage() {
               stylingMode="outlined"
               onClick={() => window.print()}
             />
+            {/* Delete only offered while still "open" (typo / test entry). */}
+            {!isEditing && deviation.status === 'open' && (
+              <DxButton
+                text="ลบ"
+                icon="trash"
+                type="danger"
+                stylingMode="outlined"
+                disabled={deleting}
+                onClick={handleDelete}
+                elementAttr={{ 'data-testid': 'deviation-delete-btn' }}
+              />
+            )}
           </div>
         </div>
 

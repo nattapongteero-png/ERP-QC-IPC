@@ -45,7 +45,9 @@
         "status": "Status"
       },
       "orders": "{count} orders",
-      "searchPlaceholder": "Search work orders..."
+      "searchPlaceholder": "Search work orders...",
+      "noOrders": "No work orders",
+      "noOrdersDescription": "No items match the selected criteria yet"
     },
     "actions": {
       "refresh": "Refresh",
@@ -258,7 +260,8 @@
       "copyBOM": "Copy BOM",
       "newVersion": "Create New Version",
       "activateBOM": "Activate",
-      "deactivateBOM": "Deactivate"
+      "deactivateBOM": "Deactivate",
+      "deleteBOM": "Delete BOM"
     }
   },
   "productionLines": {
@@ -301,7 +304,12 @@
   },
   "lineClearance": {
     "title": "Line Clearance",
-    "description": "Complete line clearance verification before production start (FR-062)"
+    "description": "Complete line clearance verification before production start (FR-062)",
+    "toast": {
+      "performed": "Line clearance performed successfully",
+      "verified": "Line clearance verified successfully",
+      "rejected": "Line clearance rejected"
+    }
   },
   "batchRecords": {
     "title": "Electronic Batch Records (eBMR)",
@@ -731,6 +739,20 @@
       "notesPlaceholder": "Describe any issues found or observations...",
       "toastAdded": "Integrity check recorded",
       "namespace": "Integrity Check"
+    }
+  },
+  "sopExec": {
+    "toast": {
+      "errorTitle": "Error",
+      "stepStartedTitle": "Step Started",
+      "stepStartedBody": "Production step has been started.",
+      "stepCompletedTitle": "Step Completed",
+      "stepCompletedBody": "Production step has been completed.",
+      "stepVerifiedTitle": "Step Verified",
+      "stepVerifiedBody": "Production step has been verified.",
+      "ipcRequiredTitle": "IPC Required",
+      "ipcRequiredBody": "Please fill in all IPC samples first.",
+      "initFromBomBody": "SOP execution initialized from BOM."
     }
   }
 }

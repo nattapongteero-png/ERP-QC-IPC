@@ -73,7 +73,7 @@
     "statCards": {
       "pendingNotifications": "รอดำเนินการ",
       "expiringTraining": "อบรมใกล้หมดอายุ",
-      "todayActivities": "กิจกรรมวันนี้",
+      "activeEmployees": "พนักงานที่ทำงานอยู่",
       "actionRequired": "ต้องดำเนินการ"
     },
     "quickActions": {

@@ -37,7 +37,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   const [showConvertModal, setShowConvertModal] = useState(action === 'convert');
   const [converting, setConverting] = useState(false);
   const [vendorId, setVendorId] = useState<number | null>(null);
-  const [vendors, setVendors] = useState<{ id: number; name: string }[]>([]);
+  const [vendors, setVendors] = useState<{ id: number; name: string; code?: string; isActive?: boolean }[]>([]);
 
   // Approval action state
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -78,10 +78,12 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const response = await fetch('/api/vendors?limit=1000');
+        const response = await fetch('/api/vendors?limit=1000&isActive=true');
         const result = await response.json();
         if (result.success) {
-          setVendors(result.data?.items || result.data || []);
+          const list = result.data?.items || result.data || [];
+          // Defensive: only active vendors should be selectable for a new PO.
+          setVendors(list.filter((v: { isActive?: boolean }) => v.isActive !== false));
         }
       } catch (err) {
         console.error('Error fetching vendors:', err);
@@ -363,7 +365,9 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 dataSource={vendors}
                 value={vendorId}
                 onValueChanged={(e) => setVendorId(e.value)}
-                displayExpr="name"
+                displayExpr={(v: { code?: string; name?: string } | null) =>
+                  v ? (v.code ? `${v.code} - ${v.name}` : v.name ?? '') : ''
+                }
                 valueExpr="id"
                 placeholder="เลือกผู้ขาย..."
                 searchEnabled={true}

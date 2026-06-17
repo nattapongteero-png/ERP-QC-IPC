@@ -480,6 +480,48 @@ export async function updateComplaint(
 }
 
 /**
+ * Delete a mistaken / test complaint.
+ *
+ * GMP guard: only complaints still in the initial "received" status may be
+ * deleted (i.e. nothing has been investigated, routed, or closed). Anything
+ * that has progressed keeps its full history for compliance.
+ *
+ * Child rows (investigations) are removed first to satisfy FK constraints.
+ */
+export async function deleteComplaint(id: number, userId: number): Promise<void> {
+  const { complaints: complaintsTable, investigations } = getTables();
+  const db = await getDb();
+
+  const existing = await getComplaintById(id);
+  if (!existing) {
+    throw new Error('Complaint not found');
+  }
+
+  if (existing.status !== 'received') {
+    throw new Error(
+      'Only complaints in "received" status can be deleted. Close the complaint instead.'
+    );
+  }
+
+  // Remove child investigation rows first (FK safety).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .delete(investigations)
+    .where(eq(investigations.complaintId, id));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any).delete(complaintsTable).where(eq(complaintsTable.id, id));
+
+  await createAuditLog({
+    userId,
+    action: 'DELETE',
+    tableName: 'complaints',
+    recordId: id,
+    oldValue: { status: existing.status, complaintNumber: existing.complaintNumber },
+  });
+}
+
+/**
  * Route complaint to QC (start investigation)
  */
 export async function routeToQC(

@@ -4,6 +4,7 @@
  *
  * GET /api/changes/[id] - Get change request by ID
  * PUT /api/changes/[id] - Update change request
+ * DELETE /api/changes/[id] - Delete a draft change request (guarded)
  */
 
 import { NextRequest } from 'next/server';
@@ -17,6 +18,7 @@ import {
 import {
   getChangeRequestById,
   updateChangeRequest,
+  deleteChangeRequest,
 } from '@/lib/services/change-control-service';
 import { changeRequestUpdateSchema } from '@/lib/validation/change-control';
 
@@ -87,6 +89,40 @@ export async function PUT(
             return notFoundResponse(error.message);
           }
           if (error.message.includes('Cannot update')) {
+            return errorResponse(error.message, 400);
+          }
+        }
+        return serverErrorResponse(error);
+      }
+    },
+    ['change_control:write']
+  );
+}
+
+// DELETE /api/changes/[id] - Delete a draft change request
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(
+    request,
+    async (session) => {
+      try {
+        const { id } = await params;
+        const changeId = parseInt(id, 10);
+
+        if (isNaN(changeId)) {
+          return errorResponse('Invalid change request ID', 400);
+        }
+
+        await deleteChangeRequest(changeId, session.userId);
+        return successResponse({ id: changeId }, 'Change request deleted successfully');
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('not found')) {
+            return notFoundResponse(error.message);
+          }
+          if (error.message.includes('Only draft')) {
             return errorResponse(error.message, 400);
           }
         }

@@ -1189,6 +1189,9 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                     text={t('orders.detail.actions.processAll')}
                     icon="check"
                     type="success"
+                    disabled
+                    hint={t('orders.detail.actions.processAllDisabledHint')}
+                    data-testid="so-process-all-btn"
                   />
                 )}
               </div>

@@ -228,6 +228,85 @@ export async function getPqrById(id: number): Promise<PqrReportWithMetrics | nul
 // CRUD Functions
 // ============================================
 
+/**
+ * Aggregate real PQR counts from source tables (deviations, capa, complaints,
+ * OOS quality tests, recalls, batches) for a product over a period.
+ *
+ * GMP requirement: PQR figures must be computed from live data, never trusted
+ * from client input. Returns null when productId or full period window missing,
+ * in which case the caller falls back to any client-provided values.
+ *
+ * Dual-DB safe: all date comparisons go through aggregate helpers / toQueryDate.
+ */
+export async function aggregatePqrCounts(
+  productId: number | null | undefined,
+  periodStart: string | null | undefined,
+  periodEnd: string | null | undefined
+): Promise<{
+  batchesProduced: number;
+  deviationCount: number;
+  capaCount: number;
+  complaintCount: number;
+  oosCount: number;
+  recallCount: number;
+  stabilityStatus: string | null;
+} | null> {
+  // Require productId + full period window to aggregate meaningfully.
+  if (!productId || !periodStart || !periodEnd) {
+    return null;
+  }
+
+  const [batch, deviation, capa, complaint, oos, recallCount, stability] =
+    await Promise.all([
+      aggregateBatchMetrics(productId, periodStart, periodEnd),
+      aggregateDeviationMetrics(productId, periodStart, periodEnd),
+      aggregateCapaMetrics(productId, periodStart, periodEnd),
+      aggregateComplaintMetrics(productId, periodStart, periodEnd),
+      aggregateOosMetrics(productId, periodStart, periodEnd),
+      aggregateRecallCount(productId, periodStart, periodEnd),
+      aggregateStabilityStatus(productId, periodStart, periodEnd),
+    ]);
+
+  return {
+    batchesProduced: batch.totalBatches,
+    deviationCount: deviation.totalDeviations,
+    capaCount: capa.totalCapas,
+    complaintCount: complaint.totalComplaints,
+    oosCount: oos.oosCount,
+    recallCount,
+    stabilityStatus: stability.summary || null,
+  };
+}
+
+/**
+ * Count recalls for a product within a date range (by initiatedDate).
+ */
+export async function aggregateRecallCount(
+  productId: number,
+  startDate: string,
+  endDate: string
+): Promise<number> {
+  const recallsTable = getTableRef('recalls');
+
+  const startQueryDate = toQueryDate(startDate);
+  const endQueryDate = toQueryDate(endDate);
+
+  const result = await executeDbOperation(async (db) => {
+    return db
+      .select({ count: sql<number>`count(*)` })
+      .from(recallsTable)
+      .where(
+        and(
+          eq(recallsTable.productId, productId),
+          gte(recallsTable.initiatedDate, startQueryDate),
+          lte(recallsTable.initiatedDate, endQueryDate)
+        )
+      );
+  });
+
+  return Number(result[0]?.count) || 0;
+}
+
 export async function createPqrReport(
   data: PqrCreate,
   userId: number
@@ -237,6 +316,14 @@ export async function createPqrReport(
   const sequence = await getNextSequence(data.reviewYear);
   const reportNumber = generateReportNumber(data.reviewYear, sequence);
 
+  // GMP: aggregate real counts from source tables instead of trusting client input.
+  // Only aggregate when both productId and a full period window are provided.
+  const aggregated = await aggregatePqrCounts(
+    data.productId,
+    data.periodStart,
+    data.periodEnd
+  );
+
   const result = await executeDbOperation(async (db) => {
     return db.insert(pqrReportsTable).values({
       reportNumber,
@@ -245,13 +332,13 @@ export async function createPqrReport(
       periodStart: data.periodStart ? toDbDate(data.periodStart) : null,
       periodEnd: data.periodEnd ? toDbDate(data.periodEnd) : null,
       status: 'draft',
-      batchesProduced: data.batchesProduced || 0,
-      deviationCount: data.deviationCount || 0,
-      capaCount: data.capaCount || 0,
-      complaintCount: data.complaintCount || 0,
-      oosCount: data.oosCount || 0,
-      recallCount: data.recallCount || 0,
-      stabilityStatus: data.stabilityStatus || null,
+      batchesProduced: aggregated?.batchesProduced ?? data.batchesProduced ?? 0,
+      deviationCount: aggregated?.deviationCount ?? data.deviationCount ?? 0,
+      capaCount: aggregated?.capaCount ?? data.capaCount ?? 0,
+      complaintCount: aggregated?.complaintCount ?? data.complaintCount ?? 0,
+      oosCount: aggregated?.oosCount ?? data.oosCount ?? 0,
+      recallCount: aggregated?.recallCount ?? data.recallCount ?? 0,
+      stabilityStatus: aggregated?.stabilityStatus ?? data.stabilityStatus ?? null,
       conclusions: data.conclusions || null,
       recommendations: data.recommendations || null,
       createdBy: userId,

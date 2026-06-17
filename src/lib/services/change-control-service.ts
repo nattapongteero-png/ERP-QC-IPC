@@ -462,6 +462,44 @@ export async function updateChangeRequest(
   return updated!;
 }
 
+/**
+ * Delete a mistaken / test change request.
+ *
+ * GMP guard: only changes still in "draft" status may be deleted (nothing
+ * submitted for review or approved). Child approval rows are removed first
+ * to satisfy FK constraints.
+ */
+export async function deleteChangeRequest(id: number, userId: number): Promise<void> {
+  const { changeRequests, changeApprovals } = getTables();
+  const db = await getDb();
+
+  const existing = await getChangeRequestById(id);
+  if (!existing) {
+    throw new Error('Change request not found');
+  }
+
+  if (existing.status !== 'draft') {
+    throw new Error('Only draft change requests can be deleted.');
+  }
+
+  // Remove child approval rows first (FK safety).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .delete(changeApprovals)
+    .where(eq(changeApprovals.changeId, id));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any).delete(changeRequests).where(eq(changeRequests.id, id));
+
+  await createAuditLog({
+    userId,
+    action: 'DELETE',
+    tableName: 'change_requests',
+    recordId: id,
+    oldValue: { status: existing.status, changeNumber: existing.changeNumber },
+  });
+}
+
 // ============================================
 // Approval Workflow
 // ============================================

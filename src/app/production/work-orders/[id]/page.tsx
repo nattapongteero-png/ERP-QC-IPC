@@ -509,6 +509,14 @@ export default function WorkOrderDetailPage() {
     return labels[status] || status;
   };
 
+  // eBMR batch-record step status → Thai label (reuses batchRecords.status keys)
+  const getStepStatusLabel = (status: string): string => {
+    const known = ['pending', 'in_progress', 'completed', 'deviation'];
+    return known.includes(status)
+      ? t(`batchRecords.status.${status}`)
+      : status.replace(/_/g, ' ');
+  };
+
   const getNextStatus = (currentStatus: string): string | null => {
     const flow: Record<string, string> = {
       'draft': 'planned',
@@ -1445,7 +1453,7 @@ export default function WorkOrderDetailPage() {
                             br.status === 'in_progress' ? 'secondary' :
                             br.status === 'deviation' ? 'danger' : 'default'
                           }>
-                            {br.status.replace('_', ' ')}
+                            {getStepStatusLabel(br.status)}
                           </Badge>
                         </div>
                         {br.instructions && (

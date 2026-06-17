@@ -874,5 +874,36 @@
         "rowNum": "#"
       }
     }
-  }
+  },
+  "accountCode": "Account Code",
+  "accountName": "Account Name",
+  "amount": "Amount",
+  "asOfDate": "As of Date",
+  "openingBalance": "Opening Balance",
+  "debit": "Debit",
+  "credit": "Credit",
+  "periodActivity": "Period Activity",
+  "closingBalance": "Closing Balance",
+  "assets": "Assets",
+  "currentAssets": "Current Assets",
+  "nonCurrentAssets": "Non-Current Assets",
+  "totalAssets": "Total Assets",
+  "liabilities": "Liabilities",
+  "currentLiabilities": "Current Liabilities",
+  "nonCurrentLiabilities": "Non-Current Liabilities",
+  "totalLiabilities": "Total Liabilities",
+  "equity": "Equity",
+  "totalEquity": "Total Equity",
+  "revenue": "Revenue",
+  "costOfGoodsSold": "Cost of Goods Sold",
+  "grossProfit": "Gross Profit",
+  "operatingExpenses": "Operating Expenses",
+  "operatingIncome": "Operating Income",
+  "otherIncomeExpenses": "Other Income & Expenses",
+  "netIncomeBeforeTax": "Net Income Before Tax",
+  "incomeTax": "Income Tax",
+  "description": "Description",
+  "period": "Period",
+  "netChangeInCash": "Net Change in Cash",
+  "endingCash": "Ending Cash"
 }

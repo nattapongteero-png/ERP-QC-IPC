@@ -304,7 +304,8 @@
         "back": "Back",
         "processAll": "Process All",
         "goToFulfillment": "Go to Fulfillment",
-        "goToPrep": "Go to Preparation"
+        "goToPrep": "Go to Preparation",
+        "processAllDisabledHint": "Process All is not enabled yet. Please fulfill each line in the Fulfillment tab."
       },
       "columns": {
         "item": "Item",

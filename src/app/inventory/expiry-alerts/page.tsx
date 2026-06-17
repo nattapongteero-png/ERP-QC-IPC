@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
@@ -127,7 +128,15 @@ export default function ExpiryAlertsPage() {
 
   const expiredColumns: DxDataGridColumn[] = [
     rowNumberColumn,
-    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 185, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.lotNumber}</span> },
+    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 185, cellRender: (cellInfo) => (
+      <Link
+        href={`/inventory/lots?search=${encodeURIComponent(cellInfo.data.lotNumber)}`}
+        className="font-mono whitespace-nowrap text-emerald-700 hover:text-emerald-900 hover:underline"
+        data-testid={`expiry-lot-link-${cellInfo.data.lotNumber}`}
+      >
+        {cellInfo.data.lotNumber}
+      </Link>
+    ) },
     { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 155, hideOnMobile: true, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.itemCode}</span> },
     { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
     {
@@ -151,7 +160,15 @@ export default function ExpiryAlertsPage() {
 
   const nearExpiryColumns: DxDataGridColumn[] = [
     rowNumberColumn,
-    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 185, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.lotNumber}</span> },
+    { dataField: 'lotNumber', caption: t('expiryAlerts.columns.lotNumber'), width: 185, cellRender: (cellInfo) => (
+      <Link
+        href={`/inventory/lots?search=${encodeURIComponent(cellInfo.data.lotNumber)}`}
+        className="font-mono whitespace-nowrap text-emerald-700 hover:text-emerald-900 hover:underline"
+        data-testid={`expiry-lot-link-${cellInfo.data.lotNumber}`}
+      >
+        {cellInfo.data.lotNumber}
+      </Link>
+    ) },
     { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 155, hideOnMobile: true, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.itemCode}</span> },
     { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
     {
@@ -351,9 +368,12 @@ function ExpiredLotsMobileList({ items, t }: { items: ExpiryItem[]; t: Translate
         >
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-gray-900 text-base truncate">
+              <Link
+                href={`/inventory/lots?search=${encodeURIComponent(item.lotNumber)}`}
+                className="font-semibold text-emerald-700 text-base truncate block hover:underline"
+              >
                 {item.lotNumber}
-              </p>
+              </Link>
               <p className="text-xs text-gray-500 font-mono mt-0.5">
                 {item.itemCode}
               </p>
@@ -405,9 +425,12 @@ function NearExpiryLotsMobileList({
           >
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-gray-900 text-base truncate">
+                <Link
+                  href={`/inventory/lots?search=${encodeURIComponent(item.lotNumber)}`}
+                  className="font-semibold text-emerald-700 text-base truncate block hover:underline"
+                >
                   {item.lotNumber}
-                </p>
+                </Link>
                 <p className="text-xs text-gray-500 font-mono mt-0.5">
                   {item.itemCode}
                 </p>

@@ -15,6 +15,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils/cn';
+import { formatBaht } from '@/lib/utils/number-format';
 import {
   Send, Package, DollarSign, AlertTriangle,
   Clock, CheckCircle, AlertCircle, Truck, FileText,
@@ -477,15 +478,27 @@ export default function PurchaseOrderDetailPage() {
   };
 
   // Handle receive
-  const handleReceive = (line: POLine) => {
+  const handleReceive = async (line: POLine) => {
     setSelectedLine(line);
-    // Auto-generate lot number: [ItemCode]-[YYMMDD]-[Running]
+
+    // Pull a real, non-colliding running lot from the configured lot pattern.
+    // Fall back to a timestamp-based suffix (never random) if the API fails,
+    // so two receives in the same session can't generate the same lot.
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
-    const running = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
-    const autoLot = `${line.itemCode}-${yy}${mm}${dd}-${running}`;
+    let autoLot: string;
+    try {
+      const res = await fetch('/api/inventory/lots/next-lot');
+      const json = await res.json();
+      const systemLot = json?.data?.lotNumber as string | undefined;
+      autoLot = systemLot
+        ? `${line.itemCode}-${systemLot}`
+        : `${line.itemCode}-${yy}${mm}${dd}-${String(now.getTime()).slice(-3)}`;
+    } catch {
+      autoLot = `${line.itemCode}-${yy}${mm}${dd}-${String(now.getTime()).slice(-3)}`;
+    }
 
     setReceiveForm({
       lotNumber: autoLot,
@@ -530,7 +543,7 @@ export default function PurchaseOrderDetailPage() {
   };
 
   // Transition PO status (Submit / Approve)
-  const transitionStatus = async (nextStatus: 'pending_approval' | 'approved', confirmMsg: string) => {
+  const transitionStatus = async (nextStatus: 'pending_approval' | 'approved' | 'sent', confirmMsg: string) => {
     if (!confirm(confirmMsg)) return;
     setIsTransitioning(true);
     try {
@@ -592,13 +605,7 @@ export default function PurchaseOrderDetailPage() {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB',
-      minimumFractionDigits: 0,
-    }).format(amount || 0);
-  };
+  const formatCurrency = (amount: number) => formatBaht(amount);
 
   const getStatusConfig = (status: string) => {
     return STATUS_CONFIG[status as POStatus] || STATUS_CONFIG.draft;
@@ -1034,9 +1041,13 @@ export default function PurchaseOrderDetailPage() {
               )}
               {po.status === 'approved' && (
                 <DxButton
-                  text="ส่งให้ผู้ขาย"
+                  text={isTransitioning ? 'กำลังส่ง...' : 'ส่งให้ผู้ขาย'}
                   icon="email"
                   type="success"
+                  stylingMode="contained"
+                  disabled={isTransitioning}
+                  onClick={() => transitionStatus('sent', `ยืนยันส่ง PO ${po.poNumber} ให้ผู้ขาย?`)}
+                  data-testid="po-send-btn"
                 />
               )}
             </div>

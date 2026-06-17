@@ -51,6 +51,14 @@ async function startRecall(id: number): Promise<void> {
   if (!result.success) throw new Error(result.error);
 }
 
+async function deleteRecall(id: number): Promise<void> {
+  const response = await fetch(`/api/recalls/${id}`, { method: 'DELETE' });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.success) {
+    throw new Error(result.error || 'Failed to delete recall');
+  }
+}
+
 async function completeRecall(id: number): Promise<void> {
   const response = await fetch(`/api/recalls/${id}/complete`, { method: 'POST' });
   const result = await response.json();
@@ -147,6 +155,29 @@ export default function RecallDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['recalls'] });
     },
   });
+
+  // Delete mutation (only allowed while status === 'initiated')
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteRecall(recallId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recalls'] });
+      router.push('/gmp/recalls');
+    },
+    onError: (err) => {
+      alert(err instanceof Error ? err.message : 'ลบไม่สำเร็จ');
+    },
+  });
+
+  const handleDeleteRecall = () => {
+    if (
+      !window.confirm(
+        'ต้องการลบการเรียกคืนสินค้านี้หรือไม่?\nลบได้เฉพาะรายการที่เพิ่งเริ่ม (สถานะ "initiated") และยังไม่ได้ดำเนินการ'
+      )
+    ) {
+      return;
+    }
+    deleteMutation.mutate();
+  };
 
   // Handle report generation
   const handleGenerateReport = async () => {
@@ -251,6 +282,18 @@ export default function RecallDetailPage() {
                 icon="lock"
                 onClick={() => setShowCloseDialog(true)}
                 type="success"
+              />
+            )}
+            {/* Delete only offered while still "initiated" (typo / test entry). */}
+            {recall.status === 'initiated' && (
+              <DxButton
+                text="ลบ"
+                icon="trash"
+                type="danger"
+                stylingMode="outlined"
+                disabled={deleteMutation.isPending}
+                onClick={handleDeleteRecall}
+                elementAttr={{ 'data-testid': 'recall-delete-btn' }}
               />
             )}
           </div>

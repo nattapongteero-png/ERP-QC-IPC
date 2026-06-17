@@ -67,7 +67,14 @@
     "closed": "Closed",
     "critical": "Critical",
     "overdue": "Overdue",
-    "stillOpen": "still open"
+    "stillOpen": "still open",
+    "empty": {
+      "noRecords": "No specifications yet",
+      "noResults": "No matching specifications"
+    },
+    "actions": {
+      "clear": "Clear Filters"
+    }
   },
   "dashboard": {
     "hints": {

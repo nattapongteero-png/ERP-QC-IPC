@@ -110,7 +110,7 @@ function LineClearanceContent() {
       return result;
     },
     onSuccess: () => {
-      toast.success('Line clearance performed successfully');
+      toast.success(t('lineClearance.toast.performed'));
       queryClient.invalidateQueries({ queryKey: ['line-clearance', selectedWorkOrderId] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-for-line-clearance'] });
       refetchClearance();
@@ -143,8 +143,8 @@ function LineClearanceContent() {
     onSuccess: (_, variables) => {
       toast.success(
         variables.approved
-          ? 'Line clearance verified successfully'
-          : 'Line clearance rejected'
+          ? t('lineClearance.toast.verified')
+          : t('lineClearance.toast.rejected')
       );
       queryClient.invalidateQueries({ queryKey: ['line-clearance', selectedWorkOrderId] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-for-line-clearance'] });

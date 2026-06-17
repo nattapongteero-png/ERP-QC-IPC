@@ -4,11 +4,12 @@
  *
  * GET /api/complaints/:id - Get complaint details
  * PATCH /api/complaints/:id - Update complaint
+ * DELETE /api/complaints/:id - Delete a received complaint (guarded)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, hasPermission } from '@/lib/auth';
-import { getComplaintDetails, updateComplaint } from '@/lib/services/complaint-service';
+import { getComplaintDetails, updateComplaint, deleteComplaint } from '@/lib/services/complaint-service';
 import { complaintUpdateSchema } from '@/lib/validation/complaints';
 
 interface RouteParams {
@@ -109,5 +110,42 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       { success: false, error: error instanceof Error ? error.message : 'Failed to update complaint' },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (!hasPermission(session.role as Parameters<typeof hasPermission>[0], 'complaints:write')) {
+      return NextResponse.json(
+        { success: false, error: 'Permission denied' },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+    const complaintId = parseInt(id, 10);
+    if (isNaN(complaintId)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid complaint ID' },
+        { status: 400 }
+      );
+    }
+
+    await deleteComplaint(complaintId, session.userId);
+
+    return NextResponse.json({ success: true, data: { id: complaintId } });
+  } catch (error) {
+    console.error('Error deleting complaint:', error);
+    const message = error instanceof Error ? error.message : 'Failed to delete complaint';
+    const status = message.includes('Only complaints') ? 400 : message.includes('not found') ? 404 : 500;
+    return NextResponse.json({ success: false, error: message }, { status });
   }
 }

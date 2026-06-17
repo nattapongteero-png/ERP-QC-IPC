@@ -44,7 +44,12 @@
     "categories": "หมวดหมู่"
   },
   "mobile": {
-    "filterByCategory": "กรองตามหมวดหมู่"
+    "filterByCategory": "กรองตามหมวดหมู่",
+    "selected": "เลือกแล้ว"
+  },
+  "category": {
+    "createPrompt": "ชื่อหมวดหมู่ใหม่",
+    "createFailed": "สร้างหมวดหมู่ไม่สำเร็จ"
   },
   "filters": {
     "dateRange": "ช่วงวันที่",

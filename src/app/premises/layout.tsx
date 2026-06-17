@@ -12,8 +12,9 @@
  * re-skin the filled variant to an organic white-green surface and hide its
  * underline.
  *
- * Table rows (header + data) are forced to a single line so registry data
- * never wraps onto a second line.
+ * Header captions stay on a single line; data cells wrap (word-break) so long
+ * registry values are shown in full and never truncated with "..." — matching
+ * the inventory module's "no ellipsis" policy.
  */
 
 import { MainLayout } from '@/components/layout/main-layout';
@@ -73,15 +74,12 @@ export default function PremisesLayout({
           }
           .premises-organic .dx-datagrid .dx-row-alt > td { background-color: #FAFDFB; }
           .premises-organic .dx-datagrid .dx-data-row:hover > td { background-color: #FFFBEB !important; }
-          /* Data cells on a single line — no wrapping; clip overflow so rows
-             stay one line tall (matches header which is also nowrap). */
+          /* Show full cell text — wrap instead of ellipsis-clipping so long
+             registry values are never truncated with "..." (matches inventory). */
           .premises-organic .dx-datagrid .dx-data-row > td {
-            white-space: nowrap !important;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-          .premises-organic .dx-datagrid .dx-data-row > td .dx-datagrid-text-content {
-            white-space: nowrap !important;
+            white-space: normal;
+            text-overflow: clip;
+            word-break: break-word;
           }
           .premises-organic .dx-pager {
             border-top: 1px solid #EEF7F2;

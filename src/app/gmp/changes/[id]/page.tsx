@@ -66,6 +66,14 @@ async function submitForReview(id: number): Promise<void> {
   }
 }
 
+async function deleteChange(id: number): Promise<void> {
+  const response = await fetch(`/api/changes/${id}`, { method: 'DELETE' });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.success) {
+    throw new Error(result.error || 'Failed to delete change request');
+  }
+}
+
 async function approveChange(
   id: number,
   role: ApprovalRole,
@@ -289,6 +297,29 @@ export default function ChangeDetailPage() {
     },
   });
 
+  // Delete mutation (only allowed while status === 'draft')
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteChange(changeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['changes-all'] });
+      router.push('/gmp/changes');
+    },
+    onError: (err) => {
+      alert(err instanceof Error ? err.message : 'ลบไม่สำเร็จ');
+    },
+  });
+
+  const handleDeleteChange = useCallback(() => {
+    if (
+      !window.confirm(
+        'ต้องการลบคำขอเปลี่ยนแปลงนี้หรือไม่?\nลบได้เฉพาะรายการที่ยังเป็นฉบับร่าง (สถานะ "draft")'
+      )
+    ) {
+      return;
+    }
+    deleteMutation.mutate();
+  }, [deleteMutation]);
+
   // Handlers
   const handleSubmitForReview = useCallback(() => {
     if (!change) return;
@@ -391,6 +422,18 @@ export default function ChangeDetailPage() {
                 icon="check"
                 onClick={() => setShowCloseDialog(true)}
                 type="success"
+              />
+            )}
+            {/* Delete only offered while still "draft" (typo / test entry). */}
+            {change.status === 'draft' && (
+              <DxButton
+                text="ลบ"
+                icon="trash"
+                type="danger"
+                stylingMode="outlined"
+                disabled={deleteMutation.isPending}
+                onClick={handleDeleteChange}
+                elementAttr={{ 'data-testid': 'change-delete-btn' }}
               />
             )}
           </div>

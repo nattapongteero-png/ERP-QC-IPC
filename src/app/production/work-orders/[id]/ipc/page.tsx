@@ -1325,9 +1325,27 @@ function SpecInfoCard({ test }: { test: IPCTest }) {
   const payload = getSpecPayload(test);
   const ct = test.criteriaType ?? 'numeric';
 
+  // Checkbox: no numeric range — only show spec text (if not a raw JSON envelope)
+  if (ct === 'checkbox') {
+    const specText =
+      test.specSpecification && !test.specSpecification.trim().startsWith('{')
+        ? test.specSpecification
+        : null;
+    if (!specText) return null;
+    return (
+      <div className="text-xs text-emerald-700 bg-emerald-50 rounded p-2">
+        <span>{specText}</span>
+      </div>
+    );
+  }
+
   // Numeric: keep the original range/spec line
-  if (ct === 'numeric' || ct === 'checkbox') {
+  if (ct === 'numeric') {
     if (test.specMinValue == null && !test.specSpecification) return null;
+    const specText =
+      test.specSpecification && !test.specSpecification.trim().startsWith('{')
+        ? test.specSpecification
+        : null;
     return (
       <div className="text-xs text-emerald-700 bg-emerald-50 rounded p-2">
         {test.specMinValue != null && test.specMaxValue != null && (
@@ -1336,9 +1354,7 @@ function SpecInfoCard({ test }: { test: IPCTest }) {
             {test.specUnit ? ` ${test.specUnit}` : ''}
           </span>
         )}
-        {test.specSpecification && (
-          <span> | {test.specSpecification.startsWith('{') ? '' : test.specSpecification}</span>
-        )}
+        {specText && <span> | {specText}</span>}
       </div>
     );
   }

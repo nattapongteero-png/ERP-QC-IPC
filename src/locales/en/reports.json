@@ -44,7 +44,12 @@
     "categories": "Categories"
   },
   "mobile": {
-    "filterByCategory": "Filter by Category"
+    "filterByCategory": "Filter by Category",
+    "selected": "Selected"
+  },
+  "category": {
+    "createPrompt": "New category name",
+    "createFailed": "Failed to create category"
   },
   "filters": {
     "dateRange": "Date Range",

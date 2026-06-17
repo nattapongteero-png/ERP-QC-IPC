@@ -58,3 +58,19 @@ export function formatMoney(
   const out = withThousands(intPart) + (decPart ? '.' + decPart : '');
   return (neg ? '-' : '') + out;
 }
+
+/**
+ * Format as Thai Baht currency with the ฿ symbol and fixed 2 decimals.
+ * Single source of truth for financial document amounts (PO/SO/invoice/notes)
+ * so every document shows the same precision. SSR-safe (no toLocaleString).
+ * 1000 → "฿1,000.00", -50.5 → "-฿50.50".
+ */
+export function formatBaht(
+  value: number | string | null | undefined,
+  decimals = 2,
+): string {
+  const num = Number(value);
+  const neg = num < 0 && !isNaN(num);
+  const body = formatMoney(Math.abs(num), decimals);
+  return (neg ? '-' : '') + '฿' + body;
+}

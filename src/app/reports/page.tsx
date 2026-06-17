@@ -125,6 +125,27 @@ export default function ReportsPage() {
     router.push('/reports/new');
   };
 
+  // Create a report category via a lightweight name prompt, then refresh the
+  // tree. Keeps the feature usable without a full modal build-out.
+  const handleCreateCategory = useCallback(async () => {
+    const name = window.prompt(t('category.createPrompt'));
+    if (!name || !name.trim()) return;
+    try {
+      const response = await fetch('/api/reports/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || t('category.createFailed'));
+      }
+      await fetchCategories();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('category.createFailed'));
+    }
+  }, [t, fetchCategories]);
+
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);
   }, []);
@@ -170,10 +191,7 @@ export default function ReportsPage() {
               categories={categories}
               selectedCategoryId={selectedCategoryId}
               onSelectCategory={handleCategorySelect}
-              onCreateCategory={() => {
-                // TODO: Open category creation modal
-                console.log('Create category');
-              }}
+              onCreateCategory={handleCreateCategory}
               isLoading={isLoadingCategories}
               showActions={true}
             />
@@ -230,7 +248,7 @@ export default function ReportsPage() {
               {t('mobile.filterByCategory')}
               {selectedCategoryId && (
                 <span className="ml-auto text-blue-600">
-                  {categories.find(c => c.id === selectedCategoryId)?.name || 'Selected'}
+                  {categories.find(c => c.id === selectedCategoryId)?.name || t('mobile.selected')}
                 </span>
               )}
             </summary>

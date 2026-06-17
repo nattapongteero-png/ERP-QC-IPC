@@ -12,6 +12,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { formatBaht } from '@/lib/utils/number-format';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -146,12 +147,15 @@ const formatDate = (dateStr: string) => {
 };
 
 const formatCurrency = (amount: number, currency: string = 'THB') => {
-  return new Intl.NumberFormat('th-TH', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount || 0);
+  if (currency && currency !== 'THB') {
+    return new Intl.NumberFormat('th-TH', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount || 0);
+  }
+  return formatBaht(amount);
 };
 
 // next-intl translator type (compatible superset for helper components)

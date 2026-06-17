@@ -385,10 +385,10 @@ export default function SOPExecutionPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
-      toast.success(t('bomConfiguration.sopSteps'), 'SOP execution initialized from BOM.');
+      toast.success(t('bomConfiguration.sopSteps'), t('sopExec.toast.initFromBomBody'));
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error(t('sopExec.toast.errorTitle'), error.message);
     },
   });
 
@@ -406,11 +406,11 @@ export default function SOPExecutionPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
-      toast.success('Step Started', 'Production step has been started.');
+      toast.success(t('sopExec.toast.stepStartedTitle'), t('sopExec.toast.stepStartedBody'));
       setShowExecuteDialog(false);
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error(t('sopExec.toast.errorTitle'), error.message);
     },
   });
 
@@ -451,7 +451,7 @@ export default function SOPExecutionPage() {
       queryClient.invalidateQueries({ queryKey: ['wo-ipc-tests', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['wo-deviations', workOrderId] });
-      toast.success('Step Completed', 'Production step has been completed.');
+      toast.success(t('sopExec.toast.stepCompletedTitle'), t('sopExec.toast.stepCompletedBody'));
       // Phase 7b — surface auto-created deviations from failing IPC.
       const devs = (data as { deviations?: Array<{ deviationNumber: string; deviationId: number }> })?.deviations || [];
       if (devs.length > 0) {
@@ -467,7 +467,7 @@ export default function SOPExecutionPage() {
       setIpcText({});
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error(t('sopExec.toast.errorTitle'), error.message);
     },
   });
 
@@ -523,7 +523,7 @@ export default function SOPExecutionPage() {
       closeRetest();
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error(t('sopExec.toast.errorTitle'), error.message);
     },
   });
 
@@ -608,7 +608,7 @@ export default function SOPExecutionPage() {
       setIpcText({});
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error(t('sopExec.toast.errorTitle'), error.message);
     },
   });
 
@@ -626,10 +626,10 @@ export default function SOPExecutionPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
-      toast.success('Step Verified', 'Production step has been verified.');
+      toast.success(t('sopExec.toast.stepVerifiedTitle'), t('sopExec.toast.stepVerifiedBody'));
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error(t('sopExec.toast.errorTitle'), error.message);
     },
   });
 
@@ -1113,7 +1113,7 @@ export default function SOPExecutionPage() {
     if (!selectedStep) return;
 
     if (!ipcInputsComplete(selectedStep)) {
-      toast.error('IPC Required', 'กรุณากรอก IPC ทุก sample ให้ครบก่อน');
+      toast.error(t('sopExec.toast.ipcRequiredTitle'), t('sopExec.toast.ipcRequiredBody'));
       return;
     }
 
@@ -1131,7 +1131,7 @@ export default function SOPExecutionPage() {
   const handleSaveIPCOnly = () => {
     if (!selectedStep) return;
     if (!ipcInputsComplete(selectedStep)) {
-      toast.error('IPC Required', 'กรุณากรอก IPC ทุก sample ให้ครบก่อน');
+      toast.error(t('sopExec.toast.ipcRequiredTitle'), t('sopExec.toast.ipcRequiredBody'));
       return;
     }
     // Phase 8b — when any IPC will trigger Deviation, require the operator

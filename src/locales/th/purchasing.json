@@ -91,7 +91,15 @@
       "cancelOrder": "ยกเลิกใบสั่งซื้อ",
       "approveOrder": "อนุมัติใบสั่งซื้อ",
       "receiveGoods": "รับสินค้า"
-    }
+    },
+    "delete": {
+      "title": "ลบใบสั่งซื้อ",
+      "message": "คุณต้องการลบใบสั่งซื้อ {poNumber} ใช่หรือไม่?",
+      "deleting": "กำลังลบ...",
+      "confirm": "ลบ"
+    },
+    "emptyTitle": "ยังไม่มีใบสั่งซื้อ",
+    "emptyDescription": "เริ่มต้นโดยการสร้างใบสั่งซื้อแรกของคุณ"
   },
   "suppliers": {
     "title": "ผู้ขาย",
@@ -202,7 +210,11 @@
       "showing": "แสดง {count} รายการ",
       "noData": "ไม่พบใบขอซื้อ"
     },
-    "searchPlaceholder": "ค้นหาด้วยเลขที่ PR หรือรายละเอียด..."
+    "searchPlaceholder": "ค้นหาด้วยเลขที่ PR หรือรายละเอียด...",
+    "emptyTitle": "ยังไม่มีใบขอซื้อ",
+    "emptyDescription": "เริ่มต้นโดยการสร้างใบขอซื้อแรกของคุณ",
+    "noResultsTitle": "ไม่พบใบขอซื้อที่ตรงกับเงื่อนไข",
+    "noResultsDescription": "ลองเปลี่ยนคำค้นหาหรือเลือกตัวกรองอื่น"
   },
   "receiving": {
     "title": "การรับสินค้า",

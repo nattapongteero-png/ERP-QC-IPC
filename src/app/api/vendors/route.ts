@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       const search = searchParams.get('search') || '';
       const isApproved = searchParams.get('isApproved');
       const isVMI = searchParams.get('isVMI');
+      const isActive = searchParams.get('isActive');
 
       const vendorsTable = getTableRef('vendors');
 
@@ -37,6 +38,9 @@ export async function GET(request: NextRequest) {
       }
       if (isVMI !== null && isVMI !== undefined) {
         conditions.push(eq(vendorsTable.isVMI, isVMI === 'true'));
+      }
+      if (isActive !== null && isActive !== undefined) {
+        conditions.push(eq(vendorsTable.isActive, isActive === 'true'));
       }
 
       const whereClause = conditions.length > 0

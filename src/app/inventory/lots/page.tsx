@@ -210,7 +210,9 @@ export default function LotsPage() {
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  // Seed the free-text search from ?search= so deep-links (e.g. from the
+  // expiry-alerts page clicking a lot number) land pre-filtered on that lot.
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
   // Seed the status tab from the URL so the dashboard deep-link lands on the
   // matching filtered view instead of staying on "All".
   const initialStatus = (() => {

@@ -73,7 +73,7 @@
     "statCards": {
       "pendingNotifications": "Pending",
       "expiringTraining": "Training expiring",
-      "todayActivities": "Today's activities",
+      "activeEmployees": "Active employees",
       "actionRequired": "Action required"
     },
     "quickActions": {

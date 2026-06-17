@@ -874,5 +874,36 @@
         "rowNum": "#"
       }
     }
-  }
+  },
+  "accountCode": "รหัสบัญชี",
+  "accountName": "ชื่อบัญชี",
+  "amount": "จำนวนเงิน",
+  "asOfDate": "ณ วันที่",
+  "openingBalance": "ยอดยกมา",
+  "debit": "เดบิต",
+  "credit": "เครดิต",
+  "periodActivity": "รายการในงวด",
+  "closingBalance": "ยอดยกไป",
+  "assets": "สินทรัพย์",
+  "currentAssets": "สินทรัพย์หมุนเวียน",
+  "nonCurrentAssets": "สินทรัพย์ไม่หมุนเวียน",
+  "totalAssets": "รวมสินทรัพย์",
+  "liabilities": "หนี้สิน",
+  "currentLiabilities": "หนี้สินหมุนเวียน",
+  "nonCurrentLiabilities": "หนี้สินไม่หมุนเวียน",
+  "totalLiabilities": "รวมหนี้สิน",
+  "equity": "ส่วนของเจ้าของ",
+  "totalEquity": "รวมส่วนของเจ้าของ",
+  "revenue": "รายได้",
+  "costOfGoodsSold": "ต้นทุนขาย",
+  "grossProfit": "กำไรขั้นต้น",
+  "operatingExpenses": "ค่าใช้จ่ายในการดำเนินงาน",
+  "operatingIncome": "กำไรจากการดำเนินงาน",
+  "otherIncomeExpenses": "รายได้และค่าใช้จ่ายอื่น",
+  "netIncomeBeforeTax": "กำไรก่อนภาษี",
+  "incomeTax": "ภาษีเงินได้",
+  "description": "รายการ",
+  "period": "งวด",
+  "netChangeInCash": "การเปลี่ยนแปลงเงินสดสุทธิ",
+  "endingCash": "เงินสดปลายงวด"
 }

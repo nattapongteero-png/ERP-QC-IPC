@@ -45,7 +45,9 @@
         "status": "สถานะ"
       },
       "orders": "{count} รายการ",
-      "searchPlaceholder": "ค้นหาใบสั่งผลิต..."
+      "searchPlaceholder": "ค้นหาใบสั่งผลิต...",
+      "noOrders": "ไม่มีใบสั่งผลิต",
+      "noOrdersDescription": "ยังไม่มีรายการตามเงื่อนไขที่เลือก"
     },
     "actions": {
       "refresh": "รีเฟรช",
@@ -258,7 +260,8 @@
       "copyBOM": "คัดลอกสูตรการผลิต",
       "newVersion": "สร้างเวอร์ชันใหม่",
       "activateBOM": "เปิดใช้งาน",
-      "deactivateBOM": "ปิดใช้งาน"
+      "deactivateBOM": "ปิดใช้งาน",
+      "deleteBOM": "ลบสูตรการผลิต"
     }
   },
   "productionLines": {
@@ -301,7 +304,12 @@
   },
   "lineClearance": {
     "title": "การอนุมัติสายการผลิต",
-    "description": "ดำเนินการตรวจสอบการอนุมัติสายการผลิตก่อนเริ่มการผลิต (FR-062)"
+    "description": "ดำเนินการตรวจสอบการอนุมัติสายการผลิตก่อนเริ่มการผลิต (FR-062)",
+    "toast": {
+      "performed": "ดำเนินการอนุมัติสายการผลิตสำเร็จ",
+      "verified": "ตรวจสอบการอนุมัติสายการผลิตสำเร็จ",
+      "rejected": "ปฏิเสธการอนุมัติสายการผลิต"
+    }
   },
   "batchRecords": {
     "title": "บันทึกการผลิตอิเล็กทรอนิกส์ (eBMR)",
@@ -731,6 +739,20 @@
       "notesPlaceholder": "ระบุปัญหาที่พบ หรือ ข้อสังเกต...",
       "toastAdded": "บันทึกการตรวจ Integrity แล้ว",
       "namespace": "Integrity Check"
+    }
+  },
+  "sopExec": {
+    "toast": {
+      "errorTitle": "เกิดข้อผิดพลาด",
+      "stepStartedTitle": "เริ่มขั้นตอนแล้ว",
+      "stepStartedBody": "เริ่มดำเนินการขั้นตอนการผลิตแล้ว",
+      "stepCompletedTitle": "ขั้นตอนเสร็จสิ้น",
+      "stepCompletedBody": "ดำเนินการขั้นตอนการผลิตเสร็จสิ้นแล้ว",
+      "stepVerifiedTitle": "ตรวจสอบขั้นตอนแล้ว",
+      "stepVerifiedBody": "ตรวจสอบขั้นตอนการผลิตเรียบร้อยแล้ว",
+      "ipcRequiredTitle": "ต้องกรอก IPC",
+      "ipcRequiredBody": "กรุณากรอก IPC ทุก sample ให้ครบก่อน",
+      "initFromBomBody": "สร้างขั้นตอนการดำเนินการ SOP จาก BOM แล้ว"
     }
   }
 }
