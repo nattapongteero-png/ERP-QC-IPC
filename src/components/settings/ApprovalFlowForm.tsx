@@ -8,6 +8,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
@@ -65,14 +66,14 @@ interface StepRow {
   timeoutDays: number;
 }
 
-const documentTypes: { value: DocumentType; label: string }[] = [
-  { value: 'purchase_requisition', label: 'Purchase Requisition' },
-  { value: 'purchase_order', label: 'Purchase Order' },
-  { value: 'ap_invoice', label: 'AP Invoice' },
-  { value: 'ar_invoice', label: 'AR Invoice' },
-  { value: 'payment', label: 'Payment' },
-  { value: 'credit_note', label: 'Credit Note' },
-  { value: 'debit_note', label: 'Debit Note' },
+const documentTypeValues: DocumentType[] = [
+  'purchase_requisition',
+  'purchase_order',
+  'ap_invoice',
+  'ar_invoice',
+  'payment',
+  'credit_note',
+  'debit_note',
 ];
 
 const ruleOperators: { value: RuleOperator; label: string }[] = [
@@ -224,7 +225,20 @@ export function ApprovalFlowForm({
   onCancel,
 }: ApprovalFlowFormProps) {
   const router = useRouter();
+  const t = useTranslations('settings');
   const queryClient = useQueryClient();
+
+  // Document type options with translated labels (keys live under
+  // settings.approvalWorkflows.documentTypes — shared with the list page).
+  const documentTypes = React.useMemo(
+    () =>
+      documentTypeValues.map((value) => ({
+        value,
+        label: t(`approvalWorkflows.documentTypes.${value}`),
+      })),
+    [t],
+  );
+
   const [formData, setFormData] = React.useState<FormData>(defaultFormData);
   const [rules, setRules] = React.useState<RuleRow[]>([]);
   const [steps, setSteps] = React.useState<StepRow[]>([]);
@@ -277,7 +291,7 @@ export function ApprovalFlowForm({
     mutationFn: createFlow,
     onSuccess: (flow) => {
       queryClient.invalidateQueries({ queryKey: ['approval-flows'] });
-      notify('Workflow created successfully', 'success', 3000);
+      notify(t('approvalWorkflows.form.createSuccess'), 'success', 3000);
       if (onSuccess) {
         onSuccess(flow);
       } else {
@@ -296,7 +310,7 @@ export function ApprovalFlowForm({
     onSuccess: (flow) => {
       queryClient.invalidateQueries({ queryKey: ['approval-flows'] });
       queryClient.invalidateQueries({ queryKey: ['approval-flow', flowId] });
-      notify('Workflow updated successfully', 'success', 3000);
+      notify(t('approvalWorkflows.form.updateSuccess'), 'success', 3000);
       if (onSuccess) {
         onSuccess(flow);
       } else {
@@ -313,7 +327,7 @@ export function ApprovalFlowForm({
     mutationFn: () => deleteFlow(flowId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approval-flows'] });
-      notify('Workflow deleted successfully', 'success', 3000);
+      notify(t('approvalWorkflows.form.deleteSuccess'), 'success', 3000);
       router.push('/settings/approval-workflows');
     },
     onError: (error: Error) => {
@@ -323,7 +337,7 @@ export function ApprovalFlowForm({
 
   const handleSubmit = () => {
     if (!formData.name.trim()) {
-      notify('Please enter a workflow name', 'warning', 3000);
+      notify(t('approvalWorkflows.form.nameRequired'), 'warning', 3000);
       return;
     }
 
@@ -388,7 +402,7 @@ export function ApprovalFlowForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3 text-gray-500">
             <LoadIndicator height={24} width={24} />
-            <span>Loading workflow...</span>
+            <span>{t('approvalWorkflows.form.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -401,20 +415,22 @@ export function ApprovalFlowForm({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
-            text="ย้อนกลับ"
+            text={t('approvalWorkflows.form.back')}
             icon="back"
             stylingMode="text"
             onClick={handleCancel}
           />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900" data-testid="page-title">
-            {mode === 'create' ? 'สร้างเวิร์กโฟลว์ใหม่' : `แก้ไข: ${existingFlow?.name}`}
+            {mode === 'create'
+              ? t('approvalWorkflows.form.createTitle')
+              : t('approvalWorkflows.form.editTitle', { name: existingFlow?.name ?? '' })}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           {mode === 'edit' && (
             <Button
-              text="ลบ"
+              text={t('approvalWorkflows.form.delete')}
               icon={isDeleting ? 'spindown' : 'trash'}
               type="danger"
               stylingMode="outlined"
@@ -423,7 +439,7 @@ export function ApprovalFlowForm({
             />
           )}
           <Button
-            text="ยกเลิก"
+            text={t('approvalWorkflows.form.cancel')}
             icon="close"
             stylingMode="outlined"
             onClick={handleCancel}
@@ -431,7 +447,7 @@ export function ApprovalFlowForm({
             data-testid="cancel-btn"
           />
           <Button
-            text={mode === 'create' ? 'สร้าง' : 'บันทึกการเปลี่ยนแปลง'}
+            text={mode === 'create' ? t('approvalWorkflows.form.create') : t('approvalWorkflows.form.saveChanges')}
             icon={isSubmitting ? 'spindown' : 'save'}
             type="success"
             onClick={handleSubmit}
@@ -447,19 +463,19 @@ export function ApprovalFlowForm({
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                <p className="font-medium text-red-800">{t('approvalWorkflows.form.confirmDelete')}</p>
                 <p className="text-sm text-red-600">
-                  คุณแน่ใจหรือไม่ว่าต้องการลบเวิร์กโฟลว์นี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                  {t('approvalWorkflows.form.confirmDeleteMessage')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="ยกเลิก"
+                  text={t('approvalWorkflows.form.cancel')}
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text="ลบ"
+                  text={t('approvalWorkflows.form.delete')}
                   icon="trash"
                   type="danger"
                   onClick={handleDelete}
@@ -477,26 +493,26 @@ export function ApprovalFlowForm({
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">ข้อมูลพื้นฐาน</CardTitle>
+              <CardTitle className="text-base">{t('approvalWorkflows.form.basicInfo')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ชื่อ <span className="text-red-500">*</span>
+                    {t('approvalWorkflows.form.nameLabel')} <span className="text-red-500">*</span>
                   </label>
                   <TextBox
                     value={formData.name}
                     onValueChanged={(e) =>
                       setFormData((prev) => ({ ...prev, name: e.value || '' }))
                     }
-                    placeholder="เช่น การอนุมัติใบขอซื้อมูลค่าสูง"
+                    placeholder={t('approvalWorkflows.form.namePlaceholder')}
                     data-testid="flow-name"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ประเภทเอกสาร <span className="text-red-500">*</span>
+                    {t('approvalWorkflows.form.documentTypeLabel')} <span className="text-red-500">*</span>
                   </label>
                   <SelectBox
                     items={documentTypes}
@@ -511,14 +527,14 @@ export function ApprovalFlowForm({
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    รายละเอียด
+                    {t('approvalWorkflows.form.descriptionLabel')}
                   </label>
                   <TextArea
                     value={formData.description}
                     onValueChanged={(e) =>
                       setFormData((prev) => ({ ...prev, description: e.value || '' }))
                     }
-                    placeholder="อธิบายว่าเวิร์กโฟลว์นี้ใช้เมื่อใด"
+                    placeholder={t('approvalWorkflows.form.descriptionPlaceholder')}
                     height={80}
                     data-testid="flow-description"
                   />
@@ -531,9 +547,9 @@ export function ApprovalFlowForm({
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle className="text-base">เงื่อนไขทริกเกอร์</CardTitle>
+                <CardTitle className="text-base">{t('approvalWorkflows.form.triggerRules')}</CardTitle>
                 <Button
-                  text="เพิ่มเงื่อนไข"
+                  text={t('approvalWorkflows.form.addRule')}
                   icon="plus"
                   type="default"
                   stylingMode="outlined"
@@ -544,7 +560,7 @@ export function ApprovalFlowForm({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-500 mb-4">
-                กำหนดเงื่อนไขที่ต้องเป็นจริงเพื่อให้เวิร์กโฟลว์นี้ทำงาน เว้นว่างไว้เพื่อให้ทำงานทุกครั้ง
+                {t('approvalWorkflows.form.rulesHint')}
               </p>
               <DataGrid
                 dataSource={rules}
@@ -561,18 +577,18 @@ export function ApprovalFlowForm({
                 data-testid="rules-grid"
               >
                 <Editing mode="cell" allowUpdating allowDeleting />
-                <Column dataField="ruleOrder" caption="ลำดับ" width={70} allowEditing={false} />
-                <Column dataField="fieldName" caption="ฟิลด์">
+                <Column dataField="ruleOrder" caption={t('approvalWorkflows.form.columns.ruleOrder')} width={70} allowEditing={false} />
+                <Column dataField="fieldName" caption={t('approvalWorkflows.form.columns.fieldName')}>
                   <RequiredRule />
                 </Column>
-                <Column dataField="operator" caption="ตัวดำเนินการ">
+                <Column dataField="operator" caption={t('approvalWorkflows.form.columns.operator')}>
                   <RequiredRule />
                 </Column>
-                <Column dataField="value" caption="ค่า">
+                <Column dataField="value" caption={t('approvalWorkflows.form.columns.value')}>
                   <RequiredRule />
                 </Column>
-                <Column dataField="valueTo" caption="ถึงค่า" />
-                <Column dataField="logicOperator" caption="ตรรกะ" width={80} />
+                <Column dataField="valueTo" caption={t('approvalWorkflows.form.columns.valueTo')} />
+                <Column dataField="logicOperator" caption={t('approvalWorkflows.form.columns.logicOperator')} width={80} />
               </DataGrid>
             </CardContent>
           </Card>
@@ -581,9 +597,9 @@ export function ApprovalFlowForm({
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle className="text-base">ขั้นตอนการอนุมัติ</CardTitle>
+                <CardTitle className="text-base">{t('approvalWorkflows.form.approvalSteps')}</CardTitle>
                 <Button
-                  text="เพิ่มขั้นตอน"
+                  text={t('approvalWorkflows.form.addStep')}
                   icon="plus"
                   type="default"
                   stylingMode="outlined"
@@ -594,7 +610,7 @@ export function ApprovalFlowForm({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-500 mb-4">
-                กำหนดลำดับการอนุมัติ ขั้นตอนจะถูกดำเนินการตามลำดับ
+                {t('approvalWorkflows.form.stepsHint')}
               </p>
               <DataGrid
                 dataSource={steps}
@@ -611,23 +627,23 @@ export function ApprovalFlowForm({
                 data-testid="steps-grid"
               >
                 <Editing mode="cell" allowUpdating allowDeleting />
-                <Column dataField="stepOrder" caption="ขั้นตอน" width={70} allowEditing={false} />
-                <Column dataField="stepName" caption="ชื่อ">
+                <Column dataField="stepOrder" caption={t('approvalWorkflows.form.columns.stepOrder')} width={70} allowEditing={false} />
+                <Column dataField="stepName" caption={t('approvalWorkflows.form.columns.stepName')}>
                   <RequiredRule />
                 </Column>
-                <Column dataField="approverType" caption="ประเภทผู้อนุมัติ">
+                <Column dataField="approverType" caption={t('approvalWorkflows.form.columns.approverType')}>
                   <RequiredRule />
                 </Column>
-                <Column dataField="approverId" caption="รหัสผู้อนุมัติ" />
+                <Column dataField="approverId" caption={t('approvalWorkflows.form.columns.approverId')} />
                 <Column
                   dataField="canDelegate"
-                  caption="มอบหมายได้"
+                  caption={t('approvalWorkflows.form.columns.canDelegate')}
                   dataType="boolean"
                   width={100}
                 />
                 <Column
                   dataField="timeoutDays"
-                  caption="หมดเวลา (วัน)"
+                  caption={t('approvalWorkflows.form.columns.timeoutDays')}
                   width={100}
                   dataType="number"
                 />
@@ -640,12 +656,12 @@ export function ApprovalFlowForm({
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">สถานะและลำดับความสำคัญ</CardTitle>
+              <CardTitle className="text-base">{t('approvalWorkflows.form.statusPriority')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ลำดับความสำคัญ (น้อย = สำคัญมากกว่า)
+                  {t('approvalWorkflows.form.priorityLabel')}
                 </label>
                 <NumberBox
                   value={formData.priority}
@@ -658,7 +674,7 @@ export function ApprovalFlowForm({
                 />
               </div>
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">เปิดใช้งาน</label>
+                <label className="text-sm font-medium text-gray-700">{t('approvalWorkflows.form.activeLabel')}</label>
                 <Switch
                   value={formData.isActive}
                   onValueChanged={(e) =>
@@ -673,7 +689,7 @@ export function ApprovalFlowForm({
           {mode === 'edit' && existingFlow && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">ข้อมูลเวิร์กโฟลว์</CardTitle>
+                <CardTitle className="text-base">{t('approvalWorkflows.form.workflowInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -681,15 +697,15 @@ export function ApprovalFlowForm({
                   <span className="font-mono text-gray-900">{existingFlow.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">เงื่อนไข</span>
+                  <span className="text-gray-500">{t('approvalWorkflows.form.rulesCount')}</span>
                   <span className="text-gray-900">{rules.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">ขั้นตอน</span>
+                  <span className="text-gray-500">{t('approvalWorkflows.form.stepsCount')}</span>
                   <span className="text-gray-900">{steps.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">สร้างเมื่อ</span>
+                  <span className="text-gray-500">{t('approvalWorkflows.form.createdAt')}</span>
                   <span className="text-gray-900">
                     {existingFlow.createdAt
                       ? new Date(existingFlow.createdAt).toLocaleDateString('th-TH')
@@ -697,7 +713,7 @@ export function ApprovalFlowForm({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">แก้ไขเมื่อ</span>
+                  <span className="text-gray-500">{t('approvalWorkflows.form.updatedAt')}</span>
                   <span className="text-gray-900">
                     {existingFlow.updatedAt
                       ? new Date(existingFlow.updatedAt).toLocaleDateString('th-TH')

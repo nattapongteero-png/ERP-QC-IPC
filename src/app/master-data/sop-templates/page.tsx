@@ -91,9 +91,13 @@ export default function SOPTemplatesPage() {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (data: { mode?: 'deleted' | 'disabled' } | null) => {
       queryClient.invalidateQueries({ queryKey: ['sop-templates'] });
-      toast.success('ปิดใช้งานแม่แบบแล้ว', 'ปิดใช้งานแม่แบบ SOP เรียบร้อยแล้ว');
+      if (data?.mode === 'disabled') {
+        toast.success('ปิดการใช้งาน', 'แม่แบบนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+      } else {
+        toast.success('ลบสำเร็จ', 'ลบแม่แบบ SOP เรียบร้อยแล้ว');
+      }
     },
     onError: (error: Error) => {
       toast.error('ผิดพลาด', error.message);

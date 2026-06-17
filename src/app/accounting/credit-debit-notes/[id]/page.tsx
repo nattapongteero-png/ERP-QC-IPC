@@ -12,6 +12,7 @@ import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Popup } from 'devextreme-react/popup';
 import { TextArea } from 'devextreme-react/text-area';
 import { StatusStepper } from '@/components/shared';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import type {
   CreditDebitNoteWithLines,
   NoteStatus,
@@ -22,12 +23,23 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+// Roles allowed to approve / reject credit-debit notes
+const NOTE_APPROVE_ROLES = ['admin', 'manager', 'accounting_manager', 'finance_manager'];
+
 const statusColors: Record<NoteStatus, string> = {
   draft: 'bg-gray-100 text-gray-800',
   submitted: 'bg-yellow-100 text-yellow-800',
   approved: 'bg-blue-100 text-blue-800',
   posted: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
+};
+
+const statusLabels: Record<NoteStatus, string> = {
+  draft: 'ร่าง',
+  submitted: 'ส่งอนุมัติ',
+  approved: 'อนุมัติแล้ว',
+  posted: 'ลงบัญชีแล้ว',
+  cancelled: 'ยกเลิก',
 };
 
 const noteTypeLabels: Record<NoteType, string> = {
@@ -60,6 +72,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
   const [cancelReason, setCancelReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
 
+  // Current user (for role-gated Approve / Reject buttons)
+  const { data: currentUser } = useCurrentUser();
+  const userRole = currentUser?.role || '';
+  const canApproveRole = NOTE_APPROVE_ROLES.includes(userRole);
+
   useEffect(() => {
     fetchNote();
   }, [noteId]);
@@ -72,12 +89,12 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
       if (data.success) {
         setNote(data.data);
       } else {
-        alert(data.error || 'Failed to load note');
+        alert(data.error || 'ไม่สามารถโหลดข้อมูลใบได้');
         router.push('/accounting/credit-debit-notes');
       }
     } catch (error) {
       console.error('Error fetching note:', error);
-      alert('Failed to load note');
+      alert('ไม่สามารถโหลดข้อมูลใบได้');
       router.push('/accounting/credit-debit-notes');
     } finally {
       setLoading(false);
@@ -85,7 +102,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
   };
 
   const handleSubmit = async () => {
-    if (!confirm('Submit this note for approval?')) return;
+    if (!confirm('ส่งใบนี้เพื่อขออนุมัติ?')) return;
 
     setActionLoading(true);
     try {
@@ -97,38 +114,38 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
       if (data.success) {
         await fetchNote();
       } else {
-        alert(data.error || 'Failed to submit note');
+        alert(data.error || 'ไม่สามารถส่งใบเพื่ออนุมัติได้');
       }
     } catch (error) {
       console.error('Error submitting note:', error);
-      alert('Failed to submit note');
+      alert('ไม่สามารถส่งใบเพื่ออนุมัติได้');
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleApprove = async () => {
-    if (!confirm('Approve this note?')) return;
+    if (!confirm('อนุมัติใบนี้?')) return;
 
     setActionLoading(true);
     try {
+      // approverId is derived from the session server-side, do not send it from the client
       const response = await fetch(
         `/api/accounting/credit-debit-notes/${noteId}/approve`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ approverId: 1 }), // TODO: Get from session
         }
       );
       const data = await response.json();
       if (data.success) {
         await fetchNote();
       } else {
-        alert(data.error || 'Failed to approve note');
+        alert(data.error || 'ไม่สามารถอนุมัติใบได้');
       }
     } catch (error) {
       console.error('Error approving note:', error);
-      alert('Failed to approve note');
+      alert('ไม่สามารถอนุมัติใบได้');
     } finally {
       setActionLoading(false);
     }
@@ -136,19 +153,19 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      alert('Please provide a rejection reason');
+      alert('กรุณาระบุเหตุผลในการปฏิเสธ');
       return;
     }
 
     setActionLoading(true);
     try {
+      // approverId is derived from the session server-side
       const response = await fetch(
         `/api/accounting/credit-debit-notes/${noteId}/reject`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            approverId: 1, // TODO: Get from session
             reason: rejectReason,
           }),
         }
@@ -159,18 +176,18 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
         setRejectReason('');
         await fetchNote();
       } else {
-        alert(data.error || 'Failed to reject note');
+        alert(data.error || 'ไม่สามารถปฏิเสธใบได้');
       }
     } catch (error) {
       console.error('Error rejecting note:', error);
-      alert('Failed to reject note');
+      alert('ไม่สามารถปฏิเสธใบได้');
     } finally {
       setActionLoading(false);
     }
   };
 
   const handlePost = async () => {
-    if (!confirm('Post this note to the General Ledger?')) return;
+    if (!confirm('ลงบัญชีใบนี้ในบัญชีแยกประเภท?')) return;
 
     setActionLoading(true);
     try {
@@ -182,11 +199,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
       if (data.success) {
         await fetchNote();
       } else {
-        alert(data.error || 'Failed to post note');
+        alert(data.error || 'ไม่สามารถลงบัญชีใบได้');
       }
     } catch (error) {
       console.error('Error posting note:', error);
-      alert('Failed to post note');
+      alert('ไม่สามารถลงบัญชีใบได้');
     } finally {
       setActionLoading(false);
     }
@@ -194,7 +211,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
   const handleCancel = async () => {
     if (!cancelReason.trim()) {
-      alert('Please provide a cancellation reason');
+      alert('กรุณาระบุเหตุผลในการยกเลิก');
       return;
     }
 
@@ -214,18 +231,18 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
         setCancelReason('');
         await fetchNote();
       } else {
-        alert(data.error || 'Failed to cancel note');
+        alert(data.error || 'ไม่สามารถยกเลิกใบได้');
       }
     } catch (error) {
       console.error('Error cancelling note:', error);
-      alert('Failed to cancel note');
+      alert('ไม่สามารถยกเลิกใบได้');
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm('Delete this note? This action cannot be undone.')) return;
+    if (!confirm('ลบใบนี้? การกระทำนี้ไม่สามารถย้อนกลับได้')) return;
 
     setActionLoading(true);
     try {
@@ -237,11 +254,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
       if (data.success) {
         router.push('/accounting/credit-debit-notes');
       } else {
-        alert(data.error || 'Failed to delete note');
+        alert(data.error || 'ไม่สามารถลบใบได้');
       }
     } catch (error) {
       console.error('Error deleting note:', error);
-      alert('Failed to delete note');
+      alert('ไม่สามารถลบใบได้');
     } finally {
       setActionLoading(false);
     }
@@ -279,8 +296,8 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
   const canEdit = note.status === 'draft';
   const canSubmit = note.status === 'draft';
-  const canApprove = note.status === 'submitted';
-  const canReject = note.status === 'submitted';
+  const canApprove = note.status === 'submitted' && canApproveRole;
+  const canReject = note.status === 'submitted' && canApproveRole;
   const canPost = note.status === 'approved';
   const canCancel = ['draft', 'submitted', 'approved'].includes(note.status);
   const canDelete = note.status === 'draft';
@@ -300,7 +317,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
                 }`}
                 data-testid="note-status"
               >
-                {note.status.toUpperCase()}
+                {statusLabels[note.status] || note.status}
               </span>
             </div>
             <p className="text-gray-600">{noteTypeLabels[note.noteType]}</p>
@@ -325,15 +342,25 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
         {/* Status Stepper */}
         <div className="mb-6">
-          <StatusStepper
-            title="สถานะการดำเนินงาน"
-            steps={[
-              { key: 'draft', label: 'ร่าง' },
-              { key: 'submitted', label: 'ส่งอนุมัติ' },
-              { key: 'approved', label: 'อนุมัติแล้ว' },
-            ]}
-            current={String(note.status).toLowerCase()}
-          />
+          {note.status === 'cancelled' ? (
+            <div
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800"
+              data-testid="note-cancelled-banner"
+            >
+              <span className="font-medium">ใบนี้ถูกยกเลิกแล้ว</span>
+            </div>
+          ) : (
+            <StatusStepper
+              title="สถานะการดำเนินงาน"
+              steps={[
+                { key: 'draft', label: 'ร่าง' },
+                { key: 'submitted', label: 'ส่งอนุมัติ' },
+                { key: 'approved', label: 'อนุมัติแล้ว' },
+                { key: 'posted', label: 'ลงบัญชีแล้ว' },
+              ]}
+              current={String(note.status).toLowerCase()}
+            />
+          )}
         </div>
 
         {/* Note Details */}

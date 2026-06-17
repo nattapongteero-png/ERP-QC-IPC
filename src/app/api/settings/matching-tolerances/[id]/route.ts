@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-  });
+  }, ['settings:read']);
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
@@ -84,7 +84,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-  });
+  }, ['settings:write']);
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
@@ -117,5 +117,5 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-  });
+  }, ['settings:write']);
 }

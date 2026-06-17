@@ -32,6 +32,10 @@ interface Exception {
   resolvedByName: string | null;
   resolvedAt: string | null;
   createdAt: string;
+  // Context joined from matching result (invoice / PO / vendor)
+  invoiceNumber: string | null;
+  poNumber: string | null;
+  vendorName: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -254,6 +258,24 @@ export default function MatchingExceptionsPage() {
 
             <Column dataField="id" caption="รหัส" width={80} />
             <Column
+              dataField="invoiceNumber"
+              caption="เลขใบแจ้งหนี้"
+              width={150}
+              cellRender={(cell: any) => cell.value || '-'}
+            />
+            <Column
+              dataField="poNumber"
+              caption="เลขใบสั่งซื้อ"
+              width={150}
+              cellRender={(cell: any) => cell.value || '-'}
+            />
+            <Column
+              dataField="vendorName"
+              caption="ผู้ขาย"
+              width={180}
+              cellRender={(cell: any) => cell.value || '-'}
+            />
+            <Column
               dataField="exceptionType"
               caption="ประเภท"
               width={150}
@@ -311,6 +333,24 @@ export default function MatchingExceptionsPage() {
           <div className="p-4">
             {selectedException && (
               <div className="mb-4 p-3 bg-gray-50 rounded">
+                {(selectedException.invoiceNumber || selectedException.poNumber) && (
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                      <div className="text-sm text-gray-500">เลขใบแจ้งหนี้</div>
+                      <div className="font-medium">{selectedException.invoiceNumber || '-'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">เลขใบสั่งซื้อ</div>
+                      <div className="font-medium">{selectedException.poNumber || '-'}</div>
+                    </div>
+                    {selectedException.vendorName && (
+                      <div className="col-span-2">
+                        <div className="text-sm text-gray-500">ผู้ขาย</div>
+                        <div className="font-medium">{selectedException.vendorName}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="text-sm text-gray-500">ประเภทรายการผิดปกติ</div>
                 <div className="font-medium">
                   {exceptionTypeLabels[selectedException.exceptionType] ||
@@ -318,10 +358,10 @@ export default function MatchingExceptionsPage() {
                 </div>
                 <div className="text-sm text-gray-500 mt-2">ผลต่าง</div>
                 <div className="font-medium">
-                  {selectedException.varianceAmount.toLocaleString('th-TH', {
+                  {Number(selectedException.varianceAmount || 0).toLocaleString('th-TH', {
                     minimumFractionDigits: 2,
                   })}{' '}
-                  ({selectedException.variancePct.toFixed(2)}%)
+                  ({Number(selectedException.variancePct || 0).toFixed(2)}%)
                 </div>
               </div>
             )}

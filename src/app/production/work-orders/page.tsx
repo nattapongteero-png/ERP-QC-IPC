@@ -344,13 +344,16 @@ export default function WorkOrdersPage() {
   });
 
   // Handler functions
-  const handleEditClick = useCallback((e: React.MouseEvent, wo: WorkOrder) => {
-    e.stopPropagation();
+
+  // Shared edit-dialog opener — used by both desktop grid and mobile list so
+  // the assignee fetch happens consistently (mobile previously skipped it,
+  // which wiped the assigned team on save via replace-all).
+  const openEditDialog = useCallback((wo: WorkOrder) => {
     setSelectedWO(wo);
     setEditForm({
       batchNumber: wo.batchNumber || '',
-      plannedQuantity: wo.plannedQuantity,
-      priority: wo.priority,
+      plannedQuantity: wo.plannedQuantity || 0,
+      priority: wo.priority || 5,
       plannedStartDate: wo.plannedStartDate ? new Date(wo.plannedStartDate) : null,
       plannedEndDate: wo.plannedEndDate ? new Date(wo.plannedEndDate) : null,
       deliveryDate: wo.deliveryDate ? new Date(wo.deliveryDate) : null,
@@ -376,6 +379,11 @@ export default function WorkOrdersPage() {
       .catch((err) => console.error('Failed to load assignees:', err));
     setEditDialogVisible(true);
   }, []);
+
+  const handleEditClick = useCallback((e: React.MouseEvent, wo: WorkOrder) => {
+    e.stopPropagation();
+    openEditDialog(wo);
+  }, [openEditDialog]);
 
   const handleDeleteClick = useCallback((e: React.MouseEvent, wo: WorkOrder) => {
     e.stopPropagation();
@@ -966,19 +974,7 @@ export default function WorkOrdersPage() {
             workOrders={filteredWorkOrders}
             t={t}
             onView={(id: number) => router.push(`/production/work-orders/${id}`)}
-            onEdit={(wo: WorkOrder) => {
-              setSelectedWO(wo);
-              setEditForm({
-                batchNumber: wo.batchNumber || '',
-                plannedQuantity: wo.plannedQuantity || 0,
-                priority: wo.priority || 5,
-                plannedStartDate: wo.plannedStartDate ? new Date(wo.plannedStartDate) : null,
-                plannedEndDate: wo.plannedEndDate ? new Date(wo.plannedEndDate) : null,
-                deliveryDate: wo.deliveryDate ? new Date(wo.deliveryDate) : null,
-                notes: wo.notes || '',
-              });
-              setEditDialogVisible(true);
-            }}
+            onEdit={(wo: WorkOrder) => openEditDialog(wo)}
             onDelete={(wo: WorkOrder) => {
               setSelectedWO(wo);
               setDeleteDialogVisible(true);

@@ -3008,6 +3008,7 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
         sampleNumber: tables.qualityTests.sampleNumber,
         ipcPhase: tables.qualityTests.ipcPhase,
         status: tables.qualityTests.status,
+        ipcCriteriaId: tables.qualityTests.ipcCriteriaId,
       })
       .from(tables.qualityTests)
       .where(
@@ -3018,13 +3019,13 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
       );
     const existingByNumber = new Map<
       string,
-      { id: number; ipcPhase: string | null; status: string | null }
+      { id: number; ipcPhase: string | null; status: string | null; ipcCriteriaId: number | null }
     >(
       existingTests
         .filter((t: any) => t.sampleNumber)
         .map((t: any) => [
           t.sampleNumber as string,
-          { id: t.id, ipcPhase: t.ipcPhase, status: t.status },
+          { id: t.id, ipcPhase: t.ipcPhase, status: t.status, ipcCriteriaId: t.ipcCriteriaId ?? null },
         ])
     );
 
@@ -3049,12 +3050,20 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
         const phaseChanged = existingForThisCriteria.ipcPhase !== phaseFromConfig;
         const shouldResync =
           existingForThisCriteria.ipcPhase == null || (isPending && phaseChanged);
-        if (shouldResync) {
+        // Backfill the ipc_criteria soft-FK on legacy rows that predate the
+        // column — the WO IPC tab needs it to route new-type criteria to the
+        // recorder panel (otherwise they fall through to an unusable card).
+        const needsCriteriaBackfill =
+          existingForThisCriteria.ipcCriteriaId == null && config.criteriaId != null;
+        if (shouldResync || needsCriteriaBackfill) {
+          const patch: Record<string, unknown> = { updatedAt: getNow() };
+          if (shouldResync) patch.ipcPhase = phaseFromConfig;
+          if (needsCriteriaBackfill) patch.ipcCriteriaId = config.criteriaId ?? null;
           await db
             .update(tables.qualityTests)
-            .set({ ipcPhase: phaseFromConfig, updatedAt: getNow() })
+            .set(patch)
             .where(eq(tables.qualityTests.id, existingForThisCriteria.id));
-          rephased++;
+          if (shouldResync) rephased++;
         }
         continue;
       }

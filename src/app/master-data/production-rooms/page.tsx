@@ -56,9 +56,13 @@ export default function ProductionRoomsPage() {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (data: { mode?: 'deleted' | 'disabled' } | null) => {
       queryClient.invalidateQueries({ queryKey: ['production-rooms'] });
-      toast.success('ลบสำเร็จ', 'ลบห้องผลิตเรียบร้อย');
+      if (data?.mode === 'disabled') {
+        toast.success('ปิดการใช้งาน', 'ห้องนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+      } else {
+        toast.success('ลบสำเร็จ', 'ลบห้องผลิตเรียบร้อย');
+      }
     },
     onError: (error: Error) => {
       toast.error('ผิดพลาด', error.message);

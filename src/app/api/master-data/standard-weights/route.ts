@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const includeInactive = request.nextUrl.searchParams.get('includeInactive') === 'true';
   const items = await listStandardWeights(includeInactive);
-  return NextResponse.json(items);
+  return NextResponse.json({ success: true, data: items });
 }
 
 export async function POST(request: NextRequest) {
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const created = await createStandardWeight(parsed.data, session.userId);
-    return NextResponse.json(created, { status: 201 });
+    return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (error) {
     if (error instanceof ScaleVerificationError) {
       return NextResponse.json(

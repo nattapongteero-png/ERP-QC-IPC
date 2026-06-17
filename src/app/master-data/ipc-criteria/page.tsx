@@ -86,9 +86,13 @@ export default function IPCCriteriaPage() {
       if (!result.success) throw new Error(result.error);
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (result: { data?: { mode?: 'deleted' | 'disabled' } }) => {
       queryClient.invalidateQueries({ queryKey: ['ipc-criteria'] });
-      toast.success('ลบสำเร็จ', 'เกณฑ์ QC และ IPC ถูกลบเรียบร้อย');
+      if (result?.data?.mode === 'disabled') {
+        toast.success('ปิดการใช้งาน', 'เกณฑ์นี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+      } else {
+        toast.success('ลบสำเร็จ', 'เกณฑ์ QC และ IPC ถูกลบเรียบร้อย');
+      }
     },
     onError: (error: Error) => toast.error('เกิดข้อผิดพลาด', error.message),
   });

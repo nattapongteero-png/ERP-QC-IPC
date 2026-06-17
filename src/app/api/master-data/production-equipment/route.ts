@@ -12,7 +12,8 @@ import {
   deactivateProductionEquipment,
   getProductionEquipmentById,
 } from '@/lib/services/master-data.service';
-import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { executeDbOperation, getTableRef, dbOperations } from '@/lib/db/db-helper';
+import { getNow } from '@/lib/db/date-utils';
 import { desc, eq } from 'drizzle-orm';
 
 // GET /api/master-data/production-equipment - List production equipment
@@ -153,21 +154,19 @@ export async function DELETE(request: NextRequest) {
         return errorResponse('Production equipment not found');
       }
 
-      const bomEquipment = getTableRef('bOMEquipment');
-      const refs = await executeDbOperation(async (db) => {
-        return db.select({ id: bomEquipment.id }).from(bomEquipment).where(eq(bomEquipment.equipmentId, Number(id))).limit(1);
+      // Real DELETE if never referenced; soft-disable when any FK (BOM,
+      // maintenance, scale verification, etc.) still points at it.
+      const result = await dbOperations.deleteOrDisableById('productionEquipment', Number(id), {
+        updatedAt: getNow(),
       });
-      if (refs.length > 0) {
-        return errorResponse('ไม่สามารถลบได้ เนื่องจากอุปกรณ์นี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
-      }
-
-      const table = getTableRef('productionEquipment');
-      await executeDbOperation(async (db) => {
-        await db.delete(table).where(eq(table.id, Number(id)));
-      });
-      return successResponse(null, 'Production equipment deleted successfully');
+      return successResponse(
+        { mode: result.mode },
+        result.mode === 'deleted'
+          ? 'Production equipment deleted successfully'
+          : 'Production equipment is in use — disabled instead of deleted',
+      );
     } catch (error) {
-      console.error('Error deactivating production equipment:', error);
+      console.error('Error deleting production equipment:', error);
       return serverErrorResponse(error);
     }
   });

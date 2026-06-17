@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         );
       }
 
-      // TODO: Get actual user ID from session
+      // Approver derived from authenticated session (not from client)
       const userId = session.userId;
 
       const result = await approveNote(noteId, userId);

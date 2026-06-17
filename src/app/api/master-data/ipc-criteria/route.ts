@@ -5,7 +5,8 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { executeDbOperation, getTableRef, dbOperations, isForeignKeyError } from '@/lib/db/db-helper';
+import { getNow } from '@/lib/db/date-utils';
 import { eq, asc, desc } from 'drizzle-orm';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 import { serializeAcceptanceStages } from '@/lib/master-data/ipc-stages';
@@ -152,7 +153,9 @@ export async function POST(request: NextRequest) {
   });
 }
 
-// DELETE /api/master-data/ipc-criteria?id=X - Deactivate
+// DELETE /api/master-data/ipc-criteria?id=X
+// Real DELETE if never referenced; soft-disable (isActive=false) when any FK
+// (BOM in-process QC, etc.) still points at it. Audit captured on real delete.
 export async function DELETE(request: NextRequest) {
   return withAuth(request, async (session) => {
     try {
@@ -160,21 +163,29 @@ export async function DELETE(request: NextRequest) {
       const id = searchParams.get('id');
       if (!id) return errorResponse('Missing ID');
 
-      const bomIpc = getTableRef('bOMInProcessQC');
-      const refs = await executeDbOperation(async (db) => {
-        return db.select({ id: bomIpc.id }).from(bomIpc).where(eq(bomIpc.criteriaId, Number(id))).limit(1);
-      });
-      if (refs.length > 0) {
-        return errorResponse('ไม่สามารถลบได้ เนื่องจากเกณฑ์ IPC นี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
+      let mode: 'deleted' | 'disabled';
+      try {
+        await auditedDelete({
+          table: AUDIT_TABLE,
+          id: Number(id),
+          userId: session.userId,
+          ipAddress: getClientIP(request),
+        });
+        mode = 'deleted';
+      } catch (error) {
+        if (!isForeignKeyError(error)) throw error;
+        await dbOperations.updateById(AUDIT_TABLE, Number(id), {
+          isActive: false,
+          updatedAt: getNow(),
+        });
+        mode = 'disabled';
       }
-
-      await auditedDelete({
-        table: AUDIT_TABLE,
-        id: Number(id),
-        userId: session.userId,
-        ipAddress: getClientIP(request),
-      });
-      return successResponse(null, 'IPC criteria deleted');
+      return successResponse(
+        { mode },
+        mode === 'deleted'
+          ? 'IPC criteria deleted'
+          : 'IPC criteria is in use — disabled instead of deleted',
+      );
     } catch (error) {
       return serverErrorResponse(error);
     }

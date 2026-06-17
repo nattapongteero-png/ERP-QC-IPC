@@ -12,7 +12,8 @@ import {
   deactivateProductionRoom,
   getProductionRoomById,
 } from '@/lib/services/master-data.service';
-import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { executeDbOperation, getTableRef, dbOperations } from '@/lib/db/db-helper';
+import { getNow } from '@/lib/db/date-utils';
 import { desc, eq } from 'drizzle-orm';
 
 // External API Key — same key used across master data APIs
@@ -149,7 +150,10 @@ export async function PUT(request: NextRequest) {
   });
 }
 
-// DELETE /api/master-data/production-rooms - Soft delete (deactivate) production room
+// DELETE /api/master-data/production-rooms?id=X
+// Real DELETE if never referenced; soft-disable (isActive=false) when any FK
+// (BOM, environmental_schedules.targetId, material_withdrawal_requests.roomId,
+// etc.) still points at it. deleteOrDisableById covers all references.
 export async function DELETE(request: NextRequest) {
   return withAuth(request, async () => {
     try {
@@ -165,22 +169,17 @@ export async function DELETE(request: NextRequest) {
         return errorResponse('Production room not found');
       }
 
-      // Check BOM references
-      const bomRooms = getTableRef('bOMRooms');
-      const refs = await executeDbOperation(async (db) => {
-        return db.select({ id: bomRooms.id }).from(bomRooms).where(eq(bomRooms.roomId, Number(id))).limit(1);
+      const result = await dbOperations.deleteOrDisableById('productionRooms', Number(id), {
+        updatedAt: getNow(),
       });
-      if (refs.length > 0) {
-        return errorResponse('ไม่สามารถลบได้ เนื่องจากห้องนี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
-      }
-
-      const table = getTableRef('productionRooms');
-      await executeDbOperation(async (db) => {
-        await db.delete(table).where(eq(table.id, Number(id)));
-      });
-      return successResponse(null, 'Production room deleted successfully');
+      return successResponse(
+        { mode: result.mode },
+        result.mode === 'deleted'
+          ? 'Production room deleted successfully'
+          : 'Production room is in use — disabled instead of deleted',
+      );
     } catch (error) {
-      console.error('Error deactivating production room:', error);
+      console.error('Error deleting production room:', error);
       return serverErrorResponse(error);
     }
   });

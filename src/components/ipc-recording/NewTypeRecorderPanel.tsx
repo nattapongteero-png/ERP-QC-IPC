@@ -17,8 +17,9 @@
 
 import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Lock, Plus, Save } from 'lucide-react';
+import { Lock, Plus, Save, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import {
   parseSpecPayload,
   type SpecPayload,
@@ -50,9 +51,14 @@ interface RecordingRound {
   reason: string | null;
   data: string;
   startedAt: string;
+  startedById: number | null;
   submittedAt: string | null;
+  submittedById: number | null;
   passed: boolean | null;
   computedMean: number | null;
+  // Triple Independence — second-person verification of the locked round.
+  verifiedAt: string | null;
+  verifiedById: number | null;
 }
 
 const NEW_TYPES = new Set<string>(['multi_point', 'tare', 'calibration', 'calculated', 'custom_multi_field']);
@@ -71,6 +77,7 @@ export function NewTypeRecorderPanel({
   compact?: boolean;
 }) {
   const qc = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
   const queryKey = ['ipc-rounds', criteria.id, batchNumber];
 
   const { data: rounds = [] } = useQuery<RecordingRound[]>({
@@ -118,6 +125,13 @@ export function NewTypeRecorderPanel({
 
   const activeRound = inProgress ?? submitted[submitted.length - 1] ?? null;
   const isLocked = !!activeRound?.submittedAt;
+  const isVerified = !!activeRound?.verifiedAt;
+  // The submitter/starter cannot verify their own round (Triple Independence).
+  const myId = currentUser?.id ?? null;
+  const isOwnRound =
+    myId != null &&
+    activeRound != null &&
+    (activeRound.submittedById === myId || activeRound.startedById === myId);
 
   const [formData, setFormData] = React.useState<Record<string, unknown>>({});
   React.useEffect(() => {
@@ -153,6 +167,19 @@ export function NewTypeRecorderPanel({
   const submitRound = useMutation({
     mutationFn: async (roundId: number) => {
       const res = await fetch(`/api/recording/rounds/${roundId}/submit`, { method: 'POST' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.data as RecordingRound;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey }),
+  });
+
+  // Triple Independence — a second person verifies the locked round. The verify
+  // API rejects (403) when the verifier is the submitter/starter; we also hide
+  // the button for that user so the control is visible client-side too.
+  const verifyRound = useMutation({
+    mutationFn: async (roundId: number) => {
+      const res = await fetch(`/api/recording/rounds/${roundId}/verify`, { method: 'POST' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data as RecordingRound;
@@ -216,6 +243,42 @@ export function NewTypeRecorderPanel({
                 </span>
               )}
             </div>
+          )}
+
+          {/* Triple Independence — second-person verification of the locked round. */}
+          {isLocked && (
+            isVerified ? (
+              <div
+                className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 mb-3 flex items-center gap-2 text-xs text-emerald-800"
+                data-testid={`ipc-round-verified-${activeRound.id}`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>ตรวจสอบยืนยันแล้ว (Triple Independence) เมื่อ {activeRound.verifiedAt}</span>
+              </div>
+            ) : (
+              <div
+                className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 mb-3 flex items-center gap-2 text-xs text-amber-800"
+                data-testid={`ipc-round-verify-pending-${activeRound.id}`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span className="flex-1">
+                  {isOwnRound
+                    ? 'รอผู้ตรวจสอบคนที่สองยืนยันผล (คุณเป็นผู้บันทึก จึงยืนยันเองไม่ได้)'
+                    : 'ผลนี้รอการตรวจสอบยืนยันโดยผู้ตรวจสอบคนที่สอง'}
+                </span>
+                {!isOwnRound && (
+                  <button
+                    type="button"
+                    data-testid={`ipc-round-verify-btn-${activeRound.id}`}
+                    disabled={verifyRound.isPending}
+                    onClick={() => verifyRound.mutate(activeRound.id)}
+                    className="px-2.5 py-1 rounded-md bg-amber-600 text-white text-[11px] font-semibold hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {verifyRound.isPending ? 'กำลังยืนยัน...' : 'ยืนยันผล'}
+                  </button>
+                )}
+              </div>
+            )
           )}
 
           <div className={cn(isLocked && 'pointer-events-none opacity-70')}>

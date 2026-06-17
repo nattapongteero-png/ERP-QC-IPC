@@ -412,6 +412,20 @@ export default function ComplaintDetailPage() {
                   className="bg-white/10 border-white/30 text-white hover:bg-white/20"
                 />
               )}
+              {!complaint.capaId && (
+                <DxButton
+                  text="สร้าง CAPA"
+                  icon="plus"
+                  onClick={() =>
+                    router.push(
+                      `/gmp/capa/new?complaintId=${complaint.id}&complaintNumber=${encodeURIComponent(complaint.complaintNumber)}`
+                    )
+                  }
+                  stylingMode="outlined"
+                  elementAttr={{ 'data-testid': 'create-capa-from-complaint' }}
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                />
+              )}
               {canClose && (
                 <DxButton
                   text="ปิดข้อร้องเรียน"

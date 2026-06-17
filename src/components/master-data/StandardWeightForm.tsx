@@ -71,7 +71,8 @@ export function StandardWeightForm({ mode, id }: StandardWeightFormProps) {
     queryFn: async () => {
       const res = await fetch('/api/master-data/standard-weights?includeInactive=true');
       if (!res.ok) throw new Error('Failed to load');
-      const list: StandardWeight[] = await res.json();
+      const body = await res.json();
+      const list: StandardWeight[] = body?.data ?? body;
       return list.find((w) => w.id === id);
     },
     enabled: mode === 'edit' && !!id,

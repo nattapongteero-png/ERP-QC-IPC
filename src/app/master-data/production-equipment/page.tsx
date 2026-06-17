@@ -71,9 +71,13 @@ export default function ProductionEquipmentPage() {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (data: { mode?: 'deleted' | 'disabled' } | null) => {
       queryClient.invalidateQueries({ queryKey: ['production-equipment'] });
-      toast.success('ปิดใช้งานอุปกรณ์แล้ว', 'ปิดใช้งานอุปกรณ์เรียบร้อยแล้ว');
+      if (data?.mode === 'disabled') {
+        toast.success('ปิดการใช้งาน', 'อุปกรณ์นี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+      } else {
+        toast.success('ลบสำเร็จ', 'ลบอุปกรณ์เรียบร้อยแล้ว');
+      }
     },
     onError: (error: Error) => {
       toast.error('ผิดพลาด', error.message);

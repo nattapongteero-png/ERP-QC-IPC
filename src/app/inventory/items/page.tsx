@@ -53,6 +53,7 @@ import * as XLSX from 'xlsx';
 import { ItemEditDialog, Item, ItemFormData } from '@/components/ui/item-edit-dialog';
 import { ITEM_COLUMNS, ITEM_TYPES_CONFIG, ALL_TYPE_KEYS, parseImportRow } from '@/lib/inventory/item-import';
 import { DxConfirmDialog } from '@/components/ui/dx-popup';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils/cn';
 
 // ============================================
@@ -142,6 +143,7 @@ export default function ItemsPage() {
   const router = useRouter();
   const t = useTranslations('inventory');
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'all' | ItemType>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -389,10 +391,19 @@ export default function ItemsPage() {
 
     try {
       const res = await fetch(`/api/items/${deleteConfirm.item.id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        if (data.mode === 'disabled') {
+          toast.success('ปิดการใช้งาน', 'รายการนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+        } else {
+          toast.success('ลบสำเร็จ', 'ลบรายการสินค้าเรียบร้อย');
+        }
         refetch();
+      } else {
+        toast.error('ลบไม่สำเร็จ', data?.error ?? `เกิดข้อผิดพลาด (${res.status})`);
       }
+    } catch (err) {
+      toast.error('ลบไม่สำเร็จ', err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่คาดคิด');
     } finally {
       setDeleteConfirm({ open: false, item: null });
     }

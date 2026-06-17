@@ -1,0 +1,139 @@
+{
+  "dxCollectionWidget": {
+    "noDataText": "ไม่มีข้อมูลที่จะแสดง"
+  },
+  "dxDataGrid": {
+    "noDataText": "ไม่มีข้อมูล",
+    "editingDeleteRow": "ลบ",
+    "editingUndeleteRow": "กู้คืน",
+    "editingConfirmDeleteMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?",
+    "editingConfirmDeleteTitle": "ยืนยันการลบ",
+    "editingAddRow": "เพิ่มแถว",
+    "editingSaveAllChanges": "บันทึกการเปลี่ยนแปลงทั้งหมด",
+    "editingCancelAllChanges": "ยกเลิกการเปลี่ยนแปลงทั้งหมด",
+    "editingEditRow": "แก้ไข",
+    "editingSaveRowChanges": "บันทึก",
+    "editingCancelRowChanges": "ยกเลิก",
+    "groupPanelEmptyText": "ลากคอลัมน์มาที่นี่เพื่อจัดกลุ่ม",
+    "columnChooserTitle": "เลือกคอลัมน์",
+    "columnChooserEmptyText": "ลากคอลัมน์มาที่นี่เพื่อซ่อน",
+    "searchPanelPlaceholder": "ค้นหา...",
+    "trueText": "ใช่",
+    "falseText": "ไม่",
+    "sortingAscendingText": "เรียงจากน้อยไปมาก",
+    "sortingDescendingText": "เรียงจากมากไปน้อย",
+    "sortingClearText": "ล้างการเรียงลำดับ",
+    "filterRowShowAllText": "(ทั้งหมด)",
+    "filterRowResetOperationText": "รีเซ็ต",
+    "filterRowOperationEquals": "เท่ากับ",
+    "filterRowOperationNotEquals": "ไม่เท่ากับ",
+    "filterRowOperationLess": "น้อยกว่า",
+    "filterRowOperationLessOrEquals": "น้อยกว่าหรือเท่ากับ",
+    "filterRowOperationGreater": "มากกว่า",
+    "filterRowOperationGreaterOrEquals": "มากกว่าหรือเท่ากับ",
+    "filterRowOperationStartsWith": "ขึ้นต้นด้วย",
+    "filterRowOperationContains": "ประกอบด้วย",
+    "filterRowOperationNotContains": "ไม่ประกอบด้วย",
+    "filterRowOperationEndsWith": "ลงท้ายด้วย",
+    "filterRowOperationBetween": "ระหว่าง",
+    "filterRowOperationBetweenStartText": "เริ่มต้น",
+    "filterRowOperationBetweenEndText": "สิ้นสุด",
+    "filterBuilderPopupTitle": "ตัวสร้างตัวกรอง",
+    "filterPanelCreateFilter": "สร้างตัวกรอง",
+    "filterPanelClearFilter": "ล้าง",
+    "filterPanelFilterEnabledHint": "เปิดใช้งานตัวกรอง",
+    "summaryMin": "ต่ำสุด: {0}",
+    "summaryMinOtherColumn": "ค่าต่ำสุดของ {1} คือ {0}",
+    "summaryMax": "สูงสุด: {0}",
+    "summaryMaxOtherColumn": "ค่าสูงสุดของ {1} คือ {0}",
+    "summaryAvg": "เฉลี่ย: {0}",
+    "summaryAvgOtherColumn": "ค่าเฉลี่ยของ {1} คือ {0}",
+    "summarySum": "รวม: {0}",
+    "summarySumOtherColumn": "ผลรวมของ {1} คือ {0}",
+    "summaryCount": "จำนวน: {0}",
+    "selectedRow": "แถวที่เลือก {0}",
+    "ariaDataGrid": "ตารางข้อมูล",
+    "ariaSearchInGrid": "ค้นหาในตารางข้อมูล",
+    "ariaSelectAll": "เลือกทั้งหมด",
+    "ariaSelectRow": "เลือกแถว",
+    "exportExcel": "ส่งออกเป็น Excel",
+    "exportSelectedRows": "ส่งออกแถวที่เลือก",
+    "exportAll": "ส่งออกข้อมูลทั้งหมด",
+    "headerFilterEmptyValue": "(ค่าว่าง)",
+    "headerFilterOK": "ตกลง",
+    "headerFilterCancel": "ยกเลิก"
+  },
+  "dxPager": {
+    "page": "หน้า",
+    "infoText": "หน้า {0} จาก {1} ({2} รายการ)",
+    "pagesCountText": "จาก",
+    "pageSizesAllText": "ทั้งหมด",
+    "itemsPerPage": "รายการต่อหน้า"
+  },
+  "dxTextEditor": {
+    "ariaSearchResult": "{0} จาก {1}",
+    "ariaSearchResultGE": "มากกว่าหรือเท่ากับ {0}"
+  },
+  "dxList": {
+    "nextButtonText": "เพิ่มเติม",
+    "pullingDownText": "ดึงลงเพื่อรีเฟรช...",
+    "pulledDownText": "ปล่อยเพื่อรีเฟรช...",
+    "refreshingText": "กำลังรีเฟรช...",
+    "selectAll": "เลือกทั้งหมด"
+  },
+  "dxDateBox": {
+    "simulatedDataPickerTitleTime": "เลือกเวลา",
+    "simulatedDataPickerTitleDate": "เลือกวันที่",
+    "simulatedDataPickerTitleDateTime": "เลือกวันที่และเวลา"
+  },
+  "dxDateRangeBox": {
+    "startDateLabel": "วันที่เริ่มต้น",
+    "endDateLabel": "วันที่สิ้นสุด"
+  },
+  "dxFileUploader": {
+    "selectFile": "เลือกไฟล์",
+    "dropFile": "หรือวางไฟล์ที่นี่",
+    "bytes": "ไบต์",
+    "kb": "KB",
+    "mb": "MB",
+    "gb": "GB",
+    "upload": "อัปโหลด",
+    "uploaded": "อัปโหลดแล้ว",
+    "readyToUpload": "พร้อมอัปโหลด",
+    "uploadFailedMessage": "อัปโหลดไม่สำเร็จ",
+    "invalidFileExtension": "ไม่อนุญาตประเภทไฟล์นี้",
+    "invalidMaxFileSize": "ไฟล์มีขนาดใหญ่เกินไป",
+    "invalidMinFileSize": "ไฟล์มีขนาดเล็กเกินไป"
+  },
+  "dxPopup": {
+    "closeButtonHint": "ปิด"
+  },
+  "dxCalendar": {
+    "ariaWidgetName": "ปฏิทิน",
+    "todayButtonText": "วันนี้"
+  },
+  "dxSwitch": {
+    "switchedOnText": "เปิด",
+    "switchedOffText": "ปิด"
+  },
+  "dxForm": {
+    "requiredMessage": "กรุณากรอก {0}",
+    "optionalMark": "ไม่บังคับ"
+  },
+  "validation": {
+    "required": "จำเป็นต้องกรอก",
+    "required-formatted": "กรุณากรอก {0}",
+    "numeric": "ค่าต้องเป็นตัวเลข",
+    "numeric-formatted": "{0} ต้องเป็นตัวเลข",
+    "range": "ค่าอยู่นอกช่วงที่กำหนด",
+    "range-formatted": "{0} อยู่นอกช่วงที่กำหนด",
+    "stringLength": "ความยาวของค่าไม่ถูกต้อง",
+    "stringLength-formatted": "ความยาวของ {0} ไม่ถูกต้อง",
+    "email": "อีเมลไม่ถูกต้อง",
+    "email-formatted": "{0} ไม่ถูกต้อง",
+    "pattern": "ค่าไม่ตรงกับรูปแบบที่กำหนด",
+    "pattern-formatted": "{0} ไม่ตรงกับรูปแบบที่กำหนด",
+    "compare": "ค่าไม่ตรงกัน",
+    "compare-formatted": "{0} ไม่ตรงกัน"
+  }
+}

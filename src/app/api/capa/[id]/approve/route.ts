@@ -98,9 +98,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: true, message });
   } catch (error) {
     console.error('Error processing CAPA approval:', error);
+    const message = error instanceof Error ? error.message : 'Failed to process approval';
+    // Invalid/missing signature password is a client authentication error, not a server fault.
+    const isAuthError = /password/i.test(message);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to process approval' },
-      { status: 500 }
+      { success: false, error: message },
+      { status: isAuthError ? 401 : 500 }
     );
   }
 }

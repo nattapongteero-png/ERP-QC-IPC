@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -51,13 +52,14 @@ interface FormData {
 }
 
 // Password strength buckets. Score is number of rules passed (0-5).
-function scorePassword(pw: string): { score: number; rules: { key: string; label: string; ok: boolean }[] } {
+// Labels are resolved via i18n at render time; we only key them here.
+function scorePassword(pw: string): { score: number; rules: { key: string; ok: boolean }[] } {
   const rules = [
-    { key: 'len', label: '≥ 6 ตัวอักษร', ok: pw.length >= 6 },
-    { key: 'len8', label: '≥ 8 ตัวอักษร (แนะนำ)', ok: pw.length >= 8 },
-    { key: 'lower', label: 'มีตัวพิมพ์เล็ก', ok: /[a-z]/.test(pw) },
-    { key: 'upper', label: 'มีตัวพิมพ์ใหญ่', ok: /[A-Z]/.test(pw) },
-    { key: 'num', label: 'มีตัวเลข', ok: /[0-9]/.test(pw) },
+    { key: 'len', ok: pw.length >= 6 },
+    { key: 'len8', ok: pw.length >= 8 },
+    { key: 'lower', ok: /[a-z]/.test(pw) },
+    { key: 'upper', ok: /[A-Z]/.test(pw) },
+    { key: 'num', ok: /[0-9]/.test(pw) },
   ];
   return { score: rules.filter((r) => r.ok).length, rules };
 }
@@ -73,6 +75,7 @@ function generateStrongPassword(): string {
 
 export default function NewUserPage() {
   const router = useRouter();
+  const t = useTranslations('users');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -166,12 +169,12 @@ export default function NewUserPage() {
     !isSubmitting;
 
   const validateForm = (): string | null => {
-    if (!formData.name.trim()) return 'กรุณากรอกชื่อ-นามสกุล';
-    if (!formData.email.trim()) return 'กรุณากรอกอีเมล';
-    if (!emailValid) return 'รูปแบบอีเมลไม่ถูกต้อง';
-    if (!formData.password) return 'กรุณากรอกรหัสผ่าน';
-    if (formData.password.length < 6) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-    if (formData.password !== formData.confirmPassword) return 'รหัสผ่านไม่ตรงกัน';
+    if (!formData.name.trim()) return t('form.validation.nameRequired');
+    if (!formData.email.trim()) return t('form.validation.emailRequired');
+    if (!emailValid) return t('form.validation.emailInvalid');
+    if (!formData.password) return t('form.validation.passwordRequired');
+    if (formData.password.length < 6) return t('form.validation.passwordMin');
+    if (formData.password !== formData.confirmPassword) return t('form.validation.passwordMismatch');
     return null;
   };
 
@@ -200,14 +203,14 @@ export default function NewUserPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setSuccessMessage('สร้างผู้ใช้สำเร็จ กำลังพาไปหน้ารายการ...');
+        setSuccessMessage(t('form.toast.createSuccess'));
         setTimeout(() => router.push('/users'), 1500);
       } else {
-        setError(data.error || 'ไม่สามารถสร้างผู้ใช้ได้');
+        setError(data.error || t('form.toast.createError'));
       }
     } catch (err) {
       console.error('Failed to create user:', err);
-      setError('เกิดข้อผิดพลาดในการสร้างผู้ใช้');
+      setError(t('form.toast.createException'));
     } finally {
       setIsSubmitting(false);
     }
@@ -221,10 +224,10 @@ export default function NewUserPage() {
 
   const strengthLabel = (() => {
     if (formData.password.length === 0) return '';
-    if (passwordStrength.score <= 2) return 'อ่อน';
-    if (passwordStrength.score === 3) return 'ปานกลาง';
-    if (passwordStrength.score === 4) return 'ดี';
-    return 'แข็งแรง';
+    if (passwordStrength.score <= 2) return t('form.strength.weak');
+    if (passwordStrength.score === 3) return t('form.strength.fair');
+    if (passwordStrength.score === 4) return t('form.strength.good');
+    return t('form.strength.strong');
   })();
   const strengthColor = (() => {
     if (passwordStrength.score <= 2) return 'bg-red-500';
@@ -236,7 +239,7 @@ export default function NewUserPage() {
   return (
     <MainLayout>
       <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-3xl mx-auto">
-        <PageHeader title="สร้างผู้ใช้ใหม่" description="เพิ่มผู้ใช้งานเข้าสู่ระบบ (จะสามารถเข้าสู่ระบบด้วยอีเมล + รหัสผ่านที่ตั้งใหม่)" />
+        <PageHeader title={t('form.createTitle')} description={t('form.createDescription')} />
 
         {error && (
           <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
@@ -258,7 +261,7 @@ export default function NewUserPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <User className="h-5 w-5 text-blue-500" />
-                ข้อมูลส่วนตัว
+                {t('form.sectionIdentity')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -266,12 +269,12 @@ export default function NewUserPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
                     <User className="h-3.5 w-3.5 text-gray-400" />
-                    ชื่อ-นามสกุล <span className="text-red-500">*</span>
+                    {t('form.nameLabel')} <span className="text-red-500">*</span>
                   </label>
                   <DxTextBox
                     value={formData.name}
                     onValueChange={(value) => setFormData({ ...formData, name: value })}
-                    placeholder="เช่น สมชาย ใจดี"
+                    placeholder={t('form.namePlaceholder')}
                     mode="text"
                   />
                 </div>
@@ -279,17 +282,17 @@ export default function NewUserPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
                     <Mail className="h-3.5 w-3.5 text-gray-400" />
-                    อีเมล <span className="text-red-500">*</span>
+                    {t('form.emailLabel')} <span className="text-red-500">*</span>
                   </label>
                   <DxTextBox
                     value={formData.email}
                     onValueChange={(value) => setFormData({ ...formData, email: value })}
-                    placeholder="user@example.com"
+                    placeholder={t('form.emailPlaceholder')}
                     mode="email"
                   />
                   {formData.email && !emailValid && (
                     <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                      <X className="h-3 w-3" /> รูปแบบอีเมลไม่ถูกต้อง
+                      <X className="h-3 w-3" /> {t('form.emailInvalid')}
                     </p>
                   )}
                 </div>
@@ -302,7 +305,7 @@ export default function NewUserPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Shield className="h-5 w-5 text-purple-500" />
-                สิทธิ์การเข้าถึง
+                {t('form.sectionAccess')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -310,7 +313,7 @@ export default function NewUserPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
                     <Shield className="h-3.5 w-3.5 text-gray-400" />
-                    บทบาท <span className="text-red-500">*</span>
+                    {t('form.roleLabel')} <span className="text-red-500">*</span>
                   </label>
                   <DxSelectBox
                     items={roleItems}
@@ -320,7 +323,7 @@ export default function NewUserPage() {
                     displayExpr="label"
                     searchExpr={['label', 'description']}
                     searchEnabled
-                    placeholder="เลือกบทบาท"
+                    placeholder={t('form.rolePlaceholder')}
                     disabled={isLoadingOptions}
                   />
                   {selectedRole?.description && (
@@ -333,7 +336,7 @@ export default function NewUserPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
                     <Building2 className="h-3.5 w-3.5 text-gray-400" />
-                    แผนก <span className="text-gray-400 text-xs">(ไม่บังคับ)</span>
+                    {t('form.departmentLabel')} <span className="text-gray-400 text-xs">{t('form.departmentOptional')}</span>
                   </label>
                   <DxSelectBox
                     items={departmentItems}
@@ -343,7 +346,7 @@ export default function NewUserPage() {
                     displayExpr="label"
                     searchExpr="label"
                     searchEnabled
-                    placeholder="เลือกแผนก"
+                    placeholder={t('form.departmentPlaceholder')}
                     disabled={isLoadingOptions}
                     showClearButton
                   />
@@ -358,14 +361,14 @@ export default function NewUserPage() {
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-base">
                   <Key className="h-5 w-5 text-amber-500" />
-                  ความปลอดภัย
+                  {t('form.sectionSecurity')}
                 </div>
                 <button
                   type="button"
                   onClick={handleGeneratePassword}
                   className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
                 >
-                  <Sparkles className="h-3.5 w-3.5" /> สุ่มรหัสผ่านแข็งแรง
+                  <Sparkles className="h-3.5 w-3.5" /> {t('form.generatePassword')}
                 </button>
               </CardTitle>
             </CardHeader>
@@ -374,13 +377,13 @@ export default function NewUserPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
                     <Key className="h-3.5 w-3.5 text-gray-400" />
-                    รหัสผ่าน <span className="text-red-500">*</span>
+                    {t('form.passwordLabel')} <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <DxTextBox
                       value={formData.password}
                       onValueChange={(value) => setFormData({ ...formData, password: value })}
-                      placeholder="อย่างน้อย 6 ตัวอักษร"
+                      placeholder={t('form.passwordPlaceholder')}
                       mode={showPassword ? 'text' : 'password'}
                     />
                     <button
@@ -397,13 +400,13 @@ export default function NewUserPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
                     <Key className="h-3.5 w-3.5 text-gray-400" />
-                    ยืนยันรหัสผ่าน <span className="text-red-500">*</span>
+                    {t('form.confirmPasswordLabel')} <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <DxTextBox
                       value={formData.confirmPassword}
                       onValueChange={(value) => setFormData({ ...formData, confirmPassword: value })}
-                      placeholder="พิมพ์รหัสผ่านอีกครั้ง"
+                      placeholder={t('form.confirmPasswordPlaceholder')}
                       mode={showConfirm ? 'text' : 'password'}
                     />
                     <button
@@ -417,12 +420,12 @@ export default function NewUserPage() {
                   </div>
                   {passwordsMatch === true && (
                     <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                      <Check className="h-3 w-3" /> รหัสผ่านตรงกัน
+                      <Check className="h-3 w-3" /> {t('form.passwordsMatch')}
                     </p>
                   )}
                   {passwordsMatch === false && (
                     <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                      <X className="h-3 w-3" /> รหัสผ่านไม่ตรงกัน
+                      <X className="h-3 w-3" /> {t('form.passwordsNotMatch')}
                     </p>
                   )}
                 </div>
@@ -432,7 +435,7 @@ export default function NewUserPage() {
               {formData.password && (
                 <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-gray-600">ความแข็งแรงรหัสผ่าน</span>
+                    <span className="text-xs font-medium text-gray-600">{t('form.passwordStrength')}</span>
                     <span className={`text-xs font-semibold ${
                       passwordStrength.score <= 2 ? 'text-red-600' :
                       passwordStrength.score === 3 ? 'text-amber-600' :
@@ -454,7 +457,7 @@ export default function NewUserPage() {
                         className={`flex items-center gap-1.5 ${r.ok ? 'text-green-700' : 'text-gray-500'}`}
                       >
                         {r.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                        {r.label}
+                        {t(`form.rules.${r.key}`)}
                       </div>
                     ))}
                   </div>
@@ -466,14 +469,14 @@ export default function NewUserPage() {
           {/* Actions — stack on mobile, inline on tablet+ */}
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
             <DxButton
-              text="ยกเลิก"
+              text={t('form.cancel')}
               stylingMode="outlined"
               onClick={() => router.push('/users')}
               width="100%"
               elementAttr={{ class: 'sm:!w-auto' }}
             />
             <DxButton
-              text={isSubmitting ? 'กำลังบันทึก…' : 'สร้างผู้ใช้'}
+              text={isSubmitting ? t('form.saving') : t('form.create')}
               type="success"
               icon="save"
               useSubmitBehavior
@@ -487,7 +490,7 @@ export default function NewUserPage() {
         {isLoadingOptions && (
           <div className="flex items-center justify-center py-2 text-sm text-gray-500">
             <DxLoadIndicator />
-            <span className="ml-2">กำลังโหลดตัวเลือก...</span>
+            <span className="ml-2">{t('form.loadingOptions')}</span>
           </div>
         )}
       </div>

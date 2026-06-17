@@ -27,7 +27,8 @@ export default function StandardWeightsPage() {
     queryFn: async () => {
       const res = await fetch('/api/master-data/standard-weights?includeInactive=true');
       if (!res.ok) throw new Error('Failed to load');
-      return res.json();
+      const body = await res.json();
+      return (body?.data ?? body) as StandardWeight[];
     },
   });
 

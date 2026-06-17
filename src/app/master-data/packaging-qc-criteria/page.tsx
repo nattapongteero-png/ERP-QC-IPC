@@ -50,11 +50,15 @@ export default function PackagingQCCriteriaPage() {
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
-      return result.data;
+      return result.data as { mode?: 'deleted' | 'disabled' };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['packaging-qc-criteria'] });
-      toast.success('ปิดใช้งานเกณฑ์แล้ว', 'ปิดใช้งานเกณฑ์ QC บรรจุภัณฑ์เรียบร้อยแล้ว');
+      if (result?.mode === 'disabled') {
+        toast.success('ปิดการใช้งาน', 'รายการนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+      } else {
+        toast.success('ลบสำเร็จ', 'ลบเกณฑ์ QC บรรจุภัณฑ์เรียบร้อย');
+      }
     },
     onError: (error: Error) => {
       toast.error('ผิดพลาด', error.message);

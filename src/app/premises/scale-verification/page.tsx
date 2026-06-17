@@ -68,7 +68,8 @@ export default function ScaleVerificationPage() {
     queryFn: async () => {
       const res = await fetch('/api/master-data/standard-weights');
       if (!res.ok) return [];
-      return res.json();
+      const body = await res.json();
+      return (body?.data ?? body) as StandardWeight[];
     },
   });
 

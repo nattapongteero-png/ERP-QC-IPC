@@ -69,7 +69,7 @@ export async function GET(
 
       // Get work order details
       let woInfo = null;
-      if (deviation.woId) {
+      if (deviation.workOrderId) {
         const woResult = await executeDbOperation(async (db) => {
           return db
             .select({
@@ -79,7 +79,7 @@ export async function GET(
               status: workOrders.status,
             })
             .from(workOrders)
-            .where(eq(workOrders.id, deviation.woId));
+            .where(eq(workOrders.id, deviation.workOrderId));
         });
         woInfo = woResult[0] || null;
       }

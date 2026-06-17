@@ -6,6 +6,7 @@
 
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
@@ -55,12 +56,24 @@ import type {
   MilitaryStatus,
 } from '@/types/hr';
 
-// Select options
-const GENDER_OPTIONS = [
-  { value: 'male', label: 'ชาย' },
-  { value: 'female', label: 'หญิง' },
-  { value: 'other', label: 'อื่นๆ' },
-];
+// Select option values — labels are resolved via i18n inside the component.
+const GENDER_VALUES = ['male', 'female', 'other'] as const;
+const MARITAL_STATUS_VALUES = ['single', 'married', 'divorced', 'widowed'] as const;
+const EDUCATION_LEVEL_VALUES = [
+  'primary',
+  'secondary',
+  'vocational',
+  'bachelor',
+  'master',
+  'doctorate',
+] as const;
+const MILITARY_STATUS_VALUES = [
+  'exempted',
+  'completed',
+  'pending',
+  'not_applicable',
+] as const;
+const RELIGION_VALUES = ['buddhism', 'islam', 'christianity', 'hinduism', 'other'] as const;
 
 const BLOOD_TYPE_OPTIONS = [
   { value: 'A+', label: 'A+' },
@@ -71,37 +84,6 @@ const BLOOD_TYPE_OPTIONS = [
   { value: 'O-', label: 'O-' },
   { value: 'AB+', label: 'AB+' },
   { value: 'AB-', label: 'AB-' },
-];
-
-const MARITAL_STATUS_OPTIONS = [
-  { value: 'single', label: 'โสด' },
-  { value: 'married', label: 'สมรส' },
-  { value: 'divorced', label: 'หย่าร้าง' },
-  { value: 'widowed', label: 'หม้าย' },
-];
-
-const EDUCATION_LEVEL_OPTIONS = [
-  { value: 'primary', label: 'ประถมศึกษา' },
-  { value: 'secondary', label: 'มัธยมศึกษา' },
-  { value: 'vocational', label: 'ปวช./ปวส.' },
-  { value: 'bachelor', label: 'ปริญญาตรี' },
-  { value: 'master', label: 'ปริญญาโท' },
-  { value: 'doctorate', label: 'ปริญญาเอก' },
-];
-
-const MILITARY_STATUS_OPTIONS = [
-  { value: 'exempted', label: 'ได้รับการยกเว้น' },
-  { value: 'completed', label: 'ผ่านการเกณฑ์ทหารแล้ว' },
-  { value: 'pending', label: 'รอเกณฑ์ทหาร' },
-  { value: 'not_applicable', label: 'ไม่เกี่ยวข้อง' },
-];
-
-const RELIGION_OPTIONS = [
-  { value: 'buddhism', label: 'พุทธ' },
-  { value: 'islam', label: 'อิสลาม' },
-  { value: 'christianity', label: 'คริสต์' },
-  { value: 'hinduism', label: 'ฮินดู' },
-  { value: 'other', label: 'อื่นๆ' },
 ];
 
 export interface EmployeeFormData {
@@ -270,8 +252,31 @@ export function EmployeeForm({
   onCancel,
 }: EmployeeFormProps) {
   const router = useRouter();
+  const t = useTranslations('hr');
   const queryClient = useQueryClient();
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  // Translated select options (keys under hr.employees.employeeForm.options.*)
+  const GENDER_OPTIONS = useMemo(
+    () => GENDER_VALUES.map((value) => ({ value, label: t(`employees.employeeForm.options.gender.${value}`) })),
+    [t],
+  );
+  const MARITAL_STATUS_OPTIONS = useMemo(
+    () => MARITAL_STATUS_VALUES.map((value) => ({ value, label: t(`employees.employeeForm.options.maritalStatus.${value}`) })),
+    [t],
+  );
+  const EDUCATION_LEVEL_OPTIONS = useMemo(
+    () => EDUCATION_LEVEL_VALUES.map((value) => ({ value, label: t(`employees.employeeForm.options.educationLevel.${value}`) })),
+    [t],
+  );
+  const MILITARY_STATUS_OPTIONS = useMemo(
+    () => MILITARY_STATUS_VALUES.map((value) => ({ value, label: t(`employees.employeeForm.options.militaryStatus.${value}`) })),
+    [t],
+  );
+  const RELIGION_OPTIONS = useMemo(
+    () => RELIGION_VALUES.map((value) => ({ value, label: t(`employees.employeeForm.options.religion.${value}`) })),
+    [t],
+  );
 
   // Compute initial form data from props
   const initialFormData = useMemo<EmployeeFormData>(() => ({

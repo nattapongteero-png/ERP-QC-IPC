@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-  });
+  }, ['settings:read']);
 }
 
 export async function POST(request: NextRequest) {
@@ -54,5 +54,5 @@ export async function POST(request: NextRequest) {
       );
     }
 
-  });
+  }, ['settings:write']);
 }

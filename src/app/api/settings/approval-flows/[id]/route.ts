@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-  });
+  }, ['settings:read']);
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
@@ -91,7 +91,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-  });
+  }, ['settings:write']);
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
@@ -121,5 +121,5 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-  });
+  }, ['settings:write']);
 }

@@ -30,6 +30,7 @@ import {
   mysqlUsers,
 } from '../db/schema';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 // Get table references based on database type
 function getTables() {
@@ -404,7 +405,7 @@ export async function getCapaDetails(id: number): Promise<CapaDetails | null> {
   const capaData = await getCapaById(id);
   if (!capaData) return null;
 
-  const { actions: actionsTable, effectiveness, users, deviations } = getTables();
+  const { actions: actionsTable, effectiveness, users, deviations, complaints, auditFindings } = getTables();
   const db = await getDb();
 
   // Get actions
@@ -487,17 +488,46 @@ export async function getCapaDetails(id: number): Promise<CapaDetails | null> {
     })
   );
 
-  // Get source details if applicable
+  // Get source details + human-readable source number if applicable.
+  // sourceId is the canonical link; fall back to the legacy typed *Id columns.
   let source: object | undefined;
-  if (capaData.deviationId) {
+  let sourceNumber: string | undefined;
+  const deviationLink = capaData.deviationId || (capaData.sourceType === 'deviation' ? capaData.sourceId : null);
+  const complaintLink = capaData.complaintId || (capaData.sourceType === 'complaint' ? capaData.sourceId : null);
+  const auditFindingLink = capaData.auditFindingId || (capaData.sourceType === 'audit_finding' ? capaData.sourceId : null);
+
+  if (deviationLink) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deviation = await (db as any)
       .select()
       .from(deviations)
-      .where(eq(deviations.id, capaData.deviationId))
+      .where(eq(deviations.id, deviationLink))
       .limit(1);
     if (deviation.length > 0) {
       source = deviation[0];
+      sourceNumber = deviation[0].deviationNumber || undefined;
+    }
+  } else if (complaintLink) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const complaint = await (db as any)
+      .select()
+      .from(complaints)
+      .where(eq(complaints.id, complaintLink))
+      .limit(1);
+    if (complaint.length > 0) {
+      source = complaint[0];
+      sourceNumber = complaint[0].complaintNumber || undefined;
+    }
+  } else if (auditFindingLink) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const finding = await (db as any)
+      .select()
+      .from(auditFindings)
+      .where(eq(auditFindings.id, auditFindingLink))
+      .limit(1);
+    if (finding.length > 0) {
+      source = finding[0];
+      sourceNumber = finding[0].findingNumber || undefined;
     }
   }
 
@@ -509,6 +539,7 @@ export async function getCapaDetails(id: number): Promise<CapaDetails | null> {
 
   return {
     ...capaData,
+    sourceNumber,
     actions,
     effectivenessChecks,
     attachments,
@@ -699,6 +730,14 @@ export async function createFromComplaint(
     },
     userId
   );
+
+  // Back-link the complaint to the new CAPA so the complaint detail page can
+  // display the linked CAPA and prevent duplicate CAPA creation.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(complaints)
+    .set({ capaId: capa.id, updatedAt: getNow() })
+    .where(eq(complaints.id, complaintId));
 
   // Create audit log for complaint link
   await createAuditLog({
@@ -1790,7 +1829,7 @@ export async function processCapaApproval(
     throw new Error('CAPA is not pending approval');
   }
 
-  // Verify user password for electronic signature
+  // Verify user password for electronic signature (21 CFR Part 11 / GMP).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = await (db as any)
     .select({ password: users.password })
@@ -1802,13 +1841,31 @@ export async function processCapaApproval(
     throw new Error('User not found');
   }
 
-  // Simple password verification (in production, use bcrypt or similar)
-  // This is a placeholder - actual implementation should use proper password hashing
-  const passwordHash = crypto.createHash('sha256').update(userPassword).digest('hex');
-  const storedHash = user[0].password;
+  const storedHash = user[0].password as string | null;
+  if (!storedHash) {
+    throw new Error('Cannot sign: user has no password set');
+  }
+  if (!userPassword) {
+    throw new Error('Password is required to sign');
+  }
 
-  // For now, we'll skip actual password verification and just create a signature hash
-  // In production, you should verify: if (storedHash !== passwordHash) throw new Error('Invalid password');
+  // Passwords are stored as bcrypt hashes (see src/lib/auth). Verify the
+  // supplied password against the stored hash before allowing the signature.
+  // bcrypt hashes start with $2 — fall back to plain compare for seed/dev
+  // accounts that have unhashed passwords (matches qc-sample.service pattern).
+  let passwordValid = false;
+  if (storedHash.startsWith('$2')) {
+    try {
+      passwordValid = await bcrypt.compare(userPassword, storedHash);
+    } catch {
+      passwordValid = false;
+    }
+  } else {
+    passwordValid = storedHash === userPassword;
+  }
+  if (!passwordValid) {
+    throw new Error('Invalid password. Please re-enter your password to sign.');
+  }
 
   // Create electronic signature hash
   const signatureData = `${capaId}:${userId}:${data.action}:${new Date().toISOString()}`;

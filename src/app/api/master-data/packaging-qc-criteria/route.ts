@@ -11,7 +11,8 @@ import {
   updatePackagingQCCriteria,
   getPackagingQCCriteriaById,
 } from '@/lib/services/master-data.service';
-import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { executeDbOperation, getTableRef, dbOperations } from '@/lib/db/db-helper';
+import { getNow } from '@/lib/db/date-utils';
 import { desc, eq } from 'drizzle-orm';
 
 // GET /api/master-data/packaging-qc-criteria - List packaging QC criteria
@@ -111,19 +112,16 @@ export async function DELETE(request: NextRequest) {
       const existing = await getPackagingQCCriteriaById(Number(id));
       if (!existing) return errorResponse('Criteria not found');
 
-      const bomPkgQc = getTableRef('bOMPackagingQC');
-      const refs = await executeDbOperation(async (db) => {
-        return db.select({ id: bomPkgQc.id }).from(bomPkgQc).where(eq(bomPkgQc.criteriaId, Number(id))).limit(1);
+      // Real DELETE if never referenced; soft-disable when any FK still points at it.
+      const result = await dbOperations.deleteOrDisableById('packagingQCCriteria', Number(id), {
+        updatedAt: getNow(),
       });
-      if (refs.length > 0) {
-        return errorResponse('ไม่สามารถลบได้ เนื่องจากเกณฑ์นี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
-      }
-
-      const table = getTableRef('packagingQCCriteria');
-      await executeDbOperation(async (db) => {
-        await db.delete(table).where(eq(table.id, Number(id)));
-      });
-      return successResponse(null, 'Packaging QC criteria deleted');
+      return successResponse(
+        { mode: result.mode },
+        result.mode === 'deleted'
+          ? 'Packaging QC criteria deleted'
+          : 'Packaging QC criteria is in use — disabled instead of deleted',
+      );
     } catch (error) {
       return serverErrorResponse(error);
     }

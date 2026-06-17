@@ -634,7 +634,7 @@ export async function listExceptions(filter: ExceptionListFilterInput): Promise<
       .where(whereClause);
     const total = Number(countResult[0]?.count || 0);
 
-    // Get exceptions with related data
+    // Get exceptions with related data (invoice / PO / vendor context for review)
     const exceptions = await db
       .select({
         id: tables.exceptions.id,
@@ -649,9 +649,17 @@ export async function listExceptions(filter: ExceptionListFilterInput): Promise<
         resolvedAt: tables.exceptions.resolvedAt,
         createdAt: tables.exceptions.createdAt,
         resolvedByName: tables.employees.firstNameEn,
+        // Context joined via matchingResultId -> AP invoice -> PO / vendor
+        invoiceNumber: tables.apInvoices.invoiceNumber,
+        poNumber: tables.purchaseOrders.poNumber,
+        vendorName: tables.vendors.name,
       })
       .from(tables.exceptions)
       .leftJoin(tables.employees, eq(tables.exceptions.resolvedBy, tables.employees.id))
+      .leftJoin(tables.results, eq(tables.exceptions.matchingResultId, tables.results.id))
+      .leftJoin(tables.apInvoices, eq(tables.results.apInvoiceId, tables.apInvoices.id))
+      .leftJoin(tables.purchaseOrders, eq(tables.apInvoices.purchaseOrderId, tables.purchaseOrders.id))
+      .leftJoin(tables.vendors, eq(tables.apInvoices.vendorId, tables.vendors.id))
       .where(whereClause)
       .orderBy(desc(tables.exceptions.createdAt))
       .limit(limit)

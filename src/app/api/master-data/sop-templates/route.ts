@@ -11,7 +11,8 @@ import {
   updateSOPTemplate,
   getSOPTemplateById,
 } from '@/lib/services/master-data.service';
-import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { executeDbOperation, getTableRef, dbOperations } from '@/lib/db/db-helper';
+import { getNow } from '@/lib/db/date-utils';
 import { desc, eq } from 'drizzle-orm';
 
 // GET /api/master-data/sop-templates - List SOP step templates
@@ -121,19 +122,16 @@ export async function DELETE(request: NextRequest) {
       const existing = await getSOPTemplateById(Number(id));
       if (!existing) return errorResponse('SOP template not found');
 
-      const bomSop = getTableRef('bOMSOPSteps');
-      const refs = await executeDbOperation(async (db) => {
-        return db.select({ id: bomSop.id }).from(bomSop).where(eq(bomSop.templateId, Number(id))).limit(1);
+      // Real DELETE if never referenced; soft-disable when any FK still points at it.
+      const result = await dbOperations.deleteOrDisableById('sOPStepTemplates', Number(id), {
+        updatedAt: getNow(),
       });
-      if (refs.length > 0) {
-        return errorResponse('ไม่สามารถลบได้ เนื่องจาก SOP นี้ถูกใช้งานใน BOM Configuration กรุณาลบออกจาก BOM ก่อน');
-      }
-
-      const table = getTableRef('sOPStepTemplates');
-      await executeDbOperation(async (db) => {
-        await db.delete(table).where(eq(table.id, Number(id)));
-      });
-      return successResponse(null, 'SOP template deleted');
+      return successResponse(
+        { mode: result.mode },
+        result.mode === 'deleted'
+          ? 'SOP template deleted'
+          : 'SOP template is in use — disabled instead of deleted',
+      );
     } catch (error) {
       return serverErrorResponse(error);
     }

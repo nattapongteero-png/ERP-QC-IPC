@@ -67,17 +67,19 @@ export default function NewCreditDebitNotePage() {
     setLoading(true);
     try {
       const [custRes, vendRes, accRes] = await Promise.all([
-        fetch('/api/customers'),
-        fetch('/api/vendors'),
-        fetch('/api/accounting/gl-accounts'),
+        fetch('/api/customers?isActive=true&limit=1000'),
+        fetch('/api/vendors?isActive=true&limit=1000'),
+        fetch('/api/accounting/gl-accounts?isActive=true&isPostable=true'),
       ]);
 
       const custData = await custRes.json();
       const vendData = await vendRes.json();
       const accData = await accRes.json();
 
-      if (custData.success) setCustomers(custData.data || []);
-      if (vendData.success) setVendors(vendData.data || []);
+      // /api/customers + /api/vendors return paginated { items, total } inside .data
+      if (custData.success) setCustomers(custData.data?.items || custData.data || []);
+      if (vendData.success) setVendors(vendData.data?.items || vendData.data || []);
+      // /api/accounting/gl-accounts returns a plain array in .data
       if (accData.success) setGlAccounts(accData.data || []);
     } catch (error) {
       console.error('Error fetching master data:', error);
@@ -147,13 +149,13 @@ export default function NewCreditDebitNotePage() {
       !formData.referenceInvoiceId ||
       !formData.reasonCode
     ) {
-      alert('Please fill in all required fields');
+      alert('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
       return;
     }
 
     const validLines = lines.filter((l) => l.description && l.glAccountId);
     if (validLines.length === 0) {
-      alert('Please add at least one valid line item');
+      alert('กรุณาเพิ่มรายการอย่างน้อยหนึ่งรายการ');
       return;
     }
 
@@ -187,11 +189,11 @@ export default function NewCreditDebitNotePage() {
       if (result.success) {
         router.push(`/accounting/credit-debit-notes/${result.id}`);
       } else {
-        alert(result.error || 'Failed to create note');
+        alert(result.error || 'ไม่สามารถสร้างใบลด/เพิ่มหนี้ได้');
       }
     } catch (error) {
       console.error('Error saving note:', error);
-      alert('Failed to create note');
+      alert('ไม่สามารถสร้างใบลด/เพิ่มหนี้ได้');
     } finally {
       setSaving(false);
     }

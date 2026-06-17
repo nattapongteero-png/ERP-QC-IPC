@@ -694,6 +694,32 @@ export default function IPCPage() {
               );
             }
 
+            // New-type criteria that can't be routed to the recorder (missing
+            // ipcCriteriaId soft-FK or batchNumber). The legacy per-sample card
+            // below renders no input for these types — so show an explicit
+            // message instead of an unusable empty card.
+            if (isNewType(test.criteriaType)) {
+              return (
+                <Card key={test.id} className="border-l-4 border-l-amber-400" data-testid={`ipc-newtype-unavailable-${test.id}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+                      <div className="text-sm">
+                        <div className="font-semibold text-gray-900">
+                          {test.testName || `Test #${test.id}`}
+                        </div>
+                        <div className="text-gray-600 mt-1">
+                          {!workOrder?.batchNumber
+                            ? 'ยังบันทึกผลไม่ได้ — ใบสั่งผลิตนี้ยังไม่มี Batch Number'
+                            : 'ยังบันทึกผลไม่ได้ — รายการตรวจนี้ยังไม่ได้ผูกกับเกณฑ์ IPC (กรุณาซิงก์ BOM IPC ใหม่)'}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            }
+
             return (
               <Card key={test.id} className={`border-l-4 ${
                 isApproved ? 'border-l-emerald-500' :

@@ -16,7 +16,7 @@ import type { AuditFinding, AuditFindingCategory, AuditFindingStatus } from '@/t
 interface AuditFindingListProps {
   findings: AuditFinding[];
   onEdit?: (finding: AuditFinding) => void;
-  onAssignCapa?: (findingId: number) => void;
+  onAssignCapa?: (findingId: number, findingNumber?: string) => void;
   onClose?: (findingId: number) => void;
   canEdit?: boolean;
   loading?: boolean;
@@ -132,7 +132,7 @@ export function AuditFindingList({
           <DxButton
             icon="link"
             hint="กำหนด CAPA"
-            onClick={() => onAssignCapa(data.data.id)}
+            onClick={() => onAssignCapa(data.data.id, data.data.findingNumber)}
             stylingMode="text"
             type="default"
           />

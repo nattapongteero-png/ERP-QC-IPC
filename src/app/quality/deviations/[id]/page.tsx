@@ -17,15 +17,14 @@ import { Badge } from '@/components/ui/badge';
 interface DeviationDetail {
   deviation: {
     id: number;
-    deviationCode: string;
+    deviationNumber: string;
     title: string;
     description: string;
     type: string;
     severity: string;
     status: string;
-    itemId: number;
     lotId: number;
-    woId: number;
+    workOrderId: number;
     reportedBy: number;
     assignedTo: number;
     rootCause: string;
@@ -75,9 +74,8 @@ interface DeviationDetail {
 
 const statusOptions = [
   { value: 'open', label: 'เปิด' },
-  { value: 'in_progress', label: 'กำลังดำเนินการ' },
-  { value: 'pending_verification', label: 'รอตรวจสอบ' },
-  { value: 'verified', label: 'ตรวจสอบแล้ว' },
+  { value: 'investigating', label: 'กำลังสืบสวน' },
+  { value: 'resolved', label: 'แก้ไขแล้ว' },
   { value: 'closed', label: 'ปิด' },
 ];
 
@@ -151,8 +149,8 @@ export default function DeviationDetailPage() {
 
   const getStatusVariant = (status: string): 'primary' | 'danger' | 'secondary' | 'default' => {
     switch (status) {
-      case 'closed': case 'verified': return 'primary';
-      case 'open': case 'in_progress': return 'secondary';
+      case 'closed': case 'resolved': return 'primary';
+      case 'open': case 'investigating': return 'secondary';
       case 'overdue': return 'danger';
       default: return 'default';
     }
@@ -222,7 +220,7 @@ export default function DeviationDetailPage() {
                 stylingMode="outlined"
                 onClick={() => router.push('/quality/deviations')}
               />
-              <h1 className="text-2xl font-bold text-gray-900">{deviation.deviationCode}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{deviation.deviationNumber}</h1>
               <Badge variant={getStatusVariant(deviation.status)}>
                 {deviation.status}
               </Badge>
@@ -275,9 +273,8 @@ export default function DeviationDetailPage() {
           current={deviation.status}
           steps={[
             { key: 'open', label: 'เปิด' },
-            { key: 'in_progress', label: 'กำลังสืบสวน' },
-            { key: 'pending_verification', label: 'รอตรวจสอบ' },
-            { key: 'verified', label: 'ตรวจสอบแล้ว' },
+            { key: 'investigating', label: 'กำลังสืบสวน' },
+            { key: 'resolved', label: 'แก้ไขแล้ว' },
             { key: 'closed', label: 'ปิด' },
           ]}
         />
@@ -350,7 +347,7 @@ export default function DeviationDetailPage() {
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
                     <dt className="text-sm text-gray-500">รหัสความเบี่ยงเบน</dt>
-                    <dd className="font-medium">{deviation.deviationCode}</dd>
+                    <dd className="font-medium">{deviation.deviationNumber}</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">ประเภท</dt>
@@ -478,6 +475,27 @@ export default function DeviationDetailPage() {
 
         {activeTabIndex === 2 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Create formal CAPA record from this deviation */}
+            <div className="lg:col-span-2 bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="font-medium text-indigo-900">สร้าง CAPA อย่างเป็นทางการ</p>
+                <p className="text-sm text-indigo-700">
+                  เปิดระเบียน CAPA (การแก้ไขและป้องกัน) ที่เชื่อมโยงกับความเบี่ยงเบนนี้เพื่อติดตามการดำเนินการและตรวจสอบประสิทธิผล
+                </p>
+              </div>
+              <DxButton
+                text="สร้าง CAPA จากความเบี่ยงเบนนี้"
+                icon="plus"
+                type="default"
+                elementAttr={{ 'data-testid': 'create-capa-from-deviation' }}
+                onClick={() =>
+                  router.push(
+                    `/gmp/capa/new?deviationId=${deviation.id}&deviationNumber=${encodeURIComponent(deviation.deviationNumber)}`
+                  )
+                }
+              />
+            </div>
+
             {/* Corrective Action */}
             <Card>
               <CardHeader>

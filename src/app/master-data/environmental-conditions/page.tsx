@@ -51,9 +51,13 @@ export default function EnvironmentalConditionsPage() {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (data: { mode?: 'deleted' | 'disabled' } | null) => {
       queryClient.invalidateQueries({ queryKey: ['environmental-conditions'] });
-      toast.success('ปิดใช้งานเงื่อนไขแล้ว', 'ปิดใช้งานโปรไฟล์เงื่อนไขเรียบร้อยแล้ว');
+      if (data?.mode === 'disabled') {
+        toast.success('ปิดการใช้งาน', 'เงื่อนไขนี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+      } else {
+        toast.success('ลบสำเร็จ', 'ลบโปรไฟล์เงื่อนไขเรียบร้อยแล้ว');
+      }
     },
     onError: (error: Error) => {
       toast.error('ผิดพลาด', error.message);

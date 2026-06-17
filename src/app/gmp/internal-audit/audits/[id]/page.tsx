@@ -187,8 +187,10 @@ export default function AuditDetailPage({ params }: PageProps) {
     }
   };
 
-  const handleAssignCapa = (findingId: number) => {
-    router.push(`/gmp/capa/new?findingId=${findingId}`);
+  const handleAssignCapa = (findingId: number, findingNumber?: string) => {
+    const params = new URLSearchParams({ auditFindingId: String(findingId) });
+    if (findingNumber) params.set('auditFindingNumber', findingNumber);
+    router.push(`/gmp/capa/new?${params.toString()}`);
   };
 
   const categoryOptions = [

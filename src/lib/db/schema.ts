@@ -1560,6 +1560,11 @@ export const sqliteIPCRecordingRounds = sqliteTable('ipc_recording_rounds', {
   passed: integer('passed', { mode: 'boolean' }),
   computedMean: real('computed_mean'),
   outcomeNote: text('outcome_note'),
+  // Triple Independence — a second qualified person (≠ submittedById) verifies
+  // the locked round. NULL until verified. Gates the GMP sign-off the same way
+  // legacy IPC approval does. Independence is enforced in the verify API.
+  verifiedAt: text('verified_at'),
+  verifiedById: integer('verified_by_id').references(() => sqliteUsers.id),
 });
 
 export const sqliteBOMInProcessQC = sqliteTable('bom_in_process_qc', {
@@ -5013,6 +5018,10 @@ export const mysqlIPCRecordingRounds = mysqlTable('ipc_recording_rounds', {
   passed: mysqlBoolean('passed'),
   computedMean: decimal('computed_mean', { precision: 15, scale: 4 }),
   outcomeNote: mysqlText('outcome_note'),
+  // Triple Independence — second-person verification of the locked round.
+  // NULL until verified; independence (verifier ≠ submitter) enforced in API.
+  verifiedAt: datetime('verified_at'),
+  verifiedById: int('verified_by_id').references(() => mysqlUsers.id),
 });
 
 export const mysqlBOMInProcessQC = mysqlTable('bom_in_process_qc', {
