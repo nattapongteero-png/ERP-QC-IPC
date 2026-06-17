@@ -889,6 +889,10 @@ export default function PositionsPage() {
                     horizontalAlignment="right"
                     verticalAlignment="top"
                     itemTextPosition="right"
+                    customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                      const d = analytics.gmpDistribution[info.pointIndex ?? -1];
+                      return d ? `${info.pointName} (${d.value})` : (info.pointName ?? '');
+                    }}
                   />
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Tooltip enabled customizeTooltip={(point: any) => ({
@@ -922,6 +926,10 @@ export default function PositionsPage() {
                     horizontalAlignment="right"
                     verticalAlignment="top"
                     itemTextPosition="right"
+                    customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                      const d = analytics.statusDistribution[info.pointIndex ?? -1];
+                      return d ? `${info.pointName} (${d.value})` : (info.pointName ?? '');
+                    }}
                   />
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Tooltip enabled customizeTooltip={(point: any) => ({

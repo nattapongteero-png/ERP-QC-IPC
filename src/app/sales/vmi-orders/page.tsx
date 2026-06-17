@@ -1072,6 +1072,10 @@ export default function VmiOrdersPage() {
                 orientation="vertical"
                 horizontalAlignment="right"
                 verticalAlignment="top"
+                customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                  const d = statusChartData[info.pointIndex ?? -1];
+                  return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                }}
               />
               <Tooltip
                 enabled={true}
@@ -1115,6 +1119,10 @@ export default function VmiOrdersPage() {
                 orientation="vertical"
                 horizontalAlignment="right"
                 verticalAlignment="top"
+                customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                  const d = priorityChartData[info.pointIndex ?? -1];
+                  return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                }}
               />
               <Tooltip
                 enabled={true}

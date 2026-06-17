@@ -855,6 +855,10 @@ export default function TrainingDashboardPage() {
                     horizontalAlignment="right"
                     verticalAlignment="top"
                     itemTextPosition="right"
+                    customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                      const d = analytics.sessionStatusDistribution[info.pointIndex ?? -1];
+                      return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                    }}
                   />
                   <PieTooltip
                     enabled
@@ -895,6 +899,10 @@ export default function TrainingDashboardPage() {
                     horizontalAlignment="right"
                     verticalAlignment="top"
                     itemTextPosition="right"
+                    customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                      const d = analytics.categoryDistribution[info.pointIndex ?? -1];
+                      return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                    }}
                   />
                   <PieTooltip
                     enabled

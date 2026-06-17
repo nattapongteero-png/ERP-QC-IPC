@@ -649,7 +649,7 @@ export default function SalesOrdersPage() {
                 <Series argumentField="status" valueField="count">
                   <Label visible={false} />
                 </Series>
-                <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" itemTextPosition="right" />
+                <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" itemTextPosition="right" customizeText={(info: { pointName?: string; pointIndex?: number }) => { const d = statusChartData[info.pointIndex ?? -1]; return d ? `${info.pointName} (${d.count})` : (info.pointName ?? ''); }} />
                 <Tooltip enabled customizeTooltip={(arg) => ({
                   text: `${arg.argumentText}: ${arg.valueText}`,
                 })} />
@@ -684,7 +684,7 @@ export default function SalesOrdersPage() {
                 <Series argumentField="status" valueField="value">
                   <Label visible={false} />
                 </Series>
-                <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" itemTextPosition="right" />
+                <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" itemTextPosition="right" customizeText={(info: { pointName?: string; pointIndex?: number }) => { const d = valueChartData[info.pointIndex ?? -1]; return d ? `${info.pointName} (${d.value})` : (info.pointName ?? ''); }} />
                 <Tooltip enabled customizeTooltip={(arg) => ({
                   text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`,
                 })} />

@@ -632,6 +632,10 @@ export default function CustomerDetailPage({
                 orientation="vertical"
                 horizontalAlignment="right"
                 verticalAlignment="top"
+                customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                  const d = orderStatusChartData[info.pointIndex ?? -1];
+                  return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                }}
               />
               <Tooltip enabled customizeTooltip={(arg) => ({
                 text: `${arg.argument}: ${arg.value} ${t('customers.detail.summary.items')}`,

@@ -230,6 +230,10 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
                 verticalAlignment="top"
               font={{ size: 11 }}
               rowCount={1}
+              customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                const d = statusData[info.pointIndex ?? -1];
+                return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+              }}
             />
             <Tooltip enabled={true} />
             <Size height={300} />
@@ -275,6 +279,10 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
                 verticalAlignment="top"
               font={{ size: 11 }}
               rowCount={1}
+              customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                const d = severityData[info.pointIndex ?? -1];
+                return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+              }}
             />
             <Tooltip enabled={true} />
             <Size height={300} />

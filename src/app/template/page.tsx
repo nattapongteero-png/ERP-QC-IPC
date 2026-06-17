@@ -446,7 +446,16 @@ export default function TemplateDashboardPage() {
                     <Connector visible={true} width={1} />
                   </Label>
                 </Series>
-                <Legend visible={false} />
+                <Legend
+                  visible={true}
+                  verticalAlignment="top"
+                  horizontalAlignment="right"
+                  orientation="vertical"
+                  customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                    const d = statusChartData[info.pointIndex ?? -1];
+                    return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                  }}
+                />
                 <Tooltip
                   enabled={true}
                   customizeTooltip={(arg: { argumentText?: string; valueText?: string; percentText?: string }) => ({

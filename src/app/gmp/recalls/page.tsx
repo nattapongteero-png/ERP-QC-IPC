@@ -749,6 +749,10 @@ export default function RecallsDashboardPage() {
                 orientation="vertical"
                 horizontalAlignment="right"
                 verticalAlignment="top"
+                customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                  const d = classChartData[info.pointIndex ?? -1];
+                  return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                }}
               />
               <Tooltip enabled={true} />
             </PieChart>

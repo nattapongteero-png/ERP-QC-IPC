@@ -407,7 +407,13 @@ export default function PeriodClosePage() {
                     <Connector visible={true} width={1} />
                   </Label>
                 </Series>
-                <Legend visible={false} />
+                <Legend
+                  visible={false}
+                  customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                    const d = statusChartData[info.pointIndex ?? -1];
+                    return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                  }}
+                />
                 <Tooltip enabled={true} />
               </PieChart>
             ) : (

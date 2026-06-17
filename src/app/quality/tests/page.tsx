@@ -522,6 +522,10 @@ export default function QualityTestsPage() {
                 horizontalAlignment="right"
                 verticalAlignment="top"
                 font={{ size: 11 }}
+                customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                  const d = statusChartData[info.pointIndex ?? -1];
+                  return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                }}
               />
               <Tooltip
                 enabled={true}

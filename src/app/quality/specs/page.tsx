@@ -737,6 +737,10 @@ export default function QualitySpecsPage() {
                 horizontalAlignment="right"
                 verticalAlignment="top"
                     font={{ size: 12 }}
+                    customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                      const d = statusChartData[info.pointIndex ?? -1];
+                      return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                    }}
                   />
                   <Tooltip
                     enabled={true}
@@ -781,6 +785,10 @@ export default function QualitySpecsPage() {
                 horizontalAlignment="right"
                 verticalAlignment="top"
                     font={{ size: 12 }}
+                    customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                      const d = criticalChartData[info.pointIndex ?? -1];
+                      return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                    }}
                   />
                   <Tooltip
                     enabled={true}

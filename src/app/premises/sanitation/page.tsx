@@ -432,6 +432,10 @@ export default function SanitationDashboardPage() {
                 horizontalAlignment="right"
                 verticalAlignment="top"
                 font={{ size: 11 }}
+                customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                  const d = areaComplianceData[info.pointIndex ?? -1];
+                  return d ? `${info.pointName} (${d.completed})` : (info.pointName ?? '');
+                }}
               />
               <Tooltip
                 enabled={true}

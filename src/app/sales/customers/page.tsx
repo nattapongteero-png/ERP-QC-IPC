@@ -609,7 +609,15 @@ export default function CustomersPage() {
                   </Series>
                   {/* Legend on the RIGHT (vertical) so long Thai labels stack
                       down the side and never get clipped. */}
-                  <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" />
+                  <Legend
+                    orientation="vertical"
+                    horizontalAlignment="right"
+                    verticalAlignment="top"
+                    customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                      const d = typeChartData[info.pointIndex ?? -1];
+                      return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                    }}
+                  />
                   <Tooltip enabled={true} customizeTooltip={(arg) => ({
                     text: `${arg.argumentText}: ${t('customers.cards.count', { count: arg.valueText || 0 })}`
                   })} />
@@ -644,7 +652,15 @@ export default function CustomersPage() {
                   <Series argumentField="type" valueField="credit">
                     <Label visible={false} />
                   </Series>
-                  <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" />
+                  <Legend
+                    orientation="vertical"
+                    horizontalAlignment="right"
+                    verticalAlignment="top"
+                    customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                      const d = creditChartData[info.pointIndex ?? -1];
+                      return d ? `${info.pointName} (${formatCurrency(d.credit)})` : (info.pointName ?? '');
+                    }}
+                  />
                   <Tooltip enabled={true} customizeTooltip={(arg) => ({
                     text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`
                   })} />

@@ -597,6 +597,10 @@ export default function DeviationsPage() {
                 orientation="vertical"
                 horizontalAlignment="right"
                 verticalAlignment="top"
+                customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                  const d = statusChartData[info.pointIndex ?? -1];
+                  return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                }}
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
                 text: `${arg.argumentText}: ${arg.valueText} ${t('common.items')}`
@@ -634,6 +638,10 @@ export default function DeviationsPage() {
                 orientation="vertical"
                 horizontalAlignment="right"
                 verticalAlignment="top"
+                customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                  const d = severityChartData[info.pointIndex ?? -1];
+                  return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                }}
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
                 text: `${arg.argumentText}: ${arg.valueText} ${t('common.items')}`
@@ -671,6 +679,10 @@ export default function DeviationsPage() {
                 orientation="vertical"
                 horizontalAlignment="right"
                 verticalAlignment="top"
+                customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                  const d = sourceChartData[info.pointIndex ?? -1];
+                  return d ? `${info.pointName} (${d.count})` : (info.pointName ?? '');
+                }}
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
                 text: `${arg.argumentText}: ${arg.valueText} ${t('common.items')}`
