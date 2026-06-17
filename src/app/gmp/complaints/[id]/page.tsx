@@ -313,7 +313,7 @@ export default function ComplaintDetailPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Professional Header with Gradient */}
       <div className={cn(
-        'bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500',
+        'bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700',
         'text-white shadow-lg'
       )}>
         <div className="container mx-auto px-4 py-6">
@@ -440,7 +440,7 @@ export default function ComplaintDetailPage() {
       </div>
 
       {/* Key Metrics Cards */}
-      <div className="container mx-auto px-4 -mt-6">
+      <div className="container mx-auto px-4 mt-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Severity */}
           <Card className="shadow-lg border-0">

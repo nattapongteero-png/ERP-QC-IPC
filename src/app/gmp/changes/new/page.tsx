@@ -50,7 +50,9 @@ async function fetchUsers(): Promise<User[]> {
   const response = await fetch('/api/users?limit=1000');
   const result = await response.json();
   if (!result.success) return [];
-  return result.data.users.map((u: { id: number; name: string }) => ({
+  // /api/users returns a paginated shape → data.items (not data.users).
+  const list = result.data.items || result.data.users || [];
+  return list.map((u: { id: number; name: string }) => ({
     id: u.id,
     name: u.name,
   }));

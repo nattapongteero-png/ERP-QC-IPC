@@ -199,7 +199,7 @@ export default function DeviationDetailPage() {
             type="normal"
             stylingMode="outlined"
             className="mt-4"
-            onClick={() => router.push('/quality')}
+            onClick={() => router.push('/quality/deviations')}
           />
         </div>
       
@@ -220,7 +220,7 @@ export default function DeviationDetailPage() {
                 icon="back"
                 type="normal"
                 stylingMode="outlined"
-                onClick={() => router.push('/quality')}
+                onClick={() => router.push('/quality/deviations')}
               />
               <h1 className="text-2xl font-bold text-gray-900">{deviation.deviationCode}</h1>
               <Badge variant={getStatusVariant(deviation.status)}>

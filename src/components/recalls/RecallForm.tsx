@@ -72,10 +72,13 @@ async function fetchLots(productId: number): Promise<Lot[]> {
 }
 
 async function fetchUsers(): Promise<User[]> {
-  const response = await fetch('/api/users?role=qc&limit=100');
+  // Fetch ALL active users for the coordinator picker — filtering by role=qc
+  // returned nothing (seed data has no qc-role users), leaving the required
+  // dropdown empty. /api/users returns a paginated shape → data.items.
+  const response = await fetch('/api/users?limit=200');
   const result = await response.json();
   if (!result.success) throw new Error(result.error);
-  return result.data.users || [];
+  return result.data.items || result.data.users || [];
 }
 
 async function createRecall(data: RecallCreate): Promise<Recall> {
